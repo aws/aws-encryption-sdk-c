@@ -15,20 +15,51 @@
 cmake_minimum_required (VERSION 3.1)
 project (aws-encryption-sdk)
 include(CheckLibraryExists)
+include(CheckCXXSourceCompiles)
 
 set(PROJECT_NAME aws-encryption-sdk)
 
+
+# Compiler feature tests and feature flags
+set(USE_ASM TRUE
+    CACHE BOOL "Enable use of inline assembler, if supported by the compiler and platform")
+
+set(SPECTRE_MITIGATIONS TRUE
+    CACHE BOOL "Attempt to mitigate SPECTRE attacks, at a potential performance cost")
+
+if(USE_ASM)
+    CHECK_CXX_SOURCE_COMPILES("
+    int main() {
+        __asm__(\"xor %%rax, %%rax\":::);
+        return 0;
+    }"
+    USE_X86_64_ASM
+    )
+endif()
+
+CHECK_CXX_SOURCE_COMPILES("
+    int main() { return __builtin_expect(0, 0); }
+" HAVE_BUILTIN_EXPECT)
+
 file(GLOB AWS_CRYPTOSDK_HEADERS
+# Headers subject to API/ABI stability guarantees
      "include/aws/cryptosdk/*.h"
+# Headers not subject to API stability (but subject to ABI stability)
+# These typically include internal macros and helpers used in static inline functions
+     "include/aws/cryptosdk/private/*.h"
 )
 
 file(GLOB AWS_CRYPTOSDK_PRIV_HEADERS
-     "include/aws/cryptosdk/private/*.h"
+# Headers not installed with the library
+     "noninst_include/aws/cryptosdk/private/*.h"
 )
 
 file(GLOB AWS_CRYPTOSDK_SRC
     "source/*.c"
 )
+
+# Generate an includable header file exposing build-time configuration
+set(GENERATED_CONFIG_HEADER "${CMAKE_CURRENT_BINARY_DIR}/generated/include/aws/cryptosdk/private/config.h")
 
 CHECK_LIBRARY_EXISTS("rt" "clock_gettime" "" HAVE_LIBRT)
 if(HAVE_LIBRT)
@@ -43,6 +74,7 @@ endif()
 file(GLOB CORE_HEADERS
     ${AWS_CRYPTOSDK_HEADERS}
     ${AWS_CRYPTOSDK_PRIV_HEADERS}
+    ${GENERATED_CONFIG_HEADER}
 )
 
 file(GLOB CORE_SRC
@@ -65,6 +97,8 @@ endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/noninst_include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated/include>
     $<INSTALL_INTERFACE:include>)
   
 target_link_libraries(aws-encryption-sdk ${PLATFORM_LIBS})
@@ -74,15 +108,15 @@ file(GLOB TEST_HDRS "tests/*.h")
 file(GLOB TESTS ${TEST_HDRS} ${TEST_SRC})
   
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/tests)
-add_executable(aws-encryption-sdk-tests ${TESTS})
-target_link_libraries(aws-encryption-sdk-tests aws-encryption-sdk)
-set_target_properties(aws-encryption-sdk-tests PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
+add_executable(unit-test-suite ${TESTS})
+target_link_libraries(unit-test-suite ${PROJECT_NAME})
+set_target_properties(unit-test-suite PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 
 include(CTest)
 enable_testing()
 
-add_test(test_a aws-encryption-sdk-tests test_a)
-add_test(test_b aws-encryption-sdk-tests test_b)
+add_test(buffer unit-test-suite buffer)
+add_test(header unit-test-suite header)
 
 install (FILES ${AWS_CRYPTOSDK_HEADERS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/aws/encryption-sdk")
 install (
@@ -95,3 +129,14 @@ install (
 export(TARGETS ${PROJECT_NAME} FILE aws-encryption-sdk-config.cmake)
 install(EXPORT ${PROJECT_NAME}-config DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/aws-encryption-sdk/cmake/")
 
+# Generate the header at the end, after we've finished feature probing
+
+set(AWS_CRYPTOSDK_P_HAVE_LIBPTHREAD ${HAVE_LIBPTHREAD} BOOL)
+set(AWS_CRYPTOSDK_P_HAVE_LIBRT ${HAVE_LIBRT} BOOL)
+set(AWS_CRYPTOSDK_P_USE_X86_64_ASM ${USE_X86_64_ASM} BOOL)
+set(AWS_CRYPTOSDK_P_SPECTRE_MITIGATIONS ${SPECTRE_MITIGATIONS} BOOL)
+set(AWS_CRYPTOSDK_P_HAVE_BUILTIN_EXPECT ${HAVE_BUILTIN_EXPECT} BOOL)
+
+configure_file("include/aws/cryptosdk/private/config.h.in"
+               ${GENERATED_CONFIG_HEADER}
+               ESCAPE_QUOTES)
