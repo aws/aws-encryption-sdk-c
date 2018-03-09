@@ -42,34 +42,34 @@ size_t aws_cryptosdk_hdr_get_frame_len(const struct aws_cryptosdk_hdr *hdr) {
 
 int aws_cryptosdk_hdr_get_aad(const struct aws_cryptosdk_hdr *hdr, int index, struct aws_cryptosdk_hdr_aad *aad) {
     if (index < 0 || index >= hdr->aad_count) {
-        return AWS_ERR_BAD_ARG;
+        return aws_raise_error(AWS_ERROR_INVALID_INDEX);
     }
 
     *aad = hdr->aad_tbl[index];
 
-    return AWS_ERR_OK;
+    return AWS_OP_SUCCESS;
 }
 
 int aws_cryptosdk_hdr_get_edk(const struct aws_cryptosdk_hdr *hdr, int index, struct aws_cryptosdk_hdr_edk *edk) {
     if (index < 0 || index >= hdr->edk_count) {
-        return AWS_ERR_BAD_ARG;
+        return aws_raise_error(AWS_ERROR_INVALID_INDEX);
     }
 
     *edk = hdr->edk_tbl[index];
 
-    return AWS_ERR_OK;
+    return AWS_OP_SUCCESS;
 }
 
 int aws_cryptosdk_hdr_get_msgid(const struct aws_cryptosdk_hdr *hdr, struct aws_cryptosdk_buffer *buf) {
     *buf = hdr->message_id;
 
-    return AWS_ERR_OK;
+    return AWS_OP_SUCCESS;
 }
 
 int aws_cryptosdk_hdr_get_authtag(const struct aws_cryptosdk_hdr *hdr, struct aws_cryptosdk_buffer *buf) {
     *buf = hdr->auth_tag;
 
-    return AWS_ERR_OK;
+    return AWS_OP_SUCCESS;
 }
 
 int aws_cryptosdk_algorithm_is_known(uint16_t alg_id) {
@@ -132,7 +132,7 @@ static int allocate_ptr_tables(
     hdr->edk_tbl = NULL;
 
     if (!outbuf) {
-        return AWS_ERR_OK;
+        return AWS_OP_SUCCESS;
     }
 
     // Align buffer to a multiple of sizeof(void *) if needed.
@@ -143,18 +143,18 @@ static int allocate_ptr_tables(
     if (misaligned) {
         uint8_t *ignored;
         if (aws_cryptosdk_buffer_advance(outbuf, sizeof(void *) - misaligned, &ignored)) {
-            return AWS_ERR_OOM;
+            return aws_raise_error(AWS_ERROR_OOM);
         }
     }
 
     if (aws_cryptosdk_buffer_advance(outbuf, aad_tbl_size, &hdr->aad_tbl)) {
-        return AWS_ERR_OOM;
+        return aws_raise_error(AWS_ERROR_OOM);
     }
     if (aws_cryptosdk_buffer_advance(outbuf, edk_tbl_size, &hdr->edk_tbl)) {
-        return AWS_ERR_OOM;
+        return aws_raise_error(AWS_ERROR_OOM);
     }
 
-    return AWS_ERR_OK;
+    return AWS_OP_SUCCESS;
 }
 
 static int read_field_u16(
@@ -164,11 +164,11 @@ static int read_field_u16(
     size_t * restrict header_space_needed
 ) {
     uint16_t length;
-    if (aws_cryptosdk_buffer_read_u16(inbuf, &length)) return AWS_ERR_TRUNCATED;
+    if (aws_cryptosdk_buffer_read_u16(inbuf, &length)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 
     const uint8_t *field_data;
     if (aws_cryptosdk_buffer_advance(inbuf, length, &field_data)) {
-        return AWS_ERR_TRUNCATED;
+        return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     }
 
     *header_space_needed += length;
@@ -176,12 +176,12 @@ static int read_field_u16(
     field->ptr = NULL;
     if (arena) {
         void *destbuf;
-        if (aws_cryptosdk_buffer_advance(arena, length, &destbuf)) return AWS_ERR_OOM;
+        if (aws_cryptosdk_buffer_advance(arena, length, &destbuf)) return aws_raise_error(AWS_ERROR_OOM);
         memcpy(destbuf, field_data, length);
         field->ptr = destbuf;
     }
 
-    return AWS_ERR_OK;
+    return AWS_OP_SUCCESS;
 }
 
 #define PROPAGATE_ERR(expr) do { \
@@ -200,45 +200,45 @@ static inline int hdr_parse_core(
     assert(header_space_needed);
 
     uint8_t bytefield;
-    if (aws_cryptosdk_buffer_read_u8(inbuf, &bytefield)) return AWS_ERR_TRUNCATED;
-    if (aws_cryptosdk_unlikely(bytefield != AWS_CRYPTOSDK_HEADER_VERSION_1_0)) return AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
+    if (aws_cryptosdk_buffer_read_u8(inbuf, &bytefield)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
+    if (aws_cryptosdk_unlikely(bytefield != AWS_CRYPTOSDK_HEADER_VERSION_1_0)) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
 
-    if (aws_cryptosdk_buffer_read_u8(inbuf, &bytefield)) return AWS_ERR_TRUNCATED;
-    if (aws_cryptosdk_unlikely(bytefield != AWS_CRYPTOSDK_HEADER_TYPE_CUSTOMER_AED)) return AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
+    if (aws_cryptosdk_buffer_read_u8(inbuf, &bytefield)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
+    if (aws_cryptosdk_unlikely(bytefield != AWS_CRYPTOSDK_HEADER_TYPE_CUSTOMER_AED)) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
 
     uint16_t alg_id;
-    if (aws_cryptosdk_buffer_read_u16(inbuf, &alg_id)) return AWS_ERR_TRUNCATED;
+    if (aws_cryptosdk_buffer_read_u16(inbuf, &alg_id)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     if (aws_cryptosdk_unlikely(!aws_cryptosdk_algorithm_is_known(alg_id))) {
-        return AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
     }
     hdr->alg_id = alg_id;
 
-    if (aws_cryptosdk_buffer_read(inbuf, hdr->message_id_arr, MESSAGE_ID_LEN)) return AWS_ERR_TRUNCATED;
+    if (aws_cryptosdk_buffer_read(inbuf, hdr->message_id_arr, MESSAGE_ID_LEN)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     hdr->message_id.len = MESSAGE_ID_LEN;
     hdr->message_id.ptr = hdr->message_id_arr;
 
     uint16_t aad_len, aad_count;
-    if (aws_cryptosdk_buffer_read_u16(inbuf, &aad_len)) return AWS_ERR_TRUNCATED;
+    if (aws_cryptosdk_buffer_read_u16(inbuf, &aad_len)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 
     const uint8_t *expect_end_aad = (const uint8_t *)inbuf->ptr + aad_len;
 
-    if (aws_cryptosdk_buffer_read_u16(inbuf, &aad_count)) return AWS_ERR_TRUNCATED;
+    if (aws_cryptosdk_buffer_read_u16(inbuf, &aad_count)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 
     struct aws_cryptosdk_buffer aad_start = *inbuf;
 
     hdr->aad_count = aad_count;
     // Skip forward and get the EDK count, so we can preallocate our tables
     if (aws_cryptosdk_unlikely(aws_cryptosdk_buffer_skip(inbuf, aad_len - 2))) {
-        return AWS_ERR_TRUNCATED;
+        return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     }
 
     uint16_t edk_count;
-    if (aws_cryptosdk_buffer_read_u16(inbuf, &edk_count)) return AWS_ERR_TRUNCATED;
-    if (aws_cryptosdk_unlikely(!edk_count)) return AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
+    if (aws_cryptosdk_buffer_read_u16(inbuf, &edk_count)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
+    if (aws_cryptosdk_unlikely(!edk_count)) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
     hdr->edk_count = edk_count;
 
     if (allocate_ptr_tables(hdr, outbuf, header_space_needed)) {
-        return AWS_ERR_OOM;
+        return aws_raise_error(AWS_ERROR_OOM);
     }
 
     // Now go back and parse the AAD entries
@@ -256,11 +256,11 @@ static inline int hdr_parse_core(
     }
 
     if (inbuf->ptr != expect_end_aad) {
-        return AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
     }
 
     // Skip the EDK count as we've already read it
-    if (aws_cryptosdk_buffer_skip(inbuf, 2)) return AWS_ERR_UNKNOWN;
+    if (aws_cryptosdk_buffer_skip(inbuf, 2)) return aws_raise_error(AWS_ERROR_UNKNOWN);
 
     // The EDK structure doesn't have a handy length field, so we need to walk it here.
     for (int i = 0; i < edk_count; i++) {
@@ -276,33 +276,33 @@ static inline int hdr_parse_core(
     }
 
     uint8_t content_type;
-    if (aws_cryptosdk_buffer_read_u8(inbuf, &content_type)) return AWS_ERR_TRUNCATED;
+    if (aws_cryptosdk_buffer_read_u8(inbuf, &content_type)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 
     if (aws_cryptosdk_unlikely(!is_known_type(content_type))) {
-        return AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
     }
 
     // skip reserved
-    if (aws_cryptosdk_buffer_skip(inbuf, 4)) return AWS_ERR_TRUNCATED;
+    if (aws_cryptosdk_buffer_skip(inbuf, 4)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 
     uint8_t ivlen;
-    if (aws_cryptosdk_buffer_read_u8(inbuf, &ivlen)) return AWS_ERR_TRUNCATED;
+    if (aws_cryptosdk_buffer_read_u8(inbuf, &ivlen)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 
     if (ivlen != aws_cryptosdk_algorithm_ivlen(alg_id)) {
-        return AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
     }
 
     hdr->ivlen = ivlen;
 
     uint32_t frame_len;
-    if (aws_cryptosdk_buffer_read_u32(inbuf, &frame_len)) return AWS_ERR_TRUNCATED;
+    if (aws_cryptosdk_buffer_read_u32(inbuf, &frame_len)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 
     if (content_type == AWS_CRYPTOSDK_HEADER_CTYPE_NONFRAMED && frame_len != 0) {
-        return AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
     }
 
     if (content_type == AWS_CRYPTOSDK_HEADER_CTYPE_FRAMED && frame_len == 0) {
-        return AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
     }
 
     hdr->frame_len = frame_len;
@@ -310,11 +310,11 @@ static inline int hdr_parse_core(
     // verify we can still fit header auth
     size_t taglen = aws_cryptosdk_algorithm_taglen(alg_id);
     const uint8_t *p_hdr_auth_src;
-    if (aws_cryptosdk_buffer_advance(inbuf, taglen, &p_hdr_auth_src)) return AWS_ERR_TRUNCATED;
+    if (aws_cryptosdk_buffer_advance(inbuf, taglen, &p_hdr_auth_src)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 
     uint8_t *p_hdr_auth_dst = NULL;
     if (outbuf) {
-        if (aws_cryptosdk_buffer_advance(outbuf, taglen, &p_hdr_auth_dst)) return AWS_ERR_OOM;
+        if (aws_cryptosdk_buffer_advance(outbuf, taglen, &p_hdr_auth_dst)) return aws_raise_error(AWS_ERROR_OOM);
         memcpy(p_hdr_auth_dst, p_hdr_auth_src, taglen);
     }
 
@@ -323,7 +323,7 @@ static inline int hdr_parse_core(
 
     *header_space_needed += taglen;
 
-    return AWS_ERR_OK;
+    return AWS_OP_SUCCESS;
 }
 
 int aws_cryptosdk_hdr_preparse(const uint8_t *hdrbuf, size_t buflen, size_t *header_space_needed, size_t *header_length) {
@@ -339,7 +339,7 @@ int aws_cryptosdk_hdr_preparse(const uint8_t *hdrbuf, size_t buflen, size_t *hea
 
     int rv = hdr_parse_core(&hdr, NULL, &inbuf, header_space_needed);
 
-    if (aws_cryptosdk_likely(rv == AWS_ERR_OK)) {
+    if (aws_cryptosdk_likely(rv == AWS_OP_SUCCESS)) {
         *header_length = (const uint8_t *)inbuf.ptr - hdrbuf;
         *header_space_needed += *header_length;
     }
@@ -366,16 +366,16 @@ int aws_cryptosdk_hdr_parse(
     aws_cryptosdk_buffer_skip(&outbuf, align);
 
     struct aws_cryptosdk_hdr *pHeader;
-    if (aws_cryptosdk_buffer_advance(&outbuf, sizeof(*pHeader), &pHeader)) return AWS_ERR_OOM;
+    if (aws_cryptosdk_buffer_advance(&outbuf, sizeof(*pHeader), &pHeader)) return aws_raise_error(AWS_ERROR_OOM);
 
     if (aws_cryptosdk_unlikely(!pHeader)) {
-        return AWS_ERR_OOM;
+        return aws_raise_error(AWS_ERROR_OOM);
     }
 
     size_t header_space_needed = 0;
     int rv = hdr_parse_core(pHeader, &outbuf, &inbuf, &header_space_needed);
 
-    if (aws_cryptosdk_unlikely(rv != AWS_ERR_OK)) {
+    if (aws_cryptosdk_unlikely(rv != AWS_OP_SUCCESS)) {
         *hdr = NULL;
         return rv;
     }

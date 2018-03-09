@@ -27,6 +27,9 @@ set(USE_ASM TRUE
 set(SPECTRE_MITIGATIONS TRUE
     CACHE BOOL "Attempt to mitigate SPECTRE attacks, at a potential performance cost")
 
+set(AWS_C_COMMON_PATH "" CACHE STRING "Path to the directory containing aws-c-common-config.cmake")
+include(${AWS_C_COMMON_PATH}/aws-c-common-config.cmake)
+
 if(USE_ASM)
     CHECK_CXX_SOURCE_COMPILES("
     int main() {
@@ -101,7 +104,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated/include>
     $<INSTALL_INTERFACE:include>)
   
-target_link_libraries(aws-encryption-sdk ${PLATFORM_LIBS})
+target_link_libraries(aws-encryption-sdk ${PLATFORM_LIBS} aws-c-common)
 
 file(GLOB TEST_SRC "tests/*.c")
 file(GLOB TEST_HDRS "tests/*.h")

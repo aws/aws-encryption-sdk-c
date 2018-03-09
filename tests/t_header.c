@@ -9,6 +9,11 @@
 #endif
 
 
+// XXX: proper error checking
+#define AWS_ERR_TRUNCATED AWS_OP_ERR
+#define AWS_ERR_BAD_ARG AWS_OP_ERR
+
+
 static const uint8_t test_header_1[] = {
     //version, type, alg ID
     0x01,  0x80,  0x02,  0x14, 
@@ -69,14 +74,14 @@ int simple_header_preparse() {
             aws_cryptosdk_hdr_preparse(test_header_1, size, &header_space_needed, &header_length));
     }
 
-    TEST_ASSERT_INT_EQ(AWS_ERR_OK,
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
         aws_cryptosdk_hdr_preparse(test_header_1, sizeof(test_header_1) - 1, &header_space_needed, &header_length));
 
     TEST_ASSERT_INT_EQ(sizeof(test_header_1) - 1, header_length);
 
     header_length = 0;
 
-    TEST_ASSERT_INT_EQ(AWS_ERR_OK,
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
         aws_cryptosdk_hdr_preparse(test_header_1, sizeof(test_header_1), &header_space_needed, &header_length));
 
     TEST_ASSERT_INT_EQ(sizeof(test_header_1) - 1, header_length);
@@ -87,7 +92,7 @@ int simple_header_preparse() {
 int simple_header_parse() {
     size_t header_space_needed = 0, header_length = 0;
 
-    TEST_ASSERT_INT_EQ(AWS_ERR_OK,
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
         aws_cryptosdk_hdr_preparse(test_header_1, sizeof(test_header_1) - 1, &header_space_needed, &header_length));
 
     void *header_buf = malloc(header_space_needed);
@@ -96,7 +101,7 @@ int simple_header_parse() {
     }
 
     struct aws_cryptosdk_hdr *hdr;
-    TEST_ASSERT_INT_EQ(AWS_ERR_OK,
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
         aws_cryptosdk_hdr_parse(&hdr, header_buf, header_space_needed, test_header_1, sizeof(test_header_1) - 1));
 
     // Known answer tests
@@ -107,12 +112,12 @@ int simple_header_parse() {
     const uint8_t *ptr;
     size_t size;
 
-    TEST_ASSERT_INT_EQ(AWS_ERR_OK, aws_cryptosdk_hdr_get_msgid(hdr, &buf));
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_get_msgid(hdr, &buf));
     TEST_ASSERT_BUF_EQ(buf, 
         0x11,  0x22,  0x33,  0x44,  0x55,  0x66,  0x77,  0x88,  0x11,  0x22,  0x33,  0x44,  0x55,  0x66,  0x77,  0x88
     );
 
-    TEST_ASSERT_INT_EQ(AWS_ERR_OK, aws_cryptosdk_hdr_get_authtag(hdr, &buf));
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_get_authtag(hdr, &buf));
     TEST_ASSERT_BUF_EQ(buf,
         0xde,  0xad,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0xbe, 0xef
     );
@@ -125,11 +130,11 @@ int simple_header_parse() {
 
     // AAD checks
     struct aws_cryptosdk_hdr_aad aad;
-    TEST_ASSERT_INT_EQ(AWS_ERR_OK, aws_cryptosdk_hdr_get_aad(hdr, 0, &aad));
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_get_aad(hdr, 0, &aad));
     TEST_ASSERT_BUF_EQ(aad.key, 0x01, 0x02, 0x03, 0x04);
     TEST_ASSERT_BUF_EQ(aad.value, 0x01, 0x00, 0x01, 0x00, 0x01);
 
-    TEST_ASSERT_INT_EQ(AWS_ERR_OK, aws_cryptosdk_hdr_get_aad(hdr, 1, &aad));
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_get_aad(hdr, 1, &aad));
     TEST_ASSERT_INT_EQ(0, aad.key.len);
     TEST_ASSERT_INT_EQ(0, aad.value.len);
 
@@ -138,17 +143,17 @@ int simple_header_parse() {
 
     // EDK checks
     struct aws_cryptosdk_hdr_edk edk;
-    TEST_ASSERT_INT_EQ(AWS_ERR_OK, aws_cryptosdk_hdr_get_edk(hdr, 0, &edk));
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_get_edk(hdr, 0, &edk));
     TEST_ASSERT_INT_EQ(0, edk.provider_id.len);
     TEST_ASSERT_INT_EQ(0, edk.provider_info.len);
     TEST_ASSERT_INT_EQ(0, edk.enc_data_key.len);
 
-    TEST_ASSERT_INT_EQ(AWS_ERR_OK, aws_cryptosdk_hdr_get_edk(hdr, 2, &edk));
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_get_edk(hdr, 2, &edk));
     TEST_ASSERT_INT_EQ(0, edk.provider_id.len);
     TEST_ASSERT_INT_EQ(0, edk.provider_info.len);
     TEST_ASSERT_INT_EQ(0, edk.enc_data_key.len);
 
-    TEST_ASSERT_INT_EQ(AWS_ERR_OK, aws_cryptosdk_hdr_get_edk(hdr, 1, &edk));
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_get_edk(hdr, 1, &edk));
     TEST_ASSERT_BUF_EQ(edk.provider_id,
         0x10, 0x11, 0x12, 0x00
     );
@@ -201,7 +206,7 @@ static void overread_test_once(const uint8_t *inbuf, size_t inlen, ssize_t flip_
     size_t header_space_needed = 0, header_length = 0;
 
     if (aws_cryptosdk_hdr_preparse(phdr, inlen, &header_space_needed, &header_length)
-            != AWS_ERR_OK) {
+            != AWS_OP_SUCCESS) {
         // Preparse failed, probably because our buffer is truncated. This is okay, but we still want to exercise
         // parsing, so make up a huge buffer for it.
         header_space_needed = inlen + 65536;

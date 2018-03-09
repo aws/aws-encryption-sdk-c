@@ -16,23 +16,27 @@
 #ifndef AWS_CRYPTOSDK_ERROR_H
 #define AWS_CRYPTOSDK_ERROR_H 1
 
+#include <aws/common/error.h>
+#include <aws/common/common.h>
+
 /* 
  * Basic error reporting infrastructure. Much of this will likely move to some shared
  * library later.
  */
 
 /*
- * Common error code definitions
- */
-#define AWS_ERR_OK 0
-#define AWS_ERR_OOM 0x0001
-#define AWS_ERR_UNKNOWN 0x0002
-#define AWS_ERR_TRUNCATED 0x0003
-#define AWS_ERR_BAD_ARG 0x0003
-
-/*
  * CryptoSDK specific
  */
-#define AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT 0x4000
+enum aws_cryptosdk_err {
+    // TODO - reserve a range of error codes
+    AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT = 0x4000,
+    AWS_CRYPTOSDK_ERR_END_RANGE = 0x4fff
+};
+
+/**
+ * Register error strings with the core error reporting APIs.
+ */
+void aws_cryptosdk_err_init_strings();
+
 
 #endif

@@ -92,7 +92,7 @@ static inline int aws_cryptosdk_buffer_advance_0(struct aws_cryptosdk_buffer * p
 
     // We move this condition outside of the asm to allow better compiler optimization (e.g. elimination
     // of these constants if we're just going to test for nonzero anyway)
-    return aws_cryptosdk_likely(result) ? AWS_ERR_OK : AWS_ERR_TRUNCATED;
+    return aws_cryptosdk_likely(result) ? AWS_ERROR_SUCCESS : AWS_ERROR_SHORT_BUFFER;
 }
 
 /**
@@ -100,8 +100,8 @@ static inline int aws_cryptosdk_buffer_advance_0(struct aws_cryptosdk_buffer * p
  *
  * Performs a bounds check, verifying that the buffer provided has 'len' bytes of space available.
  * If successful, pBuf->ptr is advanced length bytes, the old pointer placed in *pResult,
- * and AWS_ERR_OK returned.
- * Otherwise (if there is insufficient space), AWS_ERR_TRUNCATED is returned, *pBuf is unchanged,
+ * and AWS_ERROR_SUCCESS returned.
+ * Otherwise (if there is insufficient space), AWS_ERROR_SHORT_BUFFER is returned, *pBuf is unchanged,
  * and *pResult is set to NULL
  *
  * If pResult is NULL, this function will discard the old buffer position instead of writing to *pResult.
@@ -119,8 +119,8 @@ static inline int aws_cryptosdk_buffer_advance_0(struct aws_cryptosdk_buffer * p
  
 /**
  * Advances the buffer by 'len' bytes, without returning the old position. If the buffer does not have at least
- * 'len' bytes remaining, leaves the buffer unchanged and returns AWS_ERR_TRUNCATED. Otherwise, the buffer's
- * pointer and length are updated, and the function returns AWS_ERR_OK.
+ * 'len' bytes remaining, leaves the buffer unchanged and returns AWS_ERROR_SHORT_BUFFER. Otherwise, the buffer's
+ * pointer and length are updated, and the function returns AWS_ERROR_SUCCESS.
  */
 static inline int aws_cryptosdk_buffer_skip(struct aws_cryptosdk_buffer *buffer, size_t length) {
     void *ignored;
@@ -140,26 +140,26 @@ static inline void aws_cryptosdk_nospec_barrier() {
 /**
  * Reads arbitrary data from pBuf to the output buffer identified by dest and len.
  *
- * If successful, pBuf->ptr is advanced len bytes, and AWS_ERR_OK is returned.
- * Otherwise, returns AWS_ERR_TRUNCATED without changing any state.
+ * If successful, pBuf->ptr is advanced len bytes, and AWS_ERROR_SUCCESS is returned.
+ * Otherwise, returns AWS_ERROR_SHORT_BUFFER without changing any state.
  */
 static inline int aws_cryptosdk_buffer_read(struct aws_cryptosdk_buffer * restrict pBuf, void * restrict dest, size_t len) {
     const uint8_t *pSource;
 
     if (aws_cryptosdk_buffer_advance(pBuf, len, &pSource)) {
-        return AWS_ERR_TRUNCATED;
+        return AWS_ERROR_SHORT_BUFFER;
     }
 
     memcpy(dest, pSource, len);
 
-    return AWS_ERR_OK;
+    return AWS_ERROR_SUCCESS;
 }
 
 /**
  * Reads a single byte from pBuf, placing it in *var.
  *
  * If successful, *var contains the byte previously pointed-to by pBuf->ptr,
- * and AWS_ERR_OK is returned. If pBuf had insufficient data, then AWS_ERR_TRUNCATED
+ * and AWS_ERROR_SUCCESS is returned. If pBuf had insufficient data, then AWS_ERROR_SHORT_BUFFER
  * is returned without changing any state.
  */
 static inline int aws_cryptosdk_buffer_read_u8(struct aws_cryptosdk_buffer * restrict pBuf, uint8_t * restrict var) {
@@ -171,7 +171,7 @@ static inline int aws_cryptosdk_buffer_read_u8(struct aws_cryptosdk_buffer * res
  * pBuf->ptr is not required to be aligned.
  *
  * If successful, *var contains the value previously pointed-to by pBuf->ptr (after byteswap, if required),
- * and AWS_ERR_OK is returned. If pBuf had insufficient data, then AWS_ERR_TRUNCATED
+ * and AWS_ERROR_SUCCESS is returned. If pBuf had insufficient data, then AWS_ERROR_SHORT_BUFFER
  * is returned without changing any state.
  */
 static inline int aws_cryptosdk_buffer_read_u16(struct aws_cryptosdk_buffer *pBuf, uint16_t *var) {
@@ -189,7 +189,7 @@ static inline int aws_cryptosdk_buffer_read_u16(struct aws_cryptosdk_buffer *pBu
  * pBuf->ptr is not required to be aligned.
  *
  * If successful, *var contains the value previously pointed-to by pBuf->ptr (after byteswap, if required),
- * and AWS_ERR_OK is returned. If pBuf had insufficient data, then AWS_ERR_TRUNCATED
+ * and AWS_ERROR_SUCCESS is returned. If pBuf had insufficient data, then AWS_ERROR_SHORT_BUFFER
  * is returned without changing any state.
  */
 static inline int aws_cryptosdk_buffer_read_u32(struct aws_cryptosdk_buffer *pBuf, uint32_t *var) {
