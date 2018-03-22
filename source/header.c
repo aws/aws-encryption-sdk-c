@@ -160,6 +160,20 @@ static int allocate_ptr_tables(
     return AWS_OP_SUCCESS;
 }
 
+
+/*
+ * This helper helps read length-prefixed binary strings from the serialized header.
+ * 'inbuf' takes the buffer containing the binary string (and potentially a suffix), and on return
+ * contains that suffix only (if any).
+ * 'arena' contains a buffer of space into which the field's data will be copied; arena's pointer
+ * and length are adjusted to be after the field.
+ * 'field' receives a reference to the binary string within the original arena.
+ * Finally header_space_needed is incremented by the amount of space consumed from arena.
+ *
+ * Because we want to use the same codepath for the preparse (determining how much space we need)
+ * and parse steps, if arena is null, we will not actually copy the field, but will instead just
+ * adjust header_space_needed.
+ */
 static int read_field_be16(
     struct aws_cryptosdk_buffer * restrict field,
     struct aws_cryptosdk_buffer * restrict inbuf,
