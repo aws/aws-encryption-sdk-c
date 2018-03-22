@@ -14,7 +14,7 @@
  */ 
 
 #ifndef AWS_CRYPTOSDK_ERROR_H
-#define AWS_CRYPTOSDK_ERROR_H 1
+#define AWS_CRYPTOSDK_ERROR_H
 
 #include <aws/common/error.h>
 #include <aws/common/common.h>

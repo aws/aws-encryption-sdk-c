@@ -13,8 +13,8 @@
  * limitations under the License.
  */ 
 
-#ifndef AWS_CRYPTOSDK_BUFFER
-#define AWS_CRYPTOSDK_BUFFER
+#ifndef AWS_CRYPTOSDK_BUFFER_H
+#define AWS_CRYPTOSDK_BUFFER_H
 
 #include <arpa/inet.h>
 #include <assert.h>
@@ -177,4 +177,4 @@ static inline int aws_cryptosdk_buffer_read_be32(struct aws_cryptosdk_buffer *pB
     return rv;
 }
 
-#endif
+#endif // AWS_CRYPTOSDK_BUFFER_H

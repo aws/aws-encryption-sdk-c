@@ -1,5 +1,20 @@
-#ifndef AWS_CRYPTOSDK_HEADER
-#define AWS_CRYPTOSDK_HEADER 1
+/*
+ * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+ * this file except in compliance with the License. A copy of the License is
+ * located at
+ *
+ *     http://aws.amazon.com/apache2.0/
+ *
+ * or in the "license" file accompanying this file. This file is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef AWS_CRYPTOSDK_HEADER_H
+#define AWS_CRYPTOSDK_HEADER_H
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -106,4 +121,4 @@ int aws_cryptosdk_algorithm_is_known(uint16_t alg_id);
 int aws_cryptosdk_algorithm_taglen(uint16_t alg_id);
 int aws_cryptosdk_algorithm_ivlen(uint16_t alg_id);
 
-#endif
+#endif // AWS_CRYPTOSDK_HEADER_H

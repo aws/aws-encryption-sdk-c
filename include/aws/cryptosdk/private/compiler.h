@@ -14,7 +14,7 @@
  */ 
 
 #ifndef AWS_CRYPTOSDK_PRIVATE_COMPILER_H
-#define AWS_CRYPTOSDK_PRIVATE_COMPILER_H 1
+#define AWS_CRYPTOSDK_PRIVATE_COMPILER_H
 
 #include <aws/cryptosdk/private/config.h>
 
@@ -26,4 +26,4 @@
 #define aws_cryptosdk_likely(x) (x)
 #endif
 
-#endif
+#endif // AWS_CRYPTOSDK_PRIVATE_COMPILER_H
