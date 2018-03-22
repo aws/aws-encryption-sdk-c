@@ -33,17 +33,24 @@ struct aws_cryptosdk_buffer {
     size_t len;
 };
 
-/** \cond PRIVATE_APIS
- * Internal helper, performs a compile-time check that something is indeed a pointer.
+/**
+ * Performs a bounds check, verifying that the buffer provided has 'len' bytes of space available.
+ * If successful, pBuf->ptr is advanced length bytes, the old pointer placed in *pResult,
+ * and AWS_ERROR_SUCCESS returned.
+ * Otherwise (if there is insufficient space), AWS_ERROR_SHORT_BUFFER is returned, *pBuf is unchanged,
+ * and *pResult is set to NULL
+ *
+ * If pResult is NULL, this function will discard the old buffer position instead of writing to *pResult.
+ *
+ * Arguments:
+ *  * buf - a struct aws_cryptosdk_buffer *
+ *  * len - Length to advance the buffer pointer by
+ *  * pResult - A pointer to the pointer to which the original buffer pointer will be written.
+ *
+ * This function attempts to prevent the CPU from speculating an out-of-bounds read as a SPECTRE
+ * mitigation.
  */
-static inline void *aws_cryptosdk_PRIVATE_static_assert_isptr(const void *p) {
-    return NULL;
-}
-
-/*
- * Internal implementation of aws_cryptosdk_buffer_advance, using a void * arg.
- */
-static inline int aws_cryptosdk_buffer_advance_0(struct aws_cryptosdk_buffer * pBuf, size_t length, void * restrict pResult) {
+static inline int aws_cryptosdk_buffer_advance(struct aws_cryptosdk_buffer * pBuf, size_t length, uint8_t * restrict *pResult) {
     void *result = pBuf->ptr;
 
 #if defined(AWS_CRYPTOSDK_P_USE_X86_64_ASM) && defined(AWS_CRYPTOSDK_P_SPECTRE_MITIGATIONS)
@@ -87,35 +94,13 @@ static inline int aws_cryptosdk_buffer_advance_0(struct aws_cryptosdk_buffer * p
     }
 #endif
     if (aws_cryptosdk_likely(pResult)) {
-        memcpy(pResult, &result, sizeof(result));
+        *pResult = result;
     }
 
     // We move this condition outside of the asm to allow better compiler optimization (e.g. elimination
     // of these constants if we're just going to test for nonzero anyway)
     return aws_cryptosdk_likely(result) ? AWS_ERROR_SUCCESS : AWS_ERROR_SHORT_BUFFER;
 }
-
-/**
- * \endcond
- *
- * Performs a bounds check, verifying that the buffer provided has 'len' bytes of space available.
- * If successful, pBuf->ptr is advanced length bytes, the old pointer placed in *pResult,
- * and AWS_ERROR_SUCCESS returned.
- * Otherwise (if there is insufficient space), AWS_ERROR_SHORT_BUFFER is returned, *pBuf is unchanged,
- * and *pResult is set to NULL
- *
- * If pResult is NULL, this function will discard the old buffer position instead of writing to *pResult.
- *
- * Arguments:
- *  * buf - a struct aws_cryptosdk_buffer *
- *  * len - Length to advance the buffer pointer by
- *  * pResult - A pointer to any pointer type; the pointed-to pointer receives the previous buffer position.
- *
- * This function attempts to prevent the CPU from speculating an out-of-bounds read as a SPECTRE
- * mitigation.
- */
-#define aws_cryptosdk_buffer_advance(buf, len, pResult) \
-    aws_cryptosdk_buffer_advance_0((buf), (len), 0 ? aws_cryptosdk_PRIVATE_static_assert_isptr(*pResult) : (pResult))
  
 /**
  * Advances the buffer by 'len' bytes, without returning the old position. If the buffer does not have at least
@@ -123,18 +108,8 @@ static inline int aws_cryptosdk_buffer_advance_0(struct aws_cryptosdk_buffer * p
  * pointer and length are updated, and the function returns AWS_ERROR_SUCCESS.
  */
 static inline int aws_cryptosdk_buffer_skip(struct aws_cryptosdk_buffer *buffer, size_t length) {
-    void *ignored;
+    uint8_t *ignored;
     return aws_cryptosdk_buffer_advance(buffer, length, &ignored);
-}
-
-/**
- * Inserts a speculation barrier. This should be done after an offset is read from an untrusted buffer,
- * and before that offset is subsequently used, as additional protection againse spectre issues.
- */
-static inline void aws_cryptosdk_nospec_barrier() {
-#if defined(AWS_CRYPTOSDK_P_SPECTRE_MITIGATIONS) && defined(AWS_CRYPTOSDK_P_USE_X86_64_ASM)
-    __asm__ __volatile__("lfence" ::: "memory");
-#endif
 }
 
 /**
@@ -144,7 +119,7 @@ static inline void aws_cryptosdk_nospec_barrier() {
  * Otherwise, returns AWS_ERROR_SHORT_BUFFER without changing any state.
  */
 static inline int aws_cryptosdk_buffer_read(struct aws_cryptosdk_buffer * restrict pBuf, void * restrict dest, size_t len) {
-    const uint8_t *pSource;
+    uint8_t *pSource;
 
     if (aws_cryptosdk_buffer_advance(pBuf, len, &pSource)) {
         return AWS_ERROR_SHORT_BUFFER;
@@ -174,7 +149,7 @@ static inline int aws_cryptosdk_buffer_read_u8(struct aws_cryptosdk_buffer * res
  * and AWS_ERROR_SUCCESS is returned. If pBuf had insufficient data, then AWS_ERROR_SHORT_BUFFER
  * is returned without changing any state.
  */
-static inline int aws_cryptosdk_buffer_read_u16(struct aws_cryptosdk_buffer *pBuf, uint16_t *var) {
+static inline int aws_cryptosdk_buffer_read_be16(struct aws_cryptosdk_buffer *pBuf, uint16_t *var) {
     int rv = aws_cryptosdk_buffer_read(pBuf, var, 2);
 
     if (aws_cryptosdk_likely(!rv)) {
@@ -192,7 +167,7 @@ static inline int aws_cryptosdk_buffer_read_u16(struct aws_cryptosdk_buffer *pBu
  * and AWS_ERROR_SUCCESS is returned. If pBuf had insufficient data, then AWS_ERROR_SHORT_BUFFER
  * is returned without changing any state.
  */
-static inline int aws_cryptosdk_buffer_read_u32(struct aws_cryptosdk_buffer *pBuf, uint32_t *var) {
+static inline int aws_cryptosdk_buffer_read_be32(struct aws_cryptosdk_buffer *pBuf, uint32_t *var) {
     int rv = aws_cryptosdk_buffer_read(pBuf, var, 4);
 
     if (aws_cryptosdk_likely(!rv)) {
