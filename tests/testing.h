@@ -22,6 +22,7 @@ struct test_case {
 };
 
 extern struct test_case header_test_cases[];
+extern struct test_case cipher_test_cases[];
 
 #define TEST_ASSERT(cond) \
     do { \
