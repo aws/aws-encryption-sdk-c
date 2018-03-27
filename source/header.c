@@ -132,7 +132,7 @@ static int is_known_type(uint8_t content_type) {
     }
 }
 
-static int allocate_ptr_tables(
+static int place_ptr_tables(
     struct aws_cryptosdk_hdr * restrict hdr,
     struct aws_cryptosdk_buffer * restrict outbuf,
     size_t * restrict header_space_needed
@@ -152,13 +152,10 @@ static int allocate_ptr_tables(
     // Align buffer to a multiple of sizeof(void *) if needed.
     // This isn't strictly guaranteed to work by a strict reading of the C spec, but should work
     // on any real platform.
-    uintptr_t cur_offset = (uintptr_t)outbuf->ptr;
-    uintptr_t misaligned = cur_offset % sizeof(void*);
-    if (misaligned) {
-        uint8_t *ignored;
-        if (aws_cryptosdk_buffer_advance(outbuf, sizeof(void *) - misaligned, &ignored)) {
-            return aws_raise_error(AWS_ERROR_OOM);
-        }
+    uintptr_t align_pad = -(uintptr_t)outbuf->ptr % sizeof(void *);
+    uint8_t *ignored;
+    if (aws_cryptosdk_buffer_advance(outbuf, align_pad, &ignored)) {
+        return aws_raise_error(AWS_ERROR_OOM);
     }
 
     uint8_t *tmp;
@@ -248,34 +245,31 @@ static inline int hdr_parse_core(
     hdr->message_id.len = MESSAGE_ID_LEN;
     hdr->message_id.ptr = hdr->message_id_arr;
 
-    uint16_t aad_len, aad_count;
+    uint16_t aad_len;
     if (aws_cryptosdk_buffer_read_be16(inbuf, &aad_len)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 
     const uint8_t *expect_end_aad = (const uint8_t *)inbuf->ptr + aad_len;
 
-    if (aws_cryptosdk_buffer_read_be16(inbuf, &aad_count)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
+    if (aws_cryptosdk_buffer_read_be16(inbuf, &hdr->aad_count)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 
     struct aws_cryptosdk_buffer aad_start = *inbuf;
 
-    hdr->aad_count = aad_count;
     // Skip forward and get the EDK count, so we can preallocate our tables
     if (aws_cryptosdk_unlikely(aws_cryptosdk_buffer_skip(inbuf, aad_len - 2))) {
         return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     }
 
-    uint16_t edk_count;
-    if (aws_cryptosdk_buffer_read_be16(inbuf, &edk_count)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
-    if (aws_cryptosdk_unlikely(!edk_count)) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
-    hdr->edk_count = edk_count;
+    if (aws_cryptosdk_buffer_read_be16(inbuf, &hdr->edk_count)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
+    if (aws_cryptosdk_unlikely(!hdr->edk_count)) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
 
-    if (allocate_ptr_tables(hdr, outbuf, header_space_needed)) {
+    if (place_ptr_tables(hdr, outbuf, header_space_needed)) {
         return aws_raise_error(AWS_ERROR_OOM);
     }
 
     // Now go back and parse the AAD entries
     *inbuf = aad_start;
 
-    for (size_t i = 0; i < aad_count; i++) {
+    for (size_t i = 0; i < hdr->aad_count; i++) {
         struct aws_cryptosdk_hdr_aad aad;
 
         PROPAGATE_ERR(read_field_be16(&aad.key, inbuf, outbuf, header_space_needed));
@@ -294,7 +288,7 @@ static inline int hdr_parse_core(
     if (aws_cryptosdk_buffer_skip(inbuf, 2)) return aws_raise_error(AWS_ERROR_UNKNOWN);
 
     // The EDK structure doesn't have a handy length field, so we need to walk it here.
-    for (int i = 0; i < edk_count; i++) {
+    for (int i = 0; i < hdr->edk_count; i++) {
         struct aws_cryptosdk_hdr_edk edk;
         
         PROPAGATE_ERR(read_field_be16(&edk.provider_id, inbuf, outbuf, header_space_needed));
@@ -387,10 +381,7 @@ int aws_cryptosdk_hdr_parse(
     struct aws_cryptosdk_buffer outbuf = { .ptr = (void *)outbufp, .len = outlen };
 
     // Align header to the size of a void *
-    uintptr_t align = (uintptr_t)outbufp % sizeof(void *);
-    if (align == sizeof(void *)) {
-        align = 0;
-    }
+    uintptr_t align = -(uintptr_t)outbufp % sizeof(void *);
 
     // Don't need to check result: If we don't have enough space for a void *, then we definitely
     // won't have enough for the full header structure (and thus the next advance will fail instead).
