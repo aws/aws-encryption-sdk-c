@@ -21,7 +21,6 @@
 int pass_fn() { return 0; }
 
 struct test_case *test_groups[] = {
-    buffer_test_cases,
     header_test_cases,
     NULL
 };

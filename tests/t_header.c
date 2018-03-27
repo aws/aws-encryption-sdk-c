@@ -107,7 +107,7 @@ int simple_header_parse() {
     // Known answer tests
     TEST_ASSERT_INT_EQ(aws_cryptosdk_hdr_get_algorithm(hdr), AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
 
-    struct aws_cryptosdk_buffer buf;
+    struct aws_byte_buf buf;
 
     const uint8_t *ptr;
     size_t size;

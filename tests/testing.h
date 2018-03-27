@@ -21,7 +21,6 @@ struct test_case {
     int result;
 };
 
-extern struct test_case buffer_test_cases[];
 extern struct test_case header_test_cases[];
 
 #define TEST_ASSERT(cond) \
@@ -46,12 +45,12 @@ extern struct test_case header_test_cases[];
 #define TEST_ASSERT_BUF_EQ(buf, ...) \
     do { \
         static uint8_t expected_arr[] = { __VA_ARGS__ }; \
-        struct aws_cryptosdk_buffer actual_buf = (buf); \
+        struct aws_byte_buf actual_buf = (buf); \
         TEST_ASSERT_INT_EQ(actual_buf.len, sizeof(expected_arr)); \
-        if (memcmp(expected_arr, actual_buf.ptr, actual_buf.len)) { \
+        if (memcmp(expected_arr, actual_buf.buffer, actual_buf.len)) { \
             fprintf(stderr, "Buffer mismatch at %s:%d (%s)\n  Actual: ", __FILE__, __LINE__, #buf); \
             for (size_t assert_idx = 0; assert_idx < actual_buf.len; assert_idx++) { \
-                fprintf(stderr, "%02x ", ((uint8_t *)actual_buf.ptr)[assert_idx]); \
+                fprintf(stderr, "%02x ", ((uint8_t *)actual_buf.buffer)[assert_idx]); \
             } \
             fprintf(stderr, "\nExpected: "); \
             for (size_t assert_idx = 0; assert_idx < actual_buf.len; assert_idx++) { \

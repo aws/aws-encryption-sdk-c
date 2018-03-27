@@ -30,14 +30,14 @@ struct aws_cryptosdk_hdr;
  * Used to pass encryption context key-value pairs.
  */
 struct aws_cryptosdk_hdr_aad {
-    struct aws_cryptosdk_buffer key, value;
+    struct aws_byte_buf key, value;
 };
 
 /**
  * Used to pass encrypted data key entries.
  */
 struct aws_cryptosdk_hdr_edk {
-    struct aws_cryptosdk_buffer provider_id, provider_info, enc_data_key;
+    struct aws_byte_buf provider_id, provider_info, enc_data_key;
 };
 
 enum aws_cryptosdk_hdr_version {
@@ -114,8 +114,8 @@ size_t aws_cryptosdk_hdr_get_frame_len(const struct aws_cryptosdk_hdr *hdr);
 int aws_cryptosdk_hdr_get_aad(const struct aws_cryptosdk_hdr *hdr, int index, struct aws_cryptosdk_hdr_aad *aad);
 int aws_cryptosdk_hdr_get_edk(const struct aws_cryptosdk_hdr *hdr, int index, struct aws_cryptosdk_hdr_edk *edk);
 
-int aws_cryptosdk_hdr_get_msgid(const struct aws_cryptosdk_hdr *hdr, struct aws_cryptosdk_buffer *buf);
-int aws_cryptosdk_hdr_get_authtag(const struct aws_cryptosdk_hdr *hdr, struct aws_cryptosdk_buffer *buf);
+int aws_cryptosdk_hdr_get_msgid(const struct aws_cryptosdk_hdr *hdr, struct aws_byte_buf *buf);
+int aws_cryptosdk_hdr_get_authtag(const struct aws_cryptosdk_hdr *hdr, struct aws_byte_buf *buf);
 
 int aws_cryptosdk_algorithm_is_known(uint16_t alg_id);
 int aws_cryptosdk_algorithm_taglen(uint16_t alg_id);
