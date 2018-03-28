@@ -20,15 +20,8 @@
 
 int pass_fn() { return 0; }
 
-struct test_case framework_test_cases[] = {
-    { "test_a", "test1_passing", pass_fn },
-    { "test_a", "test2_passing", pass_fn },
-    { "test_b", "test1_passing", pass_fn },
-    { NULL } // terminating entry
-};
-
 struct test_case *test_groups[] = {
-    framework_test_cases,
+    header_test_cases,
     NULL
 };
 
@@ -103,7 +96,7 @@ int main(int argc, char **argv) {
 
         fprintf(stderr, "[RUNNING] %s.%s ...\r", pCase->group, pCase->name);
         pCase->result = pCase->test_fn();
-        fprintf(stderr, "[%7s] %s.%s    \n", pCase->result ? "FAILED" : "PASSED", pCase->group, pCase->name);
+        fprintf(stderr, "%s %s.%s    \n", pCase->result ? "\n[ FAILED]" : "[ PASSED]", pCase->group, pCase->name);
 
         if (pCase->result) {
             failed++;
