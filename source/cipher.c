@@ -14,6 +14,7 @@
  */
 
 #include "cipher.h"
+#include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
 #include <openssl/rand.h>
@@ -122,6 +123,53 @@ err:
     return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
 }
 
+static EVP_CIPHER_CTX *evp_gcm_decrypt_init(
+    const struct aws_cryptosdk_alg_properties *props,
+    const struct content_key *content_key,
+    const uint8_t *iv
+) {
+    EVP_CIPHER_CTX *ctx = NULL;
+
+    if (!(ctx = EVP_CIPHER_CTX_new())) goto err;
+    if (!EVP_DecryptInit_ex(ctx, props->impl->cipher_ctor(), NULL, NULL, NULL)) goto err;
+    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, props->iv_len, NULL)) goto err;
+    if (!EVP_DecryptInit_ex(ctx, NULL, NULL, content_key->keybuf, iv)) goto err;
+
+    return ctx;
+
+err:
+    if (ctx) {
+        EVP_CIPHER_CTX_free(ctx);
+    }
+    return NULL;
+}
+
+static int evp_gcm_decrypt_final(const struct aws_cryptosdk_alg_properties *props, EVP_CIPHER_CTX *ctx, const uint8_t *tag) {
+    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, props->tag_len, (void *)tag)) {
+        return AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
+    }
+
+    /*
+     * Flush all error codes; if the GCM tag is invalid, openssl will fail without generating
+     * an error code, so any leftover error codes will get in the way of detection.
+     */
+    while (ERR_get_error() != 0) {}
+
+    int outlen;
+    uint8_t finalbuf;
+    if (!EVP_DecryptFinal_ex(ctx, &finalbuf, &outlen)) {
+        if (ERR_peek_last_error() == 0) {
+            return AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
+        }
+        return AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
+    }
+    if (outlen != 0) {
+        abort(); // wrong output size - potentially smashed stack
+    }
+
+    return AWS_ERROR_SUCCESS;
+}
+
 int aws_cryptosdk_verify_header(
     enum aws_cryptosdk_alg_id alg_id,
     const struct content_key *content_key,
@@ -141,28 +189,14 @@ int aws_cryptosdk_verify_header(
     const uint8_t *iv = authtag->buffer;
     const uint8_t *tag = authtag->buffer + props->iv_len;
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
-    EVP_CIPHER_CTX *ctx = NULL;
 
-    if (!(ctx = EVP_CIPHER_CTX_new())) goto out;
-    if (!EVP_DecryptInit_ex(ctx, props->impl->cipher_ctor(), NULL, NULL, NULL)) goto out;
-    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, props->iv_len, NULL)) goto out;
-    if (!EVP_DecryptInit_ex(ctx, NULL, NULL, content_key->keybuf, iv)) goto out;
+    EVP_CIPHER_CTX *ctx = evp_gcm_decrypt_init(props, content_key, iv);
+    if (!ctx) goto out;
 
     int outlen;
     if (!EVP_DecryptUpdate(ctx, NULL, &outlen, header->buffer, header->len)) goto out;
 
-    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, props->tag_len, (void *)tag)) goto out;
-
-    uint8_t finalbuf;
-    if (!EVP_DecryptFinal_ex(ctx, &finalbuf, &outlen)) {
-        result = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
-        goto out;
-    }
-    if (outlen != 0) {
-        abort(); // wrong output size - potentially smashed stack
-    }
-
-    result = AWS_ERROR_SUCCESS;
+    result = evp_gcm_decrypt_final(props, ctx, tag);
 out:
     if (ctx) EVP_CIPHER_CTX_free(ctx);
 
@@ -192,18 +226,18 @@ static int update_frame_aad(
 
     int aad_len;
 
-    if (!EVP_DecryptUpdate(ctx, NULL, &aad_len, message_id, MSG_ID_LEN)) return 0;
-    if (!EVP_DecryptUpdate(ctx, NULL, &aad_len, (const uint8_t *)aad_string, strlen(aad_string))) return 0;
+    if (!EVP_CipherUpdate(ctx, NULL, &aad_len, message_id, MSG_ID_LEN)) return 0;
+    if (!EVP_CipherUpdate(ctx, NULL, &aad_len, (const uint8_t *)aad_string, strlen(aad_string))) return 0;
 
     seqno = htonl(seqno);
-    if (!EVP_DecryptUpdate(ctx, NULL, &aad_len, (const uint8_t *)&seqno, sizeof(seqno))) return 0;
+    if (!EVP_CipherUpdate(ctx, NULL, &aad_len, (const uint8_t *)&seqno, sizeof(seqno))) return 0;
 
     uint32_t size[2];
 
     size[0] = htonl(data_size >> 32);
     size[1] = htonl(data_size & 0xFFFFFFFFUL);
 
-    return EVP_DecryptUpdate(ctx, NULL, &aad_len, (const uint8_t *)size, sizeof(size));
+    return EVP_CipherUpdate(ctx, NULL, &aad_len, (const uint8_t *)size, sizeof(size));
 }
 
 
@@ -233,10 +267,7 @@ int aws_cryptosdk_decrypt_body(
     struct aws_byte_cursor inp = { .ptr = in->buffer, .len = in->len };
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
 
-    if (!(ctx = EVP_CIPHER_CTX_new())) goto out;
-    if (!EVP_DecryptInit_ex(ctx, props->impl->cipher_ctor(), NULL, NULL, NULL)) goto out;
-    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, props->iv_len, NULL)) goto out;
-    if (!EVP_DecryptInit_ex(ctx, NULL, NULL, key->keybuf, iv)) goto out;
+    if (!(ctx = evp_gcm_decrypt_init(props, key, iv))) goto out;
 
     if (!update_frame_aad(ctx, message_id, body_frame_type, seqno, in->len)) goto out;
 
@@ -249,18 +280,7 @@ int aws_cryptosdk_decrypt_body(
         aws_byte_cursor_advance(&outp, pt_len);
     }
 
-    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, props->tag_len, (void *)tag)) goto out;
-
-    int pt_len_final;
-    if (!EVP_DecryptFinal_ex(ctx, outp.ptr, &pt_len_final)) {
-        result = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
-        goto out;
-    }
-    if (pt_len_final != outp.len) {
-        abort(); // wrong output size?
-    }
-
-    result = AWS_ERROR_SUCCESS;
+    result = evp_gcm_decrypt_final(props, ctx, tag);
 out:
     if (ctx) EVP_CIPHER_CTX_free(ctx);
 
