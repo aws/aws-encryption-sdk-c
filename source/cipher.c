@@ -60,12 +60,15 @@ const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryp
             NULL, aes_256_gcm, 256, 12, 16);
         STATIC_ALG_PROPS(AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
             sha256, aes_256_gcm, 256, 12, 16);
+#if 0
+        // Not yet supported
         STATIC_ALG_PROPS(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
             sha256, aes_128_gcm, 128, 12, 16);
         STATIC_ALG_PROPS(AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
             sha384, aes_192_gcm, 192, 12, 16);
         STATIC_ALG_PROPS(AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
             sha384, aes_256_gcm, 256, 12, 16);
+#endif
         default:
             return NULL;
     }
@@ -80,6 +83,10 @@ int aws_cryptosdk_derive_key(
     const uint8_t *message_id
 ) {
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
+
+    if (!props) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
+    }
 
     aws_cryptosdk_secure_zero(content_key->keybuf, sizeof(content_key->keybuf));
 
@@ -122,6 +129,10 @@ int aws_cryptosdk_verify_header(
     const struct aws_byte_buf *header
 ) {
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
+
+    if (!props) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
+    }
 
     if (authtag->len != props->iv_len + props->tag_len) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
@@ -208,6 +219,10 @@ int aws_cryptosdk_decrypt_body(
     int body_frame_type
 ) {
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
+
+    if (!props) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
+    }
 
     if (in->len != out->len) {
         return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
