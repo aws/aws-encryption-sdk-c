@@ -157,12 +157,14 @@ static int evp_gcm_decrypt_final(const struct aws_cryptosdk_alg_properties *prop
 
     int outlen;
     uint8_t finalbuf;
+
     if (!EVP_DecryptFinal_ex(ctx, &finalbuf, &outlen)) {
         if (ERR_peek_last_error() == 0) {
             return AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
         }
         return AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     }
+
     if (outlen != 0) {
         abort(); // wrong output size - potentially smashed stack
     }
@@ -224,20 +226,20 @@ static int update_frame_aad(
             return aws_raise_error(AWS_ERROR_UNKNOWN);
     }
 
-    int aad_len;
+    int ignored;
 
-    if (!EVP_CipherUpdate(ctx, NULL, &aad_len, message_id, MSG_ID_LEN)) return 0;
-    if (!EVP_CipherUpdate(ctx, NULL, &aad_len, (const uint8_t *)aad_string, strlen(aad_string))) return 0;
+    if (!EVP_CipherUpdate(ctx, NULL, &ignored, message_id, MSG_ID_LEN)) return 0;
+    if (!EVP_CipherUpdate(ctx, NULL, &ignored, (const uint8_t *)aad_string, strlen(aad_string))) return 0;
 
     seqno = htonl(seqno);
-    if (!EVP_CipherUpdate(ctx, NULL, &aad_len, (const uint8_t *)&seqno, sizeof(seqno))) return 0;
+    if (!EVP_CipherUpdate(ctx, NULL, &ignored, (const uint8_t *)&seqno, sizeof(seqno))) return 0;
 
     uint32_t size[2];
 
     size[0] = htonl(data_size >> 32);
     size[1] = htonl(data_size & 0xFFFFFFFFUL);
 
-    return EVP_CipherUpdate(ctx, NULL, &aad_len, (const uint8_t *)size, sizeof(size));
+    return EVP_CipherUpdate(ctx, NULL, &ignored, (const uint8_t *)size, sizeof(size));
 }
 
 
@@ -297,7 +299,7 @@ int aws_cryptosdk_genrandom(uint8_t *buf, size_t len) {
 
     if (rc != 1) {
         aws_cryptosdk_secure_zero(buf, len);
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
     return AWS_OP_SUCCESS;
