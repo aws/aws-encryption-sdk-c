@@ -26,6 +26,23 @@
 
 #define MAX_KEY_SIZE 32
 
+struct aws_cryptosdk_alg_properties {
+    const char *md_name, *cipher_name;
+
+    /**
+     * Pointer to a structure containing crypto-backend-specific
+     * information. This is a forward-declared structure to keep it
+     * opaque to backend-independent code
+     */
+    const struct aws_cryptosdk_alg_impl *impl;
+
+    int data_key_len, content_key_len, iv_len, tag_len;
+
+    enum aws_cryptosdk_alg_id alg_id;
+};
+
+const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryptosdk_alg_id alg_id);
+
 struct data_key {
     uint8_t keybuf[MAX_KEY_SIZE];
 };

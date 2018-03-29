@@ -21,59 +21,57 @@
 
 #define MSG_ID_LEN 16
 
-struct alg_properties {
-    /*
-     * We use pointers to the functions that return EVP_MD instead of the
-     * returned EVP_MD * itself to allow us to put static structures in the
-     * data or rodata segments.
-     */
+struct aws_cryptosdk_alg_impl {
     const EVP_MD *(*md_ctor)(void);
     const EVP_CIPHER *(*cipher_ctor)(void);
-
-    int dk_len, iv_len, tag_len;
 };
 
-static const struct alg_properties *alg_props(enum aws_cryptosdk_alg_id alg_id) {
-#define STATIC_ALG_PROPS(alg_id, md_ctor_v, cipher_ctor_v, dk_len_v, iv_len_v, tag_len_v) \
-    case alg_id: { \
-        static const struct alg_properties props = { \
-            .md_ctor = (md_ctor_v), \
-            .cipher_ctor = (cipher_ctor_v), \
-            .dk_len = (dk_len_v)/8, \
+const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryptosdk_alg_id alg_id) {
+#define EVP_NULL NULL
+#define STATIC_ALG_PROPS(alg_id_v, md, cipher, dk_len_v, iv_len_v, tag_len_v) \
+    case alg_id_v: { \
+        static const struct aws_cryptosdk_alg_impl impl = { \
+            .md_ctor = (EVP_##md), \
+            .cipher_ctor = (EVP_##cipher), \
+        }; \
+        static const struct aws_cryptosdk_alg_properties props = { \
+            .md_name = #md, \
+            .cipher_name = #cipher, \
+            .impl = &impl, \
+            .data_key_len = (dk_len_v)/8, \
+    /* Currently we don't support any algorithms where DK and CK lengths differ */ \
+            .content_key_len = (dk_len_v)/8, \
             .iv_len = (iv_len_v), \
-            .tag_len = (tag_len_v) \
+            .tag_len = (tag_len_v), \
+            .alg_id = (alg_id_v) \
         }; \
         return &props; \
     }
     switch (alg_id) {
         STATIC_ALG_PROPS(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-            NULL, EVP_aes_128_gcm, 128, 12, 16);
-        STATIC_ALG_PROPS(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
-            EVP_sha256, EVP_aes_128_gcm, 128, 12, 16);
+            NULL, aes_128_gcm, 128, 12, 16);
         STATIC_ALG_PROPS(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-            EVP_sha256, EVP_aes_128_gcm, 128, 12, 16);
+            sha256, aes_128_gcm, 128, 12, 16);
         STATIC_ALG_PROPS(AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-            NULL, EVP_aes_192_gcm, 192, 12, 16);
+            NULL, aes_192_gcm, 192, 12, 16);
         STATIC_ALG_PROPS(AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-            EVP_sha256, EVP_aes_192_gcm, 192, 12, 16);
-        STATIC_ALG_PROPS(AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
-            EVP_sha384, EVP_aes_192_gcm, 192, 12, 16);
+            sha256, aes_192_gcm, 192, 12, 16);
         STATIC_ALG_PROPS(AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-            NULL, EVP_aes_256_gcm, 256, 12, 16);
+            NULL, aes_256_gcm, 256, 12, 16);
         STATIC_ALG_PROPS(AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-            EVP_sha256, EVP_aes_256_gcm, 256, 12, 16);
+            sha256, aes_256_gcm, 256, 12, 16);
+        STATIC_ALG_PROPS(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
+            sha256, aes_128_gcm, 128, 12, 16);
+        STATIC_ALG_PROPS(AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
+            sha384, aes_192_gcm, 192, 12, 16);
         STATIC_ALG_PROPS(AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
-            EVP_sha384, EVP_aes_256_gcm, 256, 12, 16);
+            sha384, aes_256_gcm, 256, 12, 16);
         default:
             return NULL;
     }
 #undef STATIC_ALG_PROPS
+#undef EVP_NULL
 }
-
-static int dk_len(enum aws_cryptosdk_alg_id alg_id) {
-    return alg_props(alg_id)->dk_len;
-}
-
 
 int aws_cryptosdk_derive_key(
     struct content_key *content_key,
@@ -81,17 +79,17 @@ int aws_cryptosdk_derive_key(
     enum aws_cryptosdk_alg_id alg_id,
     const uint8_t *message_id
 ) {
-    const struct alg_properties *props = alg_props(alg_id);
+    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
 
     aws_cryptosdk_secure_zero(content_key->keybuf, sizeof(content_key->keybuf));
 
-    if (props->md_ctor == NULL) {
-        memcpy(content_key->keybuf, data_key->keybuf, props->dk_len);
+    if (props->impl->md_ctor == NULL) {
+        memcpy(content_key->keybuf, data_key->keybuf, props->data_key_len);
         return AWS_OP_SUCCESS;
     }
 
     EVP_PKEY_CTX *pctx;
-    size_t outlen = dk_len(alg_id);
+    size_t outlen = props->content_key_len;
 
     uint8_t info[MSG_ID_LEN + 2];
     info[0] = alg_id >> 8;
@@ -102,8 +100,8 @@ int aws_cryptosdk_derive_key(
     if (pctx == NULL) return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
 
     if (EVP_PKEY_derive_init(pctx) <= 0) goto err;
-    if (EVP_PKEY_CTX_set_hkdf_md(pctx, props->md_ctor()) <= 0) goto err;
-    if (EVP_PKEY_CTX_set1_hkdf_key(pctx, data_key->keybuf, props->dk_len) <= 0) goto err;
+    if (EVP_PKEY_CTX_set_hkdf_md(pctx, props->impl->md_ctor()) <= 0) goto err;
+    if (EVP_PKEY_CTX_set1_hkdf_key(pctx, data_key->keybuf, props->data_key_len) <= 0) goto err;
     if (EVP_PKEY_CTX_add1_hkdf_info(pctx, info, sizeof(info)) <= 0) goto err;
     if (EVP_PKEY_derive(pctx, content_key->keybuf, &outlen) <= 0) goto err;
 
@@ -123,7 +121,7 @@ int aws_cryptosdk_verify_header(
     const struct aws_byte_buf *authtag,
     const struct aws_byte_buf *header
 ) {
-    const struct alg_properties *props = alg_props(alg_id);
+    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
 
     if (authtag->len != props->iv_len + props->tag_len) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
@@ -135,7 +133,7 @@ int aws_cryptosdk_verify_header(
     EVP_CIPHER_CTX *ctx = NULL;
 
     if (!(ctx = EVP_CIPHER_CTX_new())) goto out;
-    if (!EVP_DecryptInit_ex(ctx, props->cipher_ctor(), NULL, NULL, NULL)) goto out;
+    if (!EVP_DecryptInit_ex(ctx, props->impl->cipher_ctor(), NULL, NULL, NULL)) goto out;
     if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, props->iv_len, NULL)) goto out;
     if (!EVP_DecryptInit_ex(ctx, NULL, NULL, content_key->keybuf, iv)) goto out;
 
@@ -209,19 +207,19 @@ int aws_cryptosdk_decrypt_body(
     const uint8_t *tag,
     int body_frame_type
 ) {
-    const struct alg_properties *props = alg_props(alg_id);
+    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
 
     if (in->len != out->len) {
         return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     }
 
     EVP_CIPHER_CTX *ctx = NULL;
-    struct aws_byte_buf outp = *out;
-    struct aws_byte_buf inp = *in;
+    struct aws_byte_cursor outp = { .ptr = out->buffer, .len = out->len };
+    struct aws_byte_cursor inp = { .ptr = in->buffer, .len = in->len };
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
 
     if (!(ctx = EVP_CIPHER_CTX_new())) goto out;
-    if (!EVP_DecryptInit_ex(ctx, props->cipher_ctor(), NULL, NULL, NULL)) goto out;
+    if (!EVP_DecryptInit_ex(ctx, props->impl->cipher_ctor(), NULL, NULL, NULL)) goto out;
     if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, props->iv_len, NULL)) goto out;
     if (!EVP_DecryptInit_ex(ctx, NULL, NULL, key->keybuf, iv)) goto out;
 
@@ -231,17 +229,15 @@ int aws_cryptosdk_decrypt_body(
         int in_len = inp.len > INT_MAX ? INT_MAX : inp.len;
         int pt_len;
 
-        if (!EVP_DecryptUpdate(ctx, outp.buffer, &pt_len, inp.buffer, in_len)) goto out;
-        inp.buffer += in_len;
-        inp.len -= in_len;
-        outp.buffer += pt_len;
-        outp.len -= pt_len;
+        if (!EVP_DecryptUpdate(ctx, outp.ptr, &pt_len, inp.ptr, in_len)) goto out;
+        aws_byte_cursor_advance_nospec(&inp, in_len);
+        aws_byte_cursor_advance(&outp, pt_len);
     }
 
     if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, props->tag_len, (void *)tag)) goto out;
 
     int pt_len_final;
-    if (!EVP_DecryptFinal_ex(ctx, outp.buffer, &pt_len_final)) {
+    if (!EVP_DecryptFinal_ex(ctx, outp.ptr, &pt_len_final)) {
         result = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
         goto out;
     }
