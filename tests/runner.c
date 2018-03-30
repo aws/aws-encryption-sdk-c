@@ -81,6 +81,7 @@ static void enable_cases(const char *specifier) {
 }
 
 int main(int argc, char **argv) {
+    int ret;
     assemble_test_cases(argc < 2);
 
     for (int i = 1; i < argc; i++) {
@@ -107,13 +108,14 @@ int main(int argc, char **argv) {
 
     if (!failed && !passed) {
         printf("No test cases selected.\n");
-        return 1;
+        ret = 1;
+        goto DONE;
     }
 
     printf("\n\nTest run complete. ");
     if (!failed) {
         printf("All tests passed (%d tests).\n", passed);
-        return 0;
+        ret = 0;
     } else {
         printf("%d tests failed (%d passed). Failing tests:\n", failed, passed);
 
@@ -122,6 +124,10 @@ int main(int argc, char **argv) {
                 printf("[ FAILED] %s.%s\n", pTest->group, pTest->name);
             }
         }
-        return 1;
+        ret = 1;
     }
+
+DONE:
+    if (test_cases) free(test_cases);
+    return ret;
 }

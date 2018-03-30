@@ -57,11 +57,48 @@ static const uint8_t test_header_1[] = {
     0x0c, 
     //frame length
     0x00,  0x00,  0x10,  0x00, 
+    //iv  FIXME: this IV and authentication tag is not valid
+    0x00,  0x01,  0x02,  0x03,  0x04,  0x05,  0x06,  0x07,  0x08,  0x09,  0x0a,  0x0b,
     //header auth
     0xde,  0xad,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0xbe, 0xef,
     // extra byte - used to verify that we can parse with extra trailing junk
     0xFF
 };
+
+uint8_t test_header_1_aad_key[] = {0x01, 0x02, 0x03, 0x04};
+uint8_t test_header_1_aad_value[] = {0x01, 0x00, 0x01, 0x00, 0x01};
+struct aws_cryptosdk_hdr_aad test_header_1_aad_tbl[] = {
+    {
+        .key = {.len = sizeof(test_header_1_aad_key), .buffer = test_header_1_aad_key},
+        .value = {.len = sizeof(test_header_1_aad_value), .buffer = test_header_1_aad_value}
+    },
+    {0}
+};
+
+uint8_t test_header_1_edk_provider_id[] = {0x10, 0x11, 0x12, 0x00};
+uint8_t test_header_1_edk_provider_info[] = {0x01, 0x02, 0x03, 0x04};
+uint8_t test_header_1_edk_enc_data_key[] = {0x11, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x88};
+struct aws_cryptosdk_hdr_edk test_header_1_edk_tbl[] = {
+    {0},
+    {
+        .provider_id = {.len = sizeof(test_header_1_edk_provider_id), .buffer = test_header_1_edk_provider_id},
+        .provider_info = {.len = sizeof(test_header_1_edk_provider_info), .buffer = test_header_1_edk_provider_info},
+        .enc_data_key = {.len = sizeof(test_header_1_edk_enc_data_key), .buffer = test_header_1_edk_enc_data_key}
+    },
+    {0}
+};
+
+uint8_t test_header_1_iv_arr[] =
+{0x00,  0x01,  0x02,  0x03,  0x04,  0x05,  0x06,  0x07,  0x08,  0x09,  0x0a,  0x0b};
+struct aws_byte_buf test_header_1_iv = {.len = sizeof(test_header_1_iv_arr), .buffer=test_header_1_iv_arr};
+
+uint8_t test_header_1_auth_tag_arr[] =
+{0xde,  0xad,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0xbe, 0xef};
+struct aws_byte_buf test_header_1_auth_tag = {.len = sizeof(test_header_1_auth_tag_arr), .buffer=test_header_1_auth_tag_arr};
+
+uint8_t test_header_1_message_id[] =
+{0x11,  0x22,  0x33,  0x44,  0x55,  0x66,  0x77,  0x88,  0x11,  0x22,  0x33,  0x44,  0x55,  0x66,  0x77,  0x88};
+
 
 /**
  * Performs a simple known-answer test on the header preparsing logic.
@@ -117,6 +154,11 @@ int simple_header_parse() {
         0x11,  0x22,  0x33,  0x44,  0x55,  0x66,  0x77,  0x88,  0x11,  0x22,  0x33,  0x44,  0x55,  0x66,  0x77,  0x88
     );
 
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_get_iv(hdr, &buf));
+    TEST_ASSERT_BUF_EQ(buf,
+        0x00,  0x01,  0x02,  0x03,  0x04,  0x05,  0x06,  0x07,  0x08,  0x09,  0x0a,  0x0b
+    );
+
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_get_authtag(hdr, &buf));
     TEST_ASSERT_BUF_EQ(buf,
         0xde,  0xad,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0xbe, 0xef
@@ -125,7 +167,6 @@ int simple_header_parse() {
     // Misc values
     TEST_ASSERT_INT_EQ(2, aws_cryptosdk_hdr_get_aad_count(hdr));
     TEST_ASSERT_INT_EQ(3, aws_cryptosdk_hdr_get_edk_count(hdr));
-    TEST_ASSERT_INT_EQ(0x0c, aws_cryptosdk_hdr_get_iv_len(hdr));
     TEST_ASSERT_INT_EQ(0x1000, aws_cryptosdk_hdr_get_frame_len(hdr));
 
     // AAD checks
@@ -163,6 +204,8 @@ int simple_header_parse() {
     TEST_ASSERT_BUF_EQ(edk.enc_data_key,
         0x11,  0x02,  0x03,  0x04,  0x05,  0x06,  0x07,  0x88
     );
+
+    free(header_buf);
     return 0;
 }
 
@@ -245,9 +288,35 @@ static int overread_test() {
 }
 #endif
 
+int simple_header_write() {
+    struct aws_cryptosdk_hdr * hdr;
+
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_alloc(&hdr));
+
+    aws_cryptosdk_hdr_set_algorithm(hdr, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
+    aws_cryptosdk_hdr_set_aad_tbl(hdr, sizeof(test_header_1_aad_tbl)/sizeof(struct aws_cryptosdk_hdr_aad), test_header_1_aad_tbl);
+    aws_cryptosdk_hdr_set_edk_tbl(hdr, sizeof(test_header_1_edk_tbl)/sizeof(struct aws_cryptosdk_hdr_edk), test_header_1_edk_tbl);
+    aws_cryptosdk_hdr_set_frame_len(hdr, 0x1000);
+    aws_cryptosdk_hdr_set_iv(hdr, &test_header_1_iv);
+    aws_cryptosdk_hdr_set_authtag(hdr, &test_header_1_auth_tag);
+    aws_cryptosdk_hdr_set_msgid(hdr, test_header_1_message_id);
+
+    size_t outlen = sizeof(test_header_1) - 1; // not including junk byte
+    uint8_t outbuf[outlen];
+    size_t bytes_written;
+
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_write(hdr, &bytes_written, outbuf, outlen));
+    TEST_ASSERT_INT_EQ(bytes_written, outlen);
+    TEST_ASSERT(!memcmp(test_header_1, outbuf, outlen));
+
+    aws_cryptosdk_hdr_free(hdr);
+    return 0;
+}
+
 struct test_case header_test_cases[] = {
     { "header", "preparse", simple_header_preparse },
     { "header", "parse", simple_header_parse },
     { "header", "overread", overread_test },
+    { "header", "write", simple_header_write },
     { NULL }
 };

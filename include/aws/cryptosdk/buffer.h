@@ -54,6 +54,21 @@ static inline int aws_byte_cursor_read(struct aws_byte_cursor * restrict pBuf, v
     }
 }
 
+static inline int aws_byte_cursor_write(struct aws_byte_cursor * restrict pBuf, const uint8_t * restrict src, size_t len) {
+    struct aws_byte_cursor slice = aws_byte_cursor_advance_nospec(pBuf, len);
+
+    if (slice.ptr) {
+        memcpy(slice.ptr, src, len);
+        return AWS_ERROR_SUCCESS;
+    } else {
+        return AWS_ERROR_SHORT_BUFFER;
+    }
+}
+
+static inline int aws_byte_cursor_copy_byte_buffer(struct aws_byte_cursor * restrict pBuf, const struct aws_byte_buf * restrict src) {
+    return aws_byte_cursor_write(pBuf, src->buffer, src->len);
+}
+
 /**
  * Reads a single byte from pBuf, placing it in *var.
  *
@@ -63,6 +78,10 @@ static inline int aws_byte_cursor_read(struct aws_byte_cursor * restrict pBuf, v
  */
 static inline int aws_byte_cursor_read_u8(struct aws_byte_cursor * restrict pBuf, uint8_t * restrict var) {
     return aws_byte_cursor_read(pBuf, var, 1);
+}
+
+static inline int aws_byte_cursor_write_u8(struct aws_byte_cursor * restrict pBuf, uint8_t c) {
+    return aws_byte_cursor_write(pBuf, &c, 1);
 }
 
 /**
@@ -83,6 +102,15 @@ static inline int aws_byte_cursor_read_be16(struct aws_byte_cursor *pBuf, uint16
     return rv;
 }
 
+static inline int aws_byte_cursor_write_u16(struct aws_byte_cursor *pBuf, uint16_t x) {
+    return aws_byte_cursor_write(pBuf, (uint8_t *) &x, 2);
+}
+
+static inline int aws_byte_cursor_write_be16(struct aws_byte_cursor *pBuf, uint16_t x) {
+    x = ntohs(x);
+    return aws_byte_cursor_write_u16(pBuf, x);
+}
+
 /**
  * Reads a 32-bit value in network byte order from pBuf, and places it in native byte order into var.
  * pBuf->ptr is not required to be aligned.
@@ -99,6 +127,15 @@ static inline int aws_byte_cursor_read_be32(struct aws_byte_cursor *pBuf, uint32
     }
 
     return rv;
+}
+
+static inline int aws_byte_cursor_write_u32(struct aws_byte_cursor *pBuf, uint32_t x) {
+    return aws_byte_cursor_write(pBuf, (uint8_t *) &x, 4);
+}
+
+static inline int aws_byte_cursor_write_be32(struct aws_byte_cursor *pBuf, uint32_t x) {
+    x = ntohl(x);
+    return aws_byte_cursor_write_u32(pBuf, x);
 }
 
 #endif // AWS_CRYPTOSDK_BUFFER_H
