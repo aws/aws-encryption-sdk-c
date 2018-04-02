@@ -128,6 +128,9 @@ int aws_cryptosdk_hdr_set_msgid(struct aws_cryptosdk_hdr *hdr, uint8_t msg_id[])
 int aws_cryptosdk_hdr_get_authtag(const struct aws_cryptosdk_hdr *hdr, struct aws_byte_buf *buf);
 int aws_cryptosdk_hdr_set_authtag(struct aws_cryptosdk_hdr *hdr, struct aws_byte_buf *buf);
 
+
+int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_needed);
+
 /**
  * Attempts to write a parsed header.
  *

@@ -481,6 +481,23 @@ int aws_cryptosdk_hdr_parse(
     return rv;
 }
 
+int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_needed) {
+    int idx;
+    size_t bytes = 20 + hdr->message_id.len + hdr->iv.len + hdr->auth_tag.len;
+
+    for (idx = 0 ; idx < hdr->aad_count ; ++idx) {
+        struct aws_cryptosdk_hdr_aad * aad = hdr->aad_tbl + idx;
+        bytes += 4 + aad->key.len + aad->value.len;
+    }
+
+    for (idx = 0 ; idx < hdr->edk_count ; ++idx) {
+        struct aws_cryptosdk_hdr_edk * edk = hdr->edk_tbl + idx;
+        bytes += 6 + edk->provider_id.len + edk->provider_info.len + edk->enc_data_key.len;
+    }
+    *bytes_needed = bytes;
+    return AWS_OP_SUCCESS;
+}
+
 int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_written, uint8_t *outbuf, size_t outlen) {
     *bytes_written = 0;
     struct aws_byte_cursor output = aws_byte_cursor_from_array(outbuf, outlen);

@@ -288,18 +288,36 @@ static int overread_test() {
 }
 #endif
 
-int simple_header_write() {
+int setup_test_header_1_struct(struct aws_cryptosdk_hdr ** hdr) {
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_alloc(hdr));
+
+    aws_cryptosdk_hdr_set_algorithm(*hdr, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
+    aws_cryptosdk_hdr_set_aad_tbl(*hdr, sizeof(test_header_1_aad_tbl)/sizeof(struct aws_cryptosdk_hdr_aad), test_header_1_aad_tbl);
+    aws_cryptosdk_hdr_set_edk_tbl(*hdr, sizeof(test_header_1_edk_tbl)/sizeof(struct aws_cryptosdk_hdr_edk), test_header_1_edk_tbl);
+    aws_cryptosdk_hdr_set_frame_len(*hdr, 0x1000);
+    aws_cryptosdk_hdr_set_iv(*hdr, &test_header_1_iv);
+    aws_cryptosdk_hdr_set_authtag(*hdr, &test_header_1_auth_tag);
+    aws_cryptosdk_hdr_set_msgid(*hdr, test_header_1_message_id);
+
+    return 0;
+}
+
+int header_size() {
     struct aws_cryptosdk_hdr * hdr;
+    TEST_ASSERT_INT_EQ(0, setup_test_header_1_struct(&hdr));
 
-    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_alloc(&hdr));
+    size_t bytes_needed;
 
-    aws_cryptosdk_hdr_set_algorithm(hdr, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
-    aws_cryptosdk_hdr_set_aad_tbl(hdr, sizeof(test_header_1_aad_tbl)/sizeof(struct aws_cryptosdk_hdr_aad), test_header_1_aad_tbl);
-    aws_cryptosdk_hdr_set_edk_tbl(hdr, sizeof(test_header_1_edk_tbl)/sizeof(struct aws_cryptosdk_hdr_edk), test_header_1_edk_tbl);
-    aws_cryptosdk_hdr_set_frame_len(hdr, 0x1000);
-    aws_cryptosdk_hdr_set_iv(hdr, &test_header_1_iv);
-    aws_cryptosdk_hdr_set_authtag(hdr, &test_header_1_auth_tag);
-    aws_cryptosdk_hdr_set_msgid(hdr, test_header_1_message_id);
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_size(hdr, &bytes_needed));
+    TEST_ASSERT_INT_EQ(bytes_needed, sizeof(test_header_1) - 1);
+
+    aws_cryptosdk_hdr_free(hdr);
+    return 0;
+}
+
+int header_write() {
+    struct aws_cryptosdk_hdr * hdr;
+    TEST_ASSERT_INT_EQ(0, setup_test_header_1_struct(&hdr));
 
     size_t outlen = sizeof(test_header_1) - 1; // not including junk byte
     uint8_t outbuf[outlen];
@@ -317,6 +335,7 @@ struct test_case header_test_cases[] = {
     { "header", "preparse", simple_header_preparse },
     { "header", "parse", simple_header_parse },
     { "header", "overread", overread_test },
-    { "header", "write", simple_header_write },
+    { "header", "size", header_size },
+    { "header", "write", header_write },
     { NULL }
 };
