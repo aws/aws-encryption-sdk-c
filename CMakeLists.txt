@@ -17,8 +17,10 @@ project (aws-encryption-sdk)
 include(CheckLibraryExists)
 include(CheckCXXSourceCompiles)
 
-set(PROJECT_NAME aws-encryption-sdk)
+# TODO: Static link?
+include(FindOpenSSL)
 
+set(PROJECT_NAME aws-encryption-sdk)
 
 # Compiler feature tests and feature flags
 set(USE_ASM TRUE
@@ -102,17 +104,20 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/noninst_include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated/include>
-    $<INSTALL_INTERFACE:include>)
+    $<INSTALL_INTERFACE:include>
+    ${OPENSSL_INCLUDE_DIR}
+)
   
-target_link_libraries(aws-encryption-sdk ${PLATFORM_LIBS} aws-c-common)
+target_link_libraries(aws-encryption-sdk ${PLATFORM_LIBS} aws-c-common ${OPENSSL_CRYPTO_LIBRARY})
 
 file(GLOB TEST_SRC "tests/*.c")
 file(GLOB TEST_HDRS "tests/*.h")
 file(GLOB TESTS ${TEST_HDRS} ${TEST_SRC})
   
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/tests)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source)
 add_executable(unit-test-suite ${TESTS})
-target_link_libraries(unit-test-suite ${PROJECT_NAME})
+target_link_libraries(unit-test-suite ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
 set_target_properties(unit-test-suite PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 
 include(CTest)
