@@ -278,8 +278,15 @@ int aws_cryptosdk_decrypt_body(
         int pt_len;
 
         if (!EVP_DecryptUpdate(ctx, outp.ptr, &pt_len, inp.ptr, in_len)) goto out;
-        aws_byte_cursor_advance_nospec(&inp, in_len);
-        aws_byte_cursor_advance(&outp, pt_len);
+        /*
+         * The next two advances should never fail ... but check the return values
+         * just in case.
+         */
+        if (!aws_byte_cursor_advance_nospec(&inp, in_len).ptr) goto out;
+        if (!aws_byte_cursor_advance(&outp, pt_len).ptr) {
+            /* Somehow we ran over the output buffer. abort() to limit the damage. */
+            abort();
+        }
     }
 
     result = evp_gcm_decrypt_final(props, ctx, tag);
