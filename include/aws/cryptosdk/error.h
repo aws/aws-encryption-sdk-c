@@ -30,7 +30,6 @@
 enum aws_cryptosdk_err {
     // TODO - reserve a range of error codes
     AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT = 0x4000,
-    AWS_CRYPTOSDK_ERR_BAD_HEADER = 0x4001,
     AWS_CRYPTOSDK_ERR_END_RANGE = 0x4fff
 };
 

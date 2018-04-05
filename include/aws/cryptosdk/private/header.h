@@ -42,11 +42,19 @@ struct aws_cryptosdk_hdr {
     uint16_t edk_count;
     size_t frame_len;
 
-    struct aws_byte_buf iv, auth_tag, message_id;
+    struct aws_byte_buf iv, auth_tag;
+
+    struct aws_byte_cursor message_id;
     uint8_t message_id_arr[MESSAGE_ID_LEN];
 
     struct aws_cryptosdk_hdr_aad *aad_tbl;
     struct aws_cryptosdk_hdr_edk *edk_tbl;
+
+    /* after parsing will point back to bytes
+     * in input buffer needed for auth.
+     * hdr does not own this memory.
+     */
+    struct aws_byte_cursor auth_cur;
 };
 
 enum aws_cryptosdk_hdr_version {
@@ -65,11 +73,6 @@ enum aws_cryptosdk_hdr_content_type {
 };
 
 /**
- * Sets all fields of hdr to zero.
- */
-void aws_cryptosdk_hdr_zeroize(struct aws_cryptosdk_hdr *hdr);
-
-/**
  * Frees all memory which has been allocated to hdr object and zeroizes hdr.
  * This is idempotent. Multiple frees are safe.
  */
@@ -85,12 +88,6 @@ void aws_cryptosdk_hdr_free(struct aws_allocator * allocator, struct aws_cryptos
 int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptosdk_hdr *hdr, const uint8_t *src, size_t src_len);
 
 /**
- * Authenticates the raw bytes of the hdr object at hdr_bytes, using the algorithm, IV, and auth tag
- * already in the hdr object. Assumes hdr_bytes->len is already set.
- */
-int aws_cryptosdk_hdr_authenticate(struct aws_byte_cursor * hdr_bytes, struct aws_cryptosdk_hdr * hdr);
-
-/**
  * Reads information from already parsed hdr object and determines how many bytes are needed to serialize.
  * Writes number of bytes to *bytes_needed.
  */
@@ -100,10 +97,7 @@ int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_n
  * Attempts to write a parsed header.
  *
  * The number of bytes written to outbuf is placed at *bytes_written.
- * If the header could not be written due to an unrecognized or corrupt format, returns AWS_CRYPTSDK_ERR_BAD_CIPHERTEXT.
- * If outbuf is too small, returns AWS_ERR_OOM.
- * On errors, partial output of the header is still written to outbuf, and bytes_written still
- * gives an accurate count of how many bytes of the header were written.
+ * If outbuf is too small, returns AWS_ERR_OOM and zeroizes the output buffer.
  *
  * Using aws_cryptosdk_hdr_size to determine how much memory to allocate to outbuf ahead of time prevents AWS_ERR_OOM.
  */

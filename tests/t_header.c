@@ -96,7 +96,7 @@ struct aws_cryptosdk_hdr test_header_1_hdr = {
     .iv = {.buffer = test_header_1_iv_arr, .len = sizeof(test_header_1_iv_arr)},
     .auth_tag = {.buffer = test_header_1_auth_tag_arr, .len = sizeof(test_header_1_auth_tag_arr)},
     .message_id_arr = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88},
-    .message_id = {.buffer = test_header_1_hdr.message_id_arr, .len = sizeof(test_header_1_hdr.message_id_arr)},
+    .message_id = {.ptr = test_header_1_hdr.message_id_arr, .len = sizeof(test_header_1_hdr.message_id_arr)},
     .aad_tbl = test_header_1_aad_tbl,
     .edk_tbl = test_header_1_edk_tbl
 };
@@ -112,22 +112,24 @@ int simple_header_parse() {
     // Known answer tests
     TEST_ASSERT_INT_EQ(hdr.alg_id, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
 
-    TEST_ASSERT_BUF_EQ(hdr.message_id,
-        0x11,  0x22,  0x33,  0x44,  0x55,  0x66,  0x77,  0x88,  0x11,  0x22,  0x33,  0x44,  0x55,  0x66,  0x77,  0x88
+    TEST_ASSERT_CUR_EQ(hdr.message_id,
+        0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88
     );
 
     TEST_ASSERT_BUF_EQ(hdr.iv,
-        0x00,  0x01,  0x02,  0x03,  0x04,  0x05,  0x06,  0x07,  0x08,  0x09,  0x0a,  0x0b
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b
     );
 
     TEST_ASSERT_BUF_EQ(hdr.auth_tag,
-        0xde,  0xad,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0xbe, 0xef
+        0xde, 0xad, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xbe, 0xef
     );
 
     // Misc values
     TEST_ASSERT_INT_EQ(2, hdr.aad_count);
     TEST_ASSERT_INT_EQ(3, hdr.edk_count);
     TEST_ASSERT_INT_EQ(0x1000, hdr.frame_len);
+    TEST_ASSERT_ADDR_EQ(hdr.auth_cur.ptr, test_header_1);
+    TEST_ASSERT_INT_EQ(hdr.auth_cur.len, sizeof(test_header_1) - 29);
 
     // AAD checks
     TEST_ASSERT_BUF_EQ(hdr.aad_tbl[0].key, 0x01, 0x02, 0x03, 0x04);
@@ -160,8 +162,6 @@ static void overread_test_once(const uint8_t *inbuf, size_t inlen, ssize_t flip_
     // Copy the header to a buffer aligned at the end of a page, and just before the subsequent page
 
     // First, round up to at least size + one page, page aligned.
-    // This technically will round up too far if inlen is already divisible by page size, but we don't
-    // care about efficiency so much.
     int pagesize = sysconf(_SC_PAGESIZE);
     size_t offset = -inlen % pagesize;
     size_t total_size = offset + inlen + pagesize;
@@ -184,9 +184,9 @@ static void overread_test_once(const uint8_t *inbuf, size_t inlen, ssize_t flip_
         abort();
     }
 
-    if (flip_bit_index >= 0 && flip_bit_index < inlen * 8) {
-        int byte_offset = flip_bit_index / 8;
-        int bit_offset  = flip_bit_index % 8;
+    int byte_offset = flip_bit_index >> 3;
+    if (flip_bit_index >= 0 && byte_offset < inlen) {
+        int bit_offset = flip_bit_index & 7;
         phdr[byte_offset] ^= (1 << bit_offset);
     }
 
@@ -210,7 +210,7 @@ static int overread_test() {
     }
 
     // Test that corrupt header fields don't result in an overread
-    for (size_t flipbit = 0; flipbit <= sizeof(test_header_1) * 8; flipbit++) {
+    for (size_t flipbit = 0; flipbit < sizeof(test_header_1) << 3; flipbit++) {
         overread_test_once(test_header_1, sizeof(test_header_1), flipbit);
     }
     return 0;
@@ -244,10 +244,26 @@ int header_write() {
     return 0;
 }
 
+int header_failed_write() {
+    size_t outlen = sizeof(test_header_1) - 2;
+    uint8_t outbuf[outlen];
+    size_t bytes_written;
+    memset(outbuf, 'A', outlen);
+
+    TEST_ASSERT_INT_NE(AWS_OP_SUCCESS, aws_cryptosdk_hdr_write(&test_header_1_hdr, &bytes_written, outbuf, outlen));
+    TEST_ASSERT_INT_EQ(bytes_written, 0);
+    for (size_t idx = 0 ; idx < outlen ; ++idx) {
+        TEST_ASSERT_INT_EQ(outbuf[idx], 0);
+    }
+
+    return 0;
+}
+
 struct test_case header_test_cases[] = {
     { "header", "parse", simple_header_parse },
     { "header", "overread", overread_test },
     { "header", "size", header_size },
     { "header", "write", header_write },
+    { "header", "failed_write", header_failed_write },
     { NULL }
 };

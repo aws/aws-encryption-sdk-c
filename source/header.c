@@ -62,7 +62,7 @@ static int is_known_type(uint8_t content_type) {
     }
 }
 
-void aws_cryptosdk_hdr_zeroize(struct aws_cryptosdk_hdr *hdr) {
+static inline void hdr_zeroize(struct aws_cryptosdk_hdr *hdr) {
     memset(hdr, 0, sizeof(struct aws_cryptosdk_hdr));
 }
 
@@ -86,7 +86,7 @@ void aws_cryptosdk_hdr_free(struct aws_allocator * allocator, struct aws_cryptos
     }
     aws_byte_buf_free(allocator, &hdr->iv);
     aws_byte_buf_free(allocator, &hdr->auth_tag);
-    aws_cryptosdk_hdr_zeroize(hdr);
+    hdr_zeroize(hdr);
 }
 
 int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptosdk_hdr *hdr, const uint8_t *src, size_t src_len) {
@@ -94,7 +94,9 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
     struct aws_byte_cursor cur = aws_byte_cursor_from_array(src, src_len);
     struct aws_byte_cursor auth_cur = cur;
 
-    aws_cryptosdk_hdr_zeroize(hdr);
+    hdr_zeroize(hdr);
+
+    hdr->auth_cur.ptr = cur.ptr;
 
     uint8_t bytefield;
     if (aws_byte_cursor_read_u8(&cur, &bytefield)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
@@ -112,7 +114,7 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
 
     if (aws_byte_cursor_read(&cur, hdr->message_id_arr, MESSAGE_ID_LEN)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     hdr->message_id.len = MESSAGE_ID_LEN;
-    hdr->message_id.buffer = hdr->message_id_arr;
+    hdr->message_id.ptr = hdr->message_id_arr;
 
     uint16_t aad_len;
     if (aws_byte_cursor_read_be16(&cur, &aad_len)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
@@ -152,6 +154,8 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
         ret = aws_byte_cursor_read_and_fill_buffer(&cur, &aad->value); if (ret) goto PARSE_ERR;
         aad_len_remaining -= value_len;
     }
+
+    if (aad_len_remaining) { ret = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT; goto PARSE_ERR; }
 
     uint16_t edk_count;
     ret = aws_byte_cursor_read_be16(&cur, &edk_count); if (ret) goto PARSE_ERR;
@@ -206,7 +210,7 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
     hdr->frame_len = frame_len;
 
     // cur.ptr now points to end of portion of header that is authenticated
-    auth_cur.len = cur.ptr - auth_cur.ptr;
+    hdr->auth_cur.len = cur.ptr - hdr->auth_cur.ptr;
 
     ret = aws_byte_buf_alloc(allocator, &hdr->iv, iv_len); if (ret) goto PARSE_ERR;
     ret = aws_byte_cursor_read_and_fill_buffer(&cur, &hdr->iv); if (ret) goto PARSE_ERR;
@@ -215,18 +219,11 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
     ret = aws_byte_buf_alloc(allocator, &hdr->auth_tag, tag_len); if (ret) goto PARSE_ERR;
     ret = aws_byte_cursor_read_and_fill_buffer(&cur, &hdr->auth_tag); if (ret) goto PARSE_ERR;
 
-    ret = aws_cryptosdk_hdr_authenticate(&auth_cur, hdr); if (ret) goto PARSE_ERR;
-
-    return 0;
+    return AWS_OP_SUCCESS;
 
 PARSE_ERR:
     aws_cryptosdk_hdr_free(allocator, hdr);
     return aws_raise_error(ret);
-}
-
-int aws_cryptosdk_hdr_authenticate(struct aws_byte_cursor * hdr_bytes, struct aws_cryptosdk_hdr * hdr) {
-    // TODO: authenticate using hdr_bytes, hdr->alg_id, hdr->iv, and hdr->auth_tag
-    return AWS_OP_SUCCESS;
 }
 
 int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_needed) {
@@ -247,20 +244,12 @@ int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_n
 }
 
 int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_written, uint8_t *outbuf, size_t outlen) {
-    *bytes_written = 0;
     struct aws_byte_cursor output = aws_byte_cursor_from_array(outbuf, outlen);
 
-    if (aws_byte_cursor_write_u8(&output, AWS_CRYPTOSDK_HEADER_VERSION_1_0)) return aws_raise_error(AWS_ERROR_OOM);
-    ++ *bytes_written;
-
-    if (aws_byte_cursor_write_u8(&output, AWS_CRYPTOSDK_HEADER_TYPE_CUSTOMER_AED)) return aws_raise_error(AWS_ERROR_OOM);
-    ++ *bytes_written;
-
-    if (aws_byte_cursor_write_be16(&output, hdr->alg_id)) return aws_raise_error(AWS_ERROR_OOM);
-    *bytes_written += 2;
-
-    if (aws_byte_cursor_write_from_whole_buffer(&output, &hdr->message_id)) return aws_raise_error(AWS_ERROR_OOM);
-    *bytes_written += hdr->message_id.len;
+    if (aws_byte_cursor_write_u8(&output, AWS_CRYPTOSDK_HEADER_VERSION_1_0)) goto WRITE_ERR;
+    if (aws_byte_cursor_write_u8(&output, AWS_CRYPTOSDK_HEADER_TYPE_CUSTOMER_AED)) goto WRITE_ERR;
+    if (aws_byte_cursor_write_be16(&output, hdr->alg_id)) goto WRITE_ERR;
+    if (aws_byte_cursor_write(&output, hdr->message_id.ptr, hdr->message_id.len)) goto WRITE_ERR;
 
     // read through AAD once to calculate length
     int idx;
@@ -270,72 +259,52 @@ int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_
         aad_len += 4 + aad->key.len + aad->value.len; // key len (2 bytes), val len (2 bytes), key, value
     }
 
-    if (aws_byte_cursor_write_be16(&output, aad_len)) return aws_raise_error(AWS_ERROR_OOM);
-    *bytes_written += 2;
-
-    if (aws_byte_cursor_write_be16(&output, hdr->aad_count)) return aws_raise_error(AWS_ERROR_OOM);
-    *bytes_written += 2;
+    if (aws_byte_cursor_write_be16(&output, aad_len)) goto WRITE_ERR;
+    if (aws_byte_cursor_write_be16(&output, hdr->aad_count)) goto WRITE_ERR;
 
     for (idx = 0 ; idx < hdr->aad_count ; ++idx) {
         struct aws_cryptosdk_hdr_aad * aad = hdr->aad_tbl + idx;
 
-        if (aws_byte_cursor_write_be16(&output, aad->key.len)) return aws_raise_error(AWS_ERROR_OOM);
-        *bytes_written += 2;
+        if (aws_byte_cursor_write_be16(&output, aad->key.len)) goto WRITE_ERR;
+        if (aws_byte_cursor_write_from_whole_buffer(&output, &aad->key)) goto WRITE_ERR;
 
-        if (aws_byte_cursor_write_from_whole_buffer(&output, &aad->key)) return aws_raise_error(AWS_ERROR_OOM);
-        *bytes_written += aad->key.len;
+        if (aws_byte_cursor_write_be16(&output, aad->value.len)) goto WRITE_ERR;
+        if (aws_byte_cursor_write_from_whole_buffer(&output, &aad->value)) goto WRITE_ERR;
 
-        if (aws_byte_cursor_write_be16(&output, aad->value.len)) return aws_raise_error(AWS_ERROR_OOM);
-        *bytes_written += 2;
-
-        if (aws_byte_cursor_write_from_whole_buffer(&output, &aad->value)) return aws_raise_error(AWS_ERROR_OOM);
-        *bytes_written += aad->value.len;
     }
 
-    if (aws_byte_cursor_write_be16(&output, hdr->edk_count)) return aws_raise_error(AWS_ERROR_OOM);
-    *bytes_written += 2;
+    if (aws_byte_cursor_write_be16(&output, hdr->edk_count)) goto WRITE_ERR;
 
     for (idx = 0 ; idx < hdr->edk_count ; ++idx) {
         struct aws_cryptosdk_hdr_edk * edk = hdr->edk_tbl + idx;
 
-        if (aws_byte_cursor_write_be16(&output, edk->provider_id.len)) return aws_raise_error(AWS_ERROR_OOM);
-        *bytes_written += 2;
+        if (aws_byte_cursor_write_be16(&output, edk->provider_id.len)) goto WRITE_ERR;
+        if (aws_byte_cursor_write_from_whole_buffer(&output, &edk->provider_id)) goto WRITE_ERR;
 
-        if (aws_byte_cursor_write_from_whole_buffer(&output, &edk->provider_id)) return aws_raise_error(AWS_ERROR_OOM);
-        *bytes_written += edk->provider_id.len;
+        if (aws_byte_cursor_write_be16(&output, edk->provider_info.len)) goto WRITE_ERR;
+        if (aws_byte_cursor_write_from_whole_buffer(&output, &edk->provider_info)) goto WRITE_ERR;
 
-        if (aws_byte_cursor_write_be16(&output, edk->provider_info.len)) return aws_raise_error(AWS_ERROR_OOM);
-        *bytes_written += 2;
-
-        if (aws_byte_cursor_write_from_whole_buffer(&output, &edk->provider_info)) return aws_raise_error(AWS_ERROR_OOM);
-        *bytes_written += edk->provider_info.len;
-
-        if (aws_byte_cursor_write_be16(&output, edk->enc_data_key.len)) return aws_raise_error(AWS_ERROR_OOM);
-        *bytes_written += 2;
-
-        if (aws_byte_cursor_write_from_whole_buffer(&output, &edk->enc_data_key)) return aws_raise_error(AWS_ERROR_OOM);
-        *bytes_written += edk->enc_data_key.len;
+        if (aws_byte_cursor_write_be16(&output, edk->enc_data_key.len)) goto WRITE_ERR;
+        if (aws_byte_cursor_write_from_whole_buffer(&output, &edk->enc_data_key)) goto WRITE_ERR;
     }
 
     if (aws_byte_cursor_write_u8(
             &output, hdr->frame_len ? AWS_CRYPTOSDK_HEADER_CTYPE_FRAMED : AWS_CRYPTOSDK_HEADER_CTYPE_NONFRAMED))
         return aws_raise_error(AWS_ERROR_OOM);
-    ++ *bytes_written;
 
-    if (aws_byte_cursor_write_u32(&output, 0)) return aws_raise_error(AWS_ERROR_OOM); // reserved bytes
-    *bytes_written += 4;
+    if (aws_byte_cursor_write_u32(&output, 0)) goto WRITE_ERR; // reserved bytes
 
-    if (aws_byte_cursor_write_u8(&output, hdr->iv.len)) return aws_raise_error(AWS_ERROR_OOM);
-    ++ *bytes_written;
+    if (aws_byte_cursor_write_u8(&output, hdr->iv.len)) goto WRITE_ERR;
+    if (aws_byte_cursor_write_be32(&output, hdr->frame_len)) goto WRITE_ERR;
 
-    if (aws_byte_cursor_write_be32(&output, hdr->frame_len)) return aws_raise_error(AWS_ERROR_OOM);
-    *bytes_written += 4;
+    if (aws_byte_cursor_write_from_whole_buffer(&output, &hdr->iv)) goto WRITE_ERR;
+    if (aws_byte_cursor_write_from_whole_buffer(&output, &hdr->auth_tag)) goto WRITE_ERR;
 
-    if (aws_byte_cursor_write_from_whole_buffer(&output, &hdr->iv)) return aws_raise_error(AWS_ERROR_OOM);
-    *bytes_written += hdr->iv.len;
-
-    if (aws_byte_cursor_write_from_whole_buffer(&output, &hdr->auth_tag)) return aws_raise_error(AWS_ERROR_OOM);
-    *bytes_written += hdr->auth_tag.len;
-
+    *bytes_written = output.ptr - outbuf;
     return AWS_OP_SUCCESS;
+
+WRITE_ERR:
+    memset(outbuf, 0, outlen);
+    *bytes_written = 0;
+    return aws_raise_error(AWS_ERROR_OOM);
 }
