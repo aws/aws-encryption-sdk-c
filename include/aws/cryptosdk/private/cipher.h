@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef AWS_CRYPTOSDK_P_CIPHER_H
-#define AWS_CRYPTOSDK_P_CIPHER_H
+#ifndef AWS_CRYPTOSDK_PRIVATE_CIPHER_H
+#define AWS_CRYPTOSDK_PRIVATE_CIPHER_H
 
 #include <aws/cryptosdk/header.h>
 #include <aws/common/byte_buf.h>
@@ -111,4 +111,4 @@ static inline void aws_cryptosdk_secure_zero(void *buf, size_t len) {
     // TODO: MSVC/win32 support using SecureZero
 }
 
-#endif // AWS_CRYPTOSDK_P_CIPHER_H
+#endif // AWS_CRYPTOSDK_PRIVATE_CIPHER_H

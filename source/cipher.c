@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-#include "cipher.h"
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
@@ -21,6 +20,7 @@
 #include <assert.h>
 #include <arpa/inet.h>
 
+#include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/error.h>
 
 #define MSG_ID_LEN 16

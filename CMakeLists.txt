@@ -110,15 +110,14 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   
 target_link_libraries(aws-encryption-sdk ${PLATFORM_LIBS} aws-c-common ${OPENSSL_CRYPTO_LIBRARY})
 
-file(GLOB TEST_SRC "tests/*.c")
-file(GLOB TEST_HDRS "tests/*.h")
-file(GLOB TESTS ${TEST_HDRS} ${TEST_SRC})
+file(GLOB UNIT_TEST_SRC "tests/unit/*.c")
+file(GLOB UNIT_TEST_HDRS "tests/*.h")
+file(GLOB UNIT_TESTS ${TEST_HDRS} ${TEST_SRC})
   
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/tests)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source)
-add_executable(unit-test-suite ${TESTS})
+add_executable(unit-test-suite ${UNIT_TEST_SRC})
 target_link_libraries(unit-test-suite ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
 set_target_properties(unit-test-suite PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
+target_include_directories(unit-test-suite PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit${CMAKE_CURRENT_SOURCE_DIR}/source)
 
 include(CTest)
 enable_testing()

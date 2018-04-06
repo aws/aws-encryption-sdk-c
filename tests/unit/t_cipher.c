@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "cipher.h"
+#include <aws/cryptosdk/private/cipher.h>
 #include "testing.h"
 
 static int test_kdf() {
