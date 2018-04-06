@@ -40,7 +40,7 @@ struct aws_cryptosdk_hdr {
 
     uint16_t aad_count;
     uint16_t edk_count;
-    size_t frame_len;
+    uint32_t frame_len;
 
     struct aws_byte_buf iv, auth_tag;
 
