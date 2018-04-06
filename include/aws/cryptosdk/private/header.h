@@ -44,17 +44,14 @@ struct aws_cryptosdk_hdr {
 
     struct aws_byte_buf iv, auth_tag;
 
-    struct aws_byte_cursor message_id;
-    uint8_t message_id_arr[MESSAGE_ID_LEN];
+    uint8_t message_id[MESSAGE_ID_LEN];
 
     struct aws_cryptosdk_hdr_aad *aad_tbl;
     struct aws_cryptosdk_hdr_edk *edk_tbl;
 
-    /* after parsing will point back to bytes
-     * in input buffer needed for auth.
-     * hdr does not own this memory.
-     */
-    struct aws_byte_cursor auth_cur;
+    // number of bytes of header except for IV and auth tag,
+    // i.e., exactly the bytes that get authenticated
+    size_t auth_len;
 };
 
 enum aws_cryptosdk_hdr_version {
@@ -89,9 +86,12 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
 
 /**
  * Reads information from already parsed hdr object and determines how many bytes are needed to serialize.
- * Writes number of bytes to *bytes_needed.
+ * Returns number of bytes, or zero if hdr was not parsed correctly.
+ *
+ * Warning: running this on a hdr which has not already been run through aws_cryptosdk_hdr_parse (or which has been zeroized)
+ * can result in a seg fault.
  */
-int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_needed);
+int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr);
 
 /**
  * Attempts to write a parsed header.

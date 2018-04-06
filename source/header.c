@@ -92,11 +92,8 @@ void aws_cryptosdk_hdr_free(struct aws_allocator * allocator, struct aws_cryptos
 int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptosdk_hdr *hdr, const uint8_t *src, size_t src_len) {
     int ret;
     struct aws_byte_cursor cur = aws_byte_cursor_from_array(src, src_len);
-    struct aws_byte_cursor auth_cur = cur;
 
     hdr_zeroize(hdr);
-
-    hdr->auth_cur.ptr = cur.ptr;
 
     uint8_t bytefield;
     if (aws_byte_cursor_read_u8(&cur, &bytefield)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
@@ -112,9 +109,7 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
     }
     hdr->alg_id = alg_id;
 
-    if (aws_byte_cursor_read(&cur, hdr->message_id_arr, MESSAGE_ID_LEN)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
-    hdr->message_id.len = MESSAGE_ID_LEN;
-    hdr->message_id.ptr = hdr->message_id_arr;
+    if (aws_byte_cursor_read(&cur, hdr->message_id, MESSAGE_ID_LEN)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 
     uint16_t aad_len;
     if (aws_byte_cursor_read_be16(&cur, &aad_len)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
@@ -210,7 +205,7 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
     hdr->frame_len = frame_len;
 
     // cur.ptr now points to end of portion of header that is authenticated
-    hdr->auth_cur.len = cur.ptr - hdr->auth_cur.ptr;
+    hdr->auth_len = cur.ptr - src;
 
     ret = aws_byte_buf_alloc(allocator, &hdr->iv, iv_len); if (ret) goto PARSE_ERR;
     ret = aws_byte_cursor_read_and_fill_buffer(&cur, &hdr->iv); if (ret) goto PARSE_ERR;
@@ -226,9 +221,13 @@ PARSE_ERR:
     return aws_raise_error(ret);
 }
 
-int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_needed) {
+static const struct aws_cryptosdk_hdr zero_hdr = {0};
+
+int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr) {
+    if (!memcmp(hdr, &zero_hdr, sizeof(struct aws_cryptosdk_hdr))) return 0;
+
     int idx;
-    size_t bytes = 20 + hdr->message_id.len + hdr->iv.len + hdr->auth_tag.len;
+    int bytes = 20 + MESSAGE_ID_LEN + hdr->iv.len + hdr->auth_tag.len;
 
     for (idx = 0 ; idx < hdr->aad_count ; ++idx) {
         struct aws_cryptosdk_hdr_aad * aad = hdr->aad_tbl + idx;
@@ -239,9 +238,10 @@ int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_n
         struct aws_cryptosdk_hdr_edk * edk = hdr->edk_tbl + idx;
         bytes += 6 + edk->provider_id.len + edk->provider_info.len + edk->enc_data_key.len;
     }
-    *bytes_needed = bytes;
-    return AWS_OP_SUCCESS;
+    return bytes;
 }
+
+static const uint8_t reserved_bytes[] = {0, 0, 0, 0};
 
 int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_written, uint8_t *outbuf, size_t outlen) {
     struct aws_byte_cursor output = aws_byte_cursor_from_array(outbuf, outlen);
@@ -249,7 +249,7 @@ int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_
     if (aws_byte_cursor_write_u8(&output, AWS_CRYPTOSDK_HEADER_VERSION_1_0)) goto WRITE_ERR;
     if (aws_byte_cursor_write_u8(&output, AWS_CRYPTOSDK_HEADER_TYPE_CUSTOMER_AED)) goto WRITE_ERR;
     if (aws_byte_cursor_write_be16(&output, hdr->alg_id)) goto WRITE_ERR;
-    if (aws_byte_cursor_write(&output, hdr->message_id.ptr, hdr->message_id.len)) goto WRITE_ERR;
+    if (aws_byte_cursor_write(&output, hdr->message_id, MESSAGE_ID_LEN)) goto WRITE_ERR;
 
     // read through AAD once to calculate length
     int idx;
@@ -292,7 +292,7 @@ int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_
             &output, hdr->frame_len ? AWS_CRYPTOSDK_HEADER_CTYPE_FRAMED : AWS_CRYPTOSDK_HEADER_CTYPE_NONFRAMED))
         return aws_raise_error(AWS_ERROR_OOM);
 
-    if (aws_byte_cursor_write_u32(&output, 0)) goto WRITE_ERR; // reserved bytes
+    if (aws_byte_cursor_write(&output, reserved_bytes, sizeof(reserved_bytes))) goto WRITE_ERR;
 
     if (aws_byte_cursor_write_u8(&output, hdr->iv.len)) goto WRITE_ERR;
     if (aws_byte_cursor_write_be32(&output, hdr->frame_len)) goto WRITE_ERR;

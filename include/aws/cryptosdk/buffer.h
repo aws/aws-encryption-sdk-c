@@ -126,25 +126,11 @@ static inline int aws_byte_cursor_write_u8(struct aws_byte_cursor * restrict cur
 }
 
 /**
- * Writes a 16-bit integer in host byte order (usually little endian) to cursor.
- */
-static inline int aws_byte_cursor_write_u16(struct aws_byte_cursor *cur, uint16_t x) {
-    return aws_byte_cursor_write(cur, (uint8_t *) &x, 2);
-}
-
-/**
  * Writes a 16-bit integer in network byte order (big endian) to cursor.
  */
 static inline int aws_byte_cursor_write_be16(struct aws_byte_cursor *cur, uint16_t x) {
     x = htons(x);
-    return aws_byte_cursor_write_u16(cur, x);
-}
-
-/**
- * Writes a 32-bit integer in host byte order (usually little endian) to cursor.
- */
-static inline int aws_byte_cursor_write_u32(struct aws_byte_cursor *cur, uint32_t x) {
-    return aws_byte_cursor_write(cur, (uint8_t *) &x, 4);
+    return aws_byte_cursor_write(cur, (uint8_t *) &x, 2);
 }
 
 /**
@@ -152,7 +138,7 @@ static inline int aws_byte_cursor_write_u32(struct aws_byte_cursor *cur, uint32_
  */
 static inline int aws_byte_cursor_write_be32(struct aws_byte_cursor *cur, uint32_t x) {
     x = htonl(x);
-    return aws_byte_cursor_write_u32(cur, x);
+    return aws_byte_cursor_write(cur, (uint8_t *) &x, 4);
 }
 
 #endif // AWS_CRYPTOSDK_BUFFER_H
