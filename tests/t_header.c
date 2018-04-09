@@ -345,7 +345,7 @@ int header_size() {
     return 0;
 }
 
-int header_write() {
+int simple_header_write() {
     size_t outlen = sizeof(test_header_1) - 1; // not including junk byte
     uint8_t outbuf[outlen];
     size_t bytes_written;
@@ -361,6 +361,26 @@ int header_write() {
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_write(&test_header_2_hdr, &bytes_written2, outbuf2, outlen2));
     TEST_ASSERT_INT_EQ(bytes_written2, outlen2);
     TEST_ASSERT(!memcmp(test_header_2, outbuf2, outlen2));
+
+    return 0;
+}
+
+int large_buffer_header_write() {
+    size_t header_len = sizeof(test_header_1) - 1;
+    size_t outlen = sizeof(test_header_1) + 64;
+    uint8_t outbuf[outlen];
+    size_t bytes_written;
+    memset(outbuf, 'A', outlen);
+
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_write(&test_header_1_hdr, &bytes_written, outbuf, outlen));
+    TEST_ASSERT_INT_EQ(bytes_written, header_len);
+    TEST_ASSERT(!memcmp(test_header_1, outbuf, header_len));
+
+    // verify write did not go further into outbuf than it says it did
+    // kind of a less rigorous version of the mmap test above
+    for (int idx = header_len ; idx < outlen ; ++idx) {
+        TEST_ASSERT_INT_EQ(outbuf[idx], 'A');
+    }
 
     return 0;
 }
@@ -386,7 +406,8 @@ struct test_case header_test_cases[] = {
     { "header", "failed_parse", failed_parse },
     { "header", "overread", overread_test },
     { "header", "size", header_size },
-    { "header", "write", header_write },
+    { "header", "write", simple_header_write },
+    { "header", "large_buffer_write", large_buffer_header_write },
     { "header", "failed_write", header_failed_write },
     { NULL }
 };

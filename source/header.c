@@ -224,10 +224,13 @@ PARSE_ERR:
     return aws_raise_error(ret);
 }
 
-static const struct aws_cryptosdk_hdr zero_hdr = {0};
+static const union {
+    uint8_t bytes[sizeof(struct aws_cryptosdk_hdr)];
+    struct aws_cryptosdk_hdr hdr;
+} zero = {0};
 
 int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr) {
-    if (!memcmp(hdr, &zero_hdr, sizeof(struct aws_cryptosdk_hdr))) return 0;
+    if (!memcmp(hdr, &zero.hdr, sizeof(struct aws_cryptosdk_hdr))) return 0;
 
     int idx;
     int bytes = 18 + MESSAGE_ID_LEN + hdr->iv.len + hdr->auth_tag.len + (hdr->aad_count ? 2 : 0);
@@ -243,8 +246,6 @@ int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr) {
     }
     return bytes;
 }
-
-static const uint8_t reserved_bytes[] = {0, 0, 0, 0};
 
 int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_written, uint8_t *outbuf, size_t outlen) {
     struct aws_byte_cursor output = aws_byte_cursor_from_array(outbuf, outlen);
@@ -302,7 +303,7 @@ int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_
             &output, hdr->frame_len ? AWS_CRYPTOSDK_HEADER_CTYPE_FRAMED : AWS_CRYPTOSDK_HEADER_CTYPE_NONFRAMED))
         return aws_raise_error(AWS_ERROR_OOM);
 
-    if (aws_byte_cursor_write(&output, reserved_bytes, sizeof(reserved_bytes))) goto WRITE_ERR;
+    if (aws_byte_cursor_write(&output, zero.bytes, 4)) goto WRITE_ERR;
 
     if (aws_byte_cursor_write_u8(&output, hdr->iv.len)) goto WRITE_ERR;
     if (aws_byte_cursor_write_be32(&output, hdr->frame_len)) goto WRITE_ERR;
