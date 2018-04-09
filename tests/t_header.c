@@ -274,7 +274,7 @@ int failed_parse() {
 #ifdef _POSIX_VERSION
 // Tests that we don't overread past the end of the buffer.
 // Optionally (if flip_bit_index >= 0 && < inlen * 8), flips a bit in the header buffer.
-static void overread_test_once(const uint8_t *inbuf, size_t inlen, ssize_t flip_bit_index) {
+static void overread_once(const uint8_t *inbuf, size_t inlen, ssize_t flip_bit_index) {
     // Copy the header to a buffer aligned at the end of a page, and just before the subsequent page
 
     // First, round up to at least size + one page, page aligned.
@@ -284,8 +284,7 @@ static void overread_test_once(const uint8_t *inbuf, size_t inlen, ssize_t flip_
 
     // We now set up a memory layout looking like the following:
     // [padding] [header] [inaccessible page]
-
-    uint8_t *pbuffer = mmap(NULL, total_size, PROT_READ|PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    uint8_t *pbuffer = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (pbuffer == MAP_FAILED) {
         perror("mmap");
         abort();
@@ -319,21 +318,21 @@ static void overread_test_once(const uint8_t *inbuf, size_t inlen, ssize_t flip_
     munmap(pbuffer, total_size);
 }
 
-static int overread_test() {
+static int overread() {
     // Test that various truncations don't result in an overread
     for (size_t hdrlen = 0; hdrlen < sizeof(test_header_1); hdrlen++) {
-        overread_test_once(test_header_1, hdrlen, -1);
+        overread_once(test_header_1, hdrlen, -1);
     }
 
     // Test that corrupt header fields don't result in an overread
     for (size_t flipbit = 0; flipbit < sizeof(test_header_1) << 3; flipbit++) {
-        overread_test_once(test_header_1, sizeof(test_header_1), flipbit);
+        overread_once(test_header_1, sizeof(test_header_1), flipbit);
     }
     return 0;
 }
 
 #else // _POSIX_VERSION
-static int overread_test() {
+static int overread() {
     printf("\nWarning: overread test cannot be performed on this system. Passing trivially.\n");
     return 0; // can't do overread tests portably
 }
@@ -365,26 +364,6 @@ int simple_header_write() {
     return 0;
 }
 
-int large_buffer_header_write() {
-    size_t header_len = sizeof(test_header_1) - 1;
-    size_t outlen = sizeof(test_header_1) + 64;
-    uint8_t outbuf[outlen];
-    size_t bytes_written;
-    memset(outbuf, 'A', outlen);
-
-    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_write(&test_header_1_hdr, &bytes_written, outbuf, outlen));
-    TEST_ASSERT_INT_EQ(bytes_written, header_len);
-    TEST_ASSERT(!memcmp(test_header_1, outbuf, header_len));
-
-    // verify write did not go further into outbuf than it says it did
-    // kind of a less rigorous version of the mmap test above
-    for (int idx = header_len ; idx < outlen ; ++idx) {
-        TEST_ASSERT_INT_EQ(outbuf[idx], 'A');
-    }
-
-    return 0;
-}
-
 int header_failed_write() {
     size_t outlen = sizeof(test_header_1) - 2;
     uint8_t outbuf[outlen];
@@ -400,14 +379,50 @@ int header_failed_write() {
     return 0;
 }
 
+int overwrite() {
+
+    struct aws_cryptosdk_hdr * test_headers[] = {&test_header_1_hdr, &test_header_2_hdr};
+    int pagesize = sysconf(_SC_PAGESIZE);
+
+    for (int idx = 0 ; idx < sizeof(test_headers)/sizeof(struct aws_cryptosdk_hdr *) ; ++idx) {
+        size_t bytes_written;
+
+        int header_len = aws_cryptosdk_hdr_size(test_headers[idx]);
+
+        // First, round up to at least size + one page, page aligned.
+        size_t offset = -header_len % pagesize;
+        size_t total_size = offset + header_len + pagesize;
+
+        // We now set up a memory layout looking like the following:
+        // [padding] [header] [inaccessible page]
+        uint8_t *pbuffer = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        if (pbuffer == MAP_FAILED) {
+            perror("mmap");
+            abort();
+        }
+
+        uint8_t *phdr = pbuffer + offset;
+        uint8_t *ptrap = phdr + header_len;
+
+        if (mprotect(ptrap, pagesize, PROT_NONE)) {
+            perror("mprotect");
+            abort();
+        }
+
+        aws_cryptosdk_hdr_write(test_headers[idx], &bytes_written, phdr, header_len + pagesize);
+        munmap(pbuffer, total_size);
+    }
+    return 0;
+}
+
 struct test_case header_test_cases[] = {
     { "header", "parse", simple_header_parse },
     { "header", "parse2", simple_header_parse2 },
     { "header", "failed_parse", failed_parse },
-    { "header", "overread", overread_test },
+    { "header", "overread", overread },
     { "header", "size", header_size },
     { "header", "write", simple_header_write },
-    { "header", "large_buffer_write", large_buffer_header_write },
     { "header", "failed_write", header_failed_write },
+    { "header", "overwrite", overwrite },
     { NULL }
 };
