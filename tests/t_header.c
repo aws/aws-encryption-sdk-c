@@ -10,47 +10,47 @@
 
 static const uint8_t test_header_1[] = {
     //version, type, alg ID
-    0x01,  0x80,  0x02,  0x14, 
+    0x01,  0x80,  0x02,  0x14,
     //message ID
-    0x11,  0x22,  0x33,  0x44,  0x55,  0x66,  0x77,  0x88,  0x11,  0x22,  0x33,  0x44,  0x55,  0x66,  0x77,  0x88, 
+    0x11,  0x22,  0x33,  0x44,  0x55,  0x66,  0x77,  0x88,  0x11,  0x22,  0x33,  0x44,  0x55,  0x66,  0x77,  0x88,
     //AAD length (19 bytes)
     0x00, 0x13,
     //AAD - kv pair count (2 pairs)
-    0x00, 0x02, 
+    0x00, 0x02,
     //key length, key data
-    0x00,  0x04, 
-    0x01,  0x02,  0x03,  0x04, 
+    0x00,  0x04,
+    0x01,  0x02,  0x03,  0x04,
     //value length, value data
-    0x00,  0x05, 
-    0x01,  0x00,  0x01,  0x00,  0x01, 
+    0x00,  0x05,
+    0x01,  0x00,  0x01,  0x00,  0x01,
     //key length, key data
-    0x00,  0x00, 
+    0x00,  0x00,
     //val length, val data
-    0x00,  0x00, 
+    0x00,  0x00,
 // p = 49 bytes
     //edk count
-    0x00, 0x03, 
+    0x00, 0x03,
     //edk #0 (all empty fields)
-    0x00,  0x00,  0x00,  0x00,  0x00,  0x00, 
+    0x00,  0x00,  0x00,  0x00,  0x00,  0x00,
     //edk #1
     //provider ID len + data
-    0x00,  0x04,  0x10,  0x11,  0x12,  0x00, 
+    0x00,  0x04,  0x10,  0x11,  0x12,  0x00,
     //prov info len + data
-    0x00,  0x04,  0x01,  0x02,  0x03,  0x04, 
+    0x00,  0x04,  0x01,  0x02,  0x03,  0x04,
     //encrypted data key
     0x00,  0x08,  0x11,  0x02,  0x03,  0x04,  0x05,  0x06,  0x07,  0x88,
     //edk #2 (all empty fields)
-    0x00,  0x00,  0x00,  0x00,  0x00,  0x00, 
+    0x00,  0x00,  0x00,  0x00,  0x00,  0x00,
 
     //content type
-    0x02, 
+    0x02,
 
     //reserved
-    0x00,  0x00,  0x00,  0x00, 
+    0x00,  0x00,  0x00,  0x00,
     //iv len
-    0x0c, 
+    0x0c,
     //frame length
-    0x00,  0x00,  0x10,  0x00, 
+    0x00,  0x00,  0x10,  0x00,
     //iv  FIXME: this IV and authentication tag is not valid, change when we implement authentication
     0x00,  0x01,  0x02,  0x03,  0x04,  0x05,  0x06,  0x07,  0x08,  0x09,  0x0a,  0x0b,
     //header auth
@@ -100,6 +100,58 @@ struct aws_cryptosdk_hdr test_header_1_hdr = {
     .edk_tbl = test_header_1_edk_tbl,
     .auth_len = sizeof(test_header_1) - 29 // not used by aws_cryptosdk_hdr_size/write
 };
+
+static const uint8_t test_header_2[] = { // same as test_header_1 with no AAD section
+    //version, type, alg ID
+    0x01,  0x80,  0x02,  0x14,
+    //message ID
+    0x11,  0x22,  0x33,  0x44,  0x55,  0x66,  0x77,  0x88,  0x11,  0x22,  0x33,  0x44,  0x55,  0x66,  0x77,  0x88,
+    //AAD length (19 bytes)
+    0x00, 0x00,
+    //edk count
+    0x00, 0x03,
+    //edk #0 (all empty fields)
+    0x00,  0x00,  0x00,  0x00,  0x00,  0x00,
+    //edk #1
+    //provider ID len + data
+    0x00,  0x04,  0x10,  0x11,  0x12,  0x00,
+    //prov info len + data
+    0x00,  0x04,  0x01,  0x02,  0x03,  0x04,
+    //encrypted data key
+    0x00,  0x08,  0x11,  0x02,  0x03,  0x04,  0x05,  0x06,  0x07,  0x88,
+    //edk #2 (all empty fields)
+    0x00,  0x00,  0x00,  0x00,  0x00,  0x00,
+
+    //content type
+    0x02,
+
+    //reserved
+    0x00,  0x00,  0x00,  0x00,
+    //iv len
+    0x0c,
+    //frame length
+    0x00,  0x00,  0x10,  0x00,
+    //iv  FIXME: this IV and authentication tag is not valid, change when we implement authentication
+    0x00,  0x01,  0x02,  0x03,  0x04,  0x05,  0x06,  0x07,  0x08,  0x09,  0x0a,  0x0b,
+    //header auth
+    0xde,  0xad,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0xbe, 0xef,
+    // extra byte - used to verify that we can parse with extra trailing junk
+    0xFF
+};
+
+struct aws_cryptosdk_hdr test_header_2_hdr = {
+    .alg_id = AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
+    .aad_count = 0,
+    .edk_count = sizeof(test_header_1_edk_tbl)/sizeof(struct aws_cryptosdk_hdr_edk),
+    .frame_len = 0x1000,
+    .iv = {.buffer = test_header_1_iv_arr, .len = sizeof(test_header_1_iv_arr)},
+    .auth_tag = {.buffer = test_header_1_auth_tag_arr, .len = sizeof(test_header_1_auth_tag_arr)},
+    .message_id = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88},
+    .aad_tbl = NULL,
+    .edk_tbl = test_header_1_edk_tbl,
+    .auth_len = sizeof(test_header_2) - 29 // not used by aws_cryptosdk_hdr_size/write
+};
+
 
 int simple_header_parse() {
     struct aws_allocator * allocator = aws_default_allocator();
@@ -155,6 +207,57 @@ int simple_header_parse() {
     aws_cryptosdk_hdr_free(allocator, &hdr);
     return 0;
 }
+
+int simple_header_parse2() {
+    struct aws_allocator * allocator = aws_default_allocator();
+    struct aws_cryptosdk_hdr hdr;
+
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
+                       aws_cryptosdk_hdr_parse(allocator, &hdr, test_header_2, sizeof(test_header_2)));
+
+    // Known answer tests
+    TEST_ASSERT_INT_EQ(hdr.alg_id, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
+
+    struct aws_byte_cursor message_id = {.ptr = hdr.message_id, .len = MESSAGE_ID_LEN};
+    TEST_ASSERT_CUR_EQ(message_id,
+        0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88
+    );
+
+    TEST_ASSERT_BUF_EQ(hdr.iv,
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b
+    );
+
+    TEST_ASSERT_BUF_EQ(hdr.auth_tag,
+        0xde, 0xad, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xbe, 0xef
+    );
+
+    // Misc values
+    TEST_ASSERT_INT_EQ(0, hdr.aad_count);
+    TEST_ASSERT_INT_EQ(3, hdr.edk_count);
+    TEST_ASSERT_INT_EQ(0x1000, hdr.frame_len);
+    TEST_ASSERT_INT_EQ(hdr.auth_len, sizeof(test_header_2) - 29); // 1 junk byte, 12 IV bytes, 16 auth tag bytes
+
+    TEST_ASSERT_ADDR_EQ(hdr.aad_tbl, NULL);
+
+    // EDK checks
+    TEST_ASSERT_INT_EQ(0, hdr.edk_tbl[0].provider_id.len);
+    TEST_ASSERT_INT_EQ(0, hdr.edk_tbl[0].provider_info.len);
+    TEST_ASSERT_INT_EQ(0, hdr.edk_tbl[0].enc_data_key.len);
+
+    TEST_ASSERT_INT_EQ(0, hdr.edk_tbl[2].provider_id.len);
+    TEST_ASSERT_INT_EQ(0, hdr.edk_tbl[2].provider_info.len);
+    TEST_ASSERT_INT_EQ(0, hdr.edk_tbl[2].enc_data_key.len);
+
+    TEST_ASSERT_BUF_EQ(hdr.edk_tbl[1].provider_id, 0x10, 0x11, 0x12, 0x00);
+    TEST_ASSERT_BUF_EQ(hdr.edk_tbl[1].provider_info, 0x01, 0x02, 0x03, 0x04);
+    TEST_ASSERT_BUF_EQ(hdr.edk_tbl[1].enc_data_key, 0x11, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x88);
+
+    TEST_ASSERT_INT_EQ(aws_cryptosdk_hdr_size(&hdr), hdr.auth_len + hdr.auth_tag.len + hdr.iv.len);
+
+    aws_cryptosdk_hdr_free(allocator, &hdr);
+    return 0;
+}
+
 
 int failed_parse() {
     struct aws_allocator * allocator = aws_default_allocator();
@@ -251,6 +354,14 @@ int header_write() {
     TEST_ASSERT_INT_EQ(bytes_written, outlen);
     TEST_ASSERT(!memcmp(test_header_1, outbuf, outlen));
 
+    size_t outlen2 = sizeof(test_header_2) - 1;
+    uint8_t outbuf2[outlen2];
+    size_t bytes_written2;
+
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_write(&test_header_2_hdr, &bytes_written2, outbuf2, outlen2));
+    TEST_ASSERT_INT_EQ(bytes_written2, outlen2);
+    TEST_ASSERT(!memcmp(test_header_2, outbuf2, outlen2));
+
     return 0;
 }
 
@@ -271,6 +382,7 @@ int header_failed_write() {
 
 struct test_case header_test_cases[] = {
     { "header", "parse", simple_header_parse },
+    { "header", "parse2", simple_header_parse2 },
     { "header", "failed_parse", failed_parse },
     { "header", "overread", overread_test },
     { "header", "size", header_size },
