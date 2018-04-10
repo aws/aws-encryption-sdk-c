@@ -36,14 +36,6 @@
  */
 
 /**
- * Advances the cursor by 'len' bytes, without returning the old position.
- */
-static inline int aws_byte_cursor_skip(struct aws_byte_cursor *cur, size_t length) {
-    struct aws_byte_cursor slice = aws_byte_cursor_advance_nospec(cur, length);
-    return slice.ptr ? AWS_ERROR_SUCCESS : AWS_ERROR_SHORT_BUFFER;
-}
-
-/**
  * Reads specified length of data from byte cursor and copies it to the destination array.
  */
 static inline int aws_byte_cursor_read(struct aws_byte_cursor * restrict cur, void * restrict dest, size_t len) {
