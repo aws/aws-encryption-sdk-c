@@ -27,24 +27,27 @@
  
 // TODO: Move this to aws-c-common
 
-/**
- * Advances the cursor by 'len' bytes, without returning the old position. If the cursor does not have at least
- * 'len' bytes remaining, leaves the cursor unchanged and returns AWS_ERROR_SHORT_BUFFER. Otherwise, the cursor's
- * pointer and length are updated, and the function returns AWS_ERROR_SUCCESS.
+/*
+ * All aws_byte_cursor_read* functions read data from byte cursor and write it to somewhere else.
+ * All aws_byte_cursor_write* functions read data from somewhere else and write it to the byte cursor.
+ * All check that the byte cursor has enough space to do the read or write and fail cleanly when it does
+ * not, returning a AWS_ERROR_SHORT_BUFFER error and not modifying the byte cursor.
+ * All return AWS_ERROR_SUCCESS on success and update the pointer and length remaining in the byte cursor.
  */
-static inline int aws_byte_cursor_skip(struct aws_byte_cursor *cursor, size_t length) {
-    struct aws_byte_cursor slice = aws_byte_cursor_advance_nospec(cursor, length);
+
+/**
+ * Advances the cursor by 'len' bytes, without returning the old position.
+ */
+static inline int aws_byte_cursor_skip(struct aws_byte_cursor *cur, size_t length) {
+    struct aws_byte_cursor slice = aws_byte_cursor_advance_nospec(cur, length);
     return slice.ptr ? AWS_ERROR_SUCCESS : AWS_ERROR_SHORT_BUFFER;
 }
 
 /**
- * Reads arbitrary data from pBuf to the output cursor identified by dest and len.
- *
- * If successful, pBuf->ptr is advanced len bytes, and AWS_ERROR_SUCCESS is returned.
- * Otherwise, returns AWS_ERROR_SHORT_BUFFER without changing any state.
+ * Reads specified length of data from byte cursor and copies it to the destination array.
  */
-static inline int aws_byte_cursor_read(struct aws_byte_cursor * restrict pBuf, void * restrict dest, size_t len) {
-    struct aws_byte_cursor slice = aws_byte_cursor_advance_nospec(pBuf, len);
+static inline int aws_byte_cursor_read(struct aws_byte_cursor * restrict cur, void * restrict dest, size_t len) {
+    struct aws_byte_cursor slice = aws_byte_cursor_advance_nospec(cur, len);
 
     if (slice.ptr) {
         memcpy(dest, slice.ptr, len);
@@ -55,26 +58,24 @@ static inline int aws_byte_cursor_read(struct aws_byte_cursor * restrict pBuf, v
 }
 
 /**
- * Reads a single byte from pBuf, placing it in *var.
- *
- * If successful, *var contains the byte previously pointed-to by pBuf->ptr,
- * and AWS_ERROR_SUCCESS is returned. If pBuf had insufficient data, then AWS_ERROR_SHORT_BUFFER
- * is returned without changing any state.
+ * Reads as many bytes from cursor as size of buffer, and copies them to buffer.
  */
-static inline int aws_byte_cursor_read_u8(struct aws_byte_cursor * restrict pBuf, uint8_t * restrict var) {
-    return aws_byte_cursor_read(pBuf, var, 1);
+static inline int aws_byte_cursor_read_and_fill_buffer(struct aws_byte_cursor * restrict cur, struct aws_byte_buf * restrict dest) {
+    return aws_byte_cursor_read(cur, dest->buffer, dest->len);
 }
 
 /**
- * Reads a 16bit value in network byte order from pBuf, and places it in native byte order into var.
- * pBuf->ptr is not required to be aligned.
- *
- * If successful, *var contains the value previously pointed-to by pBuf->ptr (after byteswap, if required),
- * and AWS_ERROR_SUCCESS is returned. If pBuf had insufficient data, then AWS_ERROR_SHORT_BUFFER
- * is returned without changing any state.
+ * Reads a single byte from cursor, placing it in *var.
  */
-static inline int aws_byte_cursor_read_be16(struct aws_byte_cursor *pBuf, uint16_t *var) {
-    int rv = aws_byte_cursor_read(pBuf, var, 2);
+static inline int aws_byte_cursor_read_u8(struct aws_byte_cursor * restrict cur, uint8_t * restrict var) {
+    return aws_byte_cursor_read(cur, var, 1);
+}
+
+/**
+ * Reads a 16-bit value in network byte order from cur, and places it in host byte order into var.
+ */
+static inline int aws_byte_cursor_read_be16(struct aws_byte_cursor *cur, uint16_t *var) {
+    int rv = aws_byte_cursor_read(cur, var, 2);
 
     if (aws_cryptosdk_likely(!rv)) {
         *var = ntohs(*var);
@@ -84,21 +85,60 @@ static inline int aws_byte_cursor_read_be16(struct aws_byte_cursor *pBuf, uint16
 }
 
 /**
- * Reads a 32-bit value in network byte order from pBuf, and places it in native byte order into var.
- * pBuf->ptr is not required to be aligned.
- *
- * If successful, *var contains the value previously pointed-to by pBuf->ptr (after byteswap, if required),
- * and AWS_ERROR_SUCCESS is returned. If pBuf had insufficient data, then AWS_ERROR_SHORT_BUFFER
- * is returned without changing any state.
+ * Reads a 32-bit value in network byte order from cur, and places it in host byte order into var.
  */
-static inline int aws_byte_cursor_read_be32(struct aws_byte_cursor *pBuf, uint32_t *var) {
-    int rv = aws_byte_cursor_read(pBuf, var, 4);
+static inline int aws_byte_cursor_read_be32(struct aws_byte_cursor *cur, uint32_t *var) {
+    int rv = aws_byte_cursor_read(cur, var, 4);
 
     if (aws_cryptosdk_likely(!rv)) {
         *var = ntohl(*var);
     }
 
     return rv;
+}
+
+/**
+ * Write specified number of bytes from array to byte cursor.
+ */
+static inline int aws_byte_cursor_write(struct aws_byte_cursor * restrict cur, const uint8_t * restrict src, size_t len) {
+    struct aws_byte_cursor slice = aws_byte_cursor_advance_nospec(cur, len);
+
+    if (slice.ptr) {
+        memcpy(slice.ptr, src, len);
+        return AWS_ERROR_SUCCESS;
+    } else {
+        return AWS_ERROR_SHORT_BUFFER;
+    }
+}
+
+/**
+ * Copies all bytes from buffer to cursor.
+ */
+static inline int aws_byte_cursor_write_from_whole_buffer(struct aws_byte_cursor * restrict cur, const struct aws_byte_buf * restrict src) {
+    return aws_byte_cursor_write(cur, src->buffer, src->len);
+}
+
+/**
+ * Copies one byte to cursor.
+ */
+static inline int aws_byte_cursor_write_u8(struct aws_byte_cursor * restrict cur, uint8_t c) {
+    return aws_byte_cursor_write(cur, &c, 1);
+}
+
+/**
+ * Writes a 16-bit integer in network byte order (big endian) to cursor.
+ */
+static inline int aws_byte_cursor_write_be16(struct aws_byte_cursor *cur, uint16_t x) {
+    x = htons(x);
+    return aws_byte_cursor_write(cur, (uint8_t *) &x, 2);
+}
+
+/**
+ * Writes a 32-bit integer in network byte order (big endian) to cursor.
+ */
+static inline int aws_byte_cursor_write_be32(struct aws_byte_cursor *cur, uint32_t x) {
+    x = htonl(x);
+    return aws_byte_cursor_write(cur, (uint8_t *) &x, 4);
 }
 
 #endif // AWS_CRYPTOSDK_BUFFER_H

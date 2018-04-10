@@ -38,7 +38,29 @@ extern struct test_case cipher_test_cases[];
         unsigned long long t_y = (y); \
         if (t_x != t_y) { \
             fprintf(stderr, "Failed: %s (%llu) != %s (%llu) at %s:%d\n", \
-                #x, t_x, #y, t_y, __FILE__, __LINE__); \
+                    #x, t_x, #y, t_y, __FILE__, __LINE__); \
+            return 1; \
+        } \
+    } while (0)
+
+#define TEST_ASSERT_INT_NE(x, y) \
+    do { \
+        unsigned long long t_x = (x); \
+        unsigned long long t_y = (y); \
+        if (t_x == t_y) { \
+            fprintf(stderr, "Failed: %s (%llu) == %s (%llu) at %s:%d\n", \
+                    #x, t_x, #y, t_y, __FILE__, __LINE__); \
+            return 1; \
+        } \
+    } while (0)
+
+#define TEST_ASSERT_ADDR_EQ(x, y) \
+    do { \
+        const void * t_x = (x); \
+        const void * t_y = (y); \
+        if (t_x != t_y) { \
+            fprintf(stderr, "Failed: %s (%p) != %s (%p) at %s:%d\n", \
+                    #x, t_x, #y, t_y, __FILE__, __LINE__); \
             return 1; \
         } \
     } while (0)
@@ -55,6 +77,25 @@ extern struct test_case cipher_test_cases[];
             } \
             fprintf(stderr, "\nExpected: "); \
             for (size_t assert_idx = 0; assert_idx < actual_buf.len; assert_idx++) { \
+                fprintf(stderr, "%02x ", expected_arr[assert_idx]); \
+            } \
+            fprintf(stderr, "\n"); \
+            return 1; \
+        } \
+    } while (0)
+
+#define TEST_ASSERT_CUR_EQ(cur, ...) \
+    do { \
+        static uint8_t expected_arr[] = { __VA_ARGS__ }; \
+        struct aws_byte_cursor actual_cur = (cur); \
+        TEST_ASSERT_INT_EQ(actual_cur.len, sizeof(expected_arr)); \
+        if (memcmp(expected_arr, actual_cur.ptr, actual_cur.len)) { \
+            fprintf(stderr, "Cursor mismatch at %s:%d (%s)\n  Actual: ", __FILE__, __LINE__, #cur); \
+            for (size_t assert_idx = 0; assert_idx < actual_cur.len; assert_idx++) { \
+                fprintf(stderr, "%02x ", ((uint8_t *)actual_cur.ptr)[assert_idx]); \
+            } \
+            fprintf(stderr, "\nExpected: "); \
+            for (size_t assert_idx = 0; assert_idx < actual_cur.len; assert_idx++) { \
                 fprintf(stderr, "%02x ", expected_arr[assert_idx]); \
             } \
             fprintf(stderr, "\n"); \
