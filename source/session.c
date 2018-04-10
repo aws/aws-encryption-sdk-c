@@ -1,0 +1,358 @@
+/*
+ * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+ * this file except in compliance with the License. A copy of the License is
+ * located at
+ *
+ *     http://aws.amazon.com/apache2.0/
+ *
+ * or in the "license" file accompanying this file. This file is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <stdbool.h>
+
+#include <aws/cryptosdk/session.h>
+#include <aws/cryptosdk/private/header.h>
+#include <aws/cryptosdk/private/session.h>
+
+static void session_reset(struct aws_cryptosdk_session *session) {
+    if (session->header_copy) {
+        aws_cryptosdk_secure_zero(session->header_copy, session->header_size);
+        aws_mem_release(session->alloc, session->header_copy);
+    }
+    session->header_copy = NULL;
+    session->header_size = 0;
+
+    aws_cryptosdk_hdr_free(session->alloc, &session->header);
+
+    aws_cryptosdk_secure_zero(&session->content_key, sizeof(session->content_key));
+
+    session->mode = MODE_UNINIT;
+    session->state = ST_CONFIG;
+    session->error = 0;
+    session->frame_seqno = 0;
+    session->input_size_estimate = 1;
+    session->output_size_estimate = 0;
+    session->alg_props = NULL;
+}
+
+int aws_cryptosdk_session_new(
+    struct aws_allocator *allocator,
+    struct aws_cryptosdk_session **session_out
+) {
+    struct aws_cryptosdk_session *session = aws_mem_acquire(allocator, sizeof(struct aws_cryptosdk_session));
+
+    if (!session) {
+        return aws_raise_error(AWS_ERROR_OOM);
+    }
+
+    memset(session, 0, sizeof(*session));
+
+    session->alloc = allocator;
+    session_reset(session);
+
+    *session_out = session;
+
+    return AWS_OP_SUCCESS;
+}
+
+void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session) {
+    struct aws_allocator *alloc = session->alloc;
+
+    session_reset(session); // frees header arena and other dynamically allocated stuff
+    aws_cryptosdk_secure_zero(session, sizeof(*session));
+
+    aws_mem_release(alloc, session);
+}
+
+int aws_cryptosdk_session_init_decrypt(struct aws_cryptosdk_session *session) {
+    session_reset(session);
+    session->mode = MODE_DECRYPT;
+
+    return AWS_OP_SUCCESS;
+}
+#include <stdio.h>
+static int init_keys(
+    struct aws_cryptosdk_session * restrict session
+) {
+    // TODO - use CMM/MKP to get the data key.
+    // For now we'll just use an all-zero key to expedite testing
+    struct data_key data_key = { { 0 } };
+
+    uint16_t alg_id = session->header.alg_id;
+    session->alg_props = aws_cryptosdk_alg_props(alg_id);
+
+    if (!session->alg_props) {
+        // Unknown algorithm
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
+    }
+
+    int rv = aws_cryptosdk_derive_key(
+        &session->content_key,
+        &data_key,
+        session->alg_props->alg_id,
+        session->header.message_id
+    );
+
+    if (rv) {
+        return AWS_OP_ERR;
+    }
+
+    // Perform header validation
+    int header_size = aws_cryptosdk_hdr_size(&session->header);
+    size_t authtag_len = session->alg_props->tag_len + session->alg_props->iv_len;
+
+    if (header_size - session->header.auth_len != authtag_len) {
+        // The authenticated length field is wrong.
+        // XXX: This is a computed field, can this actually fail in practice?
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
+    }
+
+    struct aws_byte_buf authtag = { .buffer = session->header_copy + session->header.auth_len, .len = authtag_len };
+    struct aws_byte_buf headerbytebuf = { .buffer = session->header_copy, .len = session->header.auth_len };
+
+    int err = aws_cryptosdk_verify_header(session->alg_props->alg_id, &session->content_key, &authtag, &headerbytebuf);
+
+    if (err) {
+        return err;
+    }
+
+    session->state = ST_BODY;
+    session->frame_seqno = 1;
+
+    return AWS_OP_SUCCESS;
+
+
+}
+
+static int try_parse_header(
+    struct aws_cryptosdk_session * restrict session,
+    struct aws_byte_cursor * restrict input
+) {
+    size_t header_len;
+    int rv = aws_cryptosdk_hdr_parse(session->alloc, &session->header, input->ptr, input->len);
+
+    if (rv != AWS_OP_SUCCESS) {
+        if (aws_last_error() == AWS_ERROR_SHORT_BUFFER) {
+            if (input->len >= session->input_size_estimate) {
+                // XXX overflow checks
+                session->input_size_estimate = input->len + 128;
+            }
+            session->output_size_estimate = 0;
+            return AWS_OP_SUCCESS; // suppress this error
+        }
+        return rv;
+    }
+
+    session->header_size = aws_cryptosdk_hdr_size(&session->header);
+    session->header_copy = aws_mem_acquire(session->alloc, session->header_size);
+
+    if (!session->header_copy) {
+        return aws_raise_error(AWS_ERROR_OOM);
+    }
+
+    memcpy(session->header_copy, input->ptr, session->header_size);
+
+    aws_byte_cursor_advance(input, session->header_size);
+
+    session->state = ST_KEYING;
+
+    return init_keys(session);
+}
+
+static int try_process_body(
+    struct aws_cryptosdk_session * restrict session,
+    struct aws_byte_cursor * restrict poutput,
+    struct aws_byte_cursor * restrict pinput
+) {
+    size_t frame_len = session->header.frame_len;
+    bool is_framed = !!frame_len;
+    int tag_len = session->alg_props->tag_len;
+    int iv_len  = session->alg_props->iv_len;
+    int body_frame_type;
+    size_t output_len = 0;
+    size_t input_len = 0;
+
+    struct aws_byte_cursor input = *pinput;
+
+    struct aws_byte_cursor iv;
+    struct aws_byte_cursor content;
+    struct aws_byte_cursor tag;
+
+    if (is_framed) {
+        uint32_t seqno;
+        input_len = 4;
+        if (aws_byte_cursor_read_be32(&input, &seqno)) {
+            goto no_progress;
+        }
+
+        if (seqno != 0xFFFFFFFF) {
+            // Not final frame
+            body_frame_type = FRAME_TYPE_FRAME;
+            output_len = frame_len;
+            input_len += frame_len + iv_len + tag_len;
+
+            if (!(iv = aws_byte_cursor_advance(&input, iv_len)).ptr) goto no_progress;
+            if (!(content = aws_byte_cursor_advance(&input, frame_len)).ptr) goto no_progress;
+            if (!(tag = aws_byte_cursor_advance(&input, tag_len)).ptr) goto no_progress;
+        } else {
+            // Final frame
+            body_frame_type = FRAME_TYPE_FINAL;
+            input_len += 4 + iv_len + 4;
+
+            // Read the true sequence number after the final-frame sentinel
+            if (aws_byte_cursor_read_be32(&input, &seqno)) goto no_progress;
+            if (!(iv = aws_byte_cursor_advance(&input, iv_len)).ptr) goto no_progress;
+            uint32_t content_len;
+            if (aws_byte_cursor_read_be32(&input, &content_len)) goto no_progress;
+
+            input_len += content_len + tag_len;
+            output_len = content_len;
+
+            if (!(content = aws_byte_cursor_advance_nospec(&input, content_len)).ptr) goto no_progress;
+            if (!(tag = aws_byte_cursor_advance_nospec(&input, tag_len)).ptr) goto no_progress;
+        }
+
+        // Sanity checks
+        if (content.len > frame_len) {
+            return AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
+        }
+
+        if (seqno != session->frame_seqno) {
+            return AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
+        }
+    } else {
+        body_frame_type = FRAME_TYPE_SINGLE;
+        input_len = iv_len + 8;
+
+        if (!(iv = aws_byte_cursor_advance(&input, iv_len)).ptr) goto no_progress;
+        uint64_t content_len;
+
+        if (aws_byte_cursor_read_be64(&input, &content_len)) goto no_progress;
+        output_len = content_len;
+
+        input_len += content_len + tag_len;
+
+        if (!(content = aws_byte_cursor_advance_nospec(&input, content_len)).ptr) goto no_progress;
+        if (!(tag = aws_byte_cursor_advance_nospec(&input, tag_len)).ptr) goto no_progress;
+    }
+
+    // At this point iv, tag, content, body_frame_type are initialized
+    struct aws_byte_cursor output = aws_byte_cursor_advance_nospec(poutput, output_len);
+    if (!output.ptr) goto no_progress;
+
+    // We have everything we need, try to decrypt
+    int rv = aws_cryptosdk_decrypt_body(
+        &output, &content, session->header.alg_id, session->header.message_id, session->frame_seqno,
+        iv.ptr, &session->content_key, tag.ptr, body_frame_type
+    );
+
+    if (rv == AWS_ERROR_SUCCESS) {
+        session->frame_seqno++;
+        *pinput = input;
+
+        if (body_frame_type != FRAME_TYPE_FRAME) {
+            session->state = ST_TRAILER;
+        }
+
+        return rv;
+    }
+
+    // An error was encountered
+    session->state = ST_ERROR;
+    session->error = aws_last_error();
+
+    return rv;
+
+no_progress:        
+    session->input_size_estimate = input.ptr - pinput->ptr;
+    if (input_len > session->input_size_estimate) {
+        session->input_size_estimate = input_len;
+    }
+
+    session->output_size_estimate = output_len;
+
+    return AWS_ERROR_SUCCESS;
+}
+
+
+int aws_cryptosdk_session_process(
+    struct aws_cryptosdk_session * restrict session,
+    uint8_t *outp, size_t outlen, size_t *out_bytes_written,
+    const uint8_t *inp, size_t inlen, size_t *in_bytes_read
+) {
+
+    struct aws_byte_cursor output = { .ptr = outp, .len = outlen };
+    struct aws_byte_cursor input  = { .ptr = (uint8_t *)inp, .len =  inlen };
+    int result;
+
+    int prior_state;
+    const uint8_t *old_outp, *old_inp;
+    int made_progress;
+
+    do {
+        prior_state = session->state;
+        old_outp = output.ptr;
+        old_inp = input.ptr;
+
+        switch (session->state) {
+            case ST_CONFIG:
+                // TODO: Verify mandatory config is present
+                // Right now we haven't implemented CMMs yet, so this is a no-op
+                session->state = ST_HEADER;
+                // fall through
+            case ST_HEADER:
+                result = try_parse_header(session, &input);
+                break;
+            case ST_KEYING:
+                result = init_keys(session);
+                break;
+            case ST_BODY:
+                result = try_process_body(session, &output, &input);
+                break;
+            case ST_TRAILER:
+                // no-op for now, go to ST_DONE
+                session->state = ST_DONE;
+            case ST_DONE:
+                result = AWS_OP_SUCCESS; // XXX how to report completion?
+                break;
+            default:
+                session->error = AWS_ERROR_UNKNOWN;
+                session->state = ST_ERROR;
+                // fall through
+            case ST_ERROR:
+                result = aws_raise_error(session->error);
+                break;
+        }
+
+        made_progress = (output.ptr != old_outp) || (input.ptr != old_inp) || (prior_state != session->state);
+    } while (result == AWS_OP_SUCCESS && made_progress);
+
+    *out_bytes_written = output.ptr - outp;
+    *in_bytes_read = input.ptr - inp;
+
+    if (result != AWS_OP_SUCCESS) {
+        // Destroy any incomplete (and possibly corrupt) plaintext
+        aws_cryptosdk_secure_zero(outp, outlen);
+        *out_bytes_written = 0;
+    }
+
+    return result;
+}
+
+bool aws_cryptosdk_session_is_done(const struct aws_cryptosdk_session *session) {
+    return session->state == ST_DONE;
+}
+
+void aws_cryptosdk_session_estimate_buf(
+    const struct aws_cryptosdk_session * restrict session,
+    size_t * restrict outbuf_needed,
+    size_t * restrict inbuf_needed
+) {
+    *outbuf_needed = session->output_size_estimate;
+    *inbuf_needed = session->input_size_estimate;
+}
