@@ -90,6 +90,21 @@ static inline int aws_byte_cursor_read_be32(struct aws_byte_cursor *cur, uint32_
 }
 
 /**
+ * Reads a 64-bit value in network byte order from cur, and places it in network byte order into var.
+ */
+static inline int aws_byte_cursor_read_be64(struct aws_byte_cursor *cur, uint64_t *var) {
+    uint32_t parts[2];
+
+    int rv = aws_byte_cursor_read(cur, parts, 8);
+
+    if (aws_cryptosdk_likely(!rv)) {
+        *var = (((uint64_t)ntohl(parts[0])) << 32) | ntohl(parts[1]);
+    }
+
+    return rv;
+}
+
+/**
  * Write specified number of bytes from array to byte cursor.
  */
 static inline int aws_byte_cursor_write(struct aws_byte_cursor * restrict cur, const uint8_t * restrict src, size_t len) {
