@@ -272,6 +272,13 @@ int failed_parse() {
 }
 
 #ifdef _POSIX_VERSION
+// Returns the amount of padding needed to align len to a multiple of
+// the system page size.
+static size_t page_padding(size_t len) {
+    size_t pagesize = sysconf(_SC_PAGESIZE);
+    return -len % pagesize;
+}
+
 // Tests that we don't overread past the end of the buffer.
 // Optionally (if flip_bit_index >= 0 && < inlen * 8), flips a bit in the header buffer.
 static void overread_once(const uint8_t *inbuf, size_t inlen, ssize_t flip_bit_index) {
@@ -279,7 +286,7 @@ static void overread_once(const uint8_t *inbuf, size_t inlen, ssize_t flip_bit_i
 
     // First, round up to at least size + one page, page aligned.
     int pagesize = sysconf(_SC_PAGESIZE);
-    size_t offset = -inlen % pagesize;
+    size_t offset = page_padding(inlen);
     size_t total_size = offset + inlen + pagesize;
 
     // We now set up a memory layout looking like the following:
@@ -390,7 +397,7 @@ int overwrite() {
         int header_len = aws_cryptosdk_hdr_size(test_headers[idx]);
 
         // First, round up to at least size + one page, page aligned.
-        size_t offset = -header_len % pagesize;
+        size_t offset = page_padding(header_len);
         size_t total_size = offset + header_len + pagesize;
 
         // We now set up a memory layout looking like the following:
