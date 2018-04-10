@@ -115,11 +115,10 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
     if (aws_byte_cursor_read_be16(&cur, &aad_len)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 
     if (aad_len) {
-        int aad_len_remaining = aad_len;
+        uint8_t * aad_end = cur.ptr + aad_len;
 
         uint16_t aad_count;
         if (aws_byte_cursor_read_be16(&cur, &aad_count)) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
-        aad_len_remaining -= 2;
         hdr->aad_count = aad_count;
 
         size_t aad_tbl_size = aad_count*sizeof(struct aws_cryptosdk_hdr_aad);
@@ -131,28 +130,28 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
             struct aws_cryptosdk_hdr_aad * aad = hdr->aad_tbl + i;
             uint16_t key_len;
             ret = aws_byte_cursor_read_be16(&cur, &key_len); if (ret) goto PARSE_ERR;
-            aad_len_remaining -= 2;
 
-            if (key_len > aad_len_remaining) { ret = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT; goto PARSE_ERR; }
+            if (key_len) {
+                // "+ 2" because there is at least a value len field remaining
+                if (cur.ptr + key_len + 2 > aad_end) { ret = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT; goto PARSE_ERR; }
 
-            ret = aws_byte_buf_alloc(allocator, &aad->key, key_len); if (ret) goto PARSE_ERR;
+                ret = aws_byte_buf_alloc(allocator, &aad->key, key_len); if (ret) goto PARSE_ERR;
 
-            ret = aws_byte_cursor_read_and_fill_buffer(&cur, &aad->key); if (ret) goto PARSE_ERR;
-            aad_len_remaining -= key_len;
-
+                ret = aws_byte_cursor_read_and_fill_buffer(&cur, &aad->key); if (ret) goto PARSE_ERR;
+            }
             uint16_t value_len;
             ret = aws_byte_cursor_read_be16(&cur, &value_len); if (ret) goto PARSE_ERR;
-            aad_len_remaining -= 2;
 
-            if (value_len > aad_len_remaining) { ret = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT; goto PARSE_ERR; }
+            if (value_len) {
+                if (cur.ptr + value_len > aad_end) { ret = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT; goto PARSE_ERR; }
 
-            ret = aws_byte_buf_alloc(allocator, &aad->value, value_len); if (ret) goto PARSE_ERR;
+                ret = aws_byte_buf_alloc(allocator, &aad->value, value_len); if (ret) goto PARSE_ERR;
 
-            ret = aws_byte_cursor_read_and_fill_buffer(&cur, &aad->value); if (ret) goto PARSE_ERR;
-            aad_len_remaining -= value_len;
+                ret = aws_byte_cursor_read_and_fill_buffer(&cur, &aad->value); if (ret) goto PARSE_ERR;
+            }
         }
 
-        if (aad_len_remaining) { ret = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT; goto PARSE_ERR; }
+        if (cur.ptr != aad_end) { ret = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT; goto PARSE_ERR; }
     }
 
     uint16_t edk_count;
@@ -224,6 +223,13 @@ PARSE_ERR:
     return aws_raise_error(ret);
 }
 
+/*
+ * Declaring a struct which is initialized to zero does not technically guarantee that the
+ * padding bytes will all be zero, according to the C spec, though in practice they generally
+ * are. Since we are comparing all of the bytes of the struct, using this union guarantees
+ * that even the padding bytes will be zeroes in zero.hdr. It also allows us to fetch an
+ * arbitrary array of zero.bytes up to the length of the struct.
+ */
 static const union {
     uint8_t bytes[sizeof(struct aws_cryptosdk_hdr)];
     struct aws_cryptosdk_hdr hdr;
