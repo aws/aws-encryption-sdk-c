@@ -89,8 +89,8 @@ static int test_decrypt_frame_aad() {
             0xde, 0x91, 0x60, 0x2e, 0x46, 0x49, 0x23, 0xc1
         };
         uint8_t actual[11] = {0};
-        struct aws_byte_buf in = { .buffer = (void*)ciphertext, .len = sizeof(ciphertext) };
-        struct aws_byte_buf out = { .buffer = (void *)actual, .len = sizeof(actual) };
+        struct aws_byte_cursor in = { .ptr = (void*)ciphertext, .len = sizeof(ciphertext) };
+        struct aws_byte_cursor out = { .ptr = (void *)actual, .len = sizeof(actual) };
         TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
                 aws_cryptosdk_decrypt_body(
                     &out, &in, AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE, messageId, seqno, iv, &key, tag, FRAME_TYPE_FRAME));
@@ -145,8 +145,8 @@ static int test_decrypt_frame_all_algos() {
             0xe2, 0x52, 0xef, 0xff, 0xa0, 0x87, 0x7e, 0x5e
         };
         uint8_t actual[11] = {0};
-        struct aws_byte_buf in = { .buffer = (void*)ciphertext, .len = sizeof(ciphertext) };
-        struct aws_byte_buf out = { .buffer = (void *)actual, .len = sizeof(actual) };
+        struct aws_byte_cursor in = { .ptr = (void*)ciphertext, .len = sizeof(ciphertext) };
+        struct aws_byte_cursor out = { .ptr = (void *)actual, .len = sizeof(actual) };
         TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
                 aws_cryptosdk_decrypt_body(
                     &out, &in, AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE, messageId, seqno, iv, &key, tag, FRAME_TYPE_FRAME));
@@ -182,8 +182,8 @@ static int test_decrypt_frame_all_algos() {
             0x31, 0xc0, 0xa8, 0x13, 0xeb, 0x17, 0x79, 0x50
         };
         uint8_t actual[11] = {0};
-        struct aws_byte_buf in = { .buffer = (void*)ciphertext, .len = sizeof(ciphertext) };
-        struct aws_byte_buf out = { .buffer = (void *)actual, .len = sizeof(actual) };
+        struct aws_byte_cursor in = { .ptr = (void*)ciphertext, .len = sizeof(ciphertext) };
+        struct aws_byte_cursor out = { .ptr = (void *)actual, .len = sizeof(actual) };
         TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
                 aws_cryptosdk_decrypt_body(
                     &out, &in, AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE, messageId, seqno, iv, &key, tag, FRAME_TYPE_FRAME));
@@ -220,8 +220,8 @@ static int test_decrypt_frame_all_algos() {
             0x0b, 0xa4, 0x89, 0x3e, 0x39, 0x53, 0xd1, 0xfa
         };
         uint8_t actual[11] = {0};
-        struct aws_byte_buf in = { .buffer = (void*)ciphertext, .len = sizeof(ciphertext) };
-        struct aws_byte_buf out = { .buffer = (void *)actual, .len = sizeof(actual) };
+        struct aws_byte_cursor in = { .ptr = (void*)ciphertext, .len = sizeof(ciphertext) };
+        struct aws_byte_cursor out = { .ptr = (void *)actual, .len = sizeof(actual) };
         TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
                 aws_cryptosdk_decrypt_body(
                     &out, &in, AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE, messageId, seqno, iv, &key, tag, FRAME_TYPE_FRAME));
@@ -256,8 +256,8 @@ static int test_decrypt_frame_all_algos() {
             0x1d, 0xb4, 0x12, 0x99, 0xf2, 0xf6, 0xb7, 0x8b
         };
         uint8_t actual[11] = {0};
-        struct aws_byte_buf in = { .buffer = (void*)ciphertext, .len = sizeof(ciphertext) };
-        struct aws_byte_buf out = { .buffer = (void *)actual, .len = sizeof(actual) };
+        struct aws_byte_cursor in = { .ptr = (void*)ciphertext, .len = sizeof(ciphertext) };
+        struct aws_byte_cursor out = { .ptr = (void *)actual, .len = sizeof(actual) };
         TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
                 aws_cryptosdk_decrypt_body(
                     &out, &in, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE, messageId, seqno, iv, &key, tag, FRAME_TYPE_FRAME));
@@ -294,8 +294,8 @@ static int test_decrypt_frame_all_algos() {
             0xe1, 0xdf, 0xd8, 0xb2, 0xcf, 0x44, 0xae, 0xc3
         };
         uint8_t actual[11] = {0};
-        struct aws_byte_buf in = { .buffer = (void*)ciphertext, .len = sizeof(ciphertext) };
-        struct aws_byte_buf out = { .buffer = (void *)actual, .len = sizeof(actual) };
+        struct aws_byte_cursor in = { .ptr = (void*)ciphertext, .len = sizeof(ciphertext) };
+        struct aws_byte_cursor out = { .ptr = (void *)actual, .len = sizeof(actual) };
         TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
                 aws_cryptosdk_decrypt_body(
                     &out, &in, AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE, messageId, seqno, iv, &key, tag, FRAME_TYPE_FRAME));
@@ -331,8 +331,8 @@ static int test_decrypt_frame_all_algos() {
             0x86, 0xcd, 0xdd, 0x9e, 0x58, 0xc2, 0xd3, 0x00
         };
         uint8_t actual[11] = {0};
-        struct aws_byte_buf in = { .buffer = (void*)ciphertext, .len = sizeof(ciphertext) };
-        struct aws_byte_buf out = { .buffer = (void *)actual, .len = sizeof(actual) };
+        struct aws_byte_cursor in = { .ptr = (void*)ciphertext, .len = sizeof(ciphertext) };
+        struct aws_byte_cursor out = { .ptr = (void *)actual, .len = sizeof(actual) };
         TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
                 aws_cryptosdk_decrypt_body(
                     &out, &in, AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE, messageId, seqno, iv, &key, tag, FRAME_TYPE_FRAME));
@@ -369,8 +369,8 @@ static int test_decrypt_frame_all_algos() {
             0x43, 0x7a, 0x6d, 0x11, 0xb6, 0xe7, 0x38, 0x56
         };
         uint8_t actual[11] = {0};
-        struct aws_byte_buf in = { .buffer = (void*)ciphertext, .len = sizeof(ciphertext) };
-        struct aws_byte_buf out = { .buffer = (void *)actual, .len = sizeof(actual) };
+        struct aws_byte_cursor in = { .ptr = (void*)ciphertext, .len = sizeof(ciphertext) };
+        struct aws_byte_cursor out = { .ptr = (void *)actual, .len = sizeof(actual) };
         TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
                 aws_cryptosdk_decrypt_body(
                     &out, &in, AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384, messageId, seqno, iv, &key, tag, FRAME_TYPE_FRAME));
@@ -405,8 +405,8 @@ static int test_decrypt_frame_all_algos() {
             0xfc, 0x90, 0xc9, 0x77, 0x11, 0x74, 0xf9, 0x27
         };
         uint8_t actual[11] = {0};
-        struct aws_byte_buf in = { .buffer = (void*)ciphertext, .len = sizeof(ciphertext) };
-        struct aws_byte_buf out = { .buffer = (void *)actual, .len = sizeof(actual) };
+        struct aws_byte_cursor in = { .ptr = (void*)ciphertext, .len = sizeof(ciphertext) };
+        struct aws_byte_cursor out = { .ptr = (void *)actual, .len = sizeof(actual) };
         TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
                 aws_cryptosdk_decrypt_body(
                     &out, &in, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256, messageId, seqno, iv, &key, tag, FRAME_TYPE_FRAME));
@@ -443,8 +443,8 @@ static int test_decrypt_frame_all_algos() {
             0x8d, 0xe1, 0xe9, 0x59, 0x32, 0x26, 0x79, 0xe7
         };
         uint8_t actual[11] = {0};
-        struct aws_byte_buf in = { .buffer = (void*)ciphertext, .len = sizeof(ciphertext) };
-        struct aws_byte_buf out = { .buffer = (void *)actual, .len = sizeof(actual) };
+        struct aws_byte_cursor in = { .ptr = (void*)ciphertext, .len = sizeof(ciphertext) };
+        struct aws_byte_cursor out = { .ptr = (void *)actual, .len = sizeof(actual) };
         TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
                 aws_cryptosdk_decrypt_body(
                     &out, &in, AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384, messageId, seqno, iv, &key, tag, FRAME_TYPE_FRAME));

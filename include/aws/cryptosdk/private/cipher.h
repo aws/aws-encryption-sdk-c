@@ -85,8 +85,8 @@ int aws_cryptosdk_verify_header(
  * Returns AWS_OP_SUCCESS if successful.
  */
 int aws_cryptosdk_decrypt_body(
-    struct aws_byte_buf *out,
-    const struct aws_byte_buf *in,
+    struct aws_byte_cursor *out,
+    const struct aws_byte_cursor *in,
     enum aws_cryptosdk_alg_id alg_id,
     const uint8_t *message_id,
     uint32_t seqno,

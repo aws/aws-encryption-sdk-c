@@ -247,8 +247,8 @@ static int update_frame_aad(
 
 
 int aws_cryptosdk_decrypt_body(
-    struct aws_byte_buf *out,
-    const struct aws_byte_buf *in,
+    struct aws_byte_cursor *out,
+    const struct aws_byte_cursor *in,
     enum aws_cryptosdk_alg_id alg_id,
     const uint8_t *message_id,
     uint32_t seqno,
@@ -268,8 +268,8 @@ int aws_cryptosdk_decrypt_body(
     }
 
     EVP_CIPHER_CTX *ctx = NULL;
-    struct aws_byte_cursor outp = { .ptr = out->buffer, .len = out->len };
-    struct aws_byte_cursor inp = { .ptr = in->buffer, .len = in->len };
+    struct aws_byte_cursor outp = *out;
+    struct aws_byte_cursor inp = *in;
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
 
     if (!(ctx = evp_gcm_decrypt_init(props, key, iv))) goto out;
@@ -299,7 +299,7 @@ out:
     if (result == AWS_ERROR_SUCCESS) {
         return AWS_OP_SUCCESS;
     } else {
-        memset(out->buffer, 0, out->len);
+        memset(out->ptr, 0, out->len);
         return aws_raise_error(result);
     }
 }
