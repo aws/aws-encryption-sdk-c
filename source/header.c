@@ -187,8 +187,9 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
         ret = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT; goto PARSE_ERR;
     }
     
-    // skip reserved
-    ret = aws_byte_cursor_skip(&cur, 4); if (ret) goto PARSE_ERR;
+    uint32_t reserved; // must be zero
+    ret = aws_byte_cursor_read_be32(&cur, &reserved); if (ret) goto PARSE_ERR;
+    if (reserved) {ret = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT; goto PARSE_ERR;}
 
     uint8_t iv_len;
     ret = aws_byte_cursor_read_u8(&cur, &iv_len); if (ret) goto PARSE_ERR;
