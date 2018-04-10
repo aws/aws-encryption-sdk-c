@@ -20,6 +20,8 @@
 #include <openssl/rand.h>
 #include <assert.h>
 
+#include <aws/cryptosdk/error.h>
+
 #define MSG_ID_LEN 16
 
 struct aws_cryptosdk_alg_impl {
