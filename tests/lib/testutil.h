@@ -16,6 +16,8 @@
 #ifndef TESTUTIL_H
 #define TESTUTIL_H
 
+#include <stdint.h>
+
 /* 
  * Loads a file from disk into a newly malloc'd buffer.
  * Returns 0 on success, 1 on failure (examine errno for details)
