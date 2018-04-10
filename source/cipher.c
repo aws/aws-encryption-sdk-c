@@ -19,6 +19,7 @@
 #include <openssl/kdf.h>
 #include <openssl/rand.h>
 #include <assert.h>
+#include <arpa/inet.h>
 
 #include <aws/cryptosdk/error.h>
 
