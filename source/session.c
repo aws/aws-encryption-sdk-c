@@ -170,10 +170,12 @@ static int try_process_body(
     struct aws_byte_cursor * restrict pinput
 ) {
     size_t frame_len = session->header.frame_len;
-    bool is_framed = !!frame_len;
+    bool is_framed = frame_len != 0;
+
     int tag_len = session->alg_props->tag_len;
     int iv_len  = session->alg_props->iv_len;
     int body_frame_type;
+
     size_t output_len = 0;
     size_t input_len = 0;
 
