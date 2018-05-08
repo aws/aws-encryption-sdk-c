@@ -125,6 +125,7 @@ enable_testing()
 
 add_test(buffer unit-test-suite buffer)
 add_test(header unit-test-suite header)
+add_test(materials unit-test-suite materials)
 
 install (FILES ${AWS_CRYPTOSDK_HEADERS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/aws/encryption-sdk")
 install (
