@@ -247,8 +247,8 @@ static int update_frame_aad(
 
 
 int aws_cryptosdk_decrypt_body(
-    struct aws_byte_cursor *out,
-    const struct aws_byte_cursor *in,
+    struct aws_byte_cursor *outp,
+    const struct aws_byte_cursor *inp,
     enum aws_cryptosdk_alg_id alg_id,
     const uint8_t *message_id,
     uint32_t seqno,
@@ -263,30 +263,30 @@ int aws_cryptosdk_decrypt_body(
         return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     }
 
-    if (in->len != out->len) {
+    if (inp->len != outp->len) {
         return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     }
 
     EVP_CIPHER_CTX *ctx = NULL;
-    struct aws_byte_cursor outp = *out;
-    struct aws_byte_cursor inp = *in;
+    struct aws_byte_cursor outcurs = *outp;
+    struct aws_byte_cursor incurs = *inp;
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
 
     if (!(ctx = evp_gcm_decrypt_init(props, key, iv))) goto out;
 
-    if (!update_frame_aad(ctx, message_id, body_frame_type, seqno, in->len)) goto out;
+    if (!update_frame_aad(ctx, message_id, body_frame_type, seqno, inp->len)) goto out;
 
-    while (inp.len) {
-        int in_len = inp.len > INT_MAX ? INT_MAX : inp.len;
+    while (incurs.len) {
+        int in_len = incurs.len > INT_MAX ? INT_MAX : incurs.len;
         int pt_len;
 
-        if (!EVP_DecryptUpdate(ctx, outp.ptr, &pt_len, inp.ptr, in_len)) goto out;
+        if (!EVP_DecryptUpdate(ctx, outcurs.ptr, &pt_len, incurs.ptr, in_len)) goto out;
         /*
          * The next two advances should never fail ... but check the return values
          * just in case.
          */
-        if (!aws_byte_cursor_advance_nospec(&inp, in_len).ptr) goto out;
-        if (!aws_byte_cursor_advance(&outp, pt_len).ptr) {
+        if (!aws_byte_cursor_advance_nospec(&incurs, in_len).ptr) goto out;
+        if (!aws_byte_cursor_advance(&outcurs, pt_len).ptr) {
             /* Somehow we ran over the output buffer. abort() to limit the damage. */
             abort();
         }
@@ -299,7 +299,7 @@ out:
     if (result == AWS_ERROR_SUCCESS) {
         return AWS_OP_SUCCESS;
     } else {
-        memset(out->ptr, 0, out->len);
+        aws_cryptosdk_secure_zero(outp->ptr, outp->len);
         return aws_raise_error(result);
     }
 }

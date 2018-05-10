@@ -19,6 +19,74 @@
 #include <aws/cryptosdk/private/header.h>
 #include <aws/cryptosdk/private/session.h>
 
+static void session_change_state(struct aws_cryptosdk_session *session, enum session_state new_state) {
+    // Performs internal sanity checks before allowing a state change.
+
+    // Since the intent is mostly to avoid use of initialized memory due to internal bugs, we
+    // simply abort if something went wrong.
+    // We can change this to enter an error state instead in the future if necessary.
+    if (session->state == new_state) {
+        // no-op
+        return;
+    }
+
+    if (session->state == ST_ERROR) {
+        // Can't leave ST_ERROR except by reinitializing
+        if (new_state != ST_CONFIG) {
+            abort();
+        }
+    }
+
+    switch (new_state) {
+        case ST_ERROR: // fall through
+        case ST_CONFIG:
+            break; // no initialization required, and we can transition from any other state
+        case ST_HEADER:
+            if (session->state != ST_CONFIG) {
+                // illegal transition
+                abort();
+            }
+            if (session->mode != MODE_ENCRYPT && session->mode != MODE_DECRYPT) {
+                // unknown mode
+                abort();
+            }
+            // no particular initialization required (on decrypt)
+            // for encrypt we'll need to do some more asserts here
+            break;
+        case ST_KEYING:
+            if (session->state != ST_HEADER) {
+                // illegal transition
+                abort();
+            }
+            // check that a few of the more important state values are configured
+            if (!session->header_copy || !session->header_size || !session->alg_props) {
+                abort();
+            }
+            break;
+        case ST_BODY:
+            if (session->state != ST_KEYING) {
+                // illegal transition
+                abort();
+            }
+            // we can't currently assert that the data key is present because, well, it might be all-zero
+            break;
+        case ST_TRAILER:
+            if (session->state != ST_BODY) {
+                // illegal transition
+                abort();
+            }
+            abort(); // not yet implemented
+        case ST_DONE:
+            if (session->state != ST_BODY && session->state != ST_TRAILER) {
+                // illegal transition
+                abort();
+            }
+            break;
+    }
+
+    session->state = new_state;
+}
+
 static void session_reset(struct aws_cryptosdk_session *session) {
     if (session->header_copy) {
         aws_cryptosdk_secure_zero(session->header_copy, session->header_size);
@@ -32,6 +100,7 @@ static void session_reset(struct aws_cryptosdk_session *session) {
     aws_cryptosdk_secure_zero(&session->content_key, sizeof(session->content_key));
 
     session->mode = MODE_UNINIT;
+    session_change_state(session, ST_CONFIG);
     session->state = ST_CONFIG;
     session->error = 0;
     session->frame_seqno = 0;
@@ -50,7 +119,7 @@ int aws_cryptosdk_session_new(
         return aws_raise_error(AWS_ERROR_OOM);
     }
 
-    memset(session, 0, sizeof(*session));
+    aws_cryptosdk_secure_zero(session, sizeof(*session));
 
     session->alloc = allocator;
     session_reset(session);
@@ -75,7 +144,7 @@ int aws_cryptosdk_session_init_decrypt(struct aws_cryptosdk_session *session) {
 
     return AWS_OP_SUCCESS;
 }
-#include <stdio.h>
+
 static int init_keys(
     struct aws_cryptosdk_session * restrict session
 ) {
@@ -121,7 +190,7 @@ static int init_keys(
         return err;
     }
 
-    session->state = ST_BODY;
+    session_change_state(session, ST_BODY);
     session->frame_seqno = 1;
 
     return AWS_OP_SUCCESS;
@@ -139,8 +208,11 @@ static int try_parse_header(
     if (rv != AWS_OP_SUCCESS) {
         if (aws_last_error() == AWS_ERROR_SHORT_BUFFER) {
             if (input->len >= session->input_size_estimate) {
-                // XXX overflow checks
                 session->input_size_estimate = input->len + 128;
+                if (session->input_size_estimate < input->len) {
+                    // overflow
+                    session->input_size_estimate = (size_t)-1;
+                }
             }
             session->output_size_estimate = 0;
             return AWS_OP_SUCCESS; // suppress this error
@@ -159,7 +231,7 @@ static int try_parse_header(
 
     aws_byte_cursor_advance(input, session->header_size);
 
-    session->state = ST_KEYING;
+    session_change_state(session, ST_KEYING);
 
     return init_keys(session);
 }
@@ -170,6 +242,7 @@ static int try_process_body(
     struct aws_byte_cursor * restrict pinput
 ) {
     size_t frame_len = session->header.frame_len;
+    // TODO expose type into session->header and use this for is_framed determination
     bool is_framed = frame_len != 0;
 
     int tag_len = session->alg_props->tag_len;
@@ -204,13 +277,17 @@ static int try_process_body(
         } else {
             // Final frame
             body_frame_type = FRAME_TYPE_FINAL;
-            input_len += 4 + iv_len + 4;
 
             // Read the true sequence number after the final-frame sentinel
             if (aws_byte_cursor_read_be32(&input, &seqno)) goto no_progress;
+            input_len += 4; // 32-bit field read
+
             if (!(iv = aws_byte_cursor_advance(&input, iv_len)).ptr) goto no_progress;
+            input_len += iv_len;
+
             uint32_t content_len;
             if (aws_byte_cursor_read_be32(&input, &content_len)) goto no_progress;
+            input_len += 4; // 32-bit field read
 
             input_len += content_len + tag_len;
             output_len = content_len;
@@ -229,14 +306,15 @@ static int try_process_body(
         }
     } else {
         body_frame_type = FRAME_TYPE_SINGLE;
-        input_len = iv_len + 8;
 
         if (!(iv = aws_byte_cursor_advance(&input, iv_len)).ptr) goto no_progress;
+        input_len += iv_len;
+
         uint64_t content_len;
-
         if (aws_byte_cursor_read_be64(&input, &content_len)) goto no_progress;
-        output_len = content_len;
+        input_len += 8; // 64-bit field read
 
+        output_len = content_len;
         input_len += content_len + tag_len;
 
         if (!(content = aws_byte_cursor_advance_nospec(&input, content_len)).ptr) goto no_progress;
@@ -258,16 +336,13 @@ static int try_process_body(
         *pinput = input;
 
         if (body_frame_type != FRAME_TYPE_FRAME) {
-            session->state = ST_TRAILER;
+            session_change_state(session, ST_TRAILER);
         }
 
         return rv;
     }
 
-    // An error was encountered
-    session->state = ST_ERROR;
-    session->error = aws_last_error();
-
+    // An error was encountered; the top level loop will transition to the error state
     return rv;
 
 no_progress:        
@@ -294,7 +369,7 @@ int aws_cryptosdk_session_process(
 
     int prior_state;
     const uint8_t *old_outp, *old_inp;
-    int made_progress;
+    bool made_progress;
 
     do {
         prior_state = session->state;
@@ -305,7 +380,7 @@ int aws_cryptosdk_session_process(
             case ST_CONFIG:
                 // TODO: Verify mandatory config is present
                 // Right now we haven't implemented CMMs yet, so this is a no-op
-                session->state = ST_HEADER;
+                session_change_state(session, ST_HEADER);
                 // fall through
             case ST_HEADER:
                 result = try_parse_header(session, &input);
@@ -318,13 +393,12 @@ int aws_cryptosdk_session_process(
                 break;
             case ST_TRAILER:
                 // no-op for now, go to ST_DONE
-                session->state = ST_DONE;
+                session_change_state(session, ST_DONE);
             case ST_DONE:
                 result = AWS_OP_SUCCESS; // XXX how to report completion?
                 break;
             default:
-                session->error = AWS_ERROR_UNKNOWN;
-                session->state = ST_ERROR;
+                result = aws_raise_error(AWS_ERROR_UNKNOWN);
                 // fall through
             case ST_ERROR:
                 result = aws_raise_error(session->error);
@@ -341,6 +415,16 @@ int aws_cryptosdk_session_process(
         // Destroy any incomplete (and possibly corrupt) plaintext
         aws_cryptosdk_secure_zero(outp, outlen);
         *out_bytes_written = 0;
+
+        if (session->state != ST_ERROR) {
+            session->error = aws_last_error();
+            session_change_state(session, ST_ERROR);
+        }
+    }
+
+    if (session->state == ST_ERROR) {
+        // (Re-)raise any stored error
+        result = aws_raise_error(session->error);
     }
 
     return result;

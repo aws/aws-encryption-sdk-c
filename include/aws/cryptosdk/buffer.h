@@ -90,7 +90,7 @@ static inline int aws_byte_cursor_read_be32(struct aws_byte_cursor *cur, uint32_
 }
 
 /**
- * Reads a 64-bit value in network byte order from cur, and places it in network byte order into var.
+ * Reads a 64-bit value in network byte order from cur, and places it in host byte order into var.
  */
 static inline int aws_byte_cursor_read_be64(struct aws_byte_cursor *cur, uint64_t *var) {
     uint32_t parts[2];
