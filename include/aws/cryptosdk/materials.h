@@ -45,28 +45,28 @@ struct aws_cryptosdk_master_key {
     struct aws_byte_buf key_id;
 
     /**
-     * On success, allocates both unencrypted and encrypted key.
+     * On success, writes to both unencrypted and encrypted data key.
      */
     int (*generate_data_key)(struct aws_cryptosdk_master_key * self,
-                             struct aws_cryptosdk_unencrypted_data_key ** unencrypted_data_key,
-                             struct aws_cryptosdk_encrypted_data_key ** encrypted_data_key,
+                             struct aws_cryptosdk_unencrypted_data_key * unencrypted_data_key,
+                             struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
                              struct aws_common_hash_table * enc_context,
                              uint16_t alg_id);
 
     /**
-     * On success, allocates encrypted data key.
+     * On success, writes to encrypted data key.
      */
     int (*encrypt_data_key)(struct aws_cryptosdk_master_key * self,
                             const struct aws_cryptosdk_unencrypted_data_key * unencrypted_data_key,
-                            struct aws_cryptosdk_encrypted_data_key ** encrypted_data_key,
+                            struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
                             struct aws_common_hash_table * enc_context,
                             uint16_t alg_id);
 
     /**
-     * On success, allocates unencrypted data key.
+     * On success, writes to unencrypted data key.
      */
     int (*decrypt_data_key)(struct aws_cryptosdk_master_key * self,
-                            struct aws_cryptosdk_unencrypted_data_key ** unencrypted_data_key,
+                            struct aws_cryptosdk_unencrypted_data_key * unencrypted_data_key,
                             const struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
                             struct aws_common_hash_table * enc_context,
                             uint16_t alg_id);
@@ -78,17 +78,17 @@ struct aws_cryptosdk_key_pair {
 
 struct aws_cryptosdk_encryption_materials {
     struct aws_allocator * alloc;
-    struct aws_cryptosdk_unencrypted_data_key * unencrypted_data_key;
+    struct aws_cryptosdk_unencrypted_data_key unencrypted_data_key;
     struct aws_array_list encrypted_data_keys; // list of struct aws_cryptosdk_encrypted_data_key objects
     struct aws_common_hash_table * enc_context;
-    struct aws_cryptosdk_key_pair * trailing_signature_key;
+    struct aws_cryptosdk_key_pair trailing_signature_key;
     uint16_t alg_id;
 };
 
 struct aws_cryptosdk_decryption_materials {
     struct aws_allocator * alloc;
-    struct aws_cryptosdk_unencrypted_data_key * unencrypted_data_key;
-    struct aws_cryptosdk_key_pair * trailing_signature_key;
+    struct aws_cryptosdk_unencrypted_data_key unencrypted_data_key;
+    struct aws_cryptosdk_key_pair trailing_signature_key;
 };
 
 struct aws_cryptosdk_materials_manager {
@@ -122,5 +122,14 @@ struct aws_cryptosdk_materials_manager {
                                          struct aws_common_hash_table * enc_context);
 
 };
+
+int aws_cryptosdk_default_generate_encryption_materials(struct aws_cryptosdk_materials_manager * self,
+                                                        struct aws_cryptosdk_encryption_materials ** encryption_materials,
+                                                        struct aws_common_hash_table * enc_context,
+                                                        size_t plaintext_size);
+
+struct aws_cryptosdk_encryption_materials * aws_cryptosdk_alloc_encryption_materials(struct aws_allocator * alloc, size_t num_keys);
+
+void aws_cryptosdk_free_encryption_materials(struct aws_cryptosdk_encryption_materials * enc_mat);
 
 #endif // AWS_CRYPTOSDK_MATERIALS_H
