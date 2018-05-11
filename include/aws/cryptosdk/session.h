@@ -23,9 +23,8 @@
 
 struct aws_cryptosdk_session;
 
-int aws_cryptosdk_session_new(
-    struct aws_allocator *allocator,
-    struct aws_cryptosdk_session **session
+struct aws_cryptosdk_session *aws_cryptosdk_session_new(
+    struct aws_allocator *allocator
 );
 
 void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);

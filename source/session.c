@@ -109,14 +109,13 @@ static void session_reset(struct aws_cryptosdk_session *session) {
     session->alg_props = NULL;
 }
 
-int aws_cryptosdk_session_new(
-    struct aws_allocator *allocator,
-    struct aws_cryptosdk_session **session_out
+struct aws_cryptosdk_session *aws_cryptosdk_session_new(
+    struct aws_allocator *allocator
 ) {
     struct aws_cryptosdk_session *session = aws_mem_acquire(allocator, sizeof(struct aws_cryptosdk_session));
 
     if (!session) {
-        return aws_raise_error(AWS_ERROR_OOM);
+        return NULL;
     }
 
     aws_cryptosdk_secure_zero(session, sizeof(*session));
@@ -124,9 +123,7 @@ int aws_cryptosdk_session_new(
     session->alloc = allocator;
     session_reset(session);
 
-    *session_out = session;
-
-    return AWS_OP_SUCCESS;
+    return session;
 }
 
 void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session) {
