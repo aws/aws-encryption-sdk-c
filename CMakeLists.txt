@@ -110,21 +110,43 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   
 target_link_libraries(aws-encryption-sdk ${PLATFORM_LIBS} aws-c-common ${OPENSSL_CRYPTO_LIBRARY})
 
-file(GLOB TEST_SRC "tests/*.c")
-file(GLOB TEST_HDRS "tests/*.h")
-file(GLOB TESTS ${TEST_HDRS} ${TEST_SRC})
+file(GLOB UNIT_TEST_SRC "tests/unit/*.c")
+file(GLOB UNIT_TEST_HDRS "tests/*.h")
+file(GLOB UNIT_TESTS ${TEST_HDRS} ${TEST_SRC})
+file(GLOB TEST_LIB "tests/lib/*.c")
   
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/tests)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source)
-add_executable(unit-test-suite ${TESTS})
+add_executable(unit-test-suite ${UNIT_TEST_SRC})
 target_link_libraries(unit-test-suite ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
 set_target_properties(unit-test-suite PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
+target_include_directories(unit-test-suite PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit${CMAKE_CURRENT_SOURCE_DIR}/source)
+
+add_executable(test_decrypt "tests/decrypt.c" ${TEST_LIB})
+target_link_libraries(test_decrypt ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
+set_target_properties(test_decrypt PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
+target_include_directories(test_decrypt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
+
+add_executable(test_decryption_vectors "tests/decryption_vectors.c" ${TEST_LIB})
+target_link_libraries(test_decryption_vectors ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
+set_target_properties(test_decryption_vectors PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
+target_include_directories(test_decryption_vectors PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
 
 include(CTest)
 enable_testing()
 
-add_test(buffer unit-test-suite buffer)
+add_test(cipher unit-test-suite cipher)
 add_test(header unit-test-suite header)
+
+set(TEST_DATA ${CMAKE_CURRENT_SOURCE_DIR}/tests/data)
+
+add_test(decrypt_aes128_hkdf
+    test_decrypt ${TEST_DATA}/ct_x_aes128_hkdf.bin ${TEST_DATA}/pt_x_aes128_hkdf.bin)
+add_test(decrypt_aes128_hkdf_bad_header
+    test_decrypt --xfail ${TEST_DATA}/ct_x_aes128_hkdf_bad_header.bin ${TEST_DATA}/pt_x_aes128_hkdf.bin)
+add_test(decrypt_hello
+    test_decrypt ${TEST_DATA}/hello.bin ${TEST_DATA}/hello.bin.pt)
+add_test(decrypt_hello_tiny
+    test_decrypt ${TEST_DATA}/hello.tinyframes.bin ${TEST_DATA}/hello.bin.pt)
+add_test(decryption_vectors test_decryption_vectors)
 
 install (FILES ${AWS_CRYPTOSDK_HEADERS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/aws/encryption-sdk")
 install (
