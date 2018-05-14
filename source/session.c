@@ -59,13 +59,17 @@ static void session_change_state(struct aws_cryptosdk_session *session, enum ses
                 abort();
             }
             // check that a few of the more important state values are configured
-            if (!session->header_copy || !session->header_size || !session->alg_props) {
+            if (!session->header_copy || !session->header_size) {
                 abort();
             }
             break;
         case ST_BODY:
             if (session->state != ST_KEYING) {
                 // illegal transition
+                abort();
+            }
+            if (!session->alg_props) {
+                // algorithm properties not set
                 abort();
             }
             // we can't currently assert that the data key is present because, well, it might be all-zero
