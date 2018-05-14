@@ -79,7 +79,7 @@ static void session_change_state(struct aws_cryptosdk_session *session, enum ses
                 // illegal transition
                 abort();
             }
-            abort(); // not yet implemented
+            break;
         case ST_DONE:
             if (session->state != ST_BODY && session->state != ST_TRAILER) {
                 // illegal transition
