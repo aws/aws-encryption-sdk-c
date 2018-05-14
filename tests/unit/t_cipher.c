@@ -17,7 +17,7 @@
 #include "testing.h"
 
 static int test_kdf() {
-    static const struct data_key key[32] = { {
+    static const struct aws_cryptosdk_data_key key[32] = { {
         0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
         0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f
     } };
@@ -456,7 +456,7 @@ static int test_decrypt_frame_all_algos() {
 
 static int testHeaderAuth(const uint8_t *header, size_t headerlen, const uint8_t *authtag, size_t taglen, const uint8_t *key, enum aws_cryptosdk_alg_id alg) {
     struct content_key derived_key;
-    struct data_key data_key;
+    struct aws_cryptosdk_data_key data_key;
 
     // We assume our test vector keys are appropriately sized
     memcpy(data_key.keybuf, key, sizeof(data_key.keybuf));

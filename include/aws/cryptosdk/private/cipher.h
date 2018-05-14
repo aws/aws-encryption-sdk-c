@@ -16,15 +16,15 @@
 #ifndef AWS_CRYPTOSDK_PRIVATE_CIPHER_H
 #define AWS_CRYPTOSDK_PRIVATE_CIPHER_H
 
+#include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/header.h>
 #include <aws/common/byte_buf.h>
+
 
 /**
  * Internal cryptographic helpers.
  * This header is not installed and is not a stable API.
  */
-
-#define MAX_DATA_KEY_SIZE 32
 
 struct aws_cryptosdk_alg_properties {
     const char *md_name, *cipher_name;
@@ -43,10 +43,6 @@ struct aws_cryptosdk_alg_properties {
 
 const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryptosdk_alg_id alg_id);
 
-struct data_key {
-    uint8_t keybuf[MAX_DATA_KEY_SIZE];
-};
-
 struct content_key {
     uint8_t keybuf[MAX_DATA_KEY_SIZE];
 };
@@ -58,7 +54,7 @@ struct content_key {
  */
 int aws_cryptosdk_derive_key(
     struct content_key *content_key,
-    const struct data_key *data_key,
+    const struct aws_cryptosdk_data_key *data_key,
     enum aws_cryptosdk_alg_id alg_id,
     const uint8_t *message_id
 );
@@ -102,13 +98,5 @@ int aws_cryptosdk_genrandom(
 );
 
 // TODO: Footer
-
-static inline void aws_cryptosdk_secure_zero(void *buf, size_t len) {
-    memset(buf, 0, len);
-    // Perform a compiler memory barrier to ensure that the memset is not eliminated
-    __asm__ __volatile__("" :: "r" (buf) : "memory");
-
-    // TODO: MSVC/win32 support using SecureZero
-}
 
 #endif // AWS_CRYPTOSDK_PRIVATE_CIPHER_H

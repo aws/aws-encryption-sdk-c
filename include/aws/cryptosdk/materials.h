@@ -20,58 +20,213 @@
 #include <aws/common/array_list.h>
 #include <aws/common/byte_buf.h>
 #include <aws/common/hash_table.h>
+#include <aws/cryptosdk/cipher.h>
+#include <aws/cryptosdk/header.h>
 
-#ifndef MAX_DATA_KEY_SIZE
-#define MAX_DATA_KEY_SIZE 32
-#endif
+/**
+ * Generic template for a virtual function. Returns error/success code. First arg
+ * is pointer to the struct that owns the function. Second arg should be cast to
+ * the structure type holding the args of this function.
+ */
+typedef int (*virtual_function)(void * self, void * args);
 
-struct aws_cryptosdk_unencrypted_data_key {
-    struct aws_allocator * alloc;
-    uint8_t bytes[MAX_DATA_KEY_SIZE];
+/**
+ * Types of Cryptographic Material Manager (CMM). The integer values of these are offsets
+ * into the virtual table list, so do not manually assign values to them!
+ * To add a new CMM, add it to this enum and the vtable list, and define a new vtable.
+ */
+enum aws_cryptosdk_cmm_type {
+    CMM_DEFAULT,
+    CMM_CACHING,
+    CMM_MULTI
 };
+
+enum aws_cryptosdk_cmm_virtual_function {
+    CMM_VF_DESTROY,
+    CMM_VF_GENERATE_ENCRYPTION_MATERIALS,
+    CMM_VF_GENERATE_DECRYPTION_MATERIALS
+};
+
+int aws_cryptosdk_cmm_default_destroy(void * cmm, void * args);
+int aws_cryptosdk_cmm_default_generate_encryption_materials(void * cmm, void * args);
+int aws_cryptosdk_cmm_default_generate_decryption_materials(void * cmm, void * args);
+
+int aws_cryptosdk_cmm_caching_destroy(void * cmm, void * args);
+int aws_cryptosdk_cmm_caching_generate_encryption_materials(void * cmm, void * args);
+int aws_cryptosdk_cmm_caching_generate_decryption_materials(void * cmm, void * args);
+
+int aws_cryptosdk_cmm_multi_destroy(void * cmm, void * args);
+int aws_cryptosdk_cmm_multi_generate_encryption_materials(void * cmm, void * args);
+int aws_cryptosdk_cmm_multi_generate_decryption_materials(void * cmm, void * args);
+
+/**
+ * Vtables for Cryptographic Material Manager (CMM).
+ */
+static virtual_function aws_cryptosdk_cmm_default_vtable[] = {
+    aws_cryptosdk_cmm_default_destroy,
+    aws_cryptosdk_cmm_default_generate_encryption_materials,
+    aws_cryptosdk_cmm_default_generate_decryption_materials
+};
+
+static virtual_function aws_cryptosdk_cmm_caching_vtable[] = {
+    aws_cryptosdk_cmm_caching_destroy,
+    aws_cryptosdk_cmm_caching_generate_encryption_materials,
+    aws_cryptosdk_cmm_caching_generate_decryption_materials
+};
+
+static virtual_function aws_cryptosdk_cmm_multi_vtable[] = {
+    aws_cryptosdk_cmm_multi_destroy,
+    aws_cryptosdk_cmm_multi_generate_encryption_materials,
+    aws_cryptosdk_cmm_multi_generate_decryption_materials
+};
+
+static virtual_function * aws_cryptosdk_cmm_vtable_list[] = {
+    aws_cryptosdk_cmm_default_vtable,
+    aws_cryptosdk_cmm_caching_vtable,
+    aws_cryptosdk_cmm_multi_vtable
+};
+
+/**
+ * Types of Master Key Provider (MKP). The integer values of these are offsets
+ * into the virtual table list, so do not manually assign values to them!
+ * To add a new MKP, add it to this enum and the vtable list, and define a new vtable.
+ */
+enum aws_cryptosdk_mkp_type {
+    MKP_KMS,
+    MKP_KEYSTORE
+};
+
+enum aws_cryptosdk_mkp_virtual_function {
+    MKP_VF_DESTROY,
+    MKP_VF_GET_MASTER_KEYS_FOR_ENCRYPTION,
+    MKP_VF_GET_MASTER_KEY,
+    MKP_VF_DECRYPT_DATA_KEY
+};
+
+int aws_cryptosdk_mkp_kms_destroy(void * mkp, void * args);
+int aws_cryptosdk_mkp_kms_get_master_keys_for_encryption(void * mkp, void * args);
+int aws_cryptosdk_mkp_kms_get_master_key(void * mkp, void * args);
+int aws_cryptosdk_mkp_kms_decrypt_data_key(void * mkp, void * args);
+
+int aws_cryptosdk_mkp_keystore_destroy(void * mkp, void * args);
+int aws_cryptosdk_mkp_keystore_get_master_keys_for_encryption(void * mkp, void * args);
+int aws_cryptosdk_mkp_keystore_get_master_key(void * mkp, void * args);
+int aws_cryptosdk_mkp_keystore_decrypt_data_key(void * mkp, void * args);
+
+/**
+ * Vtables for Master Key Provider (MKP).
+ */
+static virtual_function aws_cryptosdk_mkp_kms_vtable[] = {
+    aws_cryptosdk_mkp_kms_destroy,
+    aws_cryptosdk_mkp_kms_get_master_keys_for_encryption,
+    aws_cryptosdk_mkp_kms_get_master_key,
+    aws_cryptosdk_mkp_kms_decrypt_data_key
+};
+
+static virtual_function aws_cryptosdk_mkp_keystore_vtable[] = {
+    aws_cryptosdk_mkp_keystore_destroy,
+    aws_cryptosdk_mkp_keystore_get_master_keys_for_encryption,
+    aws_cryptosdk_mkp_keystore_get_master_key,
+    aws_cryptosdk_mkp_keystore_decrypt_data_key
+};
+
+static virtual_function * aws_cryptosdk_mkp_vtable_list[] = {
+    aws_cryptosdk_mkp_kms_vtable,
+    aws_cryptosdk_mkp_keystore_vtable
+};
+
+/**
+ * Types of Master Key (MK). The integer values of these are offsets
+ * into the virtual table list, so do not manually assign values to them!
+ * To add a new MK, add it to this enum and the vtable list, and define a new vtable.
+ */
+enum aws_cryptosdk_mk_type {
+    MK_KMS,
+    MK_KEYSTORE
+};
+
+enum aws_cryptosdk_mk_virtual_function {
+    MK_VF_DESTROY,
+    MK_VF_GENERATE_DATA_KEY,
+    MK_VF_ENCRYPT_DATA_KEY
+};
+
+int aws_cryptosdk_mk_kms_destroy(void * mk, void * args);
+int aws_cryptosdk_mk_kms_generate_data_key(void * mk, void * args);
+int aws_cryptosdk_mk_kms_encrypt_data_key(void * mk, void * args);
+
+int aws_cryptosdk_mk_keystore_destroy(void * mk, void * args);
+int aws_cryptosdk_mk_keystore_generate_data_key(void * mk, void * args);
+int aws_cryptosdk_mk_keystore_encrypt_data_key(void * mk, void * args);
+
+/**
+ * Vtables for Master Key (MK).
+ */
+static virtual_function aws_cryptosdk_mk_kms_vtable[] = {
+    aws_cryptosdk_mk_kms_destroy,
+    aws_cryptosdk_mk_kms_generate_data_key,
+    aws_cryptosdk_mk_kms_encrypt_data_key
+};
+
+static virtual_function aws_cryptosdk_mk_keystore_vtable[] = {
+    aws_cryptosdk_mk_keystore_destroy,
+    aws_cryptosdk_mk_keystore_generate_data_key,
+    aws_cryptosdk_mk_keystore_encrypt_data_key
+};
+
+static virtual_function * aws_cryptosdk_mk_vtable_list[] = {
+    aws_cryptosdk_mk_kms_vtable,
+    aws_cryptosdk_mk_keystore_vtable
+};
+
+/**
+ * Base struct types for CMM/MK/MKP.
+ */
+struct aws_cryptosdk_cmm {
+    struct aws_allocator * alloc;
+    enum aws_cryptosdk_cmm_type type;
+    enum aws_cryptosdk_alg_id alg_id;
+};
+
+struct aws_cryptosdk_mkp {
+    struct aws_allocator * alloc;
+    enum aws_cryptosdk_mkp_type type;
+    enum aws_cryptosdk_alg_id alg_id;
+};
+
+struct aws_cryptosdk_mk {
+    struct aws_allocator * alloc;
+    enum aws_cryptosdk_mk_type type;
+    enum aws_cryptosdk_alg_id alg_id;
+};
+
+/* Not sure? */
+#define MAX_ENCRYPTED_DATA_KEY_SIZE 64
 
 struct aws_cryptosdk_encrypted_data_key {
-    struct aws_allocator * alloc;
-    struct aws_byte_buf provider_id;
-    struct aws_byte_buf provider_info;
-    struct aws_cryptosdk_master_key * master;
-    uint8_t bytes[MAX_DATA_KEY_SIZE];
+    struct aws_cryptosdk_mk * master;
+    uint8_t bytes[MAX_ENCRYPTED_DATA_KEY_SIZE];
 };
 
-
-struct aws_cryptosdk_master_key {
-    struct aws_allocator * alloc;
-    struct aws_byte_buf provider_id;
-    struct aws_byte_buf key_id;
-
-    /**
-     * On success, writes to both unencrypted and encrypted data key.
-     */
-    int (*generate_data_key)(struct aws_cryptosdk_master_key * self,
-                             struct aws_cryptosdk_unencrypted_data_key * unencrypted_data_key,
-                             struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
-                             struct aws_common_hash_table * enc_context,
-                             uint16_t alg_id);
-
-    /**
-     * On success, writes to encrypted data key.
-     */
-    int (*encrypt_data_key)(struct aws_cryptosdk_master_key * self,
-                            const struct aws_cryptosdk_unencrypted_data_key * unencrypted_data_key,
-                            struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
-                            struct aws_common_hash_table * enc_context,
-                            uint16_t alg_id);
-
-    /**
-     * On success, writes to unencrypted data key.
-     */
-    int (*decrypt_data_key)(struct aws_cryptosdk_master_key * self,
-                            struct aws_cryptosdk_unencrypted_data_key * unencrypted_data_key,
-                            const struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
-                            struct aws_common_hash_table * enc_context,
-                            uint16_t alg_id);
+struct aws_cryptosdk_mk_generate_data_key_args {
+    struct aws_cryptosdk_data_key * unencrypted_data_key;
+    struct aws_cryptosdk_encrypted_data_key * encrypted_data_key;
 };
 
+struct aws_cryptosdk_mk_encrypt_data_key_args {
+    struct aws_cryptosdk_encrypted_data_key * encrypted_data_key;
+    const struct aws_cryptosdk_data_key * unencrypted_data_key;
+};
+
+struct aws_cryptosdk_mkp_decrypt_data_key_args {
+    struct aws_cryptosdk_data_key * unencrypted_data_key;
+    const struct aws_cryptosdk_encrypted_data_key * encrypted_data_key;
+};
+
+/*
+ * Private key stuff is needed for trailing signature. But this should maybe only be in default CMM
+ * and not in base structs?
+ */
 struct aws_cryptosdk_private_key {
     //FIXME: implement
 };
@@ -87,51 +242,19 @@ struct aws_cryptosdk_key_pair {
 
 struct aws_cryptosdk_encryption_materials {
     struct aws_allocator * alloc;
-    struct aws_cryptosdk_unencrypted_data_key unencrypted_data_key;
+    struct aws_cryptosdk_data_key unencrypted_data_key;
     struct aws_array_list encrypted_data_keys; // list of struct aws_cryptosdk_encrypted_data_key objects
     struct aws_common_hash_table * enc_context;
     struct aws_cryptosdk_key_pair trailing_signature_key_pair;
-    uint16_t alg_id;
+    enum aws_cryptosdk_alg_id alg_id;
 };
 
 struct aws_cryptosdk_decryption_materials {
     struct aws_allocator * alloc;
-    struct aws_cryptosdk_unencrypted_data_key unencrypted_data_key;
+    struct aws_cryptosdk_data_key unencrypted_data_key;
     struct aws_cryptosdk_public_key trailing_signature_key;
 };
 
-struct aws_cryptosdk_materials_manager {
-    struct aws_allocator * alloc;
-    struct aws_array_list master_keys; // list of struct aws_cryptosdk_master_key objects
-
-    /* FIXME? should struct aws_cryptosdk_alg_properties be moved from session to here?
-     * Or some other enum for algorithm?
-     */
-    uint16_t alg_id;
-
-    /**
-     * Uses the allocator, master key list, and algorithm ID specified in the materials manager
-     * to generate the encryption materials. On success, allocates encryption materials object
-     * and puts address at encryption_materials. If plaintext_size is nonzero, it may be used
-     * in determining the encryption materials. If it is zero, it will be ignored.
-     */
-    int (*generate_encryption_materials)(void * manager,
-                                         void ** encryption_materials,
-                                         void * args,
-                                         struct aws_common_hash_table * enc_context);
-
-    /**
-     * Checks whether any of the provided list of encrypted data keys can be decrypted by the
-     * materials manager. On success, allocates decryption materials object and puts address at
-     * decryption_materials.
-     */
-    int (*generate_decryption_materials)(void * manager,
-                                         void ** decryption_materials,
-                                         void * args,
-                                         const struct aws_array_list * encrypted_data_keys,
-                                         struct aws_common_hash_table * enc_context);
-
-};
 
 int aws_cryptosdk_default_generate_encryption_materials(void * manager,
                                                         void ** encryption_materials,
@@ -139,9 +262,9 @@ int aws_cryptosdk_default_generate_encryption_materials(void * manager,
                                                         struct aws_common_hash_table * enc_context,
                                                         size_t plaintext_size);
 
-struct aws_cryptosdk_encryption_materials * aws_cryptosdk_alloc_encryption_materials(struct aws_allocator * alloc, size_t num_keys);
+struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_new(struct aws_allocator * alloc, size_t num_keys);
 
-void aws_cryptosdk_free_encryption_materials(struct aws_cryptosdk_encryption_materials * enc_mat);
+void aws_cryptosdk_encryption_materials_destroy(struct aws_cryptosdk_encryption_materials * enc_mat);
 
 // TODO: implement and move somewhere else possibly
 // should this allocate a key pair struct or write to an existing one?

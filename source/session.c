@@ -147,7 +147,7 @@ static int init_keys(
 ) {
     // TODO - use CMM/MKP to get the data key.
     // For now we'll just use an all-zero key to expedite testing
-    struct data_key data_key = { { 0 } };
+    struct aws_cryptosdk_data_key data_key = { { 0 } };
 
     uint16_t alg_id = session->header.alg_id;
     session->alg_props = aws_cryptosdk_alg_props(alg_id);

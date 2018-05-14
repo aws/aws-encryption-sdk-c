@@ -82,7 +82,7 @@ const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryp
 
 int aws_cryptosdk_derive_key(
     struct content_key *content_key,
-    const struct data_key *data_key,
+    const struct aws_cryptosdk_data_key *data_key,
     enum aws_cryptosdk_alg_id alg_id,
     const uint8_t *message_id
 ) {
