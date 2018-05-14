@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef AWS_CRYPTOSDK_P_CIPHER_H
-#define AWS_CRYPTOSDK_P_CIPHER_H
+#ifndef AWS_CRYPTOSDK_PRIVATE_CIPHER_H
+#define AWS_CRYPTOSDK_PRIVATE_CIPHER_H
 
 #include <aws/cryptosdk/header.h>
 #include <aws/common/byte_buf.h>
@@ -24,7 +24,7 @@
  * This header is not installed and is not a stable API.
  */
 
-#define MAX_KEY_SIZE 32
+#define MAX_DATA_KEY_SIZE 32
 
 struct aws_cryptosdk_alg_properties {
     const char *md_name, *cipher_name;
@@ -44,11 +44,11 @@ struct aws_cryptosdk_alg_properties {
 const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryptosdk_alg_id alg_id);
 
 struct data_key {
-    uint8_t keybuf[MAX_KEY_SIZE];
+    uint8_t keybuf[MAX_DATA_KEY_SIZE];
 };
 
 struct content_key {
-    uint8_t keybuf[MAX_KEY_SIZE];
+    uint8_t keybuf[MAX_DATA_KEY_SIZE];
 };
 
 /**
@@ -85,8 +85,8 @@ int aws_cryptosdk_verify_header(
  * Returns AWS_OP_SUCCESS if successful.
  */
 int aws_cryptosdk_decrypt_body(
-    struct aws_byte_buf *out,
-    const struct aws_byte_buf *in,
+    struct aws_byte_cursor *out,
+    const struct aws_byte_cursor *in,
     enum aws_cryptosdk_alg_id alg_id,
     const uint8_t *message_id,
     uint32_t seqno,
@@ -111,4 +111,4 @@ static inline void aws_cryptosdk_secure_zero(void *buf, size_t len) {
     // TODO: MSVC/win32 support using SecureZero
 }
 
-#endif // AWS_CRYPTOSDK_P_CIPHER_H
+#endif // AWS_CRYPTOSDK_PRIVATE_CIPHER_H
