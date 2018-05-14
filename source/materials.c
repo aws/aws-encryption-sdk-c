@@ -7,15 +7,11 @@ struct aws_cryptosdk_cmm_default {
     struct aws_array_list master_keys;
 };
 
-struct aws_cryptosdk_cmm_default_generate_encryption_materials_args {
-    struct aws_cryptosdk_encryption_materials ** output;
-    struct aws_common_hash_table * enc_context;
-};
-
-int aws_cryptosdk_cmm_default_generate_encryption_materials(void * cmm, void * args) {
+int aws_cryptosdk_cmm_default_generate_encryption_materials(struct aws_cryptosdk_cmm * cmm,
+                                                            struct aws_cryptosdk_encryption_materials ** output,
+                                                            struct aws_common_hash_table * enc_context) {
     int ret;
     struct aws_cryptosdk_cmm_default * self = (struct aws_cryptosdk_cmm_default *) cmm;
-    struct aws_cryptosdk_cmm_default_generate_encryption_materials_args * my_args = (struct aws_cryptosdk_cmm_default_generate_encryption_materials_args *) args;
 
     size_t num_keys = self->master_keys.current_size;
     size_t key_idx;
@@ -25,7 +21,7 @@ int aws_cryptosdk_cmm_default_generate_encryption_materials(void * cmm, void * a
     enc_mat = aws_cryptosdk_encryption_materials_new(self->alloc, num_keys);
     if (!enc_mat) { ret = AWS_ERROR_OOM; goto ERROR; }
 
-    enc_mat->enc_context = my_args->enc_context;
+    enc_mat->enc_context = enc_context;
     enc_mat->alg_id = self->alg_id;
 
     /* Produce unencrypted data key and first encrypted data key from the first master key. */
@@ -33,12 +29,13 @@ int aws_cryptosdk_cmm_default_generate_encryption_materials(void * cmm, void * a
     ret = aws_array_list_get_at_ptr(&self->master_keys, (void **)&master_key, 0);
     if (ret) goto ERROR;
 
-    struct aws_cryptosdk_mk_generate_data_key_args generate_args;
-    generate_args.unencrypted_data_key = &enc_mat->unencrypted_data_key;
-    ret = aws_array_list_get_at_ptr(&enc_mat->encrypted_data_keys, (void **)&generate_args.encrypted_data_key, 0);
+    struct aws_cryptosdk_encrypted_data_key * encrypted_data_key;
+    ret = aws_array_list_get_at_ptr(&enc_mat->encrypted_data_keys, (void **)&encrypted_data_key, 0);
     if (ret) goto ERROR;
 
-    ret = aws_cryptosdk_mk_vtable_list[master_key->type][MK_VF_GENERATE_DATA_KEY](master_key, (void *)&generate_args);
+    ret = aws_cryptosdk_mk_vt_list[master_key->type].generate_data_key(master_key,
+                                                                       &enc_mat->unencrypted_data_key,
+                                                                       encrypted_data_key);
     if (ret) goto ERROR;
 
     /* Re-encrypt unencrypted data key with each other master key. */
@@ -46,12 +43,12 @@ int aws_cryptosdk_cmm_default_generate_encryption_materials(void * cmm, void * a
         ret = aws_array_list_get_at_ptr(&self->master_keys, (void **)&master_key, key_idx);
         if (ret) goto ERROR;
 
-        struct aws_cryptosdk_mk_encrypt_data_key_args encrypt_args;
-        encrypt_args.unencrypted_data_key = (const struct aws_cryptosdk_data_key *)&enc_mat->unencrypted_data_key;
-        ret = aws_array_list_get_at_ptr(&enc_mat->encrypted_data_keys, (void **)&encrypt_args.encrypted_data_key, key_idx);
+        ret = aws_array_list_get_at_ptr(&enc_mat->encrypted_data_keys, (void **)&encrypted_data_key, key_idx);
         if (ret) goto ERROR;
 
-        ret = aws_cryptosdk_mk_vtable_list[master_key->type][MK_VF_ENCRYPT_DATA_KEY](master_key, (void *)&encrypt_args);
+        ret = aws_cryptosdk_mk_vt_list[master_key->type].encrypt_data_key(master_key,
+                                                                          encrypted_data_key,
+                                                                          &enc_mat->unencrypted_data_key);
         if (ret) goto ERROR;
     }
 
@@ -67,7 +64,7 @@ int aws_cryptosdk_cmm_default_generate_encryption_materials(void * cmm, void * a
         p_elem->value = (void *)&enc_mat->trailing_signature_key_pair.public_key;
     }
 
-    *my_args->output = enc_mat;
+    *output = enc_mat;
     return AWS_OP_SUCCESS;
 
 ERROR:

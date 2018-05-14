@@ -23,160 +23,20 @@
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/header.h>
 
-/**
- * Generic template for a virtual function. Returns error/success code. First arg
- * is pointer to the struct that owns the function. Second arg should be cast to
- * the structure type holding the args of this function.
- */
-typedef int (*virtual_function)(void * self, void * args);
-
-/**
- * Types of Cryptographic Material Manager (CMM). The integer values of these are offsets
- * into the virtual table list, so do not manually assign values to them!
- * To add a new CMM, add it to this enum and the vtable list, and define a new vtable.
- */
 enum aws_cryptosdk_cmm_type {
     CMM_DEFAULT,
     CMM_CACHING,
     CMM_MULTI
 };
 
-enum aws_cryptosdk_cmm_virtual_function {
-    CMM_VF_DESTROY,
-    CMM_VF_GENERATE_ENCRYPTION_MATERIALS,
-    CMM_VF_GENERATE_DECRYPTION_MATERIALS
-};
-
-int aws_cryptosdk_cmm_default_destroy(void * cmm, void * args);
-int aws_cryptosdk_cmm_default_generate_encryption_materials(void * cmm, void * args);
-int aws_cryptosdk_cmm_default_generate_decryption_materials(void * cmm, void * args);
-
-int aws_cryptosdk_cmm_caching_destroy(void * cmm, void * args);
-int aws_cryptosdk_cmm_caching_generate_encryption_materials(void * cmm, void * args);
-int aws_cryptosdk_cmm_caching_generate_decryption_materials(void * cmm, void * args);
-
-int aws_cryptosdk_cmm_multi_destroy(void * cmm, void * args);
-int aws_cryptosdk_cmm_multi_generate_encryption_materials(void * cmm, void * args);
-int aws_cryptosdk_cmm_multi_generate_decryption_materials(void * cmm, void * args);
-
-/**
- * Vtables for Cryptographic Material Manager (CMM).
- */
-static virtual_function aws_cryptosdk_cmm_default_vtable[] = {
-    aws_cryptosdk_cmm_default_destroy,
-    aws_cryptosdk_cmm_default_generate_encryption_materials,
-    aws_cryptosdk_cmm_default_generate_decryption_materials
-};
-
-static virtual_function aws_cryptosdk_cmm_caching_vtable[] = {
-    aws_cryptosdk_cmm_caching_destroy,
-    aws_cryptosdk_cmm_caching_generate_encryption_materials,
-    aws_cryptosdk_cmm_caching_generate_decryption_materials
-};
-
-static virtual_function aws_cryptosdk_cmm_multi_vtable[] = {
-    aws_cryptosdk_cmm_multi_destroy,
-    aws_cryptosdk_cmm_multi_generate_encryption_materials,
-    aws_cryptosdk_cmm_multi_generate_decryption_materials
-};
-
-static virtual_function * aws_cryptosdk_cmm_vtable_list[] = {
-    aws_cryptosdk_cmm_default_vtable,
-    aws_cryptosdk_cmm_caching_vtable,
-    aws_cryptosdk_cmm_multi_vtable
-};
-
-/**
- * Types of Master Key Provider (MKP). The integer values of these are offsets
- * into the virtual table list, so do not manually assign values to them!
- * To add a new MKP, add it to this enum and the vtable list, and define a new vtable.
- */
 enum aws_cryptosdk_mkp_type {
     MKP_KMS,
     MKP_KEYSTORE
 };
 
-enum aws_cryptosdk_mkp_virtual_function {
-    MKP_VF_DESTROY,
-    MKP_VF_GET_MASTER_KEYS_FOR_ENCRYPTION,
-    MKP_VF_GET_MASTER_KEY,
-    MKP_VF_DECRYPT_DATA_KEY
-};
-
-int aws_cryptosdk_mkp_kms_destroy(void * mkp, void * args);
-int aws_cryptosdk_mkp_kms_get_master_keys_for_encryption(void * mkp, void * args);
-int aws_cryptosdk_mkp_kms_get_master_key(void * mkp, void * args);
-int aws_cryptosdk_mkp_kms_decrypt_data_key(void * mkp, void * args);
-
-int aws_cryptosdk_mkp_keystore_destroy(void * mkp, void * args);
-int aws_cryptosdk_mkp_keystore_get_master_keys_for_encryption(void * mkp, void * args);
-int aws_cryptosdk_mkp_keystore_get_master_key(void * mkp, void * args);
-int aws_cryptosdk_mkp_keystore_decrypt_data_key(void * mkp, void * args);
-
-/**
- * Vtables for Master Key Provider (MKP).
- */
-static virtual_function aws_cryptosdk_mkp_kms_vtable[] = {
-    aws_cryptosdk_mkp_kms_destroy,
-    aws_cryptosdk_mkp_kms_get_master_keys_for_encryption,
-    aws_cryptosdk_mkp_kms_get_master_key,
-    aws_cryptosdk_mkp_kms_decrypt_data_key
-};
-
-static virtual_function aws_cryptosdk_mkp_keystore_vtable[] = {
-    aws_cryptosdk_mkp_keystore_destroy,
-    aws_cryptosdk_mkp_keystore_get_master_keys_for_encryption,
-    aws_cryptosdk_mkp_keystore_get_master_key,
-    aws_cryptosdk_mkp_keystore_decrypt_data_key
-};
-
-static virtual_function * aws_cryptosdk_mkp_vtable_list[] = {
-    aws_cryptosdk_mkp_kms_vtable,
-    aws_cryptosdk_mkp_keystore_vtable
-};
-
-/**
- * Types of Master Key (MK). The integer values of these are offsets
- * into the virtual table list, so do not manually assign values to them!
- * To add a new MK, add it to this enum and the vtable list, and define a new vtable.
- */
 enum aws_cryptosdk_mk_type {
     MK_KMS,
     MK_KEYSTORE
-};
-
-enum aws_cryptosdk_mk_virtual_function {
-    MK_VF_DESTROY,
-    MK_VF_GENERATE_DATA_KEY,
-    MK_VF_ENCRYPT_DATA_KEY
-};
-
-int aws_cryptosdk_mk_kms_destroy(void * mk, void * args);
-int aws_cryptosdk_mk_kms_generate_data_key(void * mk, void * args);
-int aws_cryptosdk_mk_kms_encrypt_data_key(void * mk, void * args);
-
-int aws_cryptosdk_mk_keystore_destroy(void * mk, void * args);
-int aws_cryptosdk_mk_keystore_generate_data_key(void * mk, void * args);
-int aws_cryptosdk_mk_keystore_encrypt_data_key(void * mk, void * args);
-
-/**
- * Vtables for Master Key (MK).
- */
-static virtual_function aws_cryptosdk_mk_kms_vtable[] = {
-    aws_cryptosdk_mk_kms_destroy,
-    aws_cryptosdk_mk_kms_generate_data_key,
-    aws_cryptosdk_mk_kms_encrypt_data_key
-};
-
-static virtual_function aws_cryptosdk_mk_keystore_vtable[] = {
-    aws_cryptosdk_mk_keystore_destroy,
-    aws_cryptosdk_mk_keystore_generate_data_key,
-    aws_cryptosdk_mk_keystore_encrypt_data_key
-};
-
-static virtual_function * aws_cryptosdk_mk_vtable_list[] = {
-    aws_cryptosdk_mk_kms_vtable,
-    aws_cryptosdk_mk_keystore_vtable
 };
 
 /**
@@ -206,21 +66,6 @@ struct aws_cryptosdk_mk {
 struct aws_cryptosdk_encrypted_data_key {
     struct aws_cryptosdk_mk * master;
     uint8_t bytes[MAX_ENCRYPTED_DATA_KEY_SIZE];
-};
-
-struct aws_cryptosdk_mk_generate_data_key_args {
-    struct aws_cryptosdk_data_key * unencrypted_data_key;
-    struct aws_cryptosdk_encrypted_data_key * encrypted_data_key;
-};
-
-struct aws_cryptosdk_mk_encrypt_data_key_args {
-    struct aws_cryptosdk_encrypted_data_key * encrypted_data_key;
-    const struct aws_cryptosdk_data_key * unencrypted_data_key;
-};
-
-struct aws_cryptosdk_mkp_decrypt_data_key_args {
-    struct aws_cryptosdk_data_key * unencrypted_data_key;
-    const struct aws_cryptosdk_encrypted_data_key * encrypted_data_key;
 };
 
 /*
@@ -255,12 +100,149 @@ struct aws_cryptosdk_decryption_materials {
     struct aws_cryptosdk_public_key trailing_signature_key;
 };
 
+struct aws_cryptosdk_cmm_vt {
+    size_t size;
+    int (*destroy)(struct aws_cryptosdk_cmm * cmm);
+    int (*generate_encryption_materials)(struct aws_cryptosdk_cmm * cmm,
+                                         struct aws_cryptosdk_encryption_materials ** output,
+                                         struct aws_common_hash_table * enc_context);
+    int (*generate_decryption_materials)(struct aws_cryptosdk_cmm * cmm,
+                                         struct aws_cryptosdk_decryption_materials ** output,
+                                         struct aws_common_hash_table * enc_context);
+};
 
-int aws_cryptosdk_default_generate_encryption_materials(void * manager,
-                                                        void ** encryption_materials,
-                                                        void * args,
-                                                        struct aws_common_hash_table * enc_context,
-                                                        size_t plaintext_size);
+int aws_cryptosdk_cmm_default_destroy(struct aws_cryptosdk_cmm * cmm);
+int aws_cryptosdk_cmm_default_generate_encryption_materials(struct aws_cryptosdk_cmm * cmm,
+                                                            struct aws_cryptosdk_encryption_materials ** output,
+                                                            struct aws_common_hash_table * enc_context);
+int aws_cryptosdk_cmm_default_generate_decryption_materials(struct aws_cryptosdk_cmm * cmm,
+                                                            struct aws_cryptosdk_decryption_materials ** output,
+                                                            struct aws_common_hash_table * enc_context);
+
+int aws_cryptosdk_cmm_caching_destroy(struct aws_cryptosdk_cmm * cmm);
+int aws_cryptosdk_cmm_caching_generate_encryption_materials(struct aws_cryptosdk_cmm * cmm,
+                                                            struct aws_cryptosdk_encryption_materials ** output,
+                                                            struct aws_common_hash_table * enc_context);
+int aws_cryptosdk_cmm_caching_generate_decryption_materials(struct aws_cryptosdk_cmm * cmm,
+                                                            struct aws_cryptosdk_decryption_materials ** output,
+                                                            struct aws_common_hash_table * enc_context);
+
+int aws_cryptosdk_cmm_multi_destroy(struct aws_cryptosdk_cmm * cmm);
+int aws_cryptosdk_cmm_multi_generate_encryption_materials(struct aws_cryptosdk_cmm * cmm,
+                                                          struct aws_cryptosdk_encryption_materials ** output,
+                                                          struct aws_common_hash_table * enc_context);
+int aws_cryptosdk_cmm_multi_generate_decryption_materials(struct aws_cryptosdk_cmm * cmm,
+                                                          struct aws_cryptosdk_decryption_materials ** output,
+                                                          struct aws_common_hash_table * enc_context);
+
+static struct aws_cryptosdk_cmm_vt aws_cryptosdk_cmm_vt_list[] = {
+    {3,
+     aws_cryptosdk_cmm_default_destroy,
+     aws_cryptosdk_cmm_default_generate_encryption_materials,
+     aws_cryptosdk_cmm_default_generate_decryption_materials},
+    {3,
+     aws_cryptosdk_cmm_caching_destroy,
+     aws_cryptosdk_cmm_caching_generate_encryption_materials,
+     aws_cryptosdk_cmm_caching_generate_decryption_materials},
+    {3,
+     aws_cryptosdk_cmm_multi_destroy,
+     aws_cryptosdk_cmm_multi_generate_encryption_materials,
+     aws_cryptosdk_cmm_multi_generate_decryption_materials}
+};
+
+struct aws_cryptosdk_mkp_vt {
+    size_t size;
+    int (*destroy)(struct aws_cryptosdk_mkp * mkp);
+    int (*get_master_keys_for_encryption)(struct aws_cryptosdk_mkp * mkp,
+                                          struct aws_array_list ** master_keys,
+                                          struct aws_common_hash_table * enc_context);
+    int (*get_master_key)(struct aws_cryptosdk_mkp * mkp,
+                          struct aws_cryptosdk_mk ** master_key,
+                          const struct aws_byte_buf * provider,
+                          const struct aws_byte_buf * key_id);
+    int (*decrypt_data_key)(struct aws_cryptosdk_mkp * mkp,
+                            struct aws_cryptosdk_data_key * output,
+                            const struct aws_array_list * encrypted_data_keys,
+                            struct aws_common_hash_table * enc_context);
+};
+
+int aws_cryptosdk_mkp_kms_destroy(struct aws_cryptosdk_mkp * mkp);
+int aws_cryptosdk_mkp_kms_get_master_keys_for_encryption(struct aws_cryptosdk_mkp * mkp,
+                                                         struct aws_array_list ** master_keys,
+                                                         struct aws_common_hash_table * enc_context);
+int aws_cryptosdk_mkp_kms_get_master_key(struct aws_cryptosdk_mkp * mkp,
+                                         struct aws_cryptosdk_mk ** master_key,
+                                         const struct aws_byte_buf * provider,
+                                         const struct aws_byte_buf * key_id);
+int aws_cryptosdk_mkp_kms_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
+                                           struct aws_cryptosdk_data_key * output,
+                                           const struct aws_array_list * encrypted_data_keys,
+                                           struct aws_common_hash_table * enc_context);
+
+int aws_cryptosdk_mkp_keystore_destroy(struct aws_cryptosdk_mkp * mkp);
+int aws_cryptosdk_mkp_keystore_get_master_keys_for_encryption(struct aws_cryptosdk_mkp * mkp,
+                                                              struct aws_array_list ** master_keys,
+                                                              struct aws_common_hash_table * enc_context);
+int aws_cryptosdk_mkp_keystore_get_master_key(struct aws_cryptosdk_mkp * mkp,
+                                              struct aws_cryptosdk_mk ** master_key,
+                                              const struct aws_byte_buf * provider,
+                                              const struct aws_byte_buf * key_id);
+int aws_cryptosdk_mkp_keystore_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
+                                                struct aws_cryptosdk_data_key * output,
+                                                const struct aws_array_list * encrypted_data_keys,
+                                                struct aws_common_hash_table * enc_context);
+
+
+static struct aws_cryptosdk_mkp_vt aws_cryptosdk_mkp_vt_list[] = {
+    {4,
+     aws_cryptosdk_mkp_kms_destroy,
+     aws_cryptosdk_mkp_kms_get_master_keys_for_encryption,
+     aws_cryptosdk_mkp_kms_get_master_key,
+     aws_cryptosdk_mkp_kms_decrypt_data_key},
+    {4,
+     aws_cryptosdk_mkp_keystore_destroy,
+     aws_cryptosdk_mkp_keystore_get_master_keys_for_encryption,
+     aws_cryptosdk_mkp_keystore_get_master_key,
+     aws_cryptosdk_mkp_keystore_decrypt_data_key}
+};
+
+struct aws_cryptosdk_mk_vt {
+    size_t size;
+    int (*destroy)(struct aws_cryptosdk_mk * mk);
+    int (*generate_data_key)(struct aws_cryptosdk_mk * mk,
+                             struct aws_cryptosdk_data_key * unencrypted_data_key,
+                             struct aws_cryptosdk_encrypted_data_key * encrypted_data_key);
+    int (*encrypt_data_key)(struct aws_cryptosdk_mk * mk,
+                            struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
+                            const struct aws_cryptosdk_data_key * unencrypted_data_key);
+};
+
+int aws_cryptosdk_mk_kms_destroy(struct aws_cryptosdk_mk * mk);
+int aws_cryptosdk_mk_kms_generate_data_key(struct aws_cryptosdk_mk * mk,
+                                           struct aws_cryptosdk_data_key * unencrypted_data_key,
+                                           struct aws_cryptosdk_encrypted_data_key * encrypted_data_key);
+int aws_cryptosdk_mk_kms_encrypt_data_key(struct aws_cryptosdk_mk * mk,
+                                          struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
+                                          const struct aws_cryptosdk_data_key * unencrypted_data_key);
+
+int aws_cryptosdk_mk_keystore_destroy(struct aws_cryptosdk_mk * mk);
+int aws_cryptosdk_mk_keystore_generate_data_key(struct aws_cryptosdk_mk * mk,
+                                                struct aws_cryptosdk_data_key * unencrypted_data_key,
+                                                struct aws_cryptosdk_encrypted_data_key * encrypted_data_key);
+int aws_cryptosdk_mk_keystore_encrypt_data_key(struct aws_cryptosdk_mk * mk,
+                                               struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
+                                               const struct aws_cryptosdk_data_key * unencrypted_data_key);
+
+static struct aws_cryptosdk_mk_vt aws_cryptosdk_mk_vt_list[] = {
+    {3,
+     aws_cryptosdk_mk_kms_destroy,
+     aws_cryptosdk_mk_kms_generate_data_key,
+     aws_cryptosdk_mk_kms_encrypt_data_key},
+    {3,
+     aws_cryptosdk_mk_keystore_destroy,
+     aws_cryptosdk_mk_keystore_generate_data_key,
+     aws_cryptosdk_mk_keystore_encrypt_data_key}
+};
 
 struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_new(struct aws_allocator * alloc, size_t num_keys);
 
