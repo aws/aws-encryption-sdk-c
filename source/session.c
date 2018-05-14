@@ -280,15 +280,15 @@ static int try_process_body(
             body_frame_type = FRAME_TYPE_FINAL;
 
             // Read the true sequence number after the final-frame sentinel
-            if (aws_byte_cursor_read_be32(&input, &seqno)) goto no_progress;
             input_len += 4; // 32-bit field read
+            if (aws_byte_cursor_read_be32(&input, &seqno)) goto no_progress;
 
-            if (!(iv = aws_byte_cursor_advance(&input, iv_len)).ptr) goto no_progress;
             input_len += iv_len;
+            if (!(iv = aws_byte_cursor_advance(&input, iv_len)).ptr) goto no_progress;
 
             uint32_t content_len;
-            if (aws_byte_cursor_read_be32(&input, &content_len)) goto no_progress;
             input_len += 4; // 32-bit field read
+            if (aws_byte_cursor_read_be32(&input, &content_len)) goto no_progress;
 
             input_len += content_len + tag_len;
             output_len = content_len;
@@ -308,12 +308,12 @@ static int try_process_body(
     } else {
         body_frame_type = FRAME_TYPE_SINGLE;
 
-        if (!(iv = aws_byte_cursor_advance(&input, iv_len)).ptr) goto no_progress;
         input_len += iv_len;
+        if (!(iv = aws_byte_cursor_advance(&input, iv_len)).ptr) goto no_progress;
 
         uint64_t content_len;
-        if (aws_byte_cursor_read_be64(&input, &content_len)) goto no_progress;
         input_len += 8; // 64-bit field read
+        if (aws_byte_cursor_read_be64(&input, &content_len)) goto no_progress;
 
         output_len = content_len;
         input_len += content_len + tag_len;
