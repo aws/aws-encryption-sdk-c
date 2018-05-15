@@ -39,12 +39,9 @@ enum aws_cryptosdk_mk_type {
     MK_KEYSTORE
 };
 
-/**
- * Base struct types for CMM/MK/MKP.
- */
-struct aws_cryptosdk_cmm {
+struct aws_cryptosdk_mk {
     struct aws_allocator * alloc;
-    enum aws_cryptosdk_cmm_type type;
+    enum aws_cryptosdk_mk_type type;
     enum aws_cryptosdk_alg_id alg_id;
 };
 
@@ -54,11 +51,13 @@ struct aws_cryptosdk_mkp {
     enum aws_cryptosdk_alg_id alg_id;
 };
 
-struct aws_cryptosdk_mk {
+struct aws_cryptosdk_cmm {
     struct aws_allocator * alloc;
-    enum aws_cryptosdk_mk_type type;
+    enum aws_cryptosdk_cmm_type type;
     enum aws_cryptosdk_alg_id alg_id;
+    struct aws_cryptosdk_mkp * mkp;
 };
+
 
 /* Not sure? */
 #define MAX_ENCRYPTED_DATA_KEY_SIZE 64
@@ -154,7 +153,7 @@ struct aws_cryptosdk_mkp_vt {
     size_t size;
     int (*destroy)(struct aws_cryptosdk_mkp * mkp);
     int (*get_master_keys_for_encryption)(struct aws_cryptosdk_mkp * mkp,
-                                          struct aws_array_list ** master_keys,
+                                          struct aws_array_list ** master_keys, // list of (aws_cryptosdk_mk *)
                                           struct aws_common_hash_table * enc_context);
     int (*get_master_key)(struct aws_cryptosdk_mkp * mkp,
                           struct aws_cryptosdk_mk ** master_key,
