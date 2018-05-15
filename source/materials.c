@@ -50,7 +50,7 @@ void aws_cryptosdk_decryption_materials_destroy(struct aws_cryptosdk_decryption_
 
 int aws_cryptosdk_cmm_default_generate_encryption_materials(struct aws_cryptosdk_cmm * self,
                                                             struct aws_cryptosdk_encryption_materials ** output,
-                                                            struct aws_common_hash_table * enc_context) {
+                                                            struct aws_hash_table * enc_context) {
     int ret;
     struct aws_array_list * master_keys = NULL;  // an array of pointers to master keys
     struct aws_cryptosdk_mk * master_key;
@@ -95,14 +95,14 @@ int aws_cryptosdk_cmm_default_generate_encryption_materials(struct aws_cryptosdk
         if (ret) goto ERROR;
     }
 
-    struct aws_common_hash_element * p_elem;
+    struct aws_hash_element * p_elem;
     int was_created;
     generate_trailing_signature_key_pair(&enc_mat->trailing_signature_key_pair, self->alg_id);
     struct aws_byte_buf * serialized_public_key;
     ret = serialize_public_key(&serialized_public_key, &enc_mat->trailing_signature_key_pair.public_key);
     if (ret) goto ERROR;
 
-    ret = aws_common_hash_table_create(enc_mat->enc_context, (void *)"aws-crypto-public-key", &p_elem, &was_created);
+    ret = aws_hash_table_create(enc_mat->enc_context, (void *)"aws-crypto-public-key", &p_elem, &was_created);
     if (ret) goto ERROR; // FIXME: handle resizing of hash table when necessary
 
     if (!was_created) {
@@ -138,7 +138,7 @@ ERROR:
 int aws_cryptosdk_cmm_default_generate_decryption_materials(struct aws_cryptosdk_cmm * self,
                                                             struct aws_cryptosdk_decryption_materials ** output,
                                                             const struct aws_array_list * encrypted_data_keys,
-                                                            struct aws_common_hash_table * enc_context) {
+                                                            struct aws_hash_table * enc_context) {
     int ret;
     struct aws_cryptosdk_decryption_materials * dec_mat;
     dec_mat = aws_cryptosdk_decryption_materials_new(self->alloc);
@@ -150,8 +150,8 @@ int aws_cryptosdk_cmm_default_generate_decryption_materials(struct aws_cryptosdk
                                                                       enc_context);
     if (ret) goto ERROR;
 
-    struct aws_common_hash_element * p_elem;
-    ret = aws_common_hash_table_find(enc_context, (void *)"aws-crypto-public-key", &p_elem);
+    struct aws_hash_element * p_elem;
+    ret = aws_hash_table_find(enc_context, (void *)"aws-crypto-public-key", &p_elem);
     if (ret) goto ERROR;
 
     if (p_elem && p_elem->value) {
