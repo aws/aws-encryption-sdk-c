@@ -107,6 +107,7 @@ struct aws_cryptosdk_cmm_vt {
                                          struct aws_common_hash_table * enc_context);
     int (*generate_decryption_materials)(struct aws_cryptosdk_cmm * cmm,
                                          struct aws_cryptosdk_decryption_materials ** output,
+                                         const struct aws_array_list * encrypted_data_keys,
                                          struct aws_common_hash_table * enc_context);
 };
 
@@ -116,6 +117,7 @@ int aws_cryptosdk_cmm_default_generate_encryption_materials(struct aws_cryptosdk
                                                             struct aws_common_hash_table * enc_context);
 int aws_cryptosdk_cmm_default_generate_decryption_materials(struct aws_cryptosdk_cmm * cmm,
                                                             struct aws_cryptosdk_decryption_materials ** output,
+                                                            const struct aws_array_list * encrypted_data_keys,
                                                             struct aws_common_hash_table * enc_context);
 
 int aws_cryptosdk_cmm_caching_destroy(struct aws_cryptosdk_cmm * cmm);
@@ -124,6 +126,7 @@ int aws_cryptosdk_cmm_caching_generate_encryption_materials(struct aws_cryptosdk
                                                             struct aws_common_hash_table * enc_context);
 int aws_cryptosdk_cmm_caching_generate_decryption_materials(struct aws_cryptosdk_cmm * cmm,
                                                             struct aws_cryptosdk_decryption_materials ** output,
+                                                            const struct aws_array_list * encrypted_data_keys,
                                                             struct aws_common_hash_table * enc_context);
 
 int aws_cryptosdk_cmm_multi_destroy(struct aws_cryptosdk_cmm * cmm);
@@ -132,6 +135,7 @@ int aws_cryptosdk_cmm_multi_generate_encryption_materials(struct aws_cryptosdk_c
                                                           struct aws_common_hash_table * enc_context);
 int aws_cryptosdk_cmm_multi_generate_decryption_materials(struct aws_cryptosdk_cmm * cmm,
                                                           struct aws_cryptosdk_decryption_materials ** output,
+                                                          const struct aws_array_list * encrypted_data_keys,
                                                           struct aws_common_hash_table * enc_context);
 
 static struct aws_cryptosdk_cmm_vt aws_cryptosdk_cmm_vt_list[] = {
@@ -247,8 +251,15 @@ struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_n
 
 void aws_cryptosdk_encryption_materials_destroy(struct aws_cryptosdk_encryption_materials * enc_mat);
 
+struct aws_cryptosdk_decryption_materials * aws_cryptosdk_decryption_materials_new(struct aws_allocator * alloc);
+
+void aws_cryptosdk_decryption_materials_destroy(struct aws_cryptosdk_decryption_materials * dec_mat);
+
 // TODO: implement and move somewhere else possibly
 // should this allocate a key pair struct or write to an existing one?
 int generate_trailing_signature_key_pair(struct aws_cryptosdk_key_pair * key_pair, uint16_t alg_id);
+
+int serialize_public_key(struct aws_byte_buf ** output, const struct aws_cryptosdk_public_key * public_key);
+int deserialize_public_key(struct aws_cryptosdk_public_key * public_key, const struct aws_byte_buf * input);
 
 #endif // AWS_CRYPTOSDK_MATERIALS_H

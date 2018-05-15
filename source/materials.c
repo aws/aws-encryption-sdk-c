@@ -28,6 +28,26 @@ void aws_cryptosdk_encryption_materials_destroy(struct aws_cryptosdk_encryption_
     }
 }
 
+// TODO: initialization for trailing signature key, if necessary
+struct aws_cryptosdk_decryption_materials * aws_cryptosdk_decryption_materials_new(struct aws_allocator * alloc) {
+    int ret;
+    struct aws_cryptosdk_decryption_materials * dec_mat;
+    dec_mat = alloc->mem_acquire(alloc, sizeof(struct aws_cryptosdk_decryption_materials));
+    if (!dec_mat) {
+        aws_raise_error(AWS_ERROR_OOM);
+        return NULL;
+    }
+    dec_mat->alloc = alloc;
+    return dec_mat;
+}
+
+void aws_cryptosdk_decryption_materials_destroy(struct aws_cryptosdk_decryption_materials * dec_mat) {
+    if (dec_mat) {
+        aws_cryptosdk_secure_zero(dec_mat->unencrypted_data_key.keybuf, MAX_DATA_KEY_SIZE);
+        dec_mat->alloc->mem_release(dec_mat->alloc, dec_mat);
+    }
+}
+
 int aws_cryptosdk_cmm_default_generate_encryption_materials(struct aws_cryptosdk_cmm * self,
                                                             struct aws_cryptosdk_encryption_materials ** output,
                                                             struct aws_common_hash_table * enc_context) {
@@ -78,14 +98,25 @@ int aws_cryptosdk_cmm_default_generate_encryption_materials(struct aws_cryptosdk
     struct aws_common_hash_element * p_elem;
     int was_created;
     generate_trailing_signature_key_pair(&enc_mat->trailing_signature_key_pair, self->alg_id);
+    struct aws_byte_buf * serialized_public_key;
+    ret = serialize_public_key(&serialized_public_key, &enc_mat->trailing_signature_key_pair.public_key);
+    if (ret) goto ERROR;
+
     ret = aws_common_hash_table_create(enc_mat->enc_context, (void *)"aws-crypto-public-key", &p_elem, &was_created);
-    if (was_created) {
-        // do we need to copy this? does it need to be encoded a particular way?
-        p_elem->value = (void *)&enc_mat->trailing_signature_key_pair.public_key;
-    } else {
-        // this would mean we had previously generated a public key for this encryption context, what happens here?
-        p_elem->value = (void *)&enc_mat->trailing_signature_key_pair.public_key;
+    if (ret) goto ERROR; // FIXME: handle resizing of hash table when necessary
+
+    if (!was_created) {
+        // this would mean we had previously generated a public key for this encryption context.
+        // do we need to do anything special here?
+
+        if (p_elem->value) {
+            // do we need to do a test of whether there is an allocated byte buffer here already?
+            // possibly refactor these two into single destroy function?
+            aws_byte_buf_free(self->alloc, (struct aws_byte_buf *)p_elem->value);
+            free(p_elem->value); // aws_byte_buf_free only frees pointer within byte buffer
+        }
     }
+    p_elem->value = (void *)serialized_public_key; // will need to free this later
 
     *output = enc_mat;
     return AWS_OP_SUCCESS;
@@ -101,5 +132,37 @@ ERROR:
         aws_array_list_clean_up(master_keys);
     }
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
+    return aws_raise_error(ret);
+}
+
+int aws_cryptosdk_cmm_default_generate_decryption_materials(struct aws_cryptosdk_cmm * self,
+                                                            struct aws_cryptosdk_decryption_materials ** output,
+                                                            const struct aws_array_list * encrypted_data_keys,
+                                                            struct aws_common_hash_table * enc_context) {
+    int ret;
+    struct aws_cryptosdk_decryption_materials * dec_mat;
+    dec_mat = aws_cryptosdk_decryption_materials_new(self->alloc);
+    if (!dec_mat) { ret = AWS_ERROR_OOM; goto ERROR; }
+
+    ret = aws_cryptosdk_mkp_vt_list[self->mkp->type].decrypt_data_key(self->mkp,
+                                                                      &dec_mat->unencrypted_data_key,
+                                                                      encrypted_data_keys,
+                                                                      enc_context);
+    if (ret) goto ERROR;
+
+    struct aws_common_hash_element * p_elem;
+    ret = aws_common_hash_table_find(enc_context, (void *)"aws-crypto-public-key", &p_elem);
+    if (ret) goto ERROR;
+
+    if (p_elem && p_elem->value) {
+        ret = deserialize_public_key(&dec_mat->trailing_signature_key, (struct aws_byte_buf *)p_elem->value);
+        if (ret) goto ERROR;
+    }
+
+    *output = dec_mat;
+    return AWS_OP_SUCCESS;
+
+ERROR:
+    aws_cryptosdk_decryption_materials_destroy(dec_mat);
     return aws_raise_error(ret);
 }
