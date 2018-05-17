@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# Some of our dependencies take a long time to build; this script
+# caches the binaries resulting from such builds until the upstream
+# git revision changes.
+
+# Note that we're not using codebuild's native caching support as it's
+# not compatible with the barebones ubuntu docker image we're using
+# (which in turn we're using because we need recent openssl).
+
+set -u
+set -e
+set -x
+
+GIT_URL="$1"
+shift
+
+BASENAME="$(basename "$GIT_URL" .git)"
+ROOT="/deps/$BASENAME"
+
+mkdir -p "$ROOT"
+git clone --depth=1 "$GIT_URL" "$ROOT/git"
+GITREV="$(cd "$ROOT/git"; git rev-parse HEAD)"
+ID_HASH="$(echo "$GITREV $@" | sha512sum | sed 's/ .*//')"
+S3PATH=s3://awsct-csdk-buildcache/$BASENAME/$ID_HASH.tar.xz
+
+if aws s3 cp $S3PATH "$ROOT/prebuilt.tar.xz"; then
+    tar -C "$ROOT" -xvf "$ROOT/prebuilt.tar.xz"
+else
+    mkdir -p "$ROOT/build"
+    (cd $ROOT/build; cmake "$ROOT/git" "$@" -DCMAKE_INSTALL_PREFIX="$ROOT/install" && make -j4 && make install)
+    tar -C "$ROOT" -cJvf prebuilt.tar.xz install
+    aws s3 cp prebuilt.tar.xz "$S3PATH"
+fi
