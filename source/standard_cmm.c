@@ -15,32 +15,34 @@
 #include <aws/cryptosdk/standard_cmm.h>
 
 struct standard_cmm {
-    struct aws_cryptosdk_cmm_vt * vt;
+    const struct aws_cryptosdk_cmm_vt * vt;
     struct aws_allocator * alloc;
     struct aws_cryptosdk_mkp * mkp;
 };
-
-static void standard_cmm_destroy(struct aws_cryptosdk_cmm * cmm) {
-    struct standard_cmm * self = (struct standard_cmm *) cmm;
-    self->alloc->mem_release(self->alloc, self);
-}
 
 static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * cmm,
                                                       struct aws_cryptosdk_encryption_materials ** output,
                                                       struct aws_cryptosdk_encryption_request * request) {
     int ret;
-    struct aws_array_list * master_keys = NULL;  // an array of pointers to master keys
+    const int initial_master_key_list_size = 4; // will reallocate as necessary, this is just a guess
+
+    struct aws_array_list master_keys;  // an array of pointers to master keys
+
     struct aws_cryptosdk_mk * master_key;
     struct aws_cryptosdk_encrypted_data_key * encrypted_data_key;
     struct aws_cryptosdk_encryption_materials * enc_mat = NULL;
+
     size_t key_idx;
     size_t num_keys = 0;
 
     struct standard_cmm * self = (struct standard_cmm *) cmm;
 
-    ret = aws_cryptosdk_mkp_get_master_keys(self->mkp, &master_keys, request->enc_context);
+    ret = aws_array_list_init_dynamic(&master_keys, self->alloc, initial_master_key_list_size, sizeof(struct aws_cryptosdk_mk *));
+    if (ret) return aws_raise_error(ret);
+
+    ret = aws_cryptosdk_mkp_append_master_keys(self->mkp, &master_keys, request->enc_context);
     if (ret) goto ERROR;
-    num_keys = master_keys->current_size;
+    num_keys = master_keys.length;
 
     enc_mat = aws_cryptosdk_encryption_materials_new(self->alloc, num_keys);
     if (!enc_mat) { ret = AWS_ERROR_OOM; goto ERROR; }
@@ -49,7 +51,7 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
     enc_mat->alg = request->requested_alg;
 
     /* Produce unencrypted data key and first encrypted data key from the first master key. */
-    ret = aws_array_list_get_at(master_keys, (void *)&master_key, 0);
+    ret = aws_array_list_get_at(&master_keys, (void *)&master_key, 0);
     if (ret) goto ERROR;
 
     ret = aws_array_list_get_at_ptr(&enc_mat->encrypted_data_keys, (void **)&encrypted_data_key, 0);
@@ -62,7 +64,7 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
 
     /* Re-encrypt unencrypted data key with each other master key. */
     for (key_idx = 1 ; key_idx < num_keys ; ++key_idx) {
-        ret = aws_array_list_get_at(master_keys, (void *)&master_key, key_idx);
+        ret = aws_array_list_get_at(&master_keys, (void *)&master_key, key_idx);
         if (ret) goto ERROR;
 
         ret = aws_array_list_get_at_ptr(&enc_mat->encrypted_data_keys, (void **)&encrypted_data_key, key_idx);
@@ -98,18 +100,11 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
     p_elem->value = (void *)serialized_public_key; // will need to free this later
 
     *output = enc_mat;
+    aws_array_list_clean_up(&master_keys);
     return AWS_OP_SUCCESS;
 
 ERROR:
-    if (master_keys) {
-        for (key_idx = 0 ; key_idx < num_keys ; ++key_idx) {
-            int cleanup_ret;
-            cleanup_ret = aws_array_list_get_at(master_keys, (void *)&master_key, key_idx);
-            if (cleanup_ret) abort();
-            aws_cryptosdk_mk_destroy(master_key);
-        }
-        aws_array_list_clean_up(master_keys);
-    }
+    aws_array_list_clean_up(&master_keys);
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
     return aws_raise_error(ret);
 }
@@ -147,8 +142,14 @@ ERROR:
     return aws_raise_error(ret);
 }
 
-static struct aws_cryptosdk_cmm_vt standard_cmm_vt = {
+static void standard_cmm_destroy(struct aws_cryptosdk_cmm * cmm) {
+    struct standard_cmm * self = (struct standard_cmm *) cmm;
+    self->alloc->mem_release(self->alloc, self);
+}
+
+static const struct aws_cryptosdk_cmm_vt standard_cmm_vt = {
     sizeof(struct aws_cryptosdk_cmm_vt),
+    "standard cmm",
     standard_cmm_destroy,
     standard_cmm_generate_encryption_materials,
     standard_cmm_decrypt_materials

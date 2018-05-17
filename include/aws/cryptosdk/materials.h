@@ -96,6 +96,7 @@ struct aws_cryptosdk_mk;
 
 struct aws_cryptosdk_cmm_vt {
     size_t size;
+    char * name;
     void (*destroy)(struct aws_cryptosdk_cmm * cmm);
     int (*generate_encryption_materials)(struct aws_cryptosdk_cmm * cmm,
                                          struct aws_cryptosdk_encryption_materials ** output,
@@ -106,30 +107,31 @@ struct aws_cryptosdk_cmm_vt {
 };
 
 static inline void aws_cryptosdk_cmm_destroy(struct aws_cryptosdk_cmm * cmm) {
-    const struct aws_cryptosdk_cmm_vt **vtp = (const struct aws_cryptosdk_cmm_vt **) cmm;
+    const struct aws_cryptosdk_cmm_vt ** vtp = (const struct aws_cryptosdk_cmm_vt **) cmm;
     (*vtp)->destroy(cmm);
 }
 
 static inline int aws_cryptosdk_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * cmm,
                                                                   struct aws_cryptosdk_encryption_materials ** output,
                                                                   struct aws_cryptosdk_encryption_request * request) {
-    const struct aws_cryptosdk_cmm_vt **vtp = (const struct aws_cryptosdk_cmm_vt **) cmm;
+    const struct aws_cryptosdk_cmm_vt ** vtp = (const struct aws_cryptosdk_cmm_vt **) cmm;
     return (*vtp)->generate_encryption_materials(cmm, output, request);
 }
 
 static inline int aws_cryptosdk_cmm_decrypt_materials(struct aws_cryptosdk_cmm * cmm,
                                                       struct aws_cryptosdk_decryption_materials ** output,
                                                       struct aws_cryptosdk_decryption_request * request) {
-    const struct aws_cryptosdk_cmm_vt **vtp = (const struct aws_cryptosdk_cmm_vt **) cmm;
+    const struct aws_cryptosdk_cmm_vt ** vtp = (const struct aws_cryptosdk_cmm_vt **) cmm;
     return (*vtp)->decrypt_materials(cmm, output, request);
 }
 
 struct aws_cryptosdk_mkp_vt {
     size_t size;
+    char * name;
     void (*destroy)(struct aws_cryptosdk_mkp * mkp);
-    int (*get_master_keys)(struct aws_cryptosdk_mkp * mkp,
-                           struct aws_array_list ** master_keys, // list of (aws_cryptosdk_mk *)
-                           struct aws_hash_table * enc_context);
+    int (*append_master_keys)(struct aws_cryptosdk_mkp * mkp,
+                              struct aws_array_list * master_keys, // list of (aws_cryptosdk_mk *)
+                              struct aws_hash_table * enc_context);
     int (*decrypt_data_key)(struct aws_cryptosdk_mkp * mkp,
                             struct aws_cryptosdk_data_key * output,
                             const struct aws_array_list * encrypted_data_keys,
@@ -137,28 +139,29 @@ struct aws_cryptosdk_mkp_vt {
 };
 
 static inline void aws_cryptosdk_mkp_destroy(struct aws_cryptosdk_mkp * mkp) {
-    const struct aws_cryptosdk_mkp_vt **vtp = (const struct aws_cryptosdk_mkp_vt **) mkp;
+    const struct aws_cryptosdk_mkp_vt ** vtp = (const struct aws_cryptosdk_mkp_vt **) mkp;
     (*vtp)->destroy(mkp);
 }
 
-static inline int aws_cryptosdk_mkp_get_master_keys(struct aws_cryptosdk_mkp * mkp,
-                                                    struct aws_array_list ** master_keys,
-                                                    struct aws_hash_table * enc_context) {
-    const struct aws_cryptosdk_mkp_vt **vtp = (const struct aws_cryptosdk_mkp_vt **) mkp;
-    return (*vtp)->get_master_keys(mkp, master_keys, enc_context);
+static inline int aws_cryptosdk_mkp_append_master_keys(struct aws_cryptosdk_mkp * mkp,
+                                                       struct aws_array_list * master_keys,
+                                                       struct aws_hash_table * enc_context) {
+    const struct aws_cryptosdk_mkp_vt ** vtp = (const struct aws_cryptosdk_mkp_vt **) mkp;
+    return (*vtp)->append_master_keys(mkp, master_keys, enc_context);
 }
 
 static inline int aws_cryptosdk_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
                                                      struct aws_cryptosdk_data_key * output,
                                                      const struct aws_array_list * encrypted_data_keys,
                                                      struct aws_hash_table * enc_context) {
-    const struct aws_cryptosdk_mkp_vt **vtp = (const struct aws_cryptosdk_mkp_vt **) mkp;
+    const struct aws_cryptosdk_mkp_vt ** vtp = (const struct aws_cryptosdk_mkp_vt **) mkp;
     return (*vtp)->decrypt_data_key(mkp, output, encrypted_data_keys, enc_context);
 }
 
 struct aws_cryptosdk_mk_vt {
     size_t size;
-    int (*destroy)(struct aws_cryptosdk_mk * mk);
+    char * name;
+    void (*destroy)(struct aws_cryptosdk_mk * mk);
     int (*generate_data_key)(struct aws_cryptosdk_mk * mk,
                              struct aws_cryptosdk_data_key * unencrypted_data_key,
                              struct aws_cryptosdk_encrypted_data_key * encrypted_data_key);
@@ -168,21 +171,21 @@ struct aws_cryptosdk_mk_vt {
 };
 
 static inline void aws_cryptosdk_mk_destroy(struct aws_cryptosdk_mk * mk) {
-    const struct aws_cryptosdk_mk_vt **vtp = (const struct aws_cryptosdk_mk_vt **) mk;
+    const struct aws_cryptosdk_mk_vt ** vtp = (const struct aws_cryptosdk_mk_vt **) mk;
     (*vtp)->destroy(mk);
 }
 
 static inline int aws_cryptosdk_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
                                                      struct aws_cryptosdk_data_key * unencrypted_data_key,
                                                      struct aws_cryptosdk_encrypted_data_key * encrypted_data_key) {
-    const struct aws_cryptosdk_mk_vt **vtp = (const struct aws_cryptosdk_mk_vt **) mk;
+    const struct aws_cryptosdk_mk_vt ** vtp = (const struct aws_cryptosdk_mk_vt **) mk;
     return (*vtp)->generate_data_key(mk, unencrypted_data_key, encrypted_data_key);
 }
 
 static inline int aws_cryptosdk_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
                                                     struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
                                                     const struct aws_cryptosdk_data_key * unencrypted_data_key) {
-    const struct aws_cryptosdk_mk_vt **vtp = (const struct aws_cryptosdk_mk_vt **) mk;
+    const struct aws_cryptosdk_mk_vt ** vtp = (const struct aws_cryptosdk_mk_vt **) mk;
     return (*vtp)->encrypt_data_key(mk, encrypted_data_key, unencrypted_data_key);
 }
 
