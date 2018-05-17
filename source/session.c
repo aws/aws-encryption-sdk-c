@@ -162,9 +162,9 @@ static int init_keys(
     }
 
     int rv = aws_cryptosdk_derive_key(
+        session->alg_props,
         &session->content_key,
         &data_key,
-        session->alg_props->alg_id,
         session->header.message_id
     );
 
@@ -185,7 +185,7 @@ static int init_keys(
     struct aws_byte_buf authtag = { .buffer = session->header_copy + session->header.auth_len, .len = authtag_len };
     struct aws_byte_buf headerbytebuf = { .buffer = session->header_copy, .len = session->header.auth_len };
 
-    int err = aws_cryptosdk_verify_header(session->alg_props->alg_id, &session->content_key, &authtag, &headerbytebuf);
+    int err = aws_cryptosdk_verify_header(session->alg_props, &session->content_key, &authtag, &headerbytebuf);
 
     if (err) {
         return err;
@@ -328,7 +328,7 @@ static int try_process_body(
 
     // We have everything we need, try to decrypt
     int rv = aws_cryptosdk_decrypt_body(
-        &output, &content, session->header.alg_id, session->header.message_id, session->frame_seqno,
+        session->alg_props, &output, &content, session->header.message_id, session->frame_seqno,
         iv.ptr, &session->content_key, tag.ptr, body_frame_type
     );
 
