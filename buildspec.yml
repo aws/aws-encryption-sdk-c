@@ -1,0 +1,19 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - apt-get update
+      - apt-get -y install build-essential cmake git libssl-dev
+  build:
+    commands:
+      - git clone https://github.com/awslabs/aws-c-common.git
+      - mkdir c-common-build
+      - (cd c-common-build; cmake ../aws-c-common; make -j4)
+      - mkdir build
+      - (cd build; cmake -DAWS_C_COMMON_PATH=$PWD/../c-common-build ..)
+      - (cd build; make -j4)
+  post_build:
+    commands:
+      - (cd build; make test)
+
