@@ -29,14 +29,15 @@ int standard_cmm_zero_mkp_enc_mat() {
 
     struct aws_cryptosdk_encryption_materials * enc_mat;
     int ret = aws_cryptosdk_cmm_generate_encryption_materials(cmm, &enc_mat, &req);
-
-    int byte_idx;
-    for (byte_idx = 0 ; byte_idx < MAX_DATA_KEY_SIZE ; ++byte_idx) {
-        TEST_ASSERT_INT_EQ(enc_mat->unencrypted_data_key.keybuf[byte_idx], 0x88);
-    }
+    TEST_ASSERT_INT_EQ(ret, AWS_OP_SUCCESS);
 
     TEST_ASSERT_ADDR_EQ(enc_mat->enc_context, (void *)0xdeadbeef);
     TEST_ASSERT_INT_EQ(enc_mat->alg, AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384);
+
+    int byte_idx;
+    for (byte_idx = 0 ; byte_idx < MAX_DATA_KEY_SIZE ; ++byte_idx) {
+        TEST_ASSERT_INT_EQ(enc_mat->unencrypted_data_key.keybuf[byte_idx], 0x00);
+    }
 
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
     aws_cryptosdk_cmm_destroy(cmm);
@@ -46,6 +47,6 @@ int standard_cmm_zero_mkp_enc_mat() {
 }
 
 struct test_case materials_test_cases[] = {
-    { "standard_cmm_zero_mkp_enc_mat", "standard CMM, constant MKP/MK, verify enc materials", standard_cmm_zero_mkp_enc_mat },
+    { "materials", "standard_cmm_zero_mkp_enc_mat", standard_cmm_zero_mkp_enc_mat },
     { NULL }
 };

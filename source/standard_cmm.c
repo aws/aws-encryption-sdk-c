@@ -29,7 +29,7 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
     struct aws_array_list master_keys;  // an array of pointers to master keys
 
     struct aws_cryptosdk_mk * master_key;
-    struct aws_cryptosdk_encrypted_data_key * encrypted_data_key;
+    struct aws_cryptosdk_encrypted_data_key encrypted_data_key;
     struct aws_cryptosdk_encryption_materials * enc_mat = NULL;
 
     size_t key_idx;
@@ -54,13 +54,13 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
     ret = aws_array_list_get_at(&master_keys, (void *)&master_key, 0);
     if (ret) goto ERROR;
 
-    ret = aws_array_list_get_at_ptr(&enc_mat->encrypted_data_keys, (void **)&encrypted_data_key, 0);
-    if (ret) goto ERROR;
-
     ret = aws_cryptosdk_mk_generate_data_key(master_key,
                                              &enc_mat->unencrypted_data_key,
-                                             encrypted_data_key,
+                                             &encrypted_data_key,
                                              enc_mat->enc_context);
+    if (ret) goto ERROR;
+
+    ret = aws_array_list_push_back(&enc_mat->encrypted_data_keys, &encrypted_data_key);
     if (ret) goto ERROR;
 
     /* Re-encrypt unencrypted data key with each other master key. */
@@ -68,13 +68,13 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
         ret = aws_array_list_get_at(&master_keys, (void *)&master_key, key_idx);
         if (ret) goto ERROR;
 
-        ret = aws_array_list_get_at_ptr(&enc_mat->encrypted_data_keys, (void **)&encrypted_data_key, key_idx);
-        if (ret) goto ERROR;
-
         ret = aws_cryptosdk_mk_encrypt_data_key(master_key,
-                                                encrypted_data_key,
+                                                &encrypted_data_key,
                                                 &enc_mat->unencrypted_data_key,
                                                 enc_mat->enc_context);
+        if (ret) goto ERROR;
+
+        ret = aws_array_list_push_back(&enc_mat->encrypted_data_keys, &encrypted_data_key);
         if (ret) goto ERROR;
     }
 

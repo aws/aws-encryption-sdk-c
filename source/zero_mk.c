@@ -28,8 +28,7 @@ static int zero_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
                                      struct aws_cryptosdk_data_key * unencrypted_data_key,
                                      struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
                                      struct aws_hash_table * enc_context) {
-    memset(unencrypted_data_key->keybuf, 0x88, MAX_DATA_KEY_SIZE);
-    //aws_cryptosdk_secure_zero(unencrypted_data_key->keybuf, MAX_DATA_KEY_SIZE);
+    aws_cryptosdk_secure_zero(unencrypted_data_key->keybuf, MAX_DATA_KEY_SIZE);
 
     // normally encrypted data key would be written here too, but it is ignored by this MK
     return AWS_OP_SUCCESS;
@@ -39,7 +38,6 @@ static int zero_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
                                     struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
                                     const struct aws_cryptosdk_data_key * unencrypted_data_key,
                                     struct aws_hash_table * enc_context) {
-
     return AWS_OP_SUCCESS;
 }
 

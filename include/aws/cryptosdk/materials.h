@@ -164,10 +164,12 @@ struct aws_cryptosdk_mk_vt {
     void (*destroy)(struct aws_cryptosdk_mk * mk);
     int (*generate_data_key)(struct aws_cryptosdk_mk * mk,
                              struct aws_cryptosdk_data_key * unencrypted_data_key,
-                             struct aws_cryptosdk_encrypted_data_key * encrypted_data_key);
+                             struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
+                             struct aws_hash_table * enc_context);
     int (*encrypt_data_key)(struct aws_cryptosdk_mk * mk,
                             struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
-                            const struct aws_cryptosdk_data_key * unencrypted_data_key);
+                            const struct aws_cryptosdk_data_key * unencrypted_data_key,
+                            struct aws_hash_table * enc_context);
 };
 
 static inline void aws_cryptosdk_mk_destroy(struct aws_cryptosdk_mk * mk) {
@@ -180,7 +182,7 @@ static inline int aws_cryptosdk_mk_generate_data_key(struct aws_cryptosdk_mk * m
                                                      struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
                                                      struct aws_hash_table * enc_context) {
     const struct aws_cryptosdk_mk_vt ** vtp = (const struct aws_cryptosdk_mk_vt **) mk;
-    return (*vtp)->generate_data_key(mk, unencrypted_data_key, encrypted_data_key);
+    return (*vtp)->generate_data_key(mk, unencrypted_data_key, encrypted_data_key, enc_context);
 }
 
 static inline int aws_cryptosdk_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
@@ -188,7 +190,7 @@ static inline int aws_cryptosdk_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk
                                                     const struct aws_cryptosdk_data_key * unencrypted_data_key,
                                                     struct aws_hash_table * enc_context) {
     const struct aws_cryptosdk_mk_vt ** vtp = (const struct aws_cryptosdk_mk_vt **) mk;
-    return (*vtp)->encrypt_data_key(mk, encrypted_data_key, unencrypted_data_key);
+    return (*vtp)->encrypt_data_key(mk, encrypted_data_key, unencrypted_data_key, enc_context);
 }
 
 struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_new(struct aws_allocator * alloc, size_t num_keys);

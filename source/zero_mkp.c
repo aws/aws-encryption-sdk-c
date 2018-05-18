@@ -32,13 +32,6 @@ static int zero_mkp_append_master_keys(struct aws_cryptosdk_mkp * mkp,
                                        struct aws_hash_table * enc_context) {
     struct zero_mkp * self = (struct zero_mkp *) mkp;
 
-    if (!zero_mk_singleton) {
-        zero_mk_singleton = aws_cryptosdk_zero_mk_new(self->alloc);
-        if (!zero_mk_singleton) {
-            return aws_raise_error(AWS_ERROR_OOM);
-        }
-    }
-
     int ret = aws_array_list_push_back(master_keys, &zero_mk_singleton); // copies *address* of the zero MK into the list
     if (ret) { // shouldn't happen if it's a dynamically allocated list
         return aws_raise_error(ret);
@@ -50,8 +43,7 @@ static int zero_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
                                      struct aws_cryptosdk_data_key * output,
                                      const struct aws_array_list * encrypted_data_keys,
                                      struct aws_hash_table * enc_context) {
-    memset(output->keybuf, 0x88, MAX_DATA_KEY_SIZE);
-    //aws_cryptosdk_secure_zero(output->keybuf, MAX_DATA_KEY_SIZE);
+    aws_cryptosdk_secure_zero(output->keybuf, MAX_DATA_KEY_SIZE);
     return AWS_OP_SUCCESS;
 }
 
@@ -73,6 +65,14 @@ static const struct aws_cryptosdk_mkp_vt zero_mkp_vt = {
 };
 
 struct aws_cryptosdk_mkp * aws_cryptosdk_zero_mkp_new(struct aws_allocator * alloc) {
+    if (!zero_mk_singleton) {
+        zero_mk_singleton = aws_cryptosdk_zero_mk_new(alloc);
+        if (!zero_mk_singleton) {
+            aws_raise_error(AWS_ERROR_OOM);
+            return NULL;
+        }
+    }
+
     struct zero_mkp * mkp = alloc->mem_acquire(alloc, sizeof(struct zero_mkp));
     if (!mkp) {
         aws_raise_error(AWS_ERROR_OOM);
@@ -80,5 +80,6 @@ struct aws_cryptosdk_mkp * aws_cryptosdk_zero_mkp_new(struct aws_allocator * all
     }
     mkp->vt = &zero_mkp_vt;
     mkp->alloc = alloc;
+
     return (struct aws_cryptosdk_mkp *) mkp;
 }
