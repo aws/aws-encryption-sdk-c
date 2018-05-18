@@ -57,7 +57,8 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
     ret = aws_cryptosdk_mk_generate_data_key(master_key,
                                              &enc_mat->unencrypted_data_key,
                                              &encrypted_data_key,
-                                             enc_mat->enc_context);
+                                             enc_mat->enc_context,
+                                             enc_mat->alg);
     if (ret) goto ERROR;
 
     ret = aws_array_list_push_back(&enc_mat->encrypted_data_keys, &encrypted_data_key);
@@ -71,7 +72,8 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
         ret = aws_cryptosdk_mk_encrypt_data_key(master_key,
                                                 &encrypted_data_key,
                                                 &enc_mat->unencrypted_data_key,
-                                                enc_mat->enc_context);
+                                                enc_mat->enc_context,
+                                                enc_mat->alg);
         if (ret) goto ERROR;
 
         ret = aws_array_list_push_back(&enc_mat->encrypted_data_keys, &encrypted_data_key);
@@ -126,7 +128,8 @@ static int standard_cmm_decrypt_materials(struct aws_cryptosdk_cmm * cmm,
     ret = aws_cryptosdk_mkp_decrypt_data_key(self->mkp,
                                              &dec_mat->unencrypted_data_key,
                                              request->encrypted_data_keys,
-                                             request->enc_context);
+                                             request->enc_context,
+                                             request->alg);
     if (ret) goto ERROR;
 /*
     struct aws_hash_element * p_elem;

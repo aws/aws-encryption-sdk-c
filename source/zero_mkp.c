@@ -14,6 +14,7 @@
  */
 #include <aws/cryptosdk/zero_mkp.h>
 #include <aws/cryptosdk/zero_mk.h>
+#include <aws/cryptosdk/cipher.h> // aws_cryptosdk_secure_zero
 
 /**
  * A degenerate Master Key Provider which always returns an all zero data key, just
@@ -42,7 +43,8 @@ static int zero_mkp_append_master_keys(struct aws_cryptosdk_mkp * mkp,
 static int zero_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
                                      struct aws_cryptosdk_data_key * output,
                                      const struct aws_array_list * encrypted_data_keys,
-                                     struct aws_hash_table * enc_context) {
+                                     struct aws_hash_table * enc_context,
+                                     enum aws_cryptosdk_alg_id alg) {
     aws_cryptosdk_secure_zero(output->keybuf, MAX_DATA_KEY_SIZE);
     return AWS_OP_SUCCESS;
 }

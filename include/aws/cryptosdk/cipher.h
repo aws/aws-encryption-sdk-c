@@ -20,12 +20,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#define MAX_DATA_KEY_SIZE 32
-
-struct aws_cryptosdk_data_key {
-    uint8_t keybuf[MAX_DATA_KEY_SIZE];
-};
-
 static inline void aws_cryptosdk_secure_zero(void *buf, size_t len) {
     memset(buf, 0, len);
     // Perform a compiler memory barrier to ensure that the memset is not eliminated
