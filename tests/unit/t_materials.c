@@ -46,7 +46,32 @@ int standard_cmm_zero_mkp_enc_mat() {
     return 0;
 }
 
+int standard_cmm_zero_mkp_dec_mat() {
+    struct aws_allocator * alloc = aws_default_allocator();
+    struct aws_cryptosdk_mkp * mkp = aws_cryptosdk_zero_mkp_new(alloc);
+    struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_standard_cmm_new(alloc, mkp);
+
+    struct aws_cryptosdk_decryption_request req;
+    // normally set req.encrypted_data_keys, but they are ignored by this MKP/MK
+
+    struct aws_cryptosdk_decryption_materials * dec_mat;
+    int ret = aws_cryptosdk_cmm_decrypt_materials(cmm, &dec_mat, &req);
+    TEST_ASSERT_INT_EQ(ret, AWS_OP_SUCCESS);
+
+    int byte_idx;
+    for (byte_idx = 0 ; byte_idx < MAX_DATA_KEY_SIZE ; ++byte_idx) {
+        TEST_ASSERT_INT_EQ(dec_mat->unencrypted_data_key.keybuf[byte_idx], 0x00);
+    }
+
+    aws_cryptosdk_decryption_materials_destroy(dec_mat);
+    aws_cryptosdk_cmm_destroy(cmm);
+    aws_cryptosdk_mkp_destroy(mkp);
+
+    return 0;
+}
+
 struct test_case materials_test_cases[] = {
     { "materials", "standard_cmm_zero_mkp_enc_mat", standard_cmm_zero_mkp_enc_mat },
+    { "materials", "standard_cmm_zero_mkp_dec_mat", standard_cmm_zero_mkp_dec_mat },
     { NULL }
 };

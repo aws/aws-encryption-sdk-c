@@ -50,6 +50,7 @@ static int zero_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
 static void zero_mkp_destroy(struct aws_cryptosdk_mkp * mkp) {
     if (zero_mk_singleton) {
         aws_cryptosdk_mk_destroy(zero_mk_singleton);
+        zero_mk_singleton = NULL;
     }
 
     struct zero_mkp * self = (struct zero_mkp *) mkp;
