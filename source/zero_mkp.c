@@ -50,7 +50,8 @@ static int zero_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
                                      struct aws_cryptosdk_data_key * output,
                                      const struct aws_array_list * encrypted_data_keys,
                                      struct aws_hash_table * enc_context) {
-    aws_cryptosdk_secure_zero(output->keybuf, MAX_DATA_KEY_SIZE);
+    memset(output->keybuf, 0x88, MAX_DATA_KEY_SIZE);
+    //aws_cryptosdk_secure_zero(output->keybuf, MAX_DATA_KEY_SIZE);
     return AWS_OP_SUCCESS;
 }
 

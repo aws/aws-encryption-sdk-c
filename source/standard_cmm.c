@@ -59,7 +59,8 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
 
     ret = aws_cryptosdk_mk_generate_data_key(master_key,
                                              &enc_mat->unencrypted_data_key,
-                                             encrypted_data_key);
+                                             encrypted_data_key,
+                                             enc_mat->enc_context);
     if (ret) goto ERROR;
 
     /* Re-encrypt unencrypted data key with each other master key. */
@@ -72,10 +73,12 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
 
         ret = aws_cryptosdk_mk_encrypt_data_key(master_key,
                                                 encrypted_data_key,
-                                                &enc_mat->unencrypted_data_key);
+                                                &enc_mat->unencrypted_data_key,
+                                                enc_mat->enc_context);
         if (ret) goto ERROR;
     }
 
+/*
     generate_trailing_signature_key_pair(&enc_mat->trailing_signature_key_pair, enc_mat->alg);
     struct aws_byte_buf * serialized_public_key;
     ret = serialize_public_key(&serialized_public_key, &enc_mat->trailing_signature_key_pair.public_key);
@@ -98,6 +101,7 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
         }
     }
     p_elem->value = (void *)serialized_public_key; // will need to free this later
+*/
 
     *output = enc_mat;
     aws_array_list_clean_up(&master_keys);
@@ -124,7 +128,7 @@ static int standard_cmm_decrypt_materials(struct aws_cryptosdk_cmm * cmm,
                                              request->encrypted_data_keys,
                                              request->enc_context);
     if (ret) goto ERROR;
-
+/*
     struct aws_hash_element * p_elem;
     ret = aws_hash_table_find(request->enc_context, (void *)"aws-crypto-public-key", &p_elem);
     if (ret) goto ERROR;
@@ -133,7 +137,7 @@ static int standard_cmm_decrypt_materials(struct aws_cryptosdk_cmm * cmm,
         ret = deserialize_public_key(&dec_mat->trailing_signature_key, (struct aws_byte_buf *)p_elem->value);
         if (ret) goto ERROR;
     }
-
+*/
     *output = dec_mat;
     return AWS_OP_SUCCESS;
 

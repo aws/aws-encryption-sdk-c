@@ -177,14 +177,16 @@ static inline void aws_cryptosdk_mk_destroy(struct aws_cryptosdk_mk * mk) {
 
 static inline int aws_cryptosdk_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
                                                      struct aws_cryptosdk_data_key * unencrypted_data_key,
-                                                     struct aws_cryptosdk_encrypted_data_key * encrypted_data_key) {
+                                                     struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
+                                                     struct aws_hash_table * enc_context) {
     const struct aws_cryptosdk_mk_vt ** vtp = (const struct aws_cryptosdk_mk_vt **) mk;
     return (*vtp)->generate_data_key(mk, unencrypted_data_key, encrypted_data_key);
 }
 
 static inline int aws_cryptosdk_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
                                                     struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
-                                                    const struct aws_cryptosdk_data_key * unencrypted_data_key) {
+                                                    const struct aws_cryptosdk_data_key * unencrypted_data_key,
+                                                    struct aws_hash_table * enc_context) {
     const struct aws_cryptosdk_mk_vt ** vtp = (const struct aws_cryptosdk_mk_vt **) mk;
     return (*vtp)->encrypt_data_key(mk, encrypted_data_key, unencrypted_data_key);
 }
@@ -199,7 +201,7 @@ void aws_cryptosdk_decryption_materials_destroy(struct aws_cryptosdk_decryption_
 
 // TODO: implement and move somewhere else possibly
 // should this allocate a key pair struct or write to an existing one?
-int generate_trailing_signature_key_pair(struct aws_cryptosdk_key_pair * key_pair, uint16_t alg_id);
+int generate_trailing_signature_key_pair(struct aws_cryptosdk_key_pair * key_pair, enum aws_cryptosdk_alg_id alg);
 
 int serialize_public_key(struct aws_byte_buf ** output, const struct aws_cryptosdk_public_key * public_key);
 int deserialize_public_key(struct aws_cryptosdk_public_key * public_key, const struct aws_byte_buf * input);
