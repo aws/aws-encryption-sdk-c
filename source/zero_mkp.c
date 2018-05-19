@@ -41,11 +41,11 @@ static int zero_mkp_append_master_keys(struct aws_cryptosdk_mkp * mkp,
 }
 
 static int zero_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
-                                     struct aws_cryptosdk_data_key * output,
+                                     struct aws_byte_buf * unencrypted_data_key,
                                      const struct aws_array_list * encrypted_data_keys,
                                      struct aws_hash_table * enc_context,
                                      enum aws_cryptosdk_alg_id alg) {
-    aws_cryptosdk_secure_zero(output->keybuf, MAX_DATA_KEY_SIZE);
+    aws_cryptosdk_secure_zero_buf(unencrypted_data_key);
     return AWS_OP_SUCCESS;
 }
 

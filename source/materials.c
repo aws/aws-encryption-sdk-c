@@ -15,7 +15,9 @@
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/cipher.h> // aws_cryptosdk_secure_zero
 
-struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_new(struct aws_allocator * alloc, size_t num_keys) {
+struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_new(struct aws_allocator * alloc,
+                                                                                   enum aws_cryptosdk_alg_id alg,
+                                                                                   size_t num_keys) {
     int ret;
     struct aws_cryptosdk_encryption_materials * enc_mat;
     enc_mat = alloc->mem_acquire(alloc, sizeof(struct aws_cryptosdk_encryption_materials));
@@ -24,9 +26,19 @@ struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_n
         return NULL;
     }
     enc_mat->alloc = alloc;
+    enc_mat->alg = alg;
 
-    ret = aws_array_list_init_dynamic(&enc_mat->encrypted_data_keys, alloc, num_keys, sizeof(struct aws_cryptosdk_data_key));
+    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
+    ret = aws_byte_buf_alloc(alloc, &enc_mat->unencrypted_data_key, props->data_key_len);
     if (ret) {
+        alloc->mem_release(alloc, enc_mat);
+        aws_raise_error(AWS_ERROR_OOM);
+        return NULL;
+    }
+
+    ret = aws_array_list_init_dynamic(&enc_mat->encrypted_data_keys, alloc, num_keys, sizeof(struct aws_cryptosdk_encrypted_data_key));
+    if (ret) {
+        aws_byte_buf_free(alloc, &enc_mat->unencrypted_data_key);
         alloc->mem_release(alloc, enc_mat);
         aws_raise_error(AWS_ERROR_OOM);
         return NULL;
@@ -37,14 +49,16 @@ struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_n
 
 void aws_cryptosdk_encryption_materials_destroy(struct aws_cryptosdk_encryption_materials * enc_mat) {
     if (enc_mat) {
-        aws_cryptosdk_secure_zero(enc_mat->unencrypted_data_key.keybuf, MAX_DATA_KEY_SIZE);
+        aws_cryptosdk_secure_zero_buf(&enc_mat->unencrypted_data_key);
+        aws_byte_buf_free(enc_mat->alloc, &enc_mat->unencrypted_data_key);
         aws_array_list_clean_up(&enc_mat->encrypted_data_keys);
         enc_mat->alloc->mem_release(enc_mat->alloc, enc_mat);
     }
 }
 
 // TODO: initialization for trailing signature key, if necessary
-struct aws_cryptosdk_decryption_materials * aws_cryptosdk_decryption_materials_new(struct aws_allocator * alloc) {
+struct aws_cryptosdk_decryption_materials * aws_cryptosdk_decryption_materials_new(struct aws_allocator * alloc,
+                                                                                   enum aws_cryptosdk_alg_id alg) {
     int ret;
     struct aws_cryptosdk_decryption_materials * dec_mat;
     dec_mat = alloc->mem_acquire(alloc, sizeof(struct aws_cryptosdk_decryption_materials));
@@ -53,12 +67,22 @@ struct aws_cryptosdk_decryption_materials * aws_cryptosdk_decryption_materials_n
         return NULL;
     }
     dec_mat->alloc = alloc;
+
+    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
+    ret = aws_byte_buf_alloc(alloc, &dec_mat->unencrypted_data_key, props->data_key_len);
+    if (ret) {
+        alloc->mem_release(alloc, dec_mat);
+        aws_raise_error(AWS_ERROR_OOM);
+        return NULL;
+    }
+
     return dec_mat;
 }
 
 void aws_cryptosdk_decryption_materials_destroy(struct aws_cryptosdk_decryption_materials * dec_mat) {
     if (dec_mat) {
-        aws_cryptosdk_secure_zero(dec_mat->unencrypted_data_key.keybuf, MAX_DATA_KEY_SIZE);
+        aws_cryptosdk_secure_zero_buf(&dec_mat->unencrypted_data_key);
+        aws_byte_buf_free(dec_mat->alloc, &dec_mat->unencrypted_data_key);
         dec_mat->alloc->mem_release(dec_mat->alloc, dec_mat);
     }
 }

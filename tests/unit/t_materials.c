@@ -25,19 +25,18 @@ int standard_cmm_zero_mkp_enc_mat() {
 
     struct aws_cryptosdk_encryption_request req;
     req.enc_context = (void *)0xdeadbeef; // bogus address just to see if it gets passed along
-    req.requested_alg = AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384;
+    req.requested_alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE;
 
     struct aws_cryptosdk_encryption_materials * enc_mat;
     int ret = aws_cryptosdk_cmm_generate_encryption_materials(cmm, &enc_mat, &req);
     TEST_ASSERT_INT_EQ(ret, AWS_OP_SUCCESS);
 
     TEST_ASSERT_ADDR_EQ(enc_mat->enc_context, (void *)0xdeadbeef);
-    TEST_ASSERT_INT_EQ(enc_mat->alg, AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384);
+    TEST_ASSERT_INT_EQ(enc_mat->alg, AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE);
 
-    int byte_idx;
-    for (byte_idx = 0 ; byte_idx < MAX_DATA_KEY_SIZE ; ++byte_idx) {
-        TEST_ASSERT_INT_EQ(enc_mat->unencrypted_data_key.keybuf[byte_idx], 0x00);
-    }
+    TEST_ASSERT_BUF_EQ(enc_mat->unencrypted_data_key,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
     aws_cryptosdk_cmm_destroy(cmm);
@@ -53,15 +52,15 @@ int standard_cmm_zero_mkp_dec_mat() {
 
     struct aws_cryptosdk_decryption_request req;
     // normally set req.encrypted_data_keys, but they are ignored by this MKP/MK
+    req.alg = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE;
 
     struct aws_cryptosdk_decryption_materials * dec_mat;
     int ret = aws_cryptosdk_cmm_decrypt_materials(cmm, &dec_mat, &req);
     TEST_ASSERT_INT_EQ(ret, AWS_OP_SUCCESS);
 
-    int byte_idx;
-    for (byte_idx = 0 ; byte_idx < MAX_DATA_KEY_SIZE ; ++byte_idx) {
-        TEST_ASSERT_INT_EQ(dec_mat->unencrypted_data_key.keybuf[byte_idx], 0x00);
-    }
+    TEST_ASSERT_BUF_EQ(dec_mat->unencrypted_data_key,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
     aws_cryptosdk_decryption_materials_destroy(dec_mat);
     aws_cryptosdk_cmm_destroy(cmm);

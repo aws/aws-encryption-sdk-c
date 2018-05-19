@@ -31,12 +31,7 @@ struct aws_cryptosdk_mkp;
 /* Opaque type: first element is a struct aws_cryptosdk_cmm_vt */
 struct aws_cryptosdk_cmm;
 
-#define MAX_DATA_KEY_SIZE 32
-
-struct aws_cryptosdk_data_key {
-    uint8_t keybuf[MAX_DATA_KEY_SIZE];
-};
-
+// FIXME: this is redundant with aws_cryptosdk_edk in header.h
 struct aws_cryptosdk_encrypted_data_key {
     struct aws_allocator * alloc;
     struct aws_byte_buf bytes;
@@ -70,7 +65,7 @@ struct aws_cryptosdk_encryption_request {
 
 struct aws_cryptosdk_encryption_materials {
     struct aws_allocator * alloc;
-    struct aws_cryptosdk_data_key unencrypted_data_key;
+    struct aws_byte_buf unencrypted_data_key;
     struct aws_array_list encrypted_data_keys; // list of struct aws_cryptosdk_encrypted_data_key objects
     struct aws_hash_table * enc_context;
     struct aws_cryptosdk_key_pair trailing_signature_key_pair;
@@ -86,7 +81,7 @@ struct aws_cryptosdk_decryption_request {
 
 struct aws_cryptosdk_decryption_materials {
     struct aws_allocator * alloc;
-    struct aws_cryptosdk_data_key unencrypted_data_key;
+    struct aws_byte_buf unencrypted_data_key;
     struct aws_cryptosdk_public_key trailing_signature_key;
 };
 
@@ -138,7 +133,7 @@ struct aws_cryptosdk_mkp_vt {
                               struct aws_array_list * master_keys, // list of (aws_cryptosdk_mk *)
                               struct aws_hash_table * enc_context);
     int (*decrypt_data_key)(struct aws_cryptosdk_mkp * mkp,
-                            struct aws_cryptosdk_data_key * output,
+                            struct aws_byte_buf * unencrypted_data_key,
                             const struct aws_array_list * encrypted_data_keys,
                             struct aws_hash_table * enc_context,
                             enum aws_cryptosdk_alg_id alg);
@@ -157,12 +152,12 @@ static inline int aws_cryptosdk_mkp_append_master_keys(struct aws_cryptosdk_mkp 
 }
 
 static inline int aws_cryptosdk_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
-                                                     struct aws_cryptosdk_data_key * output,
+                                                     struct aws_byte_buf * unencrypted_data_key,
                                                      const struct aws_array_list * encrypted_data_keys,
                                                      struct aws_hash_table * enc_context,
                                                      enum aws_cryptosdk_alg_id alg) {
     const struct aws_cryptosdk_mkp_vt ** vtp = (const struct aws_cryptosdk_mkp_vt **) mkp;
-    return (*vtp)->decrypt_data_key(mkp, output, encrypted_data_keys, enc_context, alg);
+    return (*vtp)->decrypt_data_key(mkp, unencrypted_data_key, encrypted_data_keys, enc_context, alg);
 }
 
 struct aws_cryptosdk_mk_vt {
@@ -170,13 +165,13 @@ struct aws_cryptosdk_mk_vt {
     char * name;
     void (*destroy)(struct aws_cryptosdk_mk * mk);
     int (*generate_data_key)(struct aws_cryptosdk_mk * mk,
-                             struct aws_cryptosdk_data_key * unencrypted_data_key,
+                             struct aws_byte_buf * unencrypted_data_key,
                              struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
                              struct aws_hash_table * enc_context,
                              enum aws_cryptosdk_alg_id alg);
     int (*encrypt_data_key)(struct aws_cryptosdk_mk * mk,
                             struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
-                            const struct aws_cryptosdk_data_key * unencrypted_data_key,
+                            const struct aws_byte_buf * unencrypted_data_key,
                             struct aws_hash_table * enc_context,
                             enum aws_cryptosdk_alg_id alg);
 };
@@ -187,7 +182,7 @@ static inline void aws_cryptosdk_mk_destroy(struct aws_cryptosdk_mk * mk) {
 }
 
 static inline int aws_cryptosdk_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
-                                                     struct aws_cryptosdk_data_key * unencrypted_data_key,
+                                                     struct aws_byte_buf * unencrypted_data_key,
                                                      struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
                                                      struct aws_hash_table * enc_context,
                                                      enum aws_cryptosdk_alg_id alg) {
@@ -197,18 +192,21 @@ static inline int aws_cryptosdk_mk_generate_data_key(struct aws_cryptosdk_mk * m
 
 static inline int aws_cryptosdk_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
                                                     struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
-                                                    const struct aws_cryptosdk_data_key * unencrypted_data_key,
+                                                    const struct aws_byte_buf * unencrypted_data_key,
                                                     struct aws_hash_table * enc_context,
                                                     enum aws_cryptosdk_alg_id alg) {
     const struct aws_cryptosdk_mk_vt ** vtp = (const struct aws_cryptosdk_mk_vt **) mk;
     return (*vtp)->encrypt_data_key(mk, encrypted_data_key, unencrypted_data_key, enc_context, alg);
 }
 
-struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_new(struct aws_allocator * alloc, size_t num_keys);
+struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_new(struct aws_allocator * alloc,
+                                                                                   enum aws_cryptosdk_alg_id alg,
+                                                                                   size_t num_keys);
 
 void aws_cryptosdk_encryption_materials_destroy(struct aws_cryptosdk_encryption_materials * enc_mat);
 
-struct aws_cryptosdk_decryption_materials * aws_cryptosdk_decryption_materials_new(struct aws_allocator * alloc);
+struct aws_cryptosdk_decryption_materials * aws_cryptosdk_decryption_materials_new(struct aws_allocator * alloc,
+                                                                                   enum aws_cryptosdk_alg_id alg);
 
 void aws_cryptosdk_decryption_materials_destroy(struct aws_cryptosdk_decryption_materials * dec_mat);
 

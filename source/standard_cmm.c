@@ -44,11 +44,10 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
     if (ret) goto ERROR;
     num_keys = master_keys.length;
 
-    enc_mat = aws_cryptosdk_encryption_materials_new(self->alloc, num_keys);
+    enc_mat = aws_cryptosdk_encryption_materials_new(self->alloc, request->requested_alg, num_keys);
     if (!enc_mat) { ret = AWS_ERROR_OOM; goto ERROR; }
 
     enc_mat->enc_context = request->enc_context;
-    enc_mat->alg = request->requested_alg;
 
     /* Produce unencrypted data key and first encrypted data key from the first master key. */
     ret = aws_array_list_get_at(&master_keys, (void *)&master_key, 0);
@@ -122,7 +121,7 @@ static int standard_cmm_decrypt_materials(struct aws_cryptosdk_cmm * cmm,
     struct aws_cryptosdk_decryption_materials * dec_mat;
     struct standard_cmm * self = (struct standard_cmm *) cmm;
 
-    dec_mat = aws_cryptosdk_decryption_materials_new(self->alloc);
+    dec_mat = aws_cryptosdk_decryption_materials_new(self->alloc, request->alg);
     if (!dec_mat) { ret = AWS_ERROR_OOM; goto ERROR; }
 
     ret = aws_cryptosdk_mkp_decrypt_data_key(self->mkp,
