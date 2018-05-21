@@ -18,6 +18,7 @@
 
 #include "aws/cryptosdk/buffer.h"
 #include "aws/cryptosdk/header.h"
+#include "aws/cryptosdk/materials.h" // struct aws_cryptosdk_edk
 
 #define MESSAGE_ID_LEN 16
 
@@ -26,13 +27,6 @@
  */
 struct aws_cryptosdk_hdr_aad {
     struct aws_byte_buf key, value;
-};
-
-/**
- * Used to pass encrypted data key entries.
- */
-struct aws_cryptosdk_hdr_edk {
-    struct aws_byte_buf provider_id, provider_info, enc_data_key;
 };
 
 struct aws_cryptosdk_hdr {
@@ -47,7 +41,7 @@ struct aws_cryptosdk_hdr {
     uint8_t message_id[MESSAGE_ID_LEN];
 
     struct aws_cryptosdk_hdr_aad *aad_tbl;
-    struct aws_cryptosdk_hdr_edk *edk_tbl;
+    struct aws_cryptosdk_edk *edk_tbl;
 
     // number of bytes of header except for IV and auth tag,
     // i.e., exactly the bytes that get authenticated

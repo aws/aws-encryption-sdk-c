@@ -29,7 +29,7 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
     struct aws_array_list master_keys;  // an array of pointers to master keys
 
     struct aws_cryptosdk_mk * master_key;
-    struct aws_cryptosdk_encrypted_data_key encrypted_data_key;
+    struct aws_cryptosdk_edk encrypted_data_key;
     struct aws_cryptosdk_encryption_materials * enc_mat = NULL;
 
     size_t key_idx;

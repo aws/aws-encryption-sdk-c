@@ -36,7 +36,7 @@ struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_n
         return NULL;
     }
 
-    ret = aws_array_list_init_dynamic(&enc_mat->encrypted_data_keys, alloc, num_keys, sizeof(struct aws_cryptosdk_encrypted_data_key));
+    ret = aws_array_list_init_dynamic(&enc_mat->encrypted_data_keys, alloc, num_keys, sizeof(struct aws_cryptosdk_edk));
     if (ret) {
         aws_byte_buf_free(alloc, &enc_mat->unencrypted_data_key);
         alloc->mem_release(alloc, enc_mat);

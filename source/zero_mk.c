@@ -27,7 +27,7 @@ struct zero_mk {
 
 static int zero_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
                                      struct aws_byte_buf * unencrypted_data_key,
-                                     struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
+                                     struct aws_cryptosdk_edk * encrypted_data_key,
                                      struct aws_hash_table * enc_context,
                                      enum aws_cryptosdk_alg_id alg) {
     aws_cryptosdk_secure_zero_buf(unencrypted_data_key);
@@ -37,7 +37,7 @@ static int zero_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
 }
 
 static int zero_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
-                                    struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
+                                    struct aws_cryptosdk_edk * encrypted_data_key,
                                     const struct aws_byte_buf * unencrypted_data_key,
                                     struct aws_hash_table * enc_context,
                                     enum aws_cryptosdk_alg_id alg) {

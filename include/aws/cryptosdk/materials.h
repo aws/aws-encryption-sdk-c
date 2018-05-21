@@ -32,11 +32,10 @@ struct aws_cryptosdk_mkp;
 struct aws_cryptosdk_cmm;
 
 // FIXME: this is redundant with aws_cryptosdk_edk in header.h
-struct aws_cryptosdk_encrypted_data_key {
-    struct aws_allocator * alloc;
-    struct aws_byte_buf bytes;
+struct aws_cryptosdk_edk {
     struct aws_byte_buf provider_id;
     struct aws_byte_buf provider_info;
+    struct aws_byte_buf enc_data_key;
 };
 
 /*
@@ -66,7 +65,7 @@ struct aws_cryptosdk_encryption_request {
 struct aws_cryptosdk_encryption_materials {
     struct aws_allocator * alloc;
     struct aws_byte_buf unencrypted_data_key;
-    struct aws_array_list encrypted_data_keys; // list of struct aws_cryptosdk_encrypted_data_key objects
+    struct aws_array_list encrypted_data_keys; // list of struct aws_cryptosdk_edk objects
     struct aws_hash_table * enc_context;
     struct aws_cryptosdk_key_pair trailing_signature_key_pair;
     enum aws_cryptosdk_alg_id alg;
@@ -166,11 +165,11 @@ struct aws_cryptosdk_mk_vt {
     void (*destroy)(struct aws_cryptosdk_mk * mk);
     int (*generate_data_key)(struct aws_cryptosdk_mk * mk,
                              struct aws_byte_buf * unencrypted_data_key,
-                             struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
+                             struct aws_cryptosdk_edk * encrypted_data_key,
                              struct aws_hash_table * enc_context,
                              enum aws_cryptosdk_alg_id alg);
     int (*encrypt_data_key)(struct aws_cryptosdk_mk * mk,
-                            struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
+                            struct aws_cryptosdk_edk * encrypted_data_key,
                             const struct aws_byte_buf * unencrypted_data_key,
                             struct aws_hash_table * enc_context,
                             enum aws_cryptosdk_alg_id alg);
@@ -183,7 +182,7 @@ static inline void aws_cryptosdk_mk_destroy(struct aws_cryptosdk_mk * mk) {
 
 static inline int aws_cryptosdk_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
                                                      struct aws_byte_buf * unencrypted_data_key,
-                                                     struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
+                                                     struct aws_cryptosdk_edk * encrypted_data_key,
                                                      struct aws_hash_table * enc_context,
                                                      enum aws_cryptosdk_alg_id alg) {
     const struct aws_cryptosdk_mk_vt ** vtp = (const struct aws_cryptosdk_mk_vt **) mk;
@@ -191,7 +190,7 @@ static inline int aws_cryptosdk_mk_generate_data_key(struct aws_cryptosdk_mk * m
 }
 
 static inline int aws_cryptosdk_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
-                                                    struct aws_cryptosdk_encrypted_data_key * encrypted_data_key,
+                                                    struct aws_cryptosdk_edk * encrypted_data_key,
                                                     const struct aws_byte_buf * unencrypted_data_key,
                                                     struct aws_hash_table * enc_context,
                                                     enum aws_cryptosdk_alg_id alg) {
