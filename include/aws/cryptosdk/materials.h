@@ -31,7 +31,6 @@ struct aws_cryptosdk_mkp;
 /* Opaque type: first element is a struct aws_cryptosdk_cmm_vt */
 struct aws_cryptosdk_cmm;
 
-// FIXME: this is redundant with aws_cryptosdk_edk in header.h
 struct aws_cryptosdk_edk {
     struct aws_byte_buf provider_id;
     struct aws_byte_buf provider_info;
@@ -59,7 +58,7 @@ struct aws_cryptosdk_encryption_request {
     struct aws_allocator * alloc;
     struct aws_hash_table * enc_context;
     enum aws_cryptosdk_alg_id requested_alg;
-    size_t plaintext_size;
+    uint64_t plaintext_size;
 };
 
 struct aws_cryptosdk_encryption_materials {
@@ -74,7 +73,7 @@ struct aws_cryptosdk_encryption_materials {
 struct aws_cryptosdk_decryption_request {
     struct aws_allocator * alloc;
     struct aws_hash_table * enc_context;
-    const struct aws_array_list * encrypted_data_keys;
+    struct aws_array_list encrypted_data_keys;
     enum aws_cryptosdk_alg_id alg;
 };
 
@@ -94,7 +93,7 @@ struct aws_cryptosdk_mkp;
 struct aws_cryptosdk_mk;
 
 struct aws_cryptosdk_cmm_vt {
-    size_t size;
+    size_t vt_size;
     char * name;
     void (*destroy)(struct aws_cryptosdk_cmm * cmm);
     int (*generate_encryption_materials)(struct aws_cryptosdk_cmm * cmm,
@@ -125,7 +124,7 @@ static inline int aws_cryptosdk_cmm_decrypt_materials(struct aws_cryptosdk_cmm *
 }
 
 struct aws_cryptosdk_mkp_vt {
-    size_t size;
+    size_t vt_size;
     char * name;
     void (*destroy)(struct aws_cryptosdk_mkp * mkp);
     int (*append_master_keys)(struct aws_cryptosdk_mkp * mkp,
@@ -160,7 +159,7 @@ static inline int aws_cryptosdk_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * 
 }
 
 struct aws_cryptosdk_mk_vt {
-    size_t size;
+    size_t vt_size;
     char * name;
     void (*destroy)(struct aws_cryptosdk_mk * mk);
     int (*generate_data_key)(struct aws_cryptosdk_mk * mk,

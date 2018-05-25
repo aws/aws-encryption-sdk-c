@@ -70,22 +70,22 @@ void aws_cryptosdk_hdr_free(struct aws_allocator * allocator, struct aws_cryptos
     if (hdr->aad_tbl) {
         for (size_t i = 0; i < hdr->aad_count ; ++i) {
             struct aws_cryptosdk_hdr_aad * aad = hdr->aad_tbl + i;
-            aws_byte_buf_free(allocator, &aad->key);
-            aws_byte_buf_free(allocator, &aad->value);
+            aws_byte_buf_clean_up(&aad->key);
+            aws_byte_buf_clean_up(&aad->value);
         }
         allocator->mem_release(allocator, hdr->aad_tbl);
     }
     if (hdr->edk_tbl) {
         for (size_t i = 0; i < hdr->edk_count; ++i) {
             struct aws_cryptosdk_edk * edk = hdr->edk_tbl + i;
-            aws_byte_buf_free(allocator, &edk->provider_id);
-            aws_byte_buf_free(allocator, &edk->provider_info);
-            aws_byte_buf_free(allocator, &edk->enc_data_key);
+            aws_byte_buf_clean_up(&edk->provider_id);
+            aws_byte_buf_clean_up(&edk->provider_info);
+            aws_byte_buf_clean_up(&edk->enc_data_key);
         }
         allocator->mem_release(allocator, hdr->edk_tbl);
     }
-    aws_byte_buf_free(allocator, &hdr->iv);
-    aws_byte_buf_free(allocator, &hdr->auth_tag);
+    aws_byte_buf_clean_up(&hdr->iv);
+    aws_byte_buf_clean_up(&hdr->auth_tag);
     hdr_zeroize(hdr);
 }
 
@@ -135,7 +135,7 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
                 // "+ 2" because there is at least a value len field remaining
                 if (cur.ptr + key_len + 2 > aad_end) { ret = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT; goto PARSE_ERR; }
 
-                ret = aws_byte_buf_alloc(allocator, &aad->key, key_len); if (ret) goto PARSE_ERR;
+                ret = aws_byte_buf_init(allocator, &aad->key, key_len); if (ret) goto PARSE_ERR;
 
                 ret = aws_byte_cursor_read_and_fill_buffer(&cur, &aad->key); if (ret) goto PARSE_ERR;
             }
@@ -145,7 +145,7 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
             if (value_len) {
                 if (cur.ptr + value_len > aad_end) { ret = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT; goto PARSE_ERR; }
 
-                ret = aws_byte_buf_alloc(allocator, &aad->value, value_len); if (ret) goto PARSE_ERR;
+                ret = aws_byte_buf_init(allocator, &aad->value, value_len); if (ret) goto PARSE_ERR;
 
                 ret = aws_byte_cursor_read_and_fill_buffer(&cur, &aad->value); if (ret) goto PARSE_ERR;
             }
@@ -168,15 +168,15 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
         uint16_t field_len;
 
         ret = aws_byte_cursor_read_be16(&cur, &field_len); if (ret) goto PARSE_ERR;
-        ret = aws_byte_buf_alloc(allocator, &edk->provider_id, field_len); if (ret) goto PARSE_ERR;
+        ret = aws_byte_buf_init(allocator, &edk->provider_id, field_len); if (ret) goto PARSE_ERR;
         ret = aws_byte_cursor_read_and_fill_buffer(&cur, &edk->provider_id); if (ret) goto PARSE_ERR;
 
         ret = aws_byte_cursor_read_be16(&cur, &field_len); if (ret) goto PARSE_ERR;
-        ret = aws_byte_buf_alloc(allocator, &edk->provider_info, field_len); if (ret) goto PARSE_ERR;
+        ret = aws_byte_buf_init(allocator, &edk->provider_info, field_len); if (ret) goto PARSE_ERR;
         ret = aws_byte_cursor_read_and_fill_buffer(&cur, &edk->provider_info); if (ret) goto PARSE_ERR;
 
         ret = aws_byte_cursor_read_be16(&cur, &field_len); if (ret) goto PARSE_ERR;
-        ret = aws_byte_buf_alloc(allocator, &edk->enc_data_key, field_len); if (ret) goto PARSE_ERR;
+        ret = aws_byte_buf_init(allocator, &edk->enc_data_key, field_len); if (ret) goto PARSE_ERR;
         ret = aws_byte_cursor_read_and_fill_buffer(&cur, &edk->enc_data_key); if (ret) goto PARSE_ERR;
     }
 
@@ -210,11 +210,11 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
     // cur.ptr now points to end of portion of header that is authenticated
     hdr->auth_len = cur.ptr - src;
 
-    ret = aws_byte_buf_alloc(allocator, &hdr->iv, iv_len); if (ret) goto PARSE_ERR;
+    ret = aws_byte_buf_init(allocator, &hdr->iv, iv_len); if (ret) goto PARSE_ERR;
     ret = aws_byte_cursor_read_and_fill_buffer(&cur, &hdr->iv); if (ret) goto PARSE_ERR;
 
     size_t tag_len = aws_cryptosdk_algorithm_taglen(alg_id);
-    ret = aws_byte_buf_alloc(allocator, &hdr->auth_tag, tag_len); if (ret) goto PARSE_ERR;
+    ret = aws_byte_buf_init(allocator, &hdr->auth_tag, tag_len); if (ret) goto PARSE_ERR;
     ret = aws_byte_cursor_read_and_fill_buffer(&cur, &hdr->auth_tag); if (ret) goto PARSE_ERR;
 
     return AWS_OP_SUCCESS;

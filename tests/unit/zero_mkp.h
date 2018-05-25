@@ -13,11 +13,11 @@
  * limitations under the License.
  */
 
-#ifndef AWS_CRYPTOSDK_ZERO_MKP_H
-#define AWS_CRYPTOSDK_ZERO_MKP_H
+#ifndef AWS_CRYPTOSDK_TESTS_UNIT_ZERO_MKP_H
+#define AWS_CRYPTOSDK_TESTS_UNIT_ZERO_MKP_H
 
 #include <aws/cryptosdk/materials.h>
 
-struct aws_cryptosdk_mkp * aws_cryptosdk_zero_mkp_new(struct aws_allocator * alloc);
+struct aws_cryptosdk_mkp * aws_cryptosdk_zero_mkp_new();
 
-#endif // AWS_CRYPTOSDK_ZERO_MKP_H
+#endif // AWS_CRYPTOSDK_TESTS_UNIT_ZERO_MKP_H

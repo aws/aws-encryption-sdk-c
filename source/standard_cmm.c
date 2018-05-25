@@ -32,7 +32,6 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
     struct aws_cryptosdk_edk encrypted_data_key;
     struct aws_cryptosdk_encryption_materials * enc_mat = NULL;
 
-    size_t key_idx;
     size_t num_keys = 0;
 
     struct standard_cmm * self = (struct standard_cmm *) cmm;
@@ -64,7 +63,7 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
     if (ret) goto ERROR;
 
     /* Re-encrypt unencrypted data key with each other master key. */
-    for (key_idx = 1 ; key_idx < num_keys ; ++key_idx) {
+    for (size_t key_idx = 1 ; key_idx < num_keys ; ++key_idx) {
         ret = aws_array_list_get_at(&master_keys, (void *)&master_key, key_idx);
         if (ret) goto ERROR;
 
@@ -79,7 +78,8 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
         if (ret) goto ERROR;
     }
 
-/*
+// TODO: implement trailing signatures
+#if 0
     generate_trailing_signature_key_pair(&enc_mat->trailing_signature_key_pair, enc_mat->alg);
     struct aws_byte_buf * serialized_public_key;
     ret = serialize_public_key(&serialized_public_key, &enc_mat->trailing_signature_key_pair.public_key);
@@ -97,12 +97,13 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
         if (p_elem->value) {
             // do we need to do a test of whether there is an allocated byte buffer here already?
             // possibly refactor these two into single destroy function?
-            aws_byte_buf_free(self->alloc, (struct aws_byte_buf *)p_elem->value);
-            free(p_elem->value); // aws_byte_buf_free only frees pointer within byte buffer
+            aws_byte_buf_clean_up((struct aws_byte_buf *)p_elem->value);
+            // FIXME: definitely shouldn't be using free
+            free(p_elem->value); // aws_byte_buf_clean_up only frees pointer within byte buffer
         }
     }
     p_elem->value = (void *)serialized_public_key; // will need to free this later
-*/
+#endif // #if 0
 
     *output = enc_mat;
     aws_array_list_clean_up(&master_keys);
@@ -126,11 +127,13 @@ static int standard_cmm_decrypt_materials(struct aws_cryptosdk_cmm * cmm,
 
     ret = aws_cryptosdk_mkp_decrypt_data_key(self->mkp,
                                              &dec_mat->unencrypted_data_key,
-                                             request->encrypted_data_keys,
+                                             &request->encrypted_data_keys,
                                              request->enc_context,
                                              request->alg);
     if (ret) goto ERROR;
-/*
+
+// TODO: implement trailing signatures
+#if 0
     struct aws_hash_element * p_elem;
     ret = aws_hash_table_find(request->enc_context, (void *)"aws-crypto-public-key", &p_elem);
     if (ret) goto ERROR;
@@ -139,7 +142,8 @@ static int standard_cmm_decrypt_materials(struct aws_cryptosdk_cmm * cmm,
         ret = deserialize_public_key(&dec_mat->trailing_signature_key, (struct aws_byte_buf *)p_elem->value);
         if (ret) goto ERROR;
     }
-*/
+#endif // #if 0
+
     *output = dec_mat;
     return AWS_OP_SUCCESS;
 
@@ -154,11 +158,11 @@ static void standard_cmm_destroy(struct aws_cryptosdk_cmm * cmm) {
 }
 
 static const struct aws_cryptosdk_cmm_vt standard_cmm_vt = {
-    sizeof(struct aws_cryptosdk_cmm_vt),
-    "standard cmm",
-    standard_cmm_destroy,
-    standard_cmm_generate_encryption_materials,
-    standard_cmm_decrypt_materials
+    .vt_size = sizeof(struct aws_cryptosdk_cmm_vt),
+    .name = "standard cmm",
+    .destroy = standard_cmm_destroy,
+    .generate_encryption_materials = standard_cmm_generate_encryption_materials,
+    .decrypt_materials = standard_cmm_decrypt_materials
 };
 
 struct aws_cryptosdk_cmm * aws_cryptosdk_standard_cmm_new(struct aws_allocator * alloc, struct aws_cryptosdk_mkp * mkp) {
