@@ -21,6 +21,10 @@
 #include <aws/common/common.h>
 #include <aws/cryptosdk/header.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct aws_cryptosdk_session;
 
 struct aws_cryptosdk_session *aws_cryptosdk_session_new(
@@ -41,6 +45,66 @@ void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);
  */
 int aws_cryptosdk_session_init_decrypt(
     struct aws_cryptosdk_session *session
+);
+
+/**
+ * Prepares the session to start a new encryption operation.
+ * The session will retain any configured crypto material manager,
+ * master key provider, or master key, as well as its associated
+ * allocator. All other state will be reset to prepare for processing
+ * a new message.
+ *
+ * This method can be used to reset a session currently in an error
+ * state as well.
+ */
+int aws_cryptosdk_session_init_encrypt(
+    struct aws_cryptosdk_session *session
+);
+
+/**
+ * Sets the frame size to use for encryption. If zero is specified, the message
+ * will be processed in an unframed mode.
+ */
+int aws_cryptosdk_session_set_frame_size(
+    struct aws_cryptosdk_session *session,
+    size_t frame_size
+);
+
+/**
+ * Sets the precise size of the message to encrypt. This function must be called
+ * exactly once during an encrypt operation; it need not be called before
+ * passing any data, but providing the message size up front may improve efficiency.
+ *
+ * If the session has already processed more than message_size bytes, or if this
+ * method is called more than once, the session will enter an error state.
+ *
+ * Note that if the frame size is set to zero (i.e. this is a one-shot encrypt),
+ * a message size must be set before any data can be processed.
+ */
+int aws_cryptosdk_session_set_message_size(
+    struct aws_cryptosdk_session *session,
+    uint64_t message_size
+);
+
+/**
+ * Provides an upper bound on the message size. This hint is useful when the exact
+ * message size is not known up-front, but the configured CMM still needs to make use
+ * of message size information. For example, the cachine CMM enforces an upper bound
+ * on the number of bytes encrypted under a cached key; if this method is not called,
+ * it must assume that you are processing an unbounded amount of data, and it will
+ * therefore bypass the cache.
+ *
+ * This method may be called more than once (the smallest call wins); the session will
+ * enter an error state if more than the smallest bound of data is written, or if the
+ * precise message size passed to aws_cryptosdk_session_set_message_size exceeds the
+ * bound.
+ *
+ * It is recommended that the bound be set before invoking aws_cryptosdk_session_process;
+ * failing to do so will result in the CMM being passed an unbounded message size.
+ */
+int aws_cryptosdk_session_set_message_bound(
+    struct aws_cryptosdk_session *session,
+    uint64_t max_message_size
 );
 
 #if 0
@@ -120,8 +184,12 @@ bool aws_cryptosdk_session_is_done(const struct aws_cryptosdk_session *session);
  */
 void aws_cryptosdk_session_estimate_buf(
     const struct aws_cryptosdk_session *session,
-    size_t * restrict outbuf_needed,
-    size_t * restrict inbuf_needed
+    size_t * AWS_RESTRICT outbuf_needed,
+    size_t * AWS_RESTRICT inbuf_needed
 );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

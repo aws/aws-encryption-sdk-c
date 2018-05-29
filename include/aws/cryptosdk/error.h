@@ -19,6 +19,10 @@
 #include <aws/common/error.h>
 #include <aws/common/common.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* 
  * Basic error reporting infrastructure. Much of this will likely move to some shared
  * library later.
@@ -30,9 +34,11 @@
 enum aws_cryptosdk_err {
     // TODO - reserve a range of error codes
     AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT = 0x2000,
-    AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN = 0x2001,
-    AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT = 0x2002,
-    AWS_CRYPTOSDK_ERR_NO_MASTER_KEYS_FOUND = 0x2003,
+    AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN,
+    AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT,
+    AWS_CRYPTOSDK_ERR_NO_MASTER_KEYS_FOUND,
+    AWS_CRYPTOSDK_ERR_BAD_STATE,
+    AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED,
     AWS_CRYPTOSDK_ERR_END_RANGE = 0x2800
 };
 
@@ -41,5 +47,8 @@ enum aws_cryptosdk_err {
  */
 void aws_cryptosdk_err_init_strings();
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

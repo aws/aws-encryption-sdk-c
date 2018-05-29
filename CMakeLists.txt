@@ -167,7 +167,7 @@ if(AWSSDK_FOUND)
         CXX_STANDARD_REQUIRED O
         C_STANDARD 99
     )
-    target_link_libraries(t_encrypt_compat aws-cpp-sdk-lambda aws-cpp-sdk-core ${PROJECT_NAME})
+    target_link_libraries(t_encrypt_compat aws-cpp-sdk-lambda aws-cpp-sdk-core aws-encryption-sdk)
     target_include_directories(t_encrypt_compat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit ${AWSSDK_INCLUDE_DIR})
     target_sources(t_encrypt_compat PRIVATE ${UNIT_TEST_SRC_CPP})
     add_test(integration_encrypt_compatibility t_encrypt_compat)
@@ -176,6 +176,7 @@ endif(AWSSDK_FOUND)
 add_test(cipher unit-test-suite cipher)
 add_test(header unit-test-suite header)
 add_test(materials unit-test-suite materials)
+add_test(encrypt unit-test-suite encrypt)
 
 set(TEST_DATA ${CMAKE_CURRENT_SOURCE_DIR}/tests/data)
 

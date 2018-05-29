@@ -29,6 +29,15 @@
 #include <aws/core/utils/logging/AWSLogging.h>
 #include <aws/core/utils/logging/ConsoleLogSystem.h>
 
+#include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/session.h>
+
+// This is a private symbol so the headers don't have extern "C" guards.
+// We'll just define it directly.
+extern "C" {
+    int aws_cryptosdk_genrandom(uint8_t *buf, size_t len);
+}
+
 // This lambda function attempts to decrypt a base-64 encoded ciphertext
 // encrypted with an all-zero data key.
 static const char *decrypt_null_fn = "arn:aws:lambda:us-west-2:518866784541:function:AWSCryptoolsSDKOracleJavaLambda-Decrypt-1JPQJY7GZGKHK";
@@ -141,12 +150,13 @@ static int assert_successful_outcome(
 
     Aws::String payload_str(&payload_buf[1], payload_buf.size() - 2);
     auto raw_buf = Base64().Decode(payload_str);
+    const uint8_t *raw_buf_p = raw_buf.GetLength() ? &raw_buf[0] : (const uint8_t *)"";
 
-    if (raw_buf.GetLength() != expected_size || memcmp(expected, &raw_buf[0], expected_size)) {
+    if (raw_buf.GetLength() != expected_size || memcmp(expected, raw_buf_p, expected_size)) {
         fprintf(stderr, "Lambda invocation returned unexpected result at %s:%d. Expected:\n", file, line);
         hexdump(expected, expected_size);
         fprintf(stderr, "Actual:\n");
-        hexdump(&raw_buf[0], raw_buf.GetLength());
+        hexdump(raw_buf_p, raw_buf.GetLength());
         return 0;
     }
 
@@ -173,54 +183,130 @@ static Aws::Lambda::Model::InvokeOutcome invoke(uint8_t *ciphertext, size_t leng
     return client.Invoke(request);
 }
 
-static int test() {
-    uint8_t ciphertext[] = {
-        0x01, 0x80, 0x03, 0x78, 0x24, 0xd8, 0xf4, 0x60, 0x3e, 0xa9, 0xc1, 0x66,
-        0x85, 0x8e, 0x6d, 0x55, 0xd3, 0x1b, 0x78, 0xd0, 0x00, 0x5f, 0x00, 0x01,
-        0x00, 0x15, 0x61, 0x77, 0x73, 0x2d, 0x63, 0x72, 0x79, 0x70, 0x74, 0x6f,
-        0x2d, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x2d, 0x6b, 0x65, 0x79, 0x00,
-        0x44, 0x41, 0x73, 0x45, 0x78, 0x44, 0x35, 0x2f, 0x43, 0x53, 0x79, 0x49,
-        0x50, 0x6b, 0x6e, 0x4f, 0x6e, 0x57, 0x67, 0x6f, 0x73, 0x33, 0x69, 0x6c,
-        0x43, 0x61, 0x64, 0x39, 0x4e, 0x55, 0x49, 0x45, 0x79, 0x72, 0x47, 0x41,
-        0x2f, 0x58, 0x33, 0x43, 0x41, 0x39, 0x51, 0x6d, 0x74, 0x61, 0x72, 0x57,
-        0x30, 0x54, 0x58, 0x48, 0x6a, 0x56, 0x70, 0x56, 0x79, 0x78, 0x2f, 0x78,
-        0x50, 0x58, 0x4d, 0x6c, 0x76, 0x67, 0x51, 0x3d, 0x3d, 0x00, 0x01, 0x00,
-        0x04, 0x6e, 0x75, 0x6c, 0x6c, 0x00, 0x04, 0x6e, 0x75, 0x6c, 0x6c, 0x00,
-        0x04, 0x6e, 0x75, 0x6c, 0x6c, 0x02, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x00,
-        0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x88, 0x72, 0x9d, 0x82, 0x66, 0x0a, 0x41, 0x77, 0x3c,
-        0x53, 0x39, 0x72, 0x7e, 0xa4, 0x54, 0x3b, 0xff, 0xff, 0xff, 0xff, 0x00,
-        0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x0d, 0x2b, 0x40, 0x10, 0x6a, 0x3e,
-        0xfd, 0xab, 0x39, 0x2e, 0xe8, 0x52, 0x85, 0x74, 0x0d, 0x21, 0xa1, 0xc9,
-        0x71, 0x03, 0x54, 0xdd, 0xd0, 0xce, 0xa5, 0x69, 0x5b, 0xbf, 0x51, 0x2b,
-        0x00, 0x67, 0x30, 0x65, 0x02, 0x31, 0x00, 0xba, 0x33, 0x0b, 0xed, 0x8a,
-        0xb7, 0xdd, 0x57, 0xaf, 0xff, 0x1c, 0xd2, 0x3b, 0x54, 0xf3, 0x0a, 0x32,
-        0x8a, 0x30, 0xe8, 0xdc, 0xac, 0xb0, 0x11, 0x3f, 0x0b, 0xf6, 0x90, 0xd2,
-        0x9f, 0x12, 0x87, 0xe0, 0x95, 0xf1, 0xb3, 0x27, 0xb1, 0x40, 0x46, 0x09,
-        0xc7, 0x00, 0xed, 0xbb, 0x7c, 0x62, 0x85, 0x02, 0x30, 0x1c, 0x93, 0x56,
-        0x49, 0x3b, 0xd7, 0xc6, 0xb1, 0x94, 0xab, 0x8f, 0x8c, 0x0e, 0xeb, 0x86,
-        0x92, 0x0b, 0x80, 0xb8, 0x81, 0xde, 0xf2, 0x47, 0x4a, 0x02, 0x58, 0x13,
-        0xf2, 0x8c, 0x31, 0x61, 0xea, 0x8e, 0xa1, 0xd6, 0x51, 0xe8, 0xac, 0xbb,
-        0x46, 0xc0, 0x16, 0xa2, 0xac, 0x01, 0x8c, 0xa2, 0x27
-    };
-    uint8_t expected[] = "Hello, world!";
+static int test_basic() {
+    uint8_t plaintext[] = "Hello, world!";
 
-    ASSERT_OUTCOME(invoke(ciphertext, sizeof(ciphertext)), expected, sizeof(expected) - 1);
+    uint8_t ciphertext[1024];
+
+    size_t pt_consumed, ct_consumed;
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new(aws_default_allocator());
+
+    aws_cryptosdk_session_init_encrypt(session);
+    aws_cryptosdk_session_set_message_size(session, sizeof(plaintext));
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process(session,
+        ciphertext, sizeof(ciphertext), &ct_consumed,
+        plaintext, sizeof(plaintext), &pt_consumed
+    ));
+
+    TEST_ASSERT_INT_EQ(pt_consumed, sizeof(plaintext));
+    TEST_ASSERT(aws_cryptosdk_session_is_done(session));
+
+    aws_cryptosdk_session_destroy(session);
+
+    hexdump(ciphertext, ct_consumed);
+
+    ASSERT_OUTCOME(invoke(ciphertext, ct_consumed), plaintext, sizeof(plaintext));
 
     return 0;
 }
 
+static int test_framesize(size_t datasize, size_t framesize, bool early_size) {
+    std::vector<uint8_t> plaintext;
+    plaintext.resize(datasize);
+    aws_cryptosdk_genrandom(&plaintext[0], datasize);
+
+    std::vector<uint8_t> ciphertext;
+    ciphertext.resize(plaintext.size());
+
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new(aws_default_allocator());
+    aws_cryptosdk_session_init_encrypt(session);
+    if (early_size) aws_cryptosdk_session_set_message_size(session, plaintext.size());
+
+    size_t pt_offset = 0, ct_offset = 0;
+
+    while (!aws_cryptosdk_session_is_done(session)) {
+        size_t pt_need, ct_need;
+        aws_cryptosdk_session_estimate_buf(session, &ct_need, &pt_need);
+
+        size_t pt_available = std::min(pt_need, plaintext.size() - pt_offset);
+
+        const uint8_t *pt_ptr = &plaintext[pt_offset];
+
+        size_t ct_available = ct_need;
+        ciphertext.resize(ct_offset + ct_need);
+        uint8_t *ct_ptr = &ciphertext[ct_offset];
+
+        size_t pt_consumed, ct_generated;
+
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process(session,
+            ct_ptr, ct_need, &ct_generated,
+            pt_ptr, pt_available, &pt_consumed
+        ));
+
+        // Estimates can be off until the first call to process. We'll check
+        // that we're making progress by re-estimating after calling process;
+        // if we made no progress and the estimate is asking for more plaintext
+        // than our limit, then something is wrong.
+        aws_cryptosdk_session_estimate_buf(session, &ct_need, &pt_need);
+
+        if (pt_need > plaintext.size() && ct_need <= ct_available && !pt_consumed && !ct_generated) {
+            // Hmm... it seems to want more plaintext than we have available.
+            // If we haven't set the precise size yet, then this is understandable;
+            // it's also possible that we've not gotten to the body yet (in which case
+            // we should see insufficient ciphertext space).
+            // Otherwise something has gone wrong.
+            TEST_ASSERT(!early_size);
+            aws_cryptosdk_session_set_message_size(session, plaintext.size());
+        }
+
+        pt_offset += pt_consumed;
+        ct_offset += ct_generated;
+        ciphertext.resize(ct_offset);
+    }
+
+    ASSERT_OUTCOME(invoke(&ciphertext[0], ciphertext.size()), &plaintext[0], plaintext.size());
+
+    aws_cryptosdk_session_destroy(session);
+
+    return 0;
+}
+
+#define RUN_TEST(expr) \
+    do { \
+        const char *test_desc = #expr; \
+        fprintf(stderr, "[RUNNING] %s ...\r", test_desc); \
+        int result = (expr); \
+        fprintf(stderr, "%s %s    \n", result ? "\n[ FAILED]" : "[ PASSED]", test_desc); \
+        if (result) return 1; \
+        final_result = final_result || result; \
+    } while (0)
+
+
 int main() {
+    aws_load_error_strings();
+    aws_cryptosdk_err_init_strings();
+
     SDKInitializer init;
 
-    fprintf(stderr, "[RUNNING] Encrypt compat test...\r");
+    int final_result = 0;
 
-    int result = test();
+    RUN_TEST(test_basic());
+    RUN_TEST(test_framesize(0, 1024, true));
+    RUN_TEST(test_framesize(0, 1024, false));
+    RUN_TEST(test_framesize(1, 1, true));
+    RUN_TEST(test_framesize(1, 1, false));
+    RUN_TEST(test_framesize(1024, 1024, true));
+    RUN_TEST(test_framesize(1024, 1024, false));
+    RUN_TEST(test_framesize(1023, 1024, true));
+    RUN_TEST(test_framesize(1023, 1024, false));
+    RUN_TEST(test_framesize(1025, 1024, true));
+    RUN_TEST(test_framesize(1025, 1024, false));
+    RUN_TEST(test_framesize(0, 0, true));
+    RUN_TEST(test_framesize(1, 0, true));
+    RUN_TEST(test_framesize(1024, 0, true));
 
-    fprintf(stderr, "%s Encrypt compat test    \n", result ? "\n[ FAILED]" : "[ PASSED]");
-
-    return result;
+    return final_result;
 }
 
 
