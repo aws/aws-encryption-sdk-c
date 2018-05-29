@@ -17,8 +17,9 @@
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
 #include <openssl/rand.h>
-#include <assert.h>
 #include <arpa/inet.h>
+#include <assert.h>
+#include <stdbool.h>
 
 #include <aws/common/byte_order.h>
 #include <aws/cryptosdk/private/cipher.h>
@@ -126,7 +127,7 @@ static EVP_CIPHER_CTX *evp_gcm_cipher_init(
     const struct aws_cryptosdk_alg_properties *props,
     const struct content_key *content_key,
     const uint8_t *iv,
-    int enc
+    bool enc
 ) {
     EVP_CIPHER_CTX *ctx = NULL;
 
@@ -212,7 +213,7 @@ int aws_cryptosdk_sign_header(
 
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
 
-    EVP_CIPHER_CTX *ctx = evp_gcm_cipher_init(props, content_key, iv, 1);
+    EVP_CIPHER_CTX *ctx = evp_gcm_cipher_init(props, content_key, iv, true);
     if (!ctx) goto out;
 
     int outlen;
@@ -248,7 +249,7 @@ int aws_cryptosdk_verify_header(
     const uint8_t *tag = authtag->buffer + props->iv_len;
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
 
-    EVP_CIPHER_CTX *ctx = evp_gcm_cipher_init(props, content_key, iv, 0);
+    EVP_CIPHER_CTX *ctx = evp_gcm_cipher_init(props, content_key, iv, false);
     if (!ctx) goto out;
 
     int outlen;
@@ -322,9 +323,19 @@ int aws_cryptosdk_encrypt_body(
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
+    uint64_t iv_seq = aws_hton64(seqno);
+
+    /*
+     * Paranoid check to make sure we're not going to walk off the end of the IV
+     * buffer if someone in the future introduces an algorithm with a really small
+     * IV for some reason.
+     */
+    if (props->iv_len < sizeof(iv_seq)) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+    }
+
     aws_cryptosdk_secure_zero(iv, props->iv_len);
 
-    uint64_t iv_seq = aws_hton64(seqno);
     uint8_t *iv_seq_p = iv + props->iv_len - sizeof(iv_seq);
     memcpy(iv_seq_p, &iv_seq, sizeof(iv_seq));
 
@@ -332,13 +343,21 @@ int aws_cryptosdk_encrypt_body(
 
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
 
-    if (!(ctx = evp_gcm_cipher_init(props, key, iv, 1))) goto out;
+    if (!(ctx = evp_gcm_cipher_init(props, key, iv, true))) goto out;
     if (!update_frame_aad(ctx, message_id, body_frame_type, seqno, inp->len)) goto out;
 
     struct aws_byte_cursor outcurs = *outp;
     struct aws_byte_cursor incurs = *inp;
 
     while (incurs.len) {
+        if (incurs.len != outcurs.len) {
+            /*
+             * None of the algorithms we currently support should break this invariant.
+             * Bail out immediately with an unknown error.
+             */
+            goto out;
+        }
+
         int in_len = incurs.len > INT_MAX ? INT_MAX : incurs.len;
         int ct_len;
 
@@ -387,7 +406,7 @@ int aws_cryptosdk_decrypt_body(
     struct aws_byte_cursor incurs = *inp;
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
 
-    if (!(ctx = evp_gcm_cipher_init(props, key, iv, 0))) goto out;
+    if (!(ctx = evp_gcm_cipher_init(props, key, iv, false))) goto out;
 
     if (!update_frame_aad(ctx, message_id, body_frame_type, seqno, inp->len)) goto out;
 
