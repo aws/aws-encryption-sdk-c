@@ -19,7 +19,7 @@
 #include "testing.h"
 
 static int test_kdf() {
-    static const struct data_key key[32] = { {
+    static const struct data_key key = { {
         0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
         0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f
     } };
@@ -33,7 +33,7 @@ static int test_kdf() {
         uint8_t expected[MAX_DATA_KEY_SIZE+1] = {__VA_ARGS__, 0}; \
         struct content_key key_out = { { 0 } }; \
         TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, \
-            aws_cryptosdk_derive_key(aws_cryptosdk_alg_props(alg_id), &key_out, key, msgid)); \
+            aws_cryptosdk_derive_key(aws_cryptosdk_alg_props(alg_id), &key_out, &key, msgid)); \
         TEST_ASSERT_INT_EQ(0, memcmp(key_out.keybuf, expected, MAX_DATA_KEY_SIZE)); \
     } while (0)
 
@@ -477,7 +477,7 @@ static int testHeaderAuth(const uint8_t *header, size_t headerlen, const uint8_t
     uint8_t badheader[headerlen];
     headerbuf.buffer = badheader;
 
-    for (int i = 0; i < headerlen * 8; i++) {
+    for (size_t i = 0; i < headerlen * 8; i++) {
         memcpy(badheader, header, headerlen);
         badheader[i/8] ^= (1 << (i % 8));
 
@@ -488,7 +488,7 @@ static int testHeaderAuth(const uint8_t *header, size_t headerlen, const uint8_t
     headerbuf.buffer = (uint8_t *)header;
     authbuf.buffer = badtag;
 
-    for (int i = 0; i < taglen * 8; i++) {
+    for (size_t i = 0; i < taglen * 8; i++) {
         memcpy(badtag, authtag, taglen);
         badtag[i/8] ^= (1 << (i % 8));
 
@@ -786,7 +786,7 @@ static int test_encrypt_body() {
 
     aws_cryptosdk_genrandom(key.keybuf, sizeof(key.keybuf));
 
-    for (int size_idx = 0; size_idx < sizeof(test_sizes) / sizeof(test_sizes[0]); size_idx++) {
+    for (size_t size_idx = 0; size_idx < sizeof(test_sizes) / sizeof(test_sizes[0]); size_idx++) {
         struct aws_byte_buf pt_buf = { 0 }, ct_buf = { 0 }, decrypt_buf = { 0 };
         size_t buf_size = test_sizes[size_idx];
 
@@ -796,7 +796,7 @@ static int test_encrypt_body() {
 
         aws_cryptosdk_genrandom(pt_buf.buffer, pt_buf.len);
 
-        for (int i = 0; i < sizeof(known_algorithms) / sizeof(known_algorithms[0]); i++) {
+        for (size_t i = 0; i < sizeof(known_algorithms) / sizeof(known_algorithms[0]); i++) {
             enum aws_cryptosdk_alg_id alg_id = known_algorithms[i];
             const struct aws_cryptosdk_alg_properties *alg = aws_cryptosdk_alg_props(alg_id);
 
@@ -846,7 +846,7 @@ static int test_encrypt_body() {
     }
 
     return 0;
-};
+}
 
 static int test_sign_header() {
     static const size_t test_sizes[] = {
@@ -868,13 +868,12 @@ static int test_sign_header() {
         1024*1024*64 + 1
     };
 
-    uint32_t seqno = 0xDEADBEEF;
     struct aws_allocator *alloc = aws_default_allocator();
     struct content_key key;
 
     aws_cryptosdk_genrandom(key.keybuf, sizeof(key.keybuf));
 
-    for (int size_idx = 0; size_idx < sizeof(test_sizes) / sizeof(test_sizes[0]); size_idx++) {
+    for (size_t size_idx = 0; size_idx < sizeof(test_sizes) / sizeof(test_sizes[0]); size_idx++) {
         struct aws_byte_buf header_buf = { 0 };
         size_t buf_size = test_sizes[size_idx];
 
@@ -882,7 +881,7 @@ static int test_sign_header() {
 
         aws_cryptosdk_genrandom(header_buf.buffer, header_buf.len);
 
-        for (int i = 0; i < sizeof(known_algorithms) / sizeof(known_algorithms[0]); i++) {
+        for (size_t i = 0; i < sizeof(known_algorithms) / sizeof(known_algorithms[0]); i++) {
             enum aws_cryptosdk_alg_id alg_id = known_algorithms[i];
             const struct aws_cryptosdk_alg_properties *alg = aws_cryptosdk_alg_props(alg_id);
 
@@ -907,10 +906,7 @@ static int test_sign_header() {
     }
 
     return 0;
-};
-
-
-
+}
 
 struct test_case cipher_test_cases[] = {
     { "cipher", "test_kdf", test_kdf },
