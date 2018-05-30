@@ -17,6 +17,7 @@
 #include <aws/cryptosdk/standard_cmm.h>
 #include "testing.h"
 #include "zero_mkp.h"
+#include "bad_cmm.h"
 
 int standard_cmm_zero_mkp_enc_mat() {
     struct aws_allocator * alloc = aws_default_allocator();
@@ -77,8 +78,50 @@ int standard_cmm_zero_mkp_dec_mat() {
     return 0;
 }
 
+#define ASSERT_VF_UNIMPLEMENTED_ERR_SET \
+    do { \
+        int err = aws_last_error(); \
+        TEST_ASSERT_INT_EQ(err, AWS_CRYPTOSDK_ERR_VIRTUAL_FUNCTION_UNIMPLEMENTED); \
+        aws_reset_error(); \
+    } while (0)
+
+int zero_size_cmm_does_not_run_vfs() {
+    struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_zero_size_cmm_new();
+    int ret = aws_cryptosdk_cmm_generate_encryption_materials(cmm, NULL, NULL);
+    TEST_ASSERT_INT_EQ(ret, AWS_OP_ERR);
+    ASSERT_VF_UNIMPLEMENTED_ERR_SET;
+
+    ret = aws_cryptosdk_cmm_decrypt_materials(cmm, NULL, NULL);
+    TEST_ASSERT_INT_EQ(ret, AWS_OP_ERR);
+    ASSERT_VF_UNIMPLEMENTED_ERR_SET;
+
+    aws_cryptosdk_cmm_destroy(cmm);
+    bool b = zero_size_cmm_did_destroy_vf_run();
+    TEST_ASSERT_INT_EQ(b, false);
+    ASSERT_VF_UNIMPLEMENTED_ERR_SET;
+
+    return 0;
+}
+
+int null_cmm_fails_vf_calls_cleanly() {
+    struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_null_cmm_new();
+    int ret = aws_cryptosdk_cmm_generate_encryption_materials(cmm, NULL, NULL);
+    TEST_ASSERT_INT_EQ(ret, AWS_OP_ERR);
+    ASSERT_VF_UNIMPLEMENTED_ERR_SET;
+
+    ret = aws_cryptosdk_cmm_decrypt_materials(cmm, NULL, NULL);
+    TEST_ASSERT_INT_EQ(ret, AWS_OP_ERR);
+    ASSERT_VF_UNIMPLEMENTED_ERR_SET;
+
+    aws_cryptosdk_cmm_destroy(cmm);
+    ASSERT_VF_UNIMPLEMENTED_ERR_SET;
+    return 0;
+}
+
 struct test_case materials_test_cases[] = {
     { "materials", "standard_cmm_zero_mkp_enc_mat", standard_cmm_zero_mkp_enc_mat },
     { "materials", "standard_cmm_zero_mkp_dec_mat", standard_cmm_zero_mkp_dec_mat },
+    { "materials", "zero_size_cmm_does_not_run_vfs", zero_size_cmm_does_not_run_vfs },
+    { "materials", "null_cmm_fails_vf_calls_cleanly", null_cmm_fails_vf_calls_cleanly },
     { NULL }
 };

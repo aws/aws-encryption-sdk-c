@@ -15,9 +15,10 @@
 #include <aws/cryptosdk/error.h>
 
 static const struct aws_error_info error_info[] = {
-    AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT, AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT, "Bad ciphertext", "cryptosdk"),
-    AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN, AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN, "Unknown error in crypto routines", "cryptosdk"),
-    AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT, AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT, "Unsupported format version or bad ciphertext", "cryptosdk")
+    AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT, "Bad ciphertext", "cryptosdk"),
+    AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN, "Unknown error in crypto routines", "cryptosdk"),
+    AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT, "Unsupported format version or bad ciphertext", "cryptosdk"),
+    AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_VIRTUAL_FUNCTION_UNIMPLEMENTED, "Virtual function unimplemented", "cryptosdk")
 };
 
 static const struct aws_error_info_list error_info_list = {
