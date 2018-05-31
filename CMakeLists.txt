@@ -16,6 +16,7 @@ cmake_minimum_required (VERSION 3.1)
 project (aws-encryption-sdk)
 include(CheckLibraryExists)
 include(CheckCXXSourceCompiles)
+include(CheckCXXCompilerFlag)
 
 # TODO: Static link?
 include(FindOpenSSL)
@@ -48,6 +49,26 @@ endif()
 CHECK_CXX_SOURCE_COMPILES("
     int main() { return __builtin_expect(0, 0); }
 " HAVE_BUILTIN_EXPECT)
+
+CHECK_CXX_COMPILER_FLAG("-Wall" HAS_FLAG_WALL)
+CHECK_CXX_COMPILER_FLAG("-pedantic" HAS_FLAG_PEDANTIC)
+CHECK_CXX_COMPILER_FLAG("-Werror" HAS_FLAG_WERROR)
+CHECK_CXX_COMPILER_FLAG("-Wno-missing-field-initializers" HAS_FLAG_NO_MISSING_FIELD_INITIALIZERS)
+
+if (HAS_FLAG_WALL)
+    add_compile_options(-Wall)
+endif()
+if (HAS_FLAG_PEDANTIC)
+    add_compile_options(-pedantic)
+endif()
+if (HAS_FLAG_WERROR)
+    add_compile_options(-Werror)
+endif()
+if (HAS_FLAG_NO_MISSING_FIELD_INITIALIZERS)
+# TODO - this is to avoid warning on the missing 'enabled' field in test case definitions.
+# We should find a cleaner way to work around this.
+    add_compile_options(-Wno-missing-field-initializers)
+endif()
 
 file(GLOB AWS_CRYPTOSDK_HEADERS
 # Headers subject to API/ABI stability guarantees

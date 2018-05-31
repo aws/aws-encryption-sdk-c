@@ -203,7 +203,6 @@ static int try_parse_header(
     struct aws_cryptosdk_session * restrict session,
     struct aws_byte_cursor * restrict input
 ) {
-    size_t header_len;
     int rv = aws_cryptosdk_hdr_parse(session->alloc, &session->header, input->ptr, input->len);
 
     if (rv != AWS_OP_SUCCESS) {
@@ -368,7 +367,7 @@ int aws_cryptosdk_session_process(
     struct aws_byte_cursor input  = { .ptr = (uint8_t *)inp, .len =  inlen };
     int result;
 
-    int prior_state;
+    enum session_state prior_state;
     const uint8_t *old_outp, *old_inp;
     bool made_progress;
 
@@ -395,8 +394,9 @@ int aws_cryptosdk_session_process(
             case ST_TRAILER:
                 // no-op for now, go to ST_DONE
                 session_change_state(session, ST_DONE);
+                // fall through
             case ST_DONE:
-                result = AWS_OP_SUCCESS; // XXX how to report completion?
+                result = AWS_OP_SUCCESS;
                 break;
             default:
                 result = aws_raise_error(AWS_ERROR_UNKNOWN);

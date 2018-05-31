@@ -125,9 +125,6 @@ static void decrypt_test_incremental(
         size_t insz = 0;
         size_t max_outsz = pt.len - (outp - outbuf);
         size_t out_produced, in_consumed;
-        bool made_progress = false;
-        const uint8_t *initial_inp = inp;
-        uint8_t *initial_outp = outp;
 
         while (true) {
             aws_cryptosdk_session_estimate_buf(session, &est_out, &est_in);
