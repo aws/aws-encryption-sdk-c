@@ -156,7 +156,7 @@ struct aws_cryptosdk_mkp_vt {
     size_t vt_size;
     char * name;
     void (*destroy)(struct aws_cryptosdk_mkp * mkp);
-    int (*append_master_keys)(struct aws_cryptosdk_mkp * mkp,
+    int (*get_master_keys)(struct aws_cryptosdk_mkp * mkp,
                               struct aws_array_list * master_keys, // list of (aws_cryptosdk_mk *)
                               struct aws_hash_table * enc_context);
     int (*decrypt_data_key)(struct aws_cryptosdk_mkp * mkp,
@@ -170,10 +170,10 @@ static inline void aws_cryptosdk_mkp_destroy(struct aws_cryptosdk_mkp * mkp) {
     VF_CALL_NO_RETURN(destroy, mkp);
 }
 
-static inline int aws_cryptosdk_mkp_append_master_keys(struct aws_cryptosdk_mkp * mkp,
+static inline int aws_cryptosdk_mkp_get_master_keys(struct aws_cryptosdk_mkp * mkp,
                                                        struct aws_array_list * master_keys,
                                                        struct aws_hash_table * enc_context) {
-    VF_CALL(append_master_keys, mkp, master_keys, enc_context);
+    VF_CALL(get_master_keys, mkp, master_keys, enc_context);
 }
 
 static inline int aws_cryptosdk_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,

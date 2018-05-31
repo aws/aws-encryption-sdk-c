@@ -70,7 +70,7 @@ static struct zero_mk zero_mk_singleton = {.vt = &zero_mk_vt};
 static struct aws_cryptosdk_mk * mk = (struct aws_cryptosdk_mk *) &zero_mk_singleton;
 
 
-static int zero_mkp_append_master_keys(struct aws_cryptosdk_mkp * mkp,
+static int zero_mkp_get_master_keys(struct aws_cryptosdk_mkp * mkp,
                                        struct aws_array_list * master_keys, // list of (aws_cryptosdk_mk *)
                                        struct aws_hash_table * enc_context) {
     struct zero_mkp * self = (struct zero_mkp *) mkp;
@@ -107,7 +107,7 @@ static const struct aws_cryptosdk_mkp_vt zero_mkp_vt = {
     .vt_size = sizeof(struct aws_cryptosdk_mkp_vt),
     .name = "zero mkp",
     .destroy = zero_mkp_destroy,
-    .append_master_keys = zero_mkp_append_master_keys,
+    .get_master_keys = zero_mkp_get_master_keys,
     .decrypt_data_key = zero_mkp_decrypt_data_key
 };
 

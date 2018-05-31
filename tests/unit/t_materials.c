@@ -14,15 +14,15 @@
  */
 
 #include <aws/common/array_list.h>
-#include <aws/cryptosdk/standard_cmm.h>
+#include <aws/cryptosdk/default_cmm.h>
 #include "testing.h"
 #include "zero_mkp.h"
 #include "bad_cmm.h"
 
-int standard_cmm_zero_mkp_enc_mat() {
+int default_cmm_zero_mkp_enc_mat() {
     struct aws_allocator * alloc = aws_default_allocator();
     struct aws_cryptosdk_mkp * mkp = aws_cryptosdk_zero_mkp_new();
-    struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_standard_cmm_new(alloc, mkp);
+    struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(alloc, mkp);
 
     struct aws_cryptosdk_encryption_request req;
     req.enc_context = (void *)0xdeadbeef; // bogus address just to see if it gets passed along
@@ -52,10 +52,10 @@ int standard_cmm_zero_mkp_enc_mat() {
     return 0;
 }
 
-int standard_cmm_zero_mkp_dec_mat() {
+int default_cmm_zero_mkp_dec_mat() {
     struct aws_allocator * alloc = aws_default_allocator();
     struct aws_cryptosdk_mkp * mkp = aws_cryptosdk_zero_mkp_new(alloc);
-    struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_standard_cmm_new(alloc, mkp);
+    struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(alloc, mkp);
 
     struct aws_cryptosdk_decryption_request req;
     req.alg = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE;
@@ -119,8 +119,8 @@ int null_cmm_fails_vf_calls_cleanly() {
 }
 
 struct test_case materials_test_cases[] = {
-    { "materials", "standard_cmm_zero_mkp_enc_mat", standard_cmm_zero_mkp_enc_mat },
-    { "materials", "standard_cmm_zero_mkp_dec_mat", standard_cmm_zero_mkp_dec_mat },
+    { "materials", "default_cmm_zero_mkp_enc_mat", default_cmm_zero_mkp_enc_mat },
+    { "materials", "default_cmm_zero_mkp_dec_mat", default_cmm_zero_mkp_dec_mat },
     { "materials", "zero_size_cmm_does_not_run_vfs", zero_size_cmm_does_not_run_vfs },
     { "materials", "null_cmm_fails_vf_calls_cleanly", null_cmm_fails_vf_calls_cleanly },
     { NULL }

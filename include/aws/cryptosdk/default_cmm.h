@@ -13,11 +13,11 @@
  * limitations under the License.
  */
 
-#ifndef AWS_CRYPTOSDK_STANDARD_CMM_H
-#define AWS_CRYPTOSDK_STANDARD_CMM_H
+#ifndef AWS_CRYPTOSDK_DEFAULT_CMM_H
+#define AWS_CRYPTOSDK_DEFAULT_CMM_H
 
 #include <aws/cryptosdk/materials.h>
 
-struct aws_cryptosdk_cmm * aws_cryptosdk_standard_cmm_new(struct aws_allocator * alloc, struct aws_cryptosdk_mkp * mkp);
+struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * alloc, struct aws_cryptosdk_mkp * mkp);
 
-#endif // AWS_CRYPTOSDK_STANDARD_CMM_H
+#endif // AWS_CRYPTOSDK_DEFAULT_CMM_H
