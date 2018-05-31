@@ -29,8 +29,11 @@ set(USE_ASM TRUE
 set(SPECTRE_MITIGATIONS TRUE
     CACHE BOOL "Attempt to mitigate SPECTRE attacks, at a potential performance cost")
 
-set(AWS_C_COMMON_PATH "" CACHE STRING "Path to the directory containing aws-c-common-config.cmake")
-include(${AWS_C_COMMON_PATH}/aws-c-common-config.cmake)
+find_package(aws-c-common REQUIRED)
+
+# C++ SDK
+find_package(AWSSDK)
+link_directories("${AWSSDK_LIB_DIR}")
 
 if(USE_ASM)
     CHECK_CXX_SOURCE_COMPILES("
@@ -94,6 +97,7 @@ endif()
 
 add_library(aws-encryption-sdk ${LIBTYPE} ${CORE_HEADERS} ${CORE_SRC})
 set_target_properties(aws-encryption-sdk PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
+
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 if(CMAKE_BUILD_TYPE STREQUAL "" OR CMAKE_BUILD_TYPE MATCHES DEBUG)
@@ -114,11 +118,15 @@ file(GLOB UNIT_TEST_SRC "tests/unit/*.c")
 file(GLOB UNIT_TEST_HDRS "tests/*.h")
 file(GLOB UNIT_TESTS ${TEST_HDRS} ${TEST_SRC})
 file(GLOB TEST_LIB "tests/lib/*.c")
-  
+
+include(CTest)
+enable_testing()
+
 add_executable(unit-test-suite ${UNIT_TEST_SRC})
 target_link_libraries(unit-test-suite ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
 set_target_properties(unit-test-suite PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
-target_include_directories(unit-test-suite PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit${CMAKE_CURRENT_SOURCE_DIR}/source)
+target_link_libraries(unit-test-suite aws-encryption-sdk)
+target_include_directories(unit-test-suite PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
 
 add_executable(test_decrypt "tests/decrypt.c" ${TEST_LIB})
 target_link_libraries(test_decrypt ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
@@ -130,8 +138,19 @@ target_link_libraries(test_decryption_vectors ${PROJECT_NAME} ${OPENSSL_LDFLAGS}
 set_target_properties(test_decryption_vectors PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 target_include_directories(test_decryption_vectors PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
 
-include(CTest)
-enable_testing()
+if(AWSSDK_FOUND)
+    add_executable(t_encrypt_compat tests/integration/t_encrypt_compat.cpp)
+    set_target_properties(t_encrypt_compat PROPERTIES
+        LINKER_LANGUAGE CXX
+        CXX_STANDARD 11
+        CXX_STANDARD_REQUIRED O
+        C_STANDARD 99
+    )
+    target_link_libraries(t_encrypt_compat aws-cpp-sdk-lambda aws-cpp-sdk-core ${PROJECT_NAME})
+    target_include_directories(t_encrypt_compat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit ${AWSSDK_INCLUDE_DIR})
+    target_sources(t_encrypt_compat PRIVATE ${UNIT_TEST_SRC_CPP})
+    add_test(integration_encrypt_compatibility t_encrypt_compat)
+endif(AWSSDK_FOUND)
 
 add_test(cipher unit-test-suite cipher)
 add_test(header unit-test-suite header)
