@@ -42,6 +42,7 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
     ret = aws_cryptosdk_mkp_append_master_keys(self->mkp, &master_keys, request->enc_context);
     if (ret) goto ERROR;
     num_keys = master_keys.length;
+    if (!num_keys) { ret = AWS_CRYPTOSDK_ERR_NO_MASTER_KEYS_FOUND; goto ERROR; }
 
     enc_mat = aws_cryptosdk_encryption_materials_new(self->alloc, request->requested_alg, num_keys);
     if (!enc_mat) { ret = AWS_ERROR_OOM; goto ERROR; }
@@ -110,6 +111,7 @@ static int standard_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *
     return AWS_OP_SUCCESS;
 
 ERROR:
+    *output = NULL;
     aws_array_list_clean_up(&master_keys);
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
     return aws_raise_error(ret);
