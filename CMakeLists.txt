@@ -47,15 +47,11 @@ CHECK_CXX_SOURCE_COMPILES("
     int main() { return __builtin_expect(0, 0); }
 " HAVE_BUILTIN_EXPECT)
 
-CHECK_CXX_COMPILER_FLAG("-W" HAS_FLAG_W)
 CHECK_CXX_COMPILER_FLAG("-Wall" HAS_FLAG_WALL)
 CHECK_CXX_COMPILER_FLAG("-pedantic" HAS_FLAG_PEDANTIC)
 CHECK_CXX_COMPILER_FLAG("-Werror" HAS_FLAG_WERROR)
 CHECK_CXX_COMPILER_FLAG("-Wno-missing-field-initializers" HAS_FLAG_NO_MISSING_FIELD_INITIALIZERS)
 
-if (HAS_FLAG_W)
-    add_compile_options(-W)
-endif()
 if (HAS_FLAG_WALL)
     add_compile_options(-Wall)
 endif()
