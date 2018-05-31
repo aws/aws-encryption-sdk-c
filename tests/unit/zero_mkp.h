@@ -18,6 +18,17 @@
 
 #include <aws/cryptosdk/materials.h>
 
+/**
+ * A degenerate MKP/MK which always returns an all zero data key, just
+ * for testing the CMM/MKP/MK infrastructure.
+ *
+ * The EDK it generates has all byte buffer lengths and allocators set to
+ * zero, so that data encrypted with it can be serialized correctly and
+ * clean up functions work properly.
+ *
+ * On attempts to decrypt, it checks whether one of the provided EDKs has
+ * zero length, and if so returns the all zero data key.
+ */
 struct aws_cryptosdk_mkp * aws_cryptosdk_zero_mkp_new();
 
 #endif // AWS_CRYPTOSDK_TESTS_UNIT_ZERO_MKP_H

@@ -25,6 +25,9 @@ static bool destroy_succeed_ran = false;
 
 bool zero_size_cmm_did_destroy_vf_run() {return destroy_succeed_ran;}
 
+/**
+ * VFs which should never get called because of the failed check on the vt_size field.
+ */
 void destroy_succeed(struct aws_cryptosdk_cmm * cmm) {
     destroy_succeed_ran = true;
 }
@@ -41,6 +44,9 @@ int decrypt_succeed(struct aws_cryptosdk_cmm * cmm,
     return AWS_OP_SUCCESS;
 }
 
+/**
+ * A totally correct VT except for the zero size.
+ */
 static const struct aws_cryptosdk_cmm_vt zero_size_cmm_vt = {
     .vt_size = 0,
     .name = "zero size cmm",
@@ -53,6 +59,8 @@ static struct bad_cmm zero_size_cmm_singleton = {.vt = &zero_size_cmm_vt};
 static struct aws_cryptosdk_cmm * zero_size_cmm = (struct aws_cryptosdk_cmm *) &zero_size_cmm_singleton;
 
 struct aws_cryptosdk_cmm * aws_cryptosdk_zero_size_cmm_new() {return zero_size_cmm;}
+
+
 
 static const struct aws_cryptosdk_cmm_vt null_cmm_vt = {
     .vt_size = sizeof(struct aws_cryptosdk_cmm_vt),

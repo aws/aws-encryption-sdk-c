@@ -37,7 +37,9 @@ bool zero_size_cmm_did_destroy_vf_run();
  * Returns a pointer to the singleton null CMM.
  * This is a CMM with size field set correctly,
  * but with all null pointers in place of its
- * virtual function pointers.
+ * virtual function pointers. It is for testing that
+ * the VF calling code never attempts to call function
+ * pointers set to null.
  */
 struct aws_cryptosdk_cmm * aws_cryptosdk_null_cmm_new();
 
