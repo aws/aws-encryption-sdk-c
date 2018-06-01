@@ -1,5 +1,6 @@
 #include <aws/cryptosdk/private/header.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "testing.h"
 
