@@ -790,9 +790,9 @@ static int test_encrypt_body() {
         struct aws_byte_buf pt_buf = { 0 }, ct_buf = { 0 }, decrypt_buf = { 0 };
         size_t buf_size = test_sizes[size_idx];
 
-        if (aws_byte_buf_alloc(alloc, &pt_buf, buf_size)) abort();
-        if (aws_byte_buf_alloc(alloc, &ct_buf, buf_size)) abort();
-        if (aws_byte_buf_alloc(alloc, &decrypt_buf, buf_size)) abort();
+        if (aws_byte_buf_init(alloc, &pt_buf, buf_size)) abort();
+        if (aws_byte_buf_init(alloc, &ct_buf, buf_size)) abort();
+        if (aws_byte_buf_init(alloc, &decrypt_buf, buf_size)) abort();
 
         aws_cryptosdk_genrandom(pt_buf.buffer, pt_buf.len);
 
@@ -840,9 +840,9 @@ static int test_encrypt_body() {
             }
         }
 
-        aws_byte_buf_free(alloc, &pt_buf);
-        aws_byte_buf_free(alloc, &ct_buf);
-        aws_byte_buf_free(alloc, &decrypt_buf);
+        aws_byte_buf_clean_up(&pt_buf);
+        aws_byte_buf_clean_up(&ct_buf);
+        aws_byte_buf_clean_up(&decrypt_buf);
     }
 
     return 0;
@@ -877,7 +877,7 @@ static int test_sign_header() {
         struct aws_byte_buf header_buf = { 0 };
         size_t buf_size = test_sizes[size_idx];
 
-        if (aws_byte_buf_alloc(alloc, &header_buf, buf_size)) abort();
+        if (aws_byte_buf_init(alloc, &header_buf, buf_size)) abort();
 
         aws_cryptosdk_genrandom(header_buf.buffer, header_buf.len);
 
@@ -902,7 +902,7 @@ static int test_sign_header() {
 
         }
 
-        aws_byte_buf_free(alloc, &header_buf);
+        aws_byte_buf_clean_up(&header_buf);
     }
 
     return 0;

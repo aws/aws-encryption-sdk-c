@@ -16,7 +16,7 @@
 #ifndef AWS_CRYPTOSDK_PRIVATE_HEADER_H
 #define AWS_CRYPTOSDK_PRIVATE_HEADER_H
 
-#include "aws/cryptosdk/buffer.h"
+#include <aws/common/byte_buf.h>
 #include "aws/cryptosdk/header.h"
 
 #define MESSAGE_ID_LEN 16
