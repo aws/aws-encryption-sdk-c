@@ -43,7 +43,10 @@ int default_cmm_zero_mkp_enc_mat() {
     struct aws_cryptosdk_edk * edk;
     ret = aws_array_list_get_at_ptr(&enc_mat->encrypted_data_keys, (void **)&edk, 0);
     TEST_ASSERT_INT_EQ(ret, AWS_OP_SUCCESS);
-    TEST_ASSERT_INT_EQ(edk->enc_data_key.len, 0);
+
+    TEST_ASSERT_BUF_EQ(edk->enc_data_key, 'n', 'u', 'l', 'l');
+    TEST_ASSERT_BUF_EQ(edk->provider_id, 'n', 'u', 'l', 'l');
+    TEST_ASSERT_BUF_EQ(edk->provider_info, 'n', 'u', 'l', 'l');
 
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
     aws_cryptosdk_cmm_destroy(cmm);
@@ -60,7 +63,9 @@ int default_cmm_zero_mkp_dec_mat() {
     struct aws_cryptosdk_decryption_request req;
     req.alg = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE;
     aws_array_list_init_dynamic(&req.encrypted_data_keys, alloc, 1, sizeof(struct aws_cryptosdk_edk));
-    struct aws_cryptosdk_edk edk = {{0}};
+    struct aws_cryptosdk_edk edk;
+    aws_cryptosdk_literally_null_edk(&edk);
+
     aws_array_list_push_back(&req.encrypted_data_keys, (void *) &edk);
 
     struct aws_cryptosdk_decryption_materials * dec_mat;

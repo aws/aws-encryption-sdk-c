@@ -12,6 +12,7 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <stdbool.h>
 #include "zero_mkp.h"
 #include <aws/cryptosdk/cipher.h> // aws_cryptosdk_secure_zero
 
@@ -20,14 +21,22 @@
  * for testing the CMM/MKP/MK infrastructure.
  */
 
+
 struct zero_mk {const struct aws_cryptosdk_mk_vt * vt;};
 
-/**
- * Sets allocator and buf pointers to NULL so this can be freed safely,
- * and lengths to zero so that this can be serialized correctly.
- */
-static inline void zero_edk(struct aws_cryptosdk_edk * edk) {
-    aws_cryptosdk_secure_zero(edk, sizeof(struct aws_cryptosdk_edk));
+const char * literally_null = "null";
+
+void aws_cryptosdk_literally_null_edk(struct aws_cryptosdk_edk * edk) {
+    edk->provider_id = aws_byte_buf_from_literal(literally_null);
+    edk->provider_info = aws_byte_buf_from_literal(literally_null);
+    edk->enc_data_key = aws_byte_buf_from_literal(literally_null);
+}
+
+static inline bool is_literally_null_edk(const struct aws_cryptosdk_edk * edk) {
+    size_t len = strlen(literally_null);
+    return edk->provider_id.len == len && !memcmp(edk->provider_id.buffer, literally_null, len) &&
+        edk->provider_info.len == len && !memcmp(edk->provider_info.buffer, literally_null, len) &&
+        edk->enc_data_key.len == len && !memcmp(edk->enc_data_key.buffer, literally_null, len);
 }
 
 static int zero_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
@@ -36,7 +45,7 @@ static int zero_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
                                      struct aws_hash_table * enc_context,
                                      enum aws_cryptosdk_alg_id alg) {
     aws_cryptosdk_secure_zero_buf(unencrypted_data_key);
-    zero_edk(edk);
+    aws_cryptosdk_literally_null_edk(edk);
     return AWS_OP_SUCCESS;
 }
 
@@ -50,7 +59,7 @@ static int zero_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
             return AWS_OP_ERR;
         }
     }
-    zero_edk(edk);
+    aws_cryptosdk_literally_null_edk(edk);
     return AWS_OP_SUCCESS;
 }
 
@@ -90,7 +99,7 @@ static int zero_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
     for (size_t key_idx = 0 ; key_idx < num_keys ; ++key_idx) {
         struct aws_cryptosdk_edk * edk;
         if (aws_array_list_get_at_ptr(encrypted_data_keys, (void **)&edk, 0)) return AWS_OP_ERR;
-        if (!edk->enc_data_key.len) {
+        if (is_literally_null_edk(edk)) {
             aws_cryptosdk_secure_zero_buf(unencrypted_data_key);
             return AWS_OP_SUCCESS;
         }

@@ -22,13 +22,17 @@
  * A degenerate MKP/MK which always returns an all zero data key, just
  * for testing the CMM/MKP/MK infrastructure.
  *
- * The EDK it generates has all byte buffer lengths and allocators set to
- * zero, so that data encrypted with it can be serialized correctly and
- * clean up functions work properly.
+ * The EDK it generates has the string "null" in every field.
  *
  * On attempts to decrypt, it checks whether one of the provided EDKs has
  * zero length, and if so returns the all zero data key.
  */
 struct aws_cryptosdk_mkp * aws_cryptosdk_zero_mkp_new();
+
+/**
+ * Convenience for testing: sets an EDK to "null" in every field.
+ * Points to static memory, so it does not need to be deallocated.
+ */
+void aws_cryptosdk_literally_null_edk(struct aws_cryptosdk_edk * edk);
 
 #endif // AWS_CRYPTOSDK_TESTS_UNIT_ZERO_MKP_H
