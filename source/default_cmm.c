@@ -37,7 +37,7 @@ static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * 
     struct default_cmm * self = (struct default_cmm *) cmm;
 
     ret = aws_array_list_init_dynamic(&master_keys, self->alloc, initial_master_key_list_size, sizeof(struct aws_cryptosdk_mk *));
-    if (ret) return aws_raise_error(ret);
+    if (ret) { *output = NULL; return aws_raise_error(ret); }
 
     ret = aws_cryptosdk_mkp_get_master_keys(self->mkp, &master_keys, request->enc_context);
     if (ret) goto ERROR;
@@ -150,6 +150,7 @@ static int default_cmm_decrypt_materials(struct aws_cryptosdk_cmm * cmm,
     return AWS_OP_SUCCESS;
 
 ERROR:
+    *output = NULL;
     aws_cryptosdk_decryption_materials_destroy(dec_mat);
     return aws_raise_error(ret);
 }
@@ -161,7 +162,7 @@ static void default_cmm_destroy(struct aws_cryptosdk_cmm * cmm) {
 
 static const struct aws_cryptosdk_cmm_vt default_cmm_vt = {
     .vt_size = sizeof(struct aws_cryptosdk_cmm_vt),
-    .name = "standard cmm",
+    .name = "default cmm",
     .destroy = default_cmm_destroy,
     .generate_encryption_materials = default_cmm_generate_encryption_materials,
     .decrypt_materials = default_cmm_decrypt_materials

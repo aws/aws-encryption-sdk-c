@@ -37,12 +37,6 @@ struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_n
         return NULL;
     }
 
-    /*
-     * Only pre-allocates the list of EDKs, which has length zero to start but can expand to num_keys before
-     * needing reallocation. Byte buffers within EDKs will be allocated when individual EDKs are written.
-     * If you do not use specific buffers within the EDK, be sure to set the allocators to NULL so that clean up
-     * function will work properly.
-     */
     ret = aws_array_list_init_dynamic(&enc_mat->encrypted_data_keys, alloc, num_keys, sizeof(struct aws_cryptosdk_edk));
     if (ret) {
         aws_byte_buf_clean_up(&enc_mat->unencrypted_data_key);
