@@ -64,7 +64,7 @@ static void enable_cases(const char *specifier) {
     }
 
     const char *dot = strchr(specifier, '.');
-    int groupLen = dot ? dot - specifier : strlen(specifier);
+    int groupLen = dot ? (int)(dot - specifier) : (int)strlen(specifier);
 
     int enabled_ct = 0;
     for (struct test_case *pCase = test_cases; pCase->group; pCase++) {

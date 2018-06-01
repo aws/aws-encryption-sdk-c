@@ -73,8 +73,6 @@ static struct aws_cryptosdk_mk * mk = (struct aws_cryptosdk_mk *) &zero_mk_singl
 static int zero_mkp_get_master_keys(struct aws_cryptosdk_mkp * mkp,
                                        struct aws_array_list * master_keys, // list of (aws_cryptosdk_mk *)
                                        struct aws_hash_table * enc_context) {
-    struct zero_mkp * self = (struct zero_mkp *) mkp;
-
     int ret = aws_array_list_push_back(master_keys, &mk); // copies *address* of the zero MK into the list
     if (ret) { // shouldn't happen if it's a dynamically allocated list
         return aws_raise_error(ret);

@@ -66,20 +66,20 @@ struct aws_cryptosdk_hdr_aad test_header_1_aad_tbl[] = {
         .key = {.len = sizeof(test_header_1_aad_key), .buffer = test_header_1_aad_key},
         .value = {.len = sizeof(test_header_1_aad_value), .buffer = test_header_1_aad_value}
     },
-    {0}
+    {{0}}
 };
 
 uint8_t test_header_1_edk_provider_id[] = {0x10, 0x11, 0x12, 0x00};
 uint8_t test_header_1_edk_provider_info[] = {0x01, 0x02, 0x03, 0x04};
 uint8_t test_header_1_edk_enc_data_key[] = {0x11, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x88};
 struct aws_cryptosdk_edk test_header_1_edk_tbl[] = {
-    {0},
+    {{0}},
     {
         .provider_id = {.len = sizeof(test_header_1_edk_provider_id), .buffer = test_header_1_edk_provider_id},
         .provider_info = {.len = sizeof(test_header_1_edk_provider_info), .buffer = test_header_1_edk_provider_info},
         .enc_data_key = {.len = sizeof(test_header_1_edk_enc_data_key), .buffer = test_header_1_edk_enc_data_key}
     },
-    {0}
+    {{0}}
 };
 
 uint8_t test_header_1_iv_arr[] =
@@ -339,7 +339,7 @@ static void overread_once(const uint8_t *inbuf, size_t inlen, ssize_t flip_bit_i
         abort();
     }
 
-    int byte_offset = flip_bit_index >> 3;
+    size_t byte_offset = flip_bit_index >> 3;
     if (flip_bit_index >= 0 && byte_offset < inlen) {
         int bit_offset = flip_bit_index & 7;
         phdr[byte_offset] ^= (1 << bit_offset);
@@ -424,7 +424,7 @@ int overwrite() {
     struct aws_cryptosdk_hdr * test_headers[] = {&test_header_1_hdr, &test_header_2_hdr};
     int pagesize = sysconf(_SC_PAGESIZE);
 
-    for (int idx = 0 ; idx < sizeof(test_headers)/sizeof(struct aws_cryptosdk_hdr *) ; ++idx) {
+    for (size_t idx = 0 ; idx < sizeof(test_headers)/sizeof(struct aws_cryptosdk_hdr *) ; ++idx) {
         size_t bytes_written;
 
         int header_len = aws_cryptosdk_hdr_size(test_headers[idx]);

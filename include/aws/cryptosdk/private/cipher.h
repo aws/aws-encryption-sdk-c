@@ -17,8 +17,6 @@
 #define AWS_CRYPTOSDK_PRIVATE_CIPHER_H
 
 #include <aws/cryptosdk/cipher.h>
-#include <aws/cryptosdk/header.h>
-#include <aws/common/byte_buf.h>
 
 /**
  * Internal cryptographic helpers.
@@ -41,9 +39,9 @@ struct content_key {
  * or a no-op copy of the key.
  */
 int aws_cryptosdk_derive_key(
+    const struct aws_cryptosdk_alg_properties *alg_props,
     struct content_key *content_key,
     const struct data_key *data_key,
-    enum aws_cryptosdk_alg_id alg_id,
     const uint8_t *message_id
 );
 
@@ -53,7 +51,17 @@ int aws_cryptosdk_derive_key(
  * if invalid.
  */
 int aws_cryptosdk_verify_header(
-    enum aws_cryptosdk_alg_id alg_id,
+    const struct aws_cryptosdk_alg_properties *alg_props,
+    const struct content_key *content_key,
+    const struct aws_byte_buf *authtag,
+    const struct aws_byte_buf *header
+);
+
+/**
+ * Computes the header authentication tag. The tag (and IV) is written to the authtag buffer.
+ */
+int aws_cryptosdk_sign_header(
+    const struct aws_cryptosdk_alg_properties *alg_props,
     const struct content_key *content_key,
     const struct aws_byte_buf *authtag,
     const struct aws_byte_buf *header
@@ -69,9 +77,9 @@ int aws_cryptosdk_verify_header(
  * Returns AWS_OP_SUCCESS if successful.
  */
 int aws_cryptosdk_decrypt_body(
+    const struct aws_cryptosdk_alg_properties *alg_props,
     struct aws_byte_cursor *out,
     const struct aws_byte_cursor *in,
-    enum aws_cryptosdk_alg_id alg_id,
     const uint8_t *message_id,
     uint32_t seqno,
     const uint8_t *iv,
@@ -79,6 +87,23 @@ int aws_cryptosdk_decrypt_body(
     const uint8_t *tag,
     int body_frame_type
 );
+
+/**
+ * Encrypts either the body of the message (for non-framed messages) or a single frame of the message.
+ * Returns AWS_OP_SUCCESS if successful.
+ */
+int aws_cryptosdk_encrypt_body(
+    const struct aws_cryptosdk_alg_properties *alg_props,
+    struct aws_byte_cursor *out,
+    const struct aws_byte_cursor *in,
+    const uint8_t *message_id,
+    uint32_t seqno,
+    uint8_t *iv, /* out */
+    const struct content_key *key,
+    uint8_t *tag, /* out */
+    int body_frame_type
+);
+
 
 int aws_cryptosdk_genrandom(
     uint8_t *buf,

@@ -43,10 +43,12 @@ struct aws_cryptosdk_edk {
  */
 struct aws_cryptosdk_private_key {
     //FIXME: implement
+    int x; // just putting something here for now to avoid warnings
 };
 
 struct aws_cryptosdk_public_key {
     //FIXME: implement
+    int x; // just putting something here for now to avoid warnings
 };
 
 struct aws_cryptosdk_key_pair {

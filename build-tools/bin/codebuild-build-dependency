@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+# this file except in compliance with the License. A copy of the License is
+# located at
+#
+#     http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Some of our dependencies take a long time to build; this script
+# caches the binaries resulting from such builds until the upstream
+# git revision changes.
+
+# Note that we're not using codebuild's native caching support as it's
+# not compatible with the barebones ubuntu docker image we're using
+# (which in turn we're using because we need recent openssl).
+
+set -u
+set -e
+set -x
+
+GIT_URL="$1"
+shift
+
+BASENAME="$(basename "$GIT_URL" .git)"
+ROOT="/deps/$BASENAME"
+
+mkdir -p "$ROOT"
+git clone --depth=1 "$GIT_URL" "$ROOT/git"
+GITREV="$(cd "$ROOT/git"; git rev-parse HEAD)"
+ID_HASH="$(echo "$GITREV $@" | sha512sum | sed 's/ .*//')"
+S3PATH=s3://awsct-csdk-buildcache/$BASENAME/$ID_HASH.tar.xz
+
+if aws s3 cp $S3PATH "$ROOT/prebuilt.tar.xz"; then
+    tar -C "$ROOT" -xvf "$ROOT/prebuilt.tar.xz"
+else
+    mkdir -p "$ROOT/build"
+    (cd $ROOT/build; cmake "$ROOT/git" "$@" -DCMAKE_INSTALL_PREFIX="$ROOT/install" && make -j4 && make install)
+    tar -C "$ROOT" -cJvf prebuilt.tar.xz install
+    aws s3 cp prebuilt.tar.xz "$S3PATH"
+fi

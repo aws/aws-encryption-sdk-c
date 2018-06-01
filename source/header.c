@@ -234,7 +234,7 @@ PARSE_ERR:
 static const union {
     uint8_t bytes[sizeof(struct aws_cryptosdk_hdr)];
     struct aws_cryptosdk_hdr hdr;
-} zero = {0};
+} zero = {{0}};
 
 int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr) {
     if (!memcmp(hdr, &zero.hdr, sizeof(struct aws_cryptosdk_hdr))) return 0;

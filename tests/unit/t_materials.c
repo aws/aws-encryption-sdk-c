@@ -60,7 +60,7 @@ int default_cmm_zero_mkp_dec_mat() {
     struct aws_cryptosdk_decryption_request req;
     req.alg = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE;
     aws_array_list_init_dynamic(&req.encrypted_data_keys, alloc, 1, sizeof(struct aws_cryptosdk_edk));
-    struct aws_cryptosdk_edk edk = {0};
+    struct aws_cryptosdk_edk edk = {{0}};
     aws_array_list_push_back(&req.encrypted_data_keys, (void *) &edk);
 
     struct aws_cryptosdk_decryption_materials * dec_mat;

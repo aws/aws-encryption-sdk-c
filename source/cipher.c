@@ -17,9 +17,11 @@
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
 #include <openssl/rand.h>
-#include <assert.h>
 #include <arpa/inet.h>
+#include <assert.h>
+#include <stdbool.h>
 
+#include <aws/common/byte_order.h>
 #include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/error.h>
 
@@ -81,17 +83,11 @@ const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryp
 }
 
 int aws_cryptosdk_derive_key(
+    const struct aws_cryptosdk_alg_properties *props,
     struct content_key *content_key,
     const struct data_key *data_key,
-    enum aws_cryptosdk_alg_id alg_id,
     const uint8_t *message_id
 ) {
-    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
-
-    if (!props) {
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
-    }
-
     aws_cryptosdk_secure_zero(content_key->keybuf, sizeof(content_key->keybuf));
 
     if (props->impl->md_ctor == NULL) {
@@ -103,6 +99,7 @@ int aws_cryptosdk_derive_key(
     size_t outlen = props->content_key_len;
 
     uint8_t info[MSG_ID_LEN + 2];
+    uint16_t alg_id = props->alg_id;
     info[0] = alg_id >> 8;
     info[1] = alg_id & 0xFF;
     memcpy(&info[2], message_id, sizeof(info) - 2);
@@ -126,17 +123,18 @@ err:
     return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
 }
 
-static EVP_CIPHER_CTX *evp_gcm_decrypt_init(
+static EVP_CIPHER_CTX *evp_gcm_cipher_init(
     const struct aws_cryptosdk_alg_properties *props,
     const struct content_key *content_key,
-    const uint8_t *iv
+    const uint8_t *iv,
+    bool enc
 ) {
     EVP_CIPHER_CTX *ctx = NULL;
 
     if (!(ctx = EVP_CIPHER_CTX_new())) goto err;
-    if (!EVP_DecryptInit_ex(ctx, props->impl->cipher_ctor(), NULL, NULL, NULL)) goto err;
+    if (!EVP_CipherInit_ex(ctx, props->impl->cipher_ctor(), NULL, NULL, NULL, enc)) goto err;
     if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, props->iv_len, NULL)) goto err;
-    if (!EVP_DecryptInit_ex(ctx, NULL, NULL, content_key->keybuf, iv)) goto err;
+    if (!EVP_CipherInit_ex(ctx, NULL, NULL, content_key->keybuf, iv, -1)) goto err;
 
     return ctx;
 
@@ -145,6 +143,25 @@ err:
         EVP_CIPHER_CTX_free(ctx);
     }
     return NULL;
+}
+
+static int evp_gcm_encrypt_final(const struct aws_cryptosdk_alg_properties *props, EVP_CIPHER_CTX *ctx, uint8_t *tag) {
+    int outlen;
+    uint8_t finalbuf;
+
+    if (!EVP_EncryptFinal_ex(ctx, &finalbuf, &outlen)) {
+        return AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
+    }
+
+    if (outlen != 0) {
+        abort(); // wrong output size - potentially smashed stack
+    }
+
+    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, props->tag_len, (void *)tag)) {
+        return AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
+    }
+
+    return AWS_ERROR_SUCCESS;
 }
 
 static int evp_gcm_decrypt_final(const struct aws_cryptosdk_alg_properties *props, EVP_CIPHER_CTX *ctx, const uint8_t *tag) {
@@ -175,17 +192,54 @@ static int evp_gcm_decrypt_final(const struct aws_cryptosdk_alg_properties *prop
     return AWS_ERROR_SUCCESS;
 }
 
-int aws_cryptosdk_verify_header(
-    enum aws_cryptosdk_alg_id alg_id,
+int aws_cryptosdk_sign_header(
+    const struct aws_cryptosdk_alg_properties *props,
     const struct content_key *content_key,
     const struct aws_byte_buf *authtag,
     const struct aws_byte_buf *header
 ) {
-    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
-
-    if (!props) {
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
+    if (authtag->len != props->iv_len + props->tag_len) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
+
+    uint8_t *iv = authtag->buffer;
+    uint8_t *tag = authtag->buffer + props->iv_len;
+
+    /*
+     * Currently, we use a deterministic IV generation algorithm;
+     * the header IV is always all-zero.
+     */
+    aws_cryptosdk_secure_zero(iv, props->iv_len);
+
+    int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
+
+    EVP_CIPHER_CTX *ctx = evp_gcm_cipher_init(props, content_key, iv, true);
+    if (!ctx) goto out;
+
+    int outlen;
+    if (!EVP_CipherUpdate(ctx, NULL, &outlen, header->buffer, header->len)) goto out;
+
+    result = evp_gcm_encrypt_final(props, ctx, tag);
+out:
+    if (ctx) EVP_CIPHER_CTX_free(ctx);
+
+    if (result == AWS_ERROR_SUCCESS) {
+        return AWS_OP_SUCCESS;
+    } else {
+        return aws_raise_error(result);
+    }
+}
+
+int aws_cryptosdk_verify_header(
+    const struct aws_cryptosdk_alg_properties *props,
+    const struct content_key *content_key,
+    const struct aws_byte_buf *authtag,
+    const struct aws_byte_buf *header
+) {
+    /*
+     * Note: We don't delegate to sign_header here, as we want to leave the
+     * GCM tag comparison (which needs to be constant-time) to openssl.
+     */
 
     if (authtag->len != props->iv_len + props->tag_len) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
@@ -195,7 +249,7 @@ int aws_cryptosdk_verify_header(
     const uint8_t *tag = authtag->buffer + props->iv_len;
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
 
-    EVP_CIPHER_CTX *ctx = evp_gcm_decrypt_init(props, content_key, iv);
+    EVP_CIPHER_CTX *ctx = evp_gcm_cipher_init(props, content_key, iv, false);
     if (!ctx) goto out;
 
     int outlen;
@@ -245,11 +299,97 @@ static int update_frame_aad(
     return EVP_CipherUpdate(ctx, NULL, &ignored, (const uint8_t *)size, sizeof(size));
 }
 
-
-int aws_cryptosdk_decrypt_body(
+int aws_cryptosdk_encrypt_body(
+    const struct aws_cryptosdk_alg_properties *props,
     struct aws_byte_cursor *outp,
     const struct aws_byte_cursor *inp,
-    enum aws_cryptosdk_alg_id alg_id,
+    const uint8_t *message_id,
+    uint32_t seqno,
+    uint8_t *iv,
+    const struct content_key *key,
+    uint8_t *tag,
+    int body_frame_type
+) {
+    if (inp->len != outp->len) {
+        return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
+    }
+
+    /*
+     * We use a deterministic IV generation algorithm; the frame sequence number
+     * is used for the IV. To avoid collisions with the header IV, seqno=0 is
+     * forbidden.
+     */
+    if (seqno == 0) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+    }
+
+    uint64_t iv_seq = aws_hton64(seqno);
+
+    /*
+     * Paranoid check to make sure we're not going to walk off the end of the IV
+     * buffer if someone in the future introduces an algorithm with a really small
+     * IV for some reason.
+     */
+    if (props->iv_len < sizeof(iv_seq)) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+    }
+
+    aws_cryptosdk_secure_zero(iv, props->iv_len);
+
+    uint8_t *iv_seq_p = iv + props->iv_len - sizeof(iv_seq);
+    memcpy(iv_seq_p, &iv_seq, sizeof(iv_seq));
+
+    EVP_CIPHER_CTX *ctx = NULL;
+
+    int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
+
+    if (!(ctx = evp_gcm_cipher_init(props, key, iv, true))) goto out;
+    if (!update_frame_aad(ctx, message_id, body_frame_type, seqno, inp->len)) goto out;
+
+    struct aws_byte_cursor outcurs = *outp;
+    struct aws_byte_cursor incurs = *inp;
+
+    while (incurs.len) {
+        if (incurs.len != outcurs.len) {
+            /*
+             * None of the algorithms we currently support should break this invariant.
+             * Bail out immediately with an unknown error.
+             */
+            goto out;
+        }
+
+        int in_len = incurs.len > INT_MAX ? INT_MAX : incurs.len;
+        int ct_len;
+
+        if (!EVP_EncryptUpdate(ctx, outcurs.ptr, &ct_len, incurs.ptr, in_len)) goto out;
+        /*
+         * The next two advances should never fail ... but check the return values
+         * just in case.
+         */
+        if (!aws_byte_cursor_advance_nospec(&incurs, in_len).ptr) goto out;
+        if (!aws_byte_cursor_advance(&outcurs, ct_len).ptr) {
+            /* Somehow we ran over the output buffer. abort() to limit the damage. */
+            abort();
+        }
+    }
+
+    result = evp_gcm_encrypt_final(props, ctx, tag);
+
+out:
+    if (ctx) EVP_CIPHER_CTX_free(ctx);
+
+    if (result == AWS_ERROR_SUCCESS) {
+        return AWS_OP_SUCCESS;
+    } else {
+        aws_cryptosdk_secure_zero(outp->ptr, outp->len);
+        return aws_raise_error(result);
+    }
+}
+
+int aws_cryptosdk_decrypt_body(
+    const struct aws_cryptosdk_alg_properties *props,
+    struct aws_byte_cursor *outp,
+    const struct aws_byte_cursor *inp,
     const uint8_t *message_id,
     uint32_t seqno,
     const uint8_t *iv,
@@ -257,12 +397,6 @@ int aws_cryptosdk_decrypt_body(
     const uint8_t *tag,
     int body_frame_type
 ) {
-    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
-
-    if (!props) {
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
-    }
-
     if (inp->len != outp->len) {
         return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     }
@@ -272,7 +406,7 @@ int aws_cryptosdk_decrypt_body(
     struct aws_byte_cursor incurs = *inp;
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
 
-    if (!(ctx = evp_gcm_decrypt_init(props, key, iv))) goto out;
+    if (!(ctx = evp_gcm_cipher_init(props, key, iv, false))) goto out;
 
     if (!update_frame_aad(ctx, message_id, body_frame_type, seqno, inp->len)) goto out;
 

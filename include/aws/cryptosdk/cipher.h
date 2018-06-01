@@ -29,7 +29,7 @@ struct aws_cryptosdk_alg_properties {
      */
     const struct aws_cryptosdk_alg_impl *impl;
 
-    int data_key_len, content_key_len, iv_len, tag_len;
+    size_t data_key_len, content_key_len, iv_len, tag_len;
 
     enum aws_cryptosdk_alg_id alg_id;
 };
