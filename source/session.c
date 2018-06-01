@@ -14,8 +14,10 @@
  */
 
 #include <stdbool.h>
+#include <stdlib.h>
 
 #include <aws/cryptosdk/session.h>
+#include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/private/header.h>
 #include <aws/cryptosdk/private/session.h>
 
@@ -261,7 +263,7 @@ static int try_process_body(
     if (is_framed) {
         uint32_t seqno;
         input_len = 4;
-        if (aws_byte_cursor_read_be32(&input, &seqno)) {
+        if (!aws_byte_cursor_read_be32(&input, &seqno)) {
             goto no_progress;
         }
 
@@ -280,14 +282,14 @@ static int try_process_body(
 
             // Read the true sequence number after the final-frame sentinel
             input_len += 4; // 32-bit field read
-            if (aws_byte_cursor_read_be32(&input, &seqno)) goto no_progress;
+            if (!aws_byte_cursor_read_be32(&input, &seqno)) goto no_progress;
 
             input_len += iv_len;
             if (!(iv = aws_byte_cursor_advance(&input, iv_len)).ptr) goto no_progress;
 
             uint32_t content_len;
             input_len += 4; // 32-bit field read
-            if (aws_byte_cursor_read_be32(&input, &content_len)) goto no_progress;
+            if (!aws_byte_cursor_read_be32(&input, &content_len)) goto no_progress;
 
             input_len += content_len + tag_len;
             output_len = content_len;
@@ -312,7 +314,7 @@ static int try_process_body(
 
         uint64_t content_len;
         input_len += 8; // 64-bit field read
-        if (aws_byte_cursor_read_be64(&input, &content_len)) goto no_progress;
+        if (!aws_byte_cursor_read_be64(&input, &content_len)) goto no_progress;
 
         output_len = content_len;
         input_len += content_len + tag_len;
