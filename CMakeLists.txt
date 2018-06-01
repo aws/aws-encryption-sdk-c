@@ -22,8 +22,6 @@ include(FindOpenSSL)
 
 set(PROJECT_NAME aws-encryption-sdk)
 
-set(CMAKE_BUILD_TYPE Debug)
-
 # Compiler feature tests and feature flags
 set(USE_ASM TRUE
     CACHE BOOL "Enable use of inline assembler, if supported by the compiler and platform")
