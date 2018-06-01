@@ -87,7 +87,7 @@ struct aws_cryptosdk_decryption_materials {
 
 /**
  * Macro for virtual function calls that return an integer error code. Checks that vt_size is large enough and that pointer is
- * non-null before attempting call. If checks fail, sets AWS internal error to AWS_CRYPTOSDK_ERR_VIRTUAL_FUNCTION_UNIMPLEMENTED
+ * non-null before attempting call. If checks fail, sets AWS internal error to AWS_ERROR_UNIMPLEMENTED
  * and returns the return value of aws_raise_error(), i.e., AWS_OP_ERR.
  */
 #define VF_CALL(fn_name, struct_type, ...) \
@@ -95,14 +95,14 @@ struct aws_cryptosdk_decryption_materials {
         const struct aws_cryptosdk_ ## struct_type ## _vt ** vtp = (const struct aws_cryptosdk_ ## struct_type ## _vt **) struct_type; \
         ptrdiff_t memb_offset = (const uint8_t *)&(*vtp)->fn_name - (const uint8_t *)*vtp; \
         if (memb_offset + sizeof((*vtp)->fn_name) > (*vtp)->vt_size || !(*vtp)->fn_name) { \
-            return aws_raise_error(AWS_CRYPTOSDK_ERR_VIRTUAL_FUNCTION_UNIMPLEMENTED); \
+            return aws_raise_error(AWS_ERROR_UNIMPLEMENTED); \
         } \
         return (*vtp)->fn_name(struct_type, ##__VA_ARGS__); \
     } while (0)
 
 /**
  * Macro for virtual function calls with no return value, e.g. destroy. Checks that vt_size is large enough and that pointer is
- * non-null before attempting call. If checks fail, sets AWS internal error to AWS_CRYPTOSDK_ERR_VIRTUAL_FUNCTION_UNIMPLEMENTED
+ * non-null before attempting call. If checks fail, sets AWS internal error to AWS_ERROR_UNIMPLEMENTED
  * and otherwise is a no-op.
  */
 #define VF_CALL_NO_RETURN(fn_name, struct_type, ...) \
@@ -110,7 +110,7 @@ struct aws_cryptosdk_decryption_materials {
         const struct aws_cryptosdk_ ## struct_type ## _vt ** vtp = (const struct aws_cryptosdk_ ## struct_type ## _vt **) struct_type; \
         ptrdiff_t memb_offset = (const uint8_t *)&(*vtp)->fn_name - (const uint8_t *)*vtp; \
         if (memb_offset + sizeof((*vtp)->fn_name) > (*vtp)->vt_size || !(*vtp)->fn_name) { \
-            aws_raise_error(AWS_CRYPTOSDK_ERR_VIRTUAL_FUNCTION_UNIMPLEMENTED); \
+            aws_raise_error(AWS_ERROR_UNIMPLEMENTED); \
         } else { \
             (*vtp)->fn_name(struct_type, ##__VA_ARGS__); \
         } \
