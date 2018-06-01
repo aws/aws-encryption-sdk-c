@@ -221,7 +221,9 @@ static inline void aws_cryptosdk_mkp_destroy(struct aws_cryptosdk_mkp * mkp) {
  * implementation.) It does not own the memory of the master keys. It must be cleaned up after
  * it is used, but cleaning up the list does not destroy any of the master keys themselves.
  *
- * On success AWS_OP_SUCCESS is returned, and at least one new MK is appended to the list.
+ * On success AWS_OP_SUCCESS is returned. This may or may not add MK pointers to the list,
+ * depending on whether the MKP has any master keys to provide.
+ *
  * On failure AWS_OP_ERR is returned, an internal AWS error code is set, and the list is unchanged.
  */
 static inline int aws_cryptosdk_mkp_get_master_keys(struct aws_cryptosdk_mkp * mkp,
