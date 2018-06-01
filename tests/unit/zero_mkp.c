@@ -21,7 +21,6 @@
  * for testing the CMM/MKP/MK infrastructure.
  */
 
-
 struct zero_mk {const struct aws_cryptosdk_mk_vt * vt;};
 
 const char * literally_null = "null";
@@ -56,7 +55,8 @@ static int zero_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
                                     enum aws_cryptosdk_alg_id alg) {
     for (size_t byte_idx = 0 ; byte_idx < unencrypted_data_key->len ; ++byte_idx) {
         if (unencrypted_data_key->buffer[byte_idx]) {
-            return AWS_OP_ERR;
+            // Zero MK only encrypts the all zero data key
+            return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
         }
     }
     aws_cryptosdk_literally_null_edk(edk);
@@ -80,11 +80,11 @@ static struct aws_cryptosdk_mk * mk = (struct aws_cryptosdk_mk *) &zero_mk_singl
 
 
 static int zero_mkp_get_master_keys(struct aws_cryptosdk_mkp * mkp,
-                                       struct aws_array_list * master_keys, // list of (aws_cryptosdk_mk *)
-                                       struct aws_hash_table * enc_context) {
+                                    struct aws_array_list * master_keys, // list of (aws_cryptosdk_mk *)
+                                    struct aws_hash_table * enc_context) {
     int ret = aws_array_list_push_back(master_keys, &mk); // copies *address* of the zero MK into the list
     if (ret) { // shouldn't happen if it's a dynamically allocated list
-        return aws_raise_error(ret);
+        return ret;
     }
     return AWS_OP_SUCCESS;
 }
