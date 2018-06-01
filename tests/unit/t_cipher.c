@@ -888,7 +888,7 @@ static int test_sign_header() {
             uint8_t auth_tag[alg->iv_len + alg->tag_len];
             memset(auth_tag, 0xFF, sizeof(auth_tag));
 
-            struct aws_byte_buf auth_buf = aws_byte_buf_from_array(NULL, auth_tag, sizeof(auth_tag));
+            struct aws_byte_buf auth_buf = aws_byte_buf_from_array(auth_tag, sizeof(auth_tag));
 
             TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
                 aws_cryptosdk_sign_header(alg, &key, &auth_buf, &header_buf));
