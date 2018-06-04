@@ -83,7 +83,7 @@ static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * 
     struct aws_hash_element * p_elem;
     int was_created;
     if (aws_hash_table_create(enc_mat->enc_context, (void *)"aws-crypto-public-key", &p_elem, &was_created)) {
-        goto ERROR; // FIXME: handle resizing of hash table when necessary
+        goto ERROR;
     }
 
     if (!was_created) {
