@@ -85,6 +85,16 @@ struct aws_cryptosdk_decryption_materials {
     struct aws_cryptosdk_public_key trailing_signature_key;
 };
 
+/*
+ * C99 standard dictates that "..." must have at least one argument behind it. Second arg of _VF_CALL macros is always struct
+ * type, i.e., "cmm", "mkp", or "mk". These helper macros allow us not to make struct_type a named argument, thus handling the
+ * case cleanly where there are no more arguments.
+ */
+#define STRUCT_NAME_HELPER(struct_type, ...) struct_type
+#define STRUCT_NAME(...) STRUCT_NAME_HELPER(__VA_ARGS__, throwaway)
+#define VTP_TYPE_HELPER(struct_type, ...) const struct aws_cryptosdk_ ## struct_type ## _vt **
+#define VTP_TYPE(...) VTP_TYPE_HELPER(__VA_ARGS__, throwaway)
+
 /**
  * Macro for virtual function calls that return an integer error code. Checks that vt_size is large enough and that pointer is
  * non-null before attempting call. If checks fail, sets AWS internal error to AWS_ERROR_UNIMPLEMENTED
@@ -93,16 +103,6 @@ struct aws_cryptosdk_decryption_materials {
  * Note that this depends on a naming convention of always using "cmm", "mkp", or "mk" as the name of the pointer variable
  * as the first argument of the virtual function in the inline functions below which call this macro.
  */
-
-/* C99 standard dictates that "..." must have at least one argument behind it. Second arg of VF_CALL macros is always struct
- * type, i.e., "cmm", "mkp", or "mk". These helper macros allow us to not make struct_type a named argument, thus handling the
- * case cleanly where there are no more arguments.
- */
-#define STRUCT_NAME_HELPER(struct_type, ...) struct_type
-#define STRUCT_NAME(...) STRUCT_NAME_HELPER(__VA_ARGS__, throwaway)
-#define VTP_TYPE_HELPER(struct_type, ...) const struct aws_cryptosdk_ ## struct_type ## _vt **
-#define VTP_TYPE(...) VTP_TYPE_HELPER(__VA_ARGS__, throwaway)
-
 #define AWS_CRYPTOSDK_PRIVATE_VF_CALL(fn_name, ...) \
     do { \
         VTP_TYPE(__VA_ARGS__) vtp = (VTP_TYPE(__VA_ARGS__)) STRUCT_NAME(__VA_ARGS__); \
