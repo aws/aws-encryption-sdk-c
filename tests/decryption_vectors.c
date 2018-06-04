@@ -351,18 +351,14 @@ static struct aws_byte_buf b64_decode(const char *b64_input) {
     size_t outlen;
 
     if (aws_base64_compute_decoded_len(b64_input, inlen, &outlen)) {
-        fprintf(stderr, "Base64 decode failed for {%s}: 0x%04x\n",
+        fprintf(stderr, "Base64 compute decoded len failed for {%s}: 0x%04x\n",
             b64_input, aws_last_error());
         exit(1);
     }
 
-    struct aws_byte_buf in = { .buffer = (uint8_t *)b64_input, .len = inlen, .size = inlen };
-    struct aws_byte_buf out = { .buffer = malloc(outlen), .len = outlen, .size = outlen };
-
-    if (!out.buffer) {
-        fprintf(stderr, "Out of memory\n");
-        exit(1);
-    }
+    struct aws_byte_buf in = aws_byte_buf_from_literal(b64_input);
+    struct aws_byte_buf out;
+    if (aws_byte_buf_init(aws_default_allocator(), &out, outlen)) abort();
 
     if (aws_base64_decode(&in, &out)) {
         fprintf(stderr, "Base64 decode failed for {%s}: 0x%04x\n",
@@ -385,8 +381,8 @@ void decrypt_test_vector(
     decrypt_test_incremental(vector_name, pt, ct);
     decrypt_test_badciphertext(vector_name, pt, ct);
 
-    free(pt.buffer);
-    free(ct.buffer);
+    aws_byte_buf_clean_up(&pt);
+    aws_byte_buf_clean_up(&ct);
 }
 
 
