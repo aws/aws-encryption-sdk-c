@@ -356,8 +356,8 @@ static struct aws_byte_buf b64_decode(const char *b64_input) {
         exit(1);
     }
 
-    struct aws_byte_buf in = { .buffer = (uint8_t *)b64_input, .len = inlen };
-    struct aws_byte_buf out = { .buffer = malloc(outlen), .len = outlen };
+    struct aws_byte_buf in = { .buffer = (uint8_t *)b64_input, .len = inlen, .size = inlen };
+    struct aws_byte_buf out = { .buffer = malloc(outlen), .len = outlen, .size = outlen };
 
     if (!out.buffer) {
         fprintf(stderr, "Out of memory\n");
