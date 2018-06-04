@@ -75,7 +75,7 @@ void aws_cryptosdk_hdr_free(struct aws_allocator * allocator, struct aws_cryptos
             aws_byte_buf_clean_up(&aad->key);
             aws_byte_buf_clean_up(&aad->value);
         }
-        allocator->mem_release(allocator, hdr->aad_tbl);
+        aws_mem_release(allocator, hdr->aad_tbl);
     }
     if (hdr->edk_tbl) {
         for (size_t i = 0; i < hdr->edk_count; ++i) {
@@ -84,7 +84,7 @@ void aws_cryptosdk_hdr_free(struct aws_allocator * allocator, struct aws_cryptos
             aws_byte_buf_clean_up(&edk->provider_info);
             aws_byte_buf_clean_up(&edk->enc_data_key);
         }
-        allocator->mem_release(allocator, hdr->edk_tbl);
+        aws_mem_release(allocator, hdr->edk_tbl);
     }
     aws_byte_buf_clean_up(&hdr->iv);
     aws_byte_buf_clean_up(&hdr->auth_tag);
@@ -124,7 +124,7 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
         hdr->aad_count = aad_count;
 
         size_t aad_tbl_size = aad_count*sizeof(struct aws_cryptosdk_hdr_aad);
-        hdr->aad_tbl = allocator->mem_acquire(allocator, aad_tbl_size);
+        hdr->aad_tbl = aws_mem_acquire(allocator, aad_tbl_size);
         if (!hdr->aad_tbl) {ret = AWS_ERROR_OOM; goto PARSE_ERR;}
         memset(hdr->aad_tbl, 0, aad_tbl_size); // so we don't try to free uninitialized memory
 
@@ -161,7 +161,7 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
     hdr->edk_count = edk_count;
 
     size_t edk_tbl_size = edk_count*sizeof(struct aws_cryptosdk_edk);
-    hdr->edk_tbl = allocator->mem_acquire(allocator, edk_tbl_size);
+    hdr->edk_tbl = aws_mem_acquire(allocator, edk_tbl_size);
     if (!hdr->edk_tbl) {ret = AWS_ERROR_OOM; goto PARSE_ERR;}
     memset(hdr->edk_tbl, 0, edk_tbl_size);
 

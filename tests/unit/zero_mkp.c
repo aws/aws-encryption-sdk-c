@@ -44,6 +44,7 @@ static int zero_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
                                      struct aws_hash_table * enc_context,
                                      enum aws_cryptosdk_alg_id alg) {
     aws_cryptosdk_secure_zero_buf(unencrypted_data_key);
+    unencrypted_data_key->len = unencrypted_data_key->size;
     aws_cryptosdk_literally_null_edk(edk);
     return AWS_OP_SUCCESS;
 }
@@ -101,6 +102,7 @@ static int zero_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
         if (aws_array_list_get_at_ptr(encrypted_data_keys, (void **)&edk, 0)) return AWS_OP_ERR;
         if (is_literally_null_edk(edk)) {
             aws_cryptosdk_secure_zero_buf(unencrypted_data_key);
+            unencrypted_data_key->len = unencrypted_data_key->size;
             return AWS_OP_SUCCESS;
         }
     }

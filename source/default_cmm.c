@@ -148,7 +148,7 @@ ERROR:
 
 static void default_cmm_destroy(struct aws_cryptosdk_cmm * cmm) {
     struct default_cmm * self = (struct default_cmm *) cmm;
-    self->alloc->mem_release(self->alloc, self);
+    aws_mem_release(self->alloc, self);
 }
 
 static const struct aws_cryptosdk_cmm_vt default_cmm_vt = {
@@ -161,7 +161,7 @@ static const struct aws_cryptosdk_cmm_vt default_cmm_vt = {
 
 struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * alloc, struct aws_cryptosdk_mkp * mkp) {
     struct default_cmm * cmm;
-    cmm = alloc->mem_acquire(alloc, sizeof(struct default_cmm));
+    cmm = aws_mem_acquire(alloc, sizeof(struct default_cmm));
     if (!cmm) {
         aws_raise_error(AWS_ERROR_OOM);
         return NULL;
