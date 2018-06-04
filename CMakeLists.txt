@@ -54,7 +54,6 @@ CHECK_CXX_COMPILER_FLAG("-Wall" HAS_FLAG_WALL)
 CHECK_CXX_COMPILER_FLAG("-pedantic" HAS_FLAG_PEDANTIC)
 CHECK_CXX_COMPILER_FLAG("-Werror" HAS_FLAG_WERROR)
 CHECK_CXX_COMPILER_FLAG("-Wno-missing-field-initializers" HAS_FLAG_NO_MISSING_FIELD_INITIALIZERS)
-CHECK_CXX_COMPILER_FLAG("-Wno-gnu-zero-variadic-macro-arguments" HAS_FLAG_NO_GNU_ZERO_VARIADIC_MACRO_ARGUMENTS)
 
 if (HAS_FLAG_WALL)
     add_compile_options(-Wall)
@@ -69,11 +68,6 @@ if (HAS_FLAG_NO_MISSING_FIELD_INITIALIZERS)
 # TODO - this is to avoid warning on the missing 'enabled' field in test case definitions.
 # We should find a cleaner way to work around this.
     add_compile_options(-Wno-missing-field-initializers)
-endif()
-if (HAS_FLAG_NO_GNU_ZERO_VARIADIC_MACRO_ARGUMENTS)
-# This allows us to use the ##__VA_ARGS__ trick which peels off the preceding comma
-# when there are no variadic args. If there is a better way to do this, we can remove this.
-    add_compile_options(-Wno-gnu-zero-variadic-macro-arguments)
 endif()
 
 file(GLOB AWS_CRYPTOSDK_HEADERS

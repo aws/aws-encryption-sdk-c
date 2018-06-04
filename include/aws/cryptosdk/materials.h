@@ -89,15 +89,28 @@ struct aws_cryptosdk_decryption_materials {
  * Macro for virtual function calls that return an integer error code. Checks that vt_size is large enough and that pointer is
  * non-null before attempting call. If checks fail, sets AWS internal error to AWS_ERROR_UNIMPLEMENTED
  * and returns the return value of aws_raise_error(), i.e., AWS_OP_ERR.
+ *
+ * Note that this depends on a naming convention of always using "cmm", "mkp", or "mk" as the name of the pointer variable
+ * as the first argument of the virtual function in the inline functions below which call this macro.
  */
-#define AWS_CRYPTOSDK_PRIVATE_VF_CALL(fn_name, struct_type, ...) \
+
+/* C99 standard dictates that "..." must have at least one argument behind it. Second arg of VF_CALL macros is always struct
+ * type, i.e., "cmm", "mkp", or "mk". These helper macros allow us to not make struct_type a named argument, thus handling the
+ * case cleanly where there are no more arguments.
+ */
+#define STRUCT_NAME_HELPER(struct_type, ...) struct_type
+#define STRUCT_NAME(...) STRUCT_NAME_HELPER(__VA_ARGS__, throwaway)
+#define VTP_TYPE_HELPER(struct_type, ...) const struct aws_cryptosdk_ ## struct_type ## _vt **
+#define VTP_TYPE(...) VTP_TYPE_HELPER(__VA_ARGS__, throwaway)
+
+#define AWS_CRYPTOSDK_PRIVATE_VF_CALL(fn_name, ...) \
     do { \
-        const struct aws_cryptosdk_ ## struct_type ## _vt ** vtp = (const struct aws_cryptosdk_ ## struct_type ## _vt **) struct_type; \
+        VTP_TYPE(__VA_ARGS__) vtp = (VTP_TYPE(__VA_ARGS__)) STRUCT_NAME(__VA_ARGS__); \
         ptrdiff_t memb_offset = (const uint8_t *)&(*vtp)->fn_name - (const uint8_t *)*vtp; \
         if (memb_offset + sizeof((*vtp)->fn_name) > (*vtp)->vt_size || !(*vtp)->fn_name) { \
             return aws_raise_error(AWS_ERROR_UNIMPLEMENTED); \
         } \
-        return (*vtp)->fn_name(struct_type, ##__VA_ARGS__); \
+        return (*vtp)->fn_name(__VA_ARGS__); \
     } while (0)
 
 /**
@@ -105,14 +118,14 @@ struct aws_cryptosdk_decryption_materials {
  * non-null before attempting call. If checks fail, sets AWS internal error to AWS_ERROR_UNIMPLEMENTED
  * and otherwise is a no-op.
  */
-#define AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(fn_name, struct_type, ...) \
+#define AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(fn_name, ...) \
     do { \
-        const struct aws_cryptosdk_ ## struct_type ## _vt ** vtp = (const struct aws_cryptosdk_ ## struct_type ## _vt **) struct_type; \
+        VTP_TYPE(__VA_ARGS__) vtp = (VTP_TYPE(__VA_ARGS__)) STRUCT_NAME(__VA_ARGS__); \
         ptrdiff_t memb_offset = (const uint8_t *)&(*vtp)->fn_name - (const uint8_t *)*vtp; \
         if (memb_offset + sizeof((*vtp)->fn_name) > (*vtp)->vt_size || !(*vtp)->fn_name) { \
             aws_raise_error(AWS_ERROR_UNIMPLEMENTED); \
         } else { \
-            (*vtp)->fn_name(struct_type, ##__VA_ARGS__); \
+            (*vtp)->fn_name(__VA_ARGS__); \
         } \
     } while (0)
 
