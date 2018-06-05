@@ -793,9 +793,9 @@ static int test_encrypt_body() {
         if (aws_byte_buf_init(alloc, &pt_buf, buf_size)) abort();
         if (aws_byte_buf_init(alloc, &ct_buf, buf_size)) abort();
         if (aws_byte_buf_init(alloc, &decrypt_buf, buf_size)) abort();
-        pt_buf.len = pt_buf.size;
-        ct_buf.len = ct_buf.size;
-        decrypt_buf.len = decrypt_buf.size;
+        pt_buf.len = pt_buf.capacity;
+        ct_buf.len = ct_buf.capacity;
+        decrypt_buf.len = decrypt_buf.capacity;
 
         aws_cryptosdk_genrandom(pt_buf.buffer, pt_buf.len);
 

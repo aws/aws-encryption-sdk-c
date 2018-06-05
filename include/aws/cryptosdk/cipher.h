@@ -45,7 +45,7 @@ static inline void aws_cryptosdk_secure_zero(void *buf, size_t len) {
 }
 
 static inline void aws_cryptosdk_secure_zero_buf(struct aws_byte_buf * buf) {
-    aws_cryptosdk_secure_zero(buf->buffer, buf->size);
+    aws_cryptosdk_secure_zero(buf->buffer, buf->capacity);
     buf->len = 0;
 }
 
