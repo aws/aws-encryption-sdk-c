@@ -469,8 +469,8 @@ static int testHeaderAuth(const uint8_t *header, size_t headerlen, const uint8_t
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
         aws_cryptosdk_derive_key(alg, &derived_key, &data_key, header + 4));
 
-    struct aws_byte_buf headerbuf = { .buffer = (uint8_t *)header, .len = headerlen };
-    struct aws_byte_buf authbuf = { .buffer = (uint8_t *)authtag, .len = taglen };
+    struct aws_byte_buf headerbuf = aws_byte_buf_from_array(header, headerlen);
+    struct aws_byte_buf authbuf = aws_byte_buf_from_array(authtag, taglen);
 
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_verify_header(alg, &derived_key, &authbuf, &headerbuf));
 
@@ -793,6 +793,9 @@ static int test_encrypt_body() {
         if (aws_byte_buf_init(alloc, &pt_buf, buf_size)) abort();
         if (aws_byte_buf_init(alloc, &ct_buf, buf_size)) abort();
         if (aws_byte_buf_init(alloc, &decrypt_buf, buf_size)) abort();
+        pt_buf.len = pt_buf.size;
+        ct_buf.len = ct_buf.size;
+        decrypt_buf.len = decrypt_buf.size;
 
         aws_cryptosdk_genrandom(pt_buf.buffer, pt_buf.len);
 
