@@ -23,6 +23,7 @@ int pass_fn() { return 0; }
 struct test_case *test_groups[] = {
     header_test_cases,
     cipher_test_cases,
+    materials_test_cases,
     NULL
 };
 

@@ -175,6 +175,7 @@ endif(AWSSDK_FOUND)
 
 add_test(cipher unit-test-suite cipher)
 add_test(header unit-test-suite header)
+add_test(materials unit-test-suite materials)
 
 set(TEST_DATA ${CMAKE_CURRENT_SOURCE_DIR}/tests/data)
 

@@ -73,7 +73,7 @@ struct aws_cryptosdk_hdr_aad test_header_1_aad_tbl[] = {
 uint8_t test_header_1_edk_provider_id[] = {0x10, 0x11, 0x12, 0x00};
 uint8_t test_header_1_edk_provider_info[] = {0x01, 0x02, 0x03, 0x04};
 uint8_t test_header_1_edk_enc_data_key[] = {0x11, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x88};
-struct aws_cryptosdk_hdr_edk test_header_1_edk_tbl[] = {
+struct aws_cryptosdk_edk test_header_1_edk_tbl[] = {
     {{0}},
     {
         .provider_id = {.len = sizeof(test_header_1_edk_provider_id), .buffer = test_header_1_edk_provider_id},
@@ -92,7 +92,7 @@ uint8_t test_header_1_auth_tag_arr[] =
 struct aws_cryptosdk_hdr test_header_1_hdr = {
     .alg_id = AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
     .aad_count = sizeof(test_header_1_aad_tbl)/sizeof(struct aws_cryptosdk_hdr_aad),
-    .edk_count = sizeof(test_header_1_edk_tbl)/sizeof(struct aws_cryptosdk_hdr_edk),
+    .edk_count = sizeof(test_header_1_edk_tbl)/sizeof(struct aws_cryptosdk_edk),
     .frame_len = 0x1000,
     .iv = {.buffer = test_header_1_iv_arr, .len = sizeof(test_header_1_iv_arr)},
     .auth_tag = {.buffer = test_header_1_auth_tag_arr, .len = sizeof(test_header_1_auth_tag_arr)},
@@ -168,7 +168,7 @@ static const uint8_t bad_header_1[] = { // nonzero reserve bytes
 struct aws_cryptosdk_hdr test_header_2_hdr = {
     .alg_id = AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
     .aad_count = 0,
-    .edk_count = sizeof(test_header_1_edk_tbl)/sizeof(struct aws_cryptosdk_hdr_edk),
+    .edk_count = sizeof(test_header_1_edk_tbl)/sizeof(struct aws_cryptosdk_edk),
     .frame_len = 0x1000,
     .iv = {.buffer = test_header_1_iv_arr, .len = sizeof(test_header_1_iv_arr)},
     .auth_tag = {.buffer = test_header_1_auth_tag_arr, .len = sizeof(test_header_1_auth_tag_arr)},

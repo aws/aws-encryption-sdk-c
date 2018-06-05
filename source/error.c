@@ -17,7 +17,8 @@
 static const struct aws_error_info error_info[] = {
     AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT, "Bad ciphertext", "cryptosdk"),
     AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN, "Unknown error in crypto routines", "cryptosdk"),
-    AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT, "Unsupported format version or bad ciphertext", "cryptosdk")
+    AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT, "Unsupported format version or bad ciphertext", "cryptosdk"),
+    AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_NO_MASTER_KEYS_FOUND, "No master keys available", "cryptosdk")
 };
 
 static const struct aws_error_info_list error_info_list = {

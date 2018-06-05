@@ -75,16 +75,16 @@ void aws_cryptosdk_hdr_free(struct aws_allocator * allocator, struct aws_cryptos
             aws_byte_buf_clean_up(&aad->key);
             aws_byte_buf_clean_up(&aad->value);
         }
-        allocator->mem_release(allocator, hdr->aad_tbl);
+        aws_mem_release(allocator, hdr->aad_tbl);
     }
     if (hdr->edk_tbl) {
         for (size_t i = 0; i < hdr->edk_count; ++i) {
-            struct aws_cryptosdk_hdr_edk * edk = hdr->edk_tbl + i;
+            struct aws_cryptosdk_edk * edk = hdr->edk_tbl + i;
             aws_byte_buf_clean_up(&edk->provider_id);
             aws_byte_buf_clean_up(&edk->provider_info);
             aws_byte_buf_clean_up(&edk->enc_data_key);
         }
-        allocator->mem_release(allocator, hdr->edk_tbl);
+        aws_mem_release(allocator, hdr->edk_tbl);
     }
     aws_byte_buf_clean_up(&hdr->iv);
     aws_byte_buf_clean_up(&hdr->auth_tag);
@@ -124,7 +124,7 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
         hdr->aad_count = aad_count;
 
         size_t aad_tbl_size = aad_count*sizeof(struct aws_cryptosdk_hdr_aad);
-        hdr->aad_tbl = allocator->mem_acquire(allocator, aad_tbl_size);
+        hdr->aad_tbl = aws_mem_acquire(allocator, aad_tbl_size);
         if (!hdr->aad_tbl) {ret = AWS_ERROR_OOM; goto PARSE_ERR;}
         memset(hdr->aad_tbl, 0, aad_tbl_size); // so we don't try to free uninitialized memory
 
@@ -160,13 +160,13 @@ int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptos
     if (!aws_byte_cursor_read_be16(&cur, &edk_count)) goto SHORT_BUF;
     hdr->edk_count = edk_count;
 
-    size_t edk_tbl_size = edk_count*sizeof(struct aws_cryptosdk_hdr_edk);
-    hdr->edk_tbl = allocator->mem_acquire(allocator, edk_tbl_size);
+    size_t edk_tbl_size = edk_count*sizeof(struct aws_cryptosdk_edk);
+    hdr->edk_tbl = aws_mem_acquire(allocator, edk_tbl_size);
     if (!hdr->edk_tbl) {ret = AWS_ERROR_OOM; goto PARSE_ERR;}
     memset(hdr->edk_tbl, 0, edk_tbl_size);
 
     for (size_t i = 0; i < hdr->edk_count; ++i) {
-        struct aws_cryptosdk_hdr_edk * edk = hdr->edk_tbl + i;
+        struct aws_cryptosdk_edk * edk = hdr->edk_tbl + i;
         uint16_t field_len;
 
         if (!aws_byte_cursor_read_be16(&cur, &field_len)) goto SHORT_BUF;
@@ -252,7 +252,7 @@ int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr) {
     }
 
     for (idx = 0 ; idx < hdr->edk_count ; ++idx) {
-        struct aws_cryptosdk_hdr_edk * edk = hdr->edk_tbl + idx;
+        struct aws_cryptosdk_edk * edk = hdr->edk_tbl + idx;
         bytes += 6 + edk->provider_id.len + edk->provider_info.len + edk->enc_data_key.len;
     }
     return bytes;
@@ -298,7 +298,7 @@ int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_
     if (!aws_byte_cursor_write_be16(&output, hdr->edk_count)) goto WRITE_ERR;
 
     for (int idx = 0 ; idx < hdr->edk_count ; ++idx) {
-        struct aws_cryptosdk_hdr_edk * edk = hdr->edk_tbl + idx;
+        struct aws_cryptosdk_edk * edk = hdr->edk_tbl + idx;
 
         if (!aws_byte_cursor_write_be16(&output, edk->provider_id.len)) goto WRITE_ERR;
         if (!aws_byte_cursor_write_from_whole_buffer(&output, &edk->provider_id)) goto WRITE_ERR;
