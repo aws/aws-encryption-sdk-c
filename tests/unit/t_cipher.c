@@ -469,8 +469,8 @@ static int testHeaderAuth(const uint8_t *header, size_t headerlen, const uint8_t
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
         aws_cryptosdk_derive_key(alg, &derived_key, &data_key, header + 4));
 
-    struct aws_byte_buf headerbuf = { .buffer = (uint8_t *)header, .len = headerlen, .size = headerlen };
-    struct aws_byte_buf authbuf = { .buffer = (uint8_t *)authtag, .len = taglen, .size = taglen };
+    struct aws_byte_buf headerbuf = aws_byte_buf_from_array(header, headerlen);
+    struct aws_byte_buf authbuf = aws_byte_buf_from_array(authtag, taglen);
 
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_verify_header(alg, &derived_key, &authbuf, &headerbuf));
 
