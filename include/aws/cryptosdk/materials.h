@@ -90,10 +90,10 @@ struct aws_cryptosdk_decryption_materials {
  * type, i.e., "cmm", "mkp", or "mk". These helper macros allow us not to make struct_type a named argument, thus handling the
  * case cleanly where there are no more arguments.
  */
-#define STRUCT_NAME_HELPER(struct_type, ...) struct_type
-#define STRUCT_NAME(...) STRUCT_NAME_HELPER(__VA_ARGS__, throwaway)
-#define VTP_TYPE_HELPER(struct_type, ...) const struct aws_cryptosdk_ ## struct_type ## _vt **
-#define VTP_TYPE(...) VTP_TYPE_HELPER(__VA_ARGS__, throwaway)
+#define AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_HELPER(struct_type, ...) struct_type
+#define AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME(...) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_HELPER(__VA_ARGS__, throwaway)
+#define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_HELPER(struct_type, ...) const struct aws_cryptosdk_ ## struct_type ## _vt **
+#define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(...) AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_HELPER(__VA_ARGS__, throwaway)
 
 /**
  * Macro for virtual function calls that return an integer error code. Checks that vt_size is large enough and that pointer is
@@ -105,7 +105,8 @@ struct aws_cryptosdk_decryption_materials {
  */
 #define AWS_CRYPTOSDK_PRIVATE_VF_CALL(fn_name, ...) \
     do { \
-        VTP_TYPE(__VA_ARGS__) vtp = (VTP_TYPE(__VA_ARGS__)) STRUCT_NAME(__VA_ARGS__); \
+        AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(__VA_ARGS__) vtp = \
+            (AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(__VA_ARGS__)) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME(__VA_ARGS__); \
         ptrdiff_t memb_offset = (const uint8_t *)&(*vtp)->fn_name - (const uint8_t *)*vtp; \
         if (memb_offset + sizeof((*vtp)->fn_name) > (*vtp)->vt_size || !(*vtp)->fn_name) { \
             return aws_raise_error(AWS_ERROR_UNIMPLEMENTED); \
@@ -120,7 +121,8 @@ struct aws_cryptosdk_decryption_materials {
  */
 #define AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(fn_name, ...) \
     do { \
-        VTP_TYPE(__VA_ARGS__) vtp = (VTP_TYPE(__VA_ARGS__)) STRUCT_NAME(__VA_ARGS__); \
+        AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(__VA_ARGS__) vtp = \
+            (AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(__VA_ARGS__)) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME(__VA_ARGS__); \
         ptrdiff_t memb_offset = (const uint8_t *)&(*vtp)->fn_name - (const uint8_t *)*vtp; \
         if (memb_offset + sizeof((*vtp)->fn_name) > (*vtp)->vt_size || !(*vtp)->fn_name) { \
             aws_raise_error(AWS_ERROR_UNIMPLEMENTED); \
