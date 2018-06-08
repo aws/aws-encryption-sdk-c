@@ -20,6 +20,8 @@ include(CheckCXXCompilerFlag)
 
 # TODO: Static link?
 include(FindOpenSSL)
+# For tests
+include(FindCURL)
 
 set(PROJECT_NAME aws-encryption-sdk)
 
@@ -159,16 +161,13 @@ target_link_libraries(test_decryption_vectors ${PROJECT_NAME} ${OPENSSL_LDFLAGS}
 set_target_properties(test_decryption_vectors PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 target_include_directories(test_decryption_vectors PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
 
-if(AWSSDK_FOUND)
-    add_executable(t_encrypt_compat tests/integration/t_encrypt_compat.cpp)
+if(CURL_FOUND)
+    add_executable(t_encrypt_compat tests/integration/t_encrypt_compat.c)
     set_target_properties(t_encrypt_compat PROPERTIES
-        LINKER_LANGUAGE CXX
-        CXX_STANDARD 11
-        CXX_STANDARD_REQUIRED O
         C_STANDARD 99
     )
-    target_link_libraries(t_encrypt_compat aws-cpp-sdk-lambda aws-cpp-sdk-core aws-encryption-sdk)
-    target_include_directories(t_encrypt_compat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit ${AWSSDK_INCLUDE_DIR})
+    target_link_libraries(t_encrypt_compat aws-encryption-sdk ${CURL_LIBRARIES})
+    target_include_directories(t_encrypt_compat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit ${CURL_INCLUDE_DIRS})
     target_sources(t_encrypt_compat PRIVATE ${UNIT_TEST_SRC_CPP})
     add_test(integration_encrypt_compatibility t_encrypt_compat)
 endif(AWSSDK_FOUND)
