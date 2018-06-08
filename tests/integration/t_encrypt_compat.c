@@ -125,7 +125,7 @@ static void setup_curl() {
 
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curl_error_buf);
-    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 0L);
 }
 
 static void free_curl() {
@@ -147,10 +147,9 @@ static int try_decrypt(
 
     CURLcode result = curl_easy_perform(curl);
 
-    if (result == CURLE_HTTP_RETURNED_ERROR) {
-        long http_code;
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
-
+    long http_code;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+    if (http_code != 200L) {
         fprintf(stderr, "Error from server (code %ld):\n", http_code);
         fwrite(recv_buf, recv_buf_sz, 1, stderr);
         fprintf(stderr, "\n");
