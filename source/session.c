@@ -45,6 +45,64 @@ static void session_change_state(struct aws_cryptosdk_session *session, enum ses
     }
 
     switch (new_state) {
+        case ST_ERROR: // fall through
+        case ST_CONFIG:
+            break; // no initialization required, and we can transition from any other state
+
+        /***** Decrypt path *****/
+
+        case ST_READ_HEADER:
+            if (session->state != ST_CONFIG) {
+                // Illegal transition
+                abort();
+            }
+            if (session->mode != MODE_DECRYPT) {
+                // wrong mode
+                abort();
+            }
+            break;
+        case ST_UNWRAP_KEY:
+            if (session->state != ST_READ_HEADER) {
+                // Illegal transition
+                abort();
+            }
+            if (session->mode != MODE_DECRYPT) {
+                // wrong mode
+                abort();
+            }
+            // check that a few of the more important state values are configured
+            if (!session->header_copy || !session->header_size) {
+                abort();
+            }
+            break;
+
+        case ST_DECRYPT_BODY:
+            if (session->state != ST_UNWRAP_KEY) {
+                // Illegal transition
+                break;
+            }
+
+            if (!session->alg_props) {
+                // algorithm properties not set
+                abort();
+            }
+
+            if (session->frame_seqno == 0) {
+                // illegal sequence number
+                abort();
+            }
+
+            // we can't currently assert that the data key is present because, well, it might be all-zero
+            break;
+
+        case ST_CHECK_TRAILER:
+            if (session->state != ST_DECRYPT_BODY) {
+                abort(); // Illegal transition
+            }
+            break;
+
+        /***** Encrypt path *****/
+
         case ST_GEN_KEY:
             if (session->state != ST_CONFIG) {
                 // illegal transition
@@ -56,46 +114,29 @@ static void session_change_state(struct aws_cryptosdk_session *session, enum ses
             }
             // TODO check for MKP config/etc?
             break;
-        case ST_ERROR: // fall through
-        case ST_CONFIG:
-            break; // no initialization required, and we can transition from any other state
-        case ST_HEADER:
+
+        case ST_WRITE_HEADER:
         {
-            if (session->mode != MODE_ENCRYPT && session->mode != MODE_DECRYPT) {
-                // unknown mode
+            if (session->mode != MODE_ENCRYPT) {
+                // wrong mode
                 abort();
             }
 
-            enum session_state prior_state = session->mode == MODE_ENCRYPT ? ST_GEN_KEY : ST_CONFIG;
-            if (prior_state != session->state) {
+            if (ST_GEN_KEY != session->state) {
                 // Illegal transition
                 abort();
             }
 
-            if (session->mode == MODE_ENCRYPT) {
-                // We should have generated the header, and should now be ready to write it.
-                if (!session->header_copy || !session->header_size) {
-                    abort();
-                }
-            } else {
-                // no particular initialization required (on decrypt)
-            }
-            break;
-        }
-        case ST_UNWRAP_KEY:
-            if (session->state != ST_HEADER) {
-                // illegal transition
-                abort();
-            }
-            // check that a few of the more important state values are configured
+            // We should have generated the header, and should now be ready to write it.
             if (!session->header_copy || !session->header_size) {
                 abort();
             }
             break;
-        case ST_BODY:
+        }
+
+        case ST_ENCRYPT_BODY:
         {
-            enum session_state prior_state = session->mode == MODE_ENCRYPT ? ST_HEADER : ST_UNWRAP_KEY;
-            if (prior_state != session->state) {
+            if (ST_WRITE_HEADER != session->state) {
                 // Illegal transition
                 abort();
             }
@@ -113,16 +154,23 @@ static void session_change_state(struct aws_cryptosdk_session *session, enum ses
             // we can't currently assert that the data key is present because, well, it might be all-zero
             break;
         }
-        case ST_TRAILER:
-            if (session->state != ST_BODY) {
+
+        case ST_WRITE_TRAILER:
+            if (session->state != ST_ENCRYPT_BODY) {
                 // illegal transition
                 abort();
             }
             break;
+
         case ST_DONE:
-            if (session->state != ST_BODY && session->state != ST_TRAILER) {
-                // illegal transition
-                abort();
+            switch (session->state) {
+                case ST_ENCRYPT_BODY: // ok, fall through
+                case ST_DECRYPT_BODY: // ok, fall through
+                case ST_CHECK_TRAILER: // ok, fall through
+                case ST_WRITE_TRAILER: // ok, fall through
+                    break;
+                default: // Illegal transition
+                    abort();
             }
             break;
     }
@@ -157,7 +205,7 @@ static void session_reset(struct aws_cryptosdk_session *session) {
 static void encrypt_compute_body_estimate(struct aws_cryptosdk_session *session) {
     size_t authtag_len = session->alg_props->tag_len + session->alg_props->iv_len;
 
-    if (session->state != ST_BODY) {
+    if (session->state != ST_ENCRYPT_BODY) {
         /* Not our job to set the estimates */
     }
 
@@ -283,7 +331,7 @@ int aws_cryptosdk_session_set_message_size(
     session->precise_size = message_size;
     session->precise_size_known = true;
 
-    if (session->state == ST_BODY) {
+    if (session->state == ST_ENCRYPT_BODY) {
         encrypt_compute_body_estimate(session);
     }
 
@@ -356,7 +404,7 @@ static int unwrap_keys(
 
     session->frame_seqno = 1;
     session->frame_size = session->header.frame_len;
-    session_change_state(session, ST_BODY);
+    session_change_state(session, ST_DECRYPT_BODY);
 
     return AWS_OP_SUCCESS;
 }
@@ -501,7 +549,7 @@ static int try_decrypt_body(
         *pinput = input;
 
         if (body_frame_type != FRAME_TYPE_FRAME) {
-            session_change_state(session, ST_TRAILER);
+            session_change_state(session, ST_CHECK_TRAILER);
         }
 
         return rv;
@@ -613,7 +661,7 @@ int try_gen_key(
     }
 
     session->frame_seqno = 1;
-    session_change_state(session, ST_HEADER);
+    session_change_state(session, ST_WRITE_HEADER);
 
     // TODO - should we free the parsed header here?
 
@@ -631,7 +679,7 @@ int try_write_header(
 
     // TODO - should we try to write incrementally?
     if (aws_byte_cursor_write(output, session->header_copy, session->header_size)) {
-        session_change_state(session, ST_BODY);
+        session_change_state(session, ST_ENCRYPT_BODY);
     }
 
     // TODO - should we free the parsed header here?
@@ -708,7 +756,7 @@ static int try_encrypt_body_full(
         goto error;
     }
 
-    session_change_state(session, ST_TRAILER);
+    session_change_state(session, ST_WRITE_TRAILER);
 
     return AWS_OP_SUCCESS;
 
@@ -857,7 +905,7 @@ static int try_encrypt_last_frame(
         goto error;
     }
 
-    session_change_state(session, ST_TRAILER);
+    session_change_state(session, ST_WRITE_TRAILER);
 
     return AWS_OP_SUCCESS;
 
@@ -913,40 +961,47 @@ int aws_cryptosdk_session_process(
                 if (session->mode == MODE_ENCRYPT) {
                     session_change_state(session, ST_GEN_KEY);
                 } else {
-                    session_change_state(session, ST_HEADER);
+                    session_change_state(session, ST_READ_HEADER);
                 }
                 result = AWS_OP_SUCCESS;
                 break;
-            case ST_GEN_KEY:
-                result = try_gen_key(session);
-                break;
-            case ST_HEADER:
-                if (session->mode == MODE_ENCRYPT) {
-                    result = try_write_header(session, &output);
-                } else {
-                    result = try_parse_header(session, &input);
-                }
+
+            case ST_READ_HEADER:
+                result = try_parse_header(session, &input);
                 break;
             case ST_UNWRAP_KEY:
                 result = unwrap_keys(session);
                 break;
-            case ST_BODY:
-                if (session->mode == MODE_ENCRYPT) {
-                    result = try_encrypt_body(session, &output, &input);
-                } else {
-                    result = try_decrypt_body(session, &output, &input);
-                }
+            case ST_DECRYPT_BODY:
+                result = try_decrypt_body(session, &output, &input);
                 break;
-            case ST_TRAILER:
+            case ST_CHECK_TRAILER:
                 // no-op for now, go to ST_DONE
                 session_change_state(session, ST_DONE);
-                // fall through
+                result = AWS_OP_SUCCESS;
+                break;
+
+            case ST_GEN_KEY:
+                result = try_gen_key(session);
+                break;
+            case ST_WRITE_HEADER:
+                result = try_write_header(session, &output);
+                break;
+            case ST_ENCRYPT_BODY:
+                result = try_encrypt_body(session, &output, &input);
+                break;
+            case ST_WRITE_TRAILER:
+                // no-op for now, go to ST_DONE
+                session_change_state(session, ST_DONE);
+                result = AWS_OP_SUCCESS;
+                break;
+
             case ST_DONE:
                 result = AWS_OP_SUCCESS;
                 break;
             default:
                 result = aws_raise_error(AWS_ERROR_UNKNOWN);
-                // fall through
+                break;
             case ST_ERROR:
                 result = aws_raise_error(session->error);
                 break;

@@ -78,8 +78,12 @@ int aws_cryptosdk_session_set_frame_size(
  * If the session has already processed more than message_size bytes, or if this
  * method is called more than once, the session will enter an error state.
  *
+ * This method is how the end of data is determined; if this is not called, then
+ * process will be unable to write out the end-of-message frames (and instead will
+ * continue to request additional data).
+ *
  * Note that if the frame size is set to zero (i.e. this is a one-shot encrypt),
- * a message size must be set before any data can be processed.
+ * a message size must be set before any input data can be processed.
  */
 int aws_cryptosdk_session_set_message_size(
     struct aws_cryptosdk_session *session,
@@ -89,7 +93,7 @@ int aws_cryptosdk_session_set_message_size(
 /**
  * Provides an upper bound on the message size. This hint is useful when the exact
  * message size is not known up-front, but the configured CMM still needs to make use
- * of message size information. For example, the cachine CMM enforces an upper bound
+ * of message size information. For example, the caching CMM enforces an upper bound
  * on the number of bytes encrypted under a cached key; if this method is not called,
  * it must assume that you are processing an unbounded amount of data, and it will
  * therefore bypass the cache.

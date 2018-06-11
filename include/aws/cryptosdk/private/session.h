@@ -27,40 +27,27 @@ enum session_mode {
 };
 
 enum session_state {
+/*** Common states ***/
+
 /* State ST_CONFIG: Initial configuration. No data has been supplied */
     ST_CONFIG = 0,
 /* State ST_ERROR: De/encryption failure. No data will be processed until reset */
     ST_ERROR,
-/* State ST_GEN_KEY:
- * (encrypt only) Generate the data key and set up the header structures internally */
-    ST_GEN_KEY,
+    ST_DONE,
 
-/* State ST_HEADER:
- *   On decrypt: Some data has been provided, but the header is still incomplete.
- *   On encrypt: The header has been generated internally but not yet written to the output.
- */
-    ST_HEADER,
+/*** Decrypt path ***/
 
-/* State ST_UNWRAP_KEY:
- *   (decrypt only)
- *   We are prepared to invoke the CMM to obtain cryptographic materials.
- *   If a failure occurs here, we remain in ST_UNWRAP_KEY and can retry.
- *   XXX: Should we make this a terminal state?
- */
+    ST_READ_HEADER,
     ST_UNWRAP_KEY,
+    ST_DECRYPT_BODY,
+    ST_CHECK_TRAILER,
 
-/* State ST_BODY:
- * Normal body data processing. We will consume (or generate) entire frames of data at a time.
- * In the case of a single-frame message, we will not consume any data until the message length
- * is set
- */
-    ST_BODY,
-/* State ST_TRAILER:
- * We're waiting to consume or generate the final trailer. No-op for unsigned algorithms.
- */
-    ST_TRAILER,
-/* State ST_DONE: Encryption or decryption complete. */
-    ST_DONE
+/*** Encrypt path ***/
+
+    ST_GEN_KEY,
+    ST_WRITE_HEADER,
+    ST_ENCRYPT_BODY,
+    ST_WRITE_TRAILER,
 };
 
 struct aws_cryptosdk_session {
