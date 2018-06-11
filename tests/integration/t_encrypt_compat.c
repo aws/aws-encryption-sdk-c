@@ -33,8 +33,7 @@
 // along with the plaintext. On failure, a 400 is returned with a java stacktrace
 // in the body.
 
-// TODO - update URL
-static const char *apigw_url = "https://yt1m1r57o5.execute-api.us-west-2.amazonaws.com/test";
+static const char *apigw_url = "https://yrniiep3a0.execute-api.us-west-2.amazonaws.com/test";
 
 #define TRY_DECRYPT(expect, expect_size, ciphertext, ciphertext_size) \
     do { \
