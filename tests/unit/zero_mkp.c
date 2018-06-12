@@ -26,9 +26,9 @@ struct zero_mk {const struct aws_cryptosdk_mk_vt * vt;};
 const char * literally_null = "null";
 
 void aws_cryptosdk_literally_null_edk(struct aws_cryptosdk_edk * edk) {
-    edk->provider_id = aws_byte_buf_from_literal(literally_null);
-    edk->provider_info = aws_byte_buf_from_literal(literally_null);
-    edk->enc_data_key = aws_byte_buf_from_literal(literally_null);
+    edk->provider_id = aws_byte_buf_from_c_str(literally_null);
+    edk->provider_info = aws_byte_buf_from_c_str(literally_null);
+    edk->enc_data_key = aws_byte_buf_from_c_str(literally_null);
 }
 
 static inline bool is_literally_null_edk(const struct aws_cryptosdk_edk * edk) {
