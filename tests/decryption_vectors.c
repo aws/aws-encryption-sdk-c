@@ -356,7 +356,7 @@ static struct aws_byte_buf b64_decode(const char *b64_input) {
         exit(1);
     }
 
-    struct aws_byte_buf in = aws_byte_buf_from_literal(b64_input);
+    struct aws_byte_buf in = aws_byte_buf_from_c_str(b64_input);
     struct aws_byte_buf out;
     if (aws_byte_buf_init(aws_default_allocator(), &out, outlen)) abort();
 
