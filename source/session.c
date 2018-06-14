@@ -517,9 +517,9 @@ int try_gen_key(
     session->header.edk_tbl = aws_mem_acquire(session->alloc, sizeof(*session->header.edk_tbl));
     struct aws_cryptosdk_edk *edk = &session->header.edk_tbl[0];
 
-    edk->provider_id = aws_byte_buf_from_literal("null");
-    edk->provider_info = aws_byte_buf_from_literal("null");
-    edk->enc_data_key = aws_byte_buf_from_literal("");
+    edk->provider_id = aws_byte_buf_from_c_str("null");
+    edk->provider_info = aws_byte_buf_from_c_str("null");
+    edk->enc_data_key = aws_byte_buf_from_c_str("");
 
     if (aws_byte_buf_init(session->alloc, &session->header.iv, session->alg_props->iv_len)) {
         return AWS_OP_ERR;
