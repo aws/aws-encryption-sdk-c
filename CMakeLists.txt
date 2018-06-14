@@ -170,7 +170,7 @@ if(CURL_FOUND)
     target_include_directories(t_encrypt_compat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit ${CURL_INCLUDE_DIRS})
     target_sources(t_encrypt_compat PRIVATE ${UNIT_TEST_SRC_CPP})
     add_test(integration_encrypt_compatibility t_encrypt_compat)
-endif(AWSSDK_FOUND)
+endif(CURL_FOUND)
 
 add_test(cipher unit-test-suite cipher)
 add_test(header unit-test-suite header)

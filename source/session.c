@@ -92,7 +92,9 @@ static void session_change_state(struct aws_cryptosdk_session *session, enum ses
                 abort();
             }
 
-            // we can't currently assert that the data key is present because, well, it might be all-zero
+            // we can't currently assert that the data key is present because
+            // it might be all-zero (for example)
+
             break;
 
         case ST_CHECK_TRAILER:

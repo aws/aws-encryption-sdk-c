@@ -71,9 +71,10 @@ int aws_cryptosdk_session_set_frame_size(
 );
 
 /**
- * Sets the precise size of the message to encrypt. This function must be called
- * exactly once during an encrypt operation; it need not be called before
- * passing any data, but providing the message size up front may improve efficiency.
+ * Sets the precise size of the message to encrypt. This function must be
+ * called exactly once during an encrypt operation; it need not be called
+ * before beginning to pass data, but providing the message size up front may
+ * improve efficiency.
  *
  * If the session has already processed more than message_size bytes, or if this
  * method is called more than once, the session will enter an error state.
@@ -98,7 +99,7 @@ int aws_cryptosdk_session_set_message_size(
  * it must assume that you are processing an unbounded amount of data, and it will
  * therefore bypass the cache.
  *
- * This method may be called more than once (the smallest call wins); the session will
+ * This method may be called more than once (the smallest call wins). The session will
  * enter an error state if more than the smallest bound of data is written, or if the
  * precise message size passed to aws_cryptosdk_session_set_message_size exceeds the
  * bound.
