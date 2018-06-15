@@ -41,7 +41,7 @@ static inline bool is_literally_null_edk(const struct aws_cryptosdk_edk * edk) {
 static int zero_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
                                      struct aws_byte_buf * unencrypted_data_key,
                                      struct aws_cryptosdk_edk * edk,
-                                     struct aws_hash_table * enc_context,
+                                     const struct aws_hash_table * enc_context,
                                      enum aws_cryptosdk_alg_id alg) {
     aws_cryptosdk_secure_zero_buf(unencrypted_data_key);
     unencrypted_data_key->len = unencrypted_data_key->capacity;
@@ -52,7 +52,7 @@ static int zero_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
 static int zero_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
                                     struct aws_cryptosdk_edk * edk,
                                     const struct aws_byte_buf * unencrypted_data_key,
-                                    struct aws_hash_table * enc_context,
+                                    const struct aws_hash_table * enc_context,
                                     enum aws_cryptosdk_alg_id alg) {
     for (size_t byte_idx = 0 ; byte_idx < unencrypted_data_key->len ; ++byte_idx) {
         if (unencrypted_data_key->buffer[byte_idx]) {
@@ -82,14 +82,14 @@ static struct aws_cryptosdk_mk * mk = (struct aws_cryptosdk_mk *) &zero_mk_singl
 
 static int zero_mkp_get_master_keys(struct aws_cryptosdk_mkp * mkp,
                                     struct aws_array_list * master_keys, // list of (aws_cryptosdk_mk *)
-                                    struct aws_hash_table * enc_context) {
+                                    const struct aws_hash_table * enc_context) {
     return aws_array_list_push_back(master_keys, &mk); // copies *address* of the zero MK into the list
 }
 
 static int zero_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
                                      struct aws_byte_buf * unencrypted_data_key,
                                      const struct aws_array_list * encrypted_data_keys,
-                                     struct aws_hash_table * enc_context,
+                                     const struct aws_hash_table * enc_context,
                                      enum aws_cryptosdk_alg_id alg) {
     // verify there is at least one EDK with length zero present
     size_t num_keys = encrypted_data_keys->length;

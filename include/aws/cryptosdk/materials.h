@@ -210,14 +210,14 @@ struct aws_cryptosdk_mkp_vt {
      */
     int (*get_master_keys)(struct aws_cryptosdk_mkp * mkp,
                            struct aws_array_list * master_keys, // list of (aws_cryptosdk_mk *)
-                           struct aws_hash_table * enc_context);
+                           const struct aws_hash_table * enc_context);
     /**
      * VIRTUAL FUNCTION: must implement if used for decryption.
      */
     int (*decrypt_data_key)(struct aws_cryptosdk_mkp * mkp,
                             struct aws_byte_buf * unencrypted_data_key,
                             const struct aws_array_list * encrypted_data_keys,
-                            struct aws_hash_table * enc_context,
+                            const struct aws_hash_table * enc_context,
                             enum aws_cryptosdk_alg_id alg);
 };
 
@@ -243,7 +243,7 @@ static inline void aws_cryptosdk_mkp_destroy(struct aws_cryptosdk_mkp * mkp) {
  */
 static inline int aws_cryptosdk_mkp_get_master_keys(struct aws_cryptosdk_mkp * mkp,
                                                     struct aws_array_list * master_keys,
-                                                    struct aws_hash_table * enc_context) {
+                                                    const struct aws_hash_table * enc_context) {
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(get_master_keys, mkp, master_keys, enc_context);
 }
 
@@ -259,7 +259,7 @@ static inline int aws_cryptosdk_mkp_get_master_keys(struct aws_cryptosdk_mkp * m
 static inline int aws_cryptosdk_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
                                                      struct aws_byte_buf * unencrypted_data_key,
                                                      const struct aws_array_list * edks,
-                                                     struct aws_hash_table * enc_context,
+                                                     const struct aws_hash_table * enc_context,
                                                      enum aws_cryptosdk_alg_id alg) {
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_data_key, mkp, unencrypted_data_key, edks, enc_context, alg);
 }
@@ -290,7 +290,7 @@ struct aws_cryptosdk_mk_vt {
     int (*generate_data_key)(struct aws_cryptosdk_mk * mk,
                              struct aws_byte_buf * unencrypted_data_key,
                              struct aws_cryptosdk_edk * edk,
-                             struct aws_hash_table * enc_context,
+                             const struct aws_hash_table * enc_context,
                              enum aws_cryptosdk_alg_id alg);
     /**
      * VIRTUAL FUNCTION: must implement if used for encryption, except when it is the only MK.
@@ -300,7 +300,7 @@ struct aws_cryptosdk_mk_vt {
     int (*encrypt_data_key)(struct aws_cryptosdk_mk * mk,
                             struct aws_cryptosdk_edk * edk,
                             const struct aws_byte_buf * unencrypted_data_key,
-                            struct aws_hash_table * enc_context,
+                            const struct aws_hash_table * enc_context,
                             enum aws_cryptosdk_alg_id alg);
 };
 
@@ -323,7 +323,7 @@ static inline void aws_cryptosdk_mk_destroy(struct aws_cryptosdk_mk * mk) {
 static inline int aws_cryptosdk_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
                                                      struct aws_byte_buf * unencrypted_data_key,
                                                      struct aws_cryptosdk_edk * edk,
-                                                     struct aws_hash_table * enc_context,
+                                                     const struct aws_hash_table * enc_context,
                                                      enum aws_cryptosdk_alg_id alg) {
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(generate_data_key, mk, unencrypted_data_key, edk, enc_context, alg);
 }
@@ -339,7 +339,7 @@ static inline int aws_cryptosdk_mk_generate_data_key(struct aws_cryptosdk_mk * m
 static inline int aws_cryptosdk_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
                                                     struct aws_cryptosdk_edk * edk,
                                                     const struct aws_byte_buf * unencrypted_data_key,
-                                                    struct aws_hash_table * enc_context,
+                                                    const struct aws_hash_table * enc_context,
                                                     enum aws_cryptosdk_alg_id alg) {
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(encrypt_data_key, mk, edk, unencrypted_data_key, enc_context, alg);
 }
