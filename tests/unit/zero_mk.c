@@ -14,12 +14,7 @@
  */
 #include <stdbool.h>
 #include "zero_mk.h"
-#include <aws/cryptosdk/cipher.h> // aws_cryptosdk_secure_zero
-
-/**
- * A degenerate MKP/MK which always returns an all zero data key, just
- * for testing the CMM/MKP/MK infrastructure.
- */
+#include <aws/cryptosdk/cipher.h> // aws_cryptosdk_secure_zero_buf
 
 struct zero_mk {const struct aws_cryptosdk_mk_vt * vt;};
 
@@ -93,8 +88,6 @@ static const struct aws_cryptosdk_mk_vt zero_mk_vt = {
     .encrypt_data_key = zero_mk_encrypt_data_key,
     .decrypt_data_key = zero_mk_decrypt_data_key
 };
-
-struct zero_mkp {const struct aws_cryptosdk_mkp_vt * vt;};
 
 static struct zero_mk zero_mk_singleton = {.vt = &zero_mk_vt};
 static struct aws_cryptosdk_mk * mk = (struct aws_cryptosdk_mk *) &zero_mk_singleton;
