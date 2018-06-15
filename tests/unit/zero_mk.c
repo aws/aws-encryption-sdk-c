@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 #include <stdbool.h>
-#include "zero_mkp.h"
+#include "zero_mk.h"
 #include <aws/cryptosdk/cipher.h> // aws_cryptosdk_secure_zero
 
 /**
@@ -64,38 +64,16 @@ static int zero_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
     return AWS_OP_SUCCESS;
 }
 
-static void zero_mk_destroy(struct aws_cryptosdk_mk * mk) {}
-
-static const struct aws_cryptosdk_mk_vt zero_mk_vt = {
-    .vt_size = sizeof(struct aws_cryptosdk_mk_vt),
-    .name = "zero mk",
-    .destroy = zero_mk_destroy,
-    .generate_data_key = zero_mk_generate_data_key,
-    .encrypt_data_key = zero_mk_encrypt_data_key
-};
-
-struct zero_mkp {const struct aws_cryptosdk_mkp_vt * vt;};
-
-static struct zero_mk zero_mk_singleton = {.vt = &zero_mk_vt};
-static struct aws_cryptosdk_mk * mk = (struct aws_cryptosdk_mk *) &zero_mk_singleton;
-
-
-static int zero_mkp_get_master_keys(struct aws_cryptosdk_mkp * mkp,
-                                    struct aws_array_list * master_keys, // list of (aws_cryptosdk_mk *)
-                                    const struct aws_hash_table * enc_context) {
-    return aws_array_list_push_back(master_keys, &mk); // copies *address* of the zero MK into the list
-}
-
-static int zero_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
-                                     struct aws_byte_buf * unencrypted_data_key,
-                                     const struct aws_array_list * encrypted_data_keys,
-                                     const struct aws_hash_table * enc_context,
-                                     enum aws_cryptosdk_alg_id alg) {
+static int zero_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
+                                    struct aws_byte_buf * unencrypted_data_key,
+                                    const struct aws_array_list * edks,
+                                    const struct aws_hash_table * enc_context,
+                                    enum aws_cryptosdk_alg_id alg) {
     // verify there is at least one EDK with length zero present
-    size_t num_keys = encrypted_data_keys->length;
+    size_t num_keys = edks->length;
     for (size_t key_idx = 0 ; key_idx < num_keys ; ++key_idx) {
         struct aws_cryptosdk_edk * edk;
-        if (aws_array_list_get_at_ptr(encrypted_data_keys, (void **)&edk, 0)) return AWS_OP_ERR;
+        if (aws_array_list_get_at_ptr(edks, (void **)&edk, key_idx)) return AWS_OP_ERR;
         if (is_literally_null_edk(edk)) {
             aws_cryptosdk_secure_zero_buf(unencrypted_data_key);
             unencrypted_data_key->len = unencrypted_data_key->capacity;
@@ -105,19 +83,20 @@ static int zero_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
     return AWS_OP_ERR;
 }
 
-static void zero_mkp_destroy(struct aws_cryptosdk_mkp * mkp) {
-}
+static void zero_mk_destroy(struct aws_cryptosdk_mk * mk) {}
 
-static const struct aws_cryptosdk_mkp_vt zero_mkp_vt = {
-    .vt_size = sizeof(struct aws_cryptosdk_mkp_vt),
-    .name = "zero mkp",
-    .destroy = zero_mkp_destroy,
-    .get_master_keys = zero_mkp_get_master_keys,
-    .decrypt_data_key = zero_mkp_decrypt_data_key
+static const struct aws_cryptosdk_mk_vt zero_mk_vt = {
+    .vt_size = sizeof(struct aws_cryptosdk_mk_vt),
+    .name = "zero mk",
+    .destroy = zero_mk_destroy,
+    .generate_data_key = zero_mk_generate_data_key,
+    .encrypt_data_key = zero_mk_encrypt_data_key,
+    .decrypt_data_key = zero_mk_decrypt_data_key
 };
 
-static struct zero_mkp zero_mkp_singleton = {.vt = &zero_mkp_vt};
-static struct aws_cryptosdk_mkp * mkp = (struct aws_cryptosdk_mkp *) &zero_mkp_singleton;
+struct zero_mkp {const struct aws_cryptosdk_mkp_vt * vt;};
 
+static struct zero_mk zero_mk_singleton = {.vt = &zero_mk_vt};
+static struct aws_cryptosdk_mk * mk = (struct aws_cryptosdk_mk *) &zero_mk_singleton;
 
-struct aws_cryptosdk_mkp * aws_cryptosdk_zero_mkp_new() {return mkp;}
+struct aws_cryptosdk_mk * aws_cryptosdk_zero_mk_new() {return mk;}

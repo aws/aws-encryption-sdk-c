@@ -216,7 +216,7 @@ struct aws_cryptosdk_mkp_vt {
      */
     int (*decrypt_data_key)(struct aws_cryptosdk_mkp * mkp,
                             struct aws_byte_buf * unencrypted_data_key,
-                            const struct aws_array_list * encrypted_data_keys,
+                            const struct aws_array_list * edks,
                             const struct aws_hash_table * enc_context,
                             enum aws_cryptosdk_alg_id alg);
 };
@@ -302,6 +302,15 @@ struct aws_cryptosdk_mk_vt {
                             const struct aws_byte_buf * unencrypted_data_key,
                             const struct aws_hash_table * enc_context,
                             enum aws_cryptosdk_alg_id alg);
+
+    /**
+     * VIRTUAL FUNCTION: must implement if used for decryption.
+     */
+    int (*decrypt_data_key)(struct aws_cryptosdk_mk * mk,
+                            struct aws_byte_buf * unencrypted_data_key,
+                            const struct aws_array_list * edks,
+                            const struct aws_hash_table * enc_context,
+                            enum aws_cryptosdk_alg_id alg);
 };
 
 static inline void aws_cryptosdk_mk_destroy(struct aws_cryptosdk_mk * mk) {
@@ -343,6 +352,24 @@ static inline int aws_cryptosdk_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk
                                                     enum aws_cryptosdk_alg_id alg) {
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(encrypt_data_key, mk, edk, unencrypted_data_key, enc_context, alg);
 }
+
+/**
+ * The MK attempts to find one of the EDKs to decrypt. edks must be a list of struct aws_cryptosdk_edk
+ * instances, not a list of pointers. unencrypted_data_key should have already been initialized.
+ * (This is handled by aws_cryptosdk_decryption_materials_new.)
+ *
+ * On success AWS_OP_SUCCESS is returned and the unencrypted data key bytes are written to the byte buffer.
+ * On failure AWS_OP_ERR is returned. An internal AWS error code is not necessarily set, as failure of this
+ * function is considered normal behavior if the MKP cannot decrypt any of the provided EDKs.
+ */
+static inline int aws_cryptosdk_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
+                                                    struct aws_byte_buf * unencrypted_data_key,
+                                                    const struct aws_array_list * edks,
+                                                    const struct aws_hash_table * enc_context,
+                                                    enum aws_cryptosdk_alg_id alg) {
+    AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_data_key, mk, unencrypted_data_key, edks, enc_context, alg);
+}
+
 
 /**
  * Allocates a new encryption materials object, including allocating the buffer which holds the unencrypted

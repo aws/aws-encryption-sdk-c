@@ -162,10 +162,7 @@ static const struct aws_cryptosdk_cmm_vt default_cmm_vt = {
 struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * alloc, struct aws_cryptosdk_mkp * mkp) {
     struct default_cmm * cmm;
     cmm = aws_mem_acquire(alloc, sizeof(struct default_cmm));
-    if (!cmm) {
-        aws_raise_error(AWS_ERROR_OOM);
-        return NULL;
-    }
+    if (!cmm) return NULL;
     cmm->vt = &default_cmm_vt;
     cmm->alloc = alloc;
     cmm->mkp = mkp;
