@@ -270,13 +270,9 @@ int aws_cryptosdk_session_init_encrypt(struct aws_cryptosdk_session *session) {
     return AWS_OP_SUCCESS;
 }
 
-int aws_cryptosdk_session_set_frame_size(struct aws_cryptosdk_session *session, size_t frame_size) {
+int aws_cryptosdk_session_set_frame_size(struct aws_cryptosdk_session *session, uint32_t frame_size) {
     if (session->mode != MODE_ENCRYPT || session->state != ST_CONFIG) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-    }
-
-    if (frame_size > MAX_FRAME_SIZE) {
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
     }
 
     session->frame_size = frame_size;

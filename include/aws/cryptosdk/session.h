@@ -67,7 +67,7 @@ int aws_cryptosdk_session_init_encrypt(
  */
 int aws_cryptosdk_session_set_frame_size(
     struct aws_cryptosdk_session *session,
-    size_t frame_size
+    uint32_t frame_size
 );
 
 /**
