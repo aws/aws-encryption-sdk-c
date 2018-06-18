@@ -45,7 +45,7 @@ static int single_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
                                              alg);
 }
 
-struct aws_cryptosdk_mkp_vt aws_cryptosdk_single_mkp_vt = {
+static struct aws_cryptosdk_mkp_vt aws_cryptosdk_single_mkp_vt = {
     .vt_size = sizeof(struct aws_cryptosdk_mkp_vt),
     .name = "single mkp",
     .destroy = single_mkp_destroy,
@@ -55,7 +55,8 @@ struct aws_cryptosdk_mkp_vt aws_cryptosdk_single_mkp_vt = {
 
 struct aws_cryptosdk_mkp * aws_cryptosdk_single_mkp_new(struct aws_allocator * alloc,
                                                         struct aws_cryptosdk_mk * mk) {
-    struct aws_cryptosdk_single_mkp * mkp = aws_mem_acquire(alloc, sizeof(struct aws_cryptosdk_single_mkp));
+    struct aws_cryptosdk_single_mkp * mkp = aws_mem_acquire(alloc,
+                                                            sizeof(struct aws_cryptosdk_single_mkp));
     if (!mkp) return NULL;
 
     mkp->vt = &aws_cryptosdk_single_mkp_vt;
