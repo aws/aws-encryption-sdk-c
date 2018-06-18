@@ -101,7 +101,7 @@ static void session_reset(struct aws_cryptosdk_session *session) {
     session->header_copy = NULL;
     session->header_size = 0;
 
-    aws_cryptosdk_hdr_free(session->alloc, &session->header);
+    aws_cryptosdk_hdr_clean_up(session->alloc, &session->header);
 
     aws_cryptosdk_secure_zero(&session->content_key, sizeof(session->content_key));
 
@@ -205,7 +205,7 @@ static int try_parse_header(
     struct aws_cryptosdk_session * restrict session,
     struct aws_byte_cursor * restrict input
 ) {
-    int rv = aws_cryptosdk_hdr_parse(session->alloc, &session->header, input->ptr, input->len);
+    int rv = aws_cryptosdk_hdr_parse_init(session->alloc, &session->header, input->ptr, input->len);
 
     if (rv != AWS_OP_SUCCESS) {
         if (aws_last_error() == AWS_ERROR_SHORT_BUFFER) {
