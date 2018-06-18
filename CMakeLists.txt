@@ -1,16 +1,16 @@
 # Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License"). You may not use
 # this file except in compliance with the License. A copy of the License is
 # located at
-# 
+#
 # http://aws.amazon.com/apache2.0/
-# 
+#
 # or in the "license" file accompanying this file. This file is distributed on an
 # "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
-# 
+#
 
 cmake_minimum_required (VERSION 3.1)
 project (aws-encryption-sdk)
@@ -134,7 +134,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     $<INSTALL_INTERFACE:include>
     ${OPENSSL_INCLUDE_DIR}
 )
-  
+
 target_link_libraries(aws-encryption-sdk ${PLATFORM_LIBS} aws-c-common ${OPENSSL_CRYPTO_LIBRARY})
 
 file(GLOB UNIT_TEST_SRC "tests/unit/*.c")
@@ -162,13 +162,14 @@ set_target_properties(test_decryption_vectors PROPERTIES LINKER_LANGUAGE C C_STA
 target_include_directories(test_decryption_vectors PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
 
 if(CURL_FOUND)
-    add_executable(t_encrypt_compat tests/integration/t_encrypt_compat.c)
+    add_executable(t_encrypt_compat tests/integration/t_encrypt_compat.c ${TEST_LIB})
     set_target_properties(t_encrypt_compat PROPERTIES
         C_STANDARD 99
     )
     target_link_libraries(t_encrypt_compat aws-encryption-sdk ${CURL_LIBRARIES})
     target_include_directories(t_encrypt_compat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit ${CURL_INCLUDE_DIRS})
     target_sources(t_encrypt_compat PRIVATE ${UNIT_TEST_SRC_CPP})
+    target_include_directories(t_encrypt_compat PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
     add_test(integration_encrypt_compatibility t_encrypt_compat)
 endif(CURL_FOUND)
 
@@ -194,7 +195,7 @@ install (
          TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}-config
          ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
          LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-         COMPONENT library     
+         COMPONENT library
 )
 
 export(TARGETS ${PROJECT_NAME} FILE aws-encryption-sdk-config.cmake)

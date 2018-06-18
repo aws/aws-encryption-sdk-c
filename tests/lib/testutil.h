@@ -17,11 +17,17 @@
 #define TESTUTIL_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 /* 
  * Loads a file from disk into a newly malloc'd buffer.
  * Returns 0 on success, 1 on failure (examine errno for details)
  */
 int test_loadfile(const char *filename, uint8_t **buf, size_t *datasize);
+
+/*
+ * Performs a human-readable hexdump of the given buffer
+ */
+void hexdump(FILE *fd, const uint8_t *buf, size_t size);
 
 #endif

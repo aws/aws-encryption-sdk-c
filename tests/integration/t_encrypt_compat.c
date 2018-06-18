@@ -14,6 +14,7 @@
  */
 
 #include "testing.h"
+#include "testutil.h"
 
 #include <stdio.h>
 #include <ctype.h>
@@ -41,25 +42,6 @@ static const char *apigw_url = "https://yrniiep3a0.execute-api.us-west-2.amazona
             return 1; \
         } \
     } while (0)
-
-void hexdump(const uint8_t *buf, size_t size) {
-    for (size_t row = 0; row < size; row += 16) {
-        fprintf(stderr, "%08zx ", row);
-        for (int idx = 0; idx < 16; idx++) {
-            if (idx + row < size) {
-                fprintf(stderr, "%s%02x", (idx == 8) ? "  " : " ", buf[idx + row]);
-            } else {
-                fprintf(stderr, (idx == 8) ? "    " : "   ");
-            }
-        }
-        fprintf(stderr, "  |");
-        for (int idx = 0; idx < 16 && idx + row < size; idx++) {
-            uint8_t ch = buf[idx + row];
-            fprintf(stderr, "%c", isprint(ch) ? ch : '.');
-        }
-        fprintf(stderr, "|\n");
-    }
-}
 
 static uint8_t recv_buf[65536];
 static size_t recv_buf_used;
@@ -164,9 +146,9 @@ static int try_decrypt(
 
     if (expected_size != recv_buf_used || memcmp(expected, recv_buf, recv_buf_used)) {
         fprintf(stderr, "Plaintext mismatch; expected:\n");
-        hexdump(expected, expected_size);
+        hexdump(stderr, expected, expected_size);
         fprintf(stderr, "actual:\n");
-        hexdump(recv_buf, recv_buf_used);
+        hexdump(stderr, recv_buf, recv_buf_used);
         return 1;
     }
 
@@ -194,7 +176,7 @@ static int test_basic() {
 
     aws_cryptosdk_session_destroy(session);
 
-    hexdump(ciphertext, ct_consumed);
+    hexdump(stderr, ciphertext, ct_consumed);
 
     TRY_DECRYPT(plaintext, sizeof(plaintext), ciphertext, ct_consumed);
 
