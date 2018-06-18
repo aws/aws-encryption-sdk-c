@@ -26,12 +26,12 @@ static struct aws_cryptosdk_session *session;
 static int precise_size_set = 0;
 
 static void init_bufs(size_t pt_len) {
-    pt_buf = malloc(pt_len);
+    pt_buf = aws_mem_acquire(aws_default_allocator(), pt_len);
     pt_size = pt_len;
     aws_cryptosdk_genrandom(pt_buf, pt_size);
 
     ct_buf_size = 1024;
-    ct_buf = malloc(ct_buf_size);
+    ct_buf = aws_mem_acquire(aws_default_allocator(), ct_buf_size);
     ct_size = 0;
 
     session = aws_cryptosdk_session_new(aws_default_allocator());
@@ -63,13 +63,14 @@ static void grow_buf(uint8_t **bufpp, size_t *cur_size, size_t needed) {
         }
     }
 
-    uint8_t *newbuf = realloc(*bufpp, new_size);
-    if (!newbuf) {
+    // aws_mem_realloc wants a void **
+    void *tmpp = *bufpp;
+    if (aws_mem_realloc(aws_default_allocator(), &tmpp, *cur_size, new_size)) {
         fprintf(stderr, "Out of memory\n");
         abort();
     }
+    *bufpp = tmpp;
 
-    *bufpp = newbuf;
     *cur_size = new_size;
 }
 
@@ -110,7 +111,7 @@ static int pump_ciphertext(size_t ct_window, size_t *ct_consumed, size_t pt_wind
 static int check_ciphertext() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_init_decrypt(session));
 
-    uint8_t *pt_check_buf = malloc(pt_size);
+    uint8_t *pt_check_buf = aws_mem_acquire(aws_default_allocator(), pt_size);
     if (!pt_check_buf) {
         fprintf(stderr, "Out of memory\n");
         abort();
