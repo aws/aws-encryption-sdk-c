@@ -67,35 +67,49 @@ enum aws_cryptosdk_hdr_content_type {
  * Frees all memory which has been allocated to hdr object and zeroizes hdr.
  * This is idempotent. Multiple frees are safe.
  */
-void aws_cryptosdk_hdr_free(struct aws_allocator * allocator, struct aws_cryptosdk_hdr *hdr);
+void aws_cryptosdk_hdr_clean_up(struct aws_allocator * allocator,
+                                struct aws_cryptosdk_hdr *hdr);
 
 /**
- * Reads raw header data from src and populates hdr with all of the information about the message.
- * hdr is assumed to be an uninitialized hdr struct when this is called. If hdr has any memory already allocated to it,
- * that memory will be lost.
- * If this succeeds, hdr will have memory allocated to it, which must be freed with aws_cryptosdk_hdr_free.
+ * Reads raw header data from src and populates hdr with all of the information about the
+ * message. hdr is assumed to be an uninitialized hdr struct when this is called. If hdr
+ * has any memory already allocated to it, that memory will be lost.
+ *
+ * If this succeeds, hdr will have memory allocated to it, which must be freed with
+ * aws_cryptosdk_hdr_clean_up.
+ *
  * If this fails, no memory will be allocated and hdr will be zeroized.
  */
-int aws_cryptosdk_hdr_parse(struct aws_allocator * allocator, struct aws_cryptosdk_hdr *hdr, const uint8_t *src, size_t src_len);
+int aws_cryptosdk_hdr_parse_init(struct aws_allocator * allocator,
+                                 struct aws_cryptosdk_hdr *hdr,
+                                 const uint8_t *src,
+                                 size_t src_len);
 
 /**
- * Reads information from already parsed hdr object and determines how many bytes are needed to serialize.
+ * Reads information from already parsed hdr object and determines how many bytes are
+ * needed to serialize.
+ *
  * Returns number of bytes, or zero if hdr was not parsed correctly.
  *
- * Warning: running this on a hdr which has not already been run through aws_cryptosdk_hdr_parse (or which has been zeroized)
- * can result in a seg fault.
+ * Warning: running this on a hdr which has not already been run through
+ * aws_cryptosdk_hdr_parse_init (or which has been zeroized) can result in a seg fault.
  */
 int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr);
 
 /**
  * Attempts to write a parsed header.
  *
- * The number of bytes written to outbuf is placed at *bytes_written.
- * If outbuf is too small, returns AWS_ERR_OOM and zeroizes the output buffer.
+ * The number of bytes written to outbuf is placed at *bytes_written. If outbuf is too
+ * small, returns AWS_OP_ERR, sets the error code to AWS_ERROR_SHORT_BUFFER, and zeroizes
+ * the output buffer.
  *
- * Using aws_cryptosdk_hdr_size to determine how much memory to allocate to outbuf ahead of time prevents AWS_ERR_OOM.
+ * Using aws_cryptosdk_hdr_size to determine how much memory to allocate to outbuf ahead
+ * of time guarantees that the short buffer error will not occur.
  */
-int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_written, uint8_t *outbuf, size_t outlen);
+int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr,
+                            size_t * bytes_written,
+                            uint8_t *outbuf,
+                            size_t outlen);
 
 /**
  * Returns 1 if alg_id is a known value, 0 if not.

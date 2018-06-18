@@ -184,7 +184,7 @@ int simple_header_parse() {
     struct aws_cryptosdk_hdr hdr;
 
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
-                       aws_cryptosdk_hdr_parse(allocator, &hdr, test_header_1, sizeof(test_header_1) - 1));
+                       aws_cryptosdk_hdr_parse_init(allocator, &hdr, test_header_1, sizeof(test_header_1) - 1));
 
     // Known answer tests
     TEST_ASSERT_INT_EQ(hdr.alg_id, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
@@ -230,7 +230,7 @@ int simple_header_parse() {
 
     TEST_ASSERT_INT_EQ(aws_cryptosdk_hdr_size(&hdr), hdr.auth_len + hdr.auth_tag.len + hdr.iv.len);
 
-    aws_cryptosdk_hdr_free(allocator, &hdr);
+    aws_cryptosdk_hdr_clean_up(allocator, &hdr);
     return 0;
 }
 
@@ -239,7 +239,7 @@ int simple_header_parse2() {
     struct aws_cryptosdk_hdr hdr;
 
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
-                       aws_cryptosdk_hdr_parse(allocator, &hdr, test_header_2, sizeof(test_header_2)));
+                       aws_cryptosdk_hdr_parse_init(allocator, &hdr, test_header_2, sizeof(test_header_2)));
 
     // Known answer tests
     TEST_ASSERT_INT_EQ(hdr.alg_id, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
@@ -280,7 +280,7 @@ int simple_header_parse2() {
 
     TEST_ASSERT_INT_EQ(aws_cryptosdk_hdr_size(&hdr), hdr.auth_len + hdr.auth_tag.len + hdr.iv.len);
 
-    aws_cryptosdk_hdr_free(allocator, &hdr);
+    aws_cryptosdk_hdr_clean_up(allocator, &hdr);
     return 0;
 }
 
@@ -291,14 +291,14 @@ int failed_parse() {
     // incomplete header
     struct aws_cryptosdk_hdr hdr;
     TEST_ASSERT_INT_NE(AWS_OP_SUCCESS,
-                       aws_cryptosdk_hdr_parse(allocator, &hdr, test_header_1, sizeof(test_header_1) - 5));
+                       aws_cryptosdk_hdr_parse_init(allocator, &hdr, test_header_1, sizeof(test_header_1) - 5));
 
     TEST_ASSERT_INT_EQ(aws_cryptosdk_hdr_size(&hdr), 0);
 
     // faulty header
     struct aws_cryptosdk_hdr hdr2;
     TEST_ASSERT_INT_NE(AWS_OP_SUCCESS,
-                       aws_cryptosdk_hdr_parse(allocator, &hdr2, bad_header_1, sizeof(bad_header_1)));
+                       aws_cryptosdk_hdr_parse_init(allocator, &hdr2, bad_header_1, sizeof(bad_header_1)));
 
     TEST_ASSERT_INT_EQ(aws_cryptosdk_hdr_size(&hdr2), 0);
 
@@ -350,12 +350,12 @@ static void overread_once(const uint8_t *inbuf, size_t inlen, ssize_t flip_bit_i
 
     struct aws_cryptosdk_hdr hdr;
     // We don't care about the return value as long as we don't actually crash.
-    aws_cryptosdk_hdr_parse(allocator, &hdr, phdr, inlen);
+    aws_cryptosdk_hdr_parse_init(allocator, &hdr, phdr, inlen);
 
-    // This is only necessary when aws_cryptosdk_hdr_parse succeeds,
+    // This is only necessary when aws_cryptosdk_hdr_parse_init succeeds,
     // but including it all the time is also a good test that we have made
-    // aws_cryptosdk_hdr_free idempotent.
-    aws_cryptosdk_hdr_free(allocator, &hdr);
+    // aws_cryptosdk_hdr_clean_up idempotent.
+    aws_cryptosdk_hdr_clean_up(allocator, &hdr);
     munmap(pbuffer, total_size);
 }
 
