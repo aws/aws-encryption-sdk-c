@@ -130,9 +130,9 @@ static int check_ciphertext() {
     return 0;
 }
 
-static int walk_pump() {
+static int probe_buffer_size_estimates() {
     /*
-     * This method feeds pump_ciphertext increasingly large amounts of data
+     * This method feeds pump_ciphertext increasingly larger buffers
      * until something happens. By doing so we can verify that estimates work
      * properly (i.e. when we pass exactly the estimate, either the estimate
      * must be updated or some data must be consumed).
@@ -173,12 +173,12 @@ static int test_small_buffers() {
     aws_cryptosdk_session_init_encrypt(session);
     aws_cryptosdk_session_set_frame_size(session, 16);
 
-    if (walk_pump()) return 1; // should emit header
-    if (walk_pump()) return 1; // should emit frame 1
-    if (walk_pump()) return 1; // should not emit anything
+    if (probe_buffer_size_estimates()) return 1; // should emit header
+    if (probe_buffer_size_estimates()) return 1; // should emit frame 1
+    if (probe_buffer_size_estimates()) return 1; // should not emit anything
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_message_size(session, pt_size));
     precise_size_set = true;
-    if (walk_pump()) return 1; // should emit final frame
+    if (probe_buffer_size_estimates()) return 1; // should emit final frame
 
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
 

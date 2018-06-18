@@ -737,7 +737,7 @@ int aws_cryptosdk_session_process(
                 result = try_decrypt_body(session, &output, &input);
                 break;
             case ST_CHECK_TRAILER:
-                // no-op for now, go to ST_DONE
+                // TODO: no-op for now, go to ST_DONE
                 session_change_state(session, ST_DONE);
                 result = AWS_OP_SUCCESS;
                 break;
@@ -752,7 +752,7 @@ int aws_cryptosdk_session_process(
                 result = try_encrypt_body(session, &output, &input);
                 break;
             case ST_WRITE_TRAILER:
-                // no-op for now, go to ST_DONE
+                // TODO: no-op for now, go to ST_DONE
                 session_change_state(session, ST_DONE);
                 result = AWS_OP_SUCCESS;
                 break;

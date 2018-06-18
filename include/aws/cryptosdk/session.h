@@ -184,7 +184,7 @@ bool aws_cryptosdk_session_is_done(const struct aws_cryptosdk_session *session);
  * Note that these values will change after initial header (de)serialization
  * is completed.
  *
- * This method never fails, but if the session is in an error state or is 
+ * This method never fails, but if the session is in an error state or is
  * only partially initialized, the returned sizes will be 1.
  */
 void aws_cryptosdk_session_estimate_buf(

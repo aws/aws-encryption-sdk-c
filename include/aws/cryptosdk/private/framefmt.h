@@ -1,17 +1,17 @@
-/* 
+/*
  * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may not use
  * this file except in compliance with the License. A copy of the License is
  * located at
- * 
+ *
  *     http://aws.amazon.com/apache2.0/
- * 
+ *
  * or in the "license" file accompanying this file. This file is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
- */ 
+ */
 
 #ifndef AWS_CRYPTOSDK_PRIVATE_FRAMEFMT_H
 #define AWS_CRYPTOSDK_PRIVATE_FRAMEFMT_H
@@ -41,15 +41,28 @@ struct aws_cryptosdk_frame {
  * it is the caller's responsibility to fill these in with the appropriate data.
  *
  * This function also checks that there is sufficient space to perform the
- * write, and if there is not, raises AWS_ERROR_SHORT_BUFFER. In this case,
- * the contents of the ciphertext buffer referenced by the cursor are undefined,
- * but we guarantee that space before or after the cursor's range is untouched.
+ * write, and if there is not, raises AWS_ERROR_SHORT_BUFFER (returning
+ * AWS_OP_ERR). In this case,  the contents of the ciphertext buffer referenced
+ * by the cursor are undefined, but we guarantee that space before or after the
+ * cursor's range is untouched.
  *
  * On return, *ciphertext_size is always set to the amount of ciphertext
  * required to write the frame. If there was sufficient space in
  * ciphertext_buf, then *frame is initialized with cursors for the inner
  * components of the frame, *ciphertext_buf is advanced forward, and the
  * function returns AWS_ERROR_SUCCESS (0).
+ *
+ * Arguments:
+ *   frame - (in/out) The frame type and sequence number are read from here;
+ *           upon successful return the iv, ciphertext, and authtag cursors
+ *           are pointed to the appropriate ranges within the ciphertext buffer.
+ *   ciphertext_size - (out) The amount of ciphertext buffer space needed for
+ *                     this frame. Always set.
+ *   plaintext_size - (in) The size of the plaintext for this frame.
+ *   ciphertext_buf - (in) The cursor for the ciphertext buffer. Upon success,
+ *                    this cursor is advanced until it is just beyond the end
+ *                    of the frame.
+ *   alg_props - (in) The algorithm properties for the algorithm suite in use.
  */
 int aws_cryptosdk_serialize_frame(
     struct aws_cryptosdk_frame *frame, /* in/out */
@@ -83,9 +96,9 @@ int aws_cryptosdk_serialize_frame(
  * Arguments:
  *   frame - (out) Receives the parsed frame
  *   ciphertext_size - (out) Receives the frame ciphertext size, or a lower bound thereof.
- *   plaintext_size - (out) Receives the frame plaintext size, or a lower bound thereof
+ *   plaintext_size - (out) Receives the frame plaintext size, or a lower bound thereof.
  *   ciphertext_buf - (in/out) The input ciphertext; the cursor is adjusted on success.
- *   alg_properties - (in) The algorithm properties for the algorithm suite in use
+ *   alg_properties - (in) The algorithm properties for the algorithm suite in use.
  *   max_frame_size - (in) The maximum frame size, or zero to indicate a non-framed body.
  */
 int aws_cryptosdk_deserialize_frame(

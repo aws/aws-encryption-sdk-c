@@ -62,29 +62,29 @@ void hexdump(const uint8_t *buf, size_t size) {
 }
 
 static uint8_t recv_buf[65536];
-static size_t recv_buf_sz;
+static size_t recv_buf_used;
 static const uint8_t *post_buf;
 static size_t post_buf_remain;
 
-static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *userdata) {
+static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
     (void)userdata;
 
     // CURL limits the total size passed, so this won't overflow
     size_t total_size = size * nmemb;
 
-    if (total_size > sizeof(recv_buf) - recv_buf_sz) {
+    if (total_size > sizeof(recv_buf) - recv_buf_used) {
         // Too much data for the recv_buf. Signal an error to curl by returning less
         // than the amount of data given.
         return 0;
     }
 
-    memcpy(recv_buf + recv_buf_sz, ptr, total_size);
-    recv_buf_sz += total_size;
+    memcpy(recv_buf + recv_buf_used, ptr, total_size);
+    recv_buf_used += total_size;
 
     return total_size;
 }
 
-static size_t read_cb(char *buffer, size_t size, size_t nitems, void *instream) {
+static size_t read_callback(char *buffer, size_t size, size_t nitems, void *instream) {
     (void)instream;
 
     // size, nitems are trusted values from curl
@@ -106,7 +106,7 @@ static CURL *curl;
 static struct curl_slist *headers;
 static char curl_error_buf[CURL_ERROR_SIZE];
 
-static void setup_curl() {
+static void curl_init() {
     curl = curl_easy_init();
     if (!curl) {
         fprintf(stderr, "Curl initialization failed\n");
@@ -115,9 +115,11 @@ static void setup_curl() {
 
     curl_easy_setopt(curl, CURLOPT_URL, apigw_url);
     curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
-    curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_cb);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+    curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_callback);
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
+
+    // We're sending a raw buffer as the body of the HTTP request, not an HTML form body.
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, NULL);
 
     struct curl_slist *headers = curl_slist_append(NULL, "Transfer-Encoding: chunked");
@@ -127,7 +129,7 @@ static void setup_curl() {
     curl_easy_setopt(curl, CURLOPT_FAILONERROR, 0L);
 }
 
-static void free_curl() {
+static void curl_clean_up() {
     curl_easy_cleanup(curl);
     curl_slist_free_all(headers);
 }
@@ -142,7 +144,7 @@ static int try_decrypt(
 ) {
     post_buf = ciphertext;
     post_buf_remain = ciphertext_size;
-    recv_buf_sz = 0;
+    recv_buf_used = 0;
 
     CURLcode result = curl_easy_perform(curl);
 
@@ -150,7 +152,7 @@ static int try_decrypt(
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
     if (http_code != 200L) {
         fprintf(stderr, "Error from server (code %ld):\n", http_code);
-        fwrite(recv_buf, recv_buf_sz, 1, stderr);
+        fwrite(recv_buf, recv_buf_used, 1, stderr);
         fprintf(stderr, "\n");
         return 1;
     }
@@ -160,11 +162,11 @@ static int try_decrypt(
         return 1;
     }
 
-    if (expected_size != recv_buf_sz || memcmp(expected, recv_buf, recv_buf_sz)) {
+    if (expected_size != recv_buf_used || memcmp(expected, recv_buf, recv_buf_used)) {
         fprintf(stderr, "Plaintext mismatch; expected:\n");
         hexdump(expected, expected_size);
         fprintf(stderr, "actual:\n");
-        hexdump(recv_buf, recv_buf_sz);
+        hexdump(recv_buf, recv_buf_used);
         return 1;
     }
 
@@ -243,10 +245,11 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
 
         if (pt_need > plaintext_sz && ct_need <= ct_available && !pt_consumed && !ct_generated) {
             // Hmm... it seems to want more plaintext than we have available.
-            // If we haven't set the precise size yet, then this is understandable;
-            // it's also possible that we've not gotten to the body yet (in which case
-            // we should see insufficient ciphertext space).
-            // Otherwise something has gone wrong.
+            // If we haven't set the precise size yet, then this is
+            // understandable; it's also possible that we've not gotten to the
+            // body yet, in which case we should see insufficient ciphertext
+            // space. Otherwise something has gone wrong.
+
             TEST_ASSERT(!early_size);
             aws_cryptosdk_session_set_message_size(session, plaintext_sz);
         }
@@ -277,7 +280,7 @@ int main() {
     aws_load_error_strings();
     aws_cryptosdk_err_init_strings();
 
-    setup_curl();
+    curl_init();
 
     int final_result = 0;
 
@@ -296,9 +299,7 @@ int main() {
     RUN_TEST(test_framesize(1, 0, true));
     RUN_TEST(test_framesize(1024, 0, true));
 
-    free_curl();
+    curl_clean_up();
 
     return final_result;
 }
-
-
