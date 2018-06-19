@@ -50,7 +50,7 @@ struct aws_cryptosdk_frame {
  * required to write the frame. If there was sufficient space in
  * ciphertext_buf, then *frame is initialized with cursors for the inner
  * components of the frame, *ciphertext_buf is advanced forward, and the
- * function returns AWS_ERROR_SUCCESS (0).
+ * function returns AWS_OP_SUCCESS (0).
  *
  * Arguments:
  *   frame - (in/out) The frame type and sequence number are read from here;
