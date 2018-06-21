@@ -219,9 +219,11 @@ struct aws_cryptosdk_mkp_vt {
     /**
      * VIRTUAL FUNCTION: must implement if used for decryption.
      *
-     * Implementations of this must properly initialize the unencrypted data key buffer when an EDK is decrypted
-     * and leave the unencrypted data key buffer pointer set to NULL when no EDK is decrypted, or they must
-     * delegate to an MK's decrypt_data_key method, which must follow the same rules.
+     * Implementations should treat only the unencrypted_data_key element of the decryption materials as output
+     * and should not modify any other elements. Implementations must properly initialize the unencrypted data
+     * key buffer when an EDK is decrypted and leave the unencrypted data key buffer pointer set to NULL when
+     * no EDK is decrypted, or they must delegate to an MK's decrypt_data_key method, which must follow the same
+     * rules.
      */
     int (*decrypt_data_key)(struct aws_cryptosdk_mkp * mkp,
                             struct aws_cryptosdk_decryption_materials * dec_mat,
@@ -290,7 +292,11 @@ struct aws_cryptosdk_mk_vt {
      * VIRTUAL FUNCTION: must implement if used for data key generation. If this is the only MK
      * and this is not implemented, encryption will not be possible.
      *
-     * Implementations of this must properly initialize the byte buffers of the unencrypted data key
+     * Implementations should treat the unencrypted_data_key and encrypted_data_keys elements of the encryption
+     * materials as outputs and should not modify any other elements. They should consider the array list
+     * at encrypted_data_keys to already be initialized and should append the EDK they generate to that list.
+     *
+     * Implementations must also properly initialize the byte buffers of the unencrypted data key
      * and the EDK which it appends onto the list. The buffer for the unencrypted data key MUST be used.
      * Buffers for the EDK may or may not be used, but any buffers which are not used must have their
      * allocators set to NULL and lengths set to zero. This assures that both clean up and serialization
@@ -301,7 +307,12 @@ struct aws_cryptosdk_mk_vt {
     /**
      * VIRTUAL FUNCTION: must implement if used for encryption, except when it is the only MK.
      *
-     * Implementations of this must properly initialize the EDK which is appended to the list as explained above.
+     * Implementations should treat only the encrypted_data_keys element of the encryption materials as output
+     * and should not modify any other elements. They should consider the array list at encrypted_data_keys to
+     * already be initialized and should append the EDK they generate to that list.
+     *
+     * Implementations must also properly initialize the EDK which is appended to the list as explained in the
+     * comments on generate_data_key above.
      */
     int (*encrypt_data_key)(struct aws_cryptosdk_mk * mk,
                             struct aws_cryptosdk_encryption_materials * enc_mat);
@@ -309,8 +320,11 @@ struct aws_cryptosdk_mk_vt {
     /**
      * VIRTUAL FUNCTION: must implement if used for decryption.
      *
-     * Implementations of this must properly initialize the unencrypted data key buffer when an EDK is decrypted
-     * and leave the unencrypted data key buffer pointer set to NULL when no EDK is decrypted.
+     * Implementations should treat only the unencrypted_data_key element of the decryption materials as output
+     * and should not modify any other elements. Implementations must properly initialize the unencrypted data
+     * key buffer when an EDK is decrypted and leave the unencrypted data key buffer pointer set to NULL when
+     * no EDK is decrypted, or they must delegate to an MK's decrypt_data_key method, which must follow the same
+     * rules.
      */
     int (*decrypt_data_key)(struct aws_cryptosdk_mk * mk,
                             struct aws_cryptosdk_decryption_materials * dec_mat,
