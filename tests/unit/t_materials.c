@@ -15,13 +15,15 @@
 
 #include <aws/common/array_list.h>
 #include <aws/cryptosdk/default_cmm.h>
+#include <aws/cryptosdk/single_mkp.h>
 #include "testing.h"
-#include "zero_mkp.h"
+#include "zero_mk.h"
 #include "bad_cmm.h"
 
 int default_cmm_zero_mkp_enc_mat() {
     struct aws_allocator * alloc = aws_default_allocator();
-    struct aws_cryptosdk_mkp * mkp = aws_cryptosdk_zero_mkp_new();
+    struct aws_cryptosdk_mk * mk = aws_cryptosdk_zero_mk_new();
+    struct aws_cryptosdk_mkp * mkp = aws_cryptosdk_single_mkp_new(alloc, mk);
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(alloc, mkp);
 
     struct aws_cryptosdk_encryption_request req;
@@ -51,13 +53,15 @@ int default_cmm_zero_mkp_enc_mat() {
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
     aws_cryptosdk_cmm_destroy(cmm);
     aws_cryptosdk_mkp_destroy(mkp);
+    aws_cryptosdk_mk_destroy(mk);
     
     return 0;
 }
 
 int default_cmm_zero_mkp_dec_mat() {
     struct aws_allocator * alloc = aws_default_allocator();
-    struct aws_cryptosdk_mkp * mkp = aws_cryptosdk_zero_mkp_new(alloc);
+    struct aws_cryptosdk_mk * mk = aws_cryptosdk_zero_mk_new();
+    struct aws_cryptosdk_mkp * mkp = aws_cryptosdk_single_mkp_new(alloc, mk);
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(alloc, mkp);
 
     struct aws_cryptosdk_decryption_request req;
@@ -79,6 +83,7 @@ int default_cmm_zero_mkp_dec_mat() {
     aws_cryptosdk_decryption_materials_destroy(dec_mat);
     aws_cryptosdk_cmm_destroy(cmm);
     aws_cryptosdk_mkp_destroy(mkp);
+    aws_cryptosdk_mk_destroy(mk);
     aws_array_list_clean_up(&req.encrypted_data_keys);
     return 0;
 }
