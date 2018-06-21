@@ -22,26 +22,16 @@ struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_n
     int ret;
     struct aws_cryptosdk_encryption_materials * enc_mat;
     enc_mat = aws_mem_acquire(alloc, sizeof(struct aws_cryptosdk_encryption_materials));
-    if (!enc_mat) {
-        aws_raise_error(AWS_ERROR_OOM);
-        return NULL;
-    }
+    if (!enc_mat) return NULL;
     enc_mat->alloc = alloc;
     enc_mat->alg = alg;
-
-    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
-    ret = aws_byte_buf_init(alloc, &enc_mat->unencrypted_data_key, props->data_key_len);
-    if (ret) {
-        aws_mem_release(alloc, enc_mat);
-        aws_raise_error(AWS_ERROR_OOM);
-        return NULL;
-    }
+    enc_mat->unencrypted_data_key.allocator = NULL;
+    enc_mat->unencrypted_data_key.buffer = NULL;
 
     ret = aws_array_list_init_dynamic(&enc_mat->encrypted_data_keys, alloc, num_keys, sizeof(struct aws_cryptosdk_edk));
     if (ret) {
         aws_byte_buf_clean_up(&enc_mat->unencrypted_data_key);
         aws_mem_release(alloc, enc_mat);
-        aws_raise_error(AWS_ERROR_OOM);
         return NULL;
     }
 
@@ -76,22 +66,13 @@ void aws_cryptosdk_encryption_materials_destroy(struct aws_cryptosdk_encryption_
 // TODO: initialization for trailing signature key, if necessary
 struct aws_cryptosdk_decryption_materials * aws_cryptosdk_decryption_materials_new(struct aws_allocator * alloc,
                                                                                    enum aws_cryptosdk_alg_id alg) {
-    int ret;
     struct aws_cryptosdk_decryption_materials * dec_mat;
     dec_mat = aws_mem_acquire(alloc, sizeof(struct aws_cryptosdk_decryption_materials));
-    if (!dec_mat) {
-        aws_raise_error(AWS_ERROR_OOM);
-        return NULL;
-    }
+    if (!dec_mat) return NULL;
     dec_mat->alloc = alloc;
-
-    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
-    ret = aws_byte_buf_init(alloc, &dec_mat->unencrypted_data_key, props->data_key_len);
-    if (ret) {
-        aws_mem_release(alloc, dec_mat);
-        aws_raise_error(AWS_ERROR_OOM);
-        return NULL;
-    }
+    dec_mat->unencrypted_data_key.buffer = NULL;
+    dec_mat->unencrypted_data_key.allocator = NULL;
+    dec_mat->alg = alg;
 
     return dec_mat;
 }
