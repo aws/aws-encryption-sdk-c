@@ -18,8 +18,9 @@
 #include <aws/cryptosdk/materials.h>
 
 /**
- * A Master Key Provider (MKP) that has a single Master Key (MK).
- * Use after instantiating a MK, as a connector between the MK and CMM.
+ * A Master Key Provider (MKP) that has a single Master Key (MK). Use after
+ * instantiating a MK, as a connector between the MK and CMM when there are no other
+ * MKs and all data key generation/encryption/decryption should be done by only this MK.
  *
  * This MKP's get_master_keys method always appends the pointer to the master key
  * with which it was initialized to the list of master keys. The only way it can
