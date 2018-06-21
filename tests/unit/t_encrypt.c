@@ -17,6 +17,7 @@
 #include <aws/cryptosdk/private/cipher.h>
 #include <stdlib.h>
 #include "testing.h"
+#include "zero_mk.h"
 
 static uint8_t *pt_buf;
 static size_t pt_size, pt_offset;
@@ -110,6 +111,7 @@ static int pump_ciphertext(size_t ct_window, size_t *ct_consumed, size_t pt_wind
 
 static int check_ciphertext() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_mk(session, aws_cryptosdk_zero_mk_new()));
 
     uint8_t *pt_check_buf = aws_mem_acquire(aws_default_allocator(), pt_size);
     if (!pt_check_buf) {
@@ -172,6 +174,7 @@ static int probe_buffer_size_estimates() {
 static int test_small_buffers() {
     init_bufs(31);
     aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_ENCRYPT);
+    aws_cryptosdk_session_set_mk(session, aws_cryptosdk_zero_mk_new());
     aws_cryptosdk_session_set_frame_size(session, 16);
 
     if (probe_buffer_size_estimates()) return 1; // should emit header
@@ -195,6 +198,7 @@ int test_simple_roundtrip() {
 
     size_t ct_consumed, pt_consumed;
     aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_ENCRYPT);
+    aws_cryptosdk_session_set_mk(session, aws_cryptosdk_zero_mk_new());
     aws_cryptosdk_session_set_message_size(session, pt_size);
     precise_size_set = true;
 

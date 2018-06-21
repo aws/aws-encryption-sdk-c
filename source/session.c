@@ -37,13 +37,21 @@ int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_
     aws_cryptosdk_hdr_clean_up(session->alloc, &session->header);
 
     /* Stash the state we want to keep and zero the rest */
-    struct aws_allocator *alloc = session->alloc;
-    size_t frame_size = session->frame_size;
-    aws_cryptosdk_secure_zero(session, sizeof(*session));
-    session->alloc = alloc;
-    session->frame_size = frame_size;
-    session->mode = mode;
+    struct aws_cryptosdk_session new_session;
+    aws_cryptosdk_secure_zero(&new_session, sizeof(new_session));
+    new_session.alloc = session->alloc;
+    new_session.cmm = session->cmm;
+    new_session.frame_size = session->frame_size;
+    new_session.mode = mode;
+    new_session.default_cmm_placement = session->default_cmm_placement;
+    new_session.single_mkp_placement = session->single_mkp_placement;
 
+    // Make sure we scrub any sensitive data from the old session before overwriting it.
+    aws_cryptosdk_secure_zero(session, sizeof(*session));
+    *session = new_session;
+
+    // Finally set an initial estimate of one byte - this just ensures we get far enough in to process that we can
+    // figure out the true estimate
     session->input_size_estimate = session->output_size_estimate = 1;
     session->size_bound = UINT64_MAX;
 
@@ -85,6 +93,38 @@ void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session) {
     aws_cryptosdk_secure_zero(session, sizeof(*session));
 
     aws_mem_release(alloc, session);
+}
+
+int aws_cryptosdk_session_set_cmm(struct aws_cryptosdk_session *session, struct aws_cryptosdk_cmm *cmm) {
+    if (session->state != ST_CONFIG) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    }
+
+    session->cmm = cmm;
+
+    return AWS_OP_SUCCESS;
+}
+
+int aws_cryptosdk_session_set_mkp(struct aws_cryptosdk_session *session, struct aws_cryptosdk_mkp *mkp) {
+    if (session->state != ST_CONFIG) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    }
+
+    return aws_cryptosdk_session_set_cmm(
+        session,
+        aws_cryptosdk_default_cmm_init_inplace(&session->default_cmm_placement, mkp)
+    );
+}
+
+int aws_cryptosdk_session_set_mk(struct aws_cryptosdk_session *session, struct aws_cryptosdk_mk *mk) {
+    if (session->state != ST_CONFIG) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    }
+
+    return aws_cryptosdk_session_set_mkp(
+        session,
+        aws_cryptosdk_single_mkp_init_inplace(&session->single_mkp_placement, mk)
+    );
 }
 
 int aws_cryptosdk_session_set_frame_size(struct aws_cryptosdk_session *session, uint32_t frame_size) {
@@ -164,8 +204,12 @@ int aws_cryptosdk_session_process(
 
         switch (session->state) {
             case ST_CONFIG:
-                // TODO: Verify mandatory config is present
-                // Right now we haven't implemented CMMs yet, so this is a no-op
+                if (!session->cmm) {
+                    // TODO - is this the right error?
+                    result = aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+                    break;
+                }
+
                 if (session->mode == AWS_CRYPTOSDK_ENCRYPT) {
                     session_change_state(session, ST_GEN_KEY);
                 } else {

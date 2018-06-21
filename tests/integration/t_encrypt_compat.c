@@ -15,6 +15,7 @@
 
 #include "testing.h"
 #include "testutil.h"
+#include "zero_mk.h"
 
 #include <stdio.h>
 #include <ctype.h>
@@ -164,6 +165,7 @@ static int test_basic() {
     struct aws_cryptosdk_session *session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT);
 
     aws_cryptosdk_session_set_message_size(session, sizeof(plaintext));
+    aws_cryptosdk_session_set_mk(session, aws_cryptosdk_zero_mk_new());
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process(session,
         ciphertext, sizeof(ciphertext), &ct_consumed,
@@ -191,6 +193,7 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
 
     struct aws_cryptosdk_session *session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT);
     if (early_size) aws_cryptosdk_session_set_message_size(session, plaintext_sz);
+    aws_cryptosdk_session_set_mk(session, aws_cryptosdk_zero_mk_new());
 
     size_t pt_offset = 0, ct_offset = 0;
 

@@ -13,12 +13,7 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/default_cmm.h>
-
-struct default_cmm {
-    const struct aws_cryptosdk_cmm_vt * vt;
-    struct aws_allocator * alloc;
-    struct aws_cryptosdk_mkp * mkp;
-};
+#include <aws/cryptosdk/private/builtin_providers.h>
 
 static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * cmm,
                                                      struct aws_cryptosdk_encryption_materials ** output,
@@ -116,12 +111,27 @@ static const struct aws_cryptosdk_cmm_vt default_cmm_vt = {
     .decrypt_materials = default_cmm_decrypt_materials
 };
 
+
+struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_init_inplace(
+    struct default_cmm *cmm,
+    struct aws_cryptosdk_mkp * mkp
+) {
+    cmm->alloc = NULL;
+    cmm->vt = &default_cmm_vt;
+    cmm->mkp = mkp;
+
+    return (struct aws_cryptosdk_cmm *) cmm;
+}
+
+
 struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * alloc, struct aws_cryptosdk_mkp * mkp) {
     struct default_cmm * cmm;
     cmm = aws_mem_acquire(alloc, sizeof(struct default_cmm));
     if (!cmm) return NULL;
+
     cmm->vt = &default_cmm_vt;
     cmm->alloc = alloc;
     cmm->mkp = mkp;
+    
     return (struct aws_cryptosdk_cmm *) cmm;
 }

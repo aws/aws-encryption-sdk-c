@@ -19,6 +19,7 @@
 #include <aws/cryptosdk/session.h>
 #include <aws/cryptosdk/private/header.h>
 #include <aws/cryptosdk/private/cipher.h>
+#include <aws/cryptosdk/private/builtin_providers.h>
 
 #define DEFAULT_FRAME_SIZE (256 * 1024)
 #define MAX_FRAME_SIZE 0xFFFFFFFF
@@ -52,6 +53,10 @@ struct aws_cryptosdk_session {
     int error;
     enum aws_cryptosdk_mode mode;
     enum session_state state;
+
+    struct aws_cryptosdk_cmm *cmm;
+    struct default_cmm default_cmm_placement;
+    struct aws_cryptosdk_single_mkp single_mkp_placement;
 
     /* Encrypt mode configuration */
     uint64_t precise_size; /* Exact size of message */

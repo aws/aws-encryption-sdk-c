@@ -1,17 +1,17 @@
-/* 
+/*
  * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may not use
  * this file except in compliance with the License. A copy of the License is
  * located at
- * 
+ *
  *     http://aws.amazon.com/apache2.0/
- * 
+ *
  * or in the "license" file accompanying this file. This file is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
- */ 
+ */
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -27,6 +27,7 @@
 #include <aws/common/encoding.h>
 
 #include "testutil.h"
+#include "zero_mk.h"
 
 bool suite_failed = false;
 #define SENTINEL_VALUE ((size_t)0xABCD0123DEADBEEFllu)
@@ -55,6 +56,7 @@ static void decrypt_test_oneshot(
     struct aws_cryptosdk_session *session;
 
     if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT))) unexpected_error();
+    if (aws_cryptosdk_session_set_mk(session, aws_cryptosdk_zero_mk_new())) unexpected_error();
 
     uint8_t *outp = outbuf;
     const uint8_t *inp = ct.buffer;
@@ -113,6 +115,7 @@ static void decrypt_test_incremental(
     struct aws_cryptosdk_session *session;
 
     if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT))) unexpected_error();
+    if (aws_cryptosdk_session_set_mk(session, aws_cryptosdk_zero_mk_new())) unexpected_error();
 
     uint8_t *outp = outbuf;
     const uint8_t *inp = ct.buffer;
@@ -293,6 +296,7 @@ static void decrypt_test_badciphertext(
         ct.buffer[bit / 8] ^= 1 << (bit % 8);
 
         if (aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT)) unexpected_error();
+        if (aws_cryptosdk_session_set_mk(session, aws_cryptosdk_zero_mk_new())) unexpected_error();
 
         out_produced = in_consumed = SENTINEL_VALUE;
         memset(outbuf, 0x42, outsz);

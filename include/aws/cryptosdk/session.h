@@ -20,6 +20,7 @@
 
 #include <aws/common/common.h>
 #include <aws/cryptosdk/header.h>
+#include <aws/cryptosdk/materials.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,6 +59,35 @@ void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);
 int aws_cryptosdk_session_reset(
     struct aws_cryptosdk_session *session,
     enum aws_cryptosdk_mode mode
+);
+
+/**
+ * Sets the crypto material manager to use for obtaining data keys for
+ * encryption and decryption.
+ */
+int aws_cryptosdk_session_set_cmm(
+    struct aws_cryptosdk_session *session,
+    struct aws_cryptosdk_cmm *cmm
+);
+
+/**
+ * Sets a master key provider to use for obtaining data keys for encryption and
+ * decryption. The session will implicitly create an internal default CMM to
+ * bridge to the master key provider given.
+ */
+int aws_cryptosdk_session_set_mkp(
+    struct aws_cryptosdk_session *session,
+    struct aws_cryptosdk_mkp *mkp
+);
+
+/**
+ * Sets a single master key to use for obtaining data keys for encryption and
+ * decryption. The session will implicitly create an internal single MKP and
+ * default CMM to bridge to the master key given.
+ */
+int aws_cryptosdk_session_set_mk(
+    struct aws_cryptosdk_session *session,
+    struct aws_cryptosdk_mk *mk
 );
 
 /**
