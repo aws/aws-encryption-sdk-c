@@ -32,7 +32,7 @@
  * On success allocates a MKP and returns its address. Be sure to deallocate it later
  * by caling aws_cryptosdk_mkp_destroy on the MKP pointer returned by this function.
  *
- * On failure returns NULL and sets and internal AWS error code.
+ * On failure returns NULL and sets an internal AWS error code.
  */
 struct aws_cryptosdk_mkp * aws_cryptosdk_single_mkp_new(struct aws_allocator * alloc,
                                                         struct aws_cryptosdk_mk * mk);

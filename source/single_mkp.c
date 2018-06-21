@@ -37,16 +37,10 @@ static int single_mkp_get_master_keys(struct aws_cryptosdk_mkp * mkp,
 }
 
 static int single_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
-                                       struct aws_byte_buf * unencrypted_data_key,
-                                       const struct aws_array_list * encrypted_data_keys,
-                                       const struct aws_hash_table * enc_context,
-                                       enum aws_cryptosdk_alg_id alg) {
+                                       struct aws_cryptosdk_decryption_materials * dec_mat,
+                                       const struct aws_array_list * edks) {
     struct aws_cryptosdk_single_mkp * self = (struct aws_cryptosdk_single_mkp *) mkp;
-    return aws_cryptosdk_mk_decrypt_data_key(self->mk,
-                                             unencrypted_data_key,
-                                             encrypted_data_keys,
-                                             enc_context,
-                                             alg);
+    return aws_cryptosdk_mk_decrypt_data_key(self->mk, dec_mat, edks);
 }
 
 static struct aws_cryptosdk_mkp_vt aws_cryptosdk_single_mkp_vt = {
