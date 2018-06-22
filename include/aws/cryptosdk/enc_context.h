@@ -20,9 +20,7 @@
 #include <aws/common/string.h>
 
 /**
- * Pass in an unallocated byte buffer.
- *
- * On success, allocates byte buffer and puts serialized encryption context into buffer.
+ * Allocates byte buffer and puts serialized encryption context into buffer.
  *
  * On failure, nothing is allocated and all fields of byte buffer are zeroized.
  */
@@ -31,7 +29,7 @@ int aws_cryptosdk_serialize_enc_context_init(struct aws_allocator * alloc,
                                              const struct aws_hash_table * enc_context);
 
 /**
- * Allocates memory to elems and places all hash elements from map into elems.
+ * Allocates array list and places all hash elements from map into it.
  * No guarantees are made about the order of elements.
  *
  * On failure, does not allocate any memory.
