@@ -24,6 +24,7 @@ struct test_case *test_groups[] = {
     header_test_cases,
     cipher_test_cases,
     materials_test_cases,
+    enc_context_test_cases,
     NULL
 };
 

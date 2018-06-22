@@ -24,6 +24,7 @@ struct test_case {
 extern struct test_case header_test_cases[];
 extern struct test_case cipher_test_cases[];
 extern struct test_case materials_test_cases[];
+extern struct test_case enc_context_test_cases[];
 
 #define TEST_ASSERT(cond) \
     do { \
@@ -62,6 +63,16 @@ extern struct test_case materials_test_cases[];
         if (t_x != t_y) { \
             fprintf(stderr, "Failed: %s (%p) != %s (%p) at %s:%d\n", \
                     #x, t_x, #y, t_y, __FILE__, __LINE__); \
+            return 1; \
+        } \
+    } while (0)
+
+#define TEST_ASSERT_ADDR_NOT_NULL(x) \
+    do { \
+        const void * t_x = (x); \
+        if (!t_x) { \
+            fprintf(stderr, "Failed: %s == NULL at %s:%d\n", \
+                    #x, __FILE__, __LINE__); \
             return 1; \
         } \
     } while (0)
