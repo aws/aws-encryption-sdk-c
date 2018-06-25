@@ -29,7 +29,7 @@ struct aws_cryptosdk_framestate {
     /*
      * The writing field indicates if we intend to write data; in particular,
      * this means that fields like sequence_number and plaintext_size are inputs
-     * to the serde functions.
+     * to the serialize/deserialize ("serde") functions.
      */
     bool writing;
 
