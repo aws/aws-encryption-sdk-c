@@ -121,12 +121,6 @@ int serialize_valid_enc_context() {
     return 0;
 }
 
-#define ASSERT_SERIALIZATION_ERR_SET \
-    do { \
-        TEST_ASSERT_INT_EQ(aws_last_error(), AWS_CRYPTOSDK_ERR_SERIALIZATION); \
-        aws_reset_error(); \
-    } while (0)
-
 int serialize_error_when_element_too_long() {
     struct aws_allocator * alloc = aws_default_allocator();
 
@@ -145,7 +139,7 @@ int serialize_error_when_element_too_long() {
     
     struct aws_byte_buf output;
     TEST_ASSERT_INT_EQ(aws_cryptosdk_serialize_enc_context_init(alloc, &output, &enc_context), AWS_OP_ERR);
-    ASSERT_SERIALIZATION_ERR_SET;
+    TEST_ASSERT_ERR_CODE_SET_THEN_CLEAR(AWS_CRYPTOSDK_ERR_SERIALIZATION);
 
     aws_hash_table_clean_up(&enc_context);
     return 0;
@@ -169,7 +163,7 @@ int serialize_error_when_serialized_len_too_long() {
 
     struct aws_byte_buf output;
     TEST_ASSERT_INT_EQ(aws_cryptosdk_serialize_enc_context_init(alloc, &output, &enc_context), AWS_OP_ERR);
-    ASSERT_SERIALIZATION_ERR_SET;
+    TEST_ASSERT_ERR_CODE_SET_THEN_CLEAR(AWS_CRYPTOSDK_ERR_SERIALIZATION);
 
     aws_hash_table_clean_up(&enc_context);
     return 0;
@@ -210,7 +204,7 @@ int serialize_error_when_too_many_elements() {
     }
     struct aws_byte_buf output;
     TEST_ASSERT_INT_EQ(aws_cryptosdk_serialize_enc_context_init(alloc, &output, &enc_context), AWS_OP_ERR);
-    ASSERT_SERIALIZATION_ERR_SET;
+    TEST_ASSERT_ERR_CODE_SET_THEN_CLEAR(AWS_CRYPTOSDK_ERR_SERIALIZATION);
     aws_hash_table_clean_up(&enc_context);
     return 0;
 }

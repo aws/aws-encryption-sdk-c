@@ -1,5 +1,5 @@
-#ifndef TESTING_H
-#define TESTING_H
+#ifndef AWS_CRYPTOSDK_TESTS_TESTING_H
+#define AWS_CRYPTOSDK_TESTS_TESTING_H
 
 #include <stdio.h>
 
@@ -115,4 +115,10 @@ extern struct test_case enc_context_test_cases[];
         } \
     } while (0)
 
-#endif
+#define TEST_ASSERT_ERR_CODE_SET_THEN_CLEAR(code) \
+    do { \
+        TEST_ASSERT_INT_EQ(code, aws_last_error()); \
+        aws_reset_error(); \
+    } while (0)
+
+#endif // AWS_CRYPTOSDK_TESTS_TESTING_H
