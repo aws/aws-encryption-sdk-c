@@ -31,8 +31,8 @@ int default_cmm_zero_mkp_enc_mat() {
     req.requested_alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE;
 
     struct aws_cryptosdk_encryption_materials * enc_mat;
-    int ret = aws_cryptosdk_cmm_generate_encryption_materials(cmm, &enc_mat, &req);
-    TEST_ASSERT_INT_EQ(ret, AWS_OP_SUCCESS);
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
+                       aws_cryptosdk_cmm_generate_encryption_materials(cmm, &enc_mat, &req));
 
     TEST_ASSERT_ADDR_EQ(enc_mat->enc_context, (void *)0xdeadbeef);
     TEST_ASSERT_INT_EQ(enc_mat->alg, AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE);
@@ -43,8 +43,8 @@ int default_cmm_zero_mkp_enc_mat() {
 
     TEST_ASSERT_INT_EQ(enc_mat->encrypted_data_keys.length, 1);
     struct aws_cryptosdk_edk * edk;
-    ret = aws_array_list_get_at_ptr(&enc_mat->encrypted_data_keys, (void **)&edk, 0);
-    TEST_ASSERT_INT_EQ(ret, AWS_OP_SUCCESS);
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
+                       aws_array_list_get_at_ptr(&enc_mat->encrypted_data_keys, (void **)&edk, 0));
 
     TEST_ASSERT_BUF_EQ(edk->enc_data_key, 'n', 'u', 'l', 'l');
     TEST_ASSERT_BUF_EQ(edk->provider_id, 'n', 'u', 'l', 'l');
@@ -73,8 +73,7 @@ int default_cmm_zero_mkp_dec_mat() {
     aws_array_list_push_back(&req.encrypted_data_keys, (void *) &edk);
 
     struct aws_cryptosdk_decryption_materials * dec_mat;
-    int ret = aws_cryptosdk_cmm_decrypt_materials(cmm, &dec_mat, &req);
-    TEST_ASSERT_INT_EQ(ret, AWS_OP_SUCCESS);
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_cmm_decrypt_materials(cmm, &dec_mat, &req));
 
     TEST_ASSERT_BUF_EQ(dec_mat->unencrypted_data_key,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -90,34 +89,28 @@ int default_cmm_zero_mkp_dec_mat() {
 
 int zero_size_cmm_does_not_run_vfs() {
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_zero_size_cmm_new();
-    int ret = aws_cryptosdk_cmm_generate_encryption_materials(cmm, NULL, NULL);
-    TEST_ASSERT_INT_EQ(ret, AWS_OP_ERR);
-    TEST_ASSERT_ERR_CODE_SET_THEN_CLEAR(AWS_ERROR_UNIMPLEMENTED);
+    TEST_ASSERT_ERROR(AWS_ERROR_UNIMPLEMENTED,
+                      aws_cryptosdk_cmm_generate_encryption_materials(cmm, NULL, NULL));
 
-    ret = aws_cryptosdk_cmm_decrypt_materials(cmm, NULL, NULL);
-    TEST_ASSERT_INT_EQ(ret, AWS_OP_ERR);
-    TEST_ASSERT_ERR_CODE_SET_THEN_CLEAR(AWS_ERROR_UNIMPLEMENTED);
+    TEST_ASSERT_ERROR(AWS_ERROR_UNIMPLEMENTED,
+                      aws_cryptosdk_cmm_decrypt_materials(cmm, NULL, NULL));
 
-    aws_cryptosdk_cmm_destroy(cmm);
-    bool b = zero_size_cmm_did_destroy_vf_run();
-    TEST_ASSERT_INT_EQ(b, false);
-    TEST_ASSERT_ERR_CODE_SET_THEN_CLEAR(AWS_ERROR_UNIMPLEMENTED);
+    TEST_ASSERT_ERROR(AWS_ERROR_UNIMPLEMENTED,
+                      aws_cryptosdk_cmm_destroy_with_failed_return_value(cmm));
 
     return 0;
 }
 
 int null_cmm_fails_vf_calls_cleanly() {
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_null_cmm_new();
-    int ret = aws_cryptosdk_cmm_generate_encryption_materials(cmm, NULL, NULL);
-    TEST_ASSERT_INT_EQ(ret, AWS_OP_ERR);
-    TEST_ASSERT_ERR_CODE_SET_THEN_CLEAR(AWS_ERROR_UNIMPLEMENTED);
+    TEST_ASSERT_ERROR(AWS_ERROR_UNIMPLEMENTED,
+                      aws_cryptosdk_cmm_generate_encryption_materials(cmm, NULL, NULL));
 
-    ret = aws_cryptosdk_cmm_decrypt_materials(cmm, NULL, NULL);
-    TEST_ASSERT_INT_EQ(ret, AWS_OP_ERR);
-    TEST_ASSERT_ERR_CODE_SET_THEN_CLEAR(AWS_ERROR_UNIMPLEMENTED);
+    TEST_ASSERT_ERROR(AWS_ERROR_UNIMPLEMENTED,
+                      aws_cryptosdk_cmm_decrypt_materials(cmm, NULL, NULL));
 
-    aws_cryptosdk_cmm_destroy(cmm);
-    TEST_ASSERT_ERR_CODE_SET_THEN_CLEAR(AWS_ERROR_UNIMPLEMENTED);
+    TEST_ASSERT_ERROR(AWS_ERROR_UNIMPLEMENTED,
+                      aws_cryptosdk_cmm_destroy_with_failed_return_value(cmm));
     return 0;
 }
 

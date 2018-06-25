@@ -115,10 +115,22 @@ extern struct test_case enc_context_test_cases[];
         } \
     } while (0)
 
-#define TEST_ASSERT_ERR_CODE_SET_THEN_CLEAR(code) \
+#define TEST_ASSERT_ERROR(code, expression) \
     do { \
-        TEST_ASSERT_INT_EQ(code, aws_last_error()); \
         aws_reset_error(); \
-    } while (0)
+        int assert_rv = (expression); \
+        int assert_err = aws_last_error(); \
+        int assert_err_expect = (code); \
+        if (assert_rv != AWS_OP_ERR) { \
+            fprintf(stderr, "Expected error at %s:%d but no error occured; rv=%d, aws_last_error=%04x (expected %04x:%s)\n", \
+                    __FILE__, __LINE__, assert_rv, assert_err, assert_err_expect, #code); \
+            return 1; \
+        } \
+        if (assert_err != assert_err_expect) { \
+            fprintf(stderr, "Incorrect error code at %s:%d; aws_last_error=%04x (expected %04x:%s)\n", \
+                    __FILE__, __LINE__, assert_err, assert_err_expect, #code); \
+            return 1; \
+        } \
+    } while(0)
 
 #endif // AWS_CRYPTOSDK_TESTS_TESTING_H

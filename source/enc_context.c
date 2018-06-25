@@ -14,6 +14,7 @@
  */
 #include <aws/cryptosdk/private/enc_context.h>
 #include <aws/cryptosdk/error.h>
+#include <assert.h>
 
 int aws_array_list_compare_hash_elements_by_key_string(const void * elem_a, const void * elem_b) {
     const struct aws_hash_element * a = (const struct aws_hash_element *)elem_a;
@@ -38,10 +39,7 @@ int aws_hash_table_get_elems_array_init(struct aws_allocator * alloc,
             return AWS_OP_ERR;
         }
     }
-    if (aws_array_list_length(elems) != entry_count) {
-        aws_array_list_clean_up(elems);
-        return aws_raise_error(AWS_ERROR_UNKNOWN);
-    }
+    assert(aws_array_list_length(elems) == entry_count);
     return AWS_OP_SUCCESS;
 }
 
@@ -49,7 +47,7 @@ int aws_cryptosdk_serialize_enc_context_init(struct aws_allocator * alloc,
                                              struct aws_byte_buf * output,
                                              const struct aws_hash_table * enc_context) {
     size_t num_elems = aws_hash_table_get_entry_count(enc_context);
-    if (num_elems > UINT16_MAX) return aws_raise_error(AWS_CRYPTOSDK_ERR_SERIALIZATION);
+    if (num_elems > UINT16_MAX) return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
 
     struct aws_array_list elems;
     if (aws_hash_table_get_elems_array_init(alloc, & elems, enc_context)) return AWS_OP_ERR;
@@ -99,7 +97,7 @@ int aws_cryptosdk_serialize_enc_context_init(struct aws_allocator * alloc,
 
 SER_ERR:
     aws_array_list_clean_up(&elems);
-    return aws_raise_error(AWS_CRYPTOSDK_ERR_SERIALIZATION);
+    return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
 
 WRITE_ERR:
     // We should never get here, because buffer was allocated locally to be long enough.

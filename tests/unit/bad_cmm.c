@@ -18,29 +18,33 @@
  */
 
 #include "bad_cmm.h"
+#include <stdlib.h>
 
 struct bad_cmm {const struct aws_cryptosdk_cmm_vt * vt;};
 
-static bool destroy_succeed_ran = false;
-
-bool zero_size_cmm_did_destroy_vf_run() {return destroy_succeed_ran;}
+int aws_cryptosdk_cmm_destroy_with_failed_return_value(struct aws_cryptosdk_cmm * cmm) {
+    aws_cryptosdk_cmm_destroy(cmm);
+    return AWS_OP_ERR;
+}
 
 /**
  * VFs which should never get called because of the failed check on the vt_size field.
  */
-void destroy_succeed(struct aws_cryptosdk_cmm * cmm) {
-    destroy_succeed_ran = true;
+void destroy_abort(struct aws_cryptosdk_cmm * cmm) {
+    abort();
 }
 
-int generate_succeed(struct aws_cryptosdk_cmm * cmm,
-                     struct aws_cryptosdk_encryption_materials ** output,
-                     struct aws_cryptosdk_encryption_request * request) {
+int generate_abort(struct aws_cryptosdk_cmm * cmm,
+                   struct aws_cryptosdk_encryption_materials ** output,
+                   struct aws_cryptosdk_encryption_request * request) {
+    abort();
     return AWS_OP_SUCCESS;
 }
 
-int decrypt_succeed(struct aws_cryptosdk_cmm * cmm,
-                    struct aws_cryptosdk_decryption_materials ** output,
-                    struct aws_cryptosdk_decryption_request * request) {
+int decrypt_abort(struct aws_cryptosdk_cmm * cmm,
+                  struct aws_cryptosdk_decryption_materials ** output,
+                  struct aws_cryptosdk_decryption_request * request) {
+    abort();
     return AWS_OP_SUCCESS;
 }
 
@@ -50,17 +54,15 @@ int decrypt_succeed(struct aws_cryptosdk_cmm * cmm,
 static const struct aws_cryptosdk_cmm_vt zero_size_cmm_vt = {
     .vt_size = 0,
     .name = "zero size cmm",
-    .destroy = destroy_succeed,
-    .generate_encryption_materials = generate_succeed,
-    .decrypt_materials = decrypt_succeed
+    .destroy = destroy_abort,
+    .generate_encryption_materials = generate_abort,
+    .decrypt_materials = decrypt_abort
 };
 
 static struct bad_cmm zero_size_cmm_singleton = {.vt = &zero_size_cmm_vt};
 static struct aws_cryptosdk_cmm * zero_size_cmm = (struct aws_cryptosdk_cmm *) &zero_size_cmm_singleton;
 
 struct aws_cryptosdk_cmm * aws_cryptosdk_zero_size_cmm_new() {return zero_size_cmm;}
-
-
 
 static const struct aws_cryptosdk_cmm_vt null_cmm_vt = {
     .vt_size = sizeof(struct aws_cryptosdk_cmm_vt),
