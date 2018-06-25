@@ -12,7 +12,7 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <aws/cryptosdk/enc_context.h>
+#include <aws/cryptosdk/private/enc_context.h>
 #include <aws/cryptosdk/error.h>
 
 int aws_array_list_compare_hash_elements_by_key_string(const void * elem_a, const void * elem_b) {

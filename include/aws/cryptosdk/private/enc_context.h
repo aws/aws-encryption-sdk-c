@@ -12,8 +12,8 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef AWS_CRYPTOSDK_ENC_CONTEXT_H
-#define AWS_CRYPTOSDK_ENC_CONTEXT_H
+#ifndef AWS_CRYPTOSDK_PRIVATE_ENC_CONTEXT_H
+#define AWS_CRYPTOSDK_PRIVATE_ENC_CONTEXT_H
 
 #include <aws/common/array_list.h>
 #include <aws/common/hash_table.h>
@@ -50,4 +50,4 @@ int aws_array_list_compare_hash_elements_by_key_string(const void * elem_a,
                                                        const void * elem_b);
 
 
-#endif // AWS_CRYPTOSDK_ENC_CONTEXT_H
+#endif // AWS_CRYPTOSDK_PRIVATE_ENC_CONTEXT_H

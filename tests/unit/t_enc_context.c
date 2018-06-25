@@ -12,7 +12,7 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <aws/cryptosdk/enc_context.h>
+#include <aws/cryptosdk/private/enc_context.h>
 #include <aws/cryptosdk/error.h>
 #include "testing.h"
 
@@ -169,39 +169,54 @@ int serialize_error_when_serialized_len_too_long() {
     return 0;
 }
 
+int serialize_valid_enc_context_max_length() {
+    struct aws_allocator * alloc = aws_default_allocator();
+    struct aws_hash_table enc_context;
+    TEST_ASSERT_INT_EQ(aws_hash_table_init(&enc_context, alloc, 10, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy),
+                       AWS_OP_SUCCESS);
 
-/* Convenience functions for a hash table which uses uint64_t as keys, and whose hash function
- * is just the identity function.
- */
-static uint64_t hash_uint64_identity(const void *a) {
-    return *(uint64_t *)a;
-}
+    /* 2 bytes: key-value count
+       2 bytes: key length (=UINT16_MAX - 6)
+       UINT16_MAX - 6 bytes: key field
+       2 bytes: value length (=0)
+       0 bytes: value field (empty string)
+     */
+#define LONG_ARR_LEN (UINT16_MAX - 6)
+    uint8_t arr[LONG_ARR_LEN];
+    const struct aws_string * key = aws_string_from_array_new(alloc, arr, LONG_ARR_LEN);
+    TEST_ASSERT_ADDR_NOT_NULL(key);
 
-static bool hash_uint64_eq(const void *a, const void *b) {
-    uint64_t my_a = *(uint64_t *)a;
-    uint64_t my_b = *(uint64_t *)b;
-    return my_a == my_b;
+    int was_created = 0;
+    struct aws_hash_element * elem;
+    TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_context, (void *)key, &elem, &was_created), AWS_OP_SUCCESS);
+    TEST_ASSERT_INT_EQ(was_created, 1);
+    elem->value = (void *)empty;
+
+    struct aws_byte_buf output;
+    TEST_ASSERT_INT_EQ(aws_cryptosdk_serialize_enc_context_init(alloc, &output, &enc_context), AWS_OP_SUCCESS);
+    TEST_ASSERT_INT_EQ(output.len, UINT16_MAX);
+    aws_byte_buf_clean_up(&output);
+    aws_hash_table_clean_up(&enc_context);
+    return 0;
 }
 
 int serialize_error_when_too_many_elements() {
-    /* This test is "cheating", so to speak, in that it uses integer elements instead of aws_strings, which
-     * would not function properly with the serialization code and crash, except that the check for the entry
-     * count of the hash table happens before any of the code that would crash. However, it is already a high
-     * memory usage test and doing it the "right" way would require us to construct 2^16 distinct string objects
-     * and hash all of them, making it an even higher memory usage test.
-     */
     struct aws_allocator * alloc = aws_default_allocator();
     struct aws_hash_table enc_context;
-    TEST_ASSERT_INT_EQ(aws_hash_table_init(&enc_context, alloc, UINT16_MAX + 10, hash_uint64_identity, hash_uint64_eq, NULL, NULL),
+    TEST_ASSERT_INT_EQ(aws_hash_table_init(&enc_context, alloc, UINT16_MAX + 10, aws_hash_string, aws_string_eq, aws_string_destroy, NULL),
                        AWS_OP_SUCCESS);
-    /* This won't preserve the hash elements to look up later, but that doesn't matter for this test.
-     * Need to start at 1 because 0 is not an acceptable element hash value, which prevents item creation.
-     */
-    for (uint64_t idx = 1; idx < UINT16_MAX + 2; ++idx) {
+
+    char buf[6];
+    for (size_t idx = 0; idx < UINT16_MAX + 1; ++idx) {
         int was_created = 0;
-        TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_context, (void *)&idx, NULL, &was_created), AWS_OP_SUCCESS);
+        struct aws_hash_element * elem;
+        sprintf(buf, "%ld", idx);
+        const struct aws_string * str = aws_string_from_c_str_new(alloc, buf);
+        TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_context, (void *)str, &elem, &was_created), AWS_OP_SUCCESS);
         TEST_ASSERT_INT_EQ(was_created, 1);
+        elem->value = (void *)str;
     }
+
     struct aws_byte_buf output;
     TEST_ASSERT_INT_EQ(aws_cryptosdk_serialize_enc_context_init(alloc, &output, &enc_context), AWS_OP_ERR);
     TEST_ASSERT_ERR_CODE_SET_THEN_CLEAR(AWS_CRYPTOSDK_ERR_SERIALIZATION);
@@ -215,6 +230,7 @@ struct test_case enc_context_test_cases[] = {
     { "enc_context", "serialize_valid_enc_context", serialize_valid_enc_context },
     { "enc_context", "serialize_error_when_element_too_long", serialize_error_when_element_too_long },
     { "enc_context", "serialize_error_when_serialized_len_too_long", serialize_error_when_serialized_len_too_long },
+    { "enc_context", "serialize_valid_enc_context_max_length", serialize_valid_enc_context_max_length },
     { "enc_context", "serialize_error_when_too_many_elements", serialize_error_when_too_many_elements },
     { NULL }
 };
