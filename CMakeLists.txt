@@ -1,16 +1,16 @@
 # Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License"). You may not use
 # this file except in compliance with the License. A copy of the License is
 # located at
-# 
+#
 # http://aws.amazon.com/apache2.0/
-# 
+#
 # or in the "license" file accompanying this file. This file is distributed on an
 # "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
-# 
+#
 
 cmake_minimum_required (VERSION 3.1)
 project (aws-encryption-sdk)
@@ -20,6 +20,8 @@ include(CheckCXXCompilerFlag)
 
 # TODO: Static link?
 include(FindOpenSSL)
+# For tests
+include(FindCURL)
 
 set(PROJECT_NAME aws-encryption-sdk)
 
@@ -132,7 +134,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     $<INSTALL_INTERFACE:include>
     ${OPENSSL_INCLUDE_DIR}
 )
-  
+
 target_link_libraries(aws-encryption-sdk ${PLATFORM_LIBS} aws-c-common ${OPENSSL_CRYPTO_LIBRARY})
 
 file(GLOB UNIT_TEST_SRC "tests/unit/*.c")
@@ -159,23 +161,22 @@ target_link_libraries(test_decryption_vectors ${PROJECT_NAME} ${OPENSSL_LDFLAGS}
 set_target_properties(test_decryption_vectors PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 target_include_directories(test_decryption_vectors PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
 
-if(AWSSDK_FOUND)
-    add_executable(t_encrypt_compat tests/integration/t_encrypt_compat.cpp)
+if(CURL_FOUND)
+    add_executable(t_encrypt_compat tests/integration/t_encrypt_compat.c ${TEST_LIB})
     set_target_properties(t_encrypt_compat PROPERTIES
-        LINKER_LANGUAGE CXX
-        CXX_STANDARD 11
-        CXX_STANDARD_REQUIRED O
         C_STANDARD 99
     )
-    target_link_libraries(t_encrypt_compat aws-cpp-sdk-lambda aws-cpp-sdk-core ${PROJECT_NAME})
-    target_include_directories(t_encrypt_compat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit ${AWSSDK_INCLUDE_DIR})
+    target_link_libraries(t_encrypt_compat aws-encryption-sdk ${CURL_LIBRARIES})
+    target_include_directories(t_encrypt_compat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit ${CURL_INCLUDE_DIRS})
     target_sources(t_encrypt_compat PRIVATE ${UNIT_TEST_SRC_CPP})
+    target_include_directories(t_encrypt_compat PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
     add_test(integration_encrypt_compatibility t_encrypt_compat)
-endif(AWSSDK_FOUND)
+endif(CURL_FOUND)
 
 add_test(cipher unit-test-suite cipher)
 add_test(header unit-test-suite header)
 add_test(materials unit-test-suite materials)
+add_test(encrypt unit-test-suite encrypt)
 
 set(TEST_DATA ${CMAKE_CURRENT_SOURCE_DIR}/tests/data)
 
@@ -194,7 +195,7 @@ install (
          TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}-config
          ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
          LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-         COMPONENT library     
+         COMPONENT library
 )
 
 export(TARGETS ${PROJECT_NAME} FILE aws-encryption-sdk-config.cmake)

@@ -19,6 +19,8 @@ static const struct aws_error_info error_info[] = {
     AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN, "Unknown error in crypto routines", "cryptosdk"),
     AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT, "Unsupported format version or bad ciphertext", "cryptosdk"),
     AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_NO_MASTER_KEYS_FOUND, "No master keys available", "cryptosdk"),
+    AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_BAD_STATE, "Bad state for operation", "cryptosdk"),
+    AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED, "Limit exceeded", "cryptosdk"),
     AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT, "Unable to decrypt", "cryptosdk")
 };
 
