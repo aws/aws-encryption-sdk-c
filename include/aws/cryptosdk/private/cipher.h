@@ -67,9 +67,12 @@ int aws_cryptosdk_sign_header(
     const struct aws_byte_buf *header
 );
 
-#define FRAME_TYPE_SINGLE 0
-#define FRAME_TYPE_FRAME 1
-#define FRAME_TYPE_FINAL 2
+
+enum aws_cryptosdk_frame_type {
+    FRAME_TYPE_SINGLE,
+    FRAME_TYPE_FRAME,
+    FRAME_TYPE_FINAL
+};
 
 // TODO: Initialize the cipher once and reuse it
 /**

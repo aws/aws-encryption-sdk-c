@@ -18,6 +18,9 @@
 #include <string.h>
 #include "testing.h"
 
+#include <aws/cryptosdk/error.h>
+#include <aws/common/error.h>
+
 int pass_fn() { return 0; }
 
 struct test_case *test_groups[] = {
@@ -25,6 +28,7 @@ struct test_case *test_groups[] = {
     cipher_test_cases,
     materials_test_cases,
     enc_context_test_cases,
+    encrypt_test_cases,
     NULL
 };
 
@@ -84,6 +88,9 @@ static void enable_cases(const char *specifier) {
 }
 
 int main(int argc, char **argv) {
+    aws_load_error_strings();
+    aws_cryptosdk_err_init_strings();
+
     int ret;
     assemble_test_cases(argc < 2);
 
