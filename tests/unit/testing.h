@@ -25,12 +25,23 @@ extern struct test_case header_test_cases[];
 extern struct test_case cipher_test_cases[];
 extern struct test_case materials_test_cases[];
 extern struct test_case enc_context_test_cases[];
+extern struct test_case encrypt_test_cases[];
 
 #define TEST_ASSERT(cond) \
     do { \
         if (!(cond)) {\
             fprintf(stderr, "\nTest failed: %s is false at %s:%d\n", #cond, __FILE__, __LINE__); \
             return 1; \
+        } \
+    } while (0)
+
+#define TEST_ASSERT_SUCCESS(cond) \
+    do { \
+        if (cond) { \
+            int t_errcode = aws_last_error(); \
+            fprintf(stderr, "\nTest failed: Unexpected failure of %s at %s:%d: %s (%d)\n", \
+                #cond, __FILE__, __LINE__, aws_error_debug_str(t_errcode), t_errcode); \
+                return 1; \
         } \
     } while (0)
 

@@ -19,6 +19,10 @@
 #include <aws/common/error.h>
 #include <aws/common/common.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* 
  * Basic error reporting infrastructure. Much of this will likely move to some shared
  * library later.
@@ -43,5 +47,8 @@ enum aws_cryptosdk_err {
  */
 void aws_cryptosdk_err_init_strings();
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

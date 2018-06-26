@@ -797,6 +797,10 @@ static int test_encrypt_body() {
         ct_buf.len = ct_buf.capacity;
         decrypt_buf.len = decrypt_buf.capacity;
 
+        TEST_ASSERT_INT_EQ(pt_buf.len, buf_size);
+        TEST_ASSERT_INT_EQ(ct_buf.len, buf_size);
+        TEST_ASSERT_INT_EQ(decrypt_buf.len, buf_size);
+
         aws_cryptosdk_genrandom(pt_buf.buffer, pt_buf.len);
 
         for (size_t i = 0; i < sizeof(known_algorithms) / sizeof(known_algorithms[0]); i++) {
