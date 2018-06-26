@@ -19,6 +19,7 @@
 
 #include "bad_cmm.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 struct bad_cmm {const struct aws_cryptosdk_cmm_vt * vt;};
 
@@ -28,15 +29,20 @@ int aws_cryptosdk_cmm_destroy_with_failed_return_value(struct aws_cryptosdk_cmm 
 }
 
 /**
- * VFs which should never get called because of the failed check on the vt_size field.
+ * VFs which will never get called because of the failed check on the vt_size field.
  */
 void destroy_abort(struct aws_cryptosdk_cmm * cmm) {
+    struct bad_cmm * self = (struct bad_cmm *) cmm;
+    fprintf(stderr, "%s's destroy VF was called when it should not have been\n", self->vt->name);
     abort();
 }
 
 int generate_abort(struct aws_cryptosdk_cmm * cmm,
                    struct aws_cryptosdk_encryption_materials ** output,
                    struct aws_cryptosdk_encryption_request * request) {
+    struct bad_cmm * self = (struct bad_cmm *) cmm;
+    fprintf(stderr, "%s's generate_encryption_materials VF was called when it should not have been\n",
+            self->vt->name);
     abort();
     return AWS_OP_SUCCESS;
 }
@@ -44,6 +50,9 @@ int generate_abort(struct aws_cryptosdk_cmm * cmm,
 int decrypt_abort(struct aws_cryptosdk_cmm * cmm,
                   struct aws_cryptosdk_decryption_materials ** output,
                   struct aws_cryptosdk_decryption_request * request) {
+    struct bad_cmm * self = (struct bad_cmm *) cmm;
+    fprintf(stderr, "%s's decrypt_materials VF was called when it should not have been\n",
+            self->vt->name);
     abort();
     return AWS_OP_SUCCESS;
 }
