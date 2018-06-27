@@ -176,6 +176,7 @@ endif(CURL_FOUND)
 add_test(cipher unit-test-suite cipher)
 add_test(header unit-test-suite header)
 add_test(materials unit-test-suite materials)
+add_test(enc_context unit-test-suite enc_context)
 add_test(encrypt unit-test-suite encrypt)
 
 set(TEST_DATA ${CMAKE_CURRENT_SOURCE_DIR}/tests/data)

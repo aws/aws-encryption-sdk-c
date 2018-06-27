@@ -32,7 +32,6 @@ extern "C" {
  * CryptoSDK specific
  */
 enum aws_cryptosdk_err {
-    // TODO - reserve a range of error codes
     AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT = 0x2000,
     AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN,
     AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT,

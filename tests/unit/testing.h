@@ -1,5 +1,5 @@
-#ifndef TESTING_H
-#define TESTING_H
+#ifndef AWS_CRYPTOSDK_TESTS_TESTING_H
+#define AWS_CRYPTOSDK_TESTS_TESTING_H
 
 #include <stdio.h>
 
@@ -24,6 +24,7 @@ struct test_case {
 extern struct test_case header_test_cases[];
 extern struct test_case cipher_test_cases[];
 extern struct test_case materials_test_cases[];
+extern struct test_case enc_context_test_cases[];
 extern struct test_case encrypt_test_cases[];
 
 #define TEST_ASSERT(cond) \
@@ -77,6 +78,16 @@ extern struct test_case encrypt_test_cases[];
         } \
     } while (0)
 
+#define TEST_ASSERT_ADDR_NOT_NULL(x) \
+    do { \
+        const void * t_x = (x); \
+        if (!t_x) { \
+            fprintf(stderr, "Failed: %s == NULL at %s:%d\n", \
+                    #x, __FILE__, __LINE__); \
+            return 1; \
+        } \
+    } while (0)
+
 #define TEST_ASSERT_BUF_EQ(buf, ...) \
     do { \
         static uint8_t expected_arr[] = { __VA_ARGS__ }; \
@@ -115,4 +126,22 @@ extern struct test_case encrypt_test_cases[];
         } \
     } while (0)
 
-#endif
+#define TEST_ASSERT_ERROR(code, expression) \
+    do { \
+        aws_reset_error(); \
+        int assert_rv = (expression); \
+        int assert_err = aws_last_error(); \
+        int assert_err_expect = (code); \
+        if (assert_rv != AWS_OP_ERR) { \
+            fprintf(stderr, "Expected error at %s:%d but no error occured; rv=%d, aws_last_error=%04x (expected %04x:%s)\n", \
+                    __FILE__, __LINE__, assert_rv, assert_err, assert_err_expect, #code); \
+            return 1; \
+        } \
+        if (assert_err != assert_err_expect) { \
+            fprintf(stderr, "Incorrect error code at %s:%d; aws_last_error=%04x (expected %04x:%s)\n", \
+                    __FILE__, __LINE__, assert_err, assert_err_expect, #code); \
+            return 1; \
+        } \
+    } while(0)
+
+#endif // AWS_CRYPTOSDK_TESTS_TESTING_H
