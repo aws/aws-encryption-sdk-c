@@ -210,7 +210,7 @@ int serialize_error_when_too_many_elements() {
     for (size_t idx = 0; idx < (1 << 16); ++idx) {
         int was_created = 0;
         struct aws_hash_element * elem;
-        snprintf(buf, 6, "%zu", idx);
+        snprintf(buf, sizeof(buf), "%zu", idx);
         const struct aws_string * str = aws_string_from_c_str_new(alloc, buf);
         TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_context, (void *)str, &elem, &was_created), AWS_OP_SUCCESS);
         TEST_ASSERT_INT_EQ(was_created, 1);
