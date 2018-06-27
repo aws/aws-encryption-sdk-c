@@ -27,6 +27,11 @@ extern "C" {
 
 struct aws_cryptosdk_session;
 
+enum aws_cryptosdk_mode {
+    AWS_CRYPTOSDK_ENCRYPT = 0x9000,
+    AWS_CRYPTOSDK_DECRYPT = 0x9001
+};
+
 /**
  * Creates a new encryption or decryption session. At a minimum, a CMM, MKP, or
  * MK must be set before passing any data through.
@@ -34,13 +39,13 @@ struct aws_cryptosdk_session;
  * Parameters:
  *   - allocator: The allocator to use for the session object and any temporary
  *                data allocated for the session
- *   - is_encrypt: True to initially configure the session for encryption, false
- *                 for decryption. This can be changed laer with
+ *   - mode: The mode (AWS_CRYPTOSDK_ENCRYPT or AWS_CRYPTOSDK_DECRYPT) to start
+ *                 in. This can be changed later with
  *                 aws_cryptosdk_session_reset
  */
 struct aws_cryptosdk_session *aws_cryptosdk_session_new(
     struct aws_allocator *allocator,
-    bool is_encrypt
+    enum aws_cryptosdk_mode mode
 );
 
 void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);
@@ -52,7 +57,7 @@ void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);
  */
 int aws_cryptosdk_session_reset(
     struct aws_cryptosdk_session *session,
-    bool is_encrypt
+    enum aws_cryptosdk_mode mode
 );
 
 /**

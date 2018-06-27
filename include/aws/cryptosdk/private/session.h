@@ -20,12 +20,6 @@
 #include <aws/cryptosdk/private/header.h>
 #include <aws/cryptosdk/private/cipher.h>
 
-enum session_mode {
-    MODE_UNINIT = 0,
-    MODE_ENCRYPT,
-    MODE_DECRYPT
-};
-
 enum session_state {
 /*** Common states ***/
 
@@ -53,7 +47,7 @@ enum session_state {
 struct aws_cryptosdk_session {
     struct aws_allocator *alloc;
     int error;
-    enum session_mode mode;
+    enum aws_cryptosdk_mode mode;
     enum session_state state;
 
     /* Encrypt mode configuration */

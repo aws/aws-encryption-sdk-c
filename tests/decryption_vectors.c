@@ -54,7 +54,7 @@ static void decrypt_test_oneshot(
 
     struct aws_cryptosdk_session *session;
 
-    if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), false))) unexpected_error();
+    if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT))) unexpected_error();
 
     uint8_t *outp = outbuf;
     const uint8_t *inp = ct.buffer;
@@ -112,7 +112,7 @@ static void decrypt_test_incremental(
 
     struct aws_cryptosdk_session *session;
 
-    if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), false))) unexpected_error();
+    if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT))) unexpected_error();
 
     uint8_t *outp = outbuf;
     const uint8_t *inp = ct.buffer;
@@ -279,7 +279,7 @@ static void decrypt_test_badciphertext(
 
     struct aws_cryptosdk_session *session;
 
-    if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), false))) unexpected_error();
+    if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT))) unexpected_error();
 
     uint8_t *outp = outbuf;
     const uint8_t *inp = ct.buffer;
@@ -292,7 +292,7 @@ static void decrypt_test_badciphertext(
     for (size_t bit = 0; bit < ct.len * 8; bit++) {
         ct.buffer[bit / 8] ^= 1 << (bit % 8);
 
-        if (aws_cryptosdk_session_reset(session, false)) unexpected_error();
+        if (aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT)) unexpected_error();
 
         out_produced = in_consumed = SENTINEL_VALUE;
         memset(outbuf, 0x42, outsz);

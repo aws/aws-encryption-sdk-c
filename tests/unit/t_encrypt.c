@@ -34,7 +34,7 @@ static void init_bufs(size_t pt_len) {
     ct_buf = aws_mem_acquire(aws_default_allocator(), ct_buf_size);
     ct_size = 0;
 
-    session = aws_cryptosdk_session_new(aws_default_allocator(), true);
+    session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT);
 
     precise_size_set = 0;
     pt_offset = 0;
@@ -109,7 +109,7 @@ static int pump_ciphertext(size_t ct_window, size_t *ct_consumed, size_t pt_wind
 }
 
 static int check_ciphertext() {
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_reset(session, false));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT));
 
     uint8_t *pt_check_buf = aws_mem_acquire(aws_default_allocator(), pt_size);
     if (!pt_check_buf) {
@@ -171,7 +171,7 @@ static int probe_buffer_size_estimates() {
 
 static int test_small_buffers() {
     init_bufs(31);
-    aws_cryptosdk_session_reset(session, true);
+    aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_ENCRYPT);
     aws_cryptosdk_session_set_frame_size(session, 16);
 
     if (probe_buffer_size_estimates()) return 1; // should emit header
@@ -194,7 +194,7 @@ int test_simple_roundtrip() {
     init_bufs(1 /*1024*/);
 
     size_t ct_consumed, pt_consumed;
-    aws_cryptosdk_session_reset(session, true);
+    aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_ENCRYPT);
     aws_cryptosdk_session_set_message_size(session, pt_size);
     precise_size_set = true;
 
