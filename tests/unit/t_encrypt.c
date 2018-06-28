@@ -255,9 +255,31 @@ int test_different_mk_cant_decrypt() {
     return 0;
 }
 
+
+int test_changed_mk_can_decrypt() {
+    init_bufs(1 /*1024*/);
+
+    size_t ct_consumed, pt_consumed;
+    aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_ENCRYPT);
+    aws_cryptosdk_session_set_mk(session, aws_cryptosdk_counting_mk());
+    aws_cryptosdk_session_set_message_size(session, pt_size);
+    precise_size_set = true;
+
+    if (pump_ciphertext(2048, &ct_consumed, pt_size, &pt_consumed)) return 1;
+    TEST_ASSERT(aws_cryptosdk_session_is_done(session));
+
+    if (check_ciphertext()) return 1;
+
+    free_bufs();
+
+    return 0;
+}
+
+
 struct test_case encrypt_test_cases[] = {
     { "encrypt", "test_simple_roundtrip", test_simple_roundtrip },
     { "encrypt", "test_small_buffers", test_small_buffers },
     { "encrypt", "test_different_mk_cant_decrypt", &test_different_mk_cant_decrypt },
+    { "encrypt", "test_changed_mk_can_decrypt", &test_changed_mk_can_decrypt },
     { NULL }
 };

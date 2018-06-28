@@ -326,7 +326,7 @@ static void decrypt_test_badciphertext(
         } else if (rv == 0) {
             fprintf(stderr, "Unexpected success after corrupting bit %zu\n", bit);
             failed = true;
-        } else if (lasterror != AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT) {
+        } else if (lasterror != AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT && lasterror != AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT) {
             fprintf(stderr, "Incorrect error after corrupting bit %zu: %s (0x%04x)\n",
                 bit, aws_error_str(lasterror), lasterror);
             failed = true;
