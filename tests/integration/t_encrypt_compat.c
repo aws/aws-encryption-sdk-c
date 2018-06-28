@@ -161,9 +161,8 @@ static int test_basic() {
     uint8_t ciphertext[1024];
 
     size_t pt_consumed, ct_consumed;
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new(aws_default_allocator());
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT);
 
-    aws_cryptosdk_session_init_encrypt(session);
     aws_cryptosdk_session_set_message_size(session, sizeof(plaintext));
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process(session,
@@ -190,8 +189,7 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
     uint8_t *ciphertext = malloc(plaintext_sz);
     size_t ciphertext_buf_sz = plaintext_sz;
 
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new(aws_default_allocator());
-    aws_cryptosdk_session_init_encrypt(session);
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT);
     if (early_size) aws_cryptosdk_session_set_message_size(session, plaintext_sz);
 
     size_t pt_offset = 0, ct_offset = 0;

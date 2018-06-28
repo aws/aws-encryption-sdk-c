@@ -63,7 +63,7 @@ static void session_change_state(struct aws_cryptosdk_session *session, enum ses
                 // Illegal transition
                 abort();
             }
-            if (session->mode != MODE_DECRYPT) {
+            if (session->mode != AWS_CRYPTOSDK_DECRYPT) {
                 // wrong mode
                 abort();
             }
@@ -73,7 +73,7 @@ static void session_change_state(struct aws_cryptosdk_session *session, enum ses
                 // Illegal transition
                 abort();
             }
-            if (session->mode != MODE_DECRYPT) {
+            if (session->mode != AWS_CRYPTOSDK_DECRYPT) {
                 // wrong mode
                 abort();
             }
@@ -117,7 +117,7 @@ static void session_change_state(struct aws_cryptosdk_session *session, enum ses
                 // illegal transition
                 abort();
             }
-            if (session->mode != MODE_ENCRYPT) {
+            if (session->mode != AWS_CRYPTOSDK_ENCRYPT) {
                 // Bad state
                 abort();
             }
@@ -126,7 +126,7 @@ static void session_change_state(struct aws_cryptosdk_session *session, enum ses
 
         case ST_WRITE_HEADER:
         {
-            if (session->mode != MODE_ENCRYPT) {
+            if (session->mode != AWS_CRYPTOSDK_ENCRYPT) {
                 // wrong mode
                 abort();
             }
@@ -196,7 +196,7 @@ static int fail_session(struct aws_cryptosdk_session *session, int error_code) {
     return aws_raise_error(error_code);
 }
 
-static void session_reset(struct aws_cryptosdk_session *session) {
+int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_cryptosdk_mode mode) {
     if (session->header_copy) {
         aws_cryptosdk_secure_zero(session->header_copy, session->header_size);
         aws_mem_release(session->alloc, session->header_copy);
@@ -209,10 +209,20 @@ static void session_reset(struct aws_cryptosdk_session *session) {
 
     /* Stash the state we want to keep and zero the rest */
     struct aws_allocator *alloc = session->alloc;
+    size_t frame_size = session->frame_size;
     aws_cryptosdk_secure_zero(session, sizeof(*session));
     session->alloc = alloc;
+    session->frame_size = frame_size;
+    session->mode = mode;
 
     session->input_size_estimate = session->output_size_estimate = 1;
+    session->size_bound = UINT64_MAX;
+
+    if (mode != AWS_CRYPTOSDK_ENCRYPT && mode != AWS_CRYPTOSDK_DECRYPT) {
+        return fail_session(session, AWS_ERROR_UNIMPLEMENTED);
+    }
+
+    return AWS_OP_SUCCESS;
 }
 
 static void encrypt_compute_body_estimate(struct aws_cryptosdk_session *session) {
@@ -232,7 +242,8 @@ static void encrypt_compute_body_estimate(struct aws_cryptosdk_session *session)
 }
 
 struct aws_cryptosdk_session *aws_cryptosdk_session_new(
-    struct aws_allocator *allocator
+    struct aws_allocator *allocator,
+    enum aws_cryptosdk_mode mode
 ) {
     struct aws_cryptosdk_session *session = aws_mem_acquire(allocator, sizeof(struct aws_cryptosdk_session));
 
@@ -243,7 +254,13 @@ struct aws_cryptosdk_session *aws_cryptosdk_session_new(
     aws_cryptosdk_secure_zero(session, sizeof(*session));
 
     session->alloc = allocator;
-    session_reset(session);
+    session->frame_size = DEFAULT_FRAME_SIZE;
+
+    // This can fail due to invalid mode
+    if (aws_cryptosdk_session_reset(session, mode)) {
+        aws_mem_release(allocator, session);
+        return NULL;
+    }
 
     return session;
 }
@@ -251,31 +268,14 @@ struct aws_cryptosdk_session *aws_cryptosdk_session_new(
 void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session) {
     struct aws_allocator *alloc = session->alloc;
 
-    session_reset(session); // frees header arena and other dynamically allocated stuff
+    aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT); // frees header arena and other dynamically allocated stuff
     aws_cryptosdk_secure_zero(session, sizeof(*session));
 
     aws_mem_release(alloc, session);
 }
 
-int aws_cryptosdk_session_init_decrypt(struct aws_cryptosdk_session *session) {
-    session_reset(session);
-    session->mode = MODE_DECRYPT;
-
-    return AWS_OP_SUCCESS;
-}
-
-int aws_cryptosdk_session_init_encrypt(struct aws_cryptosdk_session *session) {
-    session_reset(session);
-    session->mode = MODE_ENCRYPT;
-
-    session->size_bound = (uint64_t)-1;
-    session->frame_size = DEFAULT_FRAME_SIZE;
-
-    return AWS_OP_SUCCESS;
-}
-
 int aws_cryptosdk_session_set_frame_size(struct aws_cryptosdk_session *session, uint32_t frame_size) {
-    if (session->mode != MODE_ENCRYPT || session->state != ST_CONFIG) {
+    if (session->mode != AWS_CRYPTOSDK_ENCRYPT || session->state != ST_CONFIG) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     }
 
@@ -288,7 +288,7 @@ int aws_cryptosdk_session_set_message_size(
     struct aws_cryptosdk_session *session,
     uint64_t message_size
 ) {
-    if (session->mode != MODE_ENCRYPT) {
+    if (session->mode != AWS_CRYPTOSDK_ENCRYPT) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     }
 
@@ -315,7 +315,7 @@ int aws_cryptosdk_session_set_message_bound(
     struct aws_cryptosdk_session *session,
     uint64_t max_message_size
 ) {
-    if (session->mode != MODE_ENCRYPT) {
+    if (session->mode != AWS_CRYPTOSDK_ENCRYPT) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     }
 
@@ -719,7 +719,7 @@ int aws_cryptosdk_session_process(
             case ST_CONFIG:
                 // TODO: Verify mandatory config is present
                 // Right now we haven't implemented CMMs yet, so this is a no-op
-                if (session->mode == MODE_ENCRYPT) {
+                if (session->mode == AWS_CRYPTOSDK_ENCRYPT) {
                     session_change_state(session, ST_GEN_KEY);
                 } else {
                     session_change_state(session, ST_READ_HEADER);

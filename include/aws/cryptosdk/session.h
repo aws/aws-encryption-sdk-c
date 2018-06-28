@@ -27,38 +27,37 @@ extern "C" {
 
 struct aws_cryptosdk_session;
 
+enum aws_cryptosdk_mode {
+    AWS_CRYPTOSDK_ENCRYPT = 0x9000,
+    AWS_CRYPTOSDK_DECRYPT = 0x9001
+};
+
+/**
+ * Creates a new encryption or decryption session. At a minimum, a CMM, MKP, or
+ * MK must be set before passing any data through.
+ *
+ * Parameters:
+ *   - allocator: The allocator to use for the session object and any temporary
+ *                data allocated for the session
+ *   - mode: The mode (AWS_CRYPTOSDK_ENCRYPT or AWS_CRYPTOSDK_DECRYPT) to start
+ *                 in. This can be changed later with
+ *                 aws_cryptosdk_session_reset
+ */
 struct aws_cryptosdk_session *aws_cryptosdk_session_new(
-    struct aws_allocator *allocator
+    struct aws_allocator *allocator,
+    enum aws_cryptosdk_mode mode
 );
 
 void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);
 
 /**
- * Prepares the session to start a new decryption operation.
- * The session will retain any configured crypto material manager,
- * master key provider, or master key, as well as its associated
- * allocator. All other state will be reset to prepare for processing
- * a new message.
- *
- * This method can be used to reset a session currently in an error
- * state as well.
+ * Resets the session, preparing it for a new message. This function can also change
+ * a session from encrypt to decrypt, or vice versa. After reset, the currently
+ * configured allocator, CMM, MKP, MK, and frame size to use for encryption are preserved.
  */
-int aws_cryptosdk_session_init_decrypt(
-    struct aws_cryptosdk_session *session
-);
-
-/**
- * Prepares the session to start a new encryption operation.
- * The session will retain any configured crypto material manager,
- * master key provider, or master key, as well as its associated
- * allocator. All other state will be reset to prepare for processing
- * a new message.
- *
- * This method can be used to reset a session currently in an error
- * state as well.
- */
-int aws_cryptosdk_session_init_encrypt(
-    struct aws_cryptosdk_session *session
+int aws_cryptosdk_session_reset(
+    struct aws_cryptosdk_session *session,
+    enum aws_cryptosdk_mode mode
 );
 
 /**
@@ -111,19 +110,6 @@ int aws_cryptosdk_session_set_message_bound(
     struct aws_cryptosdk_session *session,
     uint64_t max_message_size
 );
-
-#if 0
-// TODO: CMMs will be implemented later. For now we assume an all-zero
-// data key.
-
-int aws_cryptosdk_session_set_cmm(
-    struct aws_cryptosdk_session *session,
-    struct aws_cryptosdk_cmm *cmm
-);
-
-// MKP variant...
-// MK variant...
-#endif
 
 #if 0
 /**
