@@ -29,6 +29,7 @@ int default_cmm_zero_mkp_enc_mat() {
     struct aws_cryptosdk_encryption_request req;
     req.enc_context = (void *)0xdeadbeef; // bogus address just to see if it gets passed along
     req.requested_alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE;
+    req.alloc = aws_default_allocator();
 
     struct aws_cryptosdk_encryption_materials * enc_mat;
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
@@ -54,7 +55,7 @@ int default_cmm_zero_mkp_enc_mat() {
     aws_cryptosdk_cmm_destroy(cmm);
     aws_cryptosdk_mkp_destroy(mkp);
     aws_cryptosdk_mk_destroy(mk);
-    
+
     return 0;
 }
 
@@ -66,6 +67,8 @@ int default_cmm_zero_mkp_dec_mat() {
 
     struct aws_cryptosdk_decryption_request req;
     req.alg = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE;
+    req.alloc = aws_default_allocator();
+
     aws_array_list_init_dynamic(&req.encrypted_data_keys, alloc, 1, sizeof(struct aws_cryptosdk_edk));
     struct aws_cryptosdk_edk edk;
     aws_cryptosdk_literally_null_edk(&edk);
