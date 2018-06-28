@@ -17,7 +17,9 @@
 #include <aws/cryptosdk/private/cipher.h>
 #include <stdlib.h>
 #include "testing.h"
+#include "testutil.h"
 #include "zero_mk.h"
+#include "counting_mk.h"
 
 static uint8_t *pt_buf;
 static size_t pt_size, pt_offset;
@@ -111,7 +113,6 @@ static int pump_ciphertext(size_t ct_window, size_t *ct_consumed, size_t pt_wind
 
 static int check_ciphertext() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT));
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_mk(session, aws_cryptosdk_zero_mk_new()));
 
     uint8_t *pt_check_buf = aws_mem_acquire(aws_default_allocator(), pt_size);
     if (!pt_check_buf) {
@@ -128,7 +129,10 @@ static int check_ciphertext() {
 
     TEST_ASSERT_INT_EQ(out_written, pt_size);
     TEST_ASSERT_INT_EQ(in_read, ct_size);
+    TEST_ASSERT_INT_EQ(0, memcmp(pt_check_buf, pt_buf, pt_size));
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
+
+    aws_mem_release(aws_default_allocator(), pt_check_buf);
 
     return 0;
 }
@@ -194,7 +198,7 @@ static int test_small_buffers() {
 }
 
 int test_simple_roundtrip() {
-    init_bufs(1 /*1024*/);
+    init_bufs(1024);
 
     size_t ct_consumed, pt_consumed;
     aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_ENCRYPT);
@@ -212,8 +216,48 @@ int test_simple_roundtrip() {
     return 0;
 }
 
+int test_different_mk_cant_decrypt() {
+    init_bufs(1 /*1024*/);
+
+    size_t ct_consumed, pt_consumed;
+    aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_ENCRYPT);
+    aws_cryptosdk_session_set_mk(session, aws_cryptosdk_counting_mk());
+    aws_cryptosdk_session_set_message_size(session, pt_size);
+    precise_size_set = true;
+
+    if (pump_ciphertext(2048, &ct_consumed, pt_size, &pt_consumed)) return 1;
+    TEST_ASSERT(aws_cryptosdk_session_is_done(session));
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_mk(session, aws_cryptosdk_zero_mk_new()));
+
+    hexdump(stderr, ct_buf, ct_size);
+
+#if 0
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_NO_MASTER_KEYS_FOUND,
+        aws_cryptosdk_session_process(session,
+            pt_buf, pt_size, &pt_consumed,
+            ct_buf, ct_size, &ct_consumed
+        )
+    );
+#else
+    // We don't yet return the correct error, but we can check that -some- error is returned.
+    TEST_ASSERT_INT_EQ(AWS_OP_ERR,
+        aws_cryptosdk_session_process(session,
+            pt_buf, pt_size, &pt_consumed,
+            ct_buf, ct_size, &ct_consumed
+        )
+    );
+#endif
+
+    free_bufs();
+
+    return 0;
+}
+
 struct test_case encrypt_test_cases[] = {
     { "encrypt", "test_simple_roundtrip", test_simple_roundtrip },
     { "encrypt", "test_small_buffers", test_small_buffers },
+    { "encrypt", "test_different_mk_cant_decrypt", &test_different_mk_cant_decrypt },
     { NULL }
 };
