@@ -45,6 +45,26 @@ extern struct test_case encrypt_test_cases[];
         } \
     } while (0)
 
+#define TEST_ASSERT_ERROR(expected_error, cond) \
+    do { \
+        int actual_return = (cond); \
+        if (actual_return == AWS_OP_SUCCESS) { \
+            fprintf(stderr, "\nTest failed: Unexpected success of %s at %s:%d (expected %s)\n", \
+                            #cond, __FILE__, __LINE__, #expected_error); \
+            return 1; \
+        } else if (actual_return != AWS_OP_ERR) { \
+            fprintf(stderr, "\nBad return code %d from %s at %s:%d\n", \
+                            actual_return, #cond, __FILE__, __LINE__); \
+            return 1; \
+        } else if (aws_last_error() != (expected_error)) { \
+            fprintf(stderr, "\nTest failed: Wrong error code from %s at %s:%d (expected %s, got %s)\n" , \
+                            #cond, __FILE__, __LINE__, \
+                            aws_error_debug_str((expected_error)), \
+                            aws_error_debug_str(aws_last_error())); \
+            return 1; \
+        } \
+    } while (0)
+
 #define TEST_ASSERT_INT_EQ(x, y) \
     do { \
         unsigned long long t_x = (x); \
@@ -125,23 +145,5 @@ extern struct test_case encrypt_test_cases[];
             return 1; \
         } \
     } while (0)
-
-#define TEST_ASSERT_ERROR(code, expression) \
-    do { \
-        aws_reset_error(); \
-        int assert_rv = (expression); \
-        int assert_err = aws_last_error(); \
-        int assert_err_expect = (code); \
-        if (assert_rv != AWS_OP_ERR) { \
-            fprintf(stderr, "Expected error at %s:%d but no error occured; rv=%d, aws_last_error=%04x (expected %04x:%s)\n", \
-                    __FILE__, __LINE__, assert_rv, assert_err, assert_err_expect, #code); \
-            return 1; \
-        } \
-        if (assert_err != assert_err_expect) { \
-            fprintf(stderr, "Incorrect error code at %s:%d; aws_last_error=%04x (expected %04x:%s)\n", \
-                    __FILE__, __LINE__, assert_err, assert_err_expect, #code); \
-            return 1; \
-        } \
-    } while(0)
 
 #endif // AWS_CRYPTOSDK_TESTS_TESTING_H
