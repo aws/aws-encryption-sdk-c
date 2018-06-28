@@ -62,9 +62,10 @@ static int zero_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
 
 static int zero_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
                                     struct aws_cryptosdk_decryption_materials * dec_mat,
-                                    const struct aws_array_list * edks) {
+                                    const struct aws_cryptosdk_decryption_request * request) {
+    const struct aws_array_list * edks = &request->encrypted_data_keys;
     // verify there is at least one EDK with length zero present
-    size_t num_keys = edks->length;
+    size_t num_keys = aws_array_list_length(edks);
     for (size_t key_idx = 0 ; key_idx < num_keys ; ++key_idx) {
         struct aws_cryptosdk_edk * edk;
         if (aws_array_list_get_at_ptr(edks, (void **)&edk, key_idx)) return AWS_OP_ERR;
