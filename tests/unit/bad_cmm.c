@@ -18,29 +18,42 @@
  */
 
 #include "bad_cmm.h"
+#include <stdlib.h>
+#include <stdio.h>
 
 struct bad_cmm {const struct aws_cryptosdk_cmm_vt * vt;};
 
-static bool destroy_succeed_ran = false;
-
-bool zero_size_cmm_did_destroy_vf_run() {return destroy_succeed_ran;}
-
-/**
- * VFs which should never get called because of the failed check on the vt_size field.
- */
-void destroy_succeed(struct aws_cryptosdk_cmm * cmm) {
-    destroy_succeed_ran = true;
+int aws_cryptosdk_cmm_destroy_with_failed_return_value(struct aws_cryptosdk_cmm * cmm) {
+    aws_cryptosdk_cmm_destroy(cmm);
+    return AWS_OP_ERR;
 }
 
-int generate_succeed(struct aws_cryptosdk_cmm * cmm,
-                     struct aws_cryptosdk_encryption_materials ** output,
-                     struct aws_cryptosdk_encryption_request * request) {
+/**
+ * VFs which will never get called because of the failed check on the vt_size field.
+ */
+void destroy_abort(struct aws_cryptosdk_cmm * cmm) {
+    struct bad_cmm * self = (struct bad_cmm *) cmm;
+    fprintf(stderr, "%s's destroy VF was called when it should not have been\n", self->vt->name);
+    abort();
+}
+
+int generate_abort(struct aws_cryptosdk_cmm * cmm,
+                   struct aws_cryptosdk_encryption_materials ** output,
+                   struct aws_cryptosdk_encryption_request * request) {
+    struct bad_cmm * self = (struct bad_cmm *) cmm;
+    fprintf(stderr, "%s's generate_encryption_materials VF was called when it should not have been\n",
+            self->vt->name);
+    abort();
     return AWS_OP_SUCCESS;
 }
 
-int decrypt_succeed(struct aws_cryptosdk_cmm * cmm,
-                    struct aws_cryptosdk_decryption_materials ** output,
-                    struct aws_cryptosdk_decryption_request * request) {
+int decrypt_abort(struct aws_cryptosdk_cmm * cmm,
+                  struct aws_cryptosdk_decryption_materials ** output,
+                  struct aws_cryptosdk_decryption_request * request) {
+    struct bad_cmm * self = (struct bad_cmm *) cmm;
+    fprintf(stderr, "%s's decrypt_materials VF was called when it should not have been\n",
+            self->vt->name);
+    abort();
     return AWS_OP_SUCCESS;
 }
 
@@ -50,17 +63,15 @@ int decrypt_succeed(struct aws_cryptosdk_cmm * cmm,
 static const struct aws_cryptosdk_cmm_vt zero_size_cmm_vt = {
     .vt_size = 0,
     .name = "zero size cmm",
-    .destroy = destroy_succeed,
-    .generate_encryption_materials = generate_succeed,
-    .decrypt_materials = decrypt_succeed
+    .destroy = destroy_abort,
+    .generate_encryption_materials = generate_abort,
+    .decrypt_materials = decrypt_abort
 };
 
 static struct bad_cmm zero_size_cmm_singleton = {.vt = &zero_size_cmm_vt};
 static struct aws_cryptosdk_cmm * zero_size_cmm = (struct aws_cryptosdk_cmm *) &zero_size_cmm_singleton;
 
 struct aws_cryptosdk_cmm * aws_cryptosdk_zero_size_cmm_new() {return zero_size_cmm;}
-
-
 
 static const struct aws_cryptosdk_cmm_vt null_cmm_vt = {
     .vt_size = sizeof(struct aws_cryptosdk_cmm_vt),
