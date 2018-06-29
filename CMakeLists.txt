@@ -178,6 +178,7 @@ add_test(header unit-test-suite header)
 add_test(materials unit-test-suite materials)
 add_test(enc_context unit-test-suite enc_context)
 add_test(encrypt unit-test-suite encrypt)
+add_test(raw_aes_mk unit-test-suite raw_aes_mk)
 
 set(TEST_DATA ${CMAKE_CURRENT_SOURCE_DIR}/tests/data)
 

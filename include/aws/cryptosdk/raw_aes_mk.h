@@ -18,13 +18,26 @@
 #include <aws/cryptosdk/materials.h>
 
 /**
- * A Master Key (MK) which does local AES encryption and decryption of data keys using
+ * A Master Key (MK) which does local AES-GCM encryption and decryption of data keys using
  * the bytes in the array provided as the AES key. In order to maximize security of
- * the raw key bytes, the array is not copied so the caller is expected to maintain
+ * the raw key bytes, the array is not copied, so the caller is expected to maintain
  * the bytes in memory while this MK is still in use and should zeroize the array when
- * done.
+ * done. THE CALLER OWNS THE RAW KEY BYTES; THIS MK DOES NOT.
  *
- * Master key ID and provider ID provided by the user are 
+ * Master key ID and provider ID provided by the caller are copied into the state of the
+ * MK, so those arrays do not need to be maintained while using the MK. The master key
+ * ID and provider ID are included as plaintext metadata in the encrypted data key
+ * format for keys produced by this MK, and they are checked when this MK attempts to
+ * decrypt data keys. In other words, a raw AES MK which attempts to decrypt data
+ * previously encrypted by another raw AES MK must have the same master key ID and
+ * provider ID. However, they are not authenticated data. They are only a bookkeeping
+ * mechanism and provide no additional security.
+ *
+ * The encryption context which is passed to this MK on encrypt and decrypt calls is
+ * used as additional encrypted data (AAD) in the AES-GCM encryption of the data keys.
+ * In summary, in order to decrypt data encrypted by another raw AES MK, the decrypt
+ * attempt must use a matching master key ID, provider ID, and encryption context, but
+ * only the encryption context is used for authentication.
  *
  * On failure returns NULL and sets an internal AWS error code.
  */

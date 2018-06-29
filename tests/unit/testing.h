@@ -26,6 +26,7 @@ extern struct test_case cipher_test_cases[];
 extern struct test_case materials_test_cases[];
 extern struct test_case enc_context_test_cases[];
 extern struct test_case encrypt_test_cases[];
+extern struct test_case raw_aes_mk_test_cases[];
 
 #define TEST_ASSERT(cond) \
     do { \
