@@ -34,8 +34,8 @@ enum aws_cryptosdk_mode {
 };
 
 /**
- * Creates a new encryption or decryption session. At a minimum, a CMM, MKP, or
- * MK must be set before passing any data through.
+ * Creates a new encryption or decryption session. At a minimum, a CMM must be
+ * set before passing any data through.
  *
  * Parameters:
  *   - allocator: The allocator to use for the session object and any temporary
@@ -54,7 +54,7 @@ void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);
 /**
  * Resets the session, preparing it for a new message. This function can also change
  * a session from encrypt to decrypt, or vice versa. After reset, the currently
- * configured allocator, CMM, MKP, MK, and frame size to use for encryption are preserved.
+ * configured allocator, CMM, and frame size to use for encryption are preserved.
  */
 int aws_cryptosdk_session_reset(
     struct aws_cryptosdk_session *session,
@@ -68,26 +68,6 @@ int aws_cryptosdk_session_reset(
 int aws_cryptosdk_session_set_cmm(
     struct aws_cryptosdk_session *session,
     struct aws_cryptosdk_cmm *cmm
-);
-
-/**
- * Sets a master key provider to use for obtaining data keys for encryption and
- * decryption. The session will implicitly create an internal default CMM to
- * bridge to the master key provider given.
- */
-int aws_cryptosdk_session_set_mkp(
-    struct aws_cryptosdk_session *session,
-    struct aws_cryptosdk_mkp *mkp
-);
-
-/**
- * Sets a single master key to use for obtaining data keys for encryption and
- * decryption. The session will implicitly create an internal single MKP and
- * default CMM to bridge to the master key given.
- */
-int aws_cryptosdk_session_set_mk(
-    struct aws_cryptosdk_session *session,
-    struct aws_cryptosdk_mk *mk
 );
 
 /**

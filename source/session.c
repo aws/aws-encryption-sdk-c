@@ -43,8 +43,6 @@ int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_
     new_session.cmm = session->cmm;
     new_session.frame_size = session->frame_size;
     new_session.mode = mode;
-    new_session.default_cmm_placement = session->default_cmm_placement;
-    new_session.single_mkp_placement = session->single_mkp_placement;
 
     // Make sure we scrub any sensitive data from the old session before overwriting it.
     aws_cryptosdk_secure_zero(session, sizeof(*session));
@@ -103,28 +101,6 @@ int aws_cryptosdk_session_set_cmm(struct aws_cryptosdk_session *session, struct 
     session->cmm = cmm;
 
     return AWS_OP_SUCCESS;
-}
-
-int aws_cryptosdk_session_set_mkp(struct aws_cryptosdk_session *session, struct aws_cryptosdk_mkp *mkp) {
-    if (session->state != ST_CONFIG) {
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-    }
-
-    return aws_cryptosdk_session_set_cmm(
-        session,
-        aws_cryptosdk_default_cmm_init_inplace(&session->default_cmm_placement, mkp)
-    );
-}
-
-int aws_cryptosdk_session_set_mk(struct aws_cryptosdk_session *session, struct aws_cryptosdk_mk *mk) {
-    if (session->state != ST_CONFIG) {
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-    }
-
-    return aws_cryptosdk_session_set_mkp(
-        session,
-        aws_cryptosdk_single_mkp_init_inplace(&session->single_mkp_placement, mk)
-    );
 }
 
 int aws_cryptosdk_session_set_frame_size(struct aws_cryptosdk_session *session, uint32_t frame_size) {
