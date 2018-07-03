@@ -15,6 +15,8 @@
 
 #include <aws/cryptosdk/session.h>
 #include <aws/cryptosdk/private/cipher.h>
+#include <aws/cryptosdk/single_mkp.h>
+#include <aws/cryptosdk/default_cmm.h>
 #include <stdlib.h>
 #include "testing.h"
 #include "testutil.h"
@@ -26,7 +28,35 @@ static size_t pt_size, pt_offset;
 static uint8_t *ct_buf;
 static size_t ct_buf_size, ct_size;
 static struct aws_cryptosdk_session *session;
+static struct aws_cryptosdk_cmm *cmm = NULL;
+static struct aws_cryptosdk_mkp *mkp = NULL;
 static int precise_size_set = 0;
+
+static int set_mk(struct aws_cryptosdk_session *session, struct aws_cryptosdk_mk *mk) {
+    // Don't destroy the old cmm / mkp until we point the session to the new one
+    struct aws_cryptosdk_mkp *new_mkp = aws_cryptosdk_single_mkp_new(aws_default_allocator(), mk);
+
+    if (!new_mkp) abort();
+
+    struct aws_cryptosdk_cmm *new_cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), new_mkp);
+    
+    if (!new_cmm) abort();
+
+    if (aws_cryptosdk_session_set_cmm(session, new_cmm)) {
+        // If it failed, destroy the new ones and propagate failure
+        aws_cryptosdk_cmm_destroy(new_cmm);
+        aws_cryptosdk_mkp_destroy(new_mkp);
+        return AWS_OP_ERR;
+    }
+    
+    if (cmm) aws_cryptosdk_cmm_destroy(cmm);
+    if (mkp) aws_cryptosdk_mkp_destroy(mkp);
+
+    cmm = new_cmm;
+    mkp = new_mkp;
+
+    return AWS_OP_SUCCESS;
+}
 
 static void init_bufs(size_t pt_len) {
     pt_buf = aws_mem_acquire(aws_default_allocator(), pt_len);
@@ -178,7 +208,7 @@ static int probe_buffer_size_estimates() {
 static int test_small_buffers() {
     init_bufs(31);
     aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_ENCRYPT);
-    aws_cryptosdk_session_set_mk(session, aws_cryptosdk_zero_mk_new());
+    set_mk(session, aws_cryptosdk_zero_mk_new());
     aws_cryptosdk_session_set_frame_size(session, 16);
 
     if (probe_buffer_size_estimates()) return 1; // should emit header
@@ -202,7 +232,7 @@ int test_simple_roundtrip() {
 
     size_t ct_consumed, pt_consumed;
     aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_ENCRYPT);
-    aws_cryptosdk_session_set_mk(session, aws_cryptosdk_zero_mk_new());
+    set_mk(session, aws_cryptosdk_zero_mk_new());
     aws_cryptosdk_session_set_message_size(session, pt_size);
     precise_size_set = true;
 
@@ -221,7 +251,7 @@ int test_different_mk_cant_decrypt() {
 
     size_t ct_consumed, pt_consumed;
     aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_ENCRYPT);
-    aws_cryptosdk_session_set_mk(session, aws_cryptosdk_counting_mk());
+    set_mk(session, aws_cryptosdk_counting_mk());
     aws_cryptosdk_session_set_message_size(session, pt_size);
     precise_size_set = true;
 
@@ -229,7 +259,7 @@ int test_different_mk_cant_decrypt() {
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT));
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_mk(session, aws_cryptosdk_zero_mk_new()));
+    TEST_ASSERT_SUCCESS(set_mk(session, aws_cryptosdk_zero_mk_new()));
 
     hexdump(stderr, ct_buf, ct_size);
 
@@ -261,7 +291,7 @@ int test_changed_mk_can_decrypt() {
 
     size_t ct_consumed, pt_consumed;
     aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_ENCRYPT);
-    aws_cryptosdk_session_set_mk(session, aws_cryptosdk_counting_mk());
+    set_mk(session, aws_cryptosdk_counting_mk());
     aws_cryptosdk_session_set_message_size(session, pt_size);
     precise_size_set = true;
 

@@ -21,6 +21,8 @@
 
 #include <aws/cryptosdk/session.h>
 #include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/single_mkp.h>
+#include <aws/cryptosdk/default_cmm.h>
 #include <aws/common/common.h>
 #include <aws/common/error.h>
 #include <aws/common/byte_buf.h>
@@ -53,10 +55,14 @@ static void decrypt_test_oneshot(
         exit(1);
     }
 
-    struct aws_cryptosdk_session *session;
+    struct aws_cryptosdk_session *session = NULL;
+    struct aws_cryptosdk_cmm *cmm = NULL;
+    struct aws_cryptosdk_mkp *mkp = NULL;
 
+    if (!(mkp = aws_cryptosdk_single_mkp_new(aws_default_allocator(), aws_cryptosdk_zero_mk_new()))) unexpected_error();
+    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), mkp))) unexpected_error();
     if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT))) unexpected_error();
-    if (aws_cryptosdk_session_set_mk(session, aws_cryptosdk_zero_mk_new())) unexpected_error();
+    if (aws_cryptosdk_session_set_cmm(session, cmm)) unexpected_error();
 
     uint8_t *outp = outbuf;
     const uint8_t *inp = ct.buffer;
@@ -88,9 +94,10 @@ static void decrypt_test_oneshot(
 
 
 error:
-    if (session) {
-        aws_cryptosdk_session_destroy(session);
-    }
+    if (session) aws_cryptosdk_session_destroy(session);
+    if (cmm) aws_cryptosdk_cmm_destroy(cmm);
+    if (mkp) aws_cryptosdk_mkp_destroy(mkp);
+
     free(outbuf);
 
     if (failed) {
@@ -112,10 +119,14 @@ static void decrypt_test_incremental(
         exit(1);
     }
 
-    struct aws_cryptosdk_session *session;
+    struct aws_cryptosdk_session *session = NULL;
+    struct aws_cryptosdk_cmm *cmm = NULL;
+    struct aws_cryptosdk_mkp *mkp = NULL;
 
+    if (!(mkp = aws_cryptosdk_single_mkp_new(aws_default_allocator(), aws_cryptosdk_zero_mk_new()))) unexpected_error();
+    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), mkp))) unexpected_error();
     if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT))) unexpected_error();
-    if (aws_cryptosdk_session_set_mk(session, aws_cryptosdk_zero_mk_new())) unexpected_error();
+    if (aws_cryptosdk_session_set_cmm(session, cmm)) unexpected_error();
 
     uint8_t *outp = outbuf;
     const uint8_t *inp = ct.buffer;
@@ -255,9 +266,10 @@ static void decrypt_test_incremental(
 
 
 error:
-    if (session) {
-        aws_cryptosdk_session_destroy(session);
-    }
+    if (session) aws_cryptosdk_session_destroy(session);
+    if (cmm) aws_cryptosdk_cmm_destroy(cmm);
+    if (mkp) aws_cryptosdk_mkp_destroy(mkp);
+
     free(outbuf);
 
     if (failed) {
@@ -280,9 +292,14 @@ static void decrypt_test_badciphertext(
         exit(1);
     }
 
-    struct aws_cryptosdk_session *session;
+    struct aws_cryptosdk_session *session = NULL;
+    struct aws_cryptosdk_cmm *cmm = NULL;
+    struct aws_cryptosdk_mkp *mkp = NULL;
 
+    if (!(mkp = aws_cryptosdk_single_mkp_new(aws_default_allocator(), aws_cryptosdk_zero_mk_new()))) unexpected_error();
+    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), mkp))) unexpected_error();
     if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT))) unexpected_error();
+    if (aws_cryptosdk_session_set_cmm(session, cmm)) unexpected_error();
 
     uint8_t *outp = outbuf;
     const uint8_t *inp = ct.buffer;
@@ -296,7 +313,6 @@ static void decrypt_test_badciphertext(
         ct.buffer[bit / 8] ^= 1 << (bit % 8);
 
         if (aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT)) unexpected_error();
-        if (aws_cryptosdk_session_set_mk(session, aws_cryptosdk_zero_mk_new())) unexpected_error();
 
         out_produced = in_consumed = SENTINEL_VALUE;
         memset(outbuf, 0x42, outsz);
@@ -336,9 +352,10 @@ static void decrypt_test_badciphertext(
     }
 
 error:
-    if (session) {
-        aws_cryptosdk_session_destroy(session);
-    }
+    if (session) aws_cryptosdk_session_destroy(session);
+    if (cmm) aws_cryptosdk_cmm_destroy(cmm);
+    if (mkp) aws_cryptosdk_mkp_destroy(mkp);
+
     free(outbuf);
     free(zerobuf);
 

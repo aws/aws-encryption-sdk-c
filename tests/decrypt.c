@@ -21,6 +21,8 @@
 
 #include <aws/cryptosdk/session.h>
 #include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/single_mkp.h>
+#include <aws/cryptosdk/default_cmm.h>
 #include <aws/common/common.h>
 #include <aws/common/error.h>
 
@@ -50,10 +52,15 @@ int test_decrypt() {
         exit(1);
     }
 
-    struct aws_cryptosdk_session *session;
+    struct aws_cryptosdk_session *session = NULL;
+    struct aws_cryptosdk_mkp *mkp = NULL;
+    struct aws_cryptosdk_cmm *cmm = NULL;
+
+    if (!(mkp = aws_cryptosdk_single_mkp_new(aws_default_allocator(), aws_cryptosdk_zero_mk_new()))) unexpected_error();
+    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), mkp))) unexpected_error();
 
     if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT))) unexpected_error();
-    if (aws_cryptosdk_session_set_mk(session, aws_cryptosdk_zero_mk_new())) unexpected_error();
+    if (aws_cryptosdk_session_set_cmm(session, cmm)) unexpected_error();
 
     uint8_t *outp = output_buf;
     const uint8_t *inp = ciphertext;
@@ -99,6 +106,8 @@ int test_decrypt() {
 
     free(output_buf);
     aws_cryptosdk_session_destroy(session);
+    aws_cryptosdk_cmm_destroy(cmm);
+    aws_cryptosdk_mkp_destroy(mkp);
 
     return 0;
 }
