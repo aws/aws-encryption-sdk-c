@@ -23,13 +23,22 @@
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/header.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Abstract types for CMM and KR: Concrete implementations will create their own structs, which
  * must have the virtual table pointer as the first member, and cast pointers accordingly. See
  * default_cmm.[ch] for an example of this.
  */
 struct aws_cryptosdk_cmm;
-struct aws_cryptosdk_keyring;
+
+struct aws_cryptosdk_keyring {
+    const struct aws_cryptosdk_keyring_vt *vtable;
+    struct aws_allocator *alloc;
+    void *mk_data;
+};
 
 struct aws_cryptosdk_edk {
     struct aws_byte_buf provider_id;
@@ -347,5 +356,9 @@ struct aws_cryptosdk_decryption_materials * aws_cryptosdk_decryption_materials_n
  * the unencrypted data key it is holding, if an EDK has been decrypted successfully.
  */
 void aws_cryptosdk_decryption_materials_destroy(struct aws_cryptosdk_decryption_materials * dec_mat);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // AWS_CRYPTOSDK_MATERIALS_H

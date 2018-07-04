@@ -40,6 +40,14 @@ struct aws_cryptosdk_alg_properties {
     enum aws_cryptosdk_alg_id alg_id;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryptosdk_alg_id alg_id);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // AWS_CRYPTOSDK_CIPHER_H
