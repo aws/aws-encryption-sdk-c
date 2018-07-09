@@ -34,7 +34,7 @@
  * mechanism and provide no additional security.
  *
  * The encryption context which is passed to this MK on encrypt and decrypt calls is
- * used as additional encrypted data (AAD) in the AES-GCM encryption of the data keys.
+ * used as additional authenticated data (AAD) in the AES-GCM encryption of the data keys.
  * In summary, in order to decrypt data encrypted by another raw AES MK, the decrypt
  * attempt must use a matching master key ID, provider ID, and encryption context, but
  * only the encryption context is used for authentication.

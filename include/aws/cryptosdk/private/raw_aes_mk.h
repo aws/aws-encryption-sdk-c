@@ -36,7 +36,8 @@ struct raw_aes_mk {
 /**
  * Allocates the output buffer and writes the provider info for an EDK encrypted
  * by this MK into it. The format is:
- * Master Key ID (no prescribed length)
+ *
+ * Master Key ID (variable length)
  * AES-GCM tag length (4 bytes, big-endian)
  * IV length (4 bytes, big-endian)
  * IV bytes (length determined by previous field)

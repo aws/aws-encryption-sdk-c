@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/private/enc_context.h>
+#include <aws/cryptosdk/private/utils.h>
 #include <aws/cryptosdk/error.h>
 #include "testing.h"
 

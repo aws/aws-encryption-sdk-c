@@ -14,6 +14,7 @@
  */
 #include <aws/cryptosdk/private/raw_aes_mk.h>
 #include <aws/cryptosdk/private/enc_context.h>
+#include <aws/cryptosdk/private/utils.h>
 #include <openssl/evp.h>
 
 int serialize_provider_info_init(struct aws_allocator * alloc,
@@ -49,10 +50,9 @@ bool parse_provider_info(struct aws_cryptosdk_mk * mk,
 
     struct aws_byte_cursor cur = aws_byte_cursor_from_buf(provider_info);
 
-    if (memcmp(aws_string_bytes(self->master_key_id), cur.ptr, mkid_len)) return false;
-
-    struct aws_byte_cursor ret = aws_byte_cursor_advance_nospec(&cur, mkid_len);
-    if (!ret.ptr) goto READ_ERR;
+    struct aws_byte_cursor mkid = aws_byte_cursor_advance_nospec(&cur, mkid_len);
+    if (!mkid.ptr) goto READ_ERR;
+    if (!aws_string_eq_byte_cursor(self->master_key_id, &mkid)) return false;
 
     uint32_t tag_len, iv_len;
     if (!aws_byte_cursor_read_be32(&cur, &tag_len)) goto READ_ERR;
@@ -122,6 +122,7 @@ static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
 OPENSSL_ERR:
     // TODO: get error info from openssl?
     EVP_CIPHER_CTX_free(ctx);
+    aws_byte_buf_clean_up(&aad);
 
 #endif // #if 0
     return AWS_OP_ERR;
