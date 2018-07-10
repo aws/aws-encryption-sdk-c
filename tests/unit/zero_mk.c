@@ -14,7 +14,7 @@
  */
 #include <stdbool.h>
 #include "zero_mk.h"
-#include <aws/cryptosdk/cipher.h> // aws_cryptosdk_secure_zero_buf
+#include <aws/cryptosdk/cipher.h>
 
 struct zero_mk {const struct aws_cryptosdk_mk_vt * vt;};
 

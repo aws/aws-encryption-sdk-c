@@ -46,5 +46,12 @@ int aws_array_list_compare_hash_elements_by_key_string(const void * elem_a,
 bool aws_string_eq_byte_cursor(const struct aws_string * str,
                                const struct aws_byte_cursor * cur);
 
+/**
+ * Returns true if bytes of string and buffer are the same, false otherwise.
+ */
+bool aws_string_eq_byte_buf(const struct aws_string * str,
+                            const struct aws_byte_buf * buf);
+
+
 
 #endif // AWS_CRYPTOSDK_PRIVATE_UTILS_H

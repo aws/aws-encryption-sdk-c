@@ -15,7 +15,9 @@
 #include <aws/cryptosdk/private/raw_aes_mk.h>
 #include <aws/cryptosdk/private/enc_context.h>
 #include <aws/cryptosdk/private/utils.h>
+#include <aws/cryptosdk/cipher.h>
 #include <openssl/evp.h>
+#include <assert.h>
 
 int serialize_provider_info_init(struct aws_allocator * alloc,
                                  struct aws_byte_buf * output,
@@ -85,7 +87,6 @@ static int raw_aes_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
 static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
                                        struct aws_cryptosdk_decryption_materials * dec_mat,
                                        const struct aws_cryptosdk_decryption_request * request) {
-#if 0
     struct raw_aes_mk * self = (struct raw_aes_mk *)mk;
 
     struct aws_byte_buf aad;
@@ -93,38 +94,72 @@ static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
         return AWS_OP_ERR;
     }
 
-    const struct aws_array_list * edks = request->encrypted_data_keys;
+    const struct aws_array_list * edks = &request->encrypted_data_keys;
     size_t num_edks = aws_array_list_length(edks);
+
+    const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(dec_mat->alg);
+    if (aws_byte_buf_init(request->alloc, &dec_mat->unencrypted_data_key, props->data_key_len)) {
+        aws_byte_buf_clean_up(&aad);
+        return AWS_OP_ERR;
+    }
+    dec_mat->unencrypted_data_key.len = dec_mat->unencrypted_data_key.capacity;
+
+    EVP_CIPHER_CTX * ctx = NULL;
     for (size_t edk_idx = 0; edk_idx < num_edks; ++edk_idx) {
         const struct aws_cryptosdk_edk * edk;
         if (aws_array_list_get_at_ptr(edks, (void **)&edk, edk_idx)) {
             aws_byte_buf_clean_up(&aad);
             return AWS_OP_ERR;
         }
+        if (!aws_string_eq_byte_buf(self->provider_id, &edk->provider_id)) continue;
+
+        struct aws_byte_buf iv;
+        if (!parse_provider_info(mk, &iv, &edk->provider_info)) continue;
+
         const struct aws_byte_buf * edk_bytes = &edk->enc_data_key; // cipher to decrypt
-        const struct aws_byte_buf * provider_info = &edk->provider_info; // deserialize to get master key ID, tag len, IV len & IV
-        const struct aws_byte_buf * provider_id = &edk->provider_id; // verify it is same provider ID as given to MK on creation
-    }
 
-    EVP_CIPHER_CTC * ctx;
-    if (!(ctx = EVP_CIPHER_CTX_new())) {
-        // TODO: get error info from openssl?
-        return AWS_OP_ERR;
-    }
-    if (!EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, self->raw_key_bytes, NULL)) {
-        goto OPENSSL_ERR;
-    }
+        // using GCM, so encrypted and unencrypted data key have same length
+        if (props->data_key_len != edk_bytes->len) continue;
 
-    EVP_CIPHER_CTX_set_padding(ctx, 0);
+        if (!(ctx = EVP_CIPHER_CTX_new())) goto OPENSSL_ERR;
 
+        if (!EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, self->raw_key_bytes, iv.buffer))
+            goto OPENSSL_ERR;
+    
+        EVP_CIPHER_CTX_set_padding(ctx, 0);
+        int len, plaintext_len, ret;
+        if (!EVP_DecryptUpdate(ctx, NULL, &len, aad.buffer, aad.len)) goto OPENSSL_ERR; 
+
+        if (!EVP_DecryptUpdate(ctx, dec_mat->unencrypted_data_key.buffer, &len, edk_bytes->buffer, edk_bytes->len))
+            goto OPENSSL_ERR;
+        plaintext_len = len;
+        
+        // TODO: get GCM tag from metadata
+        unsigned char * tag = NULL;
+        if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, RAW_AES_MK_TAG_LEN, tag)) goto OPENSSL_ERR;
+
+        ret = EVP_DecryptFinal_ex(ctx, dec_mat->unencrypted_data_key.buffer + len, &len);
+
+        EVP_CIPHER_CTX_free(ctx);
+
+        if (ret > 0) {
+            plaintext_len += len;
+            assert(plaintext_len == props->data_key_len);
+            aws_byte_buf_clean_up(&aad);
+            return AWS_OP_SUCCESS;
+        }
+        // Negative ret value means decryption didn't work: just continue looping through EDKs
+    }
+    //TODO: none of the EDKs worked, check how decrypt_data_key is supposed to behave in this case
+    aws_byte_buf_clean_up(&aad);
     return AWS_OP_SUCCESS;
 
 OPENSSL_ERR:
     // TODO: get error info from openssl?
-    EVP_CIPHER_CTX_free(ctx);
+    if (ctx) EVP_CIPHER_CTX_free(ctx);
     aws_byte_buf_clean_up(&aad);
-
-#endif // #if 0
+    aws_cryptosdk_secure_zero_buf(&dec_mat->unencrypted_data_key);
+    aws_byte_buf_clean_up(&dec_mat->unencrypted_data_key);
     return AWS_OP_ERR;
 }
 

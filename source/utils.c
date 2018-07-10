@@ -41,7 +41,12 @@ int aws_hash_table_get_elems_array_init(struct aws_allocator * alloc,
 
 bool aws_string_eq_byte_cursor(const struct aws_string * str,
                                const struct aws_byte_cursor * cur) {
-
     if (str->len != cur->len) return false;
     return (!memcmp(aws_string_bytes(str), cur->ptr, cur->len));
+}
+
+bool aws_string_eq_byte_buf(const struct aws_string * str,
+                            const struct aws_byte_buf * buf) {
+    if (str->len != buf->len) return false;
+    return (!memcmp(aws_string_bytes(str), buf->buffer, buf->len));
 }
