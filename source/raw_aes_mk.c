@@ -98,6 +98,8 @@ static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
     size_t num_edks = aws_array_list_length(edks);
 
     const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(dec_mat->alg);
+    size_t edk_len = props->data_key_len;
+
     if (aws_byte_buf_init(request->alloc, &dec_mat->unencrypted_data_key, props->data_key_len)) {
         aws_byte_buf_clean_up(&aad);
         return AWS_OP_ERR;
@@ -117,40 +119,47 @@ static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
         if (!parse_provider_info(mk, &iv, &edk->provider_info)) continue;
 
         const struct aws_byte_buf * edk_bytes = &edk->enc_data_key; // cipher to decrypt
+        
 
-        // using GCM, so encrypted and unencrypted data key have same length
-        if (props->data_key_len != edk_bytes->len) continue;
+        /* Using GCM, so encrypted and unencrypted data key have same length, i.e. edk_len.
+         * edk_bytes->buffer holds encrypted data key followed by GCM tag.
+         */
+        if (edk_len + RAW_AES_MK_TAG_LEN != edk_bytes->len) continue;
 
         if (!(ctx = EVP_CIPHER_CTX_new())) goto OPENSSL_ERR;
 
         if (!EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, self->raw_key_bytes, iv.buffer))
             goto OPENSSL_ERR;
-    
-        EVP_CIPHER_CTX_set_padding(ctx, 0);
-        int len, plaintext_len, ret;
-        if (!EVP_DecryptUpdate(ctx, NULL, &len, aad.buffer, aad.len)) goto OPENSSL_ERR; 
 
-        if (!EVP_DecryptUpdate(ctx, dec_mat->unencrypted_data_key.buffer, &len, edk_bytes->buffer, edk_bytes->len))
+        EVP_CIPHER_CTX_set_padding(ctx, 0);
+
+        int out_len;
+        /* Setting the AAD. out_len here is a throwaway. Might be able to make that argument NULL, but
+         * openssl wiki example does the same as this, giving it a pointer to an int and disregarding value.
+         */
+        if (!EVP_DecryptUpdate(ctx, NULL, &out_len, aad.buffer, aad.len)) goto OPENSSL_ERR; 
+
+        if (!EVP_DecryptUpdate(ctx, dec_mat->unencrypted_data_key.buffer, &out_len, edk_bytes->buffer, edk_len))
             goto OPENSSL_ERR;
-        plaintext_len = len;
-        
-        // TODO: get GCM tag from metadata
-        unsigned char * tag = NULL;
+        int plaintext_len = out_len;
+
+        uint8_t * tag = edk_bytes->buffer + edk_len;
         if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, RAW_AES_MK_TAG_LEN, tag)) goto OPENSSL_ERR;
 
-        ret = EVP_DecryptFinal_ex(ctx, dec_mat->unencrypted_data_key.buffer + len, &len);
+        int ret = EVP_DecryptFinal_ex(ctx, dec_mat->unencrypted_data_key.buffer + out_len, &out_len);
 
         EVP_CIPHER_CTX_free(ctx);
 
         if (ret > 0) {
-            plaintext_len += len;
-            assert(plaintext_len == props->data_key_len);
+            plaintext_len += out_len;
+            assert(plaintext_len == edk_len);
             aws_byte_buf_clean_up(&aad);
             return AWS_OP_SUCCESS;
         }
         // Negative ret value means decryption didn't work: just continue looping through EDKs
     }
-    //TODO: none of the EDKs worked, check how decrypt_data_key is supposed to behave in this case
+    // None of the EDKs worked, clean up unencrypted data key buffer and return success per materials.h
+    aws_byte_buf_clean_up(&dec_mat->unencrypted_data_key);
     aws_byte_buf_clean_up(&aad);
     return AWS_OP_SUCCESS;
 
