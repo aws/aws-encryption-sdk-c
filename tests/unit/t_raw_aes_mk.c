@@ -21,7 +21,7 @@ static const uint8_t iv[RAW_AES_MK_IV_LEN] =
 
 static const uint8_t serialized_provider_info[] = {
     'M', 'a', 's', 't', 'e', 'r', ' ', 'k', 'e', 'y', ' ', 'i', 'd',
-    0x00, 0x00, 0x00, RAW_AES_MK_TAG_LEN,
+    0x00, 0x00, 0x00, RAW_AES_MK_TAG_LEN << 3,
     0x00, 0x00, 0x00, RAW_AES_MK_IV_LEN,
     0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb};
 
@@ -41,7 +41,7 @@ int serialize_valid_provider_info() {
 
     TEST_ASSERT_BUF_EQ(provider_info,
                        'M', 'a', 's', 't', 'e', 'r', ' ', 'k', 'e', 'y', ' ', 'i', 'd',
-                       0x00, 0x00, 0x00, RAW_AES_MK_TAG_LEN,
+                       0x00, 0x00, 0x00, RAW_AES_MK_TAG_LEN << 3,
                        0x00, 0x00, 0x00, RAW_AES_MK_IV_LEN,
                        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb);
 

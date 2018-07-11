@@ -30,7 +30,7 @@ int serialize_provider_info_init(struct aws_allocator * alloc,
     output->len = output->capacity;
     struct aws_byte_cursor cur = aws_byte_cursor_from_buf(output);
     if (!aws_byte_cursor_write_from_whole_string(&cur, master_key_id)) goto WRITE_ERR;
-    if (!aws_byte_cursor_write_be32(&cur, RAW_AES_MK_TAG_LEN)) goto WRITE_ERR;
+    if (!aws_byte_cursor_write_be32(&cur, RAW_AES_MK_TAG_LEN << 3)) goto WRITE_ERR;
     if (!aws_byte_cursor_write_be32(&cur, RAW_AES_MK_IV_LEN)) goto WRITE_ERR;
     if (!aws_byte_cursor_write(&cur, iv, RAW_AES_MK_IV_LEN)) goto WRITE_ERR;
 
@@ -58,7 +58,7 @@ bool parse_provider_info(struct aws_cryptosdk_mk * mk,
 
     uint32_t tag_len, iv_len;
     if (!aws_byte_cursor_read_be32(&cur, &tag_len)) goto READ_ERR;
-    if (tag_len != RAW_AES_MK_TAG_LEN) return false;
+    if (tag_len != RAW_AES_MK_TAG_LEN << 3) return false;
 
     if (!aws_byte_cursor_read_be32(&cur, &iv_len)) goto READ_ERR;
     if (iv_len != RAW_AES_MK_IV_LEN) return false;

@@ -38,7 +38,7 @@ struct raw_aes_mk {
  * by this MK into it. The format is:
  *
  * Master Key ID (variable length)
- * AES-GCM tag length (4 bytes, big-endian)
+ * AES-GCM tag length *IN BITS* (4 bytes, big-endian)
  * IV length (4 bytes, big-endian)
  * IV bytes (length determined by previous field)
  */
