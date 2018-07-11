@@ -323,8 +323,7 @@ struct aws_cryptosdk_mk_vt {
      * Implementations should treat only the unencrypted_data_key element of the decryption materials as output
      * and should not modify any other elements. Implementations must properly initialize the unencrypted data
      * key buffer when an EDK is decrypted and leave the unencrypted data key buffer pointer set to NULL when
-     * no EDK is decrypted, or they must delegate to an MK's decrypt_data_key method, which must follow the same
-     * rules.
+     * no EDK is decrypted.
      */
     int (*decrypt_data_key)(struct aws_cryptosdk_mk * mk,
                             struct aws_cryptosdk_decryption_materials * dec_mat,

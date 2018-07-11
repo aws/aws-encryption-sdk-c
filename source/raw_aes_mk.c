@@ -118,8 +118,7 @@ static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
         struct aws_byte_buf iv;
         if (!parse_provider_info(mk, &iv, &edk->provider_info)) continue;
 
-        const struct aws_byte_buf * edk_bytes = &edk->enc_data_key; // cipher to decrypt
-        
+        const struct aws_byte_buf * edk_bytes = &edk->enc_data_key;
 
         /* Using GCM, so encrypted and unencrypted data key have same length, i.e. edk_len.
          * edk_bytes->buffer holds encrypted data key followed by GCM tag.
