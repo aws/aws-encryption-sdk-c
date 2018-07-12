@@ -157,7 +157,10 @@ static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
             aws_byte_buf_clean_up(&aad);
             return AWS_OP_SUCCESS;
         }
-        // Negative ret value means decryption didn't work: just continue looping through EDKs
+        // Negative ret value means decryption didn't work: just clean up unencrypted data key buffer in case
+        // anything was written, and then continue looping through EDKs
+        aws_cryptosdk_secure_zero_buf(&dec_mat->unencrypted_data_key);
+        dec_mat->unencrypted_data_key.len = dec_mat->unencrypted_data_key.capacity;
     }
     // None of the EDKs worked, clean up unencrypted data key buffer and return success per materials.h
     aws_byte_buf_clean_up(&dec_mat->unencrypted_data_key);
