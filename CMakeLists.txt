@@ -145,16 +145,19 @@ file(GLOB TEST_LIB "tests/lib/*.c")
 include(CTest)
 enable_testing()
 
+add_library(testlib EXCLUDE_FROM_ALL ${TEST_LIB})
+target_link_libraries(testlib ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
+set_target_properties(testlib PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
+target_include_directories(testlib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
+
 add_executable(unit-test-suite ${UNIT_TEST_SRC})
-target_link_libraries(unit-test-suite ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
+target_link_libraries(unit-test-suite ${PROJECT_NAME} ${OPENSSL_LDFLAGS} testlib)
 set_target_properties(unit-test-suite PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
-target_link_libraries(unit-test-suite aws-encryption-sdk)
 target_include_directories(unit-test-suite PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
 
 add_executable(test_decrypt "tests/decrypt.c" ${TEST_LIB})
-target_link_libraries(test_decrypt ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
+target_link_libraries(test_decrypt ${PROJECT_NAME} ${OPENSSL_LDFLAGS} testlib)
 set_target_properties(test_decrypt PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
-target_include_directories(test_decrypt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
 
 add_executable(test_decryption_vectors "tests/decryption_vectors.c" ${TEST_LIB})
 target_link_libraries(test_decryption_vectors ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
