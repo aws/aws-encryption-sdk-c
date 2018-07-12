@@ -113,6 +113,8 @@ static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
             aws_byte_buf_clean_up(&aad);
             return AWS_OP_ERR;
         }
+        if (!edk->provider_id.len || !edk->provider_info.len || !edk->enc_data_key.len) continue;
+
         if (!aws_string_eq_byte_buf(self->provider_id, &edk->provider_id)) continue;
 
         struct aws_byte_buf iv;

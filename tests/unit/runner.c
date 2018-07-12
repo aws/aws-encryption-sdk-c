@@ -29,7 +29,8 @@ struct test_case *test_groups[] = {
     materials_test_cases,
     enc_context_test_cases,
     encrypt_test_cases,
-    raw_aes_mk_test_cases,
+    raw_aes_mk_decrypt_test_cases,
+    raw_aes_mk_provider_info_test_cases,
     NULL
 };
 
