@@ -21,6 +21,11 @@ int aws_cryptosdk_serialize_enc_context_init(struct aws_allocator * alloc,
                                              struct aws_byte_buf * output,
                                              const struct aws_hash_table * enc_context) {
     size_t num_elems = aws_hash_table_get_entry_count(enc_context);
+    if (!num_elems) {
+        *output = aws_byte_buf_from_c_str("");
+        return AWS_OP_SUCCESS;
+    }
+
     if (num_elems > UINT16_MAX) return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
 
     struct aws_array_list elems;

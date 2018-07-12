@@ -63,8 +63,6 @@ int get_sorted_elems_array_test() {
 }
 
 int serialize_empty_enc_context() {
-    const uint8_t serialized_ctx[] = {0x00, 0x00};
-
     struct aws_allocator * alloc = aws_default_allocator();
 
     struct aws_hash_table enc_context;
@@ -73,8 +71,8 @@ int serialize_empty_enc_context() {
 
     struct aws_byte_buf output;
     TEST_ASSERT_INT_EQ(aws_cryptosdk_serialize_enc_context_init(alloc, &output, &enc_context), AWS_OP_SUCCESS);
-    TEST_ASSERT_INT_EQ(output.len, sizeof(serialized_ctx));
-    TEST_ASSERT_INT_EQ(0, memcmp(output.buffer, serialized_ctx, output.len));
+    TEST_ASSERT_INT_EQ(output.len, 0);
+
     aws_byte_buf_clean_up(&output);
     aws_hash_table_clean_up(&enc_context);
     return 0;
