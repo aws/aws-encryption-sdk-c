@@ -3,7 +3,3 @@ build
 *~
 *.[ch]-e
 .DS_Store
-
-#doxygen
-doxygen/html/
-doxygen/latex/
