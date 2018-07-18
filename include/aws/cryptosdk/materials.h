@@ -90,11 +90,16 @@ struct aws_cryptosdk_decryption_materials {
  * C99 standard dictates that "..." must have at least one argument behind it. Second arg of _VF_CALL macros is always struct
  * type, i.e., "cmm", "mkp", or "mk". These helper macros allow us not to make struct_type a named argument, thus handling the
  * case cleanly where there are no more arguments.
+ *
+ * Note: We work around a VC++ preprocessor bug here. See https://stackoverflow.com/a/4750720
  */
-#define AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_HELPER(struct_type, ...) struct_type
-#define AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME(...) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_HELPER(__VA_ARGS__, throwaway)
-#define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_HELPER(struct_type, ...) const struct aws_cryptosdk_ ## struct_type ## _vt **
-#define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(...) AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_HELPER(__VA_ARGS__, throwaway)
+#define AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME(...) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_2((__VA_ARGS__, throwaway))
+#define AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_2(args) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_3 args
+#define AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_3(struct_type, ...) struct_type
+
+#define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(...) AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_2((__VA_ARGS__, throwaway))
+#define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_2(args) AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_3 args
+#define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_3(struct_type, ...) const struct aws_cryptosdk_ ## struct_type ## _vt **
 
 /**
  * Macro for virtual function calls that return an integer error code. Checks that vt_size is large enough and that pointer is
