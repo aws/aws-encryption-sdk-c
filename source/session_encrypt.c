@@ -61,7 +61,7 @@ int try_gen_key(struct aws_cryptosdk_session *session) {
     request.enc_context = &enc_context;
     // TODO - the CMM should specify this
     request.requested_alg = AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE;
-    request.plaintext_size = session->precise_size_known ? session->precise_size : (uint64_t)-1;
+    request.plaintext_size = session->precise_size_known ? session->precise_size : UINT64_MAX;
 
     if (aws_cryptosdk_cmm_generate_encryption_materials(
         session->cmm, &materials, &request
@@ -122,9 +122,8 @@ cleanup:
 
 static int build_header(struct aws_cryptosdk_session *session, struct aws_cryptosdk_encryption_materials *materials) {
     session->header.alg_id = session->alg_props->alg_id;
-    // TODO: check overflow
     // TODO: aad
-    session->header.aad_count = 0; //aws_hash_table_length(materials->enc_context);
+    session->header.aad_count = 0;
     session->header.edk_count = aws_array_list_length(&materials->encrypted_data_keys);
     session->header.frame_len = session->frame_size;
 
@@ -152,7 +151,7 @@ static int build_header(struct aws_cryptosdk_session *session, struct aws_crypto
         }
     }
 
-    // TODO verify this is correct
+    // TODO verify that the zero IV is correct for the header IV
     aws_byte_buf_init(session->alloc, &session->header.iv, session->alg_props->iv_len);
     aws_cryptosdk_secure_zero(session->header.iv.buffer, session->alg_props->iv_len);
     session->header.iv.len = session->header.iv.capacity;

@@ -70,8 +70,8 @@ static int fill_request(
         struct aws_hash_element *pElem;
 
         if (!key || !value || aws_hash_table_create(enc_context, (void *)key, &pElem, NULL)) {
-            if (key) aws_string_destroy((struct aws_string *)key);
-            if (value) aws_string_destroy((struct aws_string *)value);
+            aws_string_destroy((struct aws_string *)key);
+            aws_string_destroy((struct aws_string *)value);
 
             return aws_raise_error(AWS_ERROR_OOM);
         }
@@ -90,6 +90,7 @@ static int derive_data_key(
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
+    // TODO - eliminate the struct data_key type and use the unencrypted_data_key buffer directly
     struct data_key data_key = { { 0 } };
     memcpy(&data_key.keybuf, materials->unencrypted_data_key.buffer, materials->unencrypted_data_key.len);
 

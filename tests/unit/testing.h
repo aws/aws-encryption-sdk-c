@@ -47,6 +47,7 @@ extern struct test_case encrypt_test_cases[];
 
 #define TEST_ASSERT_ERROR(expected_error, cond) \
     do { \
+        aws_reset_error(); \
         int actual_return = (cond); \
         if (actual_return == AWS_OP_SUCCESS) { \
             fprintf(stderr, "\nTest failed: Unexpected success of %s at %s:%d (expected %s)\n", \

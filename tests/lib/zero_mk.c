@@ -26,21 +26,21 @@ void aws_cryptosdk_literally_null_edk(struct aws_cryptosdk_edk * edk) {
     edk->enc_data_key = aws_byte_buf_from_c_str(literally_null);
 }
 
-static bool buf_equals_string(const struct aws_byte_buf *buf, const char *cstr) {
+static bool buf_equals_c_string(const struct aws_byte_buf *buf, const char *cstr) {
     size_t len = strlen(cstr);
     return len == buf->len && !memcmp(buf->buffer, cstr, len);
 }
 
 static inline bool is_literally_null_edk(const struct aws_cryptosdk_edk * edk) {
-    if (buf_equals_string(&edk->provider_id, literally_null) &&
-        buf_equals_string(&edk->provider_info, literally_null) &&
-        buf_equals_string(&edk->enc_data_key, literally_null)
+    if (buf_equals_c_string(&edk->provider_id, literally_null) &&
+        buf_equals_c_string(&edk->provider_info, literally_null) &&
+        buf_equals_c_string(&edk->enc_data_key, literally_null)
     ) return true;
 
     // Some older test vectors use "zero-key" / "provider info" / "\0" as their test data
 
-    if (buf_equals_string(&edk->provider_id, "zero-key") &&
-        buf_equals_string(&edk->provider_info, "provider info") &&
+    if (buf_equals_c_string(&edk->provider_id, "zero-key") &&
+        buf_equals_c_string(&edk->provider_info, "provider info") &&
         edk->enc_data_key.len == 1 && edk->enc_data_key.buffer[0] == 0
     ) return true;
 
