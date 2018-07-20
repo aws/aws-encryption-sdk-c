@@ -217,3 +217,22 @@ set(AWS_CRYPTOSDK_P_HAVE_BUILTIN_EXPECT ${HAVE_BUILTIN_EXPECT} BOOL)
 configure_file("include/aws/cryptosdk/private/config.h.in"
                ${GENERATED_CONFIG_HEADER}
                ESCAPE_QUOTES)
+
+# Documentation
+option(BUILD_DOC "Build documentation" OFF)
+if (BUILD_DOC)
+    find_package(Doxygen)
+    if (DOXYGEN_FOUND)
+        set(DOXYGEN_CONFIG_FILE_IN ${CMAKE_CURRENT_SOURCE_DIR}/doxygen/doxygen.config.in)
+        set(DOXYGEN_CONFIG_FILE_GENERATED ${CMAKE_CURRENT_BINARY_DIR}/doxygen/doxygen.config)
+        configure_file(${DOXYGEN_CONFIG_FILE_IN} ${DOXYGEN_CONFIG_FILE_GENERATED} @ONLY)
+        add_custom_target(doc_doxygen ALL
+                COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_CONFIG_FILE_GENERATED}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+                COMMENT "Generating Doxygen documentation"
+                VERBATIM)
+    else (DOXYGEN_FOUND)
+        message(FATAL_ERROR "Doxygen not found. Documentation can't be generated")
+    endif (DOXYGEN_FOUND)
+endif(BUILD_DOC)
+
