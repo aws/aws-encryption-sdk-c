@@ -53,9 +53,11 @@ int try_gen_key(struct aws_cryptosdk_session *session) {
     struct data_key data_key;
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
 
-    aws_hash_table_init(&enc_context, session->alloc, 10,
+    if (aws_hash_table_init(&enc_context, session->alloc, 10,
         aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy
-    );
+    )) {
+        return AWS_OP_ERR;
+    }
 
     request.alloc = session->alloc;
     request.enc_context = &enc_context;
