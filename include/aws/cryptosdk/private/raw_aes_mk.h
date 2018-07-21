@@ -42,10 +42,10 @@ struct raw_aes_mk {
  * IV length (4 bytes, big-endian)
  * IV bytes (length determined by previous field)
  */
-int serialize_provider_info_init(struct aws_allocator * alloc,
-                                 struct aws_byte_buf * output,
-                                 const struct aws_string * master_key_id,
-                                 const uint8_t iv[RAW_AES_MK_IV_LEN]);
+int aws_cryptosdk_serialize_provider_info_init(struct aws_allocator * alloc,
+                                               struct aws_byte_buf * output,
+                                               const struct aws_string * master_key_id,
+                                               const uint8_t * iv);
 
 
 /**
@@ -62,9 +62,9 @@ int serialize_provider_info_init(struct aws_allocator * alloc,
  * No memory is allocated by this function, as the IV buffer does not own its own
  * memory.
  */
-bool parse_provider_info(struct aws_cryptosdk_mk * mk,
-                         struct aws_byte_buf * iv,
-                         const struct aws_byte_buf * provider_info);
+bool aws_cryptosdk_parse_provider_info(struct aws_cryptosdk_mk * mk,
+                                       struct aws_byte_buf * iv,
+                                       const struct aws_byte_buf * provider_info);
 
 
 

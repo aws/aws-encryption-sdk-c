@@ -47,8 +47,8 @@ int get_sorted_elems_array_test() {
     }
 
     struct aws_array_list elems;
-    TEST_ASSERT_INT_EQ(aws_hash_table_get_elems_array_init(alloc, &elems, &map), AWS_OP_SUCCESS);
-    aws_array_list_sort(&elems, aws_array_list_compare_hash_elements_by_key_string);
+    TEST_ASSERT_INT_EQ(aws_cryptosdk_hash_elems_array_init(alloc, &elems, &map), AWS_OP_SUCCESS);
+    aws_array_list_sort(&elems, aws_cryptosdk_compare_hash_elems_by_key_string);
 
     TEST_ASSERT_INT_EQ(elems.length, num_elems);
     for (int idx = 0; idx < num_elems; ++idx) {

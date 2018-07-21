@@ -12,7 +12,7 @@
 #include <aws/cryptosdk/private/utils.h>
 #include <assert.h>
 
-int aws_array_list_compare_hash_elements_by_key_string(const void * elem_a, const void * elem_b) {
+int aws_cryptosdk_compare_hash_elems_by_key_string(const void * elem_a, const void * elem_b) {
     const struct aws_hash_element * a = (const struct aws_hash_element *)elem_a;
     const struct aws_hash_element * b = (const struct aws_hash_element *)elem_b;
     const struct aws_string * key_a = (const struct aws_string *)a->key;
@@ -20,7 +20,7 @@ int aws_array_list_compare_hash_elements_by_key_string(const void * elem_a, cons
     return aws_string_compare(key_a, key_b);
 }
 
-int aws_hash_table_get_elems_array_init(struct aws_allocator * alloc,
+int aws_cryptosdk_hash_elems_array_init(struct aws_allocator * alloc,
                                         struct aws_array_list * elems,
                                         const struct aws_hash_table * map) {
     size_t entry_count = aws_hash_table_get_entry_count(map);
@@ -37,16 +37,4 @@ int aws_hash_table_get_elems_array_init(struct aws_allocator * alloc,
     }
     assert(aws_array_list_length(elems) == entry_count);
     return AWS_OP_SUCCESS;
-}
-
-bool aws_string_eq_byte_cursor(const struct aws_string * str,
-                               const struct aws_byte_cursor * cur) {
-    if (str->len != cur->len) return false;
-    return (!memcmp(aws_string_bytes(str), cur->ptr, cur->len));
-}
-
-bool aws_string_eq_byte_buf(const struct aws_string * str,
-                            const struct aws_byte_buf * buf) {
-    if (str->len != buf->len) return false;
-    return (!memcmp(aws_string_bytes(str), buf->buffer, buf->len));
 }

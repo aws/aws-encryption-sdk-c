@@ -38,10 +38,10 @@ int serialize_valid_provider_info() {
     struct aws_allocator * alloc = aws_default_allocator();
     struct aws_byte_buf provider_info;
 
-    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, serialize_provider_info_init(alloc,
-                                                                    &provider_info,
-                                                                    ser_master_key_id,
-                                                                    iv));
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_serialize_provider_info_init(alloc,
+                                                                                  &provider_info,
+                                                                                  ser_master_key_id,
+                                                                                  iv));
 
     TEST_ASSERT_BUF_EQ(provider_info,
                        'M', 'a', 's', 't', 'e', 'r', ' ', 'k', 'e', 'y', ' ', 'i', 'd',
@@ -65,7 +65,7 @@ int parse_valid_provider_info() {
     struct aws_byte_buf iv_output;
     struct aws_byte_buf ser_prov_info = aws_byte_buf_from_array(serialized_provider_info,
                                                                 sizeof(serialized_provider_info));
-    TEST_ASSERT(parse_provider_info(mk, &iv_output, &ser_prov_info));
+    TEST_ASSERT(aws_cryptosdk_parse_provider_info(mk, &iv_output, &ser_prov_info));
 
     TEST_ASSERT_BUF_EQ(iv_output, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb);
 

@@ -25,7 +25,7 @@
  *
  * On failure, does not allocate any memory.
  */
-int aws_hash_table_get_elems_array_init(struct aws_allocator * alloc,
+int aws_cryptosdk_hash_elems_array_init(struct aws_allocator * alloc,
                                         struct aws_array_list * elems,
                                         const struct aws_hash_table * map);
 
@@ -37,21 +37,7 @@ int aws_hash_table_get_elems_array_init(struct aws_allocator * alloc,
  *
  * This is a comparator function that can be used with aws_array_list_sort.
  */
-int aws_array_list_compare_hash_elements_by_key_string(const void * elem_a,
-                                                       const void * elem_b);
-
-/**
- * Returns true if bytes of string and cursor are the same, false otherwise.
- */
-bool aws_string_eq_byte_cursor(const struct aws_string * str,
-                               const struct aws_byte_cursor * cur);
-
-/**
- * Returns true if bytes of string and buffer are the same, false otherwise.
- */
-bool aws_string_eq_byte_buf(const struct aws_string * str,
-                            const struct aws_byte_buf * buf);
-
-
+int aws_cryptosdk_compare_hash_elems_by_key_string(const void * elem_a,
+                                                   const void * elem_b);
 
 #endif // AWS_CRYPTOSDK_PRIVATE_UTILS_H

@@ -19,10 +19,10 @@
 #include <openssl/evp.h>
 #include <assert.h>
 
-int serialize_provider_info_init(struct aws_allocator * alloc,
-                                 struct aws_byte_buf * output,
-                                 const struct aws_string * master_key_id,
-                                 const uint8_t iv[RAW_AES_MK_IV_LEN]) {
+int aws_cryptosdk_serialize_provider_info_init(struct aws_allocator * alloc,
+                                               struct aws_byte_buf * output,
+                                               const struct aws_string * master_key_id,
+                                               const uint8_t * iv) {
     size_t serialized_len = master_key_id->len + RAW_AES_MK_IV_LEN + 8; // 4 for tag len, 4 for iv len
     if (aws_byte_buf_init(alloc, output, serialized_len)) {
         return AWS_OP_ERR;
@@ -30,7 +30,7 @@ int serialize_provider_info_init(struct aws_allocator * alloc,
     output->len = output->capacity;
     struct aws_byte_cursor cur = aws_byte_cursor_from_buf(output);
     if (!aws_byte_cursor_write_from_whole_string(&cur, master_key_id)) goto WRITE_ERR;
-    if (!aws_byte_cursor_write_be32(&cur, RAW_AES_MK_TAG_LEN << 3)) goto WRITE_ERR;
+    if (!aws_byte_cursor_write_be32(&cur, RAW_AES_MK_TAG_LEN * 8)) goto WRITE_ERR;
     if (!aws_byte_cursor_write_be32(&cur, RAW_AES_MK_IV_LEN)) goto WRITE_ERR;
     if (!aws_byte_cursor_write(&cur, iv, RAW_AES_MK_IV_LEN)) goto WRITE_ERR;
 
@@ -39,12 +39,12 @@ int serialize_provider_info_init(struct aws_allocator * alloc,
 WRITE_ERR:
     // We should never get here, because buffer was allocated locally to be long enough.
     aws_byte_buf_clean_up(output);
-    return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
+    return aws_raise_error(AWS_ERROR_UNKNOWN);
 }
 
-bool parse_provider_info(struct aws_cryptosdk_mk * mk,
-                         struct aws_byte_buf * iv,
-                         const struct aws_byte_buf * provider_info) {
+bool aws_cryptosdk_parse_provider_info(struct aws_cryptosdk_mk * mk,
+                                       struct aws_byte_buf * iv,
+                                       const struct aws_byte_buf * provider_info) {
     struct raw_aes_mk * self = (struct raw_aes_mk *)mk;
     size_t mkid_len = self->master_key_id->len;
     size_t serialized_len = mkid_len + RAW_AES_MK_IV_LEN + 8;
@@ -58,7 +58,7 @@ bool parse_provider_info(struct aws_cryptosdk_mk * mk,
 
     uint32_t tag_len, iv_len;
     if (!aws_byte_cursor_read_be32(&cur, &tag_len)) goto READ_ERR;
-    if (tag_len != RAW_AES_MK_TAG_LEN << 3) return false;
+    if (tag_len != RAW_AES_MK_TAG_LEN * 8) return false;
 
     if (!aws_byte_cursor_read_be32(&cur, &iv_len)) goto READ_ERR;
     if (iv_len != RAW_AES_MK_IV_LEN) return false;
@@ -68,7 +68,7 @@ bool parse_provider_info(struct aws_cryptosdk_mk * mk,
 
 READ_ERR:
     // We should never get here because we verified cursor was exactly the right length
-    aws_raise_error(AWS_ERROR_SHORT_BUFFER);
+    aws_raise_error(AWS_ERROR_UNKNOWN);
     return false;
 }
 
@@ -118,7 +118,7 @@ static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
         if (!aws_string_eq_byte_buf(self->provider_id, &edk->provider_id)) continue;
 
         struct aws_byte_buf iv;
-        if (!parse_provider_info(mk, &iv, &edk->provider_info)) continue;
+        if (!aws_cryptosdk_parse_provider_info(mk, &iv, &edk->provider_info)) continue;
 
         const struct aws_byte_buf * edk_bytes = &edk->enc_data_key;
 

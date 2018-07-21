@@ -29,9 +29,9 @@ int aws_cryptosdk_serialize_enc_context_init(struct aws_allocator * alloc,
     if (num_elems > UINT16_MAX) return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
 
     struct aws_array_list elems;
-    if (aws_hash_table_get_elems_array_init(alloc, & elems, enc_context)) return AWS_OP_ERR;
+    if (aws_cryptosdk_hash_elems_array_init(alloc, & elems, enc_context)) return AWS_OP_ERR;
 
-    aws_array_list_sort(&elems, aws_array_list_compare_hash_elements_by_key_string);
+    aws_array_list_sort(&elems, aws_cryptosdk_compare_hash_elems_by_key_string);
 
     size_t serialized_len = 2; // First two bytes are the number of key-value pairs.
     for (int idx = 0; idx < num_elems; ++idx) {
