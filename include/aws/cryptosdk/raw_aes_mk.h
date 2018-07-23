@@ -16,12 +16,7 @@
 #define AWS_CRYPTOSDK_RAW_AES_MK_H
 
 #include <aws/cryptosdk/materials.h>
-
-enum aws_cryptosdk_aes_key_len {
-    AWS_CRYPTOSDK_AES_128 = 128/8,
-    AWS_CRYPTOSDK_AES_192 = 192/8,
-    AWS_CRYPTOSDK_AES_256 = 256/8
-};
+#include <aws/cryptosdk/cipher.h>
 
 /**
  * A Master Key (MK) which does local AES-GCM encryption and decryption of data keys using

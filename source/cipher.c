@@ -448,3 +448,72 @@ int aws_cryptosdk_genrandom(uint8_t *buf, size_t len) {
 
     return AWS_OP_SUCCESS;
 }
+
+int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
+                                  const struct aws_byte_cursor cipher,
+                                  const struct aws_byte_cursor tag,
+                                  const struct aws_byte_cursor iv,
+                                  const struct aws_byte_cursor aad,
+                                  const struct aws_string * key) {
+
+    bool openssl_err = false;
+    int ret = 0;
+    const EVP_CIPHER * alg;
+    switch (key->len) {
+    case AWS_CRYPTOSDK_AES_128:
+        alg = EVP_aes_128_gcm();
+        break;
+    case AWS_CRYPTOSDK_AES_192:
+        alg = EVP_aes_192_gcm();
+        break;
+    case AWS_CRYPTOSDK_AES_256:
+        alg = EVP_aes_256_gcm();
+        break;
+    default:
+        return aws_raise_error(AWS_ERROR_UNKNOWN); // should be impossible to reach
+    }
+
+    EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) {
+        openssl_err = true;
+        goto out;
+    }
+
+    if (!EVP_DecryptInit_ex(ctx, alg, NULL, aws_string_bytes(key), iv.ptr)) {
+        openssl_err = true;
+        goto out;
+    }
+
+    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, tag.len, tag.ptr)) {
+        openssl_err = true;
+        goto out;
+    }
+
+    /* Setting the AAD. out_len here is a throwaway. Might be able to make that argument NULL, but
+     * openssl wiki example does the same as this, giving it a pointer to an int and disregarding value.
+     */
+    int out_len;
+    if (!EVP_DecryptUpdate(ctx, NULL, &out_len, aad.ptr, aad.len)) {
+        openssl_err = true;
+        goto out;
+    }
+
+    if (!EVP_DecryptUpdate(ctx, plain->buffer, &out_len, cipher.ptr, cipher.len)) {
+        openssl_err = true;
+        goto out;
+    }
+    int prev_len = out_len;
+
+    ret = EVP_DecryptFinal_ex(ctx, plain->buffer + out_len, &out_len);
+
+out:
+    // TODO: add reporting/logging of OpenSSL errors?
+    EVP_CIPHER_CTX_free(ctx);
+
+    if (ret > 0) {
+        plain->len = prev_len + out_len;
+    } else {
+        aws_cryptosdk_secure_zero_buf(plain); // sets plain->len to zero
+    }
+    return openssl_err == false ? AWS_OP_SUCCESS : AWS_OP_ERR;
+}

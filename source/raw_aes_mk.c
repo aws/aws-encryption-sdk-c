@@ -15,8 +15,7 @@
 #include <aws/cryptosdk/private/raw_aes_mk.h>
 #include <aws/cryptosdk/private/enc_context.h>
 #include <aws/cryptosdk/private/utils.h>
-#include <aws/cryptosdk/cipher.h>
-#include <openssl/evp.h>
+#include <aws/cryptosdk/private/cipher.h>
 #include <assert.h>
 
 int aws_cryptosdk_serialize_provider_info_init(struct aws_allocator * alloc,
@@ -89,22 +88,6 @@ static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
                                        const struct aws_cryptosdk_decryption_request * request) {
     struct raw_aes_mk * self = (struct raw_aes_mk *)mk;
 
-    const EVP_CIPHER * cipher;
-    switch (self->raw_key->len) {
-    case AWS_CRYPTOSDK_AES_128:
-        cipher = EVP_aes_128_gcm();
-        break;
-    case AWS_CRYPTOSDK_AES_192:
-        cipher = EVP_aes_192_gcm();
-        break;
-    case AWS_CRYPTOSDK_AES_256:
-        cipher = EVP_aes_256_gcm();
-        break;
-    default:
-        return aws_raise_error(AWS_ERROR_UNKNOWN); // should be impossible to reach
-    }
-
-
     struct aws_byte_buf aad;
     if (aws_cryptosdk_serialize_enc_context_init(request->alloc, &aad, request->enc_context)) {
         return AWS_OP_ERR;
@@ -120,9 +103,7 @@ static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
         aws_byte_buf_clean_up(&aad);
         return AWS_OP_ERR;
     }
-    dec_mat->unencrypted_data_key.len = dec_mat->unencrypted_data_key.capacity;
 
-    EVP_CIPHER_CTX * ctx = NULL;
     for (size_t edk_idx = 0; edk_idx < num_edks; ++edk_idx) {
         const struct aws_cryptosdk_edk * edk;
         if (aws_array_list_get_at_ptr(edks, (void **)&edk, edk_idx)) {
@@ -143,51 +124,30 @@ static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
          */
         if (edk_len + RAW_AES_MK_TAG_LEN != edk_bytes->len) continue;
 
-        if (!(ctx = EVP_CIPHER_CTX_new())) goto OPENSSL_ERR;
-
-        if (!EVP_DecryptInit_ex(ctx, cipher, NULL, aws_string_bytes(self->raw_key), iv.buffer))
-            goto OPENSSL_ERR;
-
-        uint8_t * tag = edk_bytes->buffer + edk_len;
-        if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, RAW_AES_MK_TAG_LEN, tag)) goto OPENSSL_ERR;
-
-        int out_len;
-        /* Setting the AAD. out_len here is a throwaway. Might be able to make that argument NULL, but
-         * openssl wiki example does the same as this, giving it a pointer to an int and disregarding value.
+        /* The only thing return value of this function tells us here is if we hit an OpenSSL error.
+         * Since we are not handling them any differently than normal failed decrypts of EDKs,
+         * we are dropping the return value.
          */
-        if (!EVP_DecryptUpdate(ctx, NULL, &out_len, aad.buffer, aad.len)) goto OPENSSL_ERR; 
+        aws_cryptosdk_aes_gcm_decrypt(&dec_mat->unencrypted_data_key,
+                                      aws_byte_cursor_from_array(edk_bytes->buffer, edk_len),
+                                      aws_byte_cursor_from_array(edk_bytes->buffer + edk_len,
+                                                                 RAW_AES_MK_TAG_LEN),
+                                      aws_byte_cursor_from_buf(&iv),
+                                      aws_byte_cursor_from_buf(&aad),
+                                      self->raw_key);
 
-        if (!EVP_DecryptUpdate(ctx, dec_mat->unencrypted_data_key.buffer, &out_len, edk_bytes->buffer, edk_len))
-            goto OPENSSL_ERR;
-        int plaintext_len = out_len;
-
-        int ret = EVP_DecryptFinal_ex(ctx, dec_mat->unencrypted_data_key.buffer + out_len, &out_len);
-
-        EVP_CIPHER_CTX_free(ctx);
-
-        if (ret > 0) {
-            plaintext_len += out_len;
-            assert(plaintext_len == edk_len);
-            aws_byte_buf_clean_up(&aad);
-            return AWS_OP_SUCCESS;
+        if (dec_mat->unencrypted_data_key.len) {
+            assert(dec_mat->unencrypted_data_key.len == edk_len);
+            goto out;
         }
-        // Nonpositive ret value means decryption didn't work: just zero out unencrypted data key buffer in case
-        // anything was written, and then continue looping through EDKs
-        aws_cryptosdk_secure_zero_buf(&dec_mat->unencrypted_data_key);
-        dec_mat->unencrypted_data_key.len = dec_mat->unencrypted_data_key.capacity;
+        // Zero length unencrypted data key means decryption of EDK didn't work, just loop to next one.
     }
     // None of the EDKs worked, clean up unencrypted data key buffer and return success per materials.h
     aws_byte_buf_clean_up(&dec_mat->unencrypted_data_key);
+
+out:
     aws_byte_buf_clean_up(&aad);
     return AWS_OP_SUCCESS;
-
-OPENSSL_ERR:
-    // TODO: get error info from openssl?
-    if (ctx) EVP_CIPHER_CTX_free(ctx);
-    aws_byte_buf_clean_up(&aad);
-    aws_cryptosdk_secure_zero_buf(&dec_mat->unencrypted_data_key);
-    aws_byte_buf_clean_up(&dec_mat->unencrypted_data_key);
-    return AWS_OP_ERR;
 }
 
 static void raw_aes_mk_destroy(struct aws_cryptosdk_mk * mk) {

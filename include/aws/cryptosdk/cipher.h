@@ -19,6 +19,12 @@
 #include <aws/common/string.h>
 #include <aws/cryptosdk/header.h>
 
+enum aws_cryptosdk_aes_key_len {
+    AWS_CRYPTOSDK_AES_128 = 128/8,
+    AWS_CRYPTOSDK_AES_192 = 192/8,
+    AWS_CRYPTOSDK_AES_256 = 256/8
+};
+
 struct aws_cryptosdk_alg_properties {
     const char *md_name, *cipher_name;
 

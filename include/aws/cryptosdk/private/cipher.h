@@ -115,4 +115,28 @@ int aws_cryptosdk_genrandom(
 
 // TODO: Footer
 
+/**
+ * Assumes plain is an already allocated byte buffer with enough capacity to hold entire
+ * decrypted plaintext. Makes no checks on capacity of plain and will overwrite the buffer
+ * if called with too short a buffer, so be sure to allocate it to be big enough. Does NOT
+ * assume that length of plain buffer is already set, and will set it to the length of plain
+ * on a successful decrypt.
+ *
+ * Returns AWS_OP_ERR only in the case of an invalid key length or an OpenSSL error. Returns
+ * AWS_OP_SUCCESS otherwise.
+ *
+ * On any unsuccessful AES-GCM decrypt, whether normal or due to OpenSSL error, the plain
+ * buffer will be set to all zero bytes, and its length will be set to zero.
+ *
+ * Used by raw AES MK to do decryption of data keys. Uses the default IV length of 12 bytes
+ * regardless of length specified by IV byte cursor.
+ */
+int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
+                                  const struct aws_byte_cursor cipher,
+                                  const struct aws_byte_cursor tag,
+                                  const struct aws_byte_cursor iv,
+                                  const struct aws_byte_cursor aad,
+                                  const struct aws_string * key);
+
+
 #endif // AWS_CRYPTOSDK_PRIVATE_CIPHER_H
