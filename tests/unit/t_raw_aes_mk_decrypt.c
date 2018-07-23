@@ -114,7 +114,8 @@ int decrypt_data_key_empty_encryption_context() {
                                                                 sizeof(test_vector_master_key_id) - 1,
                                                                 test_vector_provider_id,
                                                                 sizeof(test_vector_provider_id) - 1,
-                                                                test_vector_wrapping_key);
+                                                                test_vector_wrapping_key,
+                                                                AWS_CRYPTOSDK_AES_256);
     TEST_ASSERT_ADDR_NOT_NULL(mk);
 
     struct aws_hash_table enc_context;
@@ -160,7 +161,8 @@ int decrypt_data_key_multiple_edks() {
                                                                 sizeof(test_vector_master_key_id) - 1,
                                                                 test_vector_provider_id,
                                                                 sizeof(test_vector_provider_id) - 1,
-                                                                test_vector_wrapping_key);
+                                                                test_vector_wrapping_key,
+                                                                AWS_CRYPTOSDK_AES_256);
     TEST_ASSERT_ADDR_NOT_NULL(mk);
 
     struct aws_hash_table enc_context;
@@ -216,7 +218,8 @@ int decrypt_data_key_no_good_edk() {
                                                                 sizeof(test_vector_master_key_id) - 1,
                                                                 test_vector_provider_id,
                                                                 sizeof(test_vector_provider_id) - 1,
-                                                                test_vector_wrapping_key);
+                                                                test_vector_wrapping_key,
+                                                                AWS_CRYPTOSDK_AES_256);
     TEST_ASSERT_ADDR_NOT_NULL(mk);
 
     struct aws_hash_table enc_context;
@@ -268,7 +271,8 @@ int decrypt_data_key_with_signature() {
                                                                 sizeof(test_vector_master_key_id) - 1,
                                                                 test_vector_provider_id,
                                                                 sizeof(test_vector_provider_id) - 1,
-                                                                test_vector_wrapping_key);
+                                                                test_vector_wrapping_key,
+                                                                AWS_CRYPTOSDK_AES_256);
     TEST_ASSERT_ADDR_NOT_NULL(mk);
 
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_key, "aws-crypto-public-key");
@@ -340,7 +344,8 @@ int decrypt_data_key_with_signature_and_encryption_context() {
                                                                 sizeof(test_vector_master_key_id) - 1,
                                                                 test_vector_provider_id,
                                                                 sizeof(test_vector_provider_id) - 1,
-                                                                test_vector_wrapping_key);
+                                                                test_vector_wrapping_key,
+                                                                AWS_CRYPTOSDK_AES_256);
     TEST_ASSERT_ADDR_NOT_NULL(mk);
 
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_1, "aws-crypto-public-key");

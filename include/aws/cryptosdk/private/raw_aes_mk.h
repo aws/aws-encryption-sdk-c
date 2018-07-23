@@ -30,7 +30,7 @@ struct raw_aes_mk {
     struct aws_allocator * alloc;
     const struct aws_string * master_key_id;
     const struct aws_string * provider_id;
-    const uint8_t * raw_key_bytes;
+    const struct aws_string * raw_key;
 };
 
 /**

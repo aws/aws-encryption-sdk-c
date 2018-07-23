@@ -89,6 +89,22 @@ static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
                                        const struct aws_cryptosdk_decryption_request * request) {
     struct raw_aes_mk * self = (struct raw_aes_mk *)mk;
 
+    const EVP_CIPHER * cipher;
+    switch (self->raw_key->len) {
+    case AWS_CRYPTOSDK_AES_128:
+        cipher = EVP_aes_128_gcm();
+        break;
+    case AWS_CRYPTOSDK_AES_192:
+        cipher = EVP_aes_192_gcm();
+        break;
+    case AWS_CRYPTOSDK_AES_256:
+        cipher = EVP_aes_256_gcm();
+        break;
+    default:
+        return aws_raise_error(AWS_ERROR_UNKNOWN); // should be impossible to reach
+    }
+
+
     struct aws_byte_buf aad;
     if (aws_cryptosdk_serialize_enc_context_init(request->alloc, &aad, request->enc_context)) {
         return AWS_OP_ERR;
@@ -129,10 +145,11 @@ static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
 
         if (!(ctx = EVP_CIPHER_CTX_new())) goto OPENSSL_ERR;
 
-        if (!EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), NULL, self->raw_key_bytes, iv.buffer))
+        if (!EVP_DecryptInit_ex(ctx, cipher, NULL, aws_string_bytes(self->raw_key), iv.buffer))
             goto OPENSSL_ERR;
 
-        EVP_CIPHER_CTX_set_padding(ctx, 0);
+        uint8_t * tag = edk_bytes->buffer + edk_len;
+        if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, RAW_AES_MK_TAG_LEN, tag)) goto OPENSSL_ERR;
 
         int out_len;
         /* Setting the AAD. out_len here is a throwaway. Might be able to make that argument NULL, but
@@ -144,9 +161,6 @@ static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
             goto OPENSSL_ERR;
         int plaintext_len = out_len;
 
-        uint8_t * tag = edk_bytes->buffer + edk_len;
-        if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, RAW_AES_MK_TAG_LEN, tag)) goto OPENSSL_ERR;
-
         int ret = EVP_DecryptFinal_ex(ctx, dec_mat->unencrypted_data_key.buffer + out_len, &out_len);
 
         EVP_CIPHER_CTX_free(ctx);
@@ -157,7 +171,7 @@ static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
             aws_byte_buf_clean_up(&aad);
             return AWS_OP_SUCCESS;
         }
-        // Negative ret value means decryption didn't work: just clean up unencrypted data key buffer in case
+        // Nonpositive ret value means decryption didn't work: just zero out unencrypted data key buffer in case
         // anything was written, and then continue looping through EDKs
         aws_cryptosdk_secure_zero_buf(&dec_mat->unencrypted_data_key);
         dec_mat->unencrypted_data_key.len = dec_mat->unencrypted_data_key.capacity;
@@ -178,9 +192,12 @@ OPENSSL_ERR:
 
 static void raw_aes_mk_destroy(struct aws_cryptosdk_mk * mk) {
     struct raw_aes_mk * self = (struct raw_aes_mk *)mk;
-    aws_string_destroy((void *)self->master_key_id);
-    aws_string_destroy((void *)self->provider_id);
-    if (self && self->alloc) aws_mem_release(self->alloc, self);
+    if (self) {
+        aws_string_destroy((void *)self->master_key_id);
+        aws_string_destroy((void *)self->provider_id);
+        aws_cryptosdk_secure_zero_and_destroy_string((struct aws_string *)self->raw_key);
+        if (self->alloc) aws_mem_release(self->alloc, self);
+    }
 }
 
 static const struct aws_cryptosdk_mk_vt raw_aes_mk_vt = {
@@ -197,7 +214,8 @@ struct aws_cryptosdk_mk * aws_cryptosdk_raw_aes_mk_new(struct aws_allocator * al
                                                        size_t master_key_id_len,
                                                        const uint8_t * provider_id,
                                                        size_t provider_id_len,
-                                                       const uint8_t raw_key_bytes[32]) {
+                                                       const uint8_t * raw_key_bytes,
+                                                       enum aws_cryptosdk_aes_key_len key_len) {
     struct raw_aes_mk * mk = aws_mem_acquire(alloc, sizeof(struct raw_aes_mk));
     if (!mk) return NULL;
 
@@ -212,9 +230,14 @@ struct aws_cryptosdk_mk * aws_cryptosdk_raw_aes_mk_new(struct aws_allocator * al
         aws_mem_release(alloc, mk);
         return NULL;
     }
-
+    mk->raw_key = aws_string_from_array_new(alloc, raw_key_bytes, key_len);
+    if (!mk->raw_key) {
+        aws_string_destroy((void *)mk->master_key_id);
+        aws_string_destroy((void *)mk->provider_id);
+        aws_mem_release(alloc, mk);
+        return NULL;
+    }
     mk->vt = &raw_aes_mk_vt;
     mk->alloc = alloc;
-    mk->raw_key_bytes = raw_key_bytes;
     return (struct aws_cryptosdk_mk *)mk;
 }

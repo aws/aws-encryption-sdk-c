@@ -59,7 +59,8 @@ int parse_valid_provider_info() {
                                                                 ser_master_key_id->len,
                                                                 aws_string_bytes(ser_provider_id),
                                                                 ser_provider_id->len,
-                                                                raw_key_bytes);
+                                                                raw_key_bytes,
+                                                                AWS_CRYPTOSDK_AES_256);
     TEST_ASSERT_ADDR_NOT_NULL(mk);
 
     struct aws_byte_buf iv_output;

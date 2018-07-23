@@ -16,7 +16,7 @@
 #ifndef AWS_CRYPTOSDK_CIPHER_H
 #define AWS_CRYPTOSDK_CIPHER_H
 
-#include <aws/common/byte_buf.h>
+#include <aws/common/string.h>
 #include <aws/cryptosdk/header.h>
 
 struct aws_cryptosdk_alg_properties {
@@ -49,6 +49,11 @@ static inline void aws_cryptosdk_secure_zero_buf(struct aws_byte_buf * buf) {
         aws_cryptosdk_secure_zero(buf->buffer, buf->capacity);
     }
     buf->len = 0;
+}
+
+static inline void aws_cryptosdk_secure_zero_and_destroy_string(struct aws_string * str) {
+    aws_cryptosdk_secure_zero((void *)aws_string_bytes(str), str->len);
+    aws_string_destroy(str);
 }
 
 #endif // AWS_CRYPTOSDK_CIPHER_H
