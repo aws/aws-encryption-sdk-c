@@ -374,7 +374,7 @@ static int overread() {
 
 #else // _POSIX_VERSION
 static int overread() {
-    printf("\nWarning: overread test cannot be performed on this system. Passing trivially.\n");
+    fprintf(stderr, "[SKIPPED] header.overread - not implemented on windows");
     return 0; // can't do overread tests portably
 }
 #endif
@@ -420,8 +420,8 @@ int header_failed_write() {
     return 0;
 }
 
+#ifdef _POSIX_VERSION
 int overwrite() {
-
     struct aws_cryptosdk_hdr * test_headers[] = {&test_header_1_hdr, &test_header_2_hdr};
     int pagesize = sysconf(_SC_PAGESIZE);
 
@@ -455,6 +455,12 @@ int overwrite() {
     }
     return 0;
 }
+#else
+int overwrite() {
+    fprintf(stderr, "[SKIPPED] header.overwrite - not implemented on windows");
+    return 0;
+}
+#endif
 
 struct test_case header_test_cases[] = {
     { "header", "parse", simple_header_parse },
