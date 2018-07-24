@@ -18,6 +18,11 @@
 #include <stdlib.h>
 #include "testing.h"
 
+#ifdef _MSC_VER
+#include <malloc.h>
+#define alloca _alloca
+#endif
+
 static int test_kdf() {
     static const struct data_key key = { {
         0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
@@ -474,7 +479,7 @@ static int testHeaderAuth(const uint8_t *header, size_t headerlen, const uint8_t
 
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_verify_header(alg, &derived_key, &authbuf, &headerbuf));
 
-    uint8_t badheader[headerlen];
+    uint8_t *badheader = alloca(headerlen);
     headerbuf.buffer = badheader;
 
     for (size_t i = 0; i < headerlen * 8; i++) {
@@ -484,7 +489,7 @@ static int testHeaderAuth(const uint8_t *header, size_t headerlen, const uint8_t
         TEST_ASSERT_INT_EQ(AWS_OP_ERR, aws_cryptosdk_verify_header(alg, &derived_key, &authbuf, &headerbuf));
     }
 
-    uint8_t badtag[taglen];
+    uint8_t *badtag = alloca(taglen);
     headerbuf.buffer = (uint8_t *)header;
     authbuf.buffer = badtag;
 
@@ -836,12 +841,12 @@ static int test_encrypt_body() {
 
                 TEST_ASSERT_INT_EQ(0, memcmp(decrypt_buf.buffer, pt_buf.buffer, pt_buf.len));
 
-                uint8_t expected_iv[alg->iv_len];
-                memset(expected_iv, 0, sizeof(expected_iv));
-                expected_iv[sizeof(expected_iv) - 4] = 0xDE;
-                expected_iv[sizeof(expected_iv) - 3] = 0xAD;
-                expected_iv[sizeof(expected_iv) - 2] = 0xBE;
-                expected_iv[sizeof(expected_iv) - 1] = 0xEF;
+                uint8_t expected_iv[256];
+                memset(expected_iv, 0, alg->iv_len);
+                expected_iv[alg->iv_len - 4] = 0xDE;
+                expected_iv[alg->iv_len - 3] = 0xAD;
+                expected_iv[alg->iv_len - 2] = 0xBE;
+                expected_iv[alg->iv_len - 1] = 0xEF;
 
                 TEST_ASSERT_INT_EQ(0, memcmp(expected_iv, iv, sizeof(expected_iv)));
             }
@@ -873,10 +878,11 @@ static int test_sign_header() {
             enum aws_cryptosdk_alg_id alg_id = known_algorithms[i];
             const struct aws_cryptosdk_alg_properties *alg = aws_cryptosdk_alg_props(alg_id);
 
-            uint8_t auth_tag[alg->iv_len + alg->tag_len];
-            memset(auth_tag, 0xFF, sizeof(auth_tag));
+            size_t auth_tag_size = alg->iv_len + alg->tag_len;
+            uint8_t auth_tag[256];
+            memset(auth_tag, 0xFF, auth_tag_size);
 
-            struct aws_byte_buf auth_buf = aws_byte_buf_from_array(auth_tag, sizeof(auth_tag));
+            struct aws_byte_buf auth_buf = aws_byte_buf_from_array(auth_tag, auth_tag_size);
 
             TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
                 aws_cryptosdk_sign_header(alg, &key, &auth_buf, &header_buf));
@@ -884,10 +890,9 @@ static int test_sign_header() {
             TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
                 aws_cryptosdk_verify_header(alg, &key, &auth_buf, &header_buf));
 
-            uint8_t expected_iv[alg->iv_len];
-            memset(expected_iv, 0, sizeof(expected_iv));
-            TEST_ASSERT_INT_EQ(0, memcmp(expected_iv, auth_tag, sizeof(expected_iv)));
-
+            uint8_t expected_iv[256];
+            memset(expected_iv, 0, alg->iv_len);
+            TEST_ASSERT_INT_EQ(0, memcmp(expected_iv, auth_tag, alg->iv_len));
         }
 
         aws_byte_buf_clean_up(&header_buf);
