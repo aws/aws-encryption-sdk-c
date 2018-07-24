@@ -120,6 +120,45 @@ int serialize_valid_enc_context() {
     return 0;
 }
 
+int serialize_valid_enc_context_unsigned_comparison() {
+    const uint8_t serialized_ctx[] =
+        "\x00\x02"
+        "\x00\x09""aaaaaaaa\x7f"
+        "\x00\x08""BBBBBBBB"
+        "\x00\x09""aaaaaaaa\x80"
+        "\x00\x08""AAAAAAAA";
+
+    AWS_STATIC_STRING_FROM_LITERAL(key_a, "aaaaaaaa\x80");
+    AWS_STATIC_STRING_FROM_LITERAL(value_a, "AAAAAAAA");
+    AWS_STATIC_STRING_FROM_LITERAL(key_b, "aaaaaaaa\x7f");
+    AWS_STATIC_STRING_FROM_LITERAL(value_b, "BBBBBBBB");
+
+    const struct aws_string * keys[] = {key_a, key_b};
+    const struct aws_string * vals[] = {value_a, value_b};
+    int num_elems = sizeof(keys)/sizeof(const struct aws_string *);
+
+    struct aws_allocator * alloc = aws_default_allocator();
+
+    struct aws_hash_table enc_context;
+    TEST_ASSERT_INT_EQ(aws_hash_table_init(&enc_context, alloc, 10, aws_hash_string, aws_string_eq, NULL, NULL),
+                       AWS_OP_SUCCESS);
+
+    for (int idx = 0; idx < num_elems; ++idx) {
+        struct aws_hash_element * elem;
+        TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_context, (void *)keys[idx], &elem, NULL), AWS_OP_SUCCESS);
+        elem->value = (void *)vals[idx];
+    }
+
+    struct aws_byte_buf output;
+    TEST_ASSERT_INT_EQ(aws_cryptosdk_serialize_enc_context_init(alloc, &output, &enc_context), AWS_OP_SUCCESS);
+    TEST_ASSERT_INT_EQ(output.len, sizeof(serialized_ctx) - 1);
+    TEST_ASSERT_INT_EQ(0, memcmp(output.buffer, serialized_ctx, output.len));
+
+    aws_byte_buf_clean_up(&output);
+    aws_hash_table_clean_up(&enc_context);
+    return 0;
+}
+
 int serialize_error_when_element_too_long() {
     struct aws_allocator * alloc = aws_default_allocator();
 
@@ -227,6 +266,7 @@ struct test_case enc_context_test_cases[] = {
     { "enc_context", "get_sorted_elems_array_test", get_sorted_elems_array_test },
     { "enc_context", "serialize_empty_enc_context", serialize_empty_enc_context },
     { "enc_context", "serialize_valid_enc_context", serialize_valid_enc_context },
+    { "enc_context", "serialize_valid_enc_context_unsigned_comparison", serialize_valid_enc_context_unsigned_comparison },
     { "enc_context", "serialize_error_when_element_too_long", serialize_error_when_element_too_long },
     { "enc_context", "serialize_error_when_serialized_len_too_long", serialize_error_when_serialized_len_too_long },
     { "enc_context", "serialize_valid_enc_context_max_length", serialize_valid_enc_context_max_length },

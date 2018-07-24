@@ -429,7 +429,7 @@ int decrypt_data_key_with_signature_and_encryption_context() {
 /**
  * AES-256 data keys but AES-192 wrapping key, also includes encryption context which needs unsigned byte comparison.
  */
-int decrypt_data_key_unsigned_comparison() {
+int decrypt_data_key_unsigned_comparison_192() {
     struct aws_allocator * alloc = aws_default_allocator();
 
     struct aws_cryptosdk_mk * mk = aws_cryptosdk_raw_aes_mk_new(alloc,
@@ -441,7 +441,7 @@ int decrypt_data_key_unsigned_comparison() {
                                                                 AWS_CRYPTOSDK_AES_192);
     TEST_ASSERT_ADDR_NOT_NULL(mk);
 
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_1, "aaaaaaaa\x80");
+    AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_1, "aaaaaaaa\xc2\x80");
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_1, "AAAAAAAA");
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_2, "aaaaaaaa\x7f");
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_2, "BBBBBBBB");
@@ -505,6 +505,6 @@ struct test_case raw_aes_mk_decrypt_test_cases[] = {
     { "raw_aes_mk", "decrypt_data_key_no_good_edk", decrypt_data_key_no_good_edk },
     { "raw_aes_mk", "decrypt_data_key_with_signature", decrypt_data_key_with_signature },
     { "raw_aes_mk", "decrypt_data_key_with_signature_and_encryption_context", decrypt_data_key_with_signature_and_encryption_context },
-    { "raw_aes_mk", "decrypt_data_key_unsigned_comparison", decrypt_data_key_unsigned_comparison },
+    { "raw_aes_mk", "decrypt_data_key_unsigned_comparison_192", decrypt_data_key_unsigned_comparison_192 },
     { NULL }
 };
