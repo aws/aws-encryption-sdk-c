@@ -61,8 +61,7 @@ static void decrypt_test_oneshot(
 
     if (!(mkp = aws_cryptosdk_single_mkp_new(aws_default_allocator(), aws_cryptosdk_zero_mk_new()))) unexpected_error();
     if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), mkp))) unexpected_error();
-    if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT))) unexpected_error();
-    if (aws_cryptosdk_session_set_cmm(session, cmm)) unexpected_error();
+    if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
 
     uint8_t *outp = outbuf;
     const uint8_t *inp = ct.buffer;
@@ -125,8 +124,7 @@ static void decrypt_test_incremental(
 
     if (!(mkp = aws_cryptosdk_single_mkp_new(aws_default_allocator(), aws_cryptosdk_zero_mk_new()))) unexpected_error();
     if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), mkp))) unexpected_error();
-    if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT))) unexpected_error();
-    if (aws_cryptosdk_session_set_cmm(session, cmm)) unexpected_error();
+    if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
 
     uint8_t *outp = outbuf;
     const uint8_t *inp = ct.buffer;
@@ -298,8 +296,7 @@ static void decrypt_test_badciphertext(
 
     if (!(mkp = aws_cryptosdk_single_mkp_new(aws_default_allocator(), aws_cryptosdk_zero_mk_new()))) unexpected_error();
     if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), mkp))) unexpected_error();
-    if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT))) unexpected_error();
-    if (aws_cryptosdk_session_set_cmm(session, cmm)) unexpected_error();
+    if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
 
     uint8_t *outp = outbuf;
     const uint8_t *inp = ct.buffer;

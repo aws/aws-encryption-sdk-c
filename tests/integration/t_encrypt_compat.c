@@ -169,11 +169,9 @@ static int test_basic() {
     struct aws_cryptosdk_cmm *cmm = NULL;
     struct aws_cryptosdk_mkp *mkp = NULL;
 
-    if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT))) abort();
     if (!(mkp = aws_cryptosdk_single_mkp_new(aws_default_allocator(), aws_cryptosdk_zero_mk_new()))) abort();
     if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), mkp))) abort();
-
-    aws_cryptosdk_session_set_cmm(session, cmm);
+    if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm))) abort();
 
     aws_cryptosdk_session_set_message_size(session, sizeof(plaintext));
     
@@ -207,11 +205,9 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
     struct aws_cryptosdk_cmm *cmm = NULL;
     struct aws_cryptosdk_mkp *mkp = NULL;
 
-    if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT))) abort();
     if (!(mkp = aws_cryptosdk_single_mkp_new(aws_default_allocator(), aws_cryptosdk_zero_mk_new()))) abort();
     if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), mkp))) abort();
-
-    aws_cryptosdk_session_set_cmm(session, cmm);
+    if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm))) abort();
 
     if (early_size) aws_cryptosdk_session_set_message_size(session, plaintext_sz);
 

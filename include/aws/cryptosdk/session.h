@@ -34,8 +34,7 @@ enum aws_cryptosdk_mode {
 };
 
 /**
- * Creates a new encryption or decryption session. At a minimum, a CMM must be
- * set before passing any data through.
+ * Creates a new encryption or decryption session.
  *
  * Parameters:
  *   - allocator: The allocator to use for the session object and any temporary
@@ -43,10 +42,13 @@ enum aws_cryptosdk_mode {
  *   - mode: The mode (AWS_CRYPTOSDK_ENCRYPT or AWS_CRYPTOSDK_DECRYPT) to start
  *                 in. This can be changed later with
  *                 aws_cryptosdk_session_reset
+ *   - cmm: The crypto material manager which will provide key material for this
+ *          session.
  */
-struct aws_cryptosdk_session *aws_cryptosdk_session_new(
+struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm(
     struct aws_allocator *allocator,
-    enum aws_cryptosdk_mode mode
+    enum aws_cryptosdk_mode mode,
+    struct aws_cryptosdk_cmm *cmm
 );
 
 void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);
@@ -59,15 +61,6 @@ void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);
 int aws_cryptosdk_session_reset(
     struct aws_cryptosdk_session *session,
     enum aws_cryptosdk_mode mode
-);
-
-/**
- * Sets the crypto material manager to use for obtaining data keys for
- * encryption and decryption.
- */
-int aws_cryptosdk_session_set_cmm(
-    struct aws_cryptosdk_session *session,
-    struct aws_cryptosdk_cmm *cmm
 );
 
 /**

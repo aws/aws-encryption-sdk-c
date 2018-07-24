@@ -60,7 +60,7 @@ int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_
     return AWS_OP_SUCCESS;
 }
 
-struct aws_cryptosdk_session *aws_cryptosdk_session_new(
+static struct aws_cryptosdk_session *aws_cryptosdk_session_new(
     struct aws_allocator *allocator,
     enum aws_cryptosdk_mode mode
 ) {
@@ -84,6 +84,20 @@ struct aws_cryptosdk_session *aws_cryptosdk_session_new(
     return session;
 }
 
+struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm(
+    struct aws_allocator *allocator,
+    enum aws_cryptosdk_mode mode,
+    struct aws_cryptosdk_cmm *cmm
+) {
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new(allocator, mode);
+
+    if (session) {
+        session->cmm = cmm;
+    }
+
+    return session;
+}
+
 void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session) {
     struct aws_allocator *alloc = session->alloc;
 
@@ -91,16 +105,6 @@ void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session) {
     aws_cryptosdk_secure_zero(session, sizeof(*session));
 
     aws_mem_release(alloc, session);
-}
-
-int aws_cryptosdk_session_set_cmm(struct aws_cryptosdk_session *session, struct aws_cryptosdk_cmm *cmm) {
-    if (session->state != ST_CONFIG) {
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-    }
-
-    session->cmm = cmm;
-
-    return AWS_OP_SUCCESS;
 }
 
 int aws_cryptosdk_session_set_frame_size(struct aws_cryptosdk_session *session, uint32_t frame_size) {
