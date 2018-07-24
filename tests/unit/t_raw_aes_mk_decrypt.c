@@ -21,9 +21,10 @@ const uint8_t test_vector_wrapping_key[] =
 {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
  0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f};
 
-// Truncations of wrapping key for AES-192 and AES-256. We could use original array, but this
-// is to make absolutely certain that we aren't accidentally doing AES encryption at a different
-// key size.
+/* Truncations of wrapping key for AES-192 and AES-128. We could use original array, but this
+ * is to make absolutely certain that we aren't accidentally doing AES encryption at a different
+ * key size.
+ */
 const uint8_t test_vector_wrapping_key_192[] =
 {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
  0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17};
@@ -499,6 +500,70 @@ int decrypt_data_key_unsigned_comparison_192() {
     return 0;
 }
 
+/**
+ * AES-128 for both wrapping key and data key encryption.
+ */
+int decrypt_data_key_128() {
+    struct aws_allocator * alloc = aws_default_allocator();
+
+    struct aws_cryptosdk_mk * mk = aws_cryptosdk_raw_aes_mk_new(alloc,
+                                                                test_vector_master_key_id,
+                                                                sizeof(test_vector_master_key_id) - 1,
+                                                                test_vector_provider_id,
+                                                                sizeof(test_vector_provider_id) - 1,
+                                                                test_vector_wrapping_key_128,
+                                                                AWS_CRYPTOSDK_AES_128);
+    TEST_ASSERT_ADDR_NOT_NULL(mk);
+
+    struct aws_hash_table enc_context;
+    TEST_ASSERT_INT_EQ(aws_hash_table_init(&enc_context, alloc, 4, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy),
+                       AWS_OP_SUCCESS);
+
+    AWS_STATIC_STRING_FROM_LITERAL(enc_context_key, "correct");
+    AWS_STATIC_STRING_FROM_LITERAL(enc_context_val, "context");
+
+    struct aws_hash_element * elem;
+    TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_context, (void *)enc_context_key, &elem, NULL), AWS_OP_SUCCESS);
+    elem->value = (void *)enc_context_val;
+
+    struct aws_cryptosdk_decryption_request req;
+    req.alloc = alloc;
+    req.alg = AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE;
+    req.enc_context = &enc_context;
+    aws_array_list_init_dynamic(&req.encrypted_data_keys, alloc, 1, sizeof(struct aws_cryptosdk_edk));
+
+    // first 16 bytes encrypted data key, last 16 bytes GCM tag
+    const uint8_t edk_bytes[] = {0x29, 0x09, 0x38, 0x89, 0xe4, 0x4e, 0x1c, 0xdc, 0xf0, 0x4d, 0x0b, 0xa1, 0xe4, 0x52, 0xd5, 0x77,
+                                 0x53, 0xf8, 0x23, 0x7a, 0x52, 0xd9, 0xca, 0xa8, 0x53, 0x6e, 0xf9, 0xcb, 0xae, 0x22, 0x63, 0xae};
+
+    const uint8_t edk_provider_info[] =
+        "asdfhasiufhiasuhviawurhgiuawrhefiuawhf" // master key ID
+        "\x00\x00\x00\x80" // GCM tag length in bits
+        "\x00\x00\x00\x0c" // IV length in bytes
+        "\x8e\x2b\xfd\x25\x66\x5a\x1c\x0d\x0d\x4a\x49\x14"; // IV
+
+    struct aws_cryptosdk_edk edk;
+    edk.enc_data_key = aws_byte_buf_from_array(edk_bytes, sizeof(edk_bytes));
+    edk.provider_id = aws_byte_buf_from_array(test_vector_provider_id, sizeof(test_vector_provider_id) - 1);
+    edk.provider_info = aws_byte_buf_from_array(edk_provider_info, sizeof(edk_provider_info) - 1);
+
+    aws_array_list_push_back(&req.encrypted_data_keys, (void *)&edk);
+
+    struct aws_cryptosdk_decryption_materials * dec_mat = aws_cryptosdk_decryption_materials_new(alloc, req.alg);
+    TEST_ASSERT_ADDR_NOT_NULL(dec_mat);
+
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_mk_decrypt_data_key(mk, dec_mat, &req));
+    TEST_ASSERT_ADDR_NOT_NULL(dec_mat->unencrypted_data_key.buffer);
+    TEST_ASSERT_BUF_EQ(dec_mat->unencrypted_data_key,
+                       0x6d, 0x3f, 0xf7, 0xe9, 0x0e, 0xe4, 0x81, 0x09, 0x87, 0x8f, 0x37, 0xd9, 0x6a, 0x21, 0xe5, 0xf8);
+
+    aws_cryptosdk_decryption_materials_destroy(dec_mat);
+    aws_array_list_clean_up(&req.encrypted_data_keys);
+    aws_hash_table_clean_up(&enc_context);
+    aws_cryptosdk_mk_destroy(mk);
+    return 0;
+}
+
 struct test_case raw_aes_mk_decrypt_test_cases[] = {
     { "raw_aes_mk", "decrypt_data_key_empty_encryption_context", decrypt_data_key_empty_encryption_context },
     { "raw_aes_mk", "decrypt_data_key_multiple_edks", decrypt_data_key_multiple_edks },
@@ -506,5 +571,6 @@ struct test_case raw_aes_mk_decrypt_test_cases[] = {
     { "raw_aes_mk", "decrypt_data_key_with_signature", decrypt_data_key_with_signature },
     { "raw_aes_mk", "decrypt_data_key_with_signature_and_encryption_context", decrypt_data_key_with_signature_and_encryption_context },
     { "raw_aes_mk", "decrypt_data_key_unsigned_comparison_192", decrypt_data_key_unsigned_comparison_192 },
+    { "raw_aes_mk", "decrypt_data_key_128", decrypt_data_key_128 },
     { NULL }
 };
