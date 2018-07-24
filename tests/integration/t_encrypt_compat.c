@@ -213,6 +213,7 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
     if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm))) abort();
 
     if (early_size) aws_cryptosdk_session_set_message_size(session, plaintext_sz);
+    aws_cryptosdk_session_set_frame_size(session, framesize);
 
     size_t pt_offset = 0, ct_offset = 0;
 
@@ -245,7 +246,7 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
         // than our limit, then something is wrong.
         aws_cryptosdk_session_estimate_buf(session, &ct_need, &pt_need);
 
-        if (pt_need > plaintext_sz && ct_need <= ct_available && !pt_consumed && !ct_generated) {
+        if (pt_need > plaintext_sz - pt_offset && ct_need <= ct_available && !pt_consumed && !ct_generated) {
             // Hmm... it seems to want more plaintext than we have available.
             // If we haven't set the precise size yet, then this is
             // understandable; it's also possible that we've not gotten to the

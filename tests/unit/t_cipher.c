@@ -848,7 +848,7 @@ static int test_encrypt_body() {
                 expected_iv[alg->iv_len - 2] = 0xBE;
                 expected_iv[alg->iv_len - 1] = 0xEF;
 
-                TEST_ASSERT_INT_EQ(0, memcmp(expected_iv, iv, sizeof(expected_iv)));
+                TEST_ASSERT_INT_EQ(0, memcmp(expected_iv, iv, alg->iv_len));
             }
         }
 
