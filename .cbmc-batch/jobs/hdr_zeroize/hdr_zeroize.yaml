@@ -1,0 +1,5 @@
+cbmcpkg: cbmc-memcpy-loop.tar.gz
+jobos: ubuntu16
+cbmcflags: "--bounds-check;--pointer-check;--function;hdr_zeroize_verify;--unwind;0"
+goto: proofs.goto
+expected: "SUCCESSFUL"
