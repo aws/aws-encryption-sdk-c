@@ -103,11 +103,12 @@ static void curl_init() {
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
     curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_callback);
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
 
     // We're sending a raw buffer as the body of the HTTP request, not an HTML form body.
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, NULL);
 
-    struct curl_slist *headers = curl_slist_append(NULL, "Transfer-Encoding: chunked");
+    headers = curl_slist_append(NULL, "Transfer-Encoding: chunked");
 
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curl_error_buf);
@@ -133,17 +134,17 @@ static int try_decrypt(
 
     CURLcode result = curl_easy_perform(curl);
 
+    if (result != CURLE_OK) {
+        fprintf(stderr, "CURL error: %s\n", curl_error_buf);
+        return 1;
+    }
+
     long http_code;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
     if (http_code != 200L) {
         fprintf(stderr, "Error from server (code %ld):\n", http_code);
         fwrite(recv_buf, recv_buf_used, 1, stderr);
         fprintf(stderr, "\n");
-        return 1;
-    }
-
-    if (result != CURLE_OK) {
-        fprintf(stderr, "CURL error: %s\n", curl_error_buf);
         return 1;
     }
 
