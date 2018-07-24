@@ -29,6 +29,8 @@ static int single_mkp_get_master_keys(struct aws_cryptosdk_mkp * mkp,
                                       struct aws_array_list * master_keys, // list of (aws_cryptosdk_mk *)
                                       const struct aws_hash_table * enc_context) {
     struct single_mkp * self = (struct single_mkp *) mkp;
+    (void)enc_context;
+
     /* What is being pushed onto the array is the address of the MK, which is the value
      * of self->mk, not its address. However, aws_array_list_push_back expects a pointer to
      * the memory to be copied into the list as its second argument.

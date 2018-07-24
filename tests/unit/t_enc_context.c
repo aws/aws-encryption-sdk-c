@@ -162,7 +162,6 @@ int serialize_valid_enc_context_unsigned_comparison() {
 int serialize_error_when_element_too_long() {
     struct aws_allocator * alloc = aws_default_allocator();
 
-    AWS_STATIC_STRING_FROM_LITERAL(empty, "");
     uint8_t bytes[UINT16_MAX+1];
     const struct aws_string * str = aws_string_new_from_array(alloc, bytes, UINT16_MAX+1);
     TEST_ASSERT_ADDR_NOT_NULL(str);

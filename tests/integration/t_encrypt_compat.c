@@ -128,6 +128,8 @@ static int try_decrypt(
     const char *file,
     int line
 ) {
+    (void)line; (void)file;
+
     post_buf = ciphertext;
     post_buf_remain = ciphertext_size;
     recv_buf_used = 0;

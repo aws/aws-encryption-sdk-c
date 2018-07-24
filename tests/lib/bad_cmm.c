@@ -21,6 +21,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifdef _MSC_VER
+// We ignore a lot of parameters in this source file.
+#pragma warning(disable: 4100)
+#endif
+
 struct bad_cmm {const struct aws_cryptosdk_cmm_vt * vt;};
 
 int aws_cryptosdk_cmm_destroy_with_failed_return_value(struct aws_cryptosdk_cmm * cmm) {
@@ -44,7 +49,6 @@ int generate_abort(struct aws_cryptosdk_cmm * cmm,
     fprintf(stderr, "%s's generate_encryption_materials VF was called when it should not have been\n",
             self->vt->name);
     abort();
-    return AWS_OP_SUCCESS;
 }
 
 int decrypt_abort(struct aws_cryptosdk_cmm * cmm,
@@ -54,7 +58,6 @@ int decrypt_abort(struct aws_cryptosdk_cmm * cmm,
     fprintf(stderr, "%s's decrypt_materials VF was called when it should not have been\n",
             self->vt->name);
     abort();
-    return AWS_OP_SUCCESS;
 }
 
 /**

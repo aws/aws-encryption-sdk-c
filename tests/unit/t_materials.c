@@ -21,13 +21,14 @@
 #include "bad_cmm.h"
 
 int default_cmm_zero_mkp_enc_mat() {
+    struct aws_hash_table enc_context;
     struct aws_allocator * alloc = aws_default_allocator();
     struct aws_cryptosdk_mk * mk = aws_cryptosdk_zero_mk_new();
     struct aws_cryptosdk_mkp * mkp = aws_cryptosdk_single_mkp_new(alloc, mk);
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(alloc, mkp);
 
     struct aws_cryptosdk_encryption_request req;
-    req.enc_context = (void *)0xdeadbeef; // bogus address just to see if it gets passed along
+    req.enc_context = &enc_context; // this is uninitialized; we just want to see if it gets passed along
     req.requested_alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE;
     req.alloc = aws_default_allocator();
 
@@ -35,7 +36,7 @@ int default_cmm_zero_mkp_enc_mat() {
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
                        aws_cryptosdk_cmm_generate_encryption_materials(cmm, &enc_mat, &req));
 
-    TEST_ASSERT_ADDR_EQ(enc_mat->enc_context, (void *)0xdeadbeef);
+    TEST_ASSERT_ADDR_EQ(enc_mat->enc_context, &enc_context);
     TEST_ASSERT_INT_EQ(enc_mat->alg, AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE);
 
     TEST_ASSERT_BUF_EQ(enc_mat->unencrypted_data_key,

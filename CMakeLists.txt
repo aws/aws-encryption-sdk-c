@@ -57,10 +57,19 @@ CHECK_CXX_COMPILER_FLAG("-pedantic" HAS_FLAG_PEDANTIC)
 CHECK_CXX_COMPILER_FLAG("-Werror" HAS_FLAG_WERROR)
 CHECK_CXX_COMPILER_FLAG("-Wno-missing-field-initializers" HAS_FLAG_NO_MISSING_FIELD_INITIALIZERS)
 
-if (HAS_FLAG_WALL)
+if (MSVC)
+    add_compile_options(/W3 /WX)
+
+# MSVC complains if we use C99-standard functions like strerror() instead of their
+# proprietary "secure" versions such as strerror_s. Since we need to be portable, disable
+# those warnings.
+    add_definitions("-D_CRT_SECURE_NO_WARNINGS")
+endif()
+
+if (HAS_FLAG_WALL AND NOT MSVC)
     add_compile_options(-Wall)
 endif()
-if (HAS_FLAG_PEDANTIC)
+if (HAS_FLAG_PEDANTIC AND NOT MSVC)
     add_compile_options(-pedantic)
 endif()
 if (HAS_FLAG_WERROR)

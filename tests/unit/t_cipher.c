@@ -856,25 +856,6 @@ static int test_encrypt_body() {
 }
 
 static int test_sign_header() {
-    static const size_t test_sizes[] = {
-        0,
-        1,
-        2,
-        3,
-        15,
-        16,
-        17,
-        1023,
-        1024,
-        1025,
-        65535,
-        65536,
-        65537,
-        1024*1024*64 - 1,
-        1024*1024*64,
-        1024*1024*64 + 1
-    };
-
     struct aws_allocator *alloc = aws_default_allocator();
     struct content_key key;
 

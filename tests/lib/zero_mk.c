@@ -49,6 +49,8 @@ static inline bool is_literally_null_edk(const struct aws_cryptosdk_edk * edk) {
 
 static int zero_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
                                      struct aws_cryptosdk_encryption_materials * enc_mat) {
+    (void)mk;
+
     const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(enc_mat->alg);
     if (aws_byte_buf_init(enc_mat->alloc, &enc_mat->unencrypted_data_key, props->data_key_len)) {
         return AWS_OP_ERR;
@@ -63,6 +65,8 @@ static int zero_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
 
 static int zero_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
                                     struct aws_cryptosdk_encryption_materials * enc_mat) {
+    (void)mk;
+
     for (size_t byte_idx = 0 ; byte_idx < enc_mat->unencrypted_data_key.len ; ++byte_idx) {
         if (enc_mat->unencrypted_data_key.buffer[byte_idx]) {
             // Zero MK only encrypts the all zero data key
@@ -78,6 +82,8 @@ static int zero_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
                                     struct aws_cryptosdk_decryption_materials * dec_mat,
                                     const struct aws_cryptosdk_decryption_request * request) {
     const struct aws_array_list * edks = &request->encrypted_data_keys;
+    (void)mk;
+
     // verify there is at least one EDK with length zero present
     size_t num_keys = aws_array_list_length(edks);
     for (size_t key_idx = 0 ; key_idx < num_keys ; ++key_idx) {
@@ -99,7 +105,9 @@ static int zero_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
     return AWS_OP_SUCCESS;
 }
 
-static void zero_mk_destroy(struct aws_cryptosdk_mk * mk) {}
+static void zero_mk_destroy(struct aws_cryptosdk_mk * mk) {
+    (void)mk;
+}
 
 static const struct aws_cryptosdk_mk_vt zero_mk_vt = {
     .vt_size = sizeof(struct aws_cryptosdk_mk_vt),
