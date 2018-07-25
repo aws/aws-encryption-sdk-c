@@ -154,8 +154,8 @@ out:
 }
 
 int try_parse_header(
-    struct aws_cryptosdk_session * restrict session,
-    struct aws_byte_cursor * restrict input
+    struct aws_cryptosdk_session * AWS_RESTRICT session,
+    struct aws_byte_cursor * AWS_RESTRICT input
 ) {
     int rv = aws_cryptosdk_hdr_parse_init(session->alloc, &session->header, input->ptr, input->len);
 
@@ -191,9 +191,9 @@ int try_parse_header(
 }
 
 int try_decrypt_body(
-    struct aws_cryptosdk_session * restrict session,
-    struct aws_byte_cursor * restrict poutput,
-    struct aws_byte_cursor * restrict pinput
+    struct aws_cryptosdk_session * AWS_RESTRICT session,
+    struct aws_byte_cursor * AWS_RESTRICT poutput,
+    struct aws_byte_cursor * AWS_RESTRICT pinput
 ) {
     struct aws_cryptosdk_frame frame;
     // We'll save the original cursor state; if we don't have enough plaintext buffer we'll

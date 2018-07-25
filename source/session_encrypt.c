@@ -116,7 +116,7 @@ cleanup:
         aws_cryptosdk_encryption_materials_destroy(materials);
     }
 
-    aws_cryptosdk_secure_zero(&data_key, sizeof(data_key));
+    aws_secure_zero(&data_key, sizeof(data_key));
     aws_hash_table_clean_up(&enc_context);
 
     return result;
@@ -148,14 +148,14 @@ static int build_header(struct aws_cryptosdk_session *session, struct aws_crypto
             // impossible condition; but just in case, we check
 
             // Avoid double-free - materials->encrypted_data_keys still references the inner buffers
-            aws_cryptosdk_secure_zero(session->header.edk_tbl, edk_tbl_size);
+            aws_secure_zero(session->header.edk_tbl, edk_tbl_size);
             return AWS_OP_ERR;
         }
     }
 
     // TODO verify that the zero IV is correct for the header IV
     aws_byte_buf_init(session->alloc, &session->header.iv, session->alg_props->iv_len);
-    aws_cryptosdk_secure_zero(session->header.iv.buffer, session->alg_props->iv_len);
+    aws_secure_zero(session->header.iv.buffer, session->alg_props->iv_len);
     session->header.iv.len = session->header.iv.capacity;
 
     if (aws_byte_buf_init(session->alloc, &session->header.auth_tag, session->alg_props->tag_len)) {
@@ -232,9 +232,9 @@ int try_write_header(
 }
 
 int try_encrypt_body(
-    struct aws_cryptosdk_session * restrict session,
-    struct aws_byte_cursor * restrict poutput,
-    struct aws_byte_cursor * restrict pinput
+    struct aws_cryptosdk_session * AWS_RESTRICT session,
+    struct aws_byte_cursor * AWS_RESTRICT poutput,
+    struct aws_byte_cursor * AWS_RESTRICT pinput
 ) {
     /* First, figure out how much plaintext we need. */
     size_t plaintext_size;
@@ -310,7 +310,7 @@ int try_encrypt_body(
         frame.type
     )) {
         // Something terrible happened. Clear the ciphertext buffer and error out.
-        aws_cryptosdk_secure_zero(poutput->ptr, poutput->len);
+        aws_secure_zero(poutput->ptr, poutput->len);
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 

@@ -177,7 +177,7 @@ bool aws_cryptosdk_session_is_done(const struct aws_cryptosdk_session *session);
  * only partially initialized, the returned sizes will be 1.
  */
 void aws_cryptosdk_session_estimate_buf(
-    const struct aws_cryptosdk_session *session,
+    const struct aws_cryptosdk_session * AWS_RESTRICT session,
     size_t * AWS_RESTRICT outbuf_needed,
     size_t * AWS_RESTRICT inbuf_needed
 );
