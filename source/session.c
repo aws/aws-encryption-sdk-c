@@ -27,7 +27,7 @@
 /** Public APIs and common code **/
 int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_cryptosdk_mode mode) {
     if (session->header_copy) {
-        aws_cryptosdk_secure_zero(session->header_copy, session->header_size);
+        aws_secure_zero(session->header_copy, session->header_size);
         aws_mem_release(session->alloc, session->header_copy);
     }
 
@@ -39,7 +39,7 @@ int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_
     /* Stash the state we want to keep and zero the rest */
     struct aws_allocator *alloc = session->alloc;
     size_t frame_size = session->frame_size;
-    aws_cryptosdk_secure_zero(session, sizeof(*session));
+    aws_secure_zero(session, sizeof(*session));
     session->alloc = alloc;
     session->frame_size = frame_size;
     session->mode = mode;
@@ -64,7 +64,7 @@ struct aws_cryptosdk_session *aws_cryptosdk_session_new(
         return NULL;
     }
 
-    aws_cryptosdk_secure_zero(session, sizeof(*session));
+    aws_secure_zero(session, sizeof(*session));
 
     session->alloc = allocator;
     session->frame_size = DEFAULT_FRAME_SIZE;
@@ -82,7 +82,7 @@ void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session) {
     struct aws_allocator *alloc = session->alloc;
 
     aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT); // frees header arena and other dynamically allocated stuff
-    aws_cryptosdk_secure_zero(session, sizeof(*session));
+    aws_secure_zero(session, sizeof(*session));
 
     aws_mem_release(alloc, session);
 }
@@ -223,7 +223,7 @@ int aws_cryptosdk_session_process(
 
     if (result != AWS_OP_SUCCESS) {
         // Destroy any incomplete (and possibly corrupt) plaintext
-        aws_cryptosdk_secure_zero(outp, outlen);
+        aws_secure_zero(outp, outlen);
         *out_bytes_written = 0;
 
         if (session->state != ST_ERROR) {
