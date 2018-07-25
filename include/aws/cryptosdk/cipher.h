@@ -38,6 +38,7 @@ const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryp
 
 static inline void aws_cryptosdk_secure_zero_buf(struct aws_byte_buf * buf) {
     // TODO - move to aws-c-common
+    if (!buf->buffer) return;
     aws_secure_zero(buf->buffer, buf->capacity);
     buf->len = 0;
 }

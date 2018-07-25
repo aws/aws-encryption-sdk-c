@@ -53,6 +53,8 @@ struct aws_cryptosdk_session {
     enum aws_cryptosdk_mode mode;
     enum session_state state;
 
+    struct aws_cryptosdk_cmm *cmm;
+
     /* Encrypt mode configuration */
     uint64_t precise_size; /* Exact size of message */
     uint64_t size_bound;   /* Maximum message size */

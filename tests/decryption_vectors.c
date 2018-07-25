@@ -1,17 +1,17 @@
-/* 
+/*
  * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may not use
  * this file except in compliance with the License. A copy of the License is
  * located at
- * 
+ *
  *     http://aws.amazon.com/apache2.0/
- * 
+ *
  * or in the "license" file accompanying this file. This file is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
- */ 
+ */
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -21,12 +21,15 @@
 
 #include <aws/cryptosdk/session.h>
 #include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/single_mkp.h>
+#include <aws/cryptosdk/default_cmm.h>
 #include <aws/common/common.h>
 #include <aws/common/error.h>
 #include <aws/common/byte_buf.h>
 #include <aws/common/encoding.h>
 
 #include "testutil.h"
+#include "zero_mk.h"
 
 bool suite_failed = false;
 #define SENTINEL_VALUE ((size_t)0xABCD0123DEADBEEFllu)
@@ -52,9 +55,13 @@ static void decrypt_test_oneshot(
         exit(1);
     }
 
-    struct aws_cryptosdk_session *session;
+    struct aws_cryptosdk_session *session = NULL;
+    struct aws_cryptosdk_cmm *cmm = NULL;
+    struct aws_cryptosdk_mkp *mkp = NULL;
 
-    if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT))) unexpected_error();
+    if (!(mkp = aws_cryptosdk_single_mkp_new(aws_default_allocator(), aws_cryptosdk_zero_mk_new()))) unexpected_error();
+    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), mkp))) unexpected_error();
+    if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
 
     uint8_t *outp = outbuf;
     const uint8_t *inp = ct.buffer;
@@ -86,9 +93,10 @@ static void decrypt_test_oneshot(
 
 
 error:
-    if (session) {
-        aws_cryptosdk_session_destroy(session);
-    }
+    if (session) aws_cryptosdk_session_destroy(session);
+    if (cmm) aws_cryptosdk_cmm_destroy(cmm);
+    if (mkp) aws_cryptosdk_mkp_destroy(mkp);
+
     free(outbuf);
 
     if (failed) {
@@ -110,9 +118,13 @@ static void decrypt_test_incremental(
         exit(1);
     }
 
-    struct aws_cryptosdk_session *session;
+    struct aws_cryptosdk_session *session = NULL;
+    struct aws_cryptosdk_cmm *cmm = NULL;
+    struct aws_cryptosdk_mkp *mkp = NULL;
 
-    if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT))) unexpected_error();
+    if (!(mkp = aws_cryptosdk_single_mkp_new(aws_default_allocator(), aws_cryptosdk_zero_mk_new()))) unexpected_error();
+    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), mkp))) unexpected_error();
+    if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
 
     uint8_t *outp = outbuf;
     const uint8_t *inp = ct.buffer;
@@ -252,9 +264,10 @@ static void decrypt_test_incremental(
 
 
 error:
-    if (session) {
-        aws_cryptosdk_session_destroy(session);
-    }
+    if (session) aws_cryptosdk_session_destroy(session);
+    if (cmm) aws_cryptosdk_cmm_destroy(cmm);
+    if (mkp) aws_cryptosdk_mkp_destroy(mkp);
+
     free(outbuf);
 
     if (failed) {
@@ -277,9 +290,13 @@ static void decrypt_test_badciphertext(
         exit(1);
     }
 
-    struct aws_cryptosdk_session *session;
+    struct aws_cryptosdk_session *session = NULL;
+    struct aws_cryptosdk_cmm *cmm = NULL;
+    struct aws_cryptosdk_mkp *mkp = NULL;
 
-    if (!(session = aws_cryptosdk_session_new(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT))) unexpected_error();
+    if (!(mkp = aws_cryptosdk_single_mkp_new(aws_default_allocator(), aws_cryptosdk_zero_mk_new()))) unexpected_error();
+    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), mkp))) unexpected_error();
+    if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
 
     uint8_t *outp = outbuf;
     const uint8_t *inp = ct.buffer;
@@ -322,7 +339,7 @@ static void decrypt_test_badciphertext(
         } else if (rv == 0) {
             fprintf(stderr, "Unexpected success after corrupting bit %zu\n", bit);
             failed = true;
-        } else if (lasterror != AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT) {
+        } else if (lasterror != AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT && lasterror != AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT) {
             fprintf(stderr, "Incorrect error after corrupting bit %zu: %s (0x%04x)\n",
                 bit, aws_error_str(lasterror), lasterror);
             failed = true;
@@ -332,9 +349,10 @@ static void decrypt_test_badciphertext(
     }
 
 error:
-    if (session) {
-        aws_cryptosdk_session_destroy(session);
-    }
+    if (session) aws_cryptosdk_session_destroy(session);
+    if (cmm) aws_cryptosdk_cmm_destroy(cmm);
+    if (mkp) aws_cryptosdk_mkp_destroy(mkp);
+
     free(outbuf);
     free(zerobuf);
 

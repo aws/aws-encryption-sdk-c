@@ -34,7 +34,7 @@ static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * 
 
     struct default_cmm * self = (struct default_cmm *) cmm;
 
-    if (aws_array_list_init_dynamic(&master_keys, self->alloc, initial_master_key_list_size, sizeof(struct aws_cryptosdk_mk *))) {
+    if (aws_array_list_init_dynamic(&master_keys, request->alloc, initial_master_key_list_size, sizeof(struct aws_cryptosdk_mk *))) {
         *output = NULL;
         return AWS_OP_ERR;
     }
@@ -44,7 +44,7 @@ static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * 
     num_keys = master_keys.length;
     if (!num_keys) { aws_raise_error(AWS_CRYPTOSDK_ERR_NO_MASTER_KEYS_FOUND); goto err; }
 
-    enc_mat = aws_cryptosdk_encryption_materials_new(self->alloc, request->requested_alg, num_keys);
+    enc_mat = aws_cryptosdk_encryption_materials_new(request->alloc, request->requested_alg, num_keys);
     if (!enc_mat) goto err;
 
     enc_mat->enc_context = request->enc_context;
@@ -80,7 +80,7 @@ static int default_cmm_decrypt_materials(struct aws_cryptosdk_cmm * cmm,
     struct aws_cryptosdk_decryption_materials * dec_mat;
     struct default_cmm * self = (struct default_cmm *) cmm;
 
-    dec_mat = aws_cryptosdk_decryption_materials_new(self->alloc, request->alg);
+    dec_mat = aws_cryptosdk_decryption_materials_new(request->alloc, request->alg);
     if (!dec_mat) goto err;
 
     if (aws_cryptosdk_mkp_decrypt_data_key(self->mkp,
@@ -120,8 +120,10 @@ struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * 
     struct default_cmm * cmm;
     cmm = aws_mem_acquire(alloc, sizeof(struct default_cmm));
     if (!cmm) return NULL;
+
     cmm->vt = &default_cmm_vt;
     cmm->alloc = alloc;
     cmm->mkp = mkp;
+
     return (struct aws_cryptosdk_cmm *) cmm;
 }

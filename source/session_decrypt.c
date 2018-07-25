@@ -24,33 +24,85 @@
 #include <aws/cryptosdk/private/session.h>
 #include <aws/cryptosdk/private/framefmt.h>
 #include <aws/common/byte_buf.h>
+#include <aws/common/string.h>
 
 /** Session decrypt path routines **/
 
-int unwrap_keys(struct aws_cryptosdk_session * AWS_RESTRICT session) {
-    // TODO - use CMM/MKP to get the data key.
-    // For now we'll just use an all-zero key to expedite testing
-    struct data_key data_key = { { 0 } };
+static int fill_request(
+    struct aws_hash_table *enc_context,
+    struct aws_cryptosdk_decryption_request *request,
+    struct aws_cryptosdk_session *session
+) {
+    request->alloc = session->alloc;
+    request->alg = session->alg_props->alg_id;
 
-    uint16_t alg_id = session->header.alg_id;
-    session->alg_props = aws_cryptosdk_alg_props(alg_id);
-
-    if (!session->alg_props) {
-        // Unknown algorithm
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
+    if (aws_array_list_init_dynamic(
+        &request->encrypted_data_keys,
+        session->alloc,
+        session->header.edk_count,
+        sizeof(struct aws_cryptosdk_edk)
+    )) {
+        return AWS_OP_ERR;
     }
 
-    int rv = aws_cryptosdk_derive_key(
+    if (aws_hash_table_init(enc_context, session->alloc, session->header.aad_count,
+        aws_hash_string, aws_string_eq,
+        aws_string_destroy, aws_string_destroy
+    )) {
+        aws_array_list_clean_up(&request->encrypted_data_keys);
+        return AWS_OP_ERR;
+    }
+
+    request->enc_context = enc_context;
+
+    for (size_t i = 0; i < session->header.edk_count; i++) {
+        if (aws_array_list_push_back(&request->encrypted_data_keys, &session->header.edk_tbl[i])) return AWS_OP_ERR;
+    }
+
+    for (size_t i = 0; i < session->header.aad_count; i++) {
+        const struct aws_string *key = NULL, *value = NULL;
+        const struct aws_cryptosdk_hdr_aad *aad = &session->header.aad_tbl[i];
+
+
+        key = aws_string_from_array_new(session->alloc, aad->key.buffer, aad->key.len);
+        value = aws_string_from_array_new(session->alloc, aad->value.buffer, aad->value.len);
+
+        struct aws_hash_element *pElem;
+
+        if (!key || !value || aws_hash_table_create(enc_context, (void *)key, &pElem, NULL)) {
+            aws_string_destroy((struct aws_string *)key);
+            aws_string_destroy((struct aws_string *)value);
+
+            return aws_raise_error(AWS_ERROR_OOM);
+        }
+
+        pElem->value = (void *)value;
+    }
+
+    return AWS_OP_SUCCESS;
+}
+
+static int derive_data_key(
+    struct aws_cryptosdk_session *session,
+    struct aws_cryptosdk_decryption_materials *materials
+) {
+    if (materials->unencrypted_data_key.len != session->alg_props->data_key_len) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+    }
+
+    // TODO - eliminate the struct data_key type and use the unencrypted_data_key buffer directly
+    struct data_key data_key = { { 0 } };
+    memcpy(&data_key.keybuf, materials->unencrypted_data_key.buffer, materials->unencrypted_data_key.len);
+
+    return aws_cryptosdk_derive_key(
         session->alg_props,
         &session->content_key,
         &data_key,
         session->header.message_id
     );
+}
 
-    if (rv) {
-        return AWS_OP_ERR;
-    }
-
+static int validate_header(struct aws_cryptosdk_session *session) {
     // Perform header validation
     int header_size = aws_cryptosdk_hdr_size(&session->header);
     size_t authtag_len = session->alg_props->tag_len + session->alg_props->iv_len;
@@ -64,17 +116,41 @@ int unwrap_keys(struct aws_cryptosdk_session * AWS_RESTRICT session) {
     struct aws_byte_buf authtag = { .buffer = session->header_copy + session->header.auth_len, .len = authtag_len };
     struct aws_byte_buf headerbytebuf = { .buffer = session->header_copy, .len = session->header.auth_len };
 
-    int err = aws_cryptosdk_verify_header(session->alg_props, &session->content_key, &authtag, &headerbytebuf);
+    return aws_cryptosdk_verify_header(session->alg_props, &session->content_key, &authtag, &headerbytebuf);
+}
 
-    if (err) {
-        return err;
+int unwrap_keys(
+    struct aws_cryptosdk_session * restrict session
+) {
+    struct aws_hash_table enc_context;
+    struct aws_cryptosdk_decryption_request request;
+    struct aws_cryptosdk_decryption_materials *materials = NULL;
+
+    session->alg_props = aws_cryptosdk_alg_props(session->header.alg_id);
+
+    if (!session->alg_props) {
+        // Unknown algorithm
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
     }
+
+    if (fill_request(&enc_context, &request, session)) return AWS_OP_ERR;
+    int rv = AWS_OP_ERR;
+
+    if (aws_cryptosdk_cmm_decrypt_materials(session->cmm, &materials, &request)) goto out;
+    if (derive_data_key(session, materials)) goto out;
+    if (validate_header(session)) goto out;
 
     session->frame_seqno = 1;
     session->frame_size = session->header.frame_len;
     session_change_state(session, ST_DECRYPT_BODY);
 
-    return AWS_OP_SUCCESS;
+    rv = AWS_OP_SUCCESS;
+out:
+    if (materials) aws_cryptosdk_decryption_materials_destroy(materials);
+    aws_array_list_clean_up(&request.encrypted_data_keys);
+    aws_hash_table_clean_up(&enc_context);
+
+    return rv;
 }
 
 int try_parse_header(
