@@ -158,9 +158,9 @@ int try_write_header(
 }
 
 int try_encrypt_body(
-    struct aws_cryptosdk_session * restrict session,
-    struct aws_byte_cursor * restrict poutput,
-    struct aws_byte_cursor * restrict pinput
+    struct aws_cryptosdk_session * AWS_RESTRICT session,
+    struct aws_byte_cursor * AWS_RESTRICT poutput,
+    struct aws_byte_cursor * AWS_RESTRICT pinput
 ) {
     /* First, figure out how much plaintext we need. */
     size_t plaintext_size;

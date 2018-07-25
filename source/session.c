@@ -144,7 +144,7 @@ int aws_cryptosdk_session_set_message_bound(
 }
 
 int aws_cryptosdk_session_process(
-    struct aws_cryptosdk_session * restrict session,
+    struct aws_cryptosdk_session *session,
     uint8_t *outp, size_t outlen, size_t *out_bytes_written,
     const uint8_t *inp, size_t inlen, size_t *in_bytes_read
 ) {
@@ -245,9 +245,9 @@ bool aws_cryptosdk_session_is_done(const struct aws_cryptosdk_session *session) 
 }
 
 void aws_cryptosdk_session_estimate_buf(
-    const struct aws_cryptosdk_session * restrict session,
-    size_t * restrict outbuf_needed,
-    size_t * restrict inbuf_needed
+    const struct aws_cryptosdk_session * AWS_RESTRICT session,
+    size_t * AWS_RESTRICT outbuf_needed,
+    size_t * AWS_RESTRICT inbuf_needed
 ) {
     *outbuf_needed = session->output_size_estimate;
     *inbuf_needed = session->input_size_estimate;
