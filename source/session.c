@@ -27,7 +27,7 @@
 /** Public APIs and common code **/
 int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_cryptosdk_mode mode) {
     if (session->header_copy) {
-        aws_cryptosdk_secure_zero(session->header_copy, session->header_size);
+        aws_secure_zero(session->header_copy, session->header_size);
         aws_mem_release(session->alloc, session->header_copy);
     }
 
@@ -37,13 +37,19 @@ int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_
     aws_cryptosdk_hdr_clean_up(session->alloc, &session->header);
 
     /* Stash the state we want to keep and zero the rest */
-    struct aws_allocator *alloc = session->alloc;
-    size_t frame_size = session->frame_size;
-    aws_cryptosdk_secure_zero(session, sizeof(*session));
-    session->alloc = alloc;
-    session->frame_size = frame_size;
-    session->mode = mode;
+    struct aws_cryptosdk_session new_session;
+    aws_secure_zero(&new_session, sizeof(new_session));
+    new_session.alloc = session->alloc;
+    new_session.cmm = session->cmm;
+    new_session.frame_size = session->frame_size;
+    new_session.mode = mode;
 
+    // Make sure we scrub any sensitive data from the old session before overwriting it.
+    aws_secure_zero(session, sizeof(*session));
+    *session = new_session;
+
+    // Finally set an initial estimate of one byte - this just ensures we get far enough in to process that we can
+    // figure out the true estimate
     session->input_size_estimate = session->output_size_estimate = 1;
     session->size_bound = UINT64_MAX;
 
@@ -54,7 +60,7 @@ int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_
     return AWS_OP_SUCCESS;
 }
 
-struct aws_cryptosdk_session *aws_cryptosdk_session_new(
+static struct aws_cryptosdk_session *aws_cryptosdk_session_new(
     struct aws_allocator *allocator,
     enum aws_cryptosdk_mode mode
 ) {
@@ -64,7 +70,7 @@ struct aws_cryptosdk_session *aws_cryptosdk_session_new(
         return NULL;
     }
 
-    aws_cryptosdk_secure_zero(session, sizeof(*session));
+    aws_secure_zero(session, sizeof(*session));
 
     session->alloc = allocator;
     session->frame_size = DEFAULT_FRAME_SIZE;
@@ -78,11 +84,25 @@ struct aws_cryptosdk_session *aws_cryptosdk_session_new(
     return session;
 }
 
+struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm(
+    struct aws_allocator *allocator,
+    enum aws_cryptosdk_mode mode,
+    struct aws_cryptosdk_cmm *cmm
+) {
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new(allocator, mode);
+
+    if (session) {
+        session->cmm = cmm;
+    }
+
+    return session;
+}
+
 void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session) {
     struct aws_allocator *alloc = session->alloc;
 
     aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT); // frees header arena and other dynamically allocated stuff
-    aws_cryptosdk_secure_zero(session, sizeof(*session));
+    aws_secure_zero(session, sizeof(*session));
 
     aws_mem_release(alloc, session);
 }
@@ -144,7 +164,7 @@ int aws_cryptosdk_session_set_message_bound(
 }
 
 int aws_cryptosdk_session_process(
-    struct aws_cryptosdk_session * restrict session,
+    struct aws_cryptosdk_session *session,
     uint8_t *outp, size_t outlen, size_t *out_bytes_written,
     const uint8_t *inp, size_t inlen, size_t *in_bytes_read
 ) {
@@ -164,8 +184,12 @@ int aws_cryptosdk_session_process(
 
         switch (session->state) {
             case ST_CONFIG:
-                // TODO: Verify mandatory config is present
-                // Right now we haven't implemented CMMs yet, so this is a no-op
+                if (!session->cmm) {
+                    // TODO - is this the right error?
+                    result = aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+                    break;
+                }
+
                 if (session->mode == AWS_CRYPTOSDK_ENCRYPT) {
                     session_change_state(session, ST_GEN_KEY);
                 } else {
@@ -223,7 +247,7 @@ int aws_cryptosdk_session_process(
 
     if (result != AWS_OP_SUCCESS) {
         // Destroy any incomplete (and possibly corrupt) plaintext
-        aws_cryptosdk_secure_zero(outp, outlen);
+        aws_secure_zero(outp, outlen);
         *out_bytes_written = 0;
 
         if (session->state != ST_ERROR) {
@@ -245,9 +269,9 @@ bool aws_cryptosdk_session_is_done(const struct aws_cryptosdk_session *session) 
 }
 
 void aws_cryptosdk_session_estimate_buf(
-    const struct aws_cryptosdk_session * restrict session,
-    size_t * restrict outbuf_needed,
-    size_t * restrict inbuf_needed
+    const struct aws_cryptosdk_session * AWS_RESTRICT session,
+    size_t * AWS_RESTRICT outbuf_needed,
+    size_t * AWS_RESTRICT inbuf_needed
 ) {
     *outbuf_needed = session->output_size_estimate;
     *inbuf_needed = session->input_size_estimate;
