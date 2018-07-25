@@ -85,7 +85,7 @@ int try_gen_key(struct aws_cryptosdk_session *session) {
     }
 
     // TODO verify this is correct
-    aws_cryptosdk_secure_zero(session->header.iv.buffer, session->alg_props->iv_len);
+    aws_secure_zero(session->header.iv.buffer, session->alg_props->iv_len);
     session->header.iv.len = session->header.iv.capacity;
 
     if (aws_byte_buf_init(session->alloc, &session->header.auth_tag, session->alg_props->tag_len)) {
@@ -236,7 +236,7 @@ int try_encrypt_body(
         frame.type
     )) {
         // Something terrible happened. Clear the ciphertext buffer and error out.
-        aws_cryptosdk_secure_zero(poutput->ptr, poutput->len);
+        aws_secure_zero(poutput->ptr, poutput->len);
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
