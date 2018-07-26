@@ -43,7 +43,7 @@ int encrypt_decrypt_data_key() {
     enc_mat->enc_context = &enc_context;
 
     TEST_ASSERT_SUCCESS(aws_byte_buf_init(alloc, &enc_mat->unencrypted_data_key, AWS_CRYPTOSDK_AES_256));
-    memset(&enc_mat->unencrypted_data_key, 0x77, AWS_CRYPTOSDK_AES_256);
+    memset(enc_mat->unencrypted_data_key.buffer, 0x77, AWS_CRYPTOSDK_AES_256);
     enc_mat->unencrypted_data_key.len = enc_mat->unencrypted_data_key.capacity;
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_mk_encrypt_data_key(mk, enc_mat));
@@ -58,6 +58,9 @@ int encrypt_decrypt_data_key() {
     req.alloc = alloc;
     req.alg = AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE;
 
+    TEST_ASSERT_SUCCESS(aws_array_list_init_dynamic(&req.encrypted_data_keys, alloc, 1, sizeof(struct aws_cryptosdk_edk)));
+    TEST_ASSERT_SUCCESS(aws_array_list_copy(&enc_mat->encrypted_data_keys, &req.encrypted_data_keys));
+
     TEST_ASSERT_SUCCESS(aws_cryptosdk_mk_decrypt_data_key(mk, dec_mat, &req));
     TEST_ASSERT_ADDR_NOT_NULL(dec_mat->unencrypted_data_key.buffer);
     TEST_ASSERT_INT_EQ(dec_mat->unencrypted_data_key.len, enc_mat->unencrypted_data_key.len);
@@ -67,6 +70,8 @@ int encrypt_decrypt_data_key() {
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
     aws_hash_table_clean_up(&enc_context);
     aws_cryptosdk_mk_destroy(mk);
+    // cleans up list only, not the allocated memory in the EDKs, but they were a copy of the pointers in enc_mat which are already being freed.
+    aws_array_list_clean_up(&req.encrypted_data_keys);
     return 0;
 }
 

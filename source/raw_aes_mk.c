@@ -121,9 +121,9 @@ static int raw_aes_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
         goto err;
 
     if (aws_byte_buf_init(self->alloc, &edk.provider_id, self->provider_id->len)) goto err;
-    struct aws_byte_cursor provider_id = aws_byte_cursor_from_buf(&edk.provider_id);
-    if (aws_byte_cursor_write_from_whole_string(&provider_id, self->provider_id)) goto err;
     edk.provider_id.len = edk.provider_id.capacity;
+    struct aws_byte_cursor provider_id = aws_byte_cursor_from_buf(&edk.provider_id);
+    if (!aws_byte_cursor_write_from_whole_string(&provider_id, self->provider_id)) goto err;
 
     if (aws_array_list_push_back(&enc_mat->encrypted_data_keys, &edk)) goto err;
 
