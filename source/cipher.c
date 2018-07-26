@@ -449,6 +449,53 @@ int aws_cryptosdk_genrandom(uint8_t *buf, size_t len) {
     return AWS_OP_SUCCESS;
 }
 
+static const EVP_CIPHER * get_alg_from_key_size(size_t key_len) {
+    switch (key_len) {
+    case AWS_CRYPTOSDK_AES_128:
+        return EVP_aes_128_gcm();
+    case AWS_CRYPTOSDK_AES_192:
+        return EVP_aes_192_gcm();
+    case AWS_CRYPTOSDK_AES_256:
+        return EVP_aes_256_gcm();
+    default:
+        return NULL; // should be impossible to reach
+    }
+}
+
+int aws_cryptosdk_aes_gcm_encrypt(struct aws_byte_cursor * cipher,
+                                  struct aws_byte_cursor * tag,
+                                  const struct aws_byte_cursor plain,
+                                  const struct aws_byte_cursor iv,
+                                  const struct aws_byte_cursor aad,
+                                  const struct aws_string * key) {
+    const EVP_CIPHER * alg = get_alg_from_key_size(key->len);
+    if (!alg) return aws_raise_error(AWS_ERROR_UNKNOWN);
+
+    EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) goto openssl_err;
+
+    if (!EVP_EncryptInit_ex(ctx, alg, NULL, aws_string_bytes(key), iv.ptr)) goto openssl_err;
+
+    int out_len;
+    if (!EVP_EncryptUpdate(ctx, NULL, &out_len, aad.ptr, aad.len)) goto openssl_err;
+
+    if (!EVP_EncryptUpdate(ctx, cipher->ptr, &out_len, plain.ptr, plain.len)) goto openssl_err;
+    int prev_len = out_len;
+
+    if (!EVP_EncryptFinal_ex(ctx, cipher->ptr + out_len, &out_len)) goto openssl_err;
+
+    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, tag->len, tag->ptr)) goto openssl_err;
+
+    EVP_CIPHER_CTX_free(ctx);
+    assert(prev_len + out_len == cipher->len);
+    return AWS_OP_SUCCESS;
+
+openssl_err:
+    // TODO: add reporting/logging of OpenSSL errors?
+    EVP_CIPHER_CTX_free(ctx);
+    return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+}
+
 int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
                                   const struct aws_byte_cursor cipher,
                                   const struct aws_byte_cursor tag,
@@ -458,20 +505,8 @@ int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
 
     bool openssl_err = false;
     int ret = 0;
-    const EVP_CIPHER * alg;
-    switch (key->len) {
-    case AWS_CRYPTOSDK_AES_128:
-        alg = EVP_aes_128_gcm();
-        break;
-    case AWS_CRYPTOSDK_AES_192:
-        alg = EVP_aes_192_gcm();
-        break;
-    case AWS_CRYPTOSDK_AES_256:
-        alg = EVP_aes_256_gcm();
-        break;
-    default:
-        return aws_raise_error(AWS_ERROR_UNKNOWN); // should be impossible to reach
-    }
+    const EVP_CIPHER * alg = get_alg_from_key_size(key->len);
+    if (!alg) return aws_raise_error(AWS_ERROR_UNKNOWN);
 
     EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
     if (!ctx) {
@@ -504,6 +539,7 @@ int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
     }
     int prev_len = out_len;
 
+    // getting an error here is normal if AAD doesn't authenticate
     ret = EVP_DecryptFinal_ex(ctx, plain->buffer + out_len, &out_len);
 
 out:
@@ -515,5 +551,5 @@ out:
     } else {
         aws_cryptosdk_secure_zero_buf(plain); // sets plain->len to zero
     }
-    return openssl_err == false ? AWS_OP_SUCCESS : AWS_OP_ERR;
+    return openssl_err == false ? AWS_OP_SUCCESS : aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
 }

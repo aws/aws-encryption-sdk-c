@@ -19,6 +19,12 @@
 #include <aws/cryptosdk/materials.h>
 
 /**
+ * Deallocates all memory associated with an EDK. Setting all bytes of EDK to
+ * zero upon creation will make this safe to call even if some buffers are unused.
+ */
+void aws_cryptosdk_edk_clean_up(struct aws_cryptosdk_edk * edk);
+
+/**
  * Deallocates all memory associated with all EDKs in the list and then deallocates the list.
  */
 void aws_cryptosdk_edk_list_clean_up(struct aws_array_list * edk_list);

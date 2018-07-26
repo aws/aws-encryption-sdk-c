@@ -116,6 +116,16 @@ int aws_cryptosdk_genrandom(
 // TODO: Footer
 
 /**
+ * TODO: Describe me.
+ */
+int aws_cryptosdk_aes_gcm_encrypt(struct aws_byte_cursor * cipher,
+                                  struct aws_byte_cursor * tag,
+                                  const struct aws_byte_cursor plain,
+                                  const struct aws_byte_cursor iv,
+                                  const struct aws_byte_cursor aad,
+                                  const struct aws_string * key);
+
+/**
  * Assumes plain is an already allocated byte buffer with enough capacity to hold entire
  * decrypted plaintext. Makes no checks on capacity of plain and will overwrite the buffer
  * if called with too short a buffer, so be sure to allocate it to be big enough. Does NOT
