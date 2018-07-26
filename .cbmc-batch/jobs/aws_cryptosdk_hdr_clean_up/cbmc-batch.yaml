@@ -1,0 +1,5 @@
+cbmcpkg: cbmc-ubuntu16.tar.gz
+jobos: ubuntu16
+cbmcflags: "--bounds-check;--pointer-check;--function;aws_cryptosdk_hdr_clean_up_verify;--unwindset;__builtin___memcpy_chk.0:4,memcpy_chk.0:4,memcpy.0:4,aws_cryptosdk_hdr_clean_up.0:2,aws_cryptosdk_hdr_clean_up.1:2,aws_cryptosdk_hdr_clean_up_verify.0:2,aws_cryptosdk_hdr_clean_up_verify.1:2;--unwinding-assertions;--trace"
+goto: proofs.goto
+expected: "SUCCESSFUL"
