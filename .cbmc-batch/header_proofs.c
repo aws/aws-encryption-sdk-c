@@ -27,7 +27,7 @@ void aws_cryptosdk_hdr_clean_up_verify(void) {
             __CPROVER_assume(key_len < MAX_BUFFER_LEN);
             // Assume value_len is below bound on buffer length
             __CPROVER_assume(value_len < MAX_BUFFER_LEN);
-            // nondeterministically initialize buffers or make sure that either
+            // Nondeterministically initialize buffers or make sure that either
             // the allocators or buffers are NULL
             if (nondet_int() == 0)
                 aws_byte_buf_init(allocator, &aad->key, key_len);
@@ -61,8 +61,8 @@ void aws_cryptosdk_hdr_clean_up_verify(void) {
             __CPROVER_assume(provider_info_len < MAX_BUFFER_LEN);
             // Assume enc_data_key_len is below bound on buffer length
             __CPROVER_assume(enc_data_key_len < MAX_BUFFER_LEN);
-           // nondeterministically initialize buffers or make sure that either
-           // the allocators or buffers are NULL
+            // Nondeterministically initialize buffers or make sure that either
+            // the allocators or buffers are NULL
             if (nondet_int() == 0)
                 aws_byte_buf_init(allocator, &edk->provider_id, provider_id_len);
             else if (nondet_int() == 1)
