@@ -143,67 +143,58 @@ struct aws_cryptosdk_edk wrong_iv_bytes() {
     return build_edk(edk_bytes, sizeof(edk_bytes), iv);
 }
 
-static int set_up_all_the_things(struct aws_allocator * alloc,
-                                 struct aws_cryptosdk_mk ** mk,
-                                 struct aws_hash_table * enc_context,
-                                 struct aws_cryptosdk_decryption_request * req,
-                                 struct aws_cryptosdk_decryption_materials ** dec_mat,
-                                 const struct aws_string ** keys,
-                                 const struct aws_string ** vals,
-                                 size_t num_kv_pairs,
-                                 enum aws_cryptosdk_aes_key_len raw_key_len,
-                                 enum aws_cryptosdk_alg_id alg) {
-
-    *mk = aws_cryptosdk_raw_aes_mk_new(alloc,
-                                       test_vector_master_key_id,
-                                       sizeof(test_vector_master_key_id) - 1,
-                                       test_vector_provider_id,
-                                       sizeof(test_vector_provider_id) - 1,
-                                       test_vector_wrapping_key,
-                                       raw_key_len);
-    TEST_ASSERT_ADDR_NOT_NULL(*mk);
-
-    TEST_ASSERT_INT_EQ(aws_hash_table_init(enc_context, alloc, num_kv_pairs+1, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy),
-                       AWS_OP_SUCCESS);
-
-    for (size_t key_idx = 0; key_idx < num_kv_pairs; ++key_idx) {
-        struct aws_hash_element * elem;
-        TEST_ASSERT_INT_EQ(aws_hash_table_create(enc_context, (void *)keys[key_idx], &elem, NULL), AWS_OP_SUCCESS);
-        elem->value = (void *)vals[key_idx];
-    }
-    req->alloc = alloc;
-    req->alg = alg;
-    req->enc_context = enc_context;
-
-    TEST_ASSERT_SUCCESS(aws_array_list_init_dynamic(&req->encrypted_data_keys, alloc, 10, sizeof(struct aws_cryptosdk_edk)));
-
-    *dec_mat = aws_cryptosdk_decryption_materials_new(alloc, alg);
-    TEST_ASSERT_ADDR_NOT_NULL(*dec_mat);
-
-    return 0;
-}
-
-static void tear_down_all_the_things(struct aws_cryptosdk_mk * mk,
-                                     struct aws_hash_table * enc_context,
-                                     struct aws_cryptosdk_decryption_request * req,
-                                     struct aws_cryptosdk_decryption_materials * dec_mat) {
-    aws_cryptosdk_decryption_materials_destroy(dec_mat);
-    aws_cryptosdk_edk_list_clean_up(&req->encrypted_data_keys);
-    aws_hash_table_clean_up(enc_context);
-    aws_cryptosdk_mk_destroy(mk);
-}
-
 struct aws_cryptosdk_mk * mk;
 struct aws_hash_table enc_context;
 struct aws_cryptosdk_decryption_request req;
 struct aws_cryptosdk_decryption_materials * dec_mat;
 
+static int set_up_all_the_things(const struct aws_string ** keys,
+                                 const struct aws_string ** vals,
+                                 size_t num_kv_pairs,
+                                 enum aws_cryptosdk_aes_key_len raw_key_len,
+                                 enum aws_cryptosdk_alg_id alg) {
+    struct aws_allocator * alloc = aws_default_allocator();
+    mk = aws_cryptosdk_raw_aes_mk_new(alloc,
+                                      test_vector_master_key_id,
+                                      sizeof(test_vector_master_key_id) - 1,
+                                      test_vector_provider_id,
+                                      sizeof(test_vector_provider_id) - 1,
+                                      test_vector_wrapping_key,
+                                      raw_key_len);
+    TEST_ASSERT_ADDR_NOT_NULL(mk);
+
+    TEST_ASSERT_INT_EQ(aws_hash_table_init(&enc_context, alloc, num_kv_pairs+1, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy),
+                       AWS_OP_SUCCESS);
+
+    for (size_t key_idx = 0; key_idx < num_kv_pairs; ++key_idx) {
+        struct aws_hash_element * elem;
+        TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_context, (void *)keys[key_idx], &elem, NULL), AWS_OP_SUCCESS);
+        elem->value = (void *)vals[key_idx];
+    }
+    req.alloc = alloc;
+    req.alg = alg;
+    req.enc_context = &enc_context;
+
+    TEST_ASSERT_SUCCESS(aws_array_list_init_dynamic(&req.encrypted_data_keys, alloc, 10, sizeof(struct aws_cryptosdk_edk)));
+
+    dec_mat = aws_cryptosdk_decryption_materials_new(alloc, alg);
+    TEST_ASSERT_ADDR_NOT_NULL(dec_mat);
+
+    return 0;
+}
+
+static void tear_down_all_the_things() {
+    aws_cryptosdk_decryption_materials_destroy(dec_mat);
+    aws_cryptosdk_edk_list_clean_up(&req.encrypted_data_keys);
+    aws_hash_table_clean_up(&enc_context);
+    aws_cryptosdk_mk_destroy(mk);
+}
+
 /**
  * Straightforward decrypt data key in simplest case: one EDK in list and no encryption context.
  */
 int decrypt_data_key_empty_encryption_context() {
-    TEST_ASSERT_SUCCESS(set_up_all_the_things(aws_default_allocator(), &mk, &enc_context, &req, &dec_mat, NULL, NULL, 0,
-                                              AWS_CRYPTOSDK_AES_256, AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(NULL, NULL, 0, AWS_CRYPTOSDK_AES_256, AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
 
     struct aws_cryptosdk_edk edk = good_edk();
     aws_array_list_push_back(&req.encrypted_data_keys, (void *)&edk);
@@ -214,7 +205,7 @@ int decrypt_data_key_empty_encryption_context() {
 		       0xdd, 0xc2, 0xf6, 0x5f, 0x96, 0xa2, 0xda, 0x96, 0x86, 0xea, 0xd6, 0x58, 0xfe, 0xe9, 0xc0, 0xc3,
 		       0xb6, 0xd4, 0xb1, 0x92, 0xf2, 0xba, 0x50, 0x93, 0x21, 0x97, 0x62, 0xab, 0x7d, 0x25, 0x9f, 0x2c);
 
-    tear_down_all_the_things(mk, &enc_context, &req, dec_mat);
+    tear_down_all_the_things();
     return 0;
 }
 
@@ -235,8 +226,7 @@ edk_generator edk_gens[] = {empty_edk,
  * Same as the last test but EDK list has many wrong EDKs which fail for different reasons before getting to good one.
  */
 int decrypt_data_key_multiple_edks() {
-    TEST_ASSERT_SUCCESS(set_up_all_the_things(aws_default_allocator(), &mk, &enc_context, &req, &dec_mat, NULL, NULL, 0,
-                                              AWS_CRYPTOSDK_AES_256, AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(NULL, NULL, 0, AWS_CRYPTOSDK_AES_256, AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
 
     for (int idx = 0; idx < sizeof(edk_gens)/sizeof(edk_generator); ++idx) {
         struct aws_cryptosdk_edk edk = edk_gens[idx]();
@@ -249,7 +239,7 @@ int decrypt_data_key_multiple_edks() {
                        0xdd, 0xc2, 0xf6, 0x5f, 0x96, 0xa2, 0xda, 0x96, 0x86, 0xea, 0xd6, 0x58, 0xfe, 0xe9, 0xc0, 0xc3,
                        0xb6, 0xd4, 0xb1, 0x92, 0xf2, 0xba, 0x50, 0x93, 0x21, 0x97, 0x62, 0xab, 0x7d, 0x25, 0x9f, 0x2c);
 
-    tear_down_all_the_things(mk, &enc_context, &req, dec_mat);
+    tear_down_all_the_things();
     return 0;
 }
 
@@ -257,8 +247,7 @@ int decrypt_data_key_multiple_edks() {
  * Same as the last test but omits the final (good) EDK from the list, so decryption fails.
  */
 int decrypt_data_key_no_good_edk() {
-    TEST_ASSERT_SUCCESS(set_up_all_the_things(aws_default_allocator(), &mk, &enc_context, &req, &dec_mat, NULL, NULL, 0,
-                                              AWS_CRYPTOSDK_AES_256, AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(NULL, NULL, 0, AWS_CRYPTOSDK_AES_256, AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
 
     for (int idx = 0; idx < sizeof(edk_gens)/sizeof(edk_generator) - 1; ++idx) {
         struct aws_cryptosdk_edk edk = edk_gens[idx]();
@@ -268,7 +257,7 @@ int decrypt_data_key_no_good_edk() {
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_mk_decrypt_data_key(mk, dec_mat, &req));
     TEST_ASSERT_ADDR_NULL(dec_mat->unencrypted_data_key.buffer);
 
-    tear_down_all_the_things(mk, &enc_context, &req, dec_mat);
+    tear_down_all_the_things();
     return 0;
 }
 
@@ -286,8 +275,8 @@ int decrypt_data_key_with_signature() {
     // We cannot specify the correct algorithm at the moment, because it is currently commented out of alg_props implementation.
     // Once we are done implementing the algorithm with signature in alg_props, remove this comment and switch alg to
     // correct value.
-    TEST_ASSERT_SUCCESS(set_up_all_the_things(aws_default_allocator(), &mk, &enc_context, &req, &dec_mat, &enc_context_key, &enc_context_val, 1,
-                                              AWS_CRYPTOSDK_AES_256, AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(&enc_context_key, &enc_context_val, 1, AWS_CRYPTOSDK_AES_256,
+                                              AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
 
     // first 32 bytes encrypted data key, last 16 bytes GCM tag
     const uint8_t edk_bytes[] = {0xff, 0xaf, 0xb4, 0x82, 0xf0, 0x0f, 0x9b, 0x4e, 0x5e, 0x0e, 0x75, 0xea, 0x67, 0xbb, 0x80, 0xc6,
@@ -305,7 +294,7 @@ int decrypt_data_key_with_signature() {
                        0x9b, 0x01, 0xc1, 0xaa, 0x62, 0x25, 0x1d, 0x0f, 0x16, 0xa0, 0xa2, 0x15, 0xea, 0xe4, 0xc2, 0x37,
                        0x4a, 0x8c, 0xc7, 0x9f, 0xfa, 0x3a, 0xe7, 0xa2, 0xa4, 0xa8, 0x1e, 0x83, 0xba, 0x38, 0x23, 0x16);
 
-    tear_down_all_the_things(mk, &enc_context, &req, dec_mat);
+    tear_down_all_the_things();
     return 0;
 }
 
@@ -331,8 +320,8 @@ int decrypt_data_key_with_signature_and_encryption_context() {
     // We cannot specify the correct algorithm at the moment, because it is currently commented out of alg_props implementation.
     // Once we are done implementing the algorithm with signature in alg_props, remove this comment and switch alg to
     // correct value.
-    TEST_ASSERT_SUCCESS(set_up_all_the_things(aws_default_allocator(), &mk, &enc_context, &req, &dec_mat, keys, vals, sizeof(keys)/sizeof(const struct aws_string *),
-                                              AWS_CRYPTOSDK_AES_256, AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(keys, vals, sizeof(keys)/sizeof(const struct aws_string *), AWS_CRYPTOSDK_AES_256,
+                                              AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
 
     // first 32 bytes encrypted data key, last 16 bytes GCM tag
     const uint8_t edk_bytes[] = {0x14, 0xcc, 0xfb, 0xfe, 0x81, 0x50, 0x1e, 0x07, 0xe6, 0xc8, 0x34, 0x00, 0x95, 0xb1, 0x17, 0xd3,
@@ -350,7 +339,7 @@ int decrypt_data_key_with_signature_and_encryption_context() {
                        0xaf, 0x4e, 0xaa, 0x6f, 0x3e, 0x34, 0xfa, 0x50, 0x48, 0xd1, 0x48, 0x02, 0x33, 0x86, 0xc5, 0x98,
                        0x2c, 0x64, 0xe3, 0x54, 0xc4, 0x27, 0xe3, 0x66, 0x39, 0x28, 0x94, 0x89, 0xf5, 0x71, 0x68, 0xcd);
 
-    tear_down_all_the_things(mk, &enc_context, &req, dec_mat);
+    tear_down_all_the_things();
     return 0;
 }
 
@@ -366,8 +355,8 @@ int decrypt_data_key_unsigned_comparison_192() {
     const struct aws_string * keys[] = {enc_context_key_1, enc_context_key_2};
     const struct aws_string * vals[] = {enc_context_val_1, enc_context_val_2};
 
-    TEST_ASSERT_SUCCESS(set_up_all_the_things(aws_default_allocator(), &mk, &enc_context, &req, &dec_mat, keys, vals, sizeof(keys)/sizeof(const struct aws_string *),
-                                              AWS_CRYPTOSDK_AES_192, AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(keys, vals, sizeof(keys)/sizeof(const struct aws_string *), AWS_CRYPTOSDK_AES_192,
+                                              AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
 
     // first 32 bytes encrypted data key, last 16 bytes GCM tag
     const uint8_t edk_bytes[] = {0x70, 0x73, 0x47, 0x19, 0x91, 0x77, 0x3b, 0xac, 0x64, 0x4a, 0x20, 0x0a, 0x81, 0x56, 0x8c, 0x5c,
@@ -377,7 +366,7 @@ int decrypt_data_key_unsigned_comparison_192() {
     const uint8_t iv[] = {0x75, 0x21, 0x9f, 0x96, 0x77, 0xaa, 0xc8, 0x9e, 0xd8, 0x53, 0x8f, 0x57};
 
     struct aws_cryptosdk_edk edk = build_edk(edk_bytes, sizeof(edk_bytes), iv);
-     aws_array_list_push_back(&req.encrypted_data_keys, (void *)&edk);
+    aws_array_list_push_back(&req.encrypted_data_keys, (void *)&edk);
 
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_mk_decrypt_data_key(mk, dec_mat, &req));
     TEST_ASSERT_ADDR_NOT_NULL(dec_mat->unencrypted_data_key.buffer);
@@ -385,7 +374,7 @@ int decrypt_data_key_unsigned_comparison_192() {
                        0xfa, 0xce, 0xa0, 0x72, 0x10, 0x80, 0x80, 0x7a, 0x9d, 0xdb, 0x1f, 0x9a, 0x8d, 0x68, 0xee, 0xb0,
                        0x86, 0xb5, 0x45, 0xcc, 0x4d, 0x8d, 0xc5, 0x75, 0x7a, 0x36, 0xc1, 0xd2, 0x78, 0x8b, 0x01, 0x1f);
 
-    tear_down_all_the_things(mk, &enc_context, &req, dec_mat);
+    tear_down_all_the_things();
     return 0;
 }
 
@@ -395,8 +384,8 @@ int decrypt_data_key_unsigned_comparison_192() {
 static int decrypt_data_key_128(const struct aws_string * enc_context_key, bool should_succeed) {
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_val, "context");
 
-    TEST_ASSERT_SUCCESS(set_up_all_the_things(aws_default_allocator(), &mk, &enc_context, &req, &dec_mat, &enc_context_key, &enc_context_val, 1,
-                                              AWS_CRYPTOSDK_AES_128, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(&enc_context_key, &enc_context_val, 1, AWS_CRYPTOSDK_AES_128,
+                                              AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
 
     // first 16 bytes encrypted data key, last 16 bytes GCM tag
     const uint8_t edk_bytes[] = {0x29, 0x09, 0x38, 0x89, 0xe4, 0x4e, 0x1c, 0xdc, 0xf0, 0x4d, 0x0b, 0xa1, 0xe4, 0x52, 0xd5, 0x77,
@@ -416,7 +405,7 @@ static int decrypt_data_key_128(const struct aws_string * enc_context_key, bool 
         TEST_ASSERT_ADDR_NULL(dec_mat->unencrypted_data_key.buffer);
     }
 
-    tear_down_all_the_things(mk, &enc_context, &req, dec_mat);
+    tear_down_all_the_things();
     return 0;
 }
 

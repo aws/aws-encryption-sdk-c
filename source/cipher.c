@@ -513,7 +513,7 @@ out:
     if (ret > 0) {
         plain->len = prev_len + out_len;
     } else {
-        aws_cryptosdk_secure_zero_buf(plain); // sets plain->len to zero
+        aws_byte_buf_secure_zero(plain); // sets plain->len to zero
     }
     return openssl_err == false ? AWS_OP_SUCCESS : AWS_OP_ERR;
 }

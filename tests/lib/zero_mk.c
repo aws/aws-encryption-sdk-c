@@ -53,7 +53,7 @@ static int zero_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
     if (aws_byte_buf_init(enc_mat->alloc, &enc_mat->unencrypted_data_key, props->data_key_len)) {
         return AWS_OP_ERR;
     }
-    aws_cryptosdk_secure_zero_buf(&enc_mat->unencrypted_data_key);
+    aws_byte_buf_secure_zero(&enc_mat->unencrypted_data_key);
     enc_mat->unencrypted_data_key.len = enc_mat->unencrypted_data_key.capacity;
 
     struct aws_cryptosdk_edk edk;
@@ -88,7 +88,7 @@ static int zero_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
             if (aws_byte_buf_init(dec_mat->alloc, &dec_mat->unencrypted_data_key, props->data_key_len)) {
                 return AWS_OP_ERR;
             }
-            aws_cryptosdk_secure_zero_buf(&dec_mat->unencrypted_data_key);
+            aws_byte_buf_secure_zero(&dec_mat->unencrypted_data_key);
             dec_mat->unencrypted_data_key.len = dec_mat->unencrypted_data_key.capacity;
             return AWS_OP_SUCCESS;
         }

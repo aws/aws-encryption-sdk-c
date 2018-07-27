@@ -28,14 +28,14 @@ int aws_cryptosdk_serialize_provider_info_init(struct aws_allocator * alloc,
     }
     output->len = output->capacity;
     struct aws_byte_cursor cur = aws_byte_cursor_from_buf(output);
-    if (!aws_byte_cursor_write_from_whole_string(&cur, master_key_id)) goto WRITE_ERR;
-    if (!aws_byte_cursor_write_be32(&cur, RAW_AES_MK_TAG_LEN * 8)) goto WRITE_ERR;
-    if (!aws_byte_cursor_write_be32(&cur, RAW_AES_MK_IV_LEN)) goto WRITE_ERR;
-    if (!aws_byte_cursor_write(&cur, iv, RAW_AES_MK_IV_LEN)) goto WRITE_ERR;
+    if (!aws_byte_cursor_write_from_whole_string(&cur, master_key_id)) goto write_err;
+    if (!aws_byte_cursor_write_be32(&cur, RAW_AES_MK_TAG_LEN * 8)) goto write_err;
+    if (!aws_byte_cursor_write_be32(&cur, RAW_AES_MK_IV_LEN)) goto write_err;
+    if (!aws_byte_cursor_write(&cur, iv, RAW_AES_MK_IV_LEN)) goto write_err;
 
     return AWS_OP_SUCCESS;
 
-WRITE_ERR:
+write_err:
     // We should never get here, because buffer was allocated locally to be long enough.
     aws_byte_buf_clean_up(output);
     return aws_raise_error(AWS_ERROR_UNKNOWN);
@@ -155,7 +155,7 @@ static void raw_aes_mk_destroy(struct aws_cryptosdk_mk * mk) {
     if (self) {
         aws_string_destroy((void *)self->master_key_id);
         aws_string_destroy((void *)self->provider_id);
-        aws_cryptosdk_secure_zero_and_destroy_string((struct aws_string *)self->raw_key);
+        aws_string_secure_destroy((void *)self->raw_key);
         if (self->alloc) aws_mem_release(self->alloc, self);
     }
 }
@@ -178,26 +178,24 @@ struct aws_cryptosdk_mk * aws_cryptosdk_raw_aes_mk_new(struct aws_allocator * al
                                                        enum aws_cryptosdk_aes_key_len key_len) {
     struct raw_aes_mk * mk = aws_mem_acquire(alloc, sizeof(struct raw_aes_mk));
     if (!mk) return NULL;
+    memset(mk, 0, sizeof(struct raw_aes_mk));
 
     mk->master_key_id = aws_string_from_array_new(alloc, master_key_id, master_key_id_len);
-    if (!mk->master_key_id) {
-        aws_mem_release(alloc, mk);
-        return NULL;
-    }
+    if (!mk->master_key_id) goto oom_err;
+
     mk->provider_id = aws_string_from_array_new(alloc, provider_id, provider_id_len);
-    if (!mk->provider_id) {
-        aws_string_destroy((void *)mk->master_key_id);
-        aws_mem_release(alloc, mk);
-        return NULL;
-    }
+    if (!mk->provider_id) goto oom_err;
+
     mk->raw_key = aws_string_from_array_new(alloc, raw_key_bytes, key_len);
-    if (!mk->raw_key) {
-        aws_string_destroy((void *)mk->master_key_id);
-        aws_string_destroy((void *)mk->provider_id);
-        aws_mem_release(alloc, mk);
-        return NULL;
-    }
+    if (!mk->raw_key) goto oom_err;
+
     mk->vt = &raw_aes_mk_vt;
     mk->alloc = alloc;
     return (struct aws_cryptosdk_mk *)mk;
+
+oom_err:
+    aws_string_destroy((void *)mk->master_key_id);
+    aws_string_destroy((void *)mk->provider_id);
+    aws_mem_release(alloc, mk);
+    return NULL;
 }
