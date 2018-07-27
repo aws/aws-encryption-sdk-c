@@ -72,18 +72,12 @@ READ_ERR:
     return false;
 }
 
-static int raw_aes_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
-                                        struct aws_cryptosdk_encryption_materials * enc_mat) {
-    // TODO: implement
-    return AWS_OP_ERR;
-}
-
 static int raw_aes_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
                                        struct aws_cryptosdk_encryption_materials * enc_mat) {
     struct raw_aes_mk * self = (struct raw_aes_mk *)mk;
 
     uint8_t iv[RAW_AES_MK_IV_LEN];
-    if(aws_cryptosdk_genrandom(iv, RAW_AES_MK_IV_LEN)) return AWS_OP_ERR;
+    if (aws_cryptosdk_genrandom(iv, RAW_AES_MK_IV_LEN)) return AWS_OP_ERR;
 
     struct aws_byte_buf * data_key = &enc_mat->unencrypted_data_key;
 
@@ -136,6 +130,25 @@ err:
     aws_cryptosdk_edk_clean_up(&edk);
     return AWS_OP_ERR;
 }
+
+static int raw_aes_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
+                                        struct aws_cryptosdk_encryption_materials * enc_mat) {
+    struct raw_aes_mk * self = (struct raw_aes_mk *)mk;
+
+    const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(enc_mat->alg);
+    size_t data_key_len = props->data_key_len;
+
+    if (aws_byte_buf_init(self->alloc, &enc_mat->unencrypted_data_key, data_key_len)) return AWS_OP_ERR;
+
+    if (aws_cryptosdk_genrandom(enc_mat->unencrypted_data_key.buffer, data_key_len)) {
+        aws_byte_buf_clean_up(&enc_mat->unencrypted_data_key);
+        return AWS_OP_ERR;
+    }
+    enc_mat->unencrypted_data_key.len = enc_mat->unencrypted_data_key.capacity;
+
+    return raw_aes_mk_encrypt_data_key(mk, enc_mat);
+}
+
 
 static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
                                        struct aws_cryptosdk_decryption_materials * dec_mat,

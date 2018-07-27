@@ -75,7 +75,64 @@ int encrypt_decrypt_data_key() {
     return 0;
 }
 
+int generate_decrypt_data_key() {
+    static const uint8_t test_vector_master_key_id[] = "asdfhasiufhiasuhviawurhgiuawrhefiuawhf";
+    static const uint8_t test_vector_provider_id[] = "static-random";
+    static const uint8_t test_vector_wrapping_key[] =
+        {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+         0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f};
+
+    struct aws_allocator * alloc = aws_default_allocator();
+
+    struct aws_cryptosdk_mk * mk = aws_cryptosdk_raw_aes_mk_new(alloc,
+                                                                test_vector_master_key_id,
+                                                                sizeof(test_vector_master_key_id) - 1,
+                                                                test_vector_provider_id,
+                                                                sizeof(test_vector_provider_id) - 1,
+                                                                test_vector_wrapping_key,
+                                                                AWS_CRYPTOSDK_AES_256);
+    TEST_ASSERT_ADDR_NOT_NULL(mk);
+
+    struct aws_hash_table enc_context;
+    TEST_ASSERT_INT_EQ(aws_hash_table_init(&enc_context, alloc, 1, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy),
+                       AWS_OP_SUCCESS);
+
+    struct aws_cryptosdk_encryption_materials * enc_mat = aws_cryptosdk_encryption_materials_new(alloc, AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE, 1);
+    TEST_ASSERT_ADDR_NOT_NULL(enc_mat);
+    enc_mat->enc_context = &enc_context;
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_mk_generate_data_key(mk, enc_mat));
+    TEST_ASSERT_ADDR_NOT_NULL(enc_mat->unencrypted_data_key.buffer);
+    TEST_ASSERT_INT_EQ(enc_mat->unencrypted_data_key.len, AWS_CRYPTOSDK_AES_256);
+    TEST_ASSERT_INT_EQ(aws_array_list_length(&enc_mat->encrypted_data_keys), 1);
+
+    struct aws_cryptosdk_decryption_materials * dec_mat = aws_cryptosdk_decryption_materials_new(alloc, AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE);
+    TEST_ASSERT_ADDR_NOT_NULL(dec_mat);
+
+    struct aws_cryptosdk_decryption_request req;
+    req.enc_context = &enc_context;
+    req.alloc = alloc;
+    req.alg = AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE;
+
+    TEST_ASSERT_SUCCESS(aws_array_list_init_dynamic(&req.encrypted_data_keys, alloc, 1, sizeof(struct aws_cryptosdk_edk)));
+    TEST_ASSERT_SUCCESS(aws_array_list_copy(&enc_mat->encrypted_data_keys, &req.encrypted_data_keys));
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_mk_decrypt_data_key(mk, dec_mat, &req));
+    TEST_ASSERT_ADDR_NOT_NULL(dec_mat->unencrypted_data_key.buffer);
+    TEST_ASSERT_INT_EQ(dec_mat->unencrypted_data_key.len, enc_mat->unencrypted_data_key.len);
+    TEST_ASSERT(!memcmp(dec_mat->unencrypted_data_key.buffer, enc_mat->unencrypted_data_key.buffer, dec_mat->unencrypted_data_key.len));
+
+    aws_cryptosdk_decryption_materials_destroy(dec_mat);
+    aws_cryptosdk_encryption_materials_destroy(enc_mat);
+    aws_hash_table_clean_up(&enc_context);
+    aws_cryptosdk_mk_destroy(mk);
+    // cleans up list only, not the allocated memory in the EDKs, but they were a copy of the pointers in enc_mat which are already being freed.
+    aws_array_list_clean_up(&req.encrypted_data_keys);
+    return 0;
+}
+
 struct test_case raw_aes_mk_encrypt_test_cases[] = {
     { "raw_aes_mk", "encrypt_decrypt_data_key", encrypt_decrypt_data_key },
+    { "raw_aes_mk", "generate_decrypt_data_key", generate_decrypt_data_key },
     { NULL }
 };
