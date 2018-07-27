@@ -472,6 +472,7 @@ int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
     default:
         return aws_raise_error(AWS_ERROR_UNKNOWN); // should be impossible to reach
     }
+    if (iv.len != 12) return aws_raise_error(AWS_ERROR_UNKNOWN); // should be impossible to reach
 
     EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
     if (!ctx) {
