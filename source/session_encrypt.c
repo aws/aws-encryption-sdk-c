@@ -153,6 +153,10 @@ static int build_header(struct aws_cryptosdk_session *session, struct aws_crypto
         }
     }
 
+    // Now that the header owns the EDKs, we need to clear them out of the source materials -
+    // otherwise, we'll end up double freeing them later
+    aws_array_list_clear(&materials->encrypted_data_keys);
+
     // TODO verify that the zero IV is correct for the header IV
     aws_byte_buf_init(session->alloc, &session->header.iv, session->alg_props->iv_len);
     aws_secure_zero(session->header.iv.buffer, session->alg_props->iv_len);
