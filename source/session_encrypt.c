@@ -23,6 +23,11 @@
 #include <aws/cryptosdk/private/session.h>
 #include <aws/cryptosdk/private/framefmt.h>
 #include <aws/common/byte_buf.h>
+#include <aws/common/string.h>
+#include <aws/common/math.h>
+
+static int build_header(struct aws_cryptosdk_session *session, struct aws_cryptosdk_encryption_materials *materials);
+static int sign_header(struct aws_cryptosdk_session *session, struct aws_cryptosdk_encryption_materials *materials);
 
 /* Session encrypt path routines */
 void encrypt_compute_body_estimate(struct aws_cryptosdk_session *session) {
@@ -42,50 +47,115 @@ void encrypt_compute_body_estimate(struct aws_cryptosdk_session *session) {
 }
 
 int try_gen_key(struct aws_cryptosdk_session *session) {
-    // TODO query CMM
-    // For now, the data key is all-zero
-    struct data_key data_key = { { 0 } };
-    uint16_t alg_id = AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE;
-    session->alg_props = aws_cryptosdk_alg_props(alg_id);
+    struct aws_cryptosdk_encryption_request request;
+    struct aws_hash_table enc_context;
+    struct aws_cryptosdk_encryption_materials *materials = NULL;
+    struct data_key data_key;
+    int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
 
-    if (!session->alg_props) {
-        // Unknown algorithm
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
-    }
-
-    if (aws_cryptosdk_genrandom(session->header.message_id, sizeof(session->header.message_id))) {
+    if (aws_hash_table_init(&enc_context, session->alloc, 10,
+        aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy
+    )) {
         return AWS_OP_ERR;
     }
 
-    int rv = aws_cryptosdk_derive_key(
+    request.alloc = session->alloc;
+    request.enc_context = &enc_context;
+    // TODO - the CMM should specify this
+    request.requested_alg = AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE;
+    request.plaintext_size = session->precise_size_known ? session->precise_size : UINT64_MAX;
+
+    if (aws_cryptosdk_cmm_generate_encryption_materials(
+        session->cmm, &materials, &request
+    )) {
+        goto rethrow;
+    }
+
+    // Perform basic validation of the materials generated
+    session->alg_props = aws_cryptosdk_alg_props(materials->alg);
+
+    if (!session->alg_props) goto out;
+    if (materials->unencrypted_data_key.len != session->alg_props->data_key_len) goto out;
+    if (!aws_array_list_length(&materials->encrypted_data_keys)) goto out;
+
+    // TODO - eliminate the data_key type
+    memcpy(&data_key, materials->unencrypted_data_key.buffer, materials->unencrypted_data_key.len);
+
+    // Generate message ID and derive the content key from the data key.
+    if (aws_cryptosdk_genrandom(session->header.message_id, sizeof(session->header.message_id))) {
+        goto out;
+    }
+
+    if (aws_cryptosdk_derive_key(
         session->alg_props,
         &session->content_key,
         &data_key,
         session->header.message_id
-    );
-
-    if (rv) {
-        return AWS_OP_ERR;
+    )) {
+        goto rethrow;
     }
 
-    session->header.alg_id = alg_id;
+    if (build_header(session, materials)) {
+        goto rethrow;
+    }
+
+    if (sign_header(session, materials)) {
+        goto rethrow;
+    }
+
+    result = AWS_ERROR_SUCCESS;
+
+out:
+    if (result) result = aws_raise_error(result);
+    goto cleanup;
+rethrow:
+    result = AWS_OP_ERR;
+cleanup:
+    if (materials) {
+        aws_cryptosdk_secure_zero_buf(&materials->unencrypted_data_key);
+        aws_cryptosdk_encryption_materials_destroy(materials);
+    }
+
+    aws_secure_zero(&data_key, sizeof(data_key));
+    aws_hash_table_clean_up(&enc_context);
+
+    return result;
+}
+
+static int build_header(struct aws_cryptosdk_session *session, struct aws_cryptosdk_encryption_materials *materials) {
+    session->header.alg_id = session->alg_props->alg_id;
+    // TODO: aad
     session->header.aad_count = 0;
-    session->header.edk_count = 1;
+    session->header.edk_count = aws_array_list_length(&materials->encrypted_data_keys);
     session->header.frame_len = session->frame_size;
 
-    session->header.edk_tbl = aws_mem_acquire(session->alloc, sizeof(*session->header.edk_tbl));
-    struct aws_cryptosdk_edk *edk = &session->header.edk_tbl[0];
-
-    edk->provider_id = aws_byte_buf_from_c_str("null");
-    edk->provider_info = aws_byte_buf_from_c_str("null");
-    edk->enc_data_key = aws_byte_buf_from_c_str("");
-
-    if (aws_byte_buf_init(session->alloc, &session->header.iv, session->alg_props->iv_len)) {
-        return AWS_OP_ERR;
+    size_t edk_tbl_size, aad_tbl_size;
+    if (!aws_mul_size_checked(session->header.aad_count, sizeof(*session->header.aad_tbl), &aad_tbl_size)
+        || !aws_mul_size_checked(session->header.edk_count, sizeof(*session->header.edk_tbl), &edk_tbl_size)) {
+        // Unlikely to happen on modern platforms (the count fields are uint16_ts) but just in case...
+        return aws_raise_error(AWS_ERROR_OOM);
     }
 
-    // TODO verify this is correct
-    aws_cryptosdk_secure_zero(session->header.iv.buffer, session->alg_props->iv_len);
+    session->header.edk_tbl = aws_mem_acquire(session->alloc, edk_tbl_size);
+    if (!session->header.edk_tbl) return AWS_OP_ERR; // already raised OOM
+    session->header.aad_tbl = aws_mem_acquire(session->alloc, aad_tbl_size);
+    if (!session->header.aad_tbl) return AWS_OP_ERR;
+
+    // Transfer EDKs. We need them to survide the destruction of the materials, so we'll clear the list in materials
+    // when we're done.
+    for (uint32_t i = 0; i < session->header.edk_count; i++) {
+        if (aws_array_list_get_at(&materials->encrypted_data_keys, &session->header.edk_tbl[i], i)) {
+            // impossible condition; but just in case, we check
+
+            // Avoid double-free - materials->encrypted_data_keys still references the inner buffers
+            aws_secure_zero(session->header.edk_tbl, edk_tbl_size);
+            return AWS_OP_ERR;
+        }
+    }
+
+    // TODO verify that the zero IV is correct for the header IV
+    aws_byte_buf_init(session->alloc, &session->header.iv, session->alg_props->iv_len);
+    aws_secure_zero(session->header.iv.buffer, session->alg_props->iv_len);
     session->header.iv.len = session->header.iv.capacity;
 
     if (aws_byte_buf_init(session->alloc, &session->header.auth_tag, session->alg_props->tag_len)) {
@@ -93,6 +163,10 @@ int try_gen_key(struct aws_cryptosdk_session *session) {
     }
     session->header.auth_tag.len = session->header.auth_tag.capacity;
 
+    return AWS_OP_SUCCESS;
+}
+
+static int sign_header(struct aws_cryptosdk_session *session, struct aws_cryptosdk_encryption_materials *materials) {
     session->header_size = aws_cryptosdk_hdr_size(&session->header);
 
     if (!(session->header_copy = aws_mem_acquire(session->alloc, session->header_size))) {
@@ -107,7 +181,7 @@ int try_gen_key(struct aws_cryptosdk_session *session) {
     memset(session->header.auth_tag.buffer, 0xDE, session->header.auth_tag.len);
 
     size_t actual_size;
-    rv = aws_cryptosdk_hdr_write(&session->header, &actual_size, session->header_copy, session->header_size);
+    int rv = aws_cryptosdk_hdr_write(&session->header, &actual_size, session->header_copy, session->header_size);
     if (rv) return AWS_OP_ERR;
     if (actual_size != session->header_size) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
@@ -158,9 +232,9 @@ int try_write_header(
 }
 
 int try_encrypt_body(
-    struct aws_cryptosdk_session * restrict session,
-    struct aws_byte_cursor * restrict poutput,
-    struct aws_byte_cursor * restrict pinput
+    struct aws_cryptosdk_session * AWS_RESTRICT session,
+    struct aws_byte_cursor * AWS_RESTRICT poutput,
+    struct aws_byte_cursor * AWS_RESTRICT pinput
 ) {
     /* First, figure out how much plaintext we need. */
     size_t plaintext_size;
@@ -236,7 +310,7 @@ int try_encrypt_body(
         frame.type
     )) {
         // Something terrible happened. Clear the ciphertext buffer and error out.
-        aws_cryptosdk_secure_zero(poutput->ptr, poutput->len);
+        aws_secure_zero(poutput->ptr, poutput->len);
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 

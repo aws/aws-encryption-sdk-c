@@ -53,6 +53,8 @@ struct aws_cryptosdk_session {
     enum aws_cryptosdk_mode mode;
     enum session_state state;
 
+    struct aws_cryptosdk_cmm *cmm;
+
     /* Encrypt mode configuration */
     uint64_t precise_size; /* Exact size of message */
     uint64_t size_bound;   /* Maximum message size */
@@ -86,15 +88,15 @@ void session_change_state(struct aws_cryptosdk_session *session, enum session_st
 int fail_session(struct aws_cryptosdk_session *session, int error_code);
 
 /* Decrypt path */
-int unwrap_keys(struct aws_cryptosdk_session * restrict session);
+int unwrap_keys(struct aws_cryptosdk_session * AWS_RESTRICT session);
 int try_parse_header(
-    struct aws_cryptosdk_session * restrict session,
-    struct aws_byte_cursor * restrict input
+    struct aws_cryptosdk_session * AWS_RESTRICT session,
+    struct aws_byte_cursor * AWS_RESTRICT input
 );
 int try_decrypt_body(
-    struct aws_cryptosdk_session * restrict session,
-    struct aws_byte_cursor * restrict poutput,
-    struct aws_byte_cursor * restrict pinput
+    struct aws_cryptosdk_session * AWS_RESTRICT session,
+    struct aws_byte_cursor * AWS_RESTRICT poutput,
+    struct aws_byte_cursor * AWS_RESTRICT pinput
 );
 
 /* Encrypt path */
@@ -103,9 +105,9 @@ void encrypt_compute_body_estimate(struct aws_cryptosdk_session *session);
 int try_gen_key(struct aws_cryptosdk_session *session);
 int try_write_header(struct aws_cryptosdk_session *session, struct aws_byte_cursor *output);
 int try_encrypt_body(
-    struct aws_cryptosdk_session * restrict session,
-    struct aws_byte_cursor * restrict poutput,
-    struct aws_byte_cursor * restrict pinput
+    struct aws_cryptosdk_session * AWS_RESTRICT session,
+    struct aws_byte_cursor * AWS_RESTRICT poutput,
+    struct aws_byte_cursor * AWS_RESTRICT pinput
 );
 
 

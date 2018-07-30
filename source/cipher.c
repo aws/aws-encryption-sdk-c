@@ -88,7 +88,7 @@ int aws_cryptosdk_derive_key(
     const struct data_key *data_key,
     const uint8_t *message_id
 ) {
-    aws_cryptosdk_secure_zero(content_key->keybuf, sizeof(content_key->keybuf));
+    aws_secure_zero(content_key->keybuf, sizeof(content_key->keybuf));
 
     if (props->impl->md_ctor == NULL) {
         memcpy(content_key->keybuf, data_key->keybuf, props->data_key_len);
@@ -119,7 +119,7 @@ int aws_cryptosdk_derive_key(
 err:
     EVP_PKEY_CTX_free(pctx);
 
-    aws_cryptosdk_secure_zero(content_key->keybuf, sizeof(content_key->keybuf));
+    aws_secure_zero(content_key->keybuf, sizeof(content_key->keybuf));
     return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
 }
 
@@ -209,7 +209,7 @@ int aws_cryptosdk_sign_header(
      * Currently, we use a deterministic IV generation algorithm;
      * the header IV is always all-zero.
      */
-    aws_cryptosdk_secure_zero(iv, props->iv_len);
+    aws_secure_zero(iv, props->iv_len);
 
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
 
@@ -334,7 +334,7 @@ int aws_cryptosdk_encrypt_body(
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
-    aws_cryptosdk_secure_zero(iv, props->iv_len);
+    aws_secure_zero(iv, props->iv_len);
 
     uint8_t *iv_seq_p = iv + props->iv_len - sizeof(iv_seq);
     memcpy(iv_seq_p, &iv_seq, sizeof(iv_seq));
@@ -381,7 +381,7 @@ out:
     if (result == AWS_ERROR_SUCCESS) {
         return AWS_OP_SUCCESS;
     } else {
-        aws_cryptosdk_secure_zero(outp->ptr, outp->len);
+        aws_secure_zero(outp->ptr, outp->len);
         return aws_raise_error(result);
     }
 }
@@ -433,7 +433,7 @@ out:
     if (result == AWS_ERROR_SUCCESS) {
         return AWS_OP_SUCCESS;
     } else {
-        aws_cryptosdk_secure_zero(outp->ptr, outp->len);
+        aws_secure_zero(outp->ptr, outp->len);
         return aws_raise_error(result);
     }
 }
@@ -442,7 +442,7 @@ int aws_cryptosdk_genrandom(uint8_t *buf, size_t len) {
     int rc = RAND_bytes(buf, len);
 
     if (rc != 1) {
-        aws_cryptosdk_secure_zero(buf, len);
+        aws_secure_zero(buf, len);
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
