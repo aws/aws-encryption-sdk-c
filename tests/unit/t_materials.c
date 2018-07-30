@@ -117,10 +117,19 @@ int null_cmm_fails_vf_calls_cleanly() {
     return 0;
 }
 
+int null_materials_destroy_is_noop() {
+    aws_cryptosdk_cmm_destroy(NULL);
+    aws_cryptosdk_mkp_destroy(NULL);
+    aws_cryptosdk_mk_destroy(NULL);
+
+    return 0;
+}
+
 struct test_case materials_test_cases[] = {
     { "materials", "default_cmm_zero_mkp_enc_mat", default_cmm_zero_mkp_enc_mat },
     { "materials", "default_cmm_zero_mkp_dec_mat", default_cmm_zero_mkp_dec_mat },
     { "materials", "zero_size_cmm_does_not_run_vfs", zero_size_cmm_does_not_run_vfs },
     { "materials", "null_cmm_fails_vf_calls_cleanly", null_cmm_fails_vf_calls_cleanly },
+    { "materials", "null_materials_destroy_is_noop", null_materials_destroy_is_noop },
     { NULL }
 };
