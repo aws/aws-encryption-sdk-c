@@ -1,0 +1,5 @@
+cbmcpkg: cbmc-ubuntu16.tar.gz
+jobos: ubuntu16
+cbmcflags: "--bounds-check;--pointer-check;--function;hdr_zeroize_verify"
+goto: proofs.goto
+expected: "SUCCESSFUL"
