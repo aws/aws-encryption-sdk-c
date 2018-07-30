@@ -45,7 +45,7 @@ struct aws_cryptosdk_edk build_edk(const uint8_t * edk_bytes, size_t edk_len, co
 }
 
 /**
- * The right EDK for decrypt_data_key_empty_encryption_context.
+ * The right EDK for decrypt_data_key_empty_enc_context.
  */
 struct aws_cryptosdk_edk good_edk() {
     // first 32 bytes: encrypted data key, last 16 bytes GCM tag
@@ -193,7 +193,7 @@ static void tear_down_all_the_things() {
 /**
  * Straightforward decrypt data key in simplest case: one EDK in list and no encryption context.
  */
-int decrypt_data_key_empty_encryption_context() {
+int decrypt_data_key_empty_enc_context() {
     TEST_ASSERT_SUCCESS(set_up_all_the_things(NULL, NULL, 0, AWS_CRYPTOSDK_AES_256, AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
 
     struct aws_cryptosdk_edk edk = good_edk();
@@ -264,7 +264,7 @@ int decrypt_data_key_no_good_edk() {
 /**
  * Single EDK test with algorithm suite including signing, so that there is an encryption context with public key.
  */
-int decrypt_data_key_with_signature() {
+int decrypt_data_key_with_sig() {
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_key, "aws-crypto-public-key");
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_val, "AguATtjJFzJnlpNXdyDG7e8bfLZYRx+vxdAmYz+ztVBYyFhsMpchjz9ev3MdXQMD9Q==");
 
@@ -302,7 +302,7 @@ int decrypt_data_key_with_signature() {
  * Same as the last test but with more stuff in the encryption context to verify that sorting and serialization of
  * encryption context works properly vis a vis decrypting data keys.
  */
-int decrypt_data_key_with_signature_and_encryption_context() {
+int decrypt_data_key_with_sig_and_enc_context() {
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_1, "aws-crypto-public-key");
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_1, "A/f8U0IfPC5vseQ13rHlkbPjK6c0jikfvY7F+I2PZxVI9ZHW38lbxMUabbPZdIgMOg==");
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_2, "aaaaaaaa");
@@ -422,11 +422,11 @@ int decrypt_data_key_128_invalid_enc_context() {
 }
 
 struct test_case raw_aes_mk_decrypt_test_cases[] = {
-    { "raw_aes_mk", "decrypt_data_key_empty_encryption_context", decrypt_data_key_empty_encryption_context },
+    { "raw_aes_mk", "decrypt_data_key_empty_enc_context", decrypt_data_key_empty_enc_context },
     { "raw_aes_mk", "decrypt_data_key_multiple_edks", decrypt_data_key_multiple_edks },
     { "raw_aes_mk", "decrypt_data_key_no_good_edk", decrypt_data_key_no_good_edk },
-    { "raw_aes_mk", "decrypt_data_key_with_signature", decrypt_data_key_with_signature },
-    { "raw_aes_mk", "decrypt_data_key_with_signature_and_encryption_context", decrypt_data_key_with_signature_and_encryption_context },
+    { "raw_aes_mk", "decrypt_data_key_with_sig", decrypt_data_key_with_sig },
+    { "raw_aes_mk", "decrypt_data_key_with_sig_and_enc_context", decrypt_data_key_with_sig_and_enc_context },
     { "raw_aes_mk", "decrypt_data_key_unsigned_comparison_192", decrypt_data_key_unsigned_comparison_192 },
     { "raw_aes_mk", "decrypt_data_key_128_valid", decrypt_data_key_128_valid },
     { "raw_aes_mk", "decrypt_data_key_128_invalid_enc_context", decrypt_data_key_128_invalid_enc_context},
