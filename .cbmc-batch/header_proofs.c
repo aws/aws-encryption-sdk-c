@@ -17,7 +17,7 @@ void aws_cryptosdk_hdr_clean_up_verify(void) {
     __CPROVER_assume(hdr->aad_count <= MAX_AAD_COUNT);
     if (hdr->aad_count > 0) {
         // Assume that hdr->aad_tbl is allocated memory for hdr->aad_count entries
-        hdr->aad_tbl = malloc(hdr->aad_count * sizeof(*(hdr->aad_tbl)));
+        hdr->aad_count = aws_mem_acquire(allocator, hdr->aad_count * sizeof(*(hdr->aad_tbl)));
         for (int i = 0; i < hdr->aad_count; i++) {
             // For each entry in hdr->aad_tbl
             struct aws_cryptosdk_hdr_aad * aad = hdr->aad_tbl + i;
@@ -29,15 +29,15 @@ void aws_cryptosdk_hdr_clean_up_verify(void) {
             __CPROVER_assume(value_len < MAX_BUFFER_LEN);
             // Nondeterministically initialize buffers or make sure that either
             // the allocators or buffers are NULL
-            if (nondet_int() == 0)
+            if (nondet_int())
                 aws_byte_buf_init(allocator, &aad->key, key_len);
-            else if (nondet_int() == 1)
+            else if (nondet_int())
                 aad->key.allocator = NULL;
             else
                 aad->key.buffer = NULL;
-            if (nondet_int() == 0)
+            if (nondet_int())
                 aws_byte_buf_init(allocator, &aad->value, value_len);
-            else if (nondet_int() == 1)
+            else if (nondet_int())
                 aad->value.allocator = NULL;
             else
                 aad->value.buffer = NULL;
@@ -48,7 +48,7 @@ void aws_cryptosdk_hdr_clean_up_verify(void) {
     __CPROVER_assume(hdr->edk_count <= MAX_EDK_COUNT);
     if (hdr->edk_count > 0) {
         // Assume that hdr->edk_tbl is allocated memory for hdr->edk_count entries
-        hdr->edk_tbl = malloc(hdr->edk_count * sizeof(*(hdr->edk_tbl)));
+        hdr->edk_tbl = aws_mem_acquire(allocator, hdr->edk_count * sizeof(*(hdr->edk_tbl)));
         for (int i = 0; i < hdr->edk_count; i++) {
             // For each entry in hdr->edk_tbl
             struct aws_cryptosdk_edk * edk = hdr->edk_tbl + i;
@@ -63,21 +63,21 @@ void aws_cryptosdk_hdr_clean_up_verify(void) {
             __CPROVER_assume(enc_data_key_len < MAX_BUFFER_LEN);
             // Nondeterministically initialize buffers or make sure that either
             // the allocators or buffers are NULL
-            if (nondet_int() == 0)
+            if (nondet_int())
                 aws_byte_buf_init(allocator, &edk->provider_id, provider_id_len);
-            else if (nondet_int() == 1)
+            else if (nondet_int())
                 edk->provider_id.allocator = NULL;
             else
                 edk->provider_id.buffer = NULL;
-            if (nondet_int() == 0)
+            if (nondet_int())
                 aws_byte_buf_init(allocator, &edk->provider_info, provider_info_len);
-            else if (nondet_int() == 1)
+            else if (nondet_int())
                 edk->provider_info.allocator = NULL;
             else
                 edk->provider_info.buffer = NULL;
-            if (nondet_int() == 0)
+            if (nondet_int())
                 aws_byte_buf_init(allocator, &edk->enc_data_key, enc_data_key_len);
-            else if (nondet_int() == 1)
+            else if (nondet_int())
                 edk->enc_data_key.allocator = NULL;
             else
                 edk->enc_data_key.buffer = NULL;

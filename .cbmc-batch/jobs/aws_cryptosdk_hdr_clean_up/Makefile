@@ -1,16 +1,12 @@
 goto: proofs.goto
 	goto-instrument proofs.goto proofs.goto
 
-proofs.goto: aws-c-common patch config
+proofs.goto: aws-c-common config
 	cd ../../..; \
     goto-cc .cbmc-batch/header_proofs.c source/header.c aws-c-common/source/byte_buf.c \
     aws-c-common/source/common.c aws-c-common/source/error.c \
     -Iinclude -Iaws-c-common/include -o .cbmc-batch/jobs/aws_cryptosdk_hdr_clean_up/proofs.goto \
     --function aws_cryptosdk_hdr_clean_up_verify
-
-patch:
-	cd ../../..; \
-    patch source/header.c .cbmc-batch/patches/hdr_zeroize.patch
 
 config:
 	cd ../../../; \

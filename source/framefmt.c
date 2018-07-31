@@ -252,7 +252,7 @@ int aws_cryptosdk_serialize_frame(
 
     if (result != AWS_ERROR_SUCCESS) {
         // Clear any garbage we wrote
-        aws_cryptosdk_secure_zero(ciphertext_buf->ptr, ciphertext_buf->len);
+        aws_secure_zero(ciphertext_buf->ptr, ciphertext_buf->len);
         return aws_raise_error(result);
     } else {
         *ciphertext_buf = state.cursor;
@@ -293,7 +293,7 @@ int aws_cryptosdk_deserialize_frame(
     state.writing = false;
     state.too_small = false;
 
-    aws_cryptosdk_secure_zero(frame, sizeof(*frame));
+    aws_secure_zero(frame, sizeof(*frame));
 
     int result;
 
@@ -312,7 +312,7 @@ int aws_cryptosdk_deserialize_frame(
 
     if (result != AWS_ERROR_SUCCESS) {
         // Don't leak a partially-initialized structure
-        aws_cryptosdk_secure_zero(frame, sizeof(*frame));
+        aws_secure_zero(frame, sizeof(*frame));
         return aws_raise_error(result);
     } else {
         *ciphertext_buf = state.cursor;
