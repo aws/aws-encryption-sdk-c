@@ -14,7 +14,7 @@
  */
 #include <stdbool.h>
 #include "counting_mk.h"
-#include <aws/cryptosdk/cipher.h> // aws_cryptosdk_secure_zero_buf
+#include <aws/cryptosdk/cipher.h>
 #include <aws/common/string.h>
 
 struct counting_mk {const struct aws_cryptosdk_mk_vt * vt;};
@@ -88,11 +88,12 @@ static int counting_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
 }
 
 static int counting_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
-    struct aws_cryptosdk_decryption_materials * dec_mat,
-    const struct aws_array_list * edks
+                                        struct aws_cryptosdk_decryption_materials * dec_mat,
+                                        const struct aws_cryptosdk_decryption_request * req
 ) {
+    const struct aws_array_list * edks = &req->encrypted_data_keys;
     // verify there is at least one EDK with the right signature present
-    size_t num_keys = edks->length;
+    size_t num_keys = aws_array_list_length(edks);
     for (size_t key_idx = 0 ; key_idx < num_keys ; ++key_idx) {
         struct aws_cryptosdk_edk * edk;
         if (aws_array_list_get_at_ptr(edks, (void **)&edk, key_idx)) return AWS_OP_ERR;

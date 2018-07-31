@@ -232,7 +232,7 @@ struct aws_cryptosdk_mkp_vt {
      */
     int (*decrypt_data_key)(struct aws_cryptosdk_mkp * mkp,
                             struct aws_cryptosdk_decryption_materials * dec_mat,
-                            const struct aws_array_list * edks);
+                            const struct aws_cryptosdk_decryption_request * request);
 };
 
 static inline void aws_cryptosdk_mkp_destroy(struct aws_cryptosdk_mkp * mkp) {
@@ -275,8 +275,8 @@ static inline int aws_cryptosdk_mkp_get_master_keys(struct aws_cryptosdk_mkp * m
  */
 static inline int aws_cryptosdk_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
                                                      struct aws_cryptosdk_decryption_materials * dec_mat,
-                                                     const struct aws_array_list * edks) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_data_key, mkp, dec_mat, edks);
+                                                     const struct aws_cryptosdk_decryption_request * request) {
+    AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_data_key, mkp, dec_mat, request);
 }
 
 struct aws_cryptosdk_mk_vt {
@@ -328,12 +328,11 @@ struct aws_cryptosdk_mk_vt {
      * Implementations should treat only the unencrypted_data_key element of the decryption materials as output
      * and should not modify any other elements. Implementations must properly initialize the unencrypted data
      * key buffer when an EDK is decrypted and leave the unencrypted data key buffer pointer set to NULL when
-     * no EDK is decrypted, or they must delegate to an MK's decrypt_data_key method, which must follow the same
-     * rules.
+     * no EDK is decrypted.
      */
     int (*decrypt_data_key)(struct aws_cryptosdk_mk * mk,
                             struct aws_cryptosdk_decryption_materials * dec_mat,
-                            const struct aws_array_list * edks);
+                            const struct aws_cryptosdk_decryption_request * request);
 };
 
 static inline void aws_cryptosdk_mk_destroy(struct aws_cryptosdk_mk * mk) {
@@ -381,8 +380,8 @@ static inline int aws_cryptosdk_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk
  */
 static inline int aws_cryptosdk_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
                                                     struct aws_cryptosdk_decryption_materials * dec_mat,
-                                                    const struct aws_array_list * edks) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_data_key, mk, dec_mat, edks);
+                                                    const struct aws_cryptosdk_decryption_request * request) {
+    AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_data_key, mk, dec_mat, request);
 }
 
 

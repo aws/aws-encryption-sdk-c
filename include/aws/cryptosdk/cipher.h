@@ -16,8 +16,14 @@
 #ifndef AWS_CRYPTOSDK_CIPHER_H
 #define AWS_CRYPTOSDK_CIPHER_H
 
-#include <aws/common/byte_buf.h>
+#include <aws/common/string.h>
 #include <aws/cryptosdk/header.h>
+
+enum aws_cryptosdk_aes_key_len {
+    AWS_CRYPTOSDK_AES_128 = 128/8,
+    AWS_CRYPTOSDK_AES_192 = 192/8,
+    AWS_CRYPTOSDK_AES_256 = 256/8
+};
 
 struct aws_cryptosdk_alg_properties {
     const char *md_name, *cipher_name;
@@ -35,12 +41,5 @@ struct aws_cryptosdk_alg_properties {
 };
 
 const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryptosdk_alg_id alg_id);
-
-static inline void aws_cryptosdk_secure_zero_buf(struct aws_byte_buf * buf) {
-    // TODO - move to aws-c-common
-    if (!buf->buffer) return;
-    aws_secure_zero(buf->buffer, buf->capacity);
-    buf->len = 0;
-}
 
 #endif // AWS_CRYPTOSDK_CIPHER_H
