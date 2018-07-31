@@ -14,7 +14,7 @@
  */
 #include <stdbool.h>
 #include "counting_mk.h"
-#include <aws/cryptosdk/cipher.h> // aws_cryptosdk_secure_zero_buf
+#include <aws/cryptosdk/cipher.h>
 #include <aws/common/string.h>
 
 struct counting_mk {const struct aws_cryptosdk_mk_vt * vt;};

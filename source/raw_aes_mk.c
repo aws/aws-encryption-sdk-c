@@ -29,14 +29,14 @@ int aws_cryptosdk_serialize_provider_info_init(struct aws_allocator * alloc,
     }
     output->len = output->capacity;
     struct aws_byte_cursor cur = aws_byte_cursor_from_buf(output);
-    if (!aws_byte_cursor_write_from_whole_string(&cur, master_key_id)) goto WRITE_ERR;
-    if (!aws_byte_cursor_write_be32(&cur, RAW_AES_MK_TAG_LEN * 8)) goto WRITE_ERR;
-    if (!aws_byte_cursor_write_be32(&cur, RAW_AES_MK_IV_LEN)) goto WRITE_ERR;
-    if (!aws_byte_cursor_write(&cur, iv, RAW_AES_MK_IV_LEN)) goto WRITE_ERR;
+    if (!aws_byte_cursor_write_from_whole_string(&cur, master_key_id)) goto write_err;
+    if (!aws_byte_cursor_write_be32(&cur, RAW_AES_MK_TAG_LEN * 8)) goto write_err;
+    if (!aws_byte_cursor_write_be32(&cur, RAW_AES_MK_IV_LEN)) goto write_err;
+    if (!aws_byte_cursor_write(&cur, iv, RAW_AES_MK_IV_LEN)) goto write_err;
 
     return AWS_OP_SUCCESS;
 
-WRITE_ERR:
+write_err:
     // We should never get here, because buffer was allocated locally to be long enough.
     aws_byte_buf_clean_up(output);
     return aws_raise_error(AWS_ERROR_UNKNOWN);
@@ -126,7 +126,7 @@ static int raw_aes_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
 
 err:
     aws_byte_buf_clean_up(&aad);
-    aws_cryptosdk_secure_zero_buf(&edk.enc_data_key);
+    aws_byte_buf_secure_zero(&edk.enc_data_key);
     aws_cryptosdk_edk_clean_up(&edk);
     return AWS_OP_ERR;
 }
@@ -191,40 +191,37 @@ static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
          */
         if (edk_len + RAW_AES_MK_TAG_LEN != edk_bytes->len) continue;
 
-        /* The only thing return value of this function tells us here is if we hit an OpenSSL error.
-         * Since we are not handling them any differently than normal failed decrypts of EDKs,
-         * we are dropping the return value.
-         */
-        aws_cryptosdk_aes_gcm_decrypt(&dec_mat->unencrypted_data_key,
-                                      aws_byte_cursor_from_array(edk_bytes->buffer, edk_len),
-                                      aws_byte_cursor_from_array(edk_bytes->buffer + edk_len,
-                                                                 RAW_AES_MK_TAG_LEN),
-                                      aws_byte_cursor_from_buf(&iv),
-                                      aws_byte_cursor_from_buf(&aad),
-                                      self->raw_key);
-
-        if (dec_mat->unencrypted_data_key.len) {
+        if (aws_cryptosdk_aes_gcm_decrypt(&dec_mat->unencrypted_data_key,
+                                          aws_byte_cursor_from_array(edk_bytes->buffer, edk_len),
+                                          aws_byte_cursor_from_array(edk_bytes->buffer + edk_len,
+                                                                     RAW_AES_MK_TAG_LEN),
+                                          aws_byte_cursor_from_buf(&iv),
+                                          aws_byte_cursor_from_buf(&aad),
+                                          self->raw_key)) {
+            /* We are here either because of a ciphertext/tag mismatch (e.g., wrong encryption
+             * context) or because of an OpenSSL error. In either case, nothing better to do
+             * than just moving on to next EDK, so clear the error code.
+             */
+            aws_reset_error();
+        } else {
             assert(dec_mat->unencrypted_data_key.len == edk_len);
-            goto out;
+            goto success;
         }
-        // Zero length unencrypted data key means decryption of EDK didn't work, just loop to next one.
     }
     // None of the EDKs worked, clean up unencrypted data key buffer and return success per materials.h
     aws_byte_buf_clean_up(&dec_mat->unencrypted_data_key);
 
-out:
+success:
     aws_byte_buf_clean_up(&aad);
     return AWS_OP_SUCCESS;
 }
 
 static void raw_aes_mk_destroy(struct aws_cryptosdk_mk * mk) {
     struct raw_aes_mk * self = (struct raw_aes_mk *)mk;
-    if (self) {
-        aws_string_destroy((void *)self->master_key_id);
-        aws_string_destroy((void *)self->provider_id);
-        aws_cryptosdk_secure_zero_and_destroy_string((struct aws_string *)self->raw_key);
-        if (self->alloc) aws_mem_release(self->alloc, self);
-    }
+    aws_string_destroy((void *)self->master_key_id);
+    aws_string_destroy((void *)self->provider_id);
+    aws_string_secure_destroy((void *)self->raw_key);
+    aws_mem_release(self->alloc, self);
 }
 
 static const struct aws_cryptosdk_mk_vt raw_aes_mk_vt = {
@@ -245,26 +242,24 @@ struct aws_cryptosdk_mk * aws_cryptosdk_raw_aes_mk_new(struct aws_allocator * al
                                                        enum aws_cryptosdk_aes_key_len key_len) {
     struct raw_aes_mk * mk = aws_mem_acquire(alloc, sizeof(struct raw_aes_mk));
     if (!mk) return NULL;
+    memset(mk, 0, sizeof(struct raw_aes_mk));
 
     mk->master_key_id = aws_string_from_array_new(alloc, master_key_id, master_key_id_len);
-    if (!mk->master_key_id) {
-        aws_mem_release(alloc, mk);
-        return NULL;
-    }
+    if (!mk->master_key_id) goto oom_err;
+
     mk->provider_id = aws_string_from_array_new(alloc, provider_id, provider_id_len);
-    if (!mk->provider_id) {
-        aws_string_destroy((void *)mk->master_key_id);
-        aws_mem_release(alloc, mk);
-        return NULL;
-    }
+    if (!mk->provider_id) goto oom_err;
+
     mk->raw_key = aws_string_from_array_new(alloc, raw_key_bytes, key_len);
-    if (!mk->raw_key) {
-        aws_string_destroy((void *)mk->master_key_id);
-        aws_string_destroy((void *)mk->provider_id);
-        aws_mem_release(alloc, mk);
-        return NULL;
-    }
+    if (!mk->raw_key) goto oom_err;
+
     mk->vt = &raw_aes_mk_vt;
     mk->alloc = alloc;
     return (struct aws_cryptosdk_mk *)mk;
+
+oom_err:
+    aws_string_destroy((void *)mk->master_key_id);
+    aws_string_destroy((void *)mk->provider_id);
+    aws_mem_release(alloc, mk);
+    return NULL;
 }
