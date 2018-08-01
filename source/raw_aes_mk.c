@@ -72,12 +72,10 @@ READ_ERR:
     return false;
 }
 
-static int raw_aes_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
-                                       struct aws_cryptosdk_encryption_materials * enc_mat) {
+int encrypt_data_key(struct aws_cryptosdk_mk * mk,
+                     struct aws_cryptosdk_encryption_materials * enc_mat,
+                     const uint8_t * iv) {
     struct raw_aes_mk * self = (struct raw_aes_mk *)mk;
-
-    uint8_t iv[RAW_AES_MK_IV_LEN];
-    if (aws_cryptosdk_genrandom(iv, RAW_AES_MK_IV_LEN)) return AWS_OP_ERR;
 
     struct aws_byte_buf * data_key = &enc_mat->unencrypted_data_key;
 
@@ -99,10 +97,8 @@ static int raw_aes_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
         aws_byte_buf_clean_up(&aad);
         return AWS_OP_ERR;
     }
-    struct aws_byte_cursor edk_bytes = aws_byte_cursor_from_buf(&edk.enc_data_key);
-    edk_bytes.len = data_key_len;
-    struct aws_byte_cursor tag = aws_byte_cursor_from_array(edk.enc_data_key.buffer + data_key_len, RAW_AES_MK_TAG_LEN);
-
+    struct aws_byte_buf edk_bytes = aws_byte_buf_from_array(edk.enc_data_key.buffer, data_key_len);
+    struct aws_byte_buf tag = aws_byte_buf_from_array(edk.enc_data_key.buffer + data_key_len, RAW_AES_MK_TAG_LEN);
     if (aws_cryptosdk_aes_gcm_encrypt(&edk_bytes,
                                       &tag,
                                       aws_byte_cursor_from_buf(data_key),
@@ -125,10 +121,18 @@ static int raw_aes_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
     return AWS_OP_SUCCESS;
 
 err:
-    aws_byte_buf_clean_up(&aad);
     aws_byte_buf_secure_zero(&edk.enc_data_key);
     aws_cryptosdk_edk_clean_up(&edk);
+    aws_byte_buf_clean_up(&aad);
     return AWS_OP_ERR;
+}
+
+static int raw_aes_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
+                                       struct aws_cryptosdk_encryption_materials * enc_mat) {
+    uint8_t iv[RAW_AES_MK_IV_LEN];
+    if (aws_cryptosdk_genrandom(iv, RAW_AES_MK_IV_LEN)) return AWS_OP_ERR;
+
+    return encrypt_data_key(mk, enc_mat, iv);
 }
 
 static int raw_aes_mk_generate_data_key(struct aws_cryptosdk_mk * mk,

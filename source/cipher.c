@@ -462,18 +462,23 @@ static const EVP_CIPHER * get_alg_from_key_size(size_t key_len) {
     case AWS_CRYPTOSDK_AES_256:
         return EVP_aes_256_gcm();
     default:
-        return NULL; // should be impossible to reach
+        return NULL;
     }
 }
 
-int aws_cryptosdk_aes_gcm_encrypt(struct aws_byte_cursor * cipher,
-                                  struct aws_byte_cursor * tag,
+// These implementations of AES-GCM encryption/decryption only support these tag/IV lengths
+static const int aes_gcm_tag_len = 16;
+static const int aes_gcm_iv_len = 12;
+
+int aws_cryptosdk_aes_gcm_encrypt(struct aws_byte_buf * cipher,
+                                  struct aws_byte_buf * tag,
                                   const struct aws_byte_cursor plain,
                                   const struct aws_byte_cursor iv,
                                   const struct aws_byte_cursor aad,
                                   const struct aws_string * key) {
     const EVP_CIPHER * alg = get_alg_from_key_size(key->len);
-    if (!alg) return aws_raise_error(AWS_ERROR_UNKNOWN);
+    if (!alg || iv.len != aes_gcm_iv_len || tag->capacity < aes_gcm_tag_len || cipher->capacity < plain.len)
+        return aws_raise_error(AWS_ERROR_INVALID_BUFFER_SIZE);
 
     EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
     if (!ctx) goto openssl_err;
@@ -483,20 +488,24 @@ int aws_cryptosdk_aes_gcm_encrypt(struct aws_byte_cursor * cipher,
     int out_len;
     if (!EVP_EncryptUpdate(ctx, NULL, &out_len, aad.ptr, aad.len)) goto openssl_err;
 
-    if (!EVP_EncryptUpdate(ctx, cipher->ptr, &out_len, plain.ptr, plain.len)) goto openssl_err;
+    if (!EVP_EncryptUpdate(ctx, cipher->buffer, &out_len, plain.ptr, plain.len)) goto openssl_err;
     int prev_len = out_len;
 
-    if (!EVP_EncryptFinal_ex(ctx, cipher->ptr + out_len, &out_len)) goto openssl_err;
+    if (!EVP_EncryptFinal_ex(ctx, cipher->buffer + out_len, &out_len)) goto openssl_err;
 
-    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, tag->len, tag->ptr)) goto openssl_err;
+    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, aes_gcm_tag_len, tag->buffer)) goto openssl_err;
 
+    tag->len = aes_gcm_tag_len;
+    cipher->len = prev_len + out_len;
+    assert(cipher->len == plain.len);
     EVP_CIPHER_CTX_free(ctx);
-    assert(prev_len + out_len == cipher->len);
     return AWS_OP_SUCCESS;
 
 openssl_err:
-    // TODO: add reporting/logging of OpenSSL errors?
     EVP_CIPHER_CTX_free(ctx);
+    aws_byte_buf_secure_zero(cipher);
+    aws_byte_buf_secure_zero(tag);
+    flush_openssl_errors();
     return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
 }
 
@@ -507,21 +516,9 @@ int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
                                   const struct aws_byte_cursor aad,
                                   const struct aws_string * key) {
     bool openssl_err = true;
-    const EVP_CIPHER * alg;
-    switch (key->len) {
-    case AWS_CRYPTOSDK_AES_128:
-        alg = EVP_aes_128_gcm();
-        break;
-    case AWS_CRYPTOSDK_AES_192:
-        alg = EVP_aes_192_gcm();
-        break;
-    case AWS_CRYPTOSDK_AES_256:
-        alg = EVP_aes_256_gcm();
-        break;
-    default:
+    const EVP_CIPHER * alg = get_alg_from_key_size(key->len);
+    if (!alg || iv.len != aes_gcm_iv_len || tag.len != aes_gcm_tag_len || plain->capacity < cipher.len)
         return aws_raise_error(AWS_ERROR_INVALID_BUFFER_SIZE);
-    }
-    if (iv.len != 12) return aws_raise_error(AWS_ERROR_INVALID_BUFFER_SIZE);
 
     EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
     if (!ctx) goto decrypt_err;
@@ -549,6 +546,7 @@ int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
     }
     EVP_CIPHER_CTX_free(ctx);
     plain->len = prev_len + out_len;
+    assert(plain->len == cipher.len);
     return AWS_OP_SUCCESS;
 
 decrypt_err:
