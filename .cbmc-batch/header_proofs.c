@@ -2,22 +2,24 @@
 #include <stdlib.h>
 #include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/private/header.h>
+#include "proof_helpers.h"
 #define MAX_AAD_LEN 1
 #define MAX_AAD_COUNT 1
 #define MAX_EDK_COUNT 1
 #define MAX_BUFFER_LEN 1
+#undef MESSAGE_ID_LEN
+#define MESSAGE_ID_LEN 1
 
-void aws_cryptosdk_hdr_clean_up_verify(void) {
-    // Use default allocator
-    struct aws_allocator * allocator = aws_default_allocator();
+struct aws_cryptosdk_hdr * get_aws_cryptosdk_hdr_ptr(struct aws_allocator * allocator) {
+    struct aws_cryptosdk_hdr * hdr;
     // Assume hdr is allocated
-    struct aws_cryptosdk_hdr * hdr = malloc(sizeof(*hdr));
+    ASSUME_VALID_MEMORY(hdr);
     hdr->aad_tbl = NULL;
     // Assume that hdr->aad_count is below some bound
     __CPROVER_assume(hdr->aad_count <= MAX_AAD_COUNT);
     if (hdr->aad_count > 0) {
         // Assume that hdr->aad_tbl is allocated memory for hdr->aad_count entries
-        hdr->aad_count = aws_mem_acquire(allocator, hdr->aad_count * sizeof(*(hdr->aad_tbl)));
+        hdr->aad_tbl = aws_mem_acquire(allocator, hdr->aad_count * sizeof(*(hdr->aad_tbl)));
         for (int i = 0; i < hdr->aad_count; i++) {
             // For each entry in hdr->aad_tbl
             struct aws_cryptosdk_hdr_aad * aad = hdr->aad_tbl + i;
@@ -47,9 +49,9 @@ void aws_cryptosdk_hdr_clean_up_verify(void) {
     // Assume that hdr->edk_count is below some bound
     __CPROVER_assume(hdr->edk_count <= MAX_EDK_COUNT);
     if (hdr->edk_count > 0) {
-        // Assume that hdr->edk_tbl is allocated memory for hdr->edk_count entries
-        hdr->edk_tbl = aws_mem_acquire(allocator, hdr->edk_count * sizeof(*(hdr->edk_tbl)));
         for (int i = 0; i < hdr->edk_count; i++) {
+           // Assume that hdr->edk_tbl is allocated memory for hdr->edk_count entries
+           hdr->edk_tbl = aws_mem_acquire(allocator, hdr->edk_count * sizeof(*(hdr->edk_tbl)));
             // For each entry in hdr->edk_tbl
             struct aws_cryptosdk_edk * edk = hdr->edk_tbl + i;
             size_t provider_id_len = nondet_size_t();
@@ -96,5 +98,29 @@ void aws_cryptosdk_hdr_clean_up_verify(void) {
     // Assume that &hdr->auth_tag is appropriately initialized
     aws_byte_buf_init(allocator, &hdr->auth_tag, iv_len);
 
+    return hdr;
+}
+
+void aws_cryptosdk_hdr_clean_up_verify(void) {
+    struct aws_allocator * allocator;
+    // Use default allocator
+    ASSUME_DEFAULT_ALLOCATOR(allocator);
+    struct aws_cryptosdk_hdr * hdr = get_aws_cryptosdk_hdr_ptr(allocator);
     aws_cryptosdk_hdr_clean_up(allocator, hdr);
+}
+
+void aws_cryptosdk_hdr_write_verify(void) {
+    struct aws_allocator * allocator;
+    // Use default allocator
+    ASSUME_DEFAULT_ALLOCATOR(allocator);
+    struct aws_cryptosdk_hdr * hdr = get_aws_cryptosdk_hdr_ptr(allocator);
+
+    size_t * bytes_written;
+    ASSUME_VALID_MEMORY(bytes_written);
+    size_t outlen;
+    __CPROVER_assume(outlen < __CPROVER_constant_infinity_uint - 1);
+    uint8_t * outbuf;
+    ASSUME_VALID_MEMORY_COUNT(outbuf, outlen);
+
+    aws_cryptosdk_hdr_write(hdr, bytes_written, outbuf, outlen);
 }

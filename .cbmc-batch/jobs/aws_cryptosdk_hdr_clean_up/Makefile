@@ -5,7 +5,7 @@ proofs.goto: aws-c-common config
 	cd ../../..; \
     goto-cc .cbmc-batch/header_proofs.c source/header.c aws-c-common/source/byte_buf.c \
     aws-c-common/source/common.c aws-c-common/source/error.c \
-    -Iinclude -Iaws-c-common/include -o .cbmc-batch/jobs/aws_cryptosdk_hdr_clean_up/proofs.goto \
+    -Iinclude -Iaws-c-common/include -I.cbmc -o .cbmc-batch/jobs/aws_cryptosdk_hdr_clean_up/proofs.goto \
     --function aws_cryptosdk_hdr_clean_up_verify
 
 config:

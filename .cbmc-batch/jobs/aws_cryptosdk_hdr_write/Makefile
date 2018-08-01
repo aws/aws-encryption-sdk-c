@@ -1,0 +1,11 @@
+include ../Makefile
+
+goto: proofs.goto
+	goto-instrument proofs.goto proofs.goto
+
+proofs.goto: aws-c-common hdr_zeroize_patch config
+	cd ../../..; \
+    goto-cc .cbmc-batch/header_proofs.c source/header.c aws-c-common/source/byte_buf.c \
+    aws-c-common/source/common.c aws-c-common/source/error.c .cbmc-batch/patches/string.c \
+    -Iinclude -Iaws-c-common/include -I.cbmc-batch -o .cbmc-batch/jobs/aws_cryptosdk_hdr_write/proofs.goto \
+    --function aws_cryptosdk_hdr_write_verify

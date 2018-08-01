@@ -1,0 +1,6 @@
+cbmcpkg: cbmc-ubuntu16.tar.gz
+jobos: ubuntu16
+cbmcflags: "--bounds-check;--pointer-check;--function;aws_cryptosdk_hdr_write_verify;--unwindset;__builtin___memcpy_chk.0:5,memcpy_chk.0:5,memcpy.0:5,aws_cryptosdk_hdr_clean_up.0:0,aws_cryptosdk_hdr_clean_up.1:0,aws_mem_release:0,__builtin__memset_chk.0:2,memset.0:2,aws_cryptosdk_hdr_write.0:4,aws_cryptosdk_hdr_write.1:2,aws_cryptosdk_hdr_write.2:2,get_aws_cryptosdk_hdr_ptr.0:2,get_aws_cryptosdk_hdr_ptr.1:2;--pointer-check;--trace;--unwinding-assertions"
+goto: proofs.goto
+expected: "SUCCESSFUL"
+property_memory: 96000
