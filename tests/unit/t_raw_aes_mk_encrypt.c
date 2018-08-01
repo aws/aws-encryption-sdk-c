@@ -29,8 +29,23 @@ static struct aws_cryptosdk_encryption_materials * enc_mat;
 static struct aws_cryptosdk_decryption_request req;
 static struct aws_cryptosdk_decryption_materials * dec_mat;
 
+static int put_stuff_in_encryption_context() {
+    AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_1, "aaaaaaaa\xc2\x80");
+    AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_1, "AAAAAAAA");
+    AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_2, "aaaaaaaa\x7f");
+    AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_2, "BBBBBBBB");
+    struct aws_hash_element * elem;
+    TEST_ASSERT_SUCCESS(aws_hash_table_create(&enc_context, (void *)enc_context_key_1, &elem, NULL));
+    elem->value = (void *)enc_context_val_1;
+    TEST_ASSERT_SUCCESS(aws_hash_table_create(&enc_context, (void *)enc_context_key_2, &elem, NULL));
+    elem->value = (void *)enc_context_val_2;
+
+    return 0;
+}
+
 static int set_up_encrypt_decrypt(enum aws_cryptosdk_aes_key_len raw_key_len,
-                                  enum aws_cryptosdk_alg_id alg) {
+                                  enum aws_cryptosdk_alg_id alg,
+                                  bool fill_enc_context) {
     alloc = aws_default_allocator();
 
     mk = aws_cryptosdk_raw_aes_mk_new(alloc,
@@ -42,8 +57,9 @@ static int set_up_encrypt_decrypt(enum aws_cryptosdk_aes_key_len raw_key_len,
                                       raw_key_len);
     TEST_ASSERT_ADDR_NOT_NULL(mk);
 
-    TEST_ASSERT_INT_EQ(aws_hash_table_init(&enc_context, alloc, 5, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy),
-                       AWS_OP_SUCCESS);
+    TEST_ASSERT_SUCCESS(aws_hash_table_init(&enc_context, alloc, 5, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy));
+
+    if (fill_enc_context) TEST_ASSERT_SUCCESS(put_stuff_in_encryption_context());
 
     enc_mat = aws_cryptosdk_encryption_materials_new(alloc, alg, 1);
     TEST_ASSERT_ADDR_NOT_NULL(enc_mat);
@@ -84,37 +100,57 @@ static int decrypt_data_key_and_verify_same_as_one_in_enc_mat() {
     return 0;
 }
 
+enum aws_cryptosdk_aes_key_len raw_key_lens[] = {AWS_CRYPTOSDK_AES_128, AWS_CRYPTOSDK_AES_192, AWS_CRYPTOSDK_AES_256};
+enum aws_cryptosdk_alg_id algs[] = {AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
+                                    AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
+                                    AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE};
+
 int encrypt_decrypt_data_key() {
-    TEST_ASSERT_SUCCESS(set_up_encrypt_decrypt(AWS_CRYPTOSDK_AES_256, AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
+    for (int fill_enc_context = 0; fill_enc_context < 2; ++fill_enc_context) {
+        for (int key_len_idx = 0; key_len_idx < sizeof(raw_key_lens)/sizeof(enum aws_cryptosdk_aes_key_len); ++key_len_idx) {
+            for (int alg_idx = 0; alg_idx < sizeof(algs)/sizeof(enum aws_cryptosdk_alg_id); ++alg_idx) {
+                TEST_ASSERT_SUCCESS(set_up_encrypt_decrypt(raw_key_lens[key_len_idx], algs[alg_idx], fill_enc_context));
 
-    TEST_ASSERT_SUCCESS(aws_byte_buf_init(alloc, &enc_mat->unencrypted_data_key, AWS_CRYPTOSDK_AES_256));
-    memset(enc_mat->unencrypted_data_key.buffer, 0x77, AWS_CRYPTOSDK_AES_256);
-    enc_mat->unencrypted_data_key.len = enc_mat->unencrypted_data_key.capacity;
+                const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(algs[alg_idx]);
+                TEST_ASSERT_SUCCESS(aws_byte_buf_init(alloc, &enc_mat->unencrypted_data_key, props->data_key_len));
+                memset(enc_mat->unencrypted_data_key.buffer, 0x77, props->data_key_len);
+                enc_mat->unencrypted_data_key.len = enc_mat->unencrypted_data_key.capacity;
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_mk_encrypt_data_key(mk, enc_mat));
-    TEST_ASSERT_INT_EQ(aws_array_list_length(&enc_mat->encrypted_data_keys), 1);
+                TEST_ASSERT_SUCCESS(aws_cryptosdk_mk_encrypt_data_key(mk, enc_mat));
+                TEST_ASSERT_INT_EQ(aws_array_list_length(&enc_mat->encrypted_data_keys), 1);
     
-    TEST_ASSERT_SUCCESS(copy_edks_from_enc_mat_to_dec_req());
+                TEST_ASSERT_SUCCESS(copy_edks_from_enc_mat_to_dec_req());
 
-    TEST_ASSERT_SUCCESS(decrypt_data_key_and_verify_same_as_one_in_enc_mat());
+                TEST_ASSERT_SUCCESS(decrypt_data_key_and_verify_same_as_one_in_enc_mat());
 
-    tear_down_encrypt_decrypt();
+                tear_down_encrypt_decrypt();
+            }
+        }
+    }
     return 0;
 }
 
 int generate_decrypt_data_key() {
-    TEST_ASSERT_SUCCESS(set_up_encrypt_decrypt(AWS_CRYPTOSDK_AES_256, AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
+    for (int fill_enc_context = 0; fill_enc_context < 2; ++fill_enc_context) {
+        for (int key_len_idx = 0; key_len_idx < sizeof(raw_key_lens)/sizeof(enum aws_cryptosdk_aes_key_len); ++key_len_idx) {
+            for (int alg_idx = 0; alg_idx < sizeof(algs)/sizeof(enum aws_cryptosdk_alg_id); ++alg_idx) {
+                TEST_ASSERT_SUCCESS(set_up_encrypt_decrypt(raw_key_lens[key_len_idx], algs[alg_idx], fill_enc_context));
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_mk_generate_data_key(mk, enc_mat));
-    TEST_ASSERT_ADDR_NOT_NULL(enc_mat->unencrypted_data_key.buffer);
-    TEST_ASSERT_INT_EQ(enc_mat->unencrypted_data_key.len, AWS_CRYPTOSDK_AES_256);
-    TEST_ASSERT_INT_EQ(aws_array_list_length(&enc_mat->encrypted_data_keys), 1);
+                TEST_ASSERT_SUCCESS(aws_cryptosdk_mk_generate_data_key(mk, enc_mat));
+                TEST_ASSERT_ADDR_NOT_NULL(enc_mat->unencrypted_data_key.buffer);
 
-    TEST_ASSERT_SUCCESS(copy_edks_from_enc_mat_to_dec_req());
+                const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(algs[alg_idx]);
+                TEST_ASSERT_INT_EQ(enc_mat->unencrypted_data_key.len, props->data_key_len);
+                TEST_ASSERT_INT_EQ(aws_array_list_length(&enc_mat->encrypted_data_keys), 1);
 
-    TEST_ASSERT_SUCCESS(decrypt_data_key_and_verify_same_as_one_in_enc_mat());
+                TEST_ASSERT_SUCCESS(copy_edks_from_enc_mat_to_dec_req());
 
-    tear_down_encrypt_decrypt();
+                TEST_ASSERT_SUCCESS(decrypt_data_key_and_verify_same_as_one_in_enc_mat());
+
+                tear_down_encrypt_decrypt();
+            }
+        }
+    }
     return 0;
 }
 
