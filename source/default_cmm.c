@@ -83,9 +83,7 @@ static int default_cmm_decrypt_materials(struct aws_cryptosdk_cmm * cmm,
     dec_mat = aws_cryptosdk_decryption_materials_new(request->alloc, request->alg);
     if (!dec_mat) goto err;
 
-    if (aws_cryptosdk_mkp_decrypt_data_key(self->mkp,
-                                           dec_mat,
-                                           &request->encrypted_data_keys)) goto err;
+    if (aws_cryptosdk_mkp_decrypt_data_key(self->mkp, dec_mat, request)) goto err;
 
     if (!dec_mat->unencrypted_data_key.buffer) {
         aws_raise_error(AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT);

@@ -115,4 +115,29 @@ int aws_cryptosdk_genrandom(
 
 // TODO: Footer
 
+/**
+ * Assumes plain is an already allocated byte buffer with enough capacity to hold entire
+ * decrypted plaintext. Makes no checks on capacity of plain and will overflow the buffer
+ * if called with too short a buffer, so be sure to allocate it to be big enough. Does NOT
+ * assume that length of plain buffer is already set, and will set it to the length of plain
+ * on a successful decrypt.
+ *
+ * Returns AWS_OP_SUCCESS on a successful decrypt. On failure, returns AWS_OP_ERR and sets
+ * one of the following error codes:
+ *
+ * AWS_INVALID_BUFFER_SIZE : invalid key or IV length (only suppports 12 byte IVs)
+ * AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT : unable to decrypt or authenticate ciphertext
+ * AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN : OpenSSL error
+ *
+ * On either of the last two errors, the plain buffer will be set to all zero bytes, and its
+ * length will be set to zero.
+ */
+int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
+                                  const struct aws_byte_cursor cipher,
+                                  const struct aws_byte_cursor tag,
+                                  const struct aws_byte_cursor iv,
+                                  const struct aws_byte_cursor aad,
+                                  const struct aws_string * key);
+
+
 #endif // AWS_CRYPTOSDK_PRIVATE_CIPHER_H

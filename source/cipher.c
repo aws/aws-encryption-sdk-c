@@ -164,6 +164,10 @@ static int evp_gcm_encrypt_final(const struct aws_cryptosdk_alg_properties *prop
     return AWS_ERROR_SUCCESS;
 }
 
+static inline void flush_openssl_errors() {
+    while (ERR_get_error() != 0) {}
+}
+
 static int evp_gcm_decrypt_final(const struct aws_cryptosdk_alg_properties *props, EVP_CIPHER_CTX *ctx, const uint8_t *tag) {
     if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, props->tag_len, (void *)tag)) {
         return AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
@@ -173,7 +177,7 @@ static int evp_gcm_decrypt_final(const struct aws_cryptosdk_alg_properties *prop
      * Flush all error codes; if the GCM tag is invalid, openssl will fail without generating
      * an error code, so any leftover error codes will get in the way of detection.
      */
-    while (ERR_get_error() != 0) {}
+    flush_openssl_errors();
 
     int outlen;
     uint8_t finalbuf;
@@ -447,4 +451,65 @@ int aws_cryptosdk_genrandom(uint8_t *buf, size_t len) {
     }
 
     return AWS_OP_SUCCESS;
+}
+
+int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
+                                  const struct aws_byte_cursor cipher,
+                                  const struct aws_byte_cursor tag,
+                                  const struct aws_byte_cursor iv,
+                                  const struct aws_byte_cursor aad,
+                                  const struct aws_string * key) {
+    bool openssl_err = true;
+    const EVP_CIPHER * alg;
+    switch (key->len) {
+    case AWS_CRYPTOSDK_AES_128:
+        alg = EVP_aes_128_gcm();
+        break;
+    case AWS_CRYPTOSDK_AES_192:
+        alg = EVP_aes_192_gcm();
+        break;
+    case AWS_CRYPTOSDK_AES_256:
+        alg = EVP_aes_256_gcm();
+        break;
+    default:
+        return aws_raise_error(AWS_ERROR_INVALID_BUFFER_SIZE);
+    }
+    if (iv.len != 12) return aws_raise_error(AWS_ERROR_INVALID_BUFFER_SIZE);
+
+    EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) goto decrypt_err;
+
+    if (!EVP_DecryptInit_ex(ctx, alg, NULL, aws_string_bytes(key), iv.ptr)) goto decrypt_err;
+
+    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, tag.len, tag.ptr)) goto decrypt_err;
+
+    /* Setting the AAD. out_len here is a throwaway. Might be able to make that argument NULL, but
+     * openssl wiki example does the same as this, giving it a pointer to an int and disregarding value.
+     */
+    int out_len;
+    if (!EVP_DecryptUpdate(ctx, NULL, &out_len, aad.ptr, aad.len)) goto decrypt_err;
+
+    if (!EVP_DecryptUpdate(ctx, plain->buffer, &out_len, cipher.ptr, cipher.len)) goto decrypt_err;
+    int prev_len = out_len;
+
+    /* Possible for EVP_DecryptFinal_ex to fail without generating an OpenSSL error code (e.g., tag
+     * mismatch) so flush the errors first to distinguish this case.
+     */
+    flush_openssl_errors();
+    if (!EVP_DecryptFinal_ex(ctx, plain->buffer + out_len, &out_len)) {
+        if (!ERR_peek_last_error()) openssl_err = false;
+        goto decrypt_err;
+    }
+    EVP_CIPHER_CTX_free(ctx);
+    plain->len = prev_len + out_len;
+    return AWS_OP_SUCCESS;
+
+decrypt_err:
+    EVP_CIPHER_CTX_free(ctx);
+    aws_byte_buf_secure_zero(plain); // sets plain->len to zero
+    if (openssl_err) {
+        flush_openssl_errors();
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+    }
+    return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
 }

@@ -13,46 +13,25 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/private/enc_context.h>
+#include <aws/cryptosdk/private/utils.h>
 #include <aws/cryptosdk/error.h>
-#include <assert.h>
 
-int aws_array_list_compare_hash_elements_by_key_string(const void * elem_a, const void * elem_b) {
-    const struct aws_hash_element * a = (const struct aws_hash_element *)elem_a;
-    const struct aws_hash_element * b = (const struct aws_hash_element *)elem_b;
-    const struct aws_string * key_a = (const struct aws_string *)a->key;
-    const struct aws_string * key_b = (const struct aws_string *)b->key;
-    return aws_string_compare(key_a, key_b);
-}
-
-int aws_hash_table_get_elems_array_init(struct aws_allocator * alloc,
-                                        struct aws_array_list * elems,
-                                        const struct aws_hash_table * map) {
-    size_t entry_count = aws_hash_table_get_entry_count(map);
-    if (aws_array_list_init_dynamic(elems, alloc, entry_count, sizeof(struct aws_hash_element))) {
-        return AWS_OP_ERR;
-    }
-
-    for (struct aws_hash_iter iter = aws_hash_iter_begin(map);
-         !aws_hash_iter_done(&iter); aws_hash_iter_next(&iter)) {
-        if (aws_array_list_push_back(elems, (void **) &iter.element)) {
-            aws_array_list_clean_up(elems);
-            return AWS_OP_ERR;
-        }
-    }
-    assert(aws_array_list_length(elems) == entry_count);
-    return AWS_OP_SUCCESS;
-}
 
 int aws_cryptosdk_serialize_enc_context_init(struct aws_allocator * alloc,
                                              struct aws_byte_buf * output,
                                              const struct aws_hash_table * enc_context) {
     size_t num_elems = aws_hash_table_get_entry_count(enc_context);
+    if (!num_elems) {
+        *output = aws_byte_buf_from_c_str("");
+        return AWS_OP_SUCCESS;
+    }
+
     if (num_elems > UINT16_MAX) return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
 
     struct aws_array_list elems;
-    if (aws_hash_table_get_elems_array_init(alloc, & elems, enc_context)) return AWS_OP_ERR;
+    if (aws_cryptosdk_hash_elems_array_init(alloc, & elems, enc_context)) return AWS_OP_ERR;
 
-    aws_array_list_sort(&elems, aws_array_list_compare_hash_elements_by_key_string);
+    aws_array_list_sort(&elems, aws_cryptosdk_compare_hash_elems_by_key_string);
 
     size_t serialized_len = 2; // First two bytes are the number of key-value pairs.
     for (int idx = 0; idx < num_elems; ++idx) {
