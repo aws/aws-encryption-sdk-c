@@ -72,18 +72,20 @@ READ_ERR:
     return false;
 }
 
-int encrypt_data_key(struct aws_cryptosdk_mk * mk,
-                     struct aws_cryptosdk_encryption_materials * enc_mat,
-                     const uint8_t * iv) {
+int aws_cryptosdk_raw_aes_mk_encrypt_data_key_with_iv(struct aws_cryptosdk_mk * mk,
+                                                      struct aws_cryptosdk_encryption_materials * enc_mat,
+                                                      const uint8_t * iv) {
     struct raw_aes_mk * self = (struct raw_aes_mk *)mk;
 
     struct aws_byte_buf * data_key = &enc_mat->unencrypted_data_key;
 
     const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(enc_mat->alg);
     size_t data_key_len = props->data_key_len;
-    if (data_key_len != data_key->len) {
-        return aws_raise_error(AWS_ERROR_UNKNOWN);
-    }
+
+    /* Failing this assert would mean that the length of the already generated data key was
+     * different than the data key length prescribed by the algorithm suite
+     */
+    assert(data_key_len == data_key->len);
 
     struct aws_byte_buf aad;
     if (aws_cryptosdk_serialize_enc_context_init(self->alloc, &aad, enc_mat->enc_context)) {
@@ -91,8 +93,9 @@ int encrypt_data_key(struct aws_cryptosdk_mk * mk,
     }
 
     struct aws_cryptosdk_edk edk = {{0}};
-    // Encrypted data key bytes same length as unencrypted data key in GCM.
-    // enc_data_key field also includes tag afterward.
+    /* Encrypted data key bytes same length as unencrypted data key in GCM.
+     * enc_data_key field also includes tag afterward.
+     */
     if (aws_byte_buf_init(self->alloc, &edk.enc_data_key, data_key_len + RAW_AES_MK_TAG_LEN)) {
         aws_byte_buf_clean_up(&aad);
         return AWS_OP_ERR;
@@ -132,7 +135,7 @@ static int raw_aes_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
     uint8_t iv[RAW_AES_MK_IV_LEN];
     if (aws_cryptosdk_genrandom(iv, RAW_AES_MK_IV_LEN)) return AWS_OP_ERR;
 
-    return encrypt_data_key(mk, enc_mat, iv);
+    return aws_cryptosdk_raw_aes_mk_encrypt_data_key_with_iv(mk, enc_mat, iv);
 }
 
 static int raw_aes_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
