@@ -695,7 +695,8 @@ void *memset(void *s, int c, size_t n)
     (void)*(char *)s; // check that the memory is accessible
     (void)*(((char *)s) + n - 1); // check that the memory is accessible
     char *sp=s;
-    for(__CPROVER_size_t i=0; i<n ; i++) sp[i]=c;
+    // Don't actually do the memset, since the values aren't important
+    // for(__CPROVER_size_t i=0; i<n ; i++) sp[i]=c;
     /*unsigned char s_n[n];
     __CPROVER_array_set(s_n, (unsigned char)c);
     __CPROVER_array_replace((unsigned char *)s, s_n);*/

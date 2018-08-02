@@ -10,7 +10,7 @@
 #undef MESSAGE_ID_LEN
 #define MESSAGE_ID_LEN 1
 
-struct aws_cryptosdk_hdr * get_aws_cryptosdk_hdr_ptr(struct aws_allocator * allocator) {
+struct aws_cryptosdk_hdr * get_aws_cryptosdk_hdr_ptr(struct aws_allocator * allocator, bool full_init) {
     struct aws_cryptosdk_hdr * hdr;
     // Assume hdr is allocated
     ASSUME_VALID_MEMORY(hdr);
@@ -31,13 +31,13 @@ struct aws_cryptosdk_hdr * get_aws_cryptosdk_hdr_ptr(struct aws_allocator * allo
             __CPROVER_assume(value_len < MAX_BUFFER_LEN);
             // Nondeterministically initialize buffers or make sure that either
             // the allocators or buffers are NULL
-            if (nondet_int())
+            if (full_init)
                 aws_byte_buf_init(allocator, &aad->key, key_len);
             else if (nondet_int())
                 aad->key.allocator = NULL;
             else
                 aad->key.buffer = NULL;
-            if (nondet_int())
+            if (full_init)
                 aws_byte_buf_init(allocator, &aad->value, value_len);
             else if (nondet_int())
                 aad->value.allocator = NULL;
@@ -49,9 +49,9 @@ struct aws_cryptosdk_hdr * get_aws_cryptosdk_hdr_ptr(struct aws_allocator * allo
     // Assume that hdr->edk_count is below some bound
     __CPROVER_assume(hdr->edk_count <= MAX_EDK_COUNT);
     if (hdr->edk_count > 0) {
+        // Assume that hdr->edk_tbl is allocated memory for hdr->edk_count entries
+        hdr->edk_tbl = aws_mem_acquire(allocator, hdr->edk_count * sizeof(*(hdr->edk_tbl)));
         for (int i = 0; i < hdr->edk_count; i++) {
-           // Assume that hdr->edk_tbl is allocated memory for hdr->edk_count entries
-           hdr->edk_tbl = aws_mem_acquire(allocator, hdr->edk_count * sizeof(*(hdr->edk_tbl)));
             // For each entry in hdr->edk_tbl
             struct aws_cryptosdk_edk * edk = hdr->edk_tbl + i;
             size_t provider_id_len = nondet_size_t();
@@ -65,19 +65,19 @@ struct aws_cryptosdk_hdr * get_aws_cryptosdk_hdr_ptr(struct aws_allocator * allo
             __CPROVER_assume(enc_data_key_len < MAX_BUFFER_LEN);
             // Nondeterministically initialize buffers or make sure that either
             // the allocators or buffers are NULL
-            if (nondet_int())
+            if (full_init)
                 aws_byte_buf_init(allocator, &edk->provider_id, provider_id_len);
             else if (nondet_int())
                 edk->provider_id.allocator = NULL;
             else
                 edk->provider_id.buffer = NULL;
-            if (nondet_int())
+            if (full_init)
                 aws_byte_buf_init(allocator, &edk->provider_info, provider_info_len);
             else if (nondet_int())
                 edk->provider_info.allocator = NULL;
             else
                 edk->provider_info.buffer = NULL;
-            if (nondet_int())
+            if (full_init)
                 aws_byte_buf_init(allocator, &edk->enc_data_key, enc_data_key_len);
             else if (nondet_int())
                 edk->enc_data_key.allocator = NULL;
@@ -105,7 +105,7 @@ void aws_cryptosdk_hdr_clean_up_verify(void) {
     struct aws_allocator * allocator;
     // Use default allocator
     ASSUME_DEFAULT_ALLOCATOR(allocator);
-    struct aws_cryptosdk_hdr * hdr = get_aws_cryptosdk_hdr_ptr(allocator);
+    struct aws_cryptosdk_hdr * hdr = get_aws_cryptosdk_hdr_ptr(allocator, nondet_int());
     aws_cryptosdk_hdr_clean_up(allocator, hdr);
 }
 
@@ -113,14 +113,33 @@ void aws_cryptosdk_hdr_write_verify(void) {
     struct aws_allocator * allocator;
     // Use default allocator
     ASSUME_DEFAULT_ALLOCATOR(allocator);
-    struct aws_cryptosdk_hdr * hdr = get_aws_cryptosdk_hdr_ptr(allocator);
+    struct aws_cryptosdk_hdr * hdr = get_aws_cryptosdk_hdr_ptr(allocator, true);
 
     size_t * bytes_written;
     ASSUME_VALID_MEMORY(bytes_written);
-    size_t outlen;
+    size_t outlen = nondet_size_t();
     __CPROVER_assume(outlen < __CPROVER_constant_infinity_uint - 1);
     uint8_t * outbuf;
     ASSUME_VALID_MEMORY_COUNT(outbuf, outlen);
 
     aws_cryptosdk_hdr_write(hdr, bytes_written, outbuf, outlen);
+}
+
+void write_parse_verify (void) {
+    struct aws_allocator * allocator;
+    // Use default allocator
+    ASSUME_DEFAULT_ALLOCATOR(allocator);
+    struct aws_cryptosdk_hdr * hdr = get_aws_cryptosdk_hdr_ptr(allocator, true);
+
+    size_t * bytes_written;
+    ASSUME_VALID_MEMORY(bytes_written);
+    size_t outlen = nondet_size_t();
+    __CPROVER_assume(outlen < __CPROVER_constant_infinity_uint - 1);
+    uint8_t * outbuf;
+    ASSUME_VALID_MEMORY_COUNT(outbuf, outlen);
+ 
+    if (aws_cryptosdk_hdr_write(hdr, bytes_written, outbuf, outlen) == AWS_OP_SUCCESS) {
+        struct aws_cryptosdk_hdr *hdr_parsed = malloc(sizeof(*hdr_parsed));
+        assert(aws_cryptosdk_hdr_parse_init(allocator, hdr_parsed, outbuf, outlen) == AWS_OP_SUCCESS);
+    }    
 }
