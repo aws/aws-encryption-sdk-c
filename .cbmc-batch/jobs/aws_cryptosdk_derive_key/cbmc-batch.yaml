@@ -1,0 +1,5 @@
+cbmcpkg: cbmc-ubuntu16.tar.gz
+jobos: ubuntu16
+cbmcflags: "--bounds-check;--pointer-check;--function;aws_cryptosdk_derive_key_verify;--pointer-check;--trace;--unwinding-assertions"
+goto: proofs.goto
+expected: "SUCCESSFUL"
