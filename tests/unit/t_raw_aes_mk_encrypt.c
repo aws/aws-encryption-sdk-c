@@ -124,7 +124,7 @@ int encrypt_decrypt_data_key() {
 
                 TEST_ASSERT_SUCCESS(aws_cryptosdk_mk_encrypt_data_key(mk, enc_mat));
                 TEST_ASSERT_INT_EQ(aws_array_list_length(&enc_mat->encrypted_data_keys), 1);
-    
+
                 TEST_ASSERT_SUCCESS(copy_edks_from_enc_mat_to_dec_req());
 
                 TEST_ASSERT_SUCCESS(decrypt_data_key_and_verify_same_as_one_in_enc_mat());
@@ -183,7 +183,7 @@ int encrypt_data_key_test_vectors() {
         struct aws_cryptosdk_edk edk;
         TEST_ASSERT_SUCCESS(aws_array_list_get_at(&enc_mat->encrypted_data_keys, (void *)&edk, 0));
 
-        struct aws_cryptosdk_edk known_answer = edk_from_test_vector(tv_idx);
+        struct aws_cryptosdk_edk known_answer = edk_from_test_vector_init(tv_idx);
         TEST_ASSERT(aws_cryptosdk_edk_eq(&edk, &known_answer));
 
         aws_cryptosdk_edk_clean_up(&known_answer);
