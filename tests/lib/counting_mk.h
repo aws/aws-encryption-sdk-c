@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#ifndef AWS_CRYPTOSDK_TESTS_UNIT_ZERO_MKP_H
-#define AWS_CRYPTOSDK_TESTS_UNIT_ZERO_MKP_H
+#ifndef AWS_CRYPTOSDK_TESTS_LIB_COUNTING_MKP_H
+#define AWS_CRYPTOSDK_TESTS_LIB_COUNTING_MKP_H
 
 #include <aws/cryptosdk/materials.h>
 
@@ -34,4 +34,4 @@
  */
 struct aws_cryptosdk_mk *aws_cryptosdk_counting_mk();
 
-#endif /* AWS_CRYPTOSDK_TESTS_UNIT_ZERO_MKP_H */
+#endif /* AWS_CRYPTOSDK_TESTS_LIB_COUNTING_MKP_H */
