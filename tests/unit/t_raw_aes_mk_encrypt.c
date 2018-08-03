@@ -25,10 +25,10 @@ static struct aws_cryptosdk_decryption_request req;
 static struct aws_cryptosdk_decryption_materials * dec_mat;
 
 static int put_stuff_in_encryption_context() {
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_1, "aaaaaaaa\xc2\x80");
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_1, "AAAAAAAA");
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_2, "aaaaaaaa\x7f");
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_2, "BBBBBBBB");
+    AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_1, "Easy come easy go.");
+    AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_1, "Will you let me go?");
+    AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_2, "Bismillah! No we will not let you go!");
+    AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_2, "Let him go!");
     struct aws_hash_element * elem;
     TEST_ASSERT_SUCCESS(aws_hash_table_create(&enc_context, (void *)enc_context_key_1, &elem, NULL));
     elem->value = (void *)enc_context_val_1;
@@ -39,8 +39,7 @@ static int put_stuff_in_encryption_context() {
 }
 
 static int set_up_encrypt(enum aws_cryptosdk_aes_key_len raw_key_len,
-                          enum aws_cryptosdk_alg_id alg,
-                          bool fill_enc_context) {
+                          enum aws_cryptosdk_alg_id alg) {
     alloc = aws_default_allocator();
 
     mk = aws_cryptosdk_raw_aes_mk_new(alloc,
@@ -54,8 +53,6 @@ static int set_up_encrypt(enum aws_cryptosdk_aes_key_len raw_key_len,
 
     TEST_ASSERT_SUCCESS(aws_hash_table_init(&enc_context, alloc, 5, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy));
 
-    if (fill_enc_context) TEST_ASSERT_SUCCESS(put_stuff_in_encryption_context());
-
     enc_mat = aws_cryptosdk_encryption_materials_new(alloc, alg, 1);
     TEST_ASSERT_ADDR_NOT_NULL(enc_mat);
     enc_mat->enc_context = &enc_context;
@@ -66,7 +63,9 @@ static int set_up_encrypt(enum aws_cryptosdk_aes_key_len raw_key_len,
 static int set_up_encrypt_decrypt(enum aws_cryptosdk_aes_key_len raw_key_len,
                                   enum aws_cryptosdk_alg_id alg,
                                   bool fill_enc_context) {
-    TEST_ASSERT_SUCCESS(set_up_encrypt(raw_key_len, alg, fill_enc_context));
+    TEST_ASSERT_SUCCESS(set_up_encrypt(raw_key_len, alg));
+
+    if (fill_enc_context) TEST_ASSERT_SUCCESS(put_stuff_in_encryption_context());
 
     dec_mat = aws_cryptosdk_decryption_materials_new(alloc, alg);
     TEST_ASSERT_ADDR_NOT_NULL(dec_mat);
@@ -170,7 +169,7 @@ int encrypt_data_key_test_vectors() {
         struct raw_aes_mk_test_vector tv = test_vectors[tv_idx];
         const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(tv.alg);
 
-        TEST_ASSERT_SUCCESS(set_up_encrypt(tv.raw_key_len, tv.alg, false));
+        TEST_ASSERT_SUCCESS(set_up_encrypt(tv.raw_key_len, tv.alg));
         tv.ec_builder(&enc_context);
 
         uint8_t data_key_dup[props->data_key_len]; // copy from constant memory because cleanup needs to zero it out
