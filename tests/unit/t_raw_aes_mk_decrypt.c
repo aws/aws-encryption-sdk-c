@@ -18,7 +18,9 @@
 #include "raw_aes_mk_test_vectors.h"
 #include "testing.h"
 
-static struct aws_allocator * alloc;
+static struct aws_cryptosdk_edk good_edk() {
+    return edk_from_test_vector_init(0);
+}
 
 /**
  * A bunch of wrong EDKs for testing various failure scenarios.
@@ -29,25 +31,25 @@ static struct aws_cryptosdk_edk empty_edk() {
 }
 
 static struct aws_cryptosdk_edk wrong_provider_id_edk() {
-    struct aws_cryptosdk_edk edk = edk_from_test_vector_init(0);
+    struct aws_cryptosdk_edk edk = good_edk();
     edk.provider_id = aws_byte_buf_from_c_str("foobar");
     return edk;
 } 
 
 static struct aws_cryptosdk_edk wrong_edk_bytes_len_edk() {
-    struct aws_cryptosdk_edk edk = edk_from_test_vector_init(0);
+    struct aws_cryptosdk_edk edk = good_edk();
     edk.enc_data_key.len--;
     return edk;
 }
 
 static struct aws_cryptosdk_edk wrong_provider_info_len_edk() {
-    struct aws_cryptosdk_edk edk = edk_from_test_vector_init(0);
+    struct aws_cryptosdk_edk edk = good_edk();
     edk.provider_info.len--;
     return edk;
 }
 
 static struct aws_cryptosdk_edk wrong_master_key_id_edk() {
-    struct aws_cryptosdk_edk edk = edk_from_test_vector_init(0);
+    struct aws_cryptosdk_edk edk = good_edk();
     static const uint8_t edk_provider_info[] =
         "asdfhasiufhiasuhviawurhgiuawrhefiuOOPS" // wrong master key ID
         "\x00\x00\x00\x80" // GCM tag length in bits
@@ -59,7 +61,7 @@ static struct aws_cryptosdk_edk wrong_master_key_id_edk() {
 }
 
 static struct aws_cryptosdk_edk wrong_iv_len_edk() {
-    struct aws_cryptosdk_edk edk = edk_from_test_vector_init(0);
+    struct aws_cryptosdk_edk edk = good_edk();
     static const uint8_t edk_provider_info[] =
         "asdfhasiufhiasuhviawurhgiuawrhefiuawhf" // master key ID
         "\x00\x00\x00\x80" // GCM tag length in bits
@@ -71,7 +73,7 @@ static struct aws_cryptosdk_edk wrong_iv_len_edk() {
 }
 
 static struct aws_cryptosdk_edk wrong_tag_len_edk() {
-    struct aws_cryptosdk_edk edk = edk_from_test_vector_init(0);
+    struct aws_cryptosdk_edk edk = good_edk();
     static const uint8_t edk_provider_info[] =
         "asdfhasiufhiasuhviawurhgiuawrhefiuawhf" // master key ID
         "\x00\x00\x00\x81" // wrong GCM tag length in bits
@@ -83,7 +85,7 @@ static struct aws_cryptosdk_edk wrong_tag_len_edk() {
 }
 
 static struct aws_cryptosdk_edk wrong_edk_bytes() {
-    struct aws_cryptosdk_edk edk = edk_from_test_vector_init(0);
+    struct aws_cryptosdk_edk edk = good_edk();
     static const uint8_t edk_bytes[] =
     {0xDE, 0xAD, 0xBE, 0xEF, 0x35, 0x20, 0x07, 0x38, 0xe4, 0x9e, 0x34, 0xfa, 0xa6, 0xbf, 0x11, 0xed,
      0x45, 0x40, 0x97, 0xfd, 0xb8, 0xe3, 0x36, 0x75, 0x5c, 0x03, 0xbb, 0x9f, 0xa4, 0x42, 0x9e, 0x66,
@@ -104,6 +106,7 @@ static struct aws_cryptosdk_edk wrong_iv_bytes() {
     return build_test_edk_init(edk_bytes, sizeof(edk_bytes), iv);
 }
 
+static struct aws_allocator * alloc;
 static struct aws_cryptosdk_mk * mk;
 static struct aws_hash_table enc_context;
 static struct aws_cryptosdk_decryption_request req;
@@ -193,8 +196,6 @@ int decrypt_data_key_test_vectors() {
 }
 
 typedef struct aws_cryptosdk_edk (*edk_generator)();
-
-struct aws_cryptosdk_edk good_edk() { return edk_from_test_vector_init(0); }
 
 edk_generator edk_gens[] = {empty_edk,
                             wrong_provider_id_edk,
