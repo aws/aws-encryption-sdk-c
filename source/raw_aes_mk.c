@@ -124,7 +124,6 @@ int aws_cryptosdk_raw_aes_mk_encrypt_data_key_with_iv(struct aws_cryptosdk_mk * 
     return AWS_OP_SUCCESS;
 
 err:
-    aws_byte_buf_secure_zero(&edk.enc_data_key);
     aws_cryptosdk_edk_clean_up(&edk);
     aws_byte_buf_clean_up(&aad);
     return AWS_OP_ERR;

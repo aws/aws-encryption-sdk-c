@@ -43,11 +43,11 @@ static int set_up_encrypt(enum aws_cryptosdk_aes_key_len raw_key_len,
     alloc = aws_default_allocator();
 
     mk = aws_cryptosdk_raw_aes_mk_new(alloc,
-                                      test_vector_master_key_id,
-                                      sizeof(test_vector_master_key_id) - 1,
-                                      test_vector_provider_id,
-                                      sizeof(test_vector_provider_id) - 1,
-                                      test_vector_wrapping_key,
+                                      raw_aes_mk_tv_master_key_id,
+                                      sizeof(raw_aes_mk_tv_master_key_id) - 1,
+                                      raw_aes_mk_tv_provider_id,
+                                      sizeof(raw_aes_mk_tv_provider_id) - 1,
+                                      raw_aes_mk_tv_wrapping_key,
                                       raw_key_len);
     TEST_ASSERT_ADDR_NOT_NULL(mk);
 
@@ -165,25 +165,25 @@ int generate_decrypt_data_key() {
  * 256, 192, and 128 bits. Same vectors as used in decrypt_data_key_test_vectors.
  */
 int encrypt_data_key_test_vectors() {
-    for (int tv_idx = 0; tv_idx < 3; ++tv_idx) {
-        struct raw_aes_mk_test_vector tv = test_vectors[tv_idx];
-        const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(tv.alg);
+    for (struct raw_aes_mk_test_vector * tv = raw_aes_mk_test_vectors; tv->data_key; ++tv) {
+        const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(tv->alg);
 
-        TEST_ASSERT_SUCCESS(set_up_encrypt(tv.raw_key_len, tv.alg));
-        tv.ec_builder(&enc_context);
+        TEST_ASSERT_SUCCESS(set_up_encrypt(tv->raw_key_len, tv->alg));
+        TEST_ASSERT_SUCCESS(set_test_vector_encryption_context(alloc, &enc_context, tv));
 
-        uint8_t data_key_dup[props->data_key_len]; // copy from constant memory because cleanup needs to zero it out
-        memcpy(data_key_dup, tv.data_key, props->data_key_len);
+        // copy from constant memory because cleanup needs to zero it out
+        uint8_t data_key_dup[props->data_key_len];
+        memcpy(data_key_dup, tv->data_key, props->data_key_len);
 
         enc_mat->unencrypted_data_key = aws_byte_buf_from_array(data_key_dup, props->data_key_len);
 
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_raw_aes_mk_encrypt_data_key_with_iv(mk, enc_mat, tv.iv));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_raw_aes_mk_encrypt_data_key_with_iv(mk, enc_mat, tv->iv));
         TEST_ASSERT_INT_EQ(aws_array_list_length(&enc_mat->encrypted_data_keys), 1);
 
         struct aws_cryptosdk_edk edk;
         TEST_ASSERT_SUCCESS(aws_array_list_get_at(&enc_mat->encrypted_data_keys, (void *)&edk, 0));
 
-        struct aws_cryptosdk_edk known_answer = edk_from_test_vector_init(tv_idx);
+        struct aws_cryptosdk_edk known_answer = edk_init_from_test_vector(tv);
         TEST_ASSERT(aws_cryptosdk_edk_eq(&edk, &known_answer));
 
         aws_cryptosdk_edk_clean_up(&known_answer);

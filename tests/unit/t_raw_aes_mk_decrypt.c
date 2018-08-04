@@ -19,7 +19,7 @@
 #include "testing.h"
 
 static struct aws_cryptosdk_edk good_edk() {
-    return edk_from_test_vector_init(0);
+    return edk_init_from_test_vector_idx(0);
 }
 
 /**
@@ -119,11 +119,11 @@ static int set_up_all_the_things(const struct aws_string ** keys,
                                  enum aws_cryptosdk_alg_id alg) {
     alloc = aws_default_allocator();
     mk = aws_cryptosdk_raw_aes_mk_new(alloc,
-                                      test_vector_master_key_id,
-                                      sizeof(test_vector_master_key_id) - 1,
-                                      test_vector_provider_id,
-                                      sizeof(test_vector_provider_id) - 1,
-                                      test_vector_wrapping_key,
+                                      raw_aes_mk_tv_master_key_id,
+                                      sizeof(raw_aes_mk_tv_master_key_id) - 1,
+                                      raw_aes_mk_tv_provider_id,
+                                      sizeof(raw_aes_mk_tv_provider_id) - 1,
+                                      raw_aes_mk_tv_wrapping_key,
                                       raw_key_len);
     TEST_ASSERT_ADDR_NOT_NULL(mk);
 
@@ -162,11 +162,10 @@ static void tear_down_all_the_things() {
  */
 int decrypt_data_key_test_vectors() {
     for (int corrupt_enc_context = 0; corrupt_enc_context < 2; ++corrupt_enc_context) {
-        for (int tv_idx = 0; tv_idx < 3; ++tv_idx) {
-            struct raw_aes_mk_test_vector tv = test_vectors[tv_idx];
+        for (struct raw_aes_mk_test_vector * tv = raw_aes_mk_test_vectors; tv->data_key; ++tv) {
+            TEST_ASSERT_SUCCESS(set_up_all_the_things(NULL, NULL, 0, tv->raw_key_len, tv->alg));
+            TEST_ASSERT_SUCCESS(set_test_vector_encryption_context(alloc, &enc_context, tv));
 
-            TEST_ASSERT_SUCCESS(set_up_all_the_things(NULL, NULL, 0, tv.raw_key_len, tv.alg));
-            tv.ec_builder(&enc_context);
             if (corrupt_enc_context) {
                 AWS_STATIC_STRING_FROM_LITERAL(key, "RFC 3514");
                 AWS_STATIC_STRING_FROM_LITERAL(val, "setting the evil bit to 1");
@@ -175,7 +174,7 @@ int decrypt_data_key_test_vectors() {
                 elem->value = (void *)val;
             }
 
-            struct aws_cryptosdk_edk edk = edk_from_test_vector_init(tv_idx);
+            struct aws_cryptosdk_edk edk = edk_init_from_test_vector(tv);
             aws_array_list_push_back(&req.encrypted_data_keys, (void *)&edk);
 
             TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_mk_decrypt_data_key(mk, dec_mat, &req));
@@ -185,7 +184,7 @@ int decrypt_data_key_test_vectors() {
             } else {
                 TEST_ASSERT_ADDR_NOT_NULL(dec_mat->unencrypted_data_key.buffer);
 
-                struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv.data_key, tv.data_key_len);
+                struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv->data_key, tv->data_key_len);
                 TEST_ASSERT(aws_byte_buf_eq(&dec_mat->unencrypted_data_key, &known_answer));
             }
 
@@ -212,7 +211,7 @@ edk_generator edk_gens[] = {empty_edk,
  * Same as the first test vector but EDK list has many wrong EDKs which fail for different reasons before getting to good one.
  */
 int decrypt_data_key_multiple_edks() {
-    struct raw_aes_mk_test_vector tv = test_vectors[0];
+    struct raw_aes_mk_test_vector tv = raw_aes_mk_test_vectors[0];
     TEST_ASSERT_SUCCESS(set_up_all_the_things(NULL, NULL, 0, tv.raw_key_len, tv.alg));
 
     for (int idx = 0; idx < sizeof(edk_gens)/sizeof(edk_generator); ++idx) {
@@ -234,7 +233,7 @@ int decrypt_data_key_multiple_edks() {
  * Same as the last test but omits the final (good) EDK from the list, so decryption fails.
  */
 int decrypt_data_key_no_good_edk() {
-    struct raw_aes_mk_test_vector tv = test_vectors[0];
+    struct raw_aes_mk_test_vector tv = raw_aes_mk_test_vectors[0];
     TEST_ASSERT_SUCCESS(set_up_all_the_things(NULL, NULL, 0, tv.raw_key_len, tv.alg));
 
     for (int idx = 0; idx < sizeof(edk_gens)/sizeof(edk_generator) - 1; ++idx) {

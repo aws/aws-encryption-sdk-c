@@ -20,17 +20,9 @@
 /**
  * Settings of the raw AES MK used to generate test vectors.
  */
-extern const uint8_t test_vector_master_key_id[39]; // includes null byte
-extern const uint8_t test_vector_provider_id[14];   // includes null byte
-extern const uint8_t test_vector_wrapping_key[32];  // no null terminator
-
-/**
- * aws_string *addresses* are values only known at runtime, even when defined with
- * AWS_STATIC_STRING_FROM_LITERAL, which prevents us from declaring static arrays
- * of strings. To get around this we define a function which adds the right set
- * of key-value pairs to the encryption context for each test vector.
- */
-typedef void (*enc_context_builder)(struct aws_hash_table *);
+extern const uint8_t raw_aes_mk_tv_master_key_id[39]; // includes null byte
+extern const uint8_t raw_aes_mk_tv_provider_id[14];   // includes null byte
+extern const uint8_t raw_aes_mk_tv_wrapping_key[32];  // no null terminator
 
 /**
  * Holds the data for one unencrypted/encrypted data key pair produced by the
@@ -44,10 +36,25 @@ struct raw_aes_mk_test_vector {
     const uint8_t * iv;
     const uint8_t * edk_bytes;
     size_t edk_bytes_len;
-    enc_context_builder ec_builder;
+    const char ** ec_keys;
+    const char ** ec_vals;
+    size_t num_ec_kv_pairs;
 };
 
-extern struct raw_aes_mk_test_vector test_vectors[];
+extern struct raw_aes_mk_test_vector raw_aes_mk_test_vectors[];
+
+/**
+ * Add all of the key-value pairs for this test vector to the encryption context.
+ * Assumes encryption context hash table has already been initialized.
+ *
+ * Warnings: current implementation only allows C-strings with no null bytes
+ * in the encryption context. Also on a memory allocation error, it is possible
+ * that some but not all pairs may have already been added to the table. But
+ * this is just test code, Jack.
+ */
+int set_test_vector_encryption_context(struct aws_allocator * alloc,
+                                       struct aws_hash_table * enc_context,
+                                       const struct raw_aes_mk_test_vector * tv);
 
 /**
  * Construct EDK that would be made by the raw AES MK that generated the test
@@ -71,9 +78,10 @@ extern struct raw_aes_mk_test_vector test_vectors[];
 struct aws_cryptosdk_edk build_test_edk_init(const uint8_t * edk_bytes, size_t edk_len, const uint8_t * iv);
 
 /**
- * A convenience wrapper around build_test_edk_init that gives the EDK of any test vector.
+ * Convenience wrappers around build_test_edk_init that give the EDK of any test vector.
  */
-struct aws_cryptosdk_edk edk_from_test_vector_init(int idx);
+struct aws_cryptosdk_edk edk_init_from_test_vector(struct raw_aes_mk_test_vector * tv);
+struct aws_cryptosdk_edk edk_init_from_test_vector_idx(int idx);
 
 /**
  * Returns true if the contents of all EDK byte buffers are identical, false otherwise.
