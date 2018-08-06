@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef AWS_CRYPTOSDK_TESTS_UNIT_ZERO_MK_H
-#define AWS_CRYPTOSDK_TESTS_UNIT_ZERO_MK_H
+#ifndef AWS_CRYPTOSDK_TESTS_LIB_ZERO_MK_H
+#define AWS_CRYPTOSDK_TESTS_LIB_ZERO_MK_H
 
 #include <aws/cryptosdk/materials.h>
 
@@ -35,4 +35,4 @@ struct aws_cryptosdk_mk * aws_cryptosdk_zero_mk_new();
  */
 void aws_cryptosdk_literally_null_edk(struct aws_cryptosdk_edk * edk);
 
-#endif // AWS_CRYPTOSDK_TESTS_UNIT_ZERO_MK_H
+#endif // AWS_CRYPTOSDK_TESTS_LIB_ZERO_MK_H

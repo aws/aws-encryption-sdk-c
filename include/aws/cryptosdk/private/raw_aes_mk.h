@@ -66,6 +66,13 @@ bool aws_cryptosdk_parse_provider_info(struct aws_cryptosdk_mk * mk,
                                        struct aws_byte_buf * iv,
                                        const struct aws_byte_buf * provider_info);
 
-
+/**
+ * Does everything that the raw AES MK's encrypt_data_key virtual function does
+ * except random generation of the IV. Used for testing with known inputs.
+ */
+int aws_cryptosdk_raw_aes_mk_encrypt_data_key_with_iv(
+    struct aws_cryptosdk_mk * mk,
+    struct aws_cryptosdk_encryption_materials * enc_mat,
+    const uint8_t * iv);
 
 #endif // AWS_CRYPTOSDK_PRIVATE_RAW_AES_MK_H

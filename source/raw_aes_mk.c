@@ -16,6 +16,7 @@
 #include <aws/cryptosdk/private/enc_context.h>
 #include <aws/cryptosdk/private/utils.h>
 #include <aws/cryptosdk/private/cipher.h>
+#include <aws/cryptosdk/private/materials.h>
 #include <assert.h>
 
 int aws_cryptosdk_serialize_provider_info_init(struct aws_allocator * alloc,
@@ -71,17 +72,89 @@ READ_ERR:
     return false;
 }
 
-static int raw_aes_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
-                                        struct aws_cryptosdk_encryption_materials * enc_mat) {
-    // TODO: implement
+int aws_cryptosdk_raw_aes_mk_encrypt_data_key_with_iv(struct aws_cryptosdk_mk * mk,
+                                                      struct aws_cryptosdk_encryption_materials * enc_mat,
+                                                      const uint8_t * iv) {
+    struct raw_aes_mk * self = (struct raw_aes_mk *)mk;
+
+    struct aws_byte_buf * data_key = &enc_mat->unencrypted_data_key;
+
+    const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(enc_mat->alg);
+    size_t data_key_len = props->data_key_len;
+
+    /* Failing this assert would mean that the length of the already generated data key was
+     * different than the data key length prescribed by the algorithm suite
+     */
+    assert(data_key_len == data_key->len);
+
+    struct aws_byte_buf aad;
+    if (aws_cryptosdk_serialize_enc_context_init(self->alloc, &aad, enc_mat->enc_context)) {
+        return AWS_OP_ERR;
+    }
+
+    struct aws_cryptosdk_edk edk = {{0}};
+    /* Encrypted data key bytes same length as unencrypted data key in GCM.
+     * enc_data_key field also includes tag afterward.
+     */
+    if (aws_byte_buf_init(self->alloc, &edk.enc_data_key, data_key_len + RAW_AES_MK_TAG_LEN)) {
+        aws_byte_buf_clean_up(&aad);
+        return AWS_OP_ERR;
+    }
+    struct aws_byte_buf edk_bytes = aws_byte_buf_from_array(edk.enc_data_key.buffer, data_key_len);
+    struct aws_byte_buf tag = aws_byte_buf_from_array(edk.enc_data_key.buffer + data_key_len, RAW_AES_MK_TAG_LEN);
+    if (aws_cryptosdk_aes_gcm_encrypt(&edk_bytes,
+                                      &tag,
+                                      aws_byte_cursor_from_buf(data_key),
+                                      aws_byte_cursor_from_array(iv, RAW_AES_MK_IV_LEN),
+                                      aws_byte_cursor_from_buf(&aad),
+                                      self->raw_key)) goto err;
+    edk.enc_data_key.len = edk.enc_data_key.capacity;
+
+    if (aws_cryptosdk_serialize_provider_info_init(self->alloc, &edk.provider_info, self->master_key_id, iv))
+        goto err;
+
+    if (aws_byte_buf_init(self->alloc, &edk.provider_id, self->provider_id->len)) goto err;
+    edk.provider_id.len = edk.provider_id.capacity;
+    struct aws_byte_cursor provider_id = aws_byte_cursor_from_buf(&edk.provider_id);
+    if (!aws_byte_cursor_write_from_whole_string(&provider_id, self->provider_id)) goto err;
+
+    if (aws_array_list_push_back(&enc_mat->encrypted_data_keys, &edk)) goto err;
+
+    aws_byte_buf_clean_up(&aad);
+    return AWS_OP_SUCCESS;
+
+err:
+    aws_cryptosdk_edk_clean_up(&edk);
+    aws_byte_buf_clean_up(&aad);
     return AWS_OP_ERR;
 }
 
 static int raw_aes_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
                                        struct aws_cryptosdk_encryption_materials * enc_mat) {
-    // TODO: implement
-    return AWS_OP_ERR;
+    uint8_t iv[RAW_AES_MK_IV_LEN];
+    if (aws_cryptosdk_genrandom(iv, RAW_AES_MK_IV_LEN)) return AWS_OP_ERR;
+
+    return aws_cryptosdk_raw_aes_mk_encrypt_data_key_with_iv(mk, enc_mat, iv);
 }
+
+static int raw_aes_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
+                                        struct aws_cryptosdk_encryption_materials * enc_mat) {
+    struct raw_aes_mk * self = (struct raw_aes_mk *)mk;
+
+    const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(enc_mat->alg);
+    size_t data_key_len = props->data_key_len;
+
+    if (aws_byte_buf_init(self->alloc, &enc_mat->unencrypted_data_key, data_key_len)) return AWS_OP_ERR;
+
+    if (aws_cryptosdk_genrandom(enc_mat->unencrypted_data_key.buffer, data_key_len)) {
+        aws_byte_buf_clean_up(&enc_mat->unencrypted_data_key);
+        return AWS_OP_ERR;
+    }
+    enc_mat->unencrypted_data_key.len = enc_mat->unencrypted_data_key.capacity;
+
+    return raw_aes_mk_encrypt_data_key(mk, enc_mat);
+}
+
 
 static int raw_aes_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
                                        struct aws_cryptosdk_decryption_materials * dec_mat,
