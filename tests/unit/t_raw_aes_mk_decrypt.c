@@ -118,13 +118,7 @@ static int set_up_all_the_things(const struct aws_string ** keys,
                                  enum aws_cryptosdk_aes_key_len raw_key_len,
                                  enum aws_cryptosdk_alg_id alg) {
     alloc = aws_default_allocator();
-    mk = aws_cryptosdk_raw_aes_mk_new(alloc,
-                                      raw_aes_mk_tv_master_key_id,
-                                      sizeof(raw_aes_mk_tv_master_key_id) - 1,
-                                      raw_aes_mk_tv_provider_id,
-                                      sizeof(raw_aes_mk_tv_provider_id) - 1,
-                                      raw_aes_mk_tv_wrapping_key,
-                                      raw_key_len);
+    mk = raw_aes_mk_tv_new(alloc, raw_key_len);
     TEST_ASSERT_ADDR_NOT_NULL(mk);
 
     TEST_ASSERT_INT_EQ(aws_hash_table_init(&enc_context, alloc, num_kv_pairs+1, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy),

@@ -41,14 +41,7 @@ static int put_stuff_in_encryption_context() {
 static int set_up_encrypt(enum aws_cryptosdk_aes_key_len raw_key_len,
                           enum aws_cryptosdk_alg_id alg) {
     alloc = aws_default_allocator();
-
-    mk = aws_cryptosdk_raw_aes_mk_new(alloc,
-                                      raw_aes_mk_tv_master_key_id,
-                                      sizeof(raw_aes_mk_tv_master_key_id) - 1,
-                                      raw_aes_mk_tv_provider_id,
-                                      sizeof(raw_aes_mk_tv_provider_id) - 1,
-                                      raw_aes_mk_tv_wrapping_key,
-                                      raw_key_len);
+    mk = raw_aes_mk_tv_new(alloc, raw_key_len);
     TEST_ASSERT_ADDR_NOT_NULL(mk);
 
     TEST_ASSERT_SUCCESS(aws_hash_table_init(&enc_context, alloc, 5, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy));
@@ -165,6 +158,8 @@ int generate_decrypt_data_key() {
  * 256, 192, and 128 bits. Same vectors as used in decrypt_data_key_test_vectors.
  */
 int encrypt_data_key_test_vectors() {
+    uint8_t data_key_dup[32]; // 32 = max data key length
+
     for (struct raw_aes_mk_test_vector * tv = raw_aes_mk_test_vectors; tv->data_key; ++tv) {
         const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(tv->alg);
 
@@ -172,7 +167,6 @@ int encrypt_data_key_test_vectors() {
         TEST_ASSERT_SUCCESS(set_test_vector_encryption_context(alloc, &enc_context, tv));
 
         // copy from constant memory because cleanup needs to zero it out
-        uint8_t data_key_dup[props->data_key_len];
         memcpy(data_key_dup, tv->data_key, props->data_key_len);
 
         enc_mat->unencrypted_data_key = aws_byte_buf_from_array(data_key_dup, props->data_key_len);

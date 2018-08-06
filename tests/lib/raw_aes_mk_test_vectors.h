@@ -18,15 +18,15 @@
 #include <aws/cryptosdk/materials.h>
 
 /**
- * Settings of the raw AES MK used to generate test vectors.
+ * Instantiate the raw AES MK that was used to generate the test vectors.
  */
-extern const uint8_t raw_aes_mk_tv_master_key_id[39]; // includes null byte
-extern const uint8_t raw_aes_mk_tv_provider_id[14];   // includes null byte
-extern const uint8_t raw_aes_mk_tv_wrapping_key[32];  // no null terminator
+struct aws_cryptosdk_mk * raw_aes_mk_tv_new(
+    struct aws_allocator * alloc,
+    enum aws_cryptosdk_aes_key_len raw_key_len);
 
 /**
  * Holds the data for one unencrypted/encrypted data key pair produced by the
- * raw AES MK with the settings above. Be sure to run 
+ * raw AES MK with the settings above.
  */
 struct raw_aes_mk_test_vector {
     enum aws_cryptosdk_aes_key_len raw_key_len;
