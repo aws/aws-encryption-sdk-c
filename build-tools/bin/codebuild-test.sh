@@ -24,6 +24,6 @@ build-tools/bin/codebuild-build-dependency https://github.com/awslabs/aws-sdk-cp
 mkdir build
 ls -l /deps/aws-c-common/install/lib/aws-c-common/cmake
 (cd build;
-    cmake -DCMAKE_PREFIX_PATH='/deps/aws-c-common/install;/deps/aws-sdk-cpp/install' .. &&
+    cmake -DVALGRIND_TEST_SUITE=ON -DCMAKE_PREFIX_PATH='/deps/aws-c-common/install;/deps/aws-sdk-cpp/install' .. &&
     make VERBOSE=1 &&
-    (make test || (ctest -V; exit 1)))
+    (make test || (ctest --output-on-failure -j8; exit 1)))

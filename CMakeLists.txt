@@ -32,6 +32,15 @@ set(USE_ASM TRUE
 set(SPECTRE_MITIGATIONS TRUE
     CACHE BOOL "Attempt to mitigate SPECTRE attacks, at a potential performance cost")
 
+option(VALGRIND_TEST_SUITE "Run the test suite under valgrind")
+set(VALGRIND_OPTIONS "" CACHE STRING "Additional options to pass to valgrind")
+
+if (VALGRIND_TEST_SUITE)
+    set(VALGRIND valgrind --error-exitcode=42 ${VALGRIND_OPTIONS})
+else()
+    set(VALGRIND)
+endif()
+
 find_package(aws-c-common REQUIRED)
 
 # C++ SDK
@@ -173,27 +182,28 @@ if(CURL_FOUND)
     target_include_directories(t_encrypt_compat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit ${CURL_INCLUDE_DIRS})
     target_sources(t_encrypt_compat PRIVATE ${UNIT_TEST_SRC_CPP})
     target_include_directories(t_encrypt_compat PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
-    add_test(integration_encrypt_compatibility t_encrypt_compat)
+    add_test(integration_encrypt_compatibility ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/t_encrypt_compat)
 endif(CURL_FOUND)
 
-add_test(cipher unit-test-suite cipher)
-add_test(header unit-test-suite header)
-add_test(materials unit-test-suite materials)
-add_test(enc_context unit-test-suite enc_context)
-add_test(encrypt unit-test-suite encrypt)
-add_test(raw_aes_mk unit-test-suite raw_aes_mk)
+add_test(cipher ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite cipher)
+add_test(header ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite header)
+add_test(materials ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite materials)
+add_test(enc_context ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite enc_context)
+add_test(encrypt ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite encrypt)
+add_test(raw_aes_mk ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite raw_aes_mk)
+add_test(multi_mkp ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite multi_mkp)
 
 set(TEST_DATA ${CMAKE_CURRENT_SOURCE_DIR}/tests/data)
 
 add_test(decrypt_aes128_hkdf
-    test_decrypt ${TEST_DATA}/ct_x_aes128_hkdf.bin ${TEST_DATA}/pt_x_aes128_hkdf.bin)
+    ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt ${TEST_DATA}/ct_x_aes128_hkdf.bin ${TEST_DATA}/pt_x_aes128_hkdf.bin)
 add_test(decrypt_aes128_hkdf_bad_header
-    test_decrypt --xfail ${TEST_DATA}/ct_x_aes128_hkdf_bad_header.bin ${TEST_DATA}/pt_x_aes128_hkdf.bin)
+    ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt --xfail ${TEST_DATA}/ct_x_aes128_hkdf_bad_header.bin ${TEST_DATA}/pt_x_aes128_hkdf.bin)
 add_test(decrypt_hello
-    test_decrypt ${TEST_DATA}/hello.bin ${TEST_DATA}/hello.bin.pt)
+    ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt ${TEST_DATA}/hello.bin ${TEST_DATA}/hello.bin.pt)
 add_test(decrypt_hello_tiny
-    test_decrypt ${TEST_DATA}/hello.tinyframes.bin ${TEST_DATA}/hello.bin.pt)
-add_test(decryption_vectors test_decryption_vectors)
+    ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt ${TEST_DATA}/hello.tinyframes.bin ${TEST_DATA}/hello.bin.pt)
+add_test(decryption_vectors ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decryption_vectors)
 
 install (FILES ${AWS_CRYPTOSDK_HEADERS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/aws/encryption-sdk")
 install (

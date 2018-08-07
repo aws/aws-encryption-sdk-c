@@ -16,6 +16,7 @@
 #include "counting_mk.h"
 #include <aws/cryptosdk/cipher.h>
 #include <aws/common/string.h>
+#include <aws/common/byte_buf.h>
 
 struct counting_mk {const struct aws_cryptosdk_mk_vt * vt;};
 
@@ -27,10 +28,20 @@ AWS_STATIC_STRING_FROM_LITERAL(prov_name, "test_counting");
 AWS_STATIC_STRING_FROM_LITERAL(prov_info, "test_counting_prov_info");
 AWS_STATIC_STRING_FROM_LITERAL(expected_edk, "\x40\x41\x42\x43\x44");
 
-static void set_edk(struct aws_cryptosdk_edk * edk) {
-    edk->provider_id = aws_string_to_buf(prov_name);
-    edk->provider_info = aws_string_to_buf(prov_info);
-    edk->enc_data_key = aws_string_to_buf(expected_edk);
+static int set_edk(struct aws_allocator *alloc, struct aws_cryptosdk_edk * edk) {
+    struct aws_byte_buf src;
+
+    src = aws_string_to_buf(prov_name);
+    if (aws_byte_buf_dup(alloc, &edk->provider_id, &src))
+        return AWS_OP_ERR;
+    src = aws_string_to_buf(prov_info);
+    if (aws_byte_buf_dup(alloc, &edk->provider_info, &src))
+        return AWS_OP_ERR;
+    src = aws_string_to_buf(expected_edk);
+    if (aws_byte_buf_dup(alloc, &edk->enc_data_key, &src))
+        return AWS_OP_ERR;
+
+    return AWS_OP_SUCCESS;
 }
 
 static inline bool str_eq_buf(const struct aws_string *s, const struct aws_byte_buf *buf) {
@@ -60,7 +71,9 @@ static int counting_mk_generate_data_key(
     }
 
     struct aws_cryptosdk_edk edk;
-    set_edk(&edk);
+    if (set_edk(enc_mat->alloc, &edk)) {
+        return AWS_OP_ERR;
+    }
 
     return aws_array_list_push_back(&enc_mat->encrypted_data_keys, &edk);
 }
@@ -82,7 +95,9 @@ static int counting_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
     }
 
     struct aws_cryptosdk_edk edk;
-    set_edk(&edk);
+    if (set_edk(enc_mat->alloc, &edk)) {
+        return AWS_OP_ERR;
+    }
 
     return aws_array_list_push_back(&enc_mat->encrypted_data_keys, &edk);
 }
