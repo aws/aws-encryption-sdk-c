@@ -226,7 +226,7 @@ static void raw_aes_mk_destroy(struct aws_cryptosdk_mk * mk) {
     struct raw_aes_mk * self = (struct raw_aes_mk *)mk;
     aws_string_destroy((void *)self->master_key_id);
     aws_string_destroy((void *)self->provider_id);
-    aws_string_secure_destroy((void *)self->raw_key);
+    aws_string_destroy_secure((void *)self->raw_key);
     aws_mem_release(self->alloc, self);
 }
 
@@ -250,13 +250,13 @@ struct aws_cryptosdk_mk * aws_cryptosdk_raw_aes_mk_new(struct aws_allocator * al
     if (!mk) return NULL;
     memset(mk, 0, sizeof(struct raw_aes_mk));
 
-    mk->master_key_id = aws_string_from_array_new(alloc, master_key_id, master_key_id_len);
+    mk->master_key_id = aws_string_new_from_array(alloc, master_key_id, master_key_id_len);
     if (!mk->master_key_id) goto oom_err;
 
-    mk->provider_id = aws_string_from_array_new(alloc, provider_id, provider_id_len);
+    mk->provider_id = aws_string_new_from_array(alloc, provider_id, provider_id_len);
     if (!mk->provider_id) goto oom_err;
 
-    mk->raw_key = aws_string_from_array_new(alloc, raw_key_bytes, key_len);
+    mk->raw_key = aws_string_new_from_array(alloc, raw_key_bytes, key_len);
     if (!mk->raw_key) goto oom_err;
 
     mk->vt = &raw_aes_mk_vt;

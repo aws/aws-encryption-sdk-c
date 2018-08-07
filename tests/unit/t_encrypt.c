@@ -68,10 +68,14 @@ static void init_bufs(size_t pt_len) {
 
 static void free_bufs() {
     aws_cryptosdk_session_destroy(session);
+    aws_cryptosdk_cmm_destroy(cmm);
+    aws_cryptosdk_mkp_destroy(mkp);
+    cmm = NULL;
+    mkp = NULL;
     session = NULL;
 
-    free(pt_buf);
-    free(ct_buf);
+    aws_mem_release(aws_default_allocator(), pt_buf);
+    aws_mem_release(aws_default_allocator(), ct_buf);
     pt_size = ct_buf_size = ct_size = 0;
     pt_buf = ct_buf = NULL;
 }

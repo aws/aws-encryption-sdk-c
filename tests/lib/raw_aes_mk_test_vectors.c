@@ -60,8 +60,8 @@ int set_test_vector_encryption_context(struct aws_allocator * alloc,
                                        const struct raw_aes_mk_test_vector * tv) {
     for (int idx = 0; idx < tv->num_ec_kv_pairs; ++idx) {
         struct aws_hash_element * elem;
-        const struct aws_string * key = aws_string_from_c_str_new(alloc, tv->ec_keys[idx]);
-        const struct aws_string * val = aws_string_from_c_str_new(alloc, tv->ec_vals[idx]);
+        const struct aws_string * key = aws_string_new_from_c_str(alloc, tv->ec_keys[idx]);
+        const struct aws_string * val = aws_string_new_from_c_str(alloc, tv->ec_vals[idx]);
         if (!key || !val || aws_hash_table_create(enc_context, (void *)key, &elem, NULL)) {
             aws_string_destroy((void *)key);
             aws_string_destroy((void *)val);

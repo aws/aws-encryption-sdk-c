@@ -64,8 +64,8 @@ static int fill_request(
         const struct aws_cryptosdk_hdr_aad *aad = &session->header.aad_tbl[i];
 
 
-        key = aws_string_from_array_new(session->alloc, aad->key.buffer, aad->key.len);
-        value = aws_string_from_array_new(session->alloc, aad->value.buffer, aad->value.len);
+        key = aws_string_new_from_array(session->alloc, aad->key.buffer, aad->key.len);
+        value = aws_string_new_from_array(session->alloc, aad->value.buffer, aad->value.len);
 
         struct aws_hash_element *pElem;
 
