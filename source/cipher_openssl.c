@@ -418,7 +418,9 @@ int aws_cryptosdk_sig_sign_start_keygen(
     EC_KEY *keypair = NULL;
 
     *pctx = NULL;
-    *pub_key = NULL;
+    if (pub_key) {
+        *pub_key = NULL;
+    }
 
     if (!props->impl->curve_name) {
         return AWS_OP_SUCCESS;
@@ -438,7 +440,7 @@ int aws_cryptosdk_sig_sign_start_keygen(
         goto err;
     }
 
-    if (serialize_pubkey(alloc, keypair, pub_key)) {
+    if (pub_key && serialize_pubkey(alloc, keypair, pub_key)) {
         goto rethrow;
     }
 

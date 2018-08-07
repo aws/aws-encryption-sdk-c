@@ -47,4 +47,12 @@
 #define AWS_CRYPTOSDK_STATIC_INLINE static inline
 #endif
 
+/*
+ * AWS_CRYPTOSDK_TEST_STATIC allows otherwise-static methods to be marked as exposed
+ * to unit tests (but not integration tests) only.
+ */
+#ifndef AWS_CRYPTOSDK_TEST_STATIC
+#define AWS_CRYPTOSDK_TEST_STATIC static
+#endif
+
 #endif /* AWS_CRYPTOSDK_EXPORTS_H */
