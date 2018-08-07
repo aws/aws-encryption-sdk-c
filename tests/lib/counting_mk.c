@@ -32,13 +32,13 @@ static int set_edk(struct aws_allocator *alloc, struct aws_cryptosdk_edk * edk) 
     struct aws_byte_buf src;
 
     src = aws_string_to_buf(prov_name);
-    if (aws_byte_buf_dup(alloc, &edk->provider_id, &src))
+    if (aws_byte_buf_init_copy(alloc, &edk->provider_id, &src))
         return AWS_OP_ERR;
     src = aws_string_to_buf(prov_info);
-    if (aws_byte_buf_dup(alloc, &edk->provider_info, &src))
+    if (aws_byte_buf_init_copy(alloc, &edk->provider_info, &src))
         return AWS_OP_ERR;
     src = aws_string_to_buf(expected_edk);
-    if (aws_byte_buf_dup(alloc, &edk->enc_data_key, &src))
+    if (aws_byte_buf_init_copy(alloc, &edk->enc_data_key, &src))
         return AWS_OP_ERR;
 
     return AWS_OP_SUCCESS;
