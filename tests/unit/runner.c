@@ -38,6 +38,7 @@ struct test_case *test_groups[] = {
     trailing_sig_test_cases,
     raw_rsa_keyring_decrypt_test_cases,
     raw_rsa_keyring_encrypt_test_cases,
+    local_cache_test_cases,
     NULL
 };
 

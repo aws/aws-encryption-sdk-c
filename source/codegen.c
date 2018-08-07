@@ -26,3 +26,4 @@
 #include <aws/cryptosdk/multi_keyring.h>
 #include <aws/cryptosdk/raw_aes_keyring.h>
 #include <aws/cryptosdk/session.h>
+#include <aws/cryptosdk/cache.h>
