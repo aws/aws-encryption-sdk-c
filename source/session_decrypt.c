@@ -120,7 +120,7 @@ static int validate_header(struct aws_cryptosdk_session *session) {
 }
 
 int unwrap_keys(
-    struct aws_cryptosdk_session * restrict session
+    struct aws_cryptosdk_session * AWS_RESTRICT session
 ) {
     struct aws_hash_table enc_context;
     struct aws_cryptosdk_decryption_request request;

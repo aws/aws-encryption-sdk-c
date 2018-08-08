@@ -103,11 +103,12 @@ static void curl_init() {
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
     curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_callback);
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
 
     // We're sending a raw buffer as the body of the HTTP request, not an HTML form body.
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, NULL);
 
-    struct curl_slist *headers = curl_slist_append(NULL, "Transfer-Encoding: chunked");
+    headers = curl_slist_append(NULL, "Transfer-Encoding: chunked");
 
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, curl_error_buf);
@@ -127,11 +128,18 @@ static int try_decrypt(
     const char *file,
     int line
 ) {
+    (void)line; (void)file;
+
     post_buf = ciphertext;
     post_buf_remain = ciphertext_size;
     recv_buf_used = 0;
 
     CURLcode result = curl_easy_perform(curl);
+
+    if (result != CURLE_OK) {
+        fprintf(stderr, "CURL error: %s\n", curl_error_buf);
+        return 1;
+    }
 
     long http_code;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
@@ -139,11 +147,6 @@ static int try_decrypt(
         fprintf(stderr, "Error from server (code %ld):\n", http_code);
         fwrite(recv_buf, recv_buf_used, 1, stderr);
         fprintf(stderr, "\n");
-        return 1;
-    }
-
-    if (result != CURLE_OK) {
-        fprintf(stderr, "CURL error: %s\n", curl_error_buf);
         return 1;
     }
 
@@ -210,6 +213,7 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
     if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm))) abort();
 
     if (early_size) aws_cryptosdk_session_set_message_size(session, plaintext_sz);
+    aws_cryptosdk_session_set_frame_size(session, framesize);
 
     size_t pt_offset = 0, ct_offset = 0;
 
@@ -242,7 +246,7 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
         // than our limit, then something is wrong.
         aws_cryptosdk_session_estimate_buf(session, &ct_need, &pt_need);
 
-        if (pt_need > plaintext_sz && ct_need <= ct_available && !pt_consumed && !ct_generated) {
+        if (pt_need > plaintext_sz - pt_offset && ct_need <= ct_available && !pt_consumed && !ct_generated) {
             // Hmm... it seems to want more plaintext than we have available.
             // If we haven't set the precise size yet, then this is
             // understandable; it's also possible that we've not gotten to the

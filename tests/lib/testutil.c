@@ -19,6 +19,10 @@
 #include <errno.h>
 #include "testutil.h"
 
+#ifdef _MSC_VER
+#pragma warning(disable: 4774) // printf format string is not a string literal
+#endif
+
 void hexdump(FILE *fd, const uint8_t *buf, size_t size) {
     for (size_t row = 0; row < size; row += 16) {
         fprintf(fd, "%08zx ", row);

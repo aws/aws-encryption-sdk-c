@@ -67,7 +67,7 @@ static int counting_mk_generate_data_key(
 
     enc_mat->unencrypted_data_key.len = aws_cryptosdk_alg_props(enc_mat->alg)->data_key_len;
     for (size_t i = 0; i < enc_mat->unencrypted_data_key.len; i++) {
-        enc_mat->unencrypted_data_key.buffer[i] = i;
+        enc_mat->unencrypted_data_key.buffer[i] = (uint8_t)i;
     }
 
     struct aws_cryptosdk_edk edk;
@@ -121,7 +121,7 @@ static int counting_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
 
             dec_mat->unencrypted_data_key.len = props->data_key_len;
             for (size_t i = 0; i < dec_mat->unencrypted_data_key.len; i++) {
-                dec_mat->unencrypted_data_key.buffer[i] = i;
+                dec_mat->unencrypted_data_key.buffer[i] = (uint8_t)i;
             }
 
             return AWS_OP_SUCCESS;

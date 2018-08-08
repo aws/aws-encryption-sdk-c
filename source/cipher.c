@@ -17,7 +17,6 @@
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
 #include <openssl/rand.h>
-#include <arpa/inet.h>
 #include <assert.h>
 #include <stdbool.h>
 
@@ -292,13 +291,13 @@ static int update_frame_aad(
     if (!EVP_CipherUpdate(ctx, NULL, &ignored, message_id, MSG_ID_LEN)) return 0;
     if (!EVP_CipherUpdate(ctx, NULL, &ignored, (const uint8_t *)aad_string, strlen(aad_string))) return 0;
 
-    seqno = htonl(seqno);
+    seqno = aws_hton32(seqno);
     if (!EVP_CipherUpdate(ctx, NULL, &ignored, (const uint8_t *)&seqno, sizeof(seqno))) return 0;
 
     uint32_t size[2];
 
-    size[0] = htonl(data_size >> 32);
-    size[1] = htonl(data_size & 0xFFFFFFFFUL);
+    size[0] = aws_hton32(data_size >> 32);
+    size[1] = aws_hton32(data_size & 0xFFFFFFFFUL);
 
     return EVP_CipherUpdate(ctx, NULL, &ignored, (const uint8_t *)size, sizeof(size));
 }

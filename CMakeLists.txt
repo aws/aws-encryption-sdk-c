@@ -41,11 +41,12 @@ else()
     set(VALGRIND)
 endif()
 
-find_package(aws-c-common REQUIRED)
+find_package(aws-c-common CONFIG REQUIRED)
 
 # C++ SDK
-find_package(AWSSDK)
-link_directories("${AWSSDK_LIB_DIR}")
+
+find_package(aws-cpp-sdk-core CONFIG)
+find_package(aws-cpp-sdk-kms CONFIG)
 
 if(USE_ASM)
     CHECK_CXX_SOURCE_COMPILES("
@@ -66,10 +67,40 @@ CHECK_CXX_COMPILER_FLAG("-pedantic" HAS_FLAG_PEDANTIC)
 CHECK_CXX_COMPILER_FLAG("-Werror" HAS_FLAG_WERROR)
 CHECK_CXX_COMPILER_FLAG("-Wno-missing-field-initializers" HAS_FLAG_NO_MISSING_FIELD_INITIALIZERS)
 
-if (HAS_FLAG_WALL)
+if (MSVC)
+    add_compile_options(/W3 /WX)
+
+# MSVC complains if we use C99-standard functions like strerror() instead of their
+# proprietary "secure" versions such as strerror_s. Since we need to be portable, disable
+# those warnings.
+    add_definitions("-D_CRT_SECURE_NO_WARNINGS")
+
+# Suppress various warnings
+# TODO: Fix these?
+	add_compile_options(/wd4820) # Warns for struct padding
+	add_compile_options(/wd4255) # Warns for missing (void) in function definitions
+	add_compile_options(/wd4388) # Signed/unsigned comparisons
+	add_compile_options(/wd4267 /wd4242 /wd4244) # Narrowing implicit conversions of int types
+	add_compile_options(/wd4245) # Implicit sign extension, unsigned to signed conversion
+	add_compile_options(/wd4221) # obj = { .foo = nonconstant() }
+
+# MSVC warnings about C99 standard stuff
+	add_compile_options(/wd4204) # arr = { 0, 1, 2 } initializers
+
+# MSVC warnings that we don't want
+	add_compile_options(/wd4706) # assignment within conditional
+	add_compile_options(/wd5045) # "Compiler will insert spectre mitigations if /Qspectre specified"
+
+	if (SPECTRE_MITIGATIONS)
+		add_compile_options(/Qspectre)
+	endif()
+
+endif()
+
+if (HAS_FLAG_WALL AND NOT MSVC)
     add_compile_options(-Wall)
 endif()
-if (HAS_FLAG_PEDANTIC)
+if (HAS_FLAG_PEDANTIC AND NOT MSVC)
     add_compile_options(-pedantic)
 endif()
 if (HAS_FLAG_WERROR)
@@ -144,7 +175,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${OPENSSL_INCLUDE_DIR}
 )
 
-target_link_libraries(aws-encryption-sdk ${PLATFORM_LIBS} aws-c-common ${OPENSSL_CRYPTO_LIBRARY})
+target_link_libraries(aws-encryption-sdk PRIVATE ${PLATFORM_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
+target_link_libraries(aws-encryption-sdk PUBLIC aws-c-common)
 
 file(GLOB UNIT_TEST_SRC "tests/unit/*.c")
 file(GLOB UNIT_TEST_HDRS "tests/*.h")
@@ -244,4 +276,3 @@ if (BUILD_DOC)
         message(FATAL_ERROR "Doxygen not found. Documentation can't be generated")
     endif (DOXYGEN_FOUND)
 endif(BUILD_DOC)
-
