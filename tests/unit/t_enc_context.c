@@ -162,7 +162,7 @@ int serialize_valid_enc_context_unsigned_comparison() {
 int serialize_error_when_element_too_long() {
     struct aws_allocator * alloc = aws_default_allocator();
 
-    uint8_t bytes[UINT16_MAX+1];
+    uint8_t bytes[UINT16_MAX+1] = {0};
     const struct aws_string * str = aws_string_new_from_array(alloc, bytes, UINT16_MAX+1);
     TEST_ASSERT_ADDR_NOT_NULL(str);
 
@@ -185,7 +185,7 @@ int serialize_error_when_element_too_long() {
 int serialize_error_when_serialized_len_too_long() {
     struct aws_allocator * alloc = aws_default_allocator();
 #define TWO_TO_THE_FIFTEENTH (1 << 15)
-    uint8_t bytes[TWO_TO_THE_FIFTEENTH];
+    uint8_t bytes[TWO_TO_THE_FIFTEENTH] = {0};
     const struct aws_string * str = aws_string_new_from_array(alloc, bytes, TWO_TO_THE_FIFTEENTH);
     TEST_ASSERT_ADDR_NOT_NULL(str);
 
@@ -219,7 +219,7 @@ int serialize_valid_enc_context_max_length() {
        0 bytes: value field (empty string)
      */
 #define LONG_ARR_LEN (UINT16_MAX - 6)
-    uint8_t arr[LONG_ARR_LEN];
+    uint8_t arr[LONG_ARR_LEN] = {0};
     const struct aws_string * key = aws_string_new_from_array(alloc, arr, LONG_ARR_LEN);
     TEST_ASSERT_ADDR_NOT_NULL(key);
 
@@ -243,7 +243,7 @@ int serialize_error_when_too_many_elements() {
     TEST_ASSERT_INT_EQ(aws_hash_table_init(&enc_context, alloc, (size_t)UINT16_MAX + 10, aws_hash_string, aws_string_eq, aws_string_destroy, NULL),
                        AWS_OP_SUCCESS);
 
-    char buf[6];
+    char buf[6] = {0};
     for (size_t idx = 0; idx < (1 << 16); ++idx) {
         int was_created = 0;
         struct aws_hash_element * elem;
