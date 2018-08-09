@@ -307,17 +307,15 @@ static inline int aws_cryptosdk_kr_decrypt_data_key(struct aws_cryptosdk_kr * kr
 
 
 /**
- * Allocates a new encryption materials object and pre-allocates the list of EDKs to the size specified by
- * num_keys. num_keys does not need to be an exact number of EDKS but only an estimate, as the list can
- * resize later. Note that the list of EDKs will be empty and that no memory will be allocated to any byte
- * buffers in that list, nor will memory be allocated to the unencrypted data key buffer. They will only be
- * allocated when individual keys are generated or encrypted by other calls to the KR.
+ * Allocates a new encryption materials object, including allocating memory to the list of EDKs. The list of
+ * EDKs will be empty and no memory will be allocated to any byte buffers in that list, nor will memory be
+ * allocated to the unencrypted data key buffer. They will only be allocated when individual keys are generated
+ * or encrypted by other calls to the KR.
  *
  * On failure, returns NULL and an internal AWS error code is set.
  */
 struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_new(struct aws_allocator * alloc,
-                                                                                   enum aws_cryptosdk_alg_id alg,
-                                                                                   size_t num_keys);
+                                                                                   enum aws_cryptosdk_alg_id alg);
 
 /**
  * Deallocates all memory associated with the encryption materials object including the object itself.

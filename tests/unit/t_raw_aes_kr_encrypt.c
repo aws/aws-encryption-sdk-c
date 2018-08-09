@@ -46,7 +46,7 @@ static int set_up_encrypt(enum aws_cryptosdk_aes_key_len raw_key_len,
 
     TEST_ASSERT_SUCCESS(aws_hash_table_init(&enc_context, alloc, 5, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy));
 
-    enc_mat = aws_cryptosdk_encryption_materials_new(alloc, alg, 1);
+    enc_mat = aws_cryptosdk_encryption_materials_new(alloc, alg);
     TEST_ASSERT_ADDR_NOT_NULL(enc_mat);
     enc_mat->enc_context = &enc_context;
 
