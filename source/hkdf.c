@@ -13,19 +13,18 @@
  * permissions and limitations under the License.
  */
 #include <assert.h>
-#include <openssl/evp.h>
-#include <openssl/hmac.h>
-#include <openssl/opensslv.h>
-
 #include <aws/common/byte_buf.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/hkdf.h>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
+#include <openssl/opensslv.h>
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 
 static int aws_cryptosdk_hkdf_extract(
     uint8_t *prk,
-    unsigned int *prk_len,
+    size_t *prk_len,
     enum aws_cryptosdk_sha_version which_sha,
     const struct aws_byte_buf *salt,
     const struct aws_byte_buf *ikm) {
@@ -42,7 +41,7 @@ static int aws_cryptosdk_hkdf_extract(
         mysalt_len = EVP_MAX_MD_SIZE;
     }
 
-    if (!HMAC(evp_md, mysalt, mysalt_len, ikm->buffer, ikm->len, prk, prk_len)) {
+    if (!HMAC(evp_md, mysalt, mysalt_len, ikm->buffer, ikm->len, prk, (unsigned int *)prk_len)) {
         aws_secure_zero(prk, sizeof(prk));
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
@@ -57,12 +56,12 @@ static int aws_cryptosdk_hkdf_expand(
     const struct aws_byte_buf *info) {
     HMAC_CTX ctx;
     uint8_t t[EVP_MAX_MD_SIZE];
-    unsigned int n     = 0;
-    unsigned int t_len = 0;
-    unsigned int bytes_to_write;
-    unsigned int bytes_remaining = okm->len;
-    const EVP_MD *evp_md         = (which_sha == SHA256) ? EVP_sha256() : EVP_sha384();
-    const size_t hash_len        = EVP_MD_size(evp_md);
+    size_t n     = 0;
+    size_t t_len = 0;
+    size_t bytes_to_write;
+    size_t bytes_remaining = okm->len;
+    const EVP_MD *evp_md   = (which_sha == SHA256) ? EVP_sha256() : EVP_sha384();
+    const size_t hash_len  = EVP_MD_size(evp_md);
 
     HMAC_CTX_init(&ctx);
 
@@ -77,7 +76,7 @@ static int aws_cryptosdk_hkdf_expand(
         }
         if (!HMAC_Update(&ctx, info->buffer, info->len)) goto err;
         if (!HMAC_Update(&ctx, &idx, 1)) goto err;
-        if (!HMAC_Final(&ctx, t, &t_len)) goto err;
+        if (!HMAC_Final(&ctx, t, ((unsigned int *)&t_len))) goto err;
 
         assert(t_len == hash_len);
         bytes_to_write = bytes_remaining < hash_len ? bytes_remaining : hash_len;
@@ -134,7 +133,7 @@ int aws_cryptosdk_hkdf(
     assert(which_sha == SHA256 || which_sha == SHA384);
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
     uint8_t prk[EVP_MAX_MD_SIZE];
-    unsigned int prk_len;
+    size_t prk_len;
     if (aws_cryptosdk_hkdf_extract(prk, &prk_len, which_sha, salt, ikm)) goto err;
     if (aws_cryptosdk_hkdf_expand(okm, which_sha, prk, prk_len, info)) goto err;
     aws_secure_zero(prk, sizeof(prk));
