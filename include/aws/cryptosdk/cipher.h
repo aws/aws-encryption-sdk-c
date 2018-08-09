@@ -18,6 +18,7 @@
 
 #include <aws/common/string.h>
 #include <aws/cryptosdk/header.h>
+#include <aws/cryptosdk/hkdf.h>
 
 enum aws_cryptosdk_aes_key_len {
     AWS_CRYPTOSDK_AES_128 = 128/8,
@@ -38,6 +39,7 @@ struct aws_cryptosdk_alg_properties {
     size_t data_key_len, content_key_len, iv_len, tag_len;
 
     enum aws_cryptosdk_alg_id alg_id;
+    enum aws_cryptosdk_sha_version which_sha;
 };
 
 const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryptosdk_alg_id alg_id);

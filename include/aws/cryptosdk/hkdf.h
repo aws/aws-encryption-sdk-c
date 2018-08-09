@@ -18,10 +18,10 @@
 
 #include "aws/common/byte_buf.h"
 
-typedef enum SHAversion {
+enum aws_cryptosdk_sha_version {
     SHA256,
     SHA384 
-} SHAversion;
+};
 
 /*
  *  This function performs the HKDF extract then expand steps as described in
@@ -29,7 +29,7 @@ typedef enum SHAversion {
  */
 int aws_cryptosdk_hkdf(
     struct aws_byte_buf *okm,
-    SHAversion whichsha,
+    enum aws_cryptosdk_sha_version which_sha,
     const struct aws_byte_buf *salt,
     const struct aws_byte_buf *ikm,
     const struct aws_byte_buf *info);

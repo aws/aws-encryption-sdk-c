@@ -33,7 +33,7 @@ struct aws_cryptosdk_alg_impl {
 
 const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryptosdk_alg_id alg_id) {
 #define EVP_NULL NULL
-#define STATIC_ALG_PROPS(alg_id_v, md, cipher, dk_len_v, iv_len_v, tag_len_v) \
+#define STATIC_ALG_PROPS(alg_id_v, md, cipher, dk_len_v, iv_len_v, tag_len_v, which_sha_v) \
     case alg_id_v: { \
         static const struct aws_cryptosdk_alg_impl impl = { \
             .md_ctor = (EVP_##md), \
@@ -48,31 +48,32 @@ const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryp
             .content_key_len = (dk_len_v)/8, \
             .iv_len = (iv_len_v), \
             .tag_len = (tag_len_v), \
+            .which_sha = (which_sha_v), \
             .alg_id = (alg_id_v) \
         }; \
         return &props; \
     }
     switch (alg_id) {
         STATIC_ALG_PROPS(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-            NULL, aes_128_gcm, 128, 12, 16);
+            NULL, aes_128_gcm, 128, 12, 16, -1); // -1 to represent aws_crypto_sdk_sha_version for KDF is none
         STATIC_ALG_PROPS(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-            sha256, aes_128_gcm, 128, 12, 16);
+            sha256, aes_128_gcm, 128, 12, 16, SHA256);
         STATIC_ALG_PROPS(AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-            NULL, aes_192_gcm, 192, 12, 16);
+            NULL, aes_192_gcm, 192, 12, 16, -1);  // -1 to represent aws_crypto_sdk_sha_version for KDF is none
         STATIC_ALG_PROPS(AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-            sha256, aes_192_gcm, 192, 12, 16);
+            sha256, aes_192_gcm, 192, 12, 16, SHA256);
         STATIC_ALG_PROPS(AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-            NULL, aes_256_gcm, 256, 12, 16);
+            NULL, aes_256_gcm, 256, 12, 16, -1);  // -1 to represent aws_crypto_sdk_sha_version for KDF is none
         STATIC_ALG_PROPS(AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-            sha256, aes_256_gcm, 256, 12, 16);
+            sha256, aes_256_gcm, 256, 12, 16, SHA256);
 #if 0
         // Not yet supported
         STATIC_ALG_PROPS(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
-            sha256, aes_128_gcm, 128, 12, 16);
+            sha256, aes_128_gcm, 128, 12, 16, SHA256);
         STATIC_ALG_PROPS(AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
-            sha384, aes_192_gcm, 192, 12, 16);
+            sha384, aes_192_gcm, 192, 12, 16, SHA384);
         STATIC_ALG_PROPS(AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
-            sha384, aes_256_gcm, 256, 12, 16);
+            sha384, aes_256_gcm, 256, 12, 16, SHA384);
 #endif
         default:
             return NULL;
@@ -100,13 +101,12 @@ int aws_cryptosdk_derive_key(
     info[0] = alg_id >> 8;
     info[1] = alg_id & 0xFF;
     memcpy(&info[2], message_id, sizeof(info) - 2);
-    SHAversion whichsha = SHA256;
     const uint8_t salt[EVP_MAX_MD_SIZE];
     struct aws_byte_buf myokm = aws_byte_buf_from_array(content_key->keybuf, outlen);
     const struct aws_byte_buf mysalt = aws_byte_buf_from_array(salt, 0);
     const struct aws_byte_buf myikm = aws_byte_buf_from_array(data_key->keybuf, props->data_key_len);
     const struct aws_byte_buf myinfo = aws_byte_buf_from_array(info, MSG_ID_LEN + 2);
-    return aws_cryptosdk_hkdf(&myokm, whichsha, &mysalt, &myikm, &myinfo);
+    return aws_cryptosdk_hkdf(&myokm, props->which_sha, &mysalt, &myikm, &myinfo);
 }
 
 static EVP_CIPHER_CTX *evp_gcm_cipher_init(

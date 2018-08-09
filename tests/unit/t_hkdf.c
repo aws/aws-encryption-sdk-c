@@ -16,7 +16,7 @@
 #include "aws/cryptosdk/hkdf.h"
 #include "testing.h"
 struct hkdf_test_vectors {
-    SHAversion whichsha;
+    enum aws_cryptosdk_sha_version which_sha;
     const uint8_t *ikm;
     size_t ikm_len;
     const uint8_t *salt;
@@ -132,7 +132,7 @@ static const uint8_t tv_5_okm_desired[] = { 0xc8, 0xc9, 0x6e, 0x71, 0x0f, 0x89, 
                                             0x1c, 0xea, 0x56, 0x70, 0x41, 0x5b, 0x52, 0x84, 0x9c };
 
 struct hkdf_test_vectors tv[] = {
-    { .whichsha    = SHA256,
+    { .which_sha    = SHA256,
       .ikm         = tv_0_ikm,
       .ikm_len     = 22,
       .salt        = tv_0_salt,
@@ -142,7 +142,7 @@ struct hkdf_test_vectors tv[] = {
       .okm_desired = tv_0_okm_desired,
       .okm_len     = 42 },
 
-    { .whichsha    = SHA256,
+    { .which_sha    = SHA256,
       .ikm         = tv_1_ikm,
       .ikm_len     = 80,
       .salt        = tv_1_salt,
@@ -152,7 +152,7 @@ struct hkdf_test_vectors tv[] = {
       .okm_desired = tv_1_okm_desired,
       .okm_len     = 82 },
 
-    { .whichsha    = SHA256,
+    { .which_sha    = SHA256,
       .ikm         = tv_2_ikm,
       .ikm_len     = 22,
       .salt        = NULL,
@@ -162,7 +162,7 @@ struct hkdf_test_vectors tv[] = {
       .okm_desired = tv_2_okm_desired,
       .okm_len     = 42 },
 
-    { .whichsha    = SHA384,
+    { .which_sha    = SHA384,
       .ikm         = tv_3_ikm,
       .ikm_len     = 22,
       .salt        = tv_3_salt,
@@ -172,7 +172,7 @@ struct hkdf_test_vectors tv[] = {
       .okm_desired = tv_3_okm_desired,
       .okm_len     = 42 },
 
-    { .whichsha    = SHA384,
+    { .which_sha    = SHA384,
       .ikm         = tv_4_ikm,
       .ikm_len     = 80,
       .salt        = tv_4_salt,
@@ -182,7 +182,7 @@ struct hkdf_test_vectors tv[] = {
       .okm_desired = tv_4_okm_desired,
       .okm_len     = 82 },
 
-    { .whichsha    = SHA384,
+    { .which_sha    = SHA384,
       .ikm         = tv_5_ikm,
       .ikm_len     = 22,
       .salt        = NULL,
@@ -203,7 +203,7 @@ int test_hkdf() {
         const struct aws_byte_buf myikm  = aws_byte_buf_from_array(tv[i].ikm, tv[i].ikm_len);
         const struct aws_byte_buf myinfo = aws_byte_buf_from_array(tv[i].info, tv[i].info_len);
 
-        if (aws_cryptosdk_hkdf(&myokm, tv[i].whichsha, &mysalt, &myikm, &myinfo)) return AWS_OP_ERR;
+        if (aws_cryptosdk_hkdf(&myokm, tv[i].which_sha, &mysalt, &myikm, &myinfo)) return AWS_OP_ERR;
         if (memcmp(tv[i].okm_desired, myokm.buffer, myokm.len) != 0) return AWS_OP_ERR;
     }
     return AWS_OP_SUCCESS;
