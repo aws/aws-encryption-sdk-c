@@ -32,11 +32,21 @@ set(USE_ASM TRUE
 set(SPECTRE_MITIGATIONS TRUE
     CACHE BOOL "Attempt to mitigate SPECTRE attacks, at a potential performance cost")
 
-find_package(aws-c-common REQUIRED)
+option(VALGRIND_TEST_SUITE "Run the test suite under valgrind")
+set(VALGRIND_OPTIONS "" CACHE STRING "Additional options to pass to valgrind")
+
+if (VALGRIND_TEST_SUITE)
+    set(VALGRIND valgrind --error-exitcode=42 ${VALGRIND_OPTIONS})
+else()
+    set(VALGRIND)
+endif()
+
+find_package(aws-c-common CONFIG REQUIRED)
 
 # C++ SDK
-find_package(AWSSDK)
-link_directories("${AWSSDK_LIB_DIR}")
+
+find_package(aws-cpp-sdk-core CONFIG)
+find_package(aws-cpp-sdk-kms CONFIG)
 
 if(USE_ASM)
     CHECK_CXX_SOURCE_COMPILES("
@@ -57,10 +67,40 @@ CHECK_CXX_COMPILER_FLAG("-pedantic" HAS_FLAG_PEDANTIC)
 CHECK_CXX_COMPILER_FLAG("-Werror" HAS_FLAG_WERROR)
 CHECK_CXX_COMPILER_FLAG("-Wno-missing-field-initializers" HAS_FLAG_NO_MISSING_FIELD_INITIALIZERS)
 
-if (HAS_FLAG_WALL)
+if (MSVC)
+    add_compile_options(/W3 /WX)
+
+# MSVC complains if we use C99-standard functions like strerror() instead of their
+# proprietary "secure" versions such as strerror_s. Since we need to be portable, disable
+# those warnings.
+    add_definitions("-D_CRT_SECURE_NO_WARNINGS")
+
+# Suppress various warnings
+# TODO: Fix these?
+	add_compile_options(/wd4820) # Warns for struct padding
+	add_compile_options(/wd4255) # Warns for missing (void) in function definitions
+	add_compile_options(/wd4388) # Signed/unsigned comparisons
+	add_compile_options(/wd4267 /wd4242 /wd4244) # Narrowing implicit conversions of int types
+	add_compile_options(/wd4245) # Implicit sign extension, unsigned to signed conversion
+	add_compile_options(/wd4221) # obj = { .foo = nonconstant() }
+
+# MSVC warnings about C99 standard stuff
+	add_compile_options(/wd4204) # arr = { 0, 1, 2 } initializers
+
+# MSVC warnings that we don't want
+	add_compile_options(/wd4706) # assignment within conditional
+	add_compile_options(/wd5045) # "Compiler will insert spectre mitigations if /Qspectre specified"
+
+	if (SPECTRE_MITIGATIONS)
+		add_compile_options(/Qspectre)
+	endif()
+
+endif()
+
+if (HAS_FLAG_WALL AND NOT MSVC)
     add_compile_options(-Wall)
 endif()
-if (HAS_FLAG_PEDANTIC)
+if (HAS_FLAG_PEDANTIC AND NOT MSVC)
     add_compile_options(-pedantic)
 endif()
 if (HAS_FLAG_WERROR)
@@ -135,7 +175,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${OPENSSL_INCLUDE_DIR}
 )
 
-target_link_libraries(aws-encryption-sdk ${PLATFORM_LIBS} aws-c-common ${OPENSSL_CRYPTO_LIBRARY})
+target_link_libraries(aws-encryption-sdk PRIVATE ${PLATFORM_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
+target_link_libraries(aws-encryption-sdk PUBLIC aws-c-common)
 
 file(GLOB UNIT_TEST_SRC "tests/unit/*.c")
 file(GLOB UNIT_TEST_HDRS "tests/*.h")
@@ -145,16 +186,19 @@ file(GLOB TEST_LIB "tests/lib/*.c")
 include(CTest)
 enable_testing()
 
+add_library(testlib EXCLUDE_FROM_ALL ${TEST_LIB})
+target_link_libraries(testlib ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
+set_target_properties(testlib PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
+target_include_directories(testlib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
+
 add_executable(unit-test-suite ${UNIT_TEST_SRC})
-target_link_libraries(unit-test-suite ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
+target_link_libraries(unit-test-suite ${PROJECT_NAME} ${OPENSSL_LDFLAGS} testlib)
 set_target_properties(unit-test-suite PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
-target_link_libraries(unit-test-suite aws-encryption-sdk)
 target_include_directories(unit-test-suite PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
 
 add_executable(test_decrypt "tests/decrypt.c" ${TEST_LIB})
-target_link_libraries(test_decrypt ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
+target_link_libraries(test_decrypt ${PROJECT_NAME} ${OPENSSL_LDFLAGS} testlib)
 set_target_properties(test_decrypt PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
-target_include_directories(test_decrypt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
 
 add_executable(test_decryption_vectors "tests/decryption_vectors.c" ${TEST_LIB})
 target_link_libraries(test_decryption_vectors ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
@@ -170,26 +214,27 @@ if(CURL_FOUND)
     target_include_directories(t_encrypt_compat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit ${CURL_INCLUDE_DIRS})
     target_sources(t_encrypt_compat PRIVATE ${UNIT_TEST_SRC_CPP})
     target_include_directories(t_encrypt_compat PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
-    add_test(integration_encrypt_compatibility t_encrypt_compat)
+    add_test(integration_encrypt_compatibility ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/t_encrypt_compat)
 endif(CURL_FOUND)
 
-add_test(cipher unit-test-suite cipher)
-add_test(header unit-test-suite header)
-add_test(materials unit-test-suite materials)
-add_test(enc_context unit-test-suite enc_context)
-add_test(encrypt unit-test-suite encrypt)
+add_test(cipher ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite cipher)
+add_test(header ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite header)
+add_test(materials ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite materials)
+add_test(enc_context ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite enc_context)
+add_test(encrypt ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite encrypt)
+add_test(raw_aes_mk ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite raw_aes_mk)
 
 set(TEST_DATA ${CMAKE_CURRENT_SOURCE_DIR}/tests/data)
 
 add_test(decrypt_aes128_hkdf
-    test_decrypt ${TEST_DATA}/ct_x_aes128_hkdf.bin ${TEST_DATA}/pt_x_aes128_hkdf.bin)
+    ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt ${TEST_DATA}/ct_x_aes128_hkdf.bin ${TEST_DATA}/pt_x_aes128_hkdf.bin)
 add_test(decrypt_aes128_hkdf_bad_header
-    test_decrypt --xfail ${TEST_DATA}/ct_x_aes128_hkdf_bad_header.bin ${TEST_DATA}/pt_x_aes128_hkdf.bin)
+    ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt --xfail ${TEST_DATA}/ct_x_aes128_hkdf_bad_header.bin ${TEST_DATA}/pt_x_aes128_hkdf.bin)
 add_test(decrypt_hello
-    test_decrypt ${TEST_DATA}/hello.bin ${TEST_DATA}/hello.bin.pt)
+    ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt ${TEST_DATA}/hello.bin ${TEST_DATA}/hello.bin.pt)
 add_test(decrypt_hello_tiny
-    test_decrypt ${TEST_DATA}/hello.tinyframes.bin ${TEST_DATA}/hello.bin.pt)
-add_test(decryption_vectors test_decryption_vectors)
+    ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt ${TEST_DATA}/hello.tinyframes.bin ${TEST_DATA}/hello.bin.pt)
+add_test(decryption_vectors ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decryption_vectors)
 
 install (FILES ${AWS_CRYPTOSDK_HEADERS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/aws/encryption-sdk")
 install (
@@ -204,12 +249,30 @@ install(EXPORT ${PROJECT_NAME}-config DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/a
 
 # Generate the header at the end, after we've finished feature probing
 
-set(AWS_CRYPTOSDK_P_HAVE_LIBPTHREAD ${HAVE_LIBPTHREAD} BOOL)
-set(AWS_CRYPTOSDK_P_HAVE_LIBRT ${HAVE_LIBRT} BOOL)
-set(AWS_CRYPTOSDK_P_USE_X86_64_ASM ${USE_X86_64_ASM} BOOL)
-set(AWS_CRYPTOSDK_P_SPECTRE_MITIGATIONS ${SPECTRE_MITIGATIONS} BOOL)
-set(AWS_CRYPTOSDK_P_HAVE_BUILTIN_EXPECT ${HAVE_BUILTIN_EXPECT} BOOL)
+set(AWS_CRYPTOSDK_P_HAVE_LIBPTHREAD ${HAVE_LIBPTHREAD} CACHE INTERNAL "")
+set(AWS_CRYPTOSDK_P_HAVE_LIBRT ${HAVE_LIBRT} CACHE INTERNAL "")
+set(AWS_CRYPTOSDK_P_USE_X86_64_ASM ${USE_X86_64_ASM} CACHE INTERNAL "")
+set(AWS_CRYPTOSDK_P_SPECTRE_MITIGATIONS ${SPECTRE_MITIGATIONS} CACHE INTERNAL "")
+set(AWS_CRYPTOSDK_P_HAVE_BUILTIN_EXPECT ${HAVE_BUILTIN_EXPECT} CACHE INTERNAL "")
 
 configure_file("include/aws/cryptosdk/private/config.h.in"
                ${GENERATED_CONFIG_HEADER}
                ESCAPE_QUOTES)
+
+# Documentation
+option(BUILD_DOC "Build documentation" OFF)
+if (BUILD_DOC)
+    find_package(Doxygen)
+    if (DOXYGEN_FOUND)
+        set(DOXYGEN_CONFIG_FILE_IN ${CMAKE_CURRENT_SOURCE_DIR}/doxygen/doxygen.config.in)
+        set(DOXYGEN_CONFIG_FILE_GENERATED ${CMAKE_CURRENT_BINARY_DIR}/doxygen/doxygen.config)
+        configure_file(${DOXYGEN_CONFIG_FILE_IN} ${DOXYGEN_CONFIG_FILE_GENERATED} @ONLY)
+        add_custom_target(doc_doxygen ALL
+                COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_CONFIG_FILE_GENERATED}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+                COMMENT "Generating Doxygen documentation"
+                VERBATIM)
+    else (DOXYGEN_FOUND)
+        message(FATAL_ERROR "Doxygen not found. Documentation can't be generated")
+    endif (DOXYGEN_FOUND)
+endif(BUILD_DOC)

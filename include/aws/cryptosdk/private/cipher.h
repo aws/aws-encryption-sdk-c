@@ -115,4 +115,52 @@ int aws_cryptosdk_genrandom(
 
 // TODO: Footer
 
+/**
+ * Does AES-GCM encryption using AES-256/192/128 with 12 byte IVs and 16 byte tags only.
+ * Determines which AES algorithm to use based on length of key.
+ *
+ * Assumes cipher and tag are already allocated byte buffers. Does NOT assume that lengths
+ * of buffers are already set, and will set them on successful encrypt.
+ *
+ * Returns AWS_OP_SUCCESS on a successful encrypt. On failure, returns AWS_OP_ERR and sets
+ * one of the following error codes:
+ *
+ * AWS_INVALID_BUFFER_SIZE : bad key or IV length, or not enough capacity in output buffers
+ * AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN : OpenSSL error
+ *
+ * On last error, output buffers will be set to all zero bytes, and their lengths will be
+ * set to zero.
+ */
+int aws_cryptosdk_aes_gcm_encrypt(struct aws_byte_buf * cipher,
+                                  struct aws_byte_buf * tag,
+                                  const struct aws_byte_cursor plain,
+                                  const struct aws_byte_cursor iv,
+                                  const struct aws_byte_cursor aad,
+                                  const struct aws_string * key);
+
+/**
+ * Does AES-GCM decryption using AES-256/192/128 with 12 byte IVs and 16 byte tags only.
+ * Determines which AES algorithm to use based on length of key.
+ *
+ * Assumes plain is an already allocated byte buffer. Does NOT assume that length of plain
+ * buffer is already set, and will set it to the length of plain on a successful decrypt.
+ *
+ * Returns AWS_OP_SUCCESS on a successful decrypt. On failure, returns AWS_OP_ERR and sets
+ * one of the following error codes:
+ *
+ * AWS_INVALID_BUFFER_SIZE : bad key, tag, or IV length, or not enough capacity in plain
+ * AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT : unable to decrypt or authenticate ciphertext
+ * AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN : OpenSSL error
+ *
+ * On either of the last two errors, the plain buffer will be set to all zero bytes, and its
+ * length will be set to zero.
+ */
+int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
+                                  const struct aws_byte_cursor cipher,
+                                  const struct aws_byte_cursor tag,
+                                  const struct aws_byte_cursor iv,
+                                  const struct aws_byte_cursor aad,
+                                  const struct aws_string * key);
+
+
 #endif // AWS_CRYPTOSDK_PRIVATE_CIPHER_H

@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/private/enc_context.h>
+#include <aws/cryptosdk/private/utils.h>
 #include <aws/cryptosdk/error.h>
 #include "testing.h"
 
@@ -46,8 +47,8 @@ int get_sorted_elems_array_test() {
     }
 
     struct aws_array_list elems;
-    TEST_ASSERT_INT_EQ(aws_hash_table_get_elems_array_init(alloc, &elems, &map), AWS_OP_SUCCESS);
-    aws_array_list_sort(&elems, aws_array_list_compare_hash_elements_by_key_string);
+    TEST_ASSERT_INT_EQ(aws_cryptosdk_hash_elems_array_init(alloc, &elems, &map), AWS_OP_SUCCESS);
+    aws_array_list_sort(&elems, aws_cryptosdk_compare_hash_elems_by_key_string);
 
     TEST_ASSERT_INT_EQ(elems.length, num_elems);
     for (int idx = 0; idx < num_elems; ++idx) {
@@ -62,8 +63,6 @@ int get_sorted_elems_array_test() {
 }
 
 int serialize_empty_enc_context() {
-    const uint8_t serialized_ctx[] = {0x00, 0x00};
-
     struct aws_allocator * alloc = aws_default_allocator();
 
     struct aws_hash_table enc_context;
@@ -72,8 +71,8 @@ int serialize_empty_enc_context() {
 
     struct aws_byte_buf output;
     TEST_ASSERT_INT_EQ(aws_cryptosdk_serialize_enc_context_init(alloc, &output, &enc_context), AWS_OP_SUCCESS);
-    TEST_ASSERT_INT_EQ(output.len, sizeof(serialized_ctx));
-    TEST_ASSERT_INT_EQ(0, memcmp(output.buffer, serialized_ctx, output.len));
+    TEST_ASSERT_INT_EQ(output.len, 0);
+
     aws_byte_buf_clean_up(&output);
     aws_hash_table_clean_up(&enc_context);
     return 0;
@@ -121,12 +120,50 @@ int serialize_valid_enc_context() {
     return 0;
 }
 
+int serialize_valid_enc_context_unsigned_comparison() {
+    const uint8_t serialized_ctx[] =
+        "\x00\x02"
+        "\x00\x09""aaaaaaaa\x7f"
+        "\x00\x08""BBBBBBBB"
+        "\x00\x09""aaaaaaaa\x80"
+        "\x00\x08""AAAAAAAA";
+
+    AWS_STATIC_STRING_FROM_LITERAL(key_a, "aaaaaaaa\x80");
+    AWS_STATIC_STRING_FROM_LITERAL(value_a, "AAAAAAAA");
+    AWS_STATIC_STRING_FROM_LITERAL(key_b, "aaaaaaaa\x7f");
+    AWS_STATIC_STRING_FROM_LITERAL(value_b, "BBBBBBBB");
+
+    const struct aws_string * keys[] = {key_a, key_b};
+    const struct aws_string * vals[] = {value_a, value_b};
+    int num_elems = sizeof(keys)/sizeof(const struct aws_string *);
+
+    struct aws_allocator * alloc = aws_default_allocator();
+
+    struct aws_hash_table enc_context;
+    TEST_ASSERT_INT_EQ(aws_hash_table_init(&enc_context, alloc, 10, aws_hash_string, aws_string_eq, NULL, NULL),
+                       AWS_OP_SUCCESS);
+
+    for (int idx = 0; idx < num_elems; ++idx) {
+        struct aws_hash_element * elem;
+        TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_context, (void *)keys[idx], &elem, NULL), AWS_OP_SUCCESS);
+        elem->value = (void *)vals[idx];
+    }
+
+    struct aws_byte_buf output;
+    TEST_ASSERT_INT_EQ(aws_cryptosdk_serialize_enc_context_init(alloc, &output, &enc_context), AWS_OP_SUCCESS);
+    TEST_ASSERT_INT_EQ(output.len, sizeof(serialized_ctx) - 1);
+    TEST_ASSERT_INT_EQ(0, memcmp(output.buffer, serialized_ctx, output.len));
+
+    aws_byte_buf_clean_up(&output);
+    aws_hash_table_clean_up(&enc_context);
+    return 0;
+}
+
 int serialize_error_when_element_too_long() {
     struct aws_allocator * alloc = aws_default_allocator();
 
-    AWS_STATIC_STRING_FROM_LITERAL(empty, "");
-    uint8_t bytes[UINT16_MAX+1];
-    const struct aws_string * str = aws_string_from_array_new(alloc, bytes, UINT16_MAX+1);
+    uint8_t bytes[UINT16_MAX+1] = {0};
+    const struct aws_string * str = aws_string_new_from_array(alloc, bytes, UINT16_MAX+1);
     TEST_ASSERT_ADDR_NOT_NULL(str);
 
     struct aws_hash_table enc_context;
@@ -148,8 +185,8 @@ int serialize_error_when_element_too_long() {
 int serialize_error_when_serialized_len_too_long() {
     struct aws_allocator * alloc = aws_default_allocator();
 #define TWO_TO_THE_FIFTEENTH (1 << 15)
-    uint8_t bytes[TWO_TO_THE_FIFTEENTH];
-    const struct aws_string * str = aws_string_from_array_new(alloc, bytes, TWO_TO_THE_FIFTEENTH);
+    uint8_t bytes[TWO_TO_THE_FIFTEENTH] = {0};
+    const struct aws_string * str = aws_string_new_from_array(alloc, bytes, TWO_TO_THE_FIFTEENTH);
     TEST_ASSERT_ADDR_NOT_NULL(str);
 
     struct aws_hash_table enc_context;
@@ -182,8 +219,8 @@ int serialize_valid_enc_context_max_length() {
        0 bytes: value field (empty string)
      */
 #define LONG_ARR_LEN (UINT16_MAX - 6)
-    uint8_t arr[LONG_ARR_LEN];
-    const struct aws_string * key = aws_string_from_array_new(alloc, arr, LONG_ARR_LEN);
+    uint8_t arr[LONG_ARR_LEN] = {0};
+    const struct aws_string * key = aws_string_new_from_array(alloc, arr, LONG_ARR_LEN);
     TEST_ASSERT_ADDR_NOT_NULL(key);
 
     int was_created = 0;
@@ -206,12 +243,12 @@ int serialize_error_when_too_many_elements() {
     TEST_ASSERT_INT_EQ(aws_hash_table_init(&enc_context, alloc, (size_t)UINT16_MAX + 10, aws_hash_string, aws_string_eq, aws_string_destroy, NULL),
                        AWS_OP_SUCCESS);
 
-    char buf[6];
+    char buf[6] = {0};
     for (size_t idx = 0; idx < (1 << 16); ++idx) {
         int was_created = 0;
         struct aws_hash_element * elem;
         snprintf(buf, sizeof(buf), "%zu", idx);
-        const struct aws_string * str = aws_string_from_c_str_new(alloc, buf);
+        const struct aws_string * str = aws_string_new_from_c_str(alloc, buf);
         TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_context, (void *)str, &elem, &was_created), AWS_OP_SUCCESS);
         TEST_ASSERT_INT_EQ(was_created, 1);
         elem->value = (void *)str;
@@ -228,6 +265,7 @@ struct test_case enc_context_test_cases[] = {
     { "enc_context", "get_sorted_elems_array_test", get_sorted_elems_array_test },
     { "enc_context", "serialize_empty_enc_context", serialize_empty_enc_context },
     { "enc_context", "serialize_valid_enc_context", serialize_valid_enc_context },
+    { "enc_context", "serialize_valid_enc_context_unsigned_comparison", serialize_valid_enc_context_unsigned_comparison },
     { "enc_context", "serialize_error_when_element_too_long", serialize_error_when_element_too_long },
     { "enc_context", "serialize_error_when_serialized_len_too_long", serialize_error_when_serialized_len_too_long },
     { "enc_context", "serialize_valid_enc_context_max_length", serialize_valid_enc_context_max_length },

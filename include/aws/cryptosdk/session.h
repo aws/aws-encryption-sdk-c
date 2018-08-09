@@ -20,6 +20,7 @@
 
 #include <aws/common/common.h>
 #include <aws/cryptosdk/header.h>
+#include <aws/cryptosdk/materials.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,8 +34,7 @@ enum aws_cryptosdk_mode {
 };
 
 /**
- * Creates a new encryption or decryption session. At a minimum, a CMM, MKP, or
- * MK must be set before passing any data through.
+ * Creates a new encryption or decryption session.
  *
  * Parameters:
  *   - allocator: The allocator to use for the session object and any temporary
@@ -42,10 +42,13 @@ enum aws_cryptosdk_mode {
  *   - mode: The mode (AWS_CRYPTOSDK_ENCRYPT or AWS_CRYPTOSDK_DECRYPT) to start
  *                 in. This can be changed later with
  *                 aws_cryptosdk_session_reset
+ *   - cmm: The crypto material manager which will provide key material for this
+ *          session.
  */
-struct aws_cryptosdk_session *aws_cryptosdk_session_new(
+struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm(
     struct aws_allocator *allocator,
-    enum aws_cryptosdk_mode mode
+    enum aws_cryptosdk_mode mode,
+    struct aws_cryptosdk_cmm *cmm
 );
 
 void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);
@@ -53,7 +56,7 @@ void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);
 /**
  * Resets the session, preparing it for a new message. This function can also change
  * a session from encrypt to decrypt, or vice versa. After reset, the currently
- * configured allocator, CMM, MKP, MK, and frame size to use for encryption are preserved.
+ * configured allocator, CMM, and frame size to use for encryption are preserved.
  */
 int aws_cryptosdk_session_reset(
     struct aws_cryptosdk_session *session,
@@ -174,7 +177,7 @@ bool aws_cryptosdk_session_is_done(const struct aws_cryptosdk_session *session);
  * only partially initialized, the returned sizes will be 1.
  */
 void aws_cryptosdk_session_estimate_buf(
-    const struct aws_cryptosdk_session *session,
+    const struct aws_cryptosdk_session * AWS_RESTRICT session,
     size_t * AWS_RESTRICT outbuf_needed,
     size_t * AWS_RESTRICT inbuf_needed
 );

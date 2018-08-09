@@ -90,11 +90,16 @@ struct aws_cryptosdk_decryption_materials {
  * C99 standard dictates that "..." must have at least one argument behind it. Second arg of _VF_CALL macros is always struct
  * type, i.e., "cmm", "mkp", or "mk". These helper macros allow us not to make struct_type a named argument, thus handling the
  * case cleanly where there are no more arguments.
+ *
+ * Note: We work around a VC++ preprocessor bug here. See https://stackoverflow.com/a/4750720
  */
-#define AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_HELPER(struct_type, ...) struct_type
-#define AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME(...) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_HELPER(__VA_ARGS__, throwaway)
-#define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_HELPER(struct_type, ...) const struct aws_cryptosdk_ ## struct_type ## _vt **
-#define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(...) AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_HELPER(__VA_ARGS__, throwaway)
+#define AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME(...) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_2((__VA_ARGS__, throwaway))
+#define AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_2(args) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_3 args
+#define AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_3(struct_type, ...) struct_type
+
+#define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(...) AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_2((__VA_ARGS__, throwaway))
+#define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_2(args) AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_3 args
+#define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_3(struct_type, ...) const struct aws_cryptosdk_ ## struct_type ## _vt **
 
 /**
  * Macro for virtual function calls that return an integer error code. Checks that vt_size is large enough and that pointer is
@@ -227,7 +232,7 @@ struct aws_cryptosdk_mkp_vt {
      */
     int (*decrypt_data_key)(struct aws_cryptosdk_mkp * mkp,
                             struct aws_cryptosdk_decryption_materials * dec_mat,
-                            const struct aws_array_list * edks);
+                            const struct aws_cryptosdk_decryption_request * request);
 };
 
 static inline void aws_cryptosdk_mkp_destroy(struct aws_cryptosdk_mkp * mkp) {
@@ -270,8 +275,8 @@ static inline int aws_cryptosdk_mkp_get_master_keys(struct aws_cryptosdk_mkp * m
  */
 static inline int aws_cryptosdk_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
                                                      struct aws_cryptosdk_decryption_materials * dec_mat,
-                                                     const struct aws_array_list * edks) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_data_key, mkp, dec_mat, edks);
+                                                     const struct aws_cryptosdk_decryption_request * request) {
+    AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_data_key, mkp, dec_mat, request);
 }
 
 struct aws_cryptosdk_mk_vt {
@@ -323,12 +328,11 @@ struct aws_cryptosdk_mk_vt {
      * Implementations should treat only the unencrypted_data_key element of the decryption materials as output
      * and should not modify any other elements. Implementations must properly initialize the unencrypted data
      * key buffer when an EDK is decrypted and leave the unencrypted data key buffer pointer set to NULL when
-     * no EDK is decrypted, or they must delegate to an MK's decrypt_data_key method, which must follow the same
-     * rules.
+     * no EDK is decrypted.
      */
     int (*decrypt_data_key)(struct aws_cryptosdk_mk * mk,
                             struct aws_cryptosdk_decryption_materials * dec_mat,
-                            const struct aws_array_list * edks);
+                            const struct aws_cryptosdk_decryption_request * request);
 };
 
 static inline void aws_cryptosdk_mk_destroy(struct aws_cryptosdk_mk * mk) {
@@ -376,8 +380,8 @@ static inline int aws_cryptosdk_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk
  */
 static inline int aws_cryptosdk_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
                                                     struct aws_cryptosdk_decryption_materials * dec_mat,
-                                                    const struct aws_array_list * edks) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_data_key, mk, dec_mat, edks);
+                                                    const struct aws_cryptosdk_decryption_request * request) {
+    AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_data_key, mk, dec_mat, request);
 }
 
 
