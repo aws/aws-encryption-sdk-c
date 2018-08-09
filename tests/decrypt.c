@@ -21,13 +21,12 @@
 
 #include <aws/cryptosdk/session.h>
 #include <aws/cryptosdk/error.h>
-#include <aws/cryptosdk/single_mkp.h>
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/common/common.h>
 #include <aws/common/error.h>
 
 #include "testutil.h"
-#include "zero_mk.h"
+#include "zero_kr.h"
 
 /* Braindead option parser for now */
 const char *ciphertext_filename, *plaintext_filename;
@@ -53,11 +52,9 @@ int test_decrypt() {
     }
 
     struct aws_cryptosdk_session *session = NULL;
-    struct aws_cryptosdk_mkp *mkp = NULL;
     struct aws_cryptosdk_cmm *cmm = NULL;
 
-    if (!(mkp = aws_cryptosdk_single_mkp_new(aws_default_allocator(), aws_cryptosdk_zero_mk_new()))) unexpected_error();
-    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), mkp))) unexpected_error();
+    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), aws_cryptosdk_zero_kr_new()))) unexpected_error();
 
     if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
 
@@ -106,7 +103,6 @@ int test_decrypt() {
     free(output_buf);
     aws_cryptosdk_session_destroy(session);
     aws_cryptosdk_cmm_destroy(cmm);
-    aws_cryptosdk_mkp_destroy(mkp);
 
     return 0;
 }

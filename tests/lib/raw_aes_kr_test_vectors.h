@@ -12,23 +12,23 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef AWS_CRYPTOSDK_TESTS_LIB_RAW_AES_MK_TEST_VECTORS_H
-#define AWS_CRYPTOSDK_TESTS_LIB_RAW_AES_MK_TEST_VECTORS_H
+#ifndef AWS_CRYPTOSDK_TESTS_LIB_RAW_AES_KR_TEST_VECTORS_H
+#define AWS_CRYPTOSDK_TESTS_LIB_RAW_AES_KR_TEST_VECTORS_H
 
 #include <aws/cryptosdk/materials.h>
 
 /**
- * Instantiate the raw AES MK that was used to generate the test vectors.
+ * Instantiate the raw AES KR that was used to generate the test vectors.
  */
-struct aws_cryptosdk_mk * raw_aes_mk_tv_new(
+struct aws_cryptosdk_kr * raw_aes_kr_tv_new(
     struct aws_allocator * alloc,
     enum aws_cryptosdk_aes_key_len raw_key_len);
 
 /**
  * Holds the data for one unencrypted/encrypted data key pair produced by the
- * raw AES MK with the settings above.
+ * raw AES KR with the settings above.
  */
-struct raw_aes_mk_test_vector {
+struct raw_aes_kr_test_vector {
     enum aws_cryptosdk_aes_key_len raw_key_len;
     enum aws_cryptosdk_alg_id alg;
     const uint8_t * data_key;
@@ -41,7 +41,7 @@ struct raw_aes_mk_test_vector {
     size_t num_ec_kv_pairs;
 };
 
-extern struct raw_aes_mk_test_vector raw_aes_mk_test_vectors[];
+extern struct raw_aes_kr_test_vector raw_aes_kr_test_vectors[];
 
 /**
  * Add all of the key-value pairs for this test vector to the encryption context.
@@ -54,10 +54,10 @@ extern struct raw_aes_mk_test_vector raw_aes_mk_test_vectors[];
  */
 int set_test_vector_encryption_context(struct aws_allocator * alloc,
                                        struct aws_hash_table * enc_context,
-                                       const struct raw_aes_mk_test_vector * tv);
+                                       const struct raw_aes_kr_test_vector * tv);
 
 /**
- * Construct EDK that would be made by the raw AES MK that generated the test
+ * Construct EDK that would be made by the raw AES KR that generated the test
  * vectors with these specific encrypted data key bytes and IV. Note that edk_bytes
  * is the concatenation of the encrypted data key and the AES-GCM tag, and edk_len
  * is the full concatenated length. Because AES-GCM produces cipher that is the same
@@ -80,7 +80,7 @@ struct aws_cryptosdk_edk build_test_edk_init(const uint8_t * edk_bytes, size_t e
 /**
  * Convenience wrappers around build_test_edk_init that give the EDK of any test vector.
  */
-struct aws_cryptosdk_edk edk_init_from_test_vector(struct raw_aes_mk_test_vector * tv);
+struct aws_cryptosdk_edk edk_init_from_test_vector(struct raw_aes_kr_test_vector * tv);
 struct aws_cryptosdk_edk edk_init_from_test_vector_idx(int idx);
 
 /**
@@ -92,4 +92,4 @@ static inline bool aws_cryptosdk_edk_eq(const struct aws_cryptosdk_edk * a, cons
         aws_byte_buf_eq(&a->provider_id, &b->provider_id);
 }
 
-#endif // AWS_CRYPTOSDK_TESTS_LIB_RAW_AES_MK_TEST_VECTORS_H
+#endif // AWS_CRYPTOSDK_TESTS_LIB_RAW_AES_KR_TEST_VECTORS_H

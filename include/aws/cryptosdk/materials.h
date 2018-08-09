@@ -24,13 +24,12 @@
 #include <aws/cryptosdk/header.h>
 
 /**
- * Abstract types for CMM/MKP/MK: Concrete implementations will create their own structs, which
+ * Abstract types for CMM and KR: Concrete implementations will create their own structs, which
  * must have the virtual table pointer as the first member, and cast pointers accordingly. See
  * default_cmm.[ch] for an example of this.
  */
 struct aws_cryptosdk_cmm;
-struct aws_cryptosdk_mkp;
-struct aws_cryptosdk_mk;
+struct aws_cryptosdk_kr;
 
 struct aws_cryptosdk_edk {
     struct aws_byte_buf provider_id;
@@ -88,7 +87,7 @@ struct aws_cryptosdk_decryption_materials {
 
 /*
  * C99 standard dictates that "..." must have at least one argument behind it. Second arg of _VF_CALL macros is always struct
- * type, i.e., "cmm", "mkp", or "mk". These helper macros allow us not to make struct_type a named argument, thus handling the
+ * type, i.e., "cmm" or "kr". These helper macros allow us not to make struct_type a named argument, thus handling the
  * case cleanly where there are no more arguments.
  *
  * Note: We work around a VC++ preprocessor bug here. See https://stackoverflow.com/a/4750720
@@ -106,7 +105,7 @@ struct aws_cryptosdk_decryption_materials {
  * non-null before attempting call. If checks fail, sets AWS internal error to AWS_ERROR_UNIMPLEMENTED
  * and returns the return value of aws_raise_error(), i.e., AWS_OP_ERR.
  *
- * Note that this depends on a naming convention of always using "cmm", "mkp", or "mk" as the name of the pointer variable
+ * Note that this depends on a naming convention of always using "cmm" or "kr" as the name of the pointer variable
  * as the first argument of the virtual function in the inline functions below which call this macro.
  */
 #define AWS_CRYPTOSDK_PRIVATE_VF_CALL(fn_name, ...) \
@@ -138,8 +137,8 @@ struct aws_cryptosdk_decryption_materials {
     } while (0)
 
 /**
- * Virtual tables for CMM/MKP/MK. Any implementation should declare a static instance of this,
- * and the first element of the CMM/MKP/MK struct should be a pointer to that static virtual table.
+ * Virtual tables for CMM and KR. Any implementation should declare a static instance of this,
+ * and the first element of the CMM or KR struct should be a pointer to that static virtual table.
  */
 struct aws_cryptosdk_cmm_vt {
     /**
@@ -151,7 +150,7 @@ struct aws_cryptosdk_cmm_vt {
      */
     const char * name;
     /**
-     * VIRTUAL FUNCTION: must implement unless it is a no-op. Even then better to implement as
+     * VIRTUAL FUNCTION: must implement unless it is a no-op. It is better to implement it as
      * a no-op function to avoid setting error code.
      */
     void (*destroy)(struct aws_cryptosdk_cmm * cmm);
@@ -201,9 +200,9 @@ static inline int aws_cryptosdk_cmm_decrypt_materials(struct aws_cryptosdk_cmm *
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_materials, cmm, output, request);
 }
 
-struct aws_cryptosdk_mkp_vt {
+struct aws_cryptosdk_kr_vt {
     /**
-     * Always set to sizeof(struct aws_cryptosdk_mkp_vt).
+     * Always set to sizeof(struct aws_cryptosdk_kr_vt).
      */
     size_t vt_size;
     /**
@@ -211,95 +210,17 @@ struct aws_cryptosdk_mkp_vt {
      */
     const char * name;
     /**
-     * VIRTUAL FUNCTION: must implement unless it is a no-op. Even then better to implement as
+     * VIRTUAL FUNCTION: must implement unless it is a no-op. It is better to implement it as
      * a no-op function to avoid setting error code.
      */
-    void (*destroy)(struct aws_cryptosdk_mkp * mkp);
+    void (*destroy)(struct aws_cryptosdk_kr * kr);
     /**
-     * VIRTUAL FUNCTION: must implement if used for encryption.
-     */
-    int (*get_master_keys)(struct aws_cryptosdk_mkp * mkp,
-                           struct aws_array_list * master_keys, // list of (aws_cryptosdk_mk *)
-                           const struct aws_hash_table * enc_context);
-    /**
-     * VIRTUAL FUNCTION: must implement if used for decryption.
-     *
-     * Implementations should treat only the unencrypted_data_key element of the decryption materials as output
-     * and should not modify any other elements. Implementations must properly initialize the unencrypted data
-     * key buffer when an EDK is decrypted and leave the unencrypted data key buffer pointer set to NULL when
-     * no EDK is decrypted, or they must delegate to an MK's decrypt_data_key method, which must follow the same
-     * rules.
-     */
-    int (*decrypt_data_key)(struct aws_cryptosdk_mkp * mkp,
-                            struct aws_cryptosdk_decryption_materials * dec_mat,
-                            const struct aws_cryptosdk_decryption_request * request);
-};
-
-static inline void aws_cryptosdk_mkp_destroy(struct aws_cryptosdk_mkp * mkp) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, mkp);
-}
-
-/**
- * The MKP gives a list of all master keys that should be used for encrypting a data key.
- * It may or may not choose to consult the encryption context when deciding what MKs to return.
- * master_keys is an array of *pointers* to struct aws_cryptosdk_mk objects, and it must have
- * already been initialized before this function is called. The MKP should always append the
- * MK pointers to the list.
- *
- * The list of master keys reallocates its own memory on resizing. (See struct aws_array_list
- * implementation.) It does not own the memory of the master keys. It must be cleaned up after
- * it is used, but cleaning up the list does not destroy any of the master keys themselves.
- *
- * On success AWS_OP_SUCCESS is returned. This may or may not add MK pointers to the list,
- * depending on whether the MKP has any master keys to provide.
- *
- * On failure AWS_OP_ERR is returned, an internal AWS error code is set, and the list is unchanged.
- */
-static inline int aws_cryptosdk_mkp_get_master_keys(struct aws_cryptosdk_mkp * mkp,
-                                                    struct aws_array_list * master_keys,
-                                                    const struct aws_hash_table * enc_context) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL(get_master_keys, mkp, master_keys, enc_context);
-}
-
-/**
- * The MKP attempts to find one of the EDKs to decrypt. edks must be a list of struct aws_cryptosdk_edk
- * instances, not a list of pointers. Decryption materials should already have been initialized.
- *
- * On success AWS_OP_SUCCESS will be returned. This does not necessarily mean that the data key will be
- * decrypted, as it is normal behavior that a particular MK/MKP may not find an EDK that it can decrypt.
- * To determine whether the data key was decrypted, check dec_mat->unencrypted_data_key.buffer. If the
- * data key was not decrypted, that pointer will be set to NULL. If the data key was decrypted, that pointer
- * will point to the raw bytes of the key.
- *
- * On internal failure, AWS_OP_ERR will be returned and an internal error code will be set.
- */
-static inline int aws_cryptosdk_mkp_decrypt_data_key(struct aws_cryptosdk_mkp * mkp,
-                                                     struct aws_cryptosdk_decryption_materials * dec_mat,
-                                                     const struct aws_cryptosdk_decryption_request * request) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_data_key, mkp, dec_mat, request);
-}
-
-struct aws_cryptosdk_mk_vt {
-    /**
-     * Always set to sizeof(struct aws_cryptosdk_mkp_vt).
-     */
-    size_t vt_size;
-    /**
-     * Identifier for debugging purposes only.
-     */
-    const char * name;
-    /**
-     * VIRTUAL FUNCTION: must implement unless it is a no-op. Even then better to implement as
-     * a no-op function to avoid setting error code.
-     */
-    void (*destroy)(struct aws_cryptosdk_mk * mk);
-    /**
-     * VIRTUAL FUNCTION: must implement if used for data key generation. If this is the only MK
+     * VIRTUAL FUNCTION: must implement if used for data key generation. If this is the only KR
      * and this is not implemented, encryption will not be possible.
      *
      * Implementations should treat the unencrypted_data_key and encrypted_data_keys elements of the encryption
      * materials as outputs and should not modify any other elements. They should consider the array list
-     * at encrypted_data_keys to already be initialized and should append the EDK they generate to that list.
+     * at encrypted_data_keys to already be initialized and should append the EDK(s) they generate to that list.
      *
      * Implementations must also properly initialize the byte buffers of the unencrypted data key
      * and the EDK which it appends onto the list. The buffer for the unencrypted data key MUST be used.
@@ -307,19 +228,19 @@ struct aws_cryptosdk_mk_vt {
      * allocators set to NULL and lengths set to zero. This assures that both clean up and serialization
      * will function correctly.
      */
-    int (*generate_data_key)(struct aws_cryptosdk_mk * mk,
+    int (*generate_data_key)(struct aws_cryptosdk_kr * kr,
                              struct aws_cryptosdk_encryption_materials * enc_mat);
     /**
-     * VIRTUAL FUNCTION: must implement if used for encryption, except when it is the only MK.
+     * VIRTUAL FUNCTION: must implement if used for encryption, except when it is the only KR.
      *
      * Implementations should treat only the encrypted_data_keys element of the encryption materials as output
      * and should not modify any other elements. They should consider the array list at encrypted_data_keys to
-     * already be initialized and should append the EDK they generate to that list.
+     * already be initialized and should append the EDK(s) they generate to that list.
      *
      * Implementations must also properly initialize the EDK which is appended to the list as explained in the
      * comments on generate_data_key above.
      */
-    int (*encrypt_data_key)(struct aws_cryptosdk_mk * mk,
+    int (*encrypt_data_key)(struct aws_cryptosdk_kr * kr,
                             struct aws_cryptosdk_encryption_materials * enc_mat);
 
     /**
@@ -330,58 +251,58 @@ struct aws_cryptosdk_mk_vt {
      * key buffer when an EDK is decrypted and leave the unencrypted data key buffer pointer set to NULL when
      * no EDK is decrypted.
      */
-    int (*decrypt_data_key)(struct aws_cryptosdk_mk * mk,
+    int (*decrypt_data_key)(struct aws_cryptosdk_kr * kr,
                             struct aws_cryptosdk_decryption_materials * dec_mat,
                             const struct aws_cryptosdk_decryption_request * request);
 };
 
-static inline void aws_cryptosdk_mk_destroy(struct aws_cryptosdk_mk * mk) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, mk);
+static inline void aws_cryptosdk_kr_destroy(struct aws_cryptosdk_kr * kr) {
+    AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, kr);
 }
 
 /**
- * The MK attempts to generate a new data key, and returns it in both unencrypted and encrypted form.
+ * The KR attempts to generate a new data key, and returns it in both unencrypted and encrypted form.
  * Encryption materials should have already been initialized.
  *
  * On success (1) AWS_OP_SUCCESS is returned, (2) the unencrypted data key buffer will contain the raw
- * bytes of the data key, and (3) an EDK will be appended onto the list of EDKs.
+ * bytes of the data key, and (3) one or more EDKs will be appended onto the list of EDKs.
  *
  * On failure AWS_OP_ERR is returned, an internal AWS error code is set, and no memory is allocated.
  */
-static inline int aws_cryptosdk_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
+static inline int aws_cryptosdk_kr_generate_data_key(struct aws_cryptosdk_kr * kr,
                                                      struct aws_cryptosdk_encryption_materials * enc_mat) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL(generate_data_key, mk, enc_mat);
+    AWS_CRYPTOSDK_PRIVATE_VF_CALL(generate_data_key, kr, enc_mat);
 }
 
 /**
- * The MK attempts to encrypt the data key. A data key should have already been generated in these
- * encryption materials by another MK.
+ * The KR attempts to encrypt the data key. A data key should have already been generated in these
+ * encryption materials by another KR.
  *
- * On success AWS_OP_SUCCESS is returned, the new EDK will be appended onto the list of EDKs.
+ * On success AWS_OP_SUCCESS is returned, one or more new EDKs will be appended onto the list of EDKs.
  *
  * On failure AWS_OP_ERR is returned, an internal AWS error code is set, and no memory is allocated.
  */
-static inline int aws_cryptosdk_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
+static inline int aws_cryptosdk_kr_encrypt_data_key(struct aws_cryptosdk_kr * kr,
                                                     struct aws_cryptosdk_encryption_materials * enc_mat) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL(encrypt_data_key, mk, enc_mat);
+    AWS_CRYPTOSDK_PRIVATE_VF_CALL(encrypt_data_key, kr, enc_mat);
 }
 
 /**
- * The MK attempts to find one of the EDKs to decrypt. edks must be a list of struct aws_cryptosdk_edk
+ * The KR attempts to find one of the EDKs to decrypt. edks must be a list of struct aws_cryptosdk_edk
  * instances, not a list of pointers. Decryption materials should already have been initialized.
  *
  * On success AWS_OP_SUCCESS will be returned. This does not necessarily mean that the data key will be
- * decrypted, as it is normal behavior that a particular MK/MKP may not find an EDK that it can decrypt.
+ * decrypted, as it is normal behavior that a particular KR may not find an EDK that it can decrypt.
  * To determine whether the data key was decrypted, check dec_mat->unencrypted_data_key.buffer. If the
  * data key was not decrypted, that pointer will be set to NULL. If the data key was decrypted, that pointer
  * will point to the raw bytes of the key.
  *
  * On internal failure, AWS_OP_ERR will be returned and an internal error code will be set.
  */
-static inline int aws_cryptosdk_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
+static inline int aws_cryptosdk_kr_decrypt_data_key(struct aws_cryptosdk_kr * kr,
                                                     struct aws_cryptosdk_decryption_materials * dec_mat,
                                                     const struct aws_cryptosdk_decryption_request * request) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_data_key, mk, dec_mat, request);
+    AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_data_key, kr, dec_mat, request);
 }
 
 
@@ -390,7 +311,7 @@ static inline int aws_cryptosdk_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk
  * num_keys. num_keys does not need to be an exact number of EDKS but only an estimate, as the list can
  * resize later. Note that the list of EDKs will be empty and that no memory will be allocated to any byte
  * buffers in that list, nor will memory be allocated to the unencrypted data key buffer. They will only be
- * allocated when individual keys are generated or encrypted by other calls to the MK.
+ * allocated when individual keys are generated or encrypted by other calls to the KR.
  *
  * On failure, returns NULL and an internal AWS error code is set.
  */
@@ -401,7 +322,7 @@ struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_n
 /**
  * Deallocates all memory associated with the encryption materials object including the object itself.
  * All keys in the materials will have their associated memory also deallocated, but make sure that they have been
- * initialized properly per the comments on aws_cryptosdk_mk_generate_data_key.
+ * initialized properly per the comments on aws_cryptosdk_kr_generate_data_key.
  */
 void aws_cryptosdk_encryption_materials_destroy(struct aws_cryptosdk_encryption_materials * enc_mat);
 

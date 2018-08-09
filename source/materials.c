@@ -13,8 +13,7 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/materials.h>
-#include <aws/cryptosdk/cipher.h> // aws_cryptosdk_secure_zero
-#include <stdlib.h> // abort
+#include <aws/cryptosdk/cipher.h>
 
 struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_new(struct aws_allocator * alloc,
                                                                                    enum aws_cryptosdk_alg_id alg,
