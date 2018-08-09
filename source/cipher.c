@@ -22,7 +22,6 @@
 #include <aws/common/byte_order.h>
 #include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/error.h>
-#include <aws/cryptosdk/hkdf.h>
 
 #define MSG_ID_LEN 16
 
@@ -55,15 +54,15 @@ const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryp
     }
     switch (alg_id) {
         STATIC_ALG_PROPS(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-            NULL, aes_128_gcm, 128, 12, 16, -1); // -1 to represent aws_crypto_sdk_sha_version for KDF is none
+            NULL, aes_128_gcm, 128, 12, 16, -1); // -1 to represent sha_version for KDF is none
         STATIC_ALG_PROPS(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
             sha256, aes_128_gcm, 128, 12, 16, SHA256);
         STATIC_ALG_PROPS(AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-            NULL, aes_192_gcm, 192, 12, 16, -1);  // -1 to represent aws_crypto_sdk_sha_version for KDF is none
+            NULL, aes_192_gcm, 192, 12, 16, -1);  // -1 to represent sha_version for KDF is none
         STATIC_ALG_PROPS(AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
             sha256, aes_192_gcm, 192, 12, 16, SHA256);
         STATIC_ALG_PROPS(AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-            NULL, aes_256_gcm, 256, 12, 16, -1);  // -1 to represent aws_crypto_sdk_sha_version for KDF is none
+            NULL, aes_256_gcm, 256, 12, 16, -1);  // -1 to represent sha_version for KDF is none
         STATIC_ALG_PROPS(AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
             sha256, aes_256_gcm, 256, 12, 16, SHA256);
 #if 0

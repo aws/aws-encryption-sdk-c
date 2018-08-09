@@ -12,8 +12,8 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
-#include "aws/cryptosdk/error.h"
-#include "aws/cryptosdk/hkdf.h"
+#include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/hkdf.h>
 #include "testing.h"
 struct hkdf_test_vectors {
     enum aws_cryptosdk_sha_version which_sha;
@@ -102,7 +102,7 @@ static const uint8_t tv_4_ikm[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x
 
 static const uint8_t tv_4_salt[] = { 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d,
                                      0x6e, 0x6f, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a, 0x7b,
-                                     0x7c, 0x7d, 0x7e, 0x7f, 0x80, 0x81, 0x82, 0x82, 0x56, 0x85, 0x86, 0x87, 0x88, 0x89,
+                                     0x7c, 0x7d, 0x7e, 0x7f, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89,
                                      0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97,
                                      0x98, 0x99, 0x9a, 0x9b, 0x9c, 0x9d, 0x9e, 0x9f, 0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5,
                                      0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xae, 0xaf };
@@ -132,7 +132,7 @@ static const uint8_t tv_5_okm_desired[] = { 0xc8, 0xc9, 0x6e, 0x71, 0x0f, 0x89, 
                                             0x1c, 0xea, 0x56, 0x70, 0x41, 0x5b, 0x52, 0x84, 0x9c };
 
 struct hkdf_test_vectors tv[] = {
-    { .which_sha    = SHA256,
+    { .which_sha   = SHA256,
       .ikm         = tv_0_ikm,
       .ikm_len     = 22,
       .salt        = tv_0_salt,
@@ -142,7 +142,7 @@ struct hkdf_test_vectors tv[] = {
       .okm_desired = tv_0_okm_desired,
       .okm_len     = 42 },
 
-    { .which_sha    = SHA256,
+    { .which_sha   = SHA256,
       .ikm         = tv_1_ikm,
       .ikm_len     = 80,
       .salt        = tv_1_salt,
@@ -152,7 +152,7 @@ struct hkdf_test_vectors tv[] = {
       .okm_desired = tv_1_okm_desired,
       .okm_len     = 82 },
 
-    { .which_sha    = SHA256,
+    { .which_sha   = SHA256,
       .ikm         = tv_2_ikm,
       .ikm_len     = 22,
       .salt        = NULL,
@@ -162,7 +162,7 @@ struct hkdf_test_vectors tv[] = {
       .okm_desired = tv_2_okm_desired,
       .okm_len     = 42 },
 
-    { .which_sha    = SHA384,
+    { .which_sha   = SHA384,
       .ikm         = tv_3_ikm,
       .ikm_len     = 22,
       .salt        = tv_3_salt,
@@ -172,7 +172,7 @@ struct hkdf_test_vectors tv[] = {
       .okm_desired = tv_3_okm_desired,
       .okm_len     = 42 },
 
-    { .which_sha    = SHA384,
+    { .which_sha   = SHA384,
       .ikm         = tv_4_ikm,
       .ikm_len     = 80,
       .salt        = tv_4_salt,
@@ -182,7 +182,7 @@ struct hkdf_test_vectors tv[] = {
       .okm_desired = tv_4_okm_desired,
       .okm_len     = 82 },
 
-    { .which_sha    = SHA384,
+    { .which_sha   = SHA384,
       .ikm         = tv_5_ikm,
       .ikm_len     = 22,
       .salt        = NULL,
@@ -194,7 +194,7 @@ struct hkdf_test_vectors tv[] = {
 };
 
 int test_hkdf() {
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 6; i++) {
         struct aws_byte_buf myokm;
         struct aws_allocator *allocator = aws_default_allocator();
         if (aws_byte_buf_init(allocator, &myokm, tv[i].okm_len)) return AWS_OP_ERR;
