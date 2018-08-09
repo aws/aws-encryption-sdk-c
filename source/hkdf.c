@@ -1,169 +1,150 @@
 /*
  * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"). You may not use
- * this file except in compliance with the License. A copy of the License is
+ * Licensed under the Apache License, Version 2.0 (the "License"). You may not
+ * use this file except in compliance with the License. A copy of the License is
  * located at
  *
  *     http://aws.amazon.com/apache2.0/
  *
- * or in the "license" file accompanying this file. This file is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied. See the License for the specific language governing permissions and
- * limitations under the License.
+ * or in the "license" file accompanying this file. This file is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing
+ * permissions and limitations under the License.
  */
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <errno.h>
 
-#include <openssl/hmac.h>
+
 #include <openssl/evp.h>
-#include "aws/cryptosdk/hkdf.h"
+#include <openssl/hmac.h>
+#include <openssl/opensslv.h>
+#include <assert.h>
+#include <aws/common/byte_buf.h>
+#include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/hkdf.h>
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 
-/*
- *  hkdfExtract()
- *
- * 	Description: This function will perform the HKDF extraction. This function takes in an
- *				 input keying material and extracts from a psuedo random key (prk). 
- *  Parameters:
- *      evp_md : EVP_MD for SHA1, SHA224, SHA256, SHA384, SHA512 algorithms.
- *      salt: optional salt value (a non-secret random value);
- *             if not provided, it is set to a string of HashLen zeros.
- *      salt_len: The length of the salt value.
- *      ikm: Input keying material.
- *      ikm_len: The length of the input keying material.
- *      prk: The pseudo random key extracted from the ikm. 
- *
- *  Returns:
- *      Status Code
- *
- */
-int hkdfExtract(const EVP_MD *evp_md,
-    const unsigned char *salt, int salt_len,
-    const unsigned char *ikm, int ikm_len,
-    unsigned char *prk, unsigned int *prk_len){
-	if(salt == NULL){
-		salt_len = EVP_MD_size(evp_md); 
-		memset((void *)salt, '\0', salt_len);
-	}
-	if (HMAC(evp_md, ikm, ikm_len, salt, salt_len, prk, prk_len) == NULL)
-		return 0;
-	else
-		return 1;
+static int aws_cryptosdk_hkdf_extract(
+    uint8_t *prk,
+    unsigned int *prk_len,
+    SHAversion whichsha,
+    const struct aws_byte_buf *salt,
+    const struct aws_byte_buf *ikm) {
+    uint8_t zeroes[EVP_MAX_MD_SIZE] = { 0 };
+    uint8_t *mysalt                 = NULL;
+    size_t mysalt_len               = 0;
+    const EVP_MD *evp_md            = (whichsha == SHA256) ? EVP_sha256() : EVP_sha384();
+    assert(evp_md != NULL);
+
+    if (salt->len) {
+        mysalt     = (uint8_t *)salt->buffer;
+        mysalt_len = salt->len;
+    } else {
+        mysalt     = zeroes;
+        mysalt_len = EVP_MAX_MD_SIZE;
+    }
+
+    if (!HMAC(evp_md, mysalt, mysalt_len, ikm->buffer, ikm->len, prk, prk_len)) {
+        aws_secure_zero(prk, sizeof(prk));
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+    }
+    return AWS_OP_SUCCESS;
 }
 
-/*
- *  hkdfExpand()
- *
- * 	Description: This function will perform the HKDF extraction. This function takes in an
- *				 input keying material and extracts from a psuedo random key (prk). 
- *  Parameters:
- *		evp_md: EVP_MD for SHA1, SHA224, SHA256, SHA384, SHA512 algorithms. 
- *		prk : The pseudo random key extracted from the ikm. 
- * 		prk_len: The length of the pseudo random key. 
- *      info: Optional information about the application.
- *      info_len: The length of the information. 
- *      okm: Output keying material. Where the HKDF result is obtained.
- *      okm_len: The length of the output keying material.
- *     
- *  Returns:
- *      Status Code
- *
- */
-int hkdfExpand(const EVP_MD *evp_md, 
-	const unsigned char *prk, int prk_len,
-    const unsigned char *info, int info_len,
-    unsigned char *okm, int okm_len)
-{
-  HMAC_CTX ctx; 
-  unsigned char T[EVP_MAX_MD_SIZE];
-  unsigned char temp[EVP_MAX_MD_SIZE];
-  int N, counter, i; 
-  int *T_len=NULL; 
+static int aws_cryptosdk_hkdf_expand(
+    struct aws_byte_buf *okm,
+    SHAversion whichsha,
+    const uint8_t *prk,
+    size_t prk_len,
+    const struct aws_byte_buf *info) {
+    HMAC_CTX ctx;
+    uint8_t t[EVP_MAX_MD_SIZE];
+    unsigned int n     = 0;
+    unsigned int t_len = 0;
+    unsigned int bytes_to_write;
+    unsigned int bytes_remaining = okm->len;
+    const EVP_MD *evp_md         = (whichsha == SHA256) ? EVP_sha256() : EVP_sha384();
+    const size_t hash_len        = EVP_MD_size(evp_md);
 
+    HMAC_CTX_init(&ctx);
 
-  if (prk_len < 0 || info_len < 0 || okm != NULL || okm_len <= 0)
-  	  return 0; 
+    if (!prk || !okm->len || !prk_len) goto err;
+    n = (okm->len + hash_len - 1) / hash_len;
+    if (n > 255) goto err;
 
-  if(prk == NULL)
-   	return 0; 
+    for (uint8_t idx = 1; idx <= n; idx++) {
+        if (!HMAC_Init_ex(&ctx, prk, prk_len, evp_md, NULL)) goto err;
+        if (idx != 1) {
+            if (!HMAC_Update(&ctx, t, hash_len)) goto err;
+        }
+        if (!HMAC_Update(&ctx, info->buffer, info->len)) goto err;
+        if (!HMAC_Update(&ctx, &idx, 1)) goto err;
+        if (!HMAC_Final(&ctx, t, &t_len)) goto err;
 
-  if(info == NULL){
-	 info_len = 0; 
-	 memset((void *)info,'\0', info_len);
-  }
+        assert(t_len == hash_len);
+        bytes_to_write = bytes_remaining < hash_len ? bytes_remaining : hash_len;
+        memcpy(okm->buffer + (idx - 1) * hash_len, t, bytes_to_write);
+        bytes_remaining -= bytes_to_write;
+    }
+    assert(bytes_remaining == 0);
+    aws_secure_zero(t, sizeof(t));
+    HMAC_CTX_cleanup(&ctx);
+    return AWS_OP_SUCCESS;
 
-  HMAC_CTX_init(&ctx);
-  if (!HMAC_Init_ex(&ctx, prk, prk_len, evp_md, NULL))
-  	return 0; 
-  
-  N = okm_len/ EVP_MD_size(evp_md); 
-  if (!okm_len % EVP_MD_size(evp_md))
-  	N+=1;
-
-  *T_len = 0;
-  counter = 0; 
-
-  for (i = 1; i <= N; i++) {
-  	if(!HMAC_Update(&ctx, T, *T_len))
-  		return 0;
-
-  	if(!HMAC_Update(&ctx, info, info_len))
-  		return 0;
-
-  	if(!HMAC_Update(&ctx, (const unsigned char *) &counter, 1))
-  		return 0;
-
-
-  	if(!HMAC_Final(&ctx, temp, (unsigned int *)T_len))
-  		return 0; 
-
-  	memcpy(T, temp, *T_len);
-  	counter += 1; 
-
-  }
-  memcpy(okm, T, okm_len);
-  HMAC_CTX_cleanup(&ctx);
-  return 1;
+err:
+    HMAC_CTX_cleanup(&ctx);
+    aws_byte_buf_secure_zero(okm);
+    aws_secure_zero(t, sizeof(t));
+    return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
 }
+#else
+#    include <openssl/kdf.h>
 
-/*
- *  hkdf() 
- * 
- *  Description:
- *		HMAC-based Extract-and-Expand Key Derivation Function (HKDF)
- *      This function will call hkdfExtract() and hkdfExpand()
- *
- *  Parameters:
- *      evp_md: EVP_MD for SHA1, SHA224, SHA256, SHA384, SHA512 algorithms. 
- *      salt: optional salt value (a non-secret random value);
- *            if not provided, it is set to a string of HashLen zeros.
- *      salt_len: The length of the salt value.
- *      ikm: Input keying material.
- *      ikm_len: The length of the input keying material.
- *      info: Optional information about the application.
- *      info_len: The length of the information. 
- *      okm: Output keying material. Where the HKDF result is obtained.
- *      okm_len: The length of the output keying material. 
- *
- *  Returns:
- *      Status code 
- */
+static int aws_cryptosdk_openssl_hkdf_version(
+    struct aws_byte_buf *okm,
+    SHAversion whichsha,
+    const struct aws_byte_buf *salt,
+    const struct aws_byte_buf *ikm,
+    const struct aws_byte_buf *info) {
+    EVP_PKEY_CTX *pctx   = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
+    const EVP_MD *evp_md = (whichsha == SHA256) ? EVP_sha256() : EVP_sha384();
 
-int hkdf(const EVP_MD *evp_md,
-	const unsigned char *salt, int salt_len,
-	const unsigned char *ikm, int ikm_len, 
-	uint8_t *okm, int okm_len,
-	const unsigned char *info, int info_len){
+    if (!pctx) return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+    if (EVP_PKEY_derive_init(pctx) <= 0) goto err;
+    if (EVP_PKEY_CTX_set_hkdf_md(pctx, evp_md) <= 0) goto err;
+    if (EVP_PKEY_CTX_set1_hkdf_salt(pctx, salt->buffer, salt->len) <= 0) goto err;
+    if (EVP_PKEY_CTX_set1_hkdf_key(pctx, ikm->buffer, ikm->len) <= 0) goto err;
+    if (EVP_PKEY_CTX_add1_hkdf_info(pctx, info->buffer, info->len) <= 0) goto err;
+    if (EVP_PKEY_derive(pctx, okm->buffer, &okm->len) <= 0) goto err;
 
-	unsigned char prk[EVP_MAX_MD_SIZE]; 
-	unsigned int *prk_len=NULL; 
-	return hkdfExtract(evp_md, salt, salt_len, ikm, ikm_len, prk, prk_len) || 
-	hkdfExpand(evp_md, prk, (int)*prk_len, info, info_len, okm, okm_len);
+    EVP_PKEY_CTX_free(pctx);
+    return AWS_OP_SUCCESS;
+
+err:
+    EVP_PKEY_CTX_free(pctx);
+    aws_byte_buf_secure_zero(okm);
+    return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
 }
+#endif  // OPENSSL_VERSION_NUMBER
 
-
+int aws_cryptosdk_hkdf(
+    struct aws_byte_buf *okm,
+    SHAversion whichsha,
+    const struct aws_byte_buf *salt,
+    const struct aws_byte_buf *ikm,
+    const struct aws_byte_buf *info) {
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+    uint8_t prk[EVP_MAX_MD_SIZE];
+    unsigned int prk_len;
+    if (aws_cryptosdk_hkdf_extract(prk, &prk_len, whichsha, salt, ikm)) goto err;
+    if (aws_cryptosdk_hkdf_expand(okm, whichsha, prk, prk_len, info)) goto err;
+    aws_secure_zero(prk, sizeof(prk));
+    return AWS_OP_SUCCESS;
+err:
+    aws_secure_zero(prk, sizeof(prk));
+    return AWS_OP_ERR;
+#else
+    return aws_cryptosdk_openssl_hkdf_version(okm, whichsha, salt, ikm, info);
+#endif  // OPENSSL_VERSION_NUMBER
+}

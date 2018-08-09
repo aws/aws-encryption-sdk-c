@@ -15,7 +15,6 @@
 
 #include <openssl/err.h>
 #include <openssl/evp.h>
-#include <openssl/kdf.h>
 #include <openssl/rand.h>
 #include <assert.h>
 #include <stdbool.h>
@@ -23,6 +22,7 @@
 #include <aws/common/byte_order.h>
 #include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/hkdf.h>
 
 #define MSG_ID_LEN 16
 
@@ -94,32 +94,19 @@ int aws_cryptosdk_derive_key(
         return AWS_OP_SUCCESS;
     }
 
-    EVP_PKEY_CTX *pctx;
     size_t outlen = props->content_key_len;
-
     uint8_t info[MSG_ID_LEN + 2];
     uint16_t alg_id = props->alg_id;
     info[0] = alg_id >> 8;
     info[1] = alg_id & 0xFF;
     memcpy(&info[2], message_id, sizeof(info) - 2);
-
-    pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
-    if (pctx == NULL) return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
-
-    if (EVP_PKEY_derive_init(pctx) <= 0) goto err;
-    if (EVP_PKEY_CTX_set_hkdf_md(pctx, props->impl->md_ctor()) <= 0) goto err;
-    if (EVP_PKEY_CTX_set1_hkdf_key(pctx, data_key->keybuf, props->data_key_len) <= 0) goto err;
-    if (EVP_PKEY_CTX_add1_hkdf_info(pctx, info, sizeof(info)) <= 0) goto err;
-    if (EVP_PKEY_derive(pctx, content_key->keybuf, &outlen) <= 0) goto err;
-
-    EVP_PKEY_CTX_free(pctx);
-
-    return AWS_OP_SUCCESS;
-err:
-    EVP_PKEY_CTX_free(pctx);
-
-    aws_secure_zero(content_key->keybuf, sizeof(content_key->keybuf));
-    return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+    SHAversion whichsha = SHA256;
+    const uint8_t salt[EVP_MAX_MD_SIZE];
+    struct aws_byte_buf myokm = aws_byte_buf_from_array(content_key->keybuf, outlen);
+    const struct aws_byte_buf mysalt = aws_byte_buf_from_array(salt, 0);
+    const struct aws_byte_buf myikm = aws_byte_buf_from_array(data_key->keybuf, props->data_key_len);
+    const struct aws_byte_buf myinfo = aws_byte_buf_from_array(info, MSG_ID_LEN + 2);
+    return aws_cryptosdk_hkdf(&myokm, whichsha, &mysalt, &myikm, &myinfo);
 }
 
 static EVP_CIPHER_CTX *evp_gcm_cipher_init(
