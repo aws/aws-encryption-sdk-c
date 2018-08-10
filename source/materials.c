@@ -16,8 +16,8 @@
 #include <aws/cryptosdk/cipher.h>
 
 struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_new(struct aws_allocator * alloc,
-                                                                                   enum aws_cryptosdk_alg_id alg,
-                                                                                   size_t num_keys) {
+                                                                                   enum aws_cryptosdk_alg_id alg) {
+    const int initial_edk_list_size = 4; // just a guess, this will resize as necessary
     int ret;
     struct aws_cryptosdk_encryption_materials * enc_mat;
     enc_mat = aws_mem_acquire(alloc, sizeof(struct aws_cryptosdk_encryption_materials));
@@ -27,7 +27,10 @@ struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_n
     enc_mat->unencrypted_data_key.allocator = NULL;
     enc_mat->unencrypted_data_key.buffer = NULL;
 
-    ret = aws_array_list_init_dynamic(&enc_mat->encrypted_data_keys, alloc, num_keys, sizeof(struct aws_cryptosdk_edk));
+    ret = aws_array_list_init_dynamic(&enc_mat->encrypted_data_keys,
+                                      alloc,
+                                      initial_edk_list_size,
+                                      sizeof(struct aws_cryptosdk_edk));
     if (ret) {
         aws_mem_release(alloc, enc_mat);
         return NULL;
