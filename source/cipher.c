@@ -100,9 +100,9 @@ int aws_cryptosdk_derive_key(
     info[0] = alg_id >> 8;
     info[1] = alg_id & 0xFF;
     memcpy(&info[2], message_id, sizeof(info) - 2);
-    const uint8_t salt[EVP_MAX_MD_SIZE];
+    //const uint8_t salt[EVP_MAX_MD_SIZE];
     struct aws_byte_buf myokm = aws_byte_buf_from_array(content_key->keybuf, outlen);
-    const struct aws_byte_buf mysalt = aws_byte_buf_from_array(salt, 0);
+    const struct aws_byte_buf mysalt = aws_byte_buf_from_c_str("");
     const struct aws_byte_buf myikm = aws_byte_buf_from_array(data_key->keybuf, props->data_key_len);
     const struct aws_byte_buf myinfo = aws_byte_buf_from_array(info, MSG_ID_LEN + 2);
     return aws_cryptosdk_hkdf(&myokm, props->which_sha, &mysalt, &myikm, &myinfo);

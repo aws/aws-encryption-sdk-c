@@ -95,7 +95,7 @@ err:
     return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
 }
 #else
-#    include <openssl/kdf.h>
+#include <openssl/kdf.h>
 
 static int aws_cryptosdk_openssl_hkdf_version(
     struct aws_byte_buf *okm,
