@@ -23,9 +23,40 @@
  * decrypted by any of the included keyrings; when used for decryption, the multi-
  * keyring will attempt to decrypt using each of the included keyrings.
  *
- * Initially the multi keyring has no included keyrings, and will fail if used
- * directly for an encrypt or decrypt operation. Call aws_cryptosdk_multi_mkp_add
+ * Initially the multi keyring has no included keyrings. This will cause generate,
+ * encrypt, and decrypt calls to trivially succeed without actually generating,
+ * encrypting, or decrypting data keys. Call aws_cryptosdk_multi_mkp_add
  * to add other keyrings to a multi-keyring.
+ *
+ * On generate data key calls, this will generate the data key with the first child
+ * keyring that was added, and it will fail immediately if the generation of the data
+ * key fails. It will then attempt to encrypt the same data key with each other child
+ * keyring that was added. It will proceed through the entire list, even if it
+ * encounters errors. On an error from any child keyring, AWS_OP_ERR will be returned,
+ * and it is expected that the failing child keyring will set an error code. If more
+ * than one child keyring fails, error codes will be overwritten by the last failure.
+ *
+ * If a child keyring experiences an error on encrypt data key, any data keys that were
+ * generated and encrypted from other child keyrings will *still* be returned in the
+ * encryption materials object, giving the caller the option to override
+ * the error and proceed with encrypting the message. This is a dangerous option,
+ * because the message may end up not being readable to all intended recipients.
+ * Note that our pre-made default and caching CMMs will NOT proceed with encryption if
+ * this happens and will destroy the generated encryption materials.
+ *
+ * Encrypt data key calls are similar. The call will *always* attempt to encrypt the
+ * data key with each child keyring, even if some fail. Errors from child keyrings are
+ * handled the same way as encrypt data key errors within the generate data key call.
+ * However, this function is unlikely to be called on a multi-keyring, unless it is
+ * added to another multi-keyring.
+ *
+ * Decrypt data key will attempt to decrypt one of the EDKs with each child keyring
+ * until it succeeds. Errors from child keyrings will not stop it from proceeding to
+ * others. If it succeeds in decrypting an EDK, it will return AWS_OP_SUCCESS, even
+ * if one or more of the child keyrings failed. If it does not succeed in decrypting
+ * an EDK, it will return AWS_OP_SUCCESS if there were no errors, and AWS_OP_ERR if
+ * there were errors. As with all decrypt data key calls, check decryption materials
+ * unencrypted_data_key.buffer to see whether an EDK was decrypted.
  */
 struct aws_cryptosdk_kr * aws_cryptosdk_multi_kr_new(struct aws_allocator * alloc);
 
