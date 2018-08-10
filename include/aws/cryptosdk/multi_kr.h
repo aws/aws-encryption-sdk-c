@@ -23,10 +23,13 @@
  * decrypted by any of the included keyrings; when used for decryption, the multi-
  * keyring will attempt to decrypt using each of the included keyrings.
  *
- * Initially the multi keyring has no included keyrings. This will cause generate,
- * encrypt, and decrypt calls to trivially succeed without actually generating,
+ * Initially the multi keyring has no included keyrings. In this state, generate,
+ * encrypt, and decrypt calls will trivially succeed without actually generating,
  * encrypting, or decrypting data keys. Call aws_cryptosdk_multi_mkp_add
  * to add other keyrings to a multi-keyring.
+ *
+ * Destroying this keyring will NOT destroy the keyrings that were added to it. Be
+ * sure to call the destructors on those keyrings too in order to avoid memory leaks.
  *
  * On generate data key calls, this will generate the data key with the first child
  * keyring that was added, and it will fail immediately if the generation of the data
