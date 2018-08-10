@@ -19,8 +19,8 @@
 #include <stdlib.h>
 #include "testing.h"
 #include "testutil.h"
-#include "zero_kr.h"
-#include "counting_kr.h"
+#include "zero_keyring.h"
+#include "counting_keyring.h"
 
 static uint8_t *pt_buf;
 static size_t pt_size, pt_offset;
@@ -30,7 +30,7 @@ static struct aws_cryptosdk_session *session;
 static struct aws_cryptosdk_cmm *cmm = NULL;
 static int precise_size_set = 0;
 
-static int create_session(enum aws_cryptosdk_mode mode, struct aws_cryptosdk_kr *kr) {
+static int create_session(enum aws_cryptosdk_mode mode, struct aws_cryptosdk_keyring *kr) {
     if (session) aws_cryptosdk_session_destroy(session);
     if (cmm) aws_cryptosdk_cmm_destroy(cmm);
 
@@ -196,7 +196,7 @@ static int probe_buffer_size_estimates() {
 
 static int test_small_buffers() {
     init_bufs(31);
-    create_session(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_zero_kr_new());
+    create_session(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_zero_keyring_new());
     aws_cryptosdk_session_set_frame_size(session, 16);
 
     if (probe_buffer_size_estimates()) return 1; // should emit header
@@ -219,7 +219,7 @@ int test_simple_roundtrip() {
     init_bufs(1024);
 
     size_t ct_consumed, pt_consumed;
-    create_session(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_zero_kr_new());
+    create_session(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_zero_keyring_new());
     aws_cryptosdk_session_set_message_size(session, pt_size);
     precise_size_set = true;
 
@@ -233,18 +233,18 @@ int test_simple_roundtrip() {
     return 0;
 }
 
-int test_different_kr_cant_decrypt() {
+int test_different_keyring_cant_decrypt() {
     init_bufs(1 /*1024*/);
 
     size_t ct_consumed, pt_consumed;
-    create_session(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_counting_kr());
+    create_session(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_counting_keyring());
     aws_cryptosdk_session_set_message_size(session, pt_size);
     precise_size_set = true;
 
     if (pump_ciphertext(2048, &ct_consumed, pt_size, &pt_consumed)) return 1;
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
 
-    create_session(AWS_CRYPTOSDK_DECRYPT, aws_cryptosdk_zero_kr_new());
+    create_session(AWS_CRYPTOSDK_DECRYPT, aws_cryptosdk_zero_keyring_new());
     hexdump(stderr, ct_buf, ct_size);
 
 #if 0
@@ -270,11 +270,11 @@ int test_different_kr_cant_decrypt() {
 }
 
 
-int test_changed_kr_can_decrypt() {
+int test_changed_keyring_can_decrypt() {
     init_bufs(1 /*1024*/);
 
     size_t ct_consumed, pt_consumed;
-    create_session(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_counting_kr());
+    create_session(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_counting_keyring());
     aws_cryptosdk_session_set_message_size(session, pt_size);
     precise_size_set = true;
 
@@ -292,7 +292,7 @@ int test_changed_kr_can_decrypt() {
 struct test_case encrypt_test_cases[] = {
     { "encrypt", "test_simple_roundtrip", test_simple_roundtrip },
     { "encrypt", "test_small_buffers", test_small_buffers },
-    { "encrypt", "test_different_kr_cant_decrypt", &test_different_kr_cant_decrypt },
-    { "encrypt", "test_changed_kr_can_decrypt", &test_changed_kr_can_decrypt },
+    { "encrypt", "test_different_keyring_cant_decrypt", &test_different_keyring_cant_decrypt },
+    { "encrypt", "test_changed_keyring_can_decrypt", &test_changed_keyring_can_decrypt },
     { NULL }
 };

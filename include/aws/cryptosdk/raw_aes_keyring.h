@@ -37,7 +37,7 @@
  *
  * On failure returns NULL and sets an internal AWS error code.
  */
-struct aws_cryptosdk_kr * aws_cryptosdk_raw_aes_kr_new(struct aws_allocator * alloc,
+struct aws_cryptosdk_keyring * aws_cryptosdk_raw_aes_keyring_new(struct aws_allocator * alloc,
                                                        const uint8_t * master_key_id,
                                                        size_t master_key_id_len,
                                                        const uint8_t * provider_id,

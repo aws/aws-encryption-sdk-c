@@ -25,7 +25,7 @@
  *
  * Initially the multi keyring has no included keyrings. In this state, generate,
  * encrypt, and decrypt calls will trivially succeed without actually generating,
- * encrypting, or decrypting data keys. Call aws_cryptosdk_multi_kr_add
+ * encrypting, or decrypting data keys. Call aws_cryptosdk_multi_keyring_add
  * to add other keyrings to a multi-keyring.
  *
  * Destroying this keyring will NOT destroy the keyrings that were added to it. Be
@@ -61,7 +61,7 @@
  * there were errors. As with all decrypt data key calls, check decryption materials
  * unencrypted_data_key.buffer to see whether an EDK was decrypted.
  */
-struct aws_cryptosdk_kr * aws_cryptosdk_multi_kr_new(struct aws_allocator * alloc);
+struct aws_cryptosdk_keyring * aws_cryptosdk_multi_keyring_new(struct aws_allocator * alloc);
 
 /**
  * Adds a new keyring to this multi-keyring. This operation is not threadsafe.
@@ -70,7 +70,7 @@ struct aws_cryptosdk_kr * aws_cryptosdk_multi_kr_new(struct aws_allocator * allo
  *
  * It is not possible to remove a keyring from the multi-keyring at this time.
  */
-int aws_cryptosdk_multi_kr_add(struct aws_cryptosdk_kr * multi,
-                               struct aws_cryptosdk_kr * kr_to_add);
+int aws_cryptosdk_multi_keyring_add(struct aws_cryptosdk_keyring * multi,
+                               struct aws_cryptosdk_keyring * kr_to_add);
 
 #endif // AWS_CRYPTOSDK_MULTI_KR_H

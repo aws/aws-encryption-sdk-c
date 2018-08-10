@@ -27,7 +27,7 @@
  * On attempts to decrypt, it checks whether one of the provided EDKs has
  * zero length, and if so returns the all zero data key.
  */
-struct aws_cryptosdk_kr * aws_cryptosdk_zero_kr_new();
+struct aws_cryptosdk_keyring * aws_cryptosdk_zero_keyring_new();
 
 /**
  * Convenience for testing: sets an EDK to "null" in every field.
