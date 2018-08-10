@@ -36,7 +36,7 @@ struct aws_cryptosdk_kr * aws_cryptosdk_multi_kr_new(struct aws_allocator * allo
  *
  * It is not possible to remove a MKP from the multi-MKP at this time.
  */
-int aws_cryptosdk_multi_kr_add(struct aws_cryptosdk_kr * multi_kr,
+int aws_cryptosdk_multi_kr_add(struct aws_cryptosdk_kr * multi,
                                struct aws_cryptosdk_kr * kr_to_add);
 
 #endif // AWS_CRYPTOSDK_MULTI_KR_H

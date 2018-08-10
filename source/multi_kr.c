@@ -104,3 +104,9 @@ struct aws_cryptosdk_kr *aws_cryptosdk_multi_kr_new(struct aws_allocator * alloc
     multi->vt = &vt;
     return (struct aws_cryptosdk_kr *)multi;
 }
+
+int aws_cryptosdk_multi_kr_add(struct aws_cryptosdk_kr * multi,
+                               struct aws_cryptosdk_kr * kr_to_add) {
+    struct multi_kr *self = (struct multi_kr *)multi;
+    return aws_array_list_push_back(&self->krs, (void *)&kr_to_add);
+}

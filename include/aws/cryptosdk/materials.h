@@ -170,7 +170,7 @@ struct aws_cryptosdk_cmm_vt {
 };
 
 static inline void aws_cryptosdk_cmm_destroy(struct aws_cryptosdk_cmm * cmm) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, cmm);
+    if (cmm) AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, cmm);
 }
 
 /**
@@ -257,7 +257,7 @@ struct aws_cryptosdk_kr_vt {
 };
 
 static inline void aws_cryptosdk_kr_destroy(struct aws_cryptosdk_kr * kr) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, kr);
+    if (kr) AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, kr);
 }
 
 /**
