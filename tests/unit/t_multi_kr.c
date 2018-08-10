@@ -15,14 +15,253 @@
 #include <aws/cryptosdk/multi_kr.h>
 #include "testing.h"
 
-int can_create_multi_kr() {
-    struct aws_cryptosdk_kr * multi = aws_cryptosdk_multi_kr_new(aws_default_allocator());
+struct test_kr {
+    const struct aws_cryptosdk_kr_vt *vt;
+
+    struct aws_byte_buf decrypted_key_to_return;
+
+    int ret;
+
+    bool generate_called;
+    bool encrypt_called;
+    bool decrypt_called;
+};
+
+static void test_kr_destroy(struct aws_cryptosdk_kr * kr) {(void)kr;}
+
+static int test_kr_generate_data_key(struct aws_cryptosdk_kr * kr,
+                                     struct aws_cryptosdk_encryption_materials * enc_mat) {
+    (void)enc_mat;
+    struct test_kr *self = (struct test_kr *)kr;
+    static char data_key[] = "data key";
+    enc_mat->unencrypted_data_key = aws_byte_buf_from_c_str(data_key);
+    self->generate_called = true;
+    return self->ret;
+}
+
+static int test_kr_encrypt_data_key(struct aws_cryptosdk_kr * kr,
+                                    struct aws_cryptosdk_encryption_materials * enc_mat) {
+    (void)enc_mat;
+    struct test_kr *self = (struct test_kr *)kr;
+    self->encrypt_called = true;
+    return self->ret;
+}
+
+static int test_kr_decrypt_data_key(struct aws_cryptosdk_kr * kr,
+                                    struct aws_cryptosdk_decryption_materials * dec_mat,
+                                    const struct aws_cryptosdk_decryption_request * request) {
+    (void)dec_mat;
+    (void)request;
+    struct test_kr *self = (struct test_kr *)kr;
+    dec_mat->unencrypted_data_key = self->decrypted_key_to_return;
+    self->decrypt_called = true;
+    return self->ret;
+}
+
+const static struct aws_cryptosdk_kr_vt test_kr_vt = {
+    .vt_size = sizeof(test_kr_vt),
+    .name = "test kr",
+    .destroy = test_kr_destroy,
+    .generate_data_key = test_kr_generate_data_key,
+    .encrypt_data_key = test_kr_encrypt_data_key,
+    .decrypt_data_key = test_kr_decrypt_data_key
+};
+
+static struct aws_allocator * alloc;
+static struct test_kr test_krs[5];
+static const size_t num_test_krs = sizeof(test_krs)/sizeof(struct test_kr);
+static struct aws_cryptosdk_kr * multi;
+static struct aws_cryptosdk_encryption_materials * enc_mat;
+static struct aws_cryptosdk_decryption_materials * dec_mat;
+static struct aws_cryptosdk_decryption_request dec_req;
+
+static int set_up_all_the_things() {
+    alloc = aws_default_allocator();
+
+    // doesn't matter here, just picking one
+    enum aws_cryptosdk_alg_id alg = AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384;
+
+    enc_mat = aws_cryptosdk_encryption_materials_new(alloc, alg);
+    dec_mat = aws_cryptosdk_decryption_materials_new(alloc, alg);
+    TEST_ASSERT_ADDR_NOT_NULL(enc_mat);
+    TEST_ASSERT_ADDR_NOT_NULL(dec_mat);
+
+    memset(test_krs, 0, sizeof(test_krs));
+    multi = aws_cryptosdk_multi_kr_new(alloc);
     TEST_ASSERT_ADDR_NOT_NULL(multi);
+    for (size_t kr_idx = 0; kr_idx < num_test_krs; ++kr_idx) {
+        test_krs[kr_idx].vt = &test_kr_vt;
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_multi_kr_add(
+                                multi,
+                                (struct aws_cryptosdk_kr *)(test_krs + kr_idx)));
+
+        // all flags have been reset
+        TEST_ASSERT(!test_krs[kr_idx].generate_called);
+        TEST_ASSERT(!test_krs[kr_idx].encrypt_called);
+        TEST_ASSERT(!test_krs[kr_idx].decrypt_called);
+    }
+
+    return 0;
+}
+
+static void tear_down_all_the_things() {
+    aws_cryptosdk_encryption_materials_destroy(enc_mat);
+    aws_cryptosdk_decryption_materials_destroy(dec_mat);
     aws_cryptosdk_kr_destroy(multi);
+}
+
+int delegates_encrypt_calls() {
+    TEST_ASSERT_SUCCESS(set_up_all_the_things());
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_kr_encrypt_data_key(multi, enc_mat));
+
+    for (size_t kr_idx = 0; kr_idx < num_test_krs; ++kr_idx) {
+        TEST_ASSERT(test_krs[kr_idx].encrypt_called);
+    }
+
+    tear_down_all_the_things();
+    return 0;
+}
+
+int delegates_generate_calls() {
+    TEST_ASSERT_SUCCESS(set_up_all_the_things());
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_kr_generate_data_key(multi, enc_mat));
+
+    TEST_ASSERT(test_krs[0].generate_called);
+    TEST_ASSERT(!test_krs[0].encrypt_called);
+
+    for (size_t kr_idx = 1; kr_idx < num_test_krs; ++kr_idx) {
+        TEST_ASSERT(test_krs[kr_idx].encrypt_called);
+        TEST_ASSERT(!test_krs[kr_idx].generate_called);
+    }
+
+    tear_down_all_the_things();
+    return 0;
+}
+
+int fail_on_failed_encrypt_but_call_other_krs() {
+    TEST_ASSERT_SUCCESS(set_up_all_the_things());
+
+    test_krs[1].ret = AWS_OP_ERR;
+
+    TEST_ASSERT_INT_EQ(AWS_OP_ERR, aws_cryptosdk_kr_encrypt_data_key(multi, enc_mat));
+
+    for (size_t kr_idx = 0; kr_idx < num_test_krs; ++kr_idx) {
+        TEST_ASSERT(test_krs[kr_idx].encrypt_called);
+    }
+
+    tear_down_all_the_things();
+    return 0;
+}
+
+int failed_encrypt_within_generate() {
+    TEST_ASSERT_SUCCESS(set_up_all_the_things());
+
+    test_krs[1].ret = AWS_OP_ERR;
+
+    TEST_ASSERT_INT_EQ(AWS_OP_ERR, aws_cryptosdk_kr_generate_data_key(multi, enc_mat));
+
+    TEST_ASSERT(test_krs[0].generate_called);
+    TEST_ASSERT(!test_krs[0].encrypt_called);
+
+    for (size_t kr_idx = 1; kr_idx < num_test_krs; ++kr_idx) {
+        TEST_ASSERT(test_krs[kr_idx].encrypt_called);
+        TEST_ASSERT(!test_krs[kr_idx].generate_called);
+    }
+
+    tear_down_all_the_things();
+    return 0;
+
+}
+
+int fail_on_failed_generate_and_stop() {
+    TEST_ASSERT_SUCCESS(set_up_all_the_things());
+
+    test_krs[0].ret = AWS_OP_ERR;
+
+    TEST_ASSERT_INT_EQ(AWS_OP_ERR, aws_cryptosdk_kr_generate_data_key(multi, enc_mat));
+
+    TEST_ASSERT(test_krs[0].generate_called);
+    TEST_ASSERT(!test_krs[0].encrypt_called);
+
+    for (size_t kr_idx = 1; kr_idx < num_test_krs; ++kr_idx) {
+        TEST_ASSERT(!test_krs[kr_idx].generate_called);
+        TEST_ASSERT(!test_krs[kr_idx].encrypt_called);
+    }
+
+    tear_down_all_the_things();
+    return 0;
+}
+
+int delegates_decrypt_calls() {
+    TEST_ASSERT_SUCCESS(set_up_all_the_things());
+
+    /* Error on one child KR will not stop multi KR from proceeding
+     * and it will not be reported as an error by multi KR, on successful decrypt.
+     */
+    test_krs[2].ret = AWS_OP_ERR;
+
+    const size_t successful_kr = 3;
+
+    char data_key[] = "Eureka!";
+    test_krs[successful_kr].decrypted_key_to_return = aws_byte_buf_from_c_str(data_key);
+
+    struct aws_cryptosdk_decryption_request req;
+    req.alloc = alloc;
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_kr_decrypt_data_key(multi, dec_mat, &req));
+    TEST_ASSERT_ADDR_EQ(dec_mat->unencrypted_data_key.buffer, data_key);
+
+    size_t kr_idx = 0;
+    for ( ; kr_idx <= successful_kr; ++kr_idx) {
+        TEST_ASSERT(test_krs[kr_idx].decrypt_called);
+    }
+    for ( ; kr_idx < num_test_krs; ++kr_idx) {
+        TEST_ASSERT(!test_krs[kr_idx].decrypt_called);
+    } 
+
+    tear_down_all_the_things();
+    return 0;
+}
+
+int succeed_when_no_error_and_no_decrypt() {
+    TEST_ASSERT_SUCCESS(set_up_all_the_things());
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_kr_decrypt_data_key(multi, dec_mat, &dec_req));
+    TEST_ASSERT_ADDR_NULL(dec_mat->unencrypted_data_key.buffer);
+
+    for (size_t kr_idx = 0; kr_idx < num_test_krs; ++kr_idx) {
+        TEST_ASSERT(test_krs[kr_idx].decrypt_called);
+    }
+
+    tear_down_all_the_things();
+    return 0;
+}
+
+int fail_when_error_and_no_decrypt() {
+    TEST_ASSERT_SUCCESS(set_up_all_the_things());
+
+    test_krs[2].ret = AWS_OP_ERR;
+
+    TEST_ASSERT_INT_EQ(AWS_OP_ERR, aws_cryptosdk_kr_decrypt_data_key(multi, dec_mat, &dec_req));
+    TEST_ASSERT_ADDR_NULL(dec_mat->unencrypted_data_key.buffer);
+
+    for (size_t kr_idx = 0; kr_idx < num_test_krs; ++kr_idx) {
+        TEST_ASSERT(test_krs[kr_idx].decrypt_called);
+    }
+
+    tear_down_all_the_things();
     return 0;
 }
 
 struct test_case multi_kr_test_cases[] = {
-    { "multi_kr", "can_create_multi_kr", can_create_multi_kr },
+    { "multi_kr", "delegates_encrypt_calls", delegates_encrypt_calls },
+    { "multi_kr", "fail_on_failed_encrypt_but_call_other_krs", fail_on_failed_encrypt_but_call_other_krs },
+    { "multi_kr", "failed_encrypt_within_generate", failed_encrypt_within_generate },
+    { "multi_kr", "fail_on_failed_generate_and_stop", fail_on_failed_generate_and_stop },
+    { "multi_kr", "delegates_generate_calls", delegates_generate_calls },
+    { "multi_kr", "delegates_decrypt_calls", delegates_decrypt_calls },
+    { "multi_kr", "fail_when_error_and_no_decrypt", fail_when_error_and_no_decrypt },
     { NULL }
 };

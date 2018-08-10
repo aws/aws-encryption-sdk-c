@@ -62,6 +62,8 @@ static int multi_kr_generate_data_key(struct aws_cryptosdk_kr *multi,
 static int multi_kr_decrypt_data_key(struct aws_cryptosdk_kr * multi,
                                      struct aws_cryptosdk_decryption_materials * dec_mat,
                                      const struct aws_cryptosdk_decryption_request * request) {
+    int ret_if_no_decrypt = AWS_OP_SUCCESS;
+
     struct multi_kr *self = (struct multi_kr *)multi;
     size_t num_krs = aws_array_list_length(&self->krs);
 
@@ -74,8 +76,15 @@ static int multi_kr_decrypt_data_key(struct aws_cryptosdk_kr * multi,
         if (result == AWS_OP_SUCCESS && dec_mat->unencrypted_data_key.buffer) {
             return AWS_OP_SUCCESS;
         }
+        if (result) {
+            /* If any of the child KRs succeeds at decrypting the data key return success,
+             * but if we fail to decrypt the data key, only return success if there were no
+             * errors reported from child KRs.
+             */
+            ret_if_no_decrypt = AWS_OP_ERR;
+        }
     }
-    return AWS_OP_SUCCESS;
+    return ret_if_no_decrypt;
 }
 
 static void multi_kr_destroy(struct aws_cryptosdk_kr *multi) {
