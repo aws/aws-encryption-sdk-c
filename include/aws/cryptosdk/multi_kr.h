@@ -68,7 +68,7 @@ struct aws_cryptosdk_kr * aws_cryptosdk_multi_kr_new(struct aws_allocator * allo
  * If this is called at the same time as the multi-keyring is used for encrypt or
  * decrypt, it results in undefined behavior.
  *
- * It is not possible to remove a MKP from the multi-keyring at this time.
+ * It is not possible to remove a keyring from the multi-keyring at this time.
  */
 int aws_cryptosdk_multi_kr_add(struct aws_cryptosdk_kr * multi,
                                struct aws_cryptosdk_kr * kr_to_add);
