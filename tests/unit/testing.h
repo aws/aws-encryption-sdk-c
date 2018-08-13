@@ -30,6 +30,9 @@ extern struct test_case raw_aes_mk_provider_info_test_cases[];
 extern struct test_case raw_aes_mk_decrypt_test_cases[];
 extern struct test_case raw_aes_mk_encrypt_test_cases[];
 extern struct test_case hkdf_test_cases[];
+extern struct test_case raw_aes_kr_provider_info_test_cases[];
+extern struct test_case raw_aes_kr_decrypt_test_cases[];
+extern struct test_case raw_aes_kr_encrypt_test_cases[];
 
 #define TEST_ASSERT(cond) \
     do { \

@@ -13,21 +13,21 @@
  * limitations under the License.
  */
 
-#ifndef AWS_CRYPTOSDK_TESTS_LIB_ZERO_MK_H
-#define AWS_CRYPTOSDK_TESTS_LIB_ZERO_MK_H
+#ifndef AWS_CRYPTOSDK_TESTS_LIB_ZERO_KR_H
+#define AWS_CRYPTOSDK_TESTS_LIB_ZERO_KR_H
 
 #include <aws/cryptosdk/materials.h>
 
 /**
- * A degenerate MK which always returns an all zero data key, just
- * for testing the CMM/MKP/MK infrastructure.
+ * A degenerate Keyring (KR) which always returns an all zero data key, just
+ * for testing the CMM and KR infrastructure.
  *
  * The EDK it generates has the string "null" in every field.
  *
  * On attempts to decrypt, it checks whether one of the provided EDKs has
  * zero length, and if so returns the all zero data key.
  */
-struct aws_cryptosdk_mk * aws_cryptosdk_zero_mk_new();
+struct aws_cryptosdk_kr * aws_cryptosdk_zero_kr_new();
 
 /**
  * Convenience for testing: sets an EDK to "null" in every field.
@@ -35,4 +35,4 @@ struct aws_cryptosdk_mk * aws_cryptosdk_zero_mk_new();
  */
 void aws_cryptosdk_literally_null_edk(struct aws_cryptosdk_edk * edk);
 
-#endif // AWS_CRYPTOSDK_TESTS_LIB_ZERO_MK_H
+#endif // AWS_CRYPTOSDK_TESTS_LIB_ZERO_KR_H

@@ -14,23 +14,23 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
-#include <aws/cryptosdk/private/raw_aes_mk.h>
-#include "raw_aes_mk_test_vectors.h"
+#include <aws/cryptosdk/private/raw_aes_kr.h>
+#include "raw_aes_kr_test_vectors.h"
 
-static const uint8_t raw_aes_mk_tv_master_key_id[] = "asdfhasiufhiasuhviawurhgiuawrhefiuawhf";
-static const uint8_t raw_aes_mk_tv_provider_id[] = "static-random";
-static const uint8_t raw_aes_mk_tv_wrapping_key[] =
+static const uint8_t raw_aes_kr_tv_master_key_id[] = "asdfhasiufhiasuhviawurhgiuawrhefiuawhf";
+static const uint8_t raw_aes_kr_tv_provider_id[] = "static-random";
+static const uint8_t raw_aes_kr_tv_wrapping_key[] =
 {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
  0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f};
 
-struct aws_cryptosdk_mk * raw_aes_mk_tv_new(struct aws_allocator * alloc,
+struct aws_cryptosdk_kr * raw_aes_kr_tv_new(struct aws_allocator * alloc,
                                             enum aws_cryptosdk_aes_key_len raw_key_len) {
-    return aws_cryptosdk_raw_aes_mk_new(alloc,
-                                        raw_aes_mk_tv_master_key_id,
-                                        sizeof(raw_aes_mk_tv_master_key_id) - 1,
-                                        raw_aes_mk_tv_provider_id,
-                                        sizeof(raw_aes_mk_tv_provider_id) - 1,
-                                        raw_aes_mk_tv_wrapping_key,
+    return aws_cryptosdk_raw_aes_kr_new(alloc,
+                                        raw_aes_kr_tv_master_key_id,
+                                        sizeof(raw_aes_kr_tv_master_key_id) - 1,
+                                        raw_aes_kr_tv_provider_id,
+                                        sizeof(raw_aes_kr_tv_provider_id) - 1,
+                                        raw_aes_kr_tv_wrapping_key,
                                         raw_key_len);
 }
 
@@ -43,21 +43,21 @@ struct aws_cryptosdk_edk build_test_edk_init(const uint8_t * edk_bytes, size_t e
 
     struct aws_cryptosdk_edk edk;
     edk.enc_data_key = aws_byte_buf_from_array(edk_bytes, edk_len);
-    edk.provider_id = aws_byte_buf_from_array(raw_aes_mk_tv_provider_id, sizeof(raw_aes_mk_tv_provider_id) - 1);
+    edk.provider_id = aws_byte_buf_from_array(raw_aes_kr_tv_provider_id, sizeof(raw_aes_kr_tv_provider_id) - 1);
 
-    if (aws_byte_buf_init(aws_default_allocator(), &edk.provider_info, sizeof(edk_provider_prefix) - 1 + RAW_AES_MK_IV_LEN)) {
+    if (aws_byte_buf_init(aws_default_allocator(), &edk.provider_info, sizeof(edk_provider_prefix) - 1 + RAW_AES_KR_IV_LEN)) {
         fprintf(stderr, "\nTest failed at %s:%d\n", __FILE__, __LINE__);
         abort();
     }
     memcpy(edk.provider_info.buffer, edk_provider_prefix, sizeof(edk_provider_prefix) - 1);
-    memcpy(edk.provider_info.buffer + sizeof(edk_provider_prefix) - 1, iv, RAW_AES_MK_IV_LEN);
+    memcpy(edk.provider_info.buffer + sizeof(edk_provider_prefix) - 1, iv, RAW_AES_KR_IV_LEN);
     edk.provider_info.len = edk.provider_info.capacity;
     return edk;
 }
 
 int set_test_vector_encryption_context(struct aws_allocator * alloc,
                                        struct aws_hash_table * enc_context,
-                                       const struct raw_aes_mk_test_vector * tv) {
+                                       const struct raw_aes_kr_test_vector * tv) {
     for (int idx = 0; idx < tv->num_ec_kv_pairs; ++idx) {
         struct aws_hash_element * elem;
         const struct aws_string * key = aws_string_new_from_c_str(alloc, tv->ec_keys[idx]);
@@ -120,7 +120,7 @@ static const uint8_t tv_2_edk_bytes[] =
 static const char * tv_2_ec_keys[] = {"correct"};
 static const char * tv_2_ec_vals[] = {"context"};
 
-struct raw_aes_mk_test_vector raw_aes_mk_test_vectors[] = {
+struct raw_aes_kr_test_vector raw_aes_kr_test_vectors[] = {
     {.raw_key_len = AWS_CRYPTOSDK_AES_256,
      .alg = AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
      .data_key = tv_0_data_key,
@@ -157,12 +157,12 @@ struct raw_aes_mk_test_vector raw_aes_mk_test_vectors[] = {
     {0}
 };
 
-struct aws_cryptosdk_edk edk_init_from_test_vector(struct raw_aes_mk_test_vector * tv) {
+struct aws_cryptosdk_edk edk_init_from_test_vector(struct raw_aes_kr_test_vector * tv) {
     return build_test_edk_init(tv->edk_bytes, tv->edk_bytes_len, tv->iv);
 }
 
 struct aws_cryptosdk_edk edk_init_from_test_vector_idx(int idx) {
-    return build_test_edk_init(raw_aes_mk_test_vectors[idx].edk_bytes,
-                               raw_aes_mk_test_vectors[idx].edk_bytes_len,
-                               raw_aes_mk_test_vectors[idx].iv);
+    return build_test_edk_init(raw_aes_kr_test_vectors[idx].edk_bytes,
+                               raw_aes_kr_test_vectors[idx].edk_bytes_len,
+                               raw_aes_kr_test_vectors[idx].iv);
 }

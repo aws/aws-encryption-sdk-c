@@ -29,10 +29,16 @@ struct test_case *test_groups[] = {
     materials_test_cases,
     enc_context_test_cases,
     encrypt_test_cases,
+<<<<<<< HEAD
     raw_aes_mk_decrypt_test_cases,
     raw_aes_mk_encrypt_test_cases,
     raw_aes_mk_provider_info_test_cases,
     hkdf_test_cases,
+=======
+    raw_aes_kr_decrypt_test_cases,
+    raw_aes_kr_encrypt_test_cases,
+    raw_aes_kr_provider_info_test_cases,
+>>>>>>> 0aaee9fde854b58f889604fcac64a7553f48e906
     NULL
 };
 
