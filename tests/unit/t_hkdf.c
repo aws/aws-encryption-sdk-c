@@ -205,6 +205,7 @@ int test_hkdf() {
 
         if (aws_cryptosdk_hkdf(&myokm, tv[i].which_sha, &mysalt, &myikm, &myinfo)) return AWS_OP_ERR;
         if (memcmp(tv[i].okm_desired, myokm.buffer, myokm.len) != 0) return AWS_OP_ERR;
+        aws_byte_buf_clean_up(&myokm);           
     }
     return AWS_OP_SUCCESS;
 }
