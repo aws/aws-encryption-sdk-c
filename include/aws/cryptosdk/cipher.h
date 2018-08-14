@@ -17,7 +17,7 @@
 #define AWS_CRYPTOSDK_CIPHER_H
 
 #include <aws/common/string.h>
-#include <aws/cryptosdk/header.h> 
+#include <aws/cryptosdk/header.h>
 
 enum aws_cryptosdk_aes_key_len {
     AWS_CRYPTOSDK_AES_128 = 128/8,

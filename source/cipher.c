@@ -58,7 +58,7 @@ const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryp
         STATIC_ALG_PROPS(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
             sha256, aes_128_gcm, 128, 12, 16);
         STATIC_ALG_PROPS(AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-            NULL, aes_192_gcm, 192, 12, 16); 
+            NULL, aes_192_gcm, 192, 12, 16);
         STATIC_ALG_PROPS(AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
             sha256, aes_192_gcm, 192, 12, 16);
         STATIC_ALG_PROPS(AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
