@@ -130,11 +130,7 @@ int aws_cryptosdk_hkdf(
     const struct aws_byte_buf *salt,
     const struct aws_byte_buf *ikm,
     const struct aws_byte_buf *info) {
-    if (which_sha == NOSHA) {
-        memcpy(okm->buffer, ikm->buffer, ikm->len);
-        okm->len = ikm->len;
-        return AWS_OP_SUCCESS;
-    }
+    assert(which_sha != NOSHA);
     assert(which_sha == SHA256 || which_sha == SHA384);
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
     uint8_t prk[EVP_MAX_MD_SIZE];

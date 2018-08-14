@@ -81,7 +81,7 @@ const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryp
 #undef EVP_NULL
 }
 
-const static enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(const enum aws_cryptosdk_alg_id alg_id) {
+static enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id alg_id) {
     switch (alg_id) {
         case AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384:
         case AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384: return SHA384;
@@ -91,7 +91,8 @@ const static enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(const enum a
         case AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE: return SHA256;
         case AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE:
         case AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE:
-        case AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE: return NOSHA;
+        case AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE:
+        default: return NOSHA;
     }
 }
 
@@ -106,7 +107,11 @@ int aws_cryptosdk_derive_key(
     info[0] = alg_id >> 8;
     info[1] = alg_id & 0xFF;
     memcpy(&info[2], message_id, sizeof(info) - 2);
-    const enum aws_cryptosdk_sha_version which_sha = aws_cryptosdk_which_sha(props->alg_id);
+    enum aws_cryptosdk_sha_version which_sha = aws_cryptosdk_which_sha(props->alg_id);
+    if (which_sha == NOSHA) {
+        memcpy(content_key->keybuf, data_key->keybuf, props->data_key_len);
+        return AWS_OP_SUCCESS;
+    }
     struct aws_byte_buf myokm = aws_byte_buf_from_array(content_key->keybuf, props->content_key_len);
     const struct aws_byte_buf mysalt = aws_byte_buf_from_c_str("");
     const struct aws_byte_buf myikm = aws_byte_buf_from_array(data_key->keybuf, props->data_key_len);

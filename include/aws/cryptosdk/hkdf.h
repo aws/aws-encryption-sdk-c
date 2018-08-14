@@ -27,13 +27,13 @@ enum aws_cryptosdk_sha_version {
 /**
  * This function performs the HKDF extract then expand steps as described in
  * RFC-5869. The length of the okm (output keying material) is required to be
- * set by the user ahead of time and is less than or equal to 255*HashLen. If the 
- * sha version is set to be NOSHA then the HKDF algorithm is skipped and the okm is 
- * set to be the ikm (input keying material).
+ * set by the user ahead of time and must be less than or equal to 255*HashLen.
+ * If the sha version is set to be NOSHA then the HKDF algorithm is skipped and
+ * the okm is set to be the ikm (input keying material).
  */
 int aws_cryptosdk_hkdf(
     struct aws_byte_buf *okm,
-    const enum aws_cryptosdk_sha_version which_sha,
+    enum aws_cryptosdk_sha_version which_sha,
     const struct aws_byte_buf *salt,
     const struct aws_byte_buf *ikm,
     const struct aws_byte_buf *info);
