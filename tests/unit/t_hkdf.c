@@ -197,7 +197,7 @@ struct hkdf_test_vectors tv[] = {
 
     { .which_sha   = NOSHA,
       .ikm         = tv_6_ikm,
-      .ikm_len     = 10},
+      .ikm_len     = 10 },
 };
 
 int test_hkdf() {
@@ -213,11 +213,11 @@ int test_hkdf() {
             TEST_ASSERT_ERROR(
                 AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT,
                 aws_cryptosdk_hkdf(&myokm, tv[i].which_sha, &mysalt, &myikm, &myinfo));
+            aws_byte_buf_clean_up(&myokm);
             break;
         }
         if (aws_cryptosdk_hkdf(&myokm, tv[i].which_sha, &mysalt, &myikm, &myinfo)) return AWS_OP_ERR;
         if (memcmp(tv[i].okm_desired, myokm.buffer, myokm.len) != 0) return AWS_OP_ERR;
-        aws_byte_buf_clean_up(&myokm);
     }
     return AWS_OP_SUCCESS;
 }
