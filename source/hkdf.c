@@ -40,7 +40,6 @@ static int aws_cryptosdk_hkdf_extract(
     const uint8_t *mysalt = NULL;
     size_t mysalt_len = 0;
     const EVP_MD *evp_md = aws_cryptosdk_which_sha(which_sha);
-
     if (!evp_md) return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
 
     if (salt->len) {
