@@ -131,7 +131,7 @@ static int aws_cryptosdk_openssl_hkdf_version(
 
     if (EVP_PKEY_derive_init(pctx) <= 0) goto err;
     if (EVP_PKEY_CTX_set_hkdf_md(pctx, evp_md) <= 0) goto err;
-    if (EVP_PKEY_CTX_set1_hkdf_salt(pctx, salt->buffer, salt->len) <= 0) goto err;
+    if (EVP_PKEY_CTX_set1_hkdf_salt(pctx, mysalt, mysalt_len) <= 0) goto err;
     if (EVP_PKEY_CTX_set1_hkdf_key(pctx, ikm->buffer, ikm->len) <= 0) goto err;
     if (EVP_PKEY_CTX_add1_hkdf_info(pctx, info->buffer, info->len) <= 0) goto err;
     if (EVP_PKEY_derive(pctx, okm->buffer, &okm->len) <= 0) goto err;
