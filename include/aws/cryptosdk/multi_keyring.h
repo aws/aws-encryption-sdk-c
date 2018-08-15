@@ -20,7 +20,7 @@
 /**
  * Creates a new multi-keyring. This keyring allows you to combine keyrings into
  * a single keyring. When used for encryption, the resulting document can be 
- * decrypted by any of the included keyrings; when used for decryption, the multi-
+ * decrypted by any of the included keyrings. When used for decryption, the multi-
  * keyring will attempt to decrypt using each of the included keyrings.
  *
  * Initially the multi keyring has no included keyrings. In this state, generate,
