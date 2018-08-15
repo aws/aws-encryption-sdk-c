@@ -131,6 +131,9 @@ static const uint8_t tv_5_okm_desired[] = { 0xc8, 0xc9, 0x6e, 0x71, 0x0f, 0x89, 
                                             0xa7, 0xab, 0xc7, 0x43, 0xfa, 0xde, 0x9b, 0x24, 0x2d, 0xaa, 0xcc,
                                             0x1c, 0xea, 0x56, 0x70, 0x41, 0x5b, 0x52, 0x84, 0x9c };
 
+// Test vector 6: Test with NOSHA
+static const uint8_t tv_6_ikm[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09 };
+
 struct hkdf_test_vectors tv[] = {
     { .which_sha   = SHA256,
       .ikm         = tv_0_ikm,
@@ -191,10 +194,12 @@ struct hkdf_test_vectors tv[] = {
       .info_len    = 0,
       .okm_desired = tv_5_okm_desired,
       .okm_len     = 42 },
+
+    { .which_sha = NOSHA, .ikm = tv_6_ikm, .ikm_len = 10 },
 };
 
 int test_hkdf() {
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 7; i++) {
         struct aws_byte_buf myokm;
         struct aws_allocator *allocator = aws_default_allocator();
         if (aws_byte_buf_init(allocator, &myokm, tv[i].okm_len)) return AWS_OP_ERR;
@@ -202,10 +207,15 @@ int test_hkdf() {
         const struct aws_byte_buf mysalt = aws_byte_buf_from_array(tv[i].salt, tv[i].salt_len);
         const struct aws_byte_buf myikm  = aws_byte_buf_from_array(tv[i].ikm, tv[i].ikm_len);
         const struct aws_byte_buf myinfo = aws_byte_buf_from_array(tv[i].info, tv[i].info_len);
-
+        if (i == 6) {
+            TEST_ASSERT_ERROR(
+                AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT,
+                aws_cryptosdk_hkdf(&myokm, tv[i].which_sha, &mysalt, &myikm, &myinfo));
+            break;
+        }
         if (aws_cryptosdk_hkdf(&myokm, tv[i].which_sha, &mysalt, &myikm, &myinfo)) return AWS_OP_ERR;
         if (memcmp(tv[i].okm_desired, myokm.buffer, myokm.len) != 0) return AWS_OP_ERR;
-        aws_byte_buf_clean_up(&myokm);           
+        aws_byte_buf_clean_up(&myokm);
     }
     return AWS_OP_SUCCESS;
 }
