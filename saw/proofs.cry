@@ -1,0 +1,71 @@
+module proofs where 
+
+import type_def
+import state_machine
+
+
+//Function used in saw to create determine if progress is made for any arbitrary state, excluding the ST_DONE and ST_ERROR states. 
+
+progressMadeSym : [32] -> [32] -> [32]-> [4] -> [1] -> [32] -> [32] -> [32] -> [32] -> Bit
+progressMadeSym output_size input_size hdr_size st md output_ptr output_len input_ptr input_len = 
+	if st >= ST_DONE then False 
+	else ~progressMade stateSymb
+		where stateSymb = 
+			{ sess = 
+				{ output_size_estimate = output_size
+				, input_size_estimate = input_size
+				, header_size = hdr_size
+				, state = st
+				, mode = md
+				}
+			, output_buffer = {ptr = output_ptr
+							, len = output_len
+							}
+			, input_buffer = {ptr = input_ptr
+							, len = input_len
+							}
+			}
+
+//Function used in saw to create determine if the loop continues for any arbitrary state, excluding the ST_DONE and ST_ERROR states. 
+
+loopContinuesSym : [32] -> [32] -> [32]-> [4] -> [1] -> [32] -> [32] -> [32] -> [32] -> Bit
+loopContinuesSym output_size input_size hdr_size st md output_ptr output_len input_ptr input_len = 
+	if st >= ST_DONE then False 
+	else ~loopContinues stateSymb
+		where stateSymb = 
+			{ sess = 
+				{ output_size_estimate = output_size
+				, input_size_estimate = input_size
+				, header_size = hdr_size
+				, state = st
+				, mode = md
+				}
+			, output_buffer = {ptr = output_ptr
+							, len = output_len
+							}
+			, input_buffer = {ptr = input_ptr
+							, len = input_len
+							}
+			}
+
+
+//Function used in saw to create determine if the loop continues after 1 update of the input/output buffers for the ST_WRITE_HEADER state.  
+//Here an update means the size of the buffers has been increased to the input/output size estimates. 
+
+writeHeaderContinuesOneUpdateSym : [32] -> [32] -> [32] -> [1] -> [32] -> [32] -> [32] -> [32] -> Bit
+writeHeaderContinuesOneUpdateSym output_size input_size hdr_size md output_ptr output_len input_ptr input_len = ~loopContinues ( updateBuffers (processState stateSymb) ) 
+		where stateSymb = 
+			{ sess = 
+				{ output_size_estimate = output_size
+				, input_size_estimate = input_size
+				, header_size = hdr_size
+				, state = ST_WRITE_HEADER
+				, mode = md
+				}
+			, output_buffer = {ptr = output_ptr
+							, len = output_len
+							}
+			, input_buffer = {ptr = input_ptr
+							, len = input_len
+							}
+			}
