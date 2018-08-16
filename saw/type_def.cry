@@ -1,0 +1,52 @@
+module type_def where
+
+
+// Compound type that stores all the variables that determine if the loop in the aws_cryptosdk_session_process function of session.c has made progress (line 242)
+type current_state = {sess : session
+					  , output_buffer : aws_byte_cursor
+					  , input_buffer : aws_byte_cursor
+					  }
+
+
+// TODO: size of the output_size_estimate, input_size_estimate, header_size fields. 32-bit integers too large?
+// TODO: session type is not currently complete. Only has the fields necessary for current proofs. 
+// See <aws/cryptosdk/private/session.h>: 50 - 82 
+
+type session = {
+	output_size_estimate : [32] 
+	, input_size_estimate : [32]
+	, header_size : [32]
+	, state : [4] 
+	, mode : [1] //do we encrypt (0) or decrypt (1) 
+	}
+
+// See <aws/common/byte_buf.h>: 43 - 46 
+
+type aws_byte_cursor = {
+	ptr : [32]
+	, len : [32]
+	}
+
+// enum of states in the session.c state machine 
+// See <aws/cryptosdk/private/session.h>: 26 - 48 
+
+ST_CONFIG = 0
+
+// Decrypt path 
+
+ST_READ_HEADER = 1
+ST_UNWRAP_KEY = 2
+ST_DECRYPT_BODY = 3
+ST_CHECK_TRAILER = 4
+
+// Encrypt path 
+
+ST_GEN_KEY = 5
+ST_WRITE_HEADER = 6
+ST_ENCRYPT_BODY = 7
+ST_WRITE_TRAILER = 8
+
+
+ST_DONE = 9
+ST_ERROR = 10
+

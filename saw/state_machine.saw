@@ -1,0 +1,9 @@
+import "state_machine.cry";
+
+print "Is there any (non-error or done) state from which neither the loop continues nor a larger buffer is expected?";
+let s = {{progressMadeSym}};
+sat_print yices s;
+
+print "Is there any (non-error or done) state from which the loop does not continue?";
+let s = {{loopContinuesSym}};
+sat_print yices s;

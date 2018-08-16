@@ -1,0 +1,119 @@
+module state_machine where
+
+import type_def
+import transition_function
+	
+
+// Translation of the the work inside the switch statement of the aws_cryptosdk_session_process function of session.c (lines 185 - 240)
+// Currently, transitions from state 0 and state 6 are modeled. 
+// All other states are assumed to just transition to the next subsequent state (even ST_DONE and ST_ERROR), even though this is not necessarily accurate.
+
+processState : current_state -> current_state
+processState state_old = 
+	if (state_old.sess.state == ST_CONFIG) && (state_old.sess.mode == 0) then 
+		{ sess = 
+			{output_size_estimate = state_old.sess.output_size_estimate
+			, input_size_estimate = state_old.sess.input_size_estimate 
+			, header_size = state_old.sess.header_size
+			, state = ST_GEN_KEY
+			, mode = state_old.sess.mode
+			}
+		, output_buffer = state_old.output_buffer
+		, input_buffer = state_old.input_buffer
+		}
+	else if state_old.sess.state == ST_CHECK_TRAILER then 
+		{sess = 
+			{output_size_estimate = state_old.sess.output_size_estimate
+			, input_size_estimate = state_old.sess.input_size_estimate
+			, header_size = state_old.sess.header_size
+			, state = ST_DONE
+			, mode = state_old.sess.mode
+			}
+		, output_buffer = state_old.output_buffer
+		, input_buffer = state_old.input_buffer 
+		}
+	else if state_old.sess.state == ST_WRITE_HEADER then writeHeader state_old
+	else 
+		{sess = 
+			{output_size_estimate = state_old.sess.output_size_estimate
+			, input_size_estimate = state_old.sess.input_size_estimate
+			, header_size = state_old.sess.header_size
+			, state = state_old.sess.state + 1 //NOTE: this is inaccurate in the case of ST_DONE and ST_ERROR
+			, mode = state_old.sess.mode
+			}
+		, output_buffer = state_old.output_buffer
+		, input_buffer = state_old.input_buffer 
+		}
+
+
+// Function to determine is progress has been made after a call of processState (line 242 of session.c)
+
+cmpState : current_state -> current_state -> Bit
+cmpState state_new state_old = 
+	if state_new.sess.state != state_old.sess.state then True
+	else if state_new.output_buffer.ptr != state_old.output_buffer.ptr then True 
+	else if state_new.input_buffer.ptr != state_old.input_buffer.ptr then True
+	else False 
+
+// Function to determine if a need for larger output or input buffers has been detected. 
+
+bufferUpdated : current_state -> Bit 
+bufferUpdated state_new = 
+	if state_new.sess.output_size_estimate > state_new.output_buffer.len then True 
+	else if state_new.sess.input_size_estimate > state_new.input_buffer.len then True 
+	else False
+
+
+// Function that determines if the loop can continue (line 243 of session.c)
+// Assumption is that AWS_OP_SUCCESS has been returned. 
+
+property loopContinues x = ( cmpState (processState x) x == True )
+
+// Function that determines if either the loop continues or if a need for larger buffers has been detected. 
+
+property progressMade x = ( cmpState (processState x) x == True ) || ( bufferUpdated  (processState x) == True )
+
+
+//Function used in saw to create determine if progress is made for any arbitrary state, excluding the ST_DONE and ST_ERROR states. 
+
+progressMadeSym : [32] -> [32] -> [32]-> [4] -> [1] -> [32] -> [32] -> [32] -> [32] -> Bit
+progressMadeSym output_size input_size hdr_size st md output_ptr output_len input_ptr input_len = 
+	if st >= ST_DONE then False 
+	else ~progressMade stateSymb
+		where stateSymb = 
+			{ sess = 
+				{ output_size_estimate = output_size
+				, input_size_estimate = input_size
+				, header_size = hdr_size
+				, state = st
+			, mode = md
+				}
+			, output_buffer = {ptr = output_ptr
+							, len = output_len
+							}
+			, input_buffer = {ptr = input_ptr
+							, len = input_len
+							}
+			}
+
+//Function used in saw to create determine if the loop continues for any arbitrary state, excluding the ST_DONE and ST_ERROR states. 
+
+loopContinuesSym : [32] -> [32] -> [32]-> [4] -> [1] -> [32] -> [32] -> [32] -> [32] -> Bit
+loopContinuesSym output_size input_size hdr_size st md output_ptr output_len input_ptr input_len = 
+	if st >= ST_DONE then False 
+	else ~loopContinues stateSymb
+		where stateSymb = 
+			{ sess = 
+				{ output_size_estimate = output_size
+				, input_size_estimate = input_size
+				, header_size = hdr_size
+				, state = st
+			, mode = md
+				}
+			, output_buffer = {ptr = output_ptr
+							, len = output_len
+							}
+			, input_buffer = {ptr = input_ptr
+							, len = input_len
+							}
+			}

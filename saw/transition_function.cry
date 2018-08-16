@@ -1,0 +1,40 @@
+module transition_function where
+
+import type_def
+
+// Cryptol translation of function try_write_header in session_encrypt.c (line 219 - 236)
+
+writeHeader : current_state -> current_state
+writeHeader state_old = 
+	if state_old.output_buffer.len >= state_old.sess.header_size then 
+		{sess = sess_new_success
+		, output_buffer = output_buffer_new_success
+		, input_buffer = state_old.input_buffer
+		}
+			where sess_new_success = {output_size_estimate = state_old.sess.header_size
+						, input_size_estimate = state_old.sess.input_size_estimate
+						, header_size = state_old.sess.header_size
+						, state = state_old.sess.state + 1
+						, mode = state_old.sess.mode
+						 }
+			where output_buffer_new_success = {ptr = state_old.output_buffer.ptr + state_old.sess.header_size
+					 		, len = state_old.output_buffer.len - state_old.sess.header_size
+					 		}
+	else {sess = sess_new_fail
+		, output_buffer = output_buffer_new_fail
+		, input_buffer = state_old.input_buffer
+		}
+			where sess_new_fail = {output_size_estimate = state_old.sess.header_size
+						, input_size_estimate = state_old.sess.input_size_estimate
+						, header_size = state_old.sess.header_size
+						, state = state_old.sess.state 
+						, mode = state_old.sess.mode
+					 	}
+			where output_buffer_new_fail = {ptr = state_old.output_buffer.ptr 
+					 	, len = state_old.output_buffer.len
+					 	} 
+
+
+
+
+
