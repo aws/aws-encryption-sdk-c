@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef AWS_CRYPTOSDK_TESTS_LIB_COUNTING_KR_H
-#define AWS_CRYPTOSDK_TESTS_LIB_COUNTING_KR_H
+#ifndef AWS_CRYPTOSDK_TESTS_LIB_COUNTING_KEYRING_H
+#define AWS_CRYPTOSDK_TESTS_LIB_COUNTING_KEYRING_H
 
 #include <aws/cryptosdk/materials.h>
 
@@ -31,4 +31,4 @@
  */
 struct aws_cryptosdk_keyring *aws_cryptosdk_counting_keyring();
 
-#endif /* AWS_CRYPTOSDK_TESTS_LIB_COUNTING_KR_H */
+#endif /* AWS_CRYPTOSDK_TESTS_LIB_COUNTING_KEYRING_H */

@@ -12,8 +12,8 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef AWS_CRYPTOSDK_PRIVATE_RAW_AES_KR_H
-#define AWS_CRYPTOSDK_PRIVATE_RAW_AES_KR_H
+#ifndef AWS_CRYPTOSDK_PRIVATE_RAW_AES_KEYRING_H
+#define AWS_CRYPTOSDK_PRIVATE_RAW_AES_KEYRING_H
 
 #include <aws/cryptosdk/raw_aes_keyring.h>
 #include <aws/common/string.h>
@@ -75,4 +75,4 @@ int aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(
     struct aws_cryptosdk_encryption_materials * enc_mat,
     const uint8_t * iv);
 
-#endif // AWS_CRYPTOSDK_PRIVATE_RAW_AES_KR_H
+#endif // AWS_CRYPTOSDK_PRIVATE_RAW_AES_KEYRING_H
