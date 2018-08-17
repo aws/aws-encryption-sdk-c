@@ -83,13 +83,4 @@ struct aws_cryptosdk_edk build_test_edk_init(const uint8_t * edk_bytes, size_t e
 struct aws_cryptosdk_edk edk_init_from_test_vector(struct raw_aes_keyring_test_vector * tv);
 struct aws_cryptosdk_edk edk_init_from_test_vector_idx(int idx);
 
-/**
- * Returns true if the contents of all EDK byte buffers are identical, false otherwise.
- */
-static inline bool aws_cryptosdk_edk_eq(const struct aws_cryptosdk_edk * a, const struct aws_cryptosdk_edk * b) {
-    return aws_byte_buf_eq(&a->enc_data_key, &b->enc_data_key) &&
-        aws_byte_buf_eq(&a->provider_info, &b->provider_info) &&
-        aws_byte_buf_eq(&a->provider_id, &b->provider_id);
-}
-
 #endif // AWS_CRYPTOSDK_TESTS_LIB_RAW_AES_KR_TEST_VECTORS_H
