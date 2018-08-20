@@ -32,6 +32,7 @@ struct test_case *test_groups[] = {
     raw_aes_kr_decrypt_test_cases,
     raw_aes_kr_encrypt_test_cases,
     raw_aes_kr_provider_info_test_cases,
+    hkdf_test_cases,
     NULL
 };
 
