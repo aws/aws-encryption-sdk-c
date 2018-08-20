@@ -14,8 +14,12 @@ writeHeader state_old =
 			where sess_new_success = {output_size_estimate = state_old.sess.header_size
 						, input_size_estimate = state_old.sess.input_size_estimate
 						, header_size = state_old.sess.header_size
-						, state = state_old.sess.state + 1
+						, state = ST_ENCRYPT_BODY
 						, mode = state_old.sess.mode
+						, precise_size = state_old.sess.precise_size
+						, data_so_far = state_old.sess.data_so_far
+						, frame_size = state_old.sess.frame_size
+						, precise_size_known = state_old.sess.precise_size_known
 						 }
 			where output_buffer_new_success = {ptr = state_old.output_buffer.ptr + state_old.sess.header_size
 					 		, len = state_old.output_buffer.len - state_old.sess.header_size
@@ -29,12 +33,80 @@ writeHeader state_old =
 						, header_size = state_old.sess.header_size
 						, state = state_old.sess.state 
 						, mode = state_old.sess.mode
+						, precise_size = state_old.sess.precise_size
+						, data_so_far = state_old.sess.data_so_far
+						, frame_size = state_old.sess.frame_size
+						, precise_size_known = state_old.sess.precise_size_known
 					 	}
 			where output_buffer_new_fail = {ptr = state_old.output_buffer.ptr 
 					 	, len = state_old.output_buffer.len
 					 	} 
 
 
+// Cryptol translation of function try_encrypt_body in session_encrypt.c (line 238 - 333)
 
+
+encryptHelper : current_state -> [32] -> [32] -> [4] -> current_state 
+encryptHelper state_old size_in size_out new_state = 
+	if ( state_old.input_buffer.len < size_in ) || ( state_old.output_buffer.len < size_out ) then 
+		{ sess = { output_size_estimate = size_out
+				, input_size_estimate = size_in
+				, header_size = state_old.sess.header_size
+				, state = state_old.sess.state
+				, mode = state_old.sess.mode
+				, precise_size = state_old.sess.precise_size
+				, data_so_far = state_old.sess.data_so_far
+				, frame_size = state_old.sess.frame_size
+				, precise_size_known = state_old.sess.precise_size_known
+				}
+		, output_buffer = state_old.output_buffer
+		, input_buffer = state_old.input_buffer
+		}
+	else { sess = { output_size_estimate = size_out
+					, input_size_estimate = size_in
+					, header_size = state_old.sess.header_size
+					, state = new_state
+					, mode = state_old.sess.mode
+					, precise_size = state_old.sess.precise_size
+					, data_so_far = state_old.sess.data_so_far + size_in 
+					, frame_size = state_old.sess.frame_size
+					, precise_size_known = state_old.sess.precise_size_known
+				}
+				, output_buffer = { ptr = state_old.output_buffer.ptr + size_out
+									, len = state_old.output_buffer.len - size_out
+									}
+				, input_buffer = { ptr = state_old.input_buffer.ptr + size_in
+									, len = state_old.input_buffer.len - size_in
+									}		
+		}
+
+encryptBodyFramed : current_state -> current_state
+encryptBodyFramed state_old = 
+	if ( state_old.sess.precise_size_known == 1 ) && (state_old.sess.precise_size - state_old.sess.data_so_far < state_old.sess.frame_size) then 
+		encryptHelper state_old (state_old.sess.precise_size - state_old.sess.data_so_far) (state_old.sess.precise_size - state_old.sess.data_so_far) ST_WRITE_TRAILER
+	else encryptHelper state_old state_old.sess.frame_size state_old.sess.frame_size ST_ENCRYPT_BODY
+
+encryptBodyUnframed : current_state -> current_state
+encryptBodyUnframed state_old = 
+	if ( state_old.sess.precise_size_known == 1 ) then encryptHelper state_old state_old.sess.precise_size state_old.sess.precise_size ST_WRITE_TRAILER
+	else { sess = { output_size_estimate = 0
+					, input_size_estimate = 0
+					, header_size = state_old.sess.header_size
+					, state = state_old.sess.state
+					, mode = state_old.sess.mode
+					, precise_size = state_old.sess.precise_size
+					, data_so_far = state_old.sess.data_so_far
+					, frame_size = state_old.sess.frame_size
+					, precise_size_known = state_old.sess.precise_size_known
+				}
+				, output_buffer = state_old.output_buffer
+				, input_buffer = state_old.input_buffer	
+		}
+
+encryptBody : current_state -> current_state
+encryptBody state_old = 
+	if state_old.sess.frame_size > 0 then encryptBodyFramed state_old
+	else encryptBodyUnframed state_old
+		
 
 

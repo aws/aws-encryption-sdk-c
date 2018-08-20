@@ -5,7 +5,7 @@ import transition_function
 	
 
 // Translation of the the work inside the switch statement of the aws_cryptosdk_session_process function of session.c (lines 185 - 240)
-// Currently, transitions from state 0 and state 6 are modeled. 
+// Currently, transitions from ST_CONFIG, ST_WRITE_HEADER and ST_ENCRYPT_BODY are modeled. 
 // All other states are assumed to just transition to the next subsequent state (even ST_DONE and ST_ERROR), even though this is not necessarily accurate.
 
 processState : current_state -> current_state
@@ -17,6 +17,10 @@ processState state_old =
 			, header_size = state_old.sess.header_size
 			, state = ST_GEN_KEY
 			, mode = state_old.sess.mode
+			, precise_size = state_old.sess.precise_size
+			, data_so_far = state_old.sess.data_so_far
+			, frame_size = state_old.sess.frame_size
+			, precise_size_known = state_old.sess.precise_size_known
 			}
 		, output_buffer = state_old.output_buffer
 		, input_buffer = state_old.input_buffer
@@ -28,11 +32,16 @@ processState state_old =
 			, header_size = state_old.sess.header_size
 			, state = ST_DONE
 			, mode = state_old.sess.mode
+			, precise_size = state_old.sess.precise_size
+			, data_so_far = state_old.sess.data_so_far
+			, frame_size = state_old.sess.frame_size
+			, precise_size_known = state_old.sess.precise_size_known
 			}
 		, output_buffer = state_old.output_buffer
 		, input_buffer = state_old.input_buffer 
 		}
 	else if state_old.sess.state == ST_WRITE_HEADER then writeHeader state_old
+	else if state_old.sess.state == ST_ENCRYPT_BODY then encryptBody state_old
 	else 
 		{sess = 
 			{output_size_estimate = state_old.sess.output_size_estimate
@@ -40,6 +49,10 @@ processState state_old =
 			, header_size = state_old.sess.header_size
 			, state = state_old.sess.state + 1 //NOTE: this is inaccurate in the case of ST_DONE and ST_ERROR
 			, mode = state_old.sess.mode
+			, precise_size = state_old.sess.precise_size
+			, data_so_far = state_old.sess.data_so_far
+			, frame_size = state_old.sess.frame_size
+			, precise_size_known = state_old.sess.precise_size_known
 			}
 		, output_buffer = state_old.output_buffer
 		, input_buffer = state_old.input_buffer 

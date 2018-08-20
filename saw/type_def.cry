@@ -18,6 +18,10 @@ type session = {
 	, header_size : [32]
 	, state : [4] 
 	, mode : [1] //do we encrypt (0) or decrypt (1) 
+	, precise_size : [32]
+	, data_so_far : [32]
+	, frame_size : [32] // if frame size is zero, the message is unframed
+	, precise_size_known : [1]
 	}
 
 // See <aws/common/byte_buf.h>: 43 - 46 
@@ -50,3 +54,5 @@ ST_WRITE_TRAILER = 8
 ST_DONE = 9
 ST_ERROR = 10
 
+
+DEFAULT_FRAME_SIZE = 256 * 1024
