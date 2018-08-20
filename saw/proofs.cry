@@ -5,17 +5,20 @@ import state_machine
 
 // Function to determine if known preconditons about the fields of the state are met. 
 
-preconditionsMet : [32] -> [32] -> [32]-> [4] -> [1] -> [32] -> [32] -> [32] -> [1] -> [32] -> [32] -> [32] -> [32] -> Bit
-preconditionsMet output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known output_ptr output_len input_ptr input_len = 
+preconditionsMet : [32] -> [32] -> [32]-> [4] -> [1] -> [32] -> [32] -> [32] -> [1] -> [32] -> [32]-> [32] -> [32] -> [32] -> [32] -> Bit
+preconditionsMet output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known iv_length tag_length output_ptr output_len input_ptr input_len = 
 	if d_so_far > precise_sz then False
+	else if f_size >= MAX_FRAME_SIZE then False
+	else if iv_length != 96 then False
+	else if tag_length != 128 then False 
 	else if st >=ST_DONE then False
 	else True 
 
 //Function used in saw to create determine if progress is made for any arbitrary state, excluding the ST_DONE and ST_ERROR states. 
 
-progressMadeSym : [32] -> [32] -> [32]-> [4] -> [1] -> [32] -> [32] -> [32] -> [1] -> [32] -> [32] -> [32] -> [32] -> Bit
-progressMadeSym output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known output_ptr output_len input_ptr input_len = 
-	if ~preconditionsMet output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known output_ptr output_len input_ptr input_len then False
+progressMadeSym : [32] -> [32] -> [32]-> [4] -> [1] -> [32] -> [32] -> [32] -> [1] -> [32] -> [32] -> [32] -> [32] -> [32] -> [32] -> Bit
+progressMadeSym output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known iv_length tag_length output_ptr output_len input_ptr input_len = 
+	if ~preconditionsMet output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known iv_length tag_length output_ptr output_len input_ptr input_len then False
 	else ~progressMade stateSymb
 		where stateSymb = 
 			{ sess = 
@@ -28,6 +31,9 @@ progressMadeSym output_size input_size hdr_size st md precise_sz d_so_far f_size
 				, data_so_far = d_so_far
 				, frame_size = f_size
 				, precise_size_known = ps_known
+				, alg_prop = { iv_len = iv_length
+								, tag_len = tag_length
+							}
 				}
 			, output_buffer = {ptr = output_ptr
 							, len = output_len
@@ -39,9 +45,9 @@ progressMadeSym output_size input_size hdr_size st md precise_sz d_so_far f_size
 
 //Function used in saw to create determine if the loop continues for any arbitrary state, excluding the ST_DONE and ST_ERROR states. 
 
-loopContinuesSym : [32] -> [32] -> [32]-> [4] -> [1] -> [32] -> [32] ->[32] -> [1] -> [32] -> [32] -> [32] -> [32] -> Bit
-loopContinuesSym output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known output_ptr output_len input_ptr input_len = 
-	if ~preconditionsMet output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known output_ptr output_len input_ptr input_len then False
+loopContinuesSym : [32] -> [32] -> [32]-> [4] -> [1] -> [32] -> [32] ->[32] -> [1] -> [32] -> [32] -> [32] -> [32] -> [32] -> [32] -> Bit
+loopContinuesSym output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known iv_length tag_length output_ptr output_len input_ptr input_len = 
+	if ~preconditionsMet output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known iv_length tag_length output_ptr output_len input_ptr input_len then False
 	else ~loopContinues stateSymb
 		where stateSymb = 
 			{ sess = 
@@ -54,6 +60,9 @@ loopContinuesSym output_size input_size hdr_size st md precise_sz d_so_far f_siz
 				, data_so_far = d_so_far
 				, frame_size = f_size
 				, precise_size_known = ps_known
+				, alg_prop = { iv_len = iv_length
+								, tag_len = tag_length
+							}
 				}
 			, output_buffer = {ptr = output_ptr
 							, len = output_len
@@ -66,9 +75,9 @@ loopContinuesSym output_size input_size hdr_size st md precise_sz d_so_far f_siz
 
 //Function used in saw to create determine if progress is made for any arbitrary state when the precise size is known, excluding the ST_DONE and ST_ERROR states. 
 
-progressMadePreciseSym : [32] -> [32] -> [32]-> [4] -> [1] -> [32] -> [32] -> [32] -> [1] -> [32] -> [32] -> [32] -> [32] -> Bit
-progressMadePreciseSym output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known output_ptr output_len input_ptr input_len = 
-	if ~preconditionsMet output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known output_ptr output_len input_ptr input_len then False
+progressMadePreciseSym : [32] -> [32] -> [32]-> [4] -> [1] -> [32] -> [32] -> [32] -> [1] -> [32] -> [32] -> [32]-> [32] -> [32] -> [32] -> Bit
+progressMadePreciseSym output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known iv_length tag_length output_ptr output_len input_ptr input_len = 
+	if ~preconditionsMet output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known iv_length tag_length output_ptr output_len input_ptr input_len then False
 	else if ps_known == 0 then False
 	else ~progressMade stateSymb
 		where stateSymb = 
@@ -82,6 +91,9 @@ progressMadePreciseSym output_size input_size hdr_size st md precise_sz d_so_far
 				, data_so_far = d_so_far
 				, frame_size = f_size
 				, precise_size_known = ps_known
+				, alg_prop = { iv_len = iv_length
+								, tag_len = tag_length
+							}
 				}
 			, output_buffer = {ptr = output_ptr
 							, len = output_len
@@ -93,9 +105,9 @@ progressMadePreciseSym output_size input_size hdr_size st md precise_sz d_so_far
 
 //Function used in saw to create determine if the loop continues for any arbitrary state when the precise size is known , excluding the ST_DONE and ST_ERROR states. 
 
-loopContinuesPreciseSym : [32] -> [32] -> [32]-> [4] -> [1] -> [32] -> [32] ->[32] -> [1] -> [32] -> [32] -> [32] -> [32] -> Bit
-loopContinuesPreciseSym output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known output_ptr output_len input_ptr input_len = 
-	if ~preconditionsMet output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known output_ptr output_len input_ptr input_len then False
+loopContinuesPreciseSym : [32] -> [32] -> [32]-> [4] -> [1] -> [32] -> [32] ->[32] -> [1] -> [32] -> [32] -> [32] -> [32] -> [32] -> [32] -> Bit
+loopContinuesPreciseSym output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known iv_length tag_length output_ptr output_len input_ptr input_len = 
+	if ~preconditionsMet output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known iv_length tag_length output_ptr output_len input_ptr input_len then False
 	else if ps_known == 0 then False
 	else ~loopContinues stateSymb
 		where stateSymb = 
@@ -109,6 +121,9 @@ loopContinuesPreciseSym output_size input_size hdr_size st md precise_sz d_so_fa
 				, data_so_far = d_so_far
 				, frame_size = f_size
 				, precise_size_known = ps_known
+				, alg_prop = { iv_len = iv_length
+								, tag_len = tag_length
+							}
 				}
 			, output_buffer = {ptr = output_ptr
 							, len = output_len
@@ -121,9 +136,9 @@ loopContinuesPreciseSym output_size input_size hdr_size st md precise_sz d_so_fa
 //Function used in saw to create determine if the loop continues after 1 update of the input/output buffers for the ST_WRITE_HEADER state.  
 //Here an update means the size of the buffers has been increased to the input/output size estimates. 
 
-writeHeaderContinuesOneUpdateSym : [32] -> [32] -> [32] -> [1] -> [32] -> [32] -> [32] -> [1] -> [32] -> [32] -> [32] -> [32] -> Bit
-writeHeaderContinuesOneUpdateSym output_size input_size hdr_size md precise_sz d_so_far f_size ps_known output_ptr output_len input_ptr input_len =
-	if ~preconditionsMet output_size input_size hdr_size ST_WRITE_HEADER md precise_sz d_so_far f_size ps_known output_ptr output_len input_ptr input_len then False
+writeHeaderContinuesOneUpdateSym : [32] -> [32] -> [32] -> [1] -> [32] -> [32] -> [32] -> [1] -> [32] -> [32] -> [32]-> [32] -> [32] -> [32] -> Bit
+writeHeaderContinuesOneUpdateSym output_size input_size hdr_size md precise_sz d_so_far f_size ps_known iv_length tag_length output_ptr output_len input_ptr input_len =
+	if ~preconditionsMet output_size input_size hdr_size ST_WRITE_HEADER md precise_sz d_so_far f_size ps_known iv_length tag_length output_ptr output_len input_ptr input_len then False
 	else  ~loopContinues ( updateBuffers (processState stateSymb) ) && (~loopContinues stateSymb)
 		where stateSymb = 
 			{ sess = 
@@ -136,6 +151,9 @@ writeHeaderContinuesOneUpdateSym output_size input_size hdr_size md precise_sz d
 				, data_so_far = d_so_far
 				, frame_size = f_size
 				, precise_size_known = ps_known
+				, alg_prop = { iv_len = iv_length
+								, tag_len = tag_length
+							}
 				}
 			, output_buffer = {ptr = output_ptr
 							, len = output_len
@@ -149,12 +167,14 @@ writeHeaderContinuesOneUpdateSym output_size input_size hdr_size md precise_sz d
 //Function used in saw to create determine if the loop continues after 1 update of the input/output buffers for the ST_ENCRYPT_BODY state.  
 //Here we assume the precise size is known 
 //Here an update means the size of the buffers has been increased to the input/output size estimates. 
+//Currently this check fails because of an overflow bug.
+//TODO: Is it possible for the input/output buffer to be large enough before this transition for the overflow to happen?
 
-encryptBodyContinuesOneUpdatePreciseSym : [32] -> [32] -> [32] -> [1] -> [32] -> [32] -> [32] -> [1] -> [32] -> [32] -> [32] -> [32] -> Bit
-encryptBodyContinuesOneUpdatePreciseSym output_size input_size hdr_size md precise_sz d_so_far f_size ps_known output_ptr output_len input_ptr input_len = 
-	if ~preconditionsMet output_size input_size hdr_size ST_ENCRYPT_BODY md precise_sz d_so_far f_size ps_known output_ptr output_len input_ptr input_len then False
+encryptBodyContinuesOneUpdatePreciseSym : [32] -> [32] -> [32] -> [1] -> [32] -> [32] -> [32] -> [1] -> [32] -> [32] -> [32]-> [32] -> [32] -> [32] -> Bit
+encryptBodyContinuesOneUpdatePreciseSym output_size input_size hdr_size md precise_sz d_so_far f_size ps_known iv_length tag_length  output_ptr output_len input_ptr input_len = 
+	if ~preconditionsMet output_size input_size hdr_size ST_ENCRYPT_BODY md precise_sz d_so_far f_size ps_known iv_length tag_length output_ptr output_len input_ptr input_len then False
 	else if ps_known == 0 then False
-	else ~loopContinues ( updateBuffers (processState stateSymb) ) 
+	else  ~loopContinues ( updateBuffers (processState stateSymb) ) && (~loopContinues stateSymb)
 		where stateSymb = 
 			{ sess = 
 				{ output_size_estimate = output_size
@@ -166,6 +186,9 @@ encryptBodyContinuesOneUpdatePreciseSym output_size input_size hdr_size md preci
 				, data_so_far = d_so_far
 				, frame_size = f_size
 				, precise_size_known = ps_known
+				, alg_prop = { iv_len = iv_length
+								, tag_len = tag_length
+							}
 				}
 			, output_buffer = {ptr = output_ptr
 							, len = output_len
@@ -179,10 +202,10 @@ encryptBodyContinuesOneUpdatePreciseSym output_size input_size hdr_size md preci
 //Here we make no assumptions about if the precise size is known. 
 //Here an update means the size of the buffers has been increased to the input/output size estimates. 
 
-encryptBodyContinuesOneUpdateNotPreciseSym : [32] -> [32] -> [32] -> [1] -> [32] -> [32] -> [32] -> [1] -> [32] -> [32] -> [32] -> [32] -> Bit
-encryptBodyContinuesOneUpdateNotPreciseSym output_size input_size hdr_size md precise_sz d_so_far f_size ps_known output_ptr output_len input_ptr input_len = 
-	if ~preconditionsMet output_size input_size hdr_size ST_ENCRYPT_BODY md precise_sz d_so_far f_size ps_known output_ptr output_len input_ptr input_len then False
-	else ~loopContinues ( updateBuffers (processState stateSymb) ) 
+encryptBodyContinuesOneUpdateNotPreciseSym : [32] -> [32] -> [32] -> [1] -> [32] -> [32] -> [32] -> [1] -> [32] -> [32] -> [32] -> [32] -> [32] -> [32] -> Bit
+encryptBodyContinuesOneUpdateNotPreciseSym output_size input_size hdr_size md precise_sz d_so_far f_size ps_known iv_length tag_length output_ptr output_len input_ptr input_len = 
+	if ~preconditionsMet output_size input_size hdr_size ST_ENCRYPT_BODY md precise_sz d_so_far f_size ps_known iv_length tag_length output_ptr output_len input_ptr input_len then False
+	else  ~loopContinues ( updateBuffers (processState stateSymb) ) && (~loopContinues stateSymb)
 		where stateSymb = 
 			{ sess = 
 				{ output_size_estimate = output_size
@@ -194,6 +217,9 @@ encryptBodyContinuesOneUpdateNotPreciseSym output_size input_size hdr_size md pr
 				, data_so_far = d_so_far
 				, frame_size = f_size
 				, precise_size_known = ps_known
+				, alg_prop = { iv_len = iv_length
+								, tag_len = tag_length
+							}
 				}
 			, output_buffer = {ptr = output_ptr
 							, len = output_len
@@ -202,3 +228,5 @@ encryptBodyContinuesOneUpdateNotPreciseSym output_size input_size hdr_size md pr
 							, len = input_len
 							}
 			}
+
+
