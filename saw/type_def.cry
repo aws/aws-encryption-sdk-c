@@ -22,6 +22,7 @@ type session = {
 	, data_so_far : [32]
 	, frame_size : [32] // if frame size is zero, the message is unframed
 	, precise_size_known : [1]
+	, alg_prop : alg_properties 
 	}
 
 // See <aws/common/byte_buf.h>: 43 - 46 
@@ -30,6 +31,12 @@ type aws_byte_cursor = {
 	ptr : [32]
 	, len : [32]
 	}
+
+// <aws/cryptosdk/cipher.h>> : 28 - 41
+type alg_properties = {
+	iv_len : [32]
+	, tag_len : [32]
+}
 
 // enum of states in the session.c state machine 
 // See <aws/cryptosdk/private/session.h>: 26 - 48 
@@ -55,4 +62,7 @@ ST_DONE = 9
 ST_ERROR = 10
 
 
+
+// <aws/cryptosdk/private/session.h>: 23- 24
 DEFAULT_FRAME_SIZE = 256 * 1024
+MAX_FRAME_SIZE = 4294967295

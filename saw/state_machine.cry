@@ -21,6 +21,7 @@ processState state_old =
 			, data_so_far = state_old.sess.data_so_far
 			, frame_size = state_old.sess.frame_size
 			, precise_size_known = state_old.sess.precise_size_known
+			, alg_prop = state_old.sess.alg_prop
 			}
 		, output_buffer = state_old.output_buffer
 		, input_buffer = state_old.input_buffer
@@ -36,6 +37,7 @@ processState state_old =
 			, data_so_far = state_old.sess.data_so_far
 			, frame_size = state_old.sess.frame_size
 			, precise_size_known = state_old.sess.precise_size_known
+			, alg_prop = state_old.sess.alg_prop
 			}
 		, output_buffer = state_old.output_buffer
 		, input_buffer = state_old.input_buffer 
@@ -53,6 +55,7 @@ processState state_old =
 			, data_so_far = state_old.sess.data_so_far
 			, frame_size = state_old.sess.frame_size
 			, precise_size_known = state_old.sess.precise_size_known
+			, alg_prop = state_old.sess.alg_prop
 			}
 		, output_buffer = state_old.output_buffer
 		, input_buffer = state_old.input_buffer 
@@ -91,9 +94,9 @@ property progressMade x = ( cmpState (processState x) x == True ) || ( bufferUpd
 updateBuffers : current_state -> current_state
 updateBuffers old_state = {sess = old_state.sess
 						   , output_buffer = { ptr = old_state.output_buffer.ptr
-						   					  , len = old_state.sess.output_size_estimate
+						   					  , len = old_state.sess.output_size_estimate + old_state.output_buffer.len
 						   					  }
 						   , input_buffer = {ptr = old_state.input_buffer.ptr
-						   					, len = old_state.sess.input_size_estimate
+						   					, len = old_state.sess.input_size_estimate + old_state.input_buffer.len
 						   					}
 						   }
