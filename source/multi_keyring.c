@@ -17,6 +17,7 @@
 struct multi_keyring {
     const struct aws_cryptosdk_keyring_vt *vt;
     struct aws_allocator *alloc;
+    struct aws_cryptosdk_keyring *generator;
     struct aws_array_list children;
 };
 
@@ -45,20 +46,17 @@ static struct aws_cryptosdk_encryption_materials *copy_relevant_parts_of_enc_mat
 }
 
 static int call_encrypt_dk_on_list(struct aws_cryptosdk_encryption_materials *enc_mat,
-                                   const struct aws_array_list *keyrings,
-                                   bool include_first) {
+                                   const struct aws_array_list *keyrings) {
     size_t num_keyrings = aws_array_list_length(keyrings);
-    size_t start_idx = include_first ? 0 : 1;
-
-    for (size_t child_idx = start_idx; child_idx < num_keyrings; ++child_idx) {
-        struct aws_cryptosdk_keyring *child_keyring;
-        if (aws_array_list_get_at(keyrings, (void *)&child_keyring, child_idx)) return AWS_OP_ERR;
-        if (aws_cryptosdk_keyring_encrypt_data_key(child_keyring, enc_mat)) return AWS_OP_ERR;
+    for (size_t list_idx = 0; list_idx < num_keyrings; ++list_idx) {
+        struct aws_cryptosdk_keyring *child;
+        if (aws_array_list_get_at(keyrings, (void *)&child, list_idx)) return AWS_OP_ERR;
+        if (aws_cryptosdk_keyring_encrypt_data_key(child, enc_mat)) return AWS_OP_ERR;
     }
     return AWS_OP_SUCCESS;
 }
 
-static int transfer_list(struct aws_array_list *dest, struct aws_array_list *src) {
+static int transfer_edk_list(struct aws_array_list *dest, struct aws_array_list *src) {
     size_t src_len = aws_array_list_length(src);
     for (size_t src_idx = 0; src_idx < src_len; ++src_idx) {
         void *item_ptr;
@@ -78,16 +76,28 @@ static int multi_keyring_encrypt_data_key(struct aws_cryptosdk_keyring *multi,
                                           struct aws_cryptosdk_encryption_materials *enc_mat) {
     struct multi_keyring *self = (struct multi_keyring *)multi;
 
+    // FIXME: this check should be moved to materials.h before virtual function call
+    // if we keep separate generate and encrypt calls
+    if (!enc_mat->unencrypted_data_key.buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+
     struct aws_cryptosdk_encryption_materials *enc_mat_copy =
         copy_relevant_parts_of_enc_mat(enc_mat);
     if (!enc_mat_copy) return AWS_OP_ERR;
 
     int ret = AWS_OP_SUCCESS;
-    if (call_encrypt_dk_on_list(enc_mat_copy, &self->children, true) ||
-        transfer_list(&enc_mat->encrypted_data_keys, &enc_mat_copy->encrypted_data_keys)) {
+    if (self->generator) {
+        if (aws_cryptosdk_keyring_encrypt_data_key(self->generator, enc_mat_copy)) {
+            ret = AWS_OP_ERR;
+            goto out;
+        }
+    }
+
+    if (call_encrypt_dk_on_list(enc_mat_copy, &self->children) ||
+        transfer_edk_list(&enc_mat->encrypted_data_keys, &enc_mat_copy->encrypted_data_keys)) {
         ret = AWS_OP_ERR;
     }
 
+out:
     aws_cryptosdk_encryption_materials_destroy(enc_mat_copy);
     return ret;
 }
@@ -95,23 +105,26 @@ static int multi_keyring_encrypt_data_key(struct aws_cryptosdk_keyring *multi,
 static int multi_keyring_generate_data_key(struct aws_cryptosdk_keyring *multi,
                                            struct aws_cryptosdk_encryption_materials *enc_mat) {
     struct multi_keyring *self = (struct multi_keyring *)multi;
-    size_t num_keyrings = aws_array_list_length(&self->children);
-    if (!num_keyrings) return AWS_OP_SUCCESS;
+
+    // FIXME: this check should be moved to materials.h before virtual function call
+    // if we keep separate generate and encrypt calls
+    if (enc_mat->unencrypted_data_key.buffer || aws_array_list_length(&enc_mat->encrypted_data_keys))
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+
+    if (!self->generator) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
 
     struct aws_cryptosdk_encryption_materials *enc_mat_copy =
         copy_relevant_parts_of_enc_mat(enc_mat);
     if (!enc_mat_copy) return AWS_OP_ERR;
 
     int ret = AWS_OP_SUCCESS;
-    struct aws_cryptosdk_keyring *child_keyring;
-    if (aws_array_list_get_at(&self->children, (void *)&child_keyring, 0) ||
-        aws_cryptosdk_keyring_generate_data_key(child_keyring, enc_mat_copy) ||
+    if (aws_cryptosdk_keyring_generate_data_key(self->generator, enc_mat_copy) ||
         !enc_mat_copy->unencrypted_data_key.buffer ||
-        call_encrypt_dk_on_list(enc_mat_copy, &self->children, false) ||
+        call_encrypt_dk_on_list(enc_mat_copy, &self->children) ||
         aws_byte_buf_init_copy(enc_mat->alloc,
                                &enc_mat->unencrypted_data_key,
                                &enc_mat_copy->unencrypted_data_key) ||
-        transfer_list(&enc_mat->encrypted_data_keys, &enc_mat_copy->encrypted_data_keys)) {
+        transfer_edk_list(&enc_mat->encrypted_data_keys, &enc_mat_copy->encrypted_data_keys)) {
         aws_byte_buf_clean_up_secure(&enc_mat->unencrypted_data_key);
         ret = AWS_OP_ERR;
     }
@@ -123,27 +136,32 @@ static int multi_keyring_generate_data_key(struct aws_cryptosdk_keyring *multi,
 static int multi_keyring_decrypt_data_key(struct aws_cryptosdk_keyring *multi,
                                           struct aws_cryptosdk_decryption_materials *dec_mat,
                                           const struct aws_cryptosdk_decryption_request *request) {
+    // FIXME: this check should be moved to materials.h before virtual function call
+    if (dec_mat->unencrypted_data_key.buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+
+    /* If one of the contained keyrings succeeds at decrypting the data key, return success,
+     * but if we fail to decrypt the data key, only return success if there were no
+     * errors reported from child keyrings.
+     */
     int ret_if_no_decrypt = AWS_OP_SUCCESS;
 
     struct multi_keyring *self = (struct multi_keyring *)multi;
-    size_t num_keyrings = aws_array_list_length(&self->children);
 
-    for (size_t child_idx = 0; child_idx < num_keyrings; ++child_idx) {
-        struct aws_cryptosdk_keyring *child_keyring;
-        if (aws_array_list_get_at(&self->children, (void *)&child_keyring, child_idx)) return AWS_OP_ERR;
+    if (self->generator) {
+        int decrypt_err = aws_cryptosdk_keyring_decrypt_data_key(self->generator, dec_mat, request);
+        if (dec_mat->unencrypted_data_key.buffer) return AWS_OP_SUCCESS;
+        if (decrypt_err) ret_if_no_decrypt = AWS_OP_ERR;
+    }
+
+    size_t num_children = aws_array_list_length(&self->children);
+    for (size_t child_idx = 0; child_idx < num_children; ++child_idx) {
+        struct aws_cryptosdk_keyring *child;
+        if (aws_array_list_get_at(&self->children, (void *)&child, child_idx)) return AWS_OP_ERR;
 
         // if decrypt data key fails, keep trying with other keyrings
-        int result = aws_cryptosdk_keyring_decrypt_data_key(child_keyring, dec_mat, request);
-        if (result == AWS_OP_SUCCESS && dec_mat->unencrypted_data_key.buffer) {
-            return AWS_OP_SUCCESS;
-        }
-        if (result) {
-            /* If one of the child keyrings succeeds at decrypting the data key, return success,
-             * but if we fail to decrypt the data key, only return success if there were no
-             * errors reported from child keyrings.
-             */
-            ret_if_no_decrypt = AWS_OP_ERR;
-        }
+        int decrypt_err = aws_cryptosdk_keyring_decrypt_data_key(child, dec_mat, request);
+        if (dec_mat->unencrypted_data_key.buffer) return AWS_OP_SUCCESS;
+        if (decrypt_err) ret_if_no_decrypt = AWS_OP_ERR;
     }
     return ret_if_no_decrypt;
 }
@@ -163,20 +181,34 @@ static const struct aws_cryptosdk_keyring_vt vt = {
     .decrypt_data_key = multi_keyring_decrypt_data_key
 };
 
-struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(struct aws_allocator * alloc) {
+struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(
+    struct aws_allocator * alloc,
+    struct aws_cryptosdk_keyring *generator) {
+
     struct multi_keyring * multi = aws_mem_acquire(alloc, sizeof(struct multi_keyring));
     if (!multi) return NULL;
-    if (aws_array_list_init_dynamic(&multi->children, alloc, 4, sizeof(struct aws_cryptosdk_keyring *))) {
+    if (aws_array_list_init_dynamic(&multi->children, alloc, 4,
+                                    sizeof(struct aws_cryptosdk_keyring *))) {
         aws_mem_release(alloc, multi);
         return NULL;
     }
     multi->alloc = alloc;
     multi->vt = &vt;
+    multi->generator = generator;
     return (struct aws_cryptosdk_keyring *)multi;
 }
 
-int aws_cryptosdk_multi_keyring_add(struct aws_cryptosdk_keyring * multi,
-                                    struct aws_cryptosdk_keyring * kr_to_add) {
+int aws_cryptosdk_multi_keyring_set_generator(struct aws_cryptosdk_keyring *multi,
+                                              struct aws_cryptosdk_keyring *generator) {
     struct multi_keyring *self = (struct multi_keyring *)multi;
-    return aws_array_list_push_back(&self->children, (void *)&kr_to_add);
+
+    if (self->generator) return aws_raise_error(AWS_ERROR_UNIMPLEMENTED);
+    self->generator = generator;
+    return AWS_OP_SUCCESS;
+}
+
+int aws_cryptosdk_multi_keyring_add(struct aws_cryptosdk_keyring *multi,
+                                    struct aws_cryptosdk_keyring *child) {
+    struct multi_keyring *self = (struct multi_keyring *)multi;
+    return aws_array_list_push_back(&self->children, (void *)&child);
 }

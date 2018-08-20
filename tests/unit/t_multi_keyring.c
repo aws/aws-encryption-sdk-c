@@ -30,13 +30,13 @@ struct test_keyring {
 
 static void test_keyring_destroy(struct aws_cryptosdk_keyring * kr) {(void)kr;}
 
+static char data_key[] = "data key";
 static int test_keyring_generate_data_key(struct aws_cryptosdk_keyring * kr,
                                      struct aws_cryptosdk_encryption_materials * enc_mat) {
     (void)enc_mat;
     struct test_keyring *self = (struct test_keyring *)kr;
 
     if (!self->ret) {
-        static char data_key[] = "data key";
         enc_mat->unencrypted_data_key = aws_byte_buf_from_c_str(data_key);
 
         static struct aws_cryptosdk_edk edk;
@@ -107,13 +107,20 @@ static int set_up_all_the_things() {
     TEST_ASSERT_ADDR_NOT_NULL(dec_mat);
 
     memset(test_keyrings, 0, sizeof(test_keyrings));
-    multi = aws_cryptosdk_multi_keyring_new(alloc);
+    multi = aws_cryptosdk_multi_keyring_new(alloc, NULL);
     TEST_ASSERT_ADDR_NOT_NULL(multi);
     for (size_t kr_idx = 0; kr_idx < num_test_keyrings; ++kr_idx) {
         test_keyrings[kr_idx].vt = &test_keyring_vt;
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_multi_keyring_add(
-                                multi,
-                                (struct aws_cryptosdk_keyring *)(test_keyrings + kr_idx)));
+
+        if (kr_idx) {
+            TEST_ASSERT_SUCCESS(aws_cryptosdk_multi_keyring_add(
+                                    multi,
+                                    (struct aws_cryptosdk_keyring *)(test_keyrings + kr_idx)));
+        } else {
+            TEST_ASSERT_SUCCESS(aws_cryptosdk_multi_keyring_set_generator(
+                                    multi,
+                                    (struct aws_cryptosdk_keyring *)(test_keyrings)));
+        }
 
         // all flags have been reset
         TEST_ASSERT(!test_keyrings[kr_idx].generate_called);
@@ -132,6 +139,7 @@ static void tear_down_all_the_things() {
 
 int delegates_encrypt_calls() {
     TEST_ASSERT_SUCCESS(set_up_all_the_things());
+    enc_mat->unencrypted_data_key = aws_byte_buf_from_c_str(data_key);
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_encrypt_data_key(multi, enc_mat));
 
@@ -166,6 +174,7 @@ int delegates_generate_calls() {
 
 int fail_on_failed_encrypt_and_stop() {
     TEST_ASSERT_SUCCESS(set_up_all_the_things());
+    enc_mat->unencrypted_data_key = aws_byte_buf_from_c_str(data_key);
 
     const size_t bad_keyring_idx = 2;
     test_keyrings[bad_keyring_idx].ret = AWS_OP_ERR;
@@ -210,6 +219,7 @@ static int check_edk_list_unchanged() {
 
 int failed_encrypt_keeps_edk_list_intact() {
     TEST_ASSERT_SUCCESS(set_up_all_the_things());
+    enc_mat->unencrypted_data_key = aws_byte_buf_from_c_str(data_key);
     TEST_ASSERT_SUCCESS(put_stuff_in_edk_list());
 
     const size_t bad_keyring_idx = 4;
