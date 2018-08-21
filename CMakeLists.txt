@@ -18,6 +18,10 @@ include(CheckLibraryExists)
 include(CheckCXXSourceCompiles)
 include(CheckCXXCompilerFlag)
 
+set(CMAKE_INSTALL_DEBUG_LIBRARIES TRUE)
+
+include(InstallRequiredSystemLibraries)
+
 # TODO: Static link?
 include(FindOpenSSL)
 # For tests

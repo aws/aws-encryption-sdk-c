@@ -1,0 +1,5 @@
+select disk 1
+create partition primary
+select partition 1
+format fs=ntfs quick
+assign letter=d
