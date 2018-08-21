@@ -31,13 +31,14 @@ struct test_keyring {
 static void test_keyring_destroy(struct aws_cryptosdk_keyring * kr) {(void)kr;}
 
 static char data_key[] = "data key";
-static int test_keyring_generate_data_key(struct aws_cryptosdk_keyring * kr,
-                                     struct aws_cryptosdk_encryption_materials * enc_mat) {
+static int test_keyring_generate_or_encrypt(struct aws_cryptosdk_keyring * kr,
+                                            struct aws_cryptosdk_encryption_materials * enc_mat,
+                                            bool generate) {
     (void)enc_mat;
     struct test_keyring *self = (struct test_keyring *)kr;
 
     if (!self->ret) {
-        enc_mat->unencrypted_data_key = aws_byte_buf_from_c_str(data_key);
+        if (generate) enc_mat->unencrypted_data_key = aws_byte_buf_from_c_str(data_key);
 
         static struct aws_cryptosdk_edk edk;
         edk.enc_data_key = aws_byte_buf_from_c_str("test keyring generate edk");
@@ -46,25 +47,20 @@ static int test_keyring_generate_data_key(struct aws_cryptosdk_keyring * kr,
         aws_array_list_push_back(&enc_mat->encrypted_data_keys, &edk);
     }
 
-    self->generate_called = true;
+    if (generate) self->generate_called = true;
+    else self->encrypt_called = true;
+
     return self->ret;
 }
 
+static int test_keyring_generate_data_key(struct aws_cryptosdk_keyring * kr,
+                                          struct aws_cryptosdk_encryption_materials * enc_mat) {
+    return test_keyring_generate_or_encrypt(kr, enc_mat, true);
+}
+
 static int test_keyring_encrypt_data_key(struct aws_cryptosdk_keyring * kr,
-                                    struct aws_cryptosdk_encryption_materials * enc_mat) {
-    (void)enc_mat;
-    struct test_keyring *self = (struct test_keyring *)kr;
-
-    if (!self->ret) {
-        static struct aws_cryptosdk_edk edk;
-        edk.enc_data_key = aws_byte_buf_from_c_str("test keyring encrypt edk");
-        edk.provider_id = aws_byte_buf_from_c_str("test keyring encrypt provider id");
-        edk.provider_id = aws_byte_buf_from_c_str("test keyring encrypt provider info");
-        aws_array_list_push_back(&enc_mat->encrypted_data_keys, &edk);
-    }
-
-    self->encrypt_called = true;
-    return self->ret;
+                                         struct aws_cryptosdk_encryption_materials * enc_mat) {
+    return test_keyring_generate_or_encrypt(kr, enc_mat, false);
 }
 
 static int test_keyring_decrypt_data_key(struct aws_cryptosdk_keyring * kr,
@@ -88,6 +84,7 @@ const static struct aws_cryptosdk_keyring_vt test_keyring_vt = {
 };
 
 static struct aws_allocator * alloc;
+// test_keyring[0] used as generator, rest used as children
 static struct test_keyring test_keyrings[5];
 static const size_t num_test_keyrings = sizeof(test_keyrings)/sizeof(struct test_keyring);
 static struct aws_cryptosdk_keyring * multi;
@@ -95,7 +92,7 @@ static struct aws_cryptosdk_encryption_materials * enc_mat;
 static struct aws_cryptosdk_decryption_materials * dec_mat;
 static struct aws_cryptosdk_decryption_request dec_req;
 
-static int set_up_all_the_things() {
+static int set_up_all_the_things(bool include_generator) {
     alloc = aws_default_allocator();
 
     // doesn't matter here, just picking one
@@ -116,7 +113,7 @@ static int set_up_all_the_things() {
             TEST_ASSERT_SUCCESS(aws_cryptosdk_multi_keyring_add(
                                     multi,
                                     (struct aws_cryptosdk_keyring *)(test_keyrings + kr_idx)));
-        } else {
+        } else if (include_generator) {
             TEST_ASSERT_SUCCESS(aws_cryptosdk_multi_keyring_set_generator(
                                     multi,
                                     (struct aws_cryptosdk_keyring *)(test_keyrings)));
@@ -138,23 +135,27 @@ static void tear_down_all_the_things() {
 }
 
 int delegates_encrypt_calls() {
-    TEST_ASSERT_SUCCESS(set_up_all_the_things());
-    enc_mat->unencrypted_data_key = aws_byte_buf_from_c_str(data_key);
+    for (int use_generator = 0; use_generator < 2; ++use_generator) {
+        TEST_ASSERT_SUCCESS(set_up_all_the_things(use_generator));
+        enc_mat->unencrypted_data_key = aws_byte_buf_from_c_str(data_key);
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_encrypt_data_key(multi, enc_mat));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_encrypt_data_key(multi, enc_mat));
 
-    for (size_t kr_idx = 0; kr_idx < num_test_keyrings; ++kr_idx) {
-        TEST_ASSERT(test_keyrings[kr_idx].encrypt_called);
+        int starting_idx = use_generator ^ 1;
+        for (size_t kr_idx = starting_idx; kr_idx < num_test_keyrings; ++kr_idx) {
+            TEST_ASSERT(test_keyrings[kr_idx].encrypt_called);
+        }
+
+        TEST_ASSERT_INT_EQ(aws_array_list_length(&enc_mat->encrypted_data_keys),
+                           num_test_keyrings - starting_idx);
+
+        tear_down_all_the_things();
     }
-
-    TEST_ASSERT_INT_EQ(aws_array_list_length(&enc_mat->encrypted_data_keys), num_test_keyrings);
-
-    tear_down_all_the_things();
     return 0;
 }
 
 int delegates_generate_calls() {
-    TEST_ASSERT_SUCCESS(set_up_all_the_things());
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(true));
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_generate_data_key(multi, enc_mat));
 
@@ -172,8 +173,23 @@ int delegates_generate_calls() {
     return 0;
 }
 
+int generate_fails_when_generator_not_set() {
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(false));
+
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_STATE,
+                      aws_cryptosdk_keyring_generate_data_key(multi, enc_mat));
+
+    for (size_t kr_idx = 1; kr_idx < num_test_keyrings; ++kr_idx) {
+        TEST_ASSERT(!test_keyrings[kr_idx].encrypt_called);
+        TEST_ASSERT(!test_keyrings[kr_idx].generate_called);
+    }
+
+    tear_down_all_the_things();
+    return 0;
+}
+
 int fail_on_failed_encrypt_and_stop() {
-    TEST_ASSERT_SUCCESS(set_up_all_the_things());
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(true));
     enc_mat->unencrypted_data_key = aws_byte_buf_from_c_str(data_key);
 
     const size_t bad_keyring_idx = 2;
@@ -218,7 +234,7 @@ static int check_edk_list_unchanged() {
 }
 
 int failed_encrypt_keeps_edk_list_intact() {
-    TEST_ASSERT_SUCCESS(set_up_all_the_things());
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(true));
     enc_mat->unencrypted_data_key = aws_byte_buf_from_c_str(data_key);
     TEST_ASSERT_SUCCESS(put_stuff_in_edk_list());
 
@@ -235,7 +251,7 @@ int failed_encrypt_keeps_edk_list_intact() {
 }
 
 int failed_encrypt_within_generate() {
-    TEST_ASSERT_SUCCESS(set_up_all_the_things());
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(true));
 
     const size_t bad_keyring_idx = 3;
     test_keyrings[bad_keyring_idx].ret = AWS_OP_ERR;
@@ -264,7 +280,7 @@ int failed_encrypt_within_generate() {
 }
 
 int fail_on_failed_generate_and_stop() {
-    TEST_ASSERT_SUCCESS(set_up_all_the_things());
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(true));
 
     test_keyrings[0].ret = AWS_OP_ERR;
 
@@ -285,35 +301,37 @@ int fail_on_failed_generate_and_stop() {
 }
 
 int delegates_decrypt_calls() {
-    TEST_ASSERT_SUCCESS(set_up_all_the_things());
+    for (int use_generator = 0; use_generator < 2; ++use_generator) {
+        TEST_ASSERT_SUCCESS(set_up_all_the_things(use_generator));
 
-    test_keyrings[2].ret = AWS_OP_ERR;
+        test_keyrings[2].ret = AWS_OP_ERR;
 
-    const size_t successful_keyring = 3;
+        const size_t successful_keyring = 3;
 
-    char data_key[] = "Eureka!";
-    test_keyrings[successful_keyring].decrypted_key_to_return = aws_byte_buf_from_c_str(data_key);
+        char my_data_key[] = "Eureka!";
+        test_keyrings[successful_keyring].decrypted_key_to_return = aws_byte_buf_from_c_str(my_data_key);
 
-    struct aws_cryptosdk_decryption_request req;
-    req.alloc = alloc;
+        struct aws_cryptosdk_decryption_request req;
+        req.alloc = alloc;
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_decrypt_data_key(multi, dec_mat, &req));
-    TEST_ASSERT_ADDR_EQ(dec_mat->unencrypted_data_key.buffer, data_key);
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_decrypt_data_key(multi, dec_mat, &req));
+        TEST_ASSERT_ADDR_EQ(dec_mat->unencrypted_data_key.buffer, my_data_key);
 
-    size_t kr_idx = 0;
-    for (; kr_idx <= successful_keyring; ++kr_idx) {
-        TEST_ASSERT(test_keyrings[kr_idx].decrypt_called);
+        size_t kr_idx = use_generator ^ 1;
+        for (; kr_idx <= successful_keyring; ++kr_idx) {
+            TEST_ASSERT(test_keyrings[kr_idx].decrypt_called);
+        }
+        for (; kr_idx < num_test_keyrings; ++kr_idx) {
+            TEST_ASSERT(!test_keyrings[kr_idx].decrypt_called);
+        } 
+
+        tear_down_all_the_things();
     }
-    for (; kr_idx < num_test_keyrings; ++kr_idx) {
-        TEST_ASSERT(!test_keyrings[kr_idx].decrypt_called);
-    } 
-
-    tear_down_all_the_things();
     return 0;
 }
 
 int succeed_when_no_error_and_no_decrypt() {
-    TEST_ASSERT_SUCCESS(set_up_all_the_things());
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(true));
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_decrypt_data_key(multi, dec_mat, &dec_req));
     TEST_ASSERT_ADDR_NULL(dec_mat->unencrypted_data_key.buffer);
@@ -327,7 +345,7 @@ int succeed_when_no_error_and_no_decrypt() {
 }
 
 int fail_when_error_and_no_decrypt() {
-    TEST_ASSERT_SUCCESS(set_up_all_the_things());
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(true));
 
     test_keyrings[2].ret = AWS_OP_ERR;
 
@@ -349,6 +367,7 @@ struct test_case multi_keyring_test_cases[] = {
     { "multi_keyring", "failed_encrypt_within_generate", failed_encrypt_within_generate },
     { "multi_keyring", "fail_on_failed_generate_and_stop", fail_on_failed_generate_and_stop },
     { "multi_keyring", "delegates_generate_calls", delegates_generate_calls },
+    { "multi_keyring", "generate_fails_when_generator_not_set", generate_fails_when_generator_not_set },
     { "multi_keyring", "delegates_decrypt_calls", delegates_decrypt_calls },
     { "multi_keyring", "fail_when_error_and_no_decrypt", fail_when_error_and_no_decrypt },
     { NULL }
