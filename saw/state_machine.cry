@@ -22,6 +22,7 @@ processState state_old =
 			, frame_size = state_old.sess.frame_size
 			, precise_size_known = state_old.sess.precise_size_known
 			, alg_prop = state_old.sess.alg_prop
+			, header = state_old.sess.header
 			}
 		, output_buffer = state_old.output_buffer
 		, input_buffer = state_old.input_buffer
@@ -38,6 +39,7 @@ processState state_old =
 			, frame_size = state_old.sess.frame_size
 			, precise_size_known = state_old.sess.precise_size_known
 			, alg_prop = state_old.sess.alg_prop
+			, header = state_old.sess.header
 			}
 		, output_buffer = state_old.output_buffer
 		, input_buffer = state_old.input_buffer 
@@ -56,6 +58,7 @@ processState state_old =
 			, frame_size = state_old.sess.frame_size
 			, precise_size_known = state_old.sess.precise_size_known
 			, alg_prop = state_old.sess.alg_prop
+			, header = state_old.sess.header
 			}
 		, output_buffer = state_old.output_buffer
 		, input_buffer = state_old.input_buffer 

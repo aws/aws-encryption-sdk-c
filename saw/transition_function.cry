@@ -21,6 +21,7 @@ writeHeader state_old =
 						, frame_size = state_old.sess.frame_size
 						, precise_size_known = state_old.sess.precise_size_known
 						, alg_prop = state_old.sess.alg_prop
+						, header = state_old.sess.header
 						 }
 			where output_buffer_new_success = {ptr = state_old.output_buffer.ptr + state_old.sess.header_size
 					 		, len = state_old.output_buffer.len - state_old.sess.header_size
@@ -39,10 +40,13 @@ writeHeader state_old =
 						, frame_size = state_old.sess.frame_size
 						, precise_size_known = state_old.sess.precise_size_known
 						, alg_prop = state_old.sess.alg_prop
+						, header = state_old.sess.header
 					 	}
 			where output_buffer_new_fail = {ptr = state_old.output_buffer.ptr 
 					 	, len = state_old.output_buffer.len
 					 	} 
+
+
 
 
 // Cryptol translation of function try_encrypt_body in session_encrypt.c (line 238 - 333)
@@ -61,6 +65,7 @@ encryptHelper state_old size_in size_out new_state =
 				, frame_size = state_old.sess.frame_size
 				, precise_size_known = state_old.sess.precise_size_known
 				, alg_prop = state_old.sess.alg_prop
+				, header = state_old.sess.header
 				}
 		, output_buffer = state_old.output_buffer
 		, input_buffer = state_old.input_buffer
@@ -75,6 +80,7 @@ encryptHelper state_old size_in size_out new_state =
 					, frame_size = state_old.sess.frame_size
 					, precise_size_known = state_old.sess.precise_size_known
 					, alg_prop = state_old.sess.alg_prop
+					, header = state_old.sess.header
 				}
 				, output_buffer = { ptr = state_old.output_buffer.ptr + size_out
 									, len = state_old.output_buffer.len - size_out
@@ -92,7 +98,7 @@ encryptBodyFramed state_old =
 
 encryptBodyUnframed : current_state -> current_state
 encryptBodyUnframed state_old = 
-	if ( state_old.sess.precise_size_known == 1 ) then encryptHelper state_old state_old.sess.precise_size (state_old.sess.precise_size + state_old.sess.alg_prop.iv_len + state_old.sess.alg_prop.tag_len + 8) ST_WRITE_TRAILER
+	if ( state_old.sess.precise_size_known == 1 ) then encryptHelper state_old state_old.sess.precise_size (state_old.sess.alg_prop.iv_len + 8 + state_old.sess.precise_size + state_old.sess.alg_prop.tag_len) ST_WRITE_TRAILER
 	else { sess = { output_size_estimate = 0
 					, input_size_estimate = 0
 					, header_size = state_old.sess.header_size
@@ -103,6 +109,7 @@ encryptBodyUnframed state_old =
 					, frame_size = state_old.sess.frame_size
 					, precise_size_known = state_old.sess.precise_size_known
 					, alg_prop = state_old.sess.alg_prop
+					, header = state_old.sess.header
 				}
 				, output_buffer = state_old.output_buffer
 				, input_buffer = state_old.input_buffer	
@@ -113,5 +120,60 @@ encryptBody state_old =
 	if state_old.sess.frame_size > 0 then encryptBodyFramed state_old
 	else encryptBodyUnframed state_old
 		
+
+// Partial Cryptol translation of function try_decrypt_body in session_decrypt.c (line 193 - 252)
+
+decryptHelper : current_state -> [32] -> [32] -> [4] -> current_state
+decryptHelper state_old size_in size_out new_state = 
+	if ( state_old.input_buffer.len < size_in ) || ( state_old.output_buffer.len < size_out ) then 
+		{ sess = { output_size_estimate = size_out
+				, input_size_estimate = size_in
+				, header_size = state_old.sess.header_size
+				, state = state_old.sess.state
+				, mode = state_old.sess.mode
+				, precise_size = state_old.sess.precise_size
+				, data_so_far = state_old.sess.data_so_far
+				, frame_size = state_old.sess.frame_size
+				, precise_size_known = state_old.sess.precise_size_known
+				, alg_prop = state_old.sess.alg_prop
+				, header = state_old.sess.header
+				}
+		, output_buffer = state_old.output_buffer
+		, input_buffer = state_old.input_buffer
+		}
+	else { sess = { output_size_estimate = size_out
+					, input_size_estimate = size_in
+					, header_size = state_old.sess.header_size
+					, state = new_state
+					, mode = state_old.sess.mode
+					, precise_size = state_old.sess.precise_size
+					, data_so_far = state_old.sess.data_so_far + size_in 
+					, frame_size = state_old.sess.frame_size
+					, precise_size_known = state_old.sess.precise_size_known
+					, alg_prop = state_old.sess.alg_prop
+					, header = state_old.sess.header
+				}
+				, output_buffer = { ptr = state_old.output_buffer.ptr + size_out
+									, len = state_old.output_buffer.len - size_out
+									}
+				, input_buffer = { ptr = state_old.input_buffer.ptr + size_in
+									, len = state_old.input_buffer.len - size_in
+									}		
+		}
+
+//TODO: Size of the unframed data is stored in the ciphertext (input_buffer). What is the best way to model this?
+//TODO: Should not be using state_old.sess.precise_size. This is only temporary. 
+decryptBodyUnframed : current_state -> current_state 
+decryptBodyUnframed state_old = decryptHelper state_old ( state_old.sess.alg_prop.iv_len + 8 + state_old.sess.precise_size + state_old.sess.alg_prop.tag_len) 	state_old.sess.precise_size ST_CHECK_TRAILER
+
+//TODO: Whether the frame is final as well as the size of the final frame is stored in the ciphertext (input_buffer). What is the best way to model this?
+
+decryptBodyFramed : current_state -> current_state 
+decryptBodyFramed state_old = state_old 
+
+decryptBody : current_state -> current_state 
+decryptBody state_old = 
+	if ( state_old.sess.frame_size > 0 ) then decryptBodyUnframed state_old
+	else decryptBodyUnframed state_old
 
 

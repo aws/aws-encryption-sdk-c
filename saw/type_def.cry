@@ -23,6 +23,7 @@ type session = {
 	, frame_size : [32] // if frame size is zero, the message is unframed
 	, precise_size_known : [1]
 	, alg_prop : alg_properties 
+	, header : hdr
 	}
 
 // See <aws/common/byte_buf.h>: 43 - 46 
@@ -33,10 +34,21 @@ type aws_byte_cursor = {
 	}
 
 // <aws/cryptosdk/cipher.h>> : 28 - 41
+
 type alg_properties = {
 	iv_len : [32]
 	, tag_len : [32]
 }
+
+// <aws/cryptosdk/private/header.h>: 32 - 49
+// Very over-simplified. Currently multiple fields are concatenated. 
+type hdr = {
+	aad_len_total : [32]
+	, edk_len_total : [32]
+}
+
+// <aws/cryptosdk/private/header.h>: 16
+MESSAGE_ID_LEN = 16 
 
 // enum of states in the session.c state machine 
 // See <aws/cryptosdk/private/session.h>: 26 - 48 
@@ -62,7 +74,9 @@ ST_DONE = 9
 ST_ERROR = 10
 
 
-
 // <aws/cryptosdk/private/session.h>: 23- 24
 DEFAULT_FRAME_SIZE = 256 * 1024
 MAX_FRAME_SIZE = 4294967295
+
+
+
