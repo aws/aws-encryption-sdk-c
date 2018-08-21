@@ -79,4 +79,4 @@ DEFAULT_FRAME_SIZE = 256 * 1024
 MAX_FRAME_SIZE = 4294967295
 
 
-
+SIZE_T = 4294967295 //because I used 32 bit integers. Can be updated. 
