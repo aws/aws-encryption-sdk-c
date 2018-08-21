@@ -40,20 +40,23 @@ using Private::KmsShim;
 static const char *AWS_CRYPTO_SDK_KMS_CLASS_TAG = "KmsCMasterKey";
 static const char *KEY_PROVIDER_STR = "aws-kms";
 
-void KmsCMasterKey::DestroyAwsCryptoMk(aws_cryptosdk_keyring *mk) {
-    mk->vtable = NULL;
-    mk->alloc = NULL;
-    mk->mk_data = NULL;
+void KmsCMasterKey::DestroyAwsCryptoMk(struct aws_cryptosdk_keyring *mk) {
+    struct aws_cryptosdk_kms_mk *kms_mk = static_cast<aws_cryptosdk_kms_mk *>(mk);
+    kms_mk->vtable = NULL;
+    kms_mk->alloc = NULL;
+    kms_mk->mk_data = NULL;
 }
 
 int KmsCMasterKey::EncryptDataKey(struct aws_cryptosdk_keyring *mk,
                                   struct aws_cryptosdk_encryption_materials *enc_mat) {
-    if (!mk || !mk->mk_data || !mk->alloc || !enc_mat) {
+    struct aws_cryptosdk_kms_mk *kms_mk = static_cast<aws_cryptosdk_kms_mk *>(mk);
+    if (!kms_mk || !kms_mk->mk_data || !kms_mk->alloc || !enc_mat || !enc_mat->unencrypted_data_key.buffer) {
         AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "KMS encrypt validation failed");
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
+        aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
+        abort();
     }
 
-    auto self = (KmsCMasterKey *) (mk)->mk_data;
+    auto self = kms_mk->mk_data;
 
     Aws::KMS::Model::EncryptOutcome outcome =
         self->kms_shim->Encrypt(aws_utils_byte_buffer_from_c_aws_byte_buf(&enc_mat->unencrypted_data_key),
@@ -66,7 +69,7 @@ int KmsCMasterKey::EncryptDataKey(struct aws_cryptosdk_keyring *mk,
     }
 
     return append_key_to_edks(
-        mk->alloc, &enc_mat->encrypted_data_keys, &outcome.GetResult().GetCiphertextBlob(),
+        kms_mk->alloc, &enc_mat->encrypted_data_keys, &outcome.GetResult().GetCiphertextBlob(),
         &outcome.GetResult().GetKeyId(),
         &self->key_provider);
 }
@@ -74,12 +77,14 @@ int KmsCMasterKey::EncryptDataKey(struct aws_cryptosdk_keyring *mk,
 int KmsCMasterKey::DecryptDataKey(struct aws_cryptosdk_keyring *mk,
                                   struct aws_cryptosdk_decryption_materials *dec_mat,
                                   const aws_cryptosdk_decryption_request *request) {
-    if (!mk || !mk->mk_data || !mk->alloc || !dec_mat || !request) {
+    struct aws_cryptosdk_kms_mk *kms_mk = static_cast<aws_cryptosdk_kms_mk *>(mk);
+    if (!kms_mk || !kms_mk->mk_data || !kms_mk->alloc || !dec_mat || !request) {
         AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "KMS decrypt validation failed");
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
+        aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
+        abort();
     }
 
-    auto self = (KmsCMasterKey *) (mk)->mk_data;
+    auto self = kms_mk->mk_data;
     dec_mat->unencrypted_data_key = {0};
 
     Aws::StringStream error_buf;
@@ -110,7 +115,7 @@ int KmsCMasterKey::DecryptDataKey(struct aws_cryptosdk_keyring *mk,
         aws_byte_buf
             outcome_key_id_bb = aws_byte_buf_from_array((u_char *) outcome_key_id.data(), outcome_key_id.size());
         if (aws_byte_buf_eq(&outcome_key_id_bb, &edk->provider_info)) {
-            return aws_byte_buf_dup_from_aws_utils(mk->alloc,
+            return aws_byte_buf_dup_from_aws_utils(kms_mk->alloc,
                                                    &dec_mat->unencrypted_data_key,
                                                    outcome.GetResult().GetPlaintext());
         }
@@ -124,12 +129,14 @@ int KmsCMasterKey::DecryptDataKey(struct aws_cryptosdk_keyring *mk,
 
 int KmsCMasterKey::GenerateDataKey(struct aws_cryptosdk_keyring *mk,
                                    struct aws_cryptosdk_encryption_materials *enc_mat) {
-    if (!mk || !mk->mk_data || !mk->alloc || !enc_mat) {
+    struct aws_cryptosdk_kms_mk *kms_mk = static_cast<aws_cryptosdk_kms_mk *>(mk);
+    if (!kms_mk || !kms_mk->mk_data || !kms_mk->alloc || !enc_mat) {
         AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "KMS generate data key validation failed");
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
+        aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
+        abort();
     }
 
-    auto self = (KmsCMasterKey *) (mk)->mk_data;
+    auto self = kms_mk->mk_data;
     enc_mat->unencrypted_data_key = {0};
 
     const struct aws_cryptosdk_alg_properties *alg_prop = aws_cryptosdk_alg_props(enc_mat->alg);
@@ -145,14 +152,14 @@ int KmsCMasterKey::GenerateDataKey(struct aws_cryptosdk_keyring *mk,
         return aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
     }
 
-    int rv = aws_byte_buf_dup_from_aws_utils(mk->alloc,
+    int rv = aws_byte_buf_dup_from_aws_utils(kms_mk->alloc,
                                              &enc_mat->unencrypted_data_key,
                                              outcome.GetResult().GetPlaintext());
     if (rv != AWS_OP_SUCCESS) {
         return rv;
     }
 
-    rv = append_key_to_edks(mk->alloc,
+    rv = append_key_to_edks(kms_mk->alloc,
                             &enc_mat->encrypted_data_keys,
                             &outcome.GetResult().GetCiphertextBlob(),
                             &outcome.GetResult().GetKeyId(),
@@ -165,7 +172,8 @@ int KmsCMasterKey::GenerateDataKey(struct aws_cryptosdk_keyring *mk,
     return AWS_OP_SUCCESS;
 }
 
-void KmsCMasterKey::InitAwsCryptosdkMk(struct aws_allocator *allocator) {
+aws_cryptosdk_keyring_vt KmsCMasterKey::CreateAwsCryptosdkMk() const {
+    struct aws_cryptosdk_keyring_vt kms_mk_vt;
     aws_secure_zero(&kms_mk_vt, sizeof(struct aws_cryptosdk_keyring_vt));
 
     kms_mk_vt.vt_size = sizeof(struct aws_cryptosdk_keyring_vt);
@@ -174,7 +182,11 @@ void KmsCMasterKey::InitAwsCryptosdkMk(struct aws_allocator *allocator) {
     kms_mk_vt.generate_data_key = &KmsCMasterKey::GenerateDataKey;
     kms_mk_vt.encrypt_data_key = &KmsCMasterKey::EncryptDataKey;
     kms_mk_vt.decrypt_data_key = &KmsCMasterKey::DecryptDataKey;
+    return kms_mk_vt;
+}
 
+void KmsCMasterKey::InitAwsCryptosdkMk(struct aws_allocator *allocator) {
+    static const aws_cryptosdk_keyring_vt kms_mk_vt = CreateAwsCryptosdkMk();
     vtable = &kms_mk_vt;
     alloc = allocator;
     mk_data = this;

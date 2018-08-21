@@ -25,6 +25,26 @@ using namespace Aws::Cryptosdk::Testing;
 
 const char *TEST_STRING = "Hello World!";
 
+
+static void *s_bad_malloc(struct aws_allocator *allocator, size_t size) {
+    return NULL;
+}
+
+static void s_bad_free(struct aws_allocator *allocator, void *ptr) {
+}
+
+static void *s_bad_realloc(struct aws_allocator *allocator, void *ptr, size_t oldsize, size_t newsize) {
+    return NULL;
+}
+
+static struct aws_allocator default_bad_allocator = {
+    s_bad_malloc, s_bad_free, s_bad_realloc
+};
+
+struct aws_allocator *aws_test_bad_allocator() {
+    return &default_bad_allocator;
+}
+
 int test_aws_string_from_c_aws_byte_buf() {
     struct aws_byte_buf b = aws_byte_buf_from_c_str(TEST_STRING);
     Aws::String b_string = aws_string_from_c_aws_byte_buf(&b);
@@ -137,6 +157,17 @@ int test_append_key_to_edks() {
     return 0;
 }
 
+int test_append_key_to_edks_with_OOM_error() {
+    struct aws_allocator *oom_allocator = aws_test_bad_allocator();
+    EdksTestData ed;
+    TEST_ASSERT_ERROR(AWS_ERROR_OOM, append_c_str_key_to_edks(oom_allocator,
+                                                 &ed.edks.encrypted_data_keys,
+                                                 &ed.enc,
+                                                 ed.data_key_id,
+                                                 ed.key_provider));
+    return 0;
+}
+
 int test_append_key_to_edks_multiple_keys() {
     EdksTestData ed1;
     EdksTestData ed2("enc2", "dk2", "kp2");
@@ -184,10 +215,12 @@ int test_append_key_to_edks_multiple_keys() {
     return 0;
 }
 
+
 int main() {
     RUN_TEST(test_aws_string_from_c_aws_byte_buf());
     RUN_TEST(test_aws_utils_byte_buffer_from_c_aws_byte_buf());
     RUN_TEST(test_append_key_to_edks());
+    RUN_TEST(test_append_key_to_edks_with_OOM_error());
     RUN_TEST(test_append_key_to_edks_multiple_keys());
     RUN_TEST(test_aws_string_from_c_aws_string());
     RUN_TEST(test_aws_map_from_c_aws_hash_table());

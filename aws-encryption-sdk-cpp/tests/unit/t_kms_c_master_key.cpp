@@ -174,21 +174,6 @@ int encrypt_kmsFails_returnError() {
     return 0;
 }
 
-int encrypt_nullPointers_returnError() {
-    EncryptTestValues ev;
-
-    // enc_context is NULL
-    TEST_ASSERT_INT_NE(0, ev.kms_mk->EncryptDataKey(ev.kms_mk, NULL));
-
-    ev.kms_mk->mk_data = NULL;
-    TEST_ASSERT_INT_NE(0, ev.kms_mk->EncryptDataKey(ev.kms_mk, ev.enc_mat));
-
-    // mk is NULL
-    TEST_ASSERT_INT_NE(0, ev.kms_mk->EncryptDataKey(NULL, ev.enc_mat));
-
-    return 0;
-}
-
 int decrypt_validInputs_returnSuccess() {
     DecryptValues dv;
     Model::DecryptOutcome return_decrypt(dv.decrypt_result);
@@ -278,26 +263,6 @@ int decrypt_validInputsWithMultipleEdks_returnSuccess() {
     return 0;
 }
 
-int decrypt_nullInputs_returnFailure() {
-    DecryptValues dv;
-    Model::DecryptOutcome return_decrypt(dv.decrypt_result);
-
-    TEST_ASSERT_SUCCESS(append_c_str_key_to_edks(dv.allocator,
-                                                 &dv.edks.encrypted_data_keys,
-                                                 &dv.ct_bb,
-                                                 dv.key_id,
-                                                 dv.provider_id));
-
-    dv.kms_shim_mock->ExpectDecrypt(dv.ct_bb, return_decrypt);
-
-    TEST_ASSERT(dv.kms_mk->DecryptDataKey(dv.kms_mk, NULL, &dv.decryption_request()) != AWS_OP_SUCCESS);
-    TEST_ASSERT(dv.kms_mk->DecryptDataKey(NULL, dv.dec_mat, &dv.decryption_request()) != AWS_OP_SUCCESS);
-    TEST_ASSERT(dv.kms_mk->DecryptDataKey(dv.kms_mk, dv.dec_mat, NULL) != AWS_OP_SUCCESS);
-    dv.kms_mk->mk_data = NULL;
-    TEST_ASSERT(dv.kms_mk->DecryptDataKey(dv.kms_mk, dv.dec_mat, &dv.decryption_request()) != AWS_OP_SUCCESS);
-    return 0;
-}
-
 int generateDataKey_validInputs_returnSuccess() {
     GenerateDataKeyValues gv;
     Model::GenerateDataKeyOutcome return_generate(gv.generate_result);
@@ -332,31 +297,15 @@ int generateDataKey_kmsFails_returnFailure() {
     return 0;
 }
 
-int generateDataKey_nullInputs_returnFailure() {
-    GenerateDataKeyValues gv;
-    Model::GenerateDataKeyOutcome return_generate(gv.generate_result);
-
-    TEST_ASSERT_INT_NE(0, gv.kms_mk->GenerateDataKey(NULL, gv.enc_mat));
-    TEST_ASSERT_INT_NE(0, gv.kms_mk->GenerateDataKey(gv.kms_mk, NULL));
-    gv.kms_mk->mk_data = NULL;
-    TEST_ASSERT_INT_NE(0, gv.kms_mk->GenerateDataKey(gv.kms_mk, gv.enc_mat));
-
-    TEST_ASSERT(gv.kms_shim_mock->ExpectingOtherCalls() == false);
-
-    return 0;
-}
 
 int main() {
     RUN_TEST(encrypt_validInputs_returnSuccess());
-    RUN_TEST(encrypt_nullPointers_returnError());
     RUN_TEST(encrypt_kmsFails_returnError());
     RUN_TEST(decrypt_validInputs_returnSuccess());
     RUN_TEST(decrypt_validInputsWithMultipleEdks_returnSuccess());
     RUN_TEST(decrypt_validInputsButNoKeyMatched_returnSuccess());
     RUN_TEST(decrypt_NoKeys_returnSuccess());
-    RUN_TEST(decrypt_nullInputs_returnFailure());
     RUN_TEST(generateDataKey_validInputs_returnSuccess());
     RUN_TEST(generateDataKey_kmsFails_returnFailure());
-    RUN_TEST(generateDataKey_nullInputs_returnFailure());
     return 0;
 }

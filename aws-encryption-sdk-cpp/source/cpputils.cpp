@@ -31,8 +31,8 @@ Aws::Utils::ByteBuffer aws_utils_byte_buffer_from_c_aws_byte_buf(const struct aw
     return Aws::Utils::ByteBuffer(byte_buf->buffer, byte_buf->len);
 }
 
-Aws::String aws_string_from_c_aws_string(const struct aws_string *byte_buf) {
-    return Aws::String(reinterpret_cast<const char *>(aws_string_bytes(byte_buf)), byte_buf->len);
+Aws::String aws_string_from_c_aws_string(const struct aws_string *c_aws_string) {
+    return Aws::String(reinterpret_cast<const char *>(aws_string_bytes(c_aws_string)), c_aws_string->len);
 }
 
 int aws_byte_buf_dup_from_aws_utils(struct aws_allocator *allocator,

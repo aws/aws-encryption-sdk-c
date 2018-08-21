@@ -17,6 +17,7 @@
 
 #include <aws/common/common.h>
 #include <aws/core/utils/memory/AWSMemory.h>
+#include <aws/core/utils/memory/stl/AWSString.h>
 #include <aws/core/utils/Outcome.h>
 #include <aws/kms/KMSClient.h>
 #include <aws/kms/model/EncryptRequest.h>
@@ -36,10 +37,17 @@ namespace Private {
 class KmsShim;
 }  // end namespace Private
 
+class KmsCMasterKey;
+
+struct aws_cryptosdk_kms_mk : aws_cryptosdk_keyring {
+    struct aws_allocator *alloc;
+    KmsCMasterKey *mk_data;
+};
+
 /**
  * Class that allows C AWS Enc SDK to use C++ KMS Master Key
  */
-class KmsCMasterKey : public aws_cryptosdk_keyring {
+class KmsCMasterKey : public aws_cryptosdk_kms_mk {
   public:
     /**
      * Initializes KmsCMasterKey to use Aws::KMS::KMSClient with a key_id
@@ -51,7 +59,7 @@ class KmsCMasterKey : public aws_cryptosdk_keyring {
      *              allocation
      */
     KmsCMasterKey(std::shared_ptr<KMS::KMSClient> kms_client,
-                  const String &key_id,
+                  const Aws::String &key_id,
                   struct aws_allocator *alloc);
     ~KmsCMasterKey();
 
@@ -115,6 +123,7 @@ class KmsCMasterKey : public aws_cryptosdk_keyring {
 
   private:
     void InitAwsCryptosdkMk(struct aws_allocator *allocator);
+    aws_cryptosdk_keyring_vt CreateAwsCryptosdkMk() const;
 
     struct aws_cryptosdk_keyring_vt kms_mk_vt;
     std::shared_ptr<Private::KmsShim> kms_shim;

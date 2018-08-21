@@ -36,8 +36,6 @@ struct aws_cryptosdk_cmm;
 
 struct aws_cryptosdk_keyring {
     const struct aws_cryptosdk_keyring_vt *vtable;
-    struct aws_allocator *alloc;
-    void *mk_data;
 };
 
 struct aws_cryptosdk_edk {

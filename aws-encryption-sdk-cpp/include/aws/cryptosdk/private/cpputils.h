@@ -40,7 +40,7 @@ Aws::Utils::ByteBuffer aws_utils_byte_buffer_from_c_aws_byte_buf(const struct aw
 /**
  * Creates a new Aws::String from aws_string
  */
-Aws::String aws_string_from_c_aws_string(const struct aws_string *byte_buf);
+Aws::String aws_string_from_c_aws_string(const struct aws_string *c_aws_string);
 
 /**
  * Creates a new Aws::Map<Aws::String, Aws::String> from an aws_hash_table that has aws_string as key and value

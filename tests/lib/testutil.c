@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <errno.h>
+#include <aws/common/common.h>
 #include "testutil.h"
 
 #ifdef _MSC_VER
