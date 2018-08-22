@@ -58,7 +58,7 @@ struct aws_cryptosdk_edk build_test_edk_init(const uint8_t * edk_bytes, size_t e
 int set_test_vector_encryption_context(struct aws_allocator * alloc,
                                        struct aws_hash_table * enc_context,
                                        const struct raw_aes_kr_test_vector * tv) {
-    for (int idx = 0; idx < tv->num_ec_kv_pairs; ++idx) {
+    for (size_t idx = 0; idx < tv->num_ec_kv_pairs; ++idx) {
         struct aws_hash_element * elem;
         const struct aws_string * key = aws_string_new_from_c_str(alloc, tv->ec_keys[idx]);
         const struct aws_string * val = aws_string_new_from_c_str(alloc, tv->ec_vals[idx]);
