@@ -18,7 +18,7 @@ struct multi_keyring {
     const struct aws_cryptosdk_keyring_vt *vt;
     struct aws_allocator *alloc;
     struct aws_cryptosdk_keyring *generator;
-    struct aws_array_list children;
+    struct aws_array_list children; // list of (struct aws_cryptosdk_keyring *)
 };
 
 /* There may already be EDKs in the encryption materials object if, for example,
@@ -28,7 +28,7 @@ struct multi_keyring {
  * with an empty EDK list. This allows it to destroy its entire list in
  * case of any errors by child keyrings.
  */
-static struct aws_cryptosdk_encryption_materials *copy_relevant_parts_of_enc_mat(
+static struct aws_cryptosdk_encryption_materials *copy_relevant_parts_of_enc_mat_init(
     struct aws_cryptosdk_encryption_materials *enc_mat) {
     struct aws_cryptosdk_encryption_materials *enc_mat_copy =
         aws_cryptosdk_encryption_materials_new(enc_mat->alloc, enc_mat->alg);
@@ -81,7 +81,7 @@ static int multi_keyring_encrypt_data_key(struct aws_cryptosdk_keyring *multi,
     if (!enc_mat->unencrypted_data_key.buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
 
     struct aws_cryptosdk_encryption_materials *enc_mat_copy =
-        copy_relevant_parts_of_enc_mat(enc_mat);
+        copy_relevant_parts_of_enc_mat_init(enc_mat);
     if (!enc_mat_copy) return AWS_OP_ERR;
 
     int ret = AWS_OP_SUCCESS;
@@ -114,7 +114,7 @@ static int multi_keyring_generate_data_key(struct aws_cryptosdk_keyring *multi,
     if (!self->generator) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
 
     struct aws_cryptosdk_encryption_materials *enc_mat_copy =
-        copy_relevant_parts_of_enc_mat(enc_mat);
+        copy_relevant_parts_of_enc_mat_init(enc_mat);
     if (!enc_mat_copy) return AWS_OP_ERR;
 
     int ret = AWS_OP_SUCCESS;
@@ -174,7 +174,7 @@ static void multi_keyring_destroy(struct aws_cryptosdk_keyring *multi) {
 
 static const struct aws_cryptosdk_keyring_vt vt = {
     .vt_size = sizeof(struct aws_cryptosdk_keyring_vt),
-    .name = "multi kr",
+    .name = "multi keyring",
     .destroy = multi_keyring_destroy,
     .generate_data_key = multi_keyring_generate_data_key,
     .encrypt_data_key = multi_keyring_encrypt_data_key,

@@ -232,7 +232,7 @@ static void raw_aes_keyring_destroy(struct aws_cryptosdk_keyring * kr) {
 
 static const struct aws_cryptosdk_keyring_vt raw_aes_keyring_vt = {
     .vt_size = sizeof(struct aws_cryptosdk_keyring_vt),
-    .name = "raw AES kr",
+    .name = "raw AES keyring",
     .destroy = raw_aes_keyring_destroy,
     .generate_data_key = raw_aes_keyring_generate_data_key,
     .encrypt_data_key = raw_aes_keyring_encrypt_data_key,

@@ -134,7 +134,7 @@ static void counting_keyring_destroy(struct aws_cryptosdk_keyring * kr) {}
 
 static const struct aws_cryptosdk_keyring_vt counting_keyring_vt = {
     .vt_size = sizeof(struct aws_cryptosdk_keyring_vt),
-    .name = "TEST: counting kr",
+    .name = "TEST: counting keyring",
     .destroy = counting_keyring_destroy,
     .generate_data_key = counting_keyring_generate_data_key,
     .encrypt_data_key = counting_keyring_encrypt_data_key,

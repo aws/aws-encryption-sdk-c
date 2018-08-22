@@ -111,7 +111,7 @@ static void zero_keyring_destroy(struct aws_cryptosdk_keyring * kr) {
 
 static const struct aws_cryptosdk_keyring_vt zero_keyring_vt = {
     .vt_size = sizeof(struct aws_cryptosdk_keyring_vt),
-    .name = "zero kr",
+    .name = "zero keyring",
     .destroy = zero_keyring_destroy,
     .generate_data_key = zero_keyring_generate_data_key,
     .encrypt_data_key = zero_keyring_encrypt_data_key,

@@ -105,7 +105,7 @@ struct aws_cryptosdk_decryption_materials {
  * non-null before attempting call. If checks fail, sets AWS internal error to AWS_ERROR_UNIMPLEMENTED
  * and returns the return value of aws_raise_error(), i.e., AWS_OP_ERR.
  *
- * Note that this depends on a naming convention of always using "cmm" or "kr" as the name of the pointer variable
+ * Note that this depends on a naming convention of always using "cmm" or "keyring" as the name of the pointer variable
  * as the first argument of the virtual function in the inline functions below which call this macro.
  */
 #define AWS_CRYPTOSDK_PRIVATE_VF_CALL(fn_name, ...) \
@@ -215,7 +215,7 @@ struct aws_cryptosdk_keyring_vt {
      * VIRTUAL FUNCTION: must implement unless it is a no-op. It is better to implement it as
      * a no-op function to avoid setting error code.
      */
-    void (*destroy)(struct aws_cryptosdk_keyring * kr);
+    void (*destroy)(struct aws_cryptosdk_keyring * keyring);
     /**
      * VIRTUAL FUNCTION: must implement if used for data key generation. If this is the only KR
      * and this is not implemented, encryption will not be possible.
@@ -230,7 +230,7 @@ struct aws_cryptosdk_keyring_vt {
      * allocators set to NULL and lengths set to zero. This assures that both clean up and serialization
      * will function correctly.
      */
-    int (*generate_data_key)(struct aws_cryptosdk_keyring * kr,
+    int (*generate_data_key)(struct aws_cryptosdk_keyring * keyring,
                              struct aws_cryptosdk_encryption_materials * enc_mat);
     /**
      * VIRTUAL FUNCTION: must implement if used for encryption, except when it is the only KR.
@@ -242,7 +242,7 @@ struct aws_cryptosdk_keyring_vt {
      * Implementations must also properly initialize the EDK which is appended to the list as explained in the
      * comments on generate_data_key above.
      */
-    int (*encrypt_data_key)(struct aws_cryptosdk_keyring * kr,
+    int (*encrypt_data_key)(struct aws_cryptosdk_keyring * keyring,
                             struct aws_cryptosdk_encryption_materials * enc_mat);
 
     /**
@@ -253,7 +253,7 @@ struct aws_cryptosdk_keyring_vt {
      * key buffer when an EDK is decrypted and leave the unencrypted data key buffer pointer set to NULL when
      * no EDK is decrypted.
      */
-    int (*decrypt_data_key)(struct aws_cryptosdk_keyring * kr,
+    int (*decrypt_data_key)(struct aws_cryptosdk_keyring * keyring,
                             struct aws_cryptosdk_decryption_materials * dec_mat,
                             const struct aws_cryptosdk_decryption_request * request);
 };
