@@ -27,14 +27,14 @@
  * to encrypt data key and decrypt data key. It can be set as the second argument
  * of this function, or caller may make that argument NULL to not set a generator.
  * It can later be set by calling aws_cryptosdk_multi_keyring_set_generator.
+ * Attempting to call generate data key on a multi-keyring without a generator
+ * will result in it failing with a AWS_CRYPTOSDK_ERR_BAD_STATE error code. For
+ * calls to encrypt data key and decrypt data key, the generator keyring is treated
+ * as just another child keyring.
  *
- * Initially the multi keyring has no included keyrings. In this state, generate,
- * encrypt, and decrypt calls will trivially succeed without actually generating,
- * encrypting, or decrypting data keys. Call aws_cryptosdk_multi_keyring_add
- * to add other keyrings to a multi-keyring.
- *
- * Destroying this keyring will NOT destroy the keyrings that were added to it. Be
- * sure to call the destructors on those keyrings too in order to avoid memory leaks.
+ * Initially the multi keyring has no included child keyrings. If it also has no
+ * generator keyring, encrypt and decrypt calls will trivially succeed without
+ * actually encrypting or decrypting data keys.
  *
  * On generate data key calls, this will generate the data key with the generator
  * keyring, which generally also puts an EDK on the list. It will then attempt to
@@ -54,6 +54,9 @@
  * there were no errors, and AWS_OP_ERR if there were errors. As with all decrypt
  * data key calls, check decryption materials unencrypted_data_key.buffer to see
  * whether an EDK was decrypted.
+ *
+ * Destroying this keyring will NOT destroy the keyrings that were added to it. Be
+ * sure to call the destructors on those keyrings too in order to avoid memory leaks.
  */
 struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(
     struct aws_allocator *alloc,
@@ -62,14 +65,14 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(
 /**
  * Sets the generator keyring of this multi-keyring. This will be the keyring
  * that will be called to generate data keys, which the child keyrings will then
- * encrypt. On calls to encrypt or decrypt a data key, the generator keyring
- * will just be treated as another child keyring, if it is set. Calls to
- * generate a data key will fail if the generator is not set, but calls to
- * encrypt and decrypt data key are allowed.
+ * encrypt. See above for more details.
+ *
+ * This operation is not threadsafe. If this is called at the same time as the
+ * multi-keyring is used for encrypt or decrypt, it results in undefined behavior.
  *
  * The generator of a multi-keyring cannot be changed. Multiple calls to this
  * function, or calling it after setting the generator upon construction, will
- * fail.
+ * fail with a AWS_ERROR_UNIMPLEMENTED error code.
  */
 int aws_cryptosdk_multi_keyring_set_generator(
     struct aws_cryptosdk_keyring *multi,
