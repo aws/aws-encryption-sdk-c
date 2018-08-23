@@ -28,11 +28,20 @@ set -x
 GIT_URL="$1"
 shift
 
+GIT_REV=HEAD
+
+if [ "x${1:-}" == "x--git-rev" ]; then
+    shift
+    GIT_REV=$1
+    shift
+fi
+
 BASENAME="$(basename "$GIT_URL" .git)"
 ROOT="/deps/$BASENAME"
 
 mkdir -p "$ROOT"
-git clone --depth=1 "$GIT_URL" "$ROOT/git"
+git clone "$GIT_URL" "$ROOT/git"
+(cd $ROOT/git; git reset --hard $GIT_REV)
 GITREV="$(cd "$ROOT/git"; git rev-parse HEAD)"
 ID_HASH="$(echo "$GITREV $@" | sha512sum | sed 's/ .*//')"
 S3PATH=s3://awsct-csdk-buildcache/$BASENAME/$ID_HASH.tar.xz

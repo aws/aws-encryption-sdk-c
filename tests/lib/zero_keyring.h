@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef AWS_CRYPTOSDK_TESTS_LIB_ZERO_KR_H
-#define AWS_CRYPTOSDK_TESTS_LIB_ZERO_KR_H
+#ifndef AWS_CRYPTOSDK_TESTS_LIB_ZERO_KEYRING_H
+#define AWS_CRYPTOSDK_TESTS_LIB_ZERO_KEYRING_H
 
 #include <aws/cryptosdk/materials.h>
 
@@ -27,7 +27,7 @@
  * On attempts to decrypt, it checks whether one of the provided EDKs has
  * zero length, and if so returns the all zero data key.
  */
-struct aws_cryptosdk_kr * aws_cryptosdk_zero_kr_new();
+struct aws_cryptosdk_keyring * aws_cryptosdk_zero_keyring_new();
 
 /**
  * Convenience for testing: sets an EDK to "null" in every field.
@@ -35,4 +35,4 @@ struct aws_cryptosdk_kr * aws_cryptosdk_zero_kr_new();
  */
 void aws_cryptosdk_literally_null_edk(struct aws_cryptosdk_edk * edk);
 
-#endif // AWS_CRYPTOSDK_TESTS_LIB_ZERO_KR_H
+#endif // AWS_CRYPTOSDK_TESTS_LIB_ZERO_KEYRING_H

@@ -12,10 +12,10 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef AWS_CRYPTOSDK_PRIVATE_RAW_AES_KR_H
-#define AWS_CRYPTOSDK_PRIVATE_RAW_AES_KR_H
+#ifndef AWS_CRYPTOSDK_PRIVATE_RAW_AES_KEYRING_H
+#define AWS_CRYPTOSDK_PRIVATE_RAW_AES_KEYRING_H
 
-#include <aws/cryptosdk/raw_aes_kr.h>
+#include <aws/cryptosdk/raw_aes_keyring.h>
 #include <aws/common/string.h>
 
 /* Raw AES Keyring always uses AES-GCM encryption with 12 byte IV and 16 byte tag.
@@ -25,8 +25,8 @@
 #define RAW_AES_KR_IV_LEN 12
 #define RAW_AES_KR_TAG_LEN 16
 
-struct raw_aes_kr {
-    const struct aws_cryptosdk_kr_vt * vt;
+struct raw_aes_keyring {
+    const struct aws_cryptosdk_keyring_vt * vt;
     struct aws_allocator * alloc;
     const struct aws_string * master_key_id;
     const struct aws_string * provider_id;
@@ -62,7 +62,7 @@ int aws_cryptosdk_serialize_provider_info_init(struct aws_allocator * alloc,
  * No memory is allocated by this function, as the IV buffer does not own its own
  * memory.
  */
-bool aws_cryptosdk_parse_provider_info(struct aws_cryptosdk_kr * kr,
+bool aws_cryptosdk_parse_provider_info(struct aws_cryptosdk_keyring * kr,
                                        struct aws_byte_buf * iv,
                                        const struct aws_byte_buf * provider_info);
 
@@ -70,9 +70,9 @@ bool aws_cryptosdk_parse_provider_info(struct aws_cryptosdk_kr * kr,
  * Does everything that the raw AES KR's encrypt_data_key virtual function does
  * except random generation of the IV. Used for testing with known inputs.
  */
-int aws_cryptosdk_raw_aes_kr_encrypt_data_key_with_iv(
-    struct aws_cryptosdk_kr * kr,
+int aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(
+    struct aws_cryptosdk_keyring * kr,
     struct aws_cryptosdk_encryption_materials * enc_mat,
     const uint8_t * iv);
 
-#endif // AWS_CRYPTOSDK_PRIVATE_RAW_AES_KR_H
+#endif // AWS_CRYPTOSDK_PRIVATE_RAW_AES_KEYRING_H
