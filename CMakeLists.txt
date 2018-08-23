@@ -222,8 +222,9 @@ add_test(header ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite header)
 add_test(materials ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite materials)
 add_test(enc_context ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite enc_context)
 add_test(encrypt ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite encrypt)
-add_test(raw_aes_kr ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite raw_aes_kr)
 add_test(hkdf ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite hkdf)
+add_test(raw_aes_keyring ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite raw_aes_keyring)
+add_test(multi_keyring ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite multi_keyring)
 
 set(TEST_DATA ${CMAKE_CURRENT_SOURCE_DIR}/tests/data)
 

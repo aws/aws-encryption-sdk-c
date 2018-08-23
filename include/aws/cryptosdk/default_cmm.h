@@ -39,6 +39,6 @@
  * On failure returns NULL and sets an internal AWS error code.
  */
 struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * alloc,
-                                                         struct aws_cryptosdk_kr * kr);
+                                                         struct aws_cryptosdk_keyring * kr);
 
 #endif // AWS_CRYPTOSDK_DEFAULT_CMM_H

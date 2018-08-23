@@ -29,7 +29,7 @@
  * default_cmm.[ch] for an example of this.
  */
 struct aws_cryptosdk_cmm;
-struct aws_cryptosdk_kr;
+struct aws_cryptosdk_keyring;
 
 struct aws_cryptosdk_edk {
     struct aws_byte_buf provider_id;
@@ -87,7 +87,7 @@ struct aws_cryptosdk_decryption_materials {
 
 /*
  * C99 standard dictates that "..." must have at least one argument behind it. Second arg of _VF_CALL macros is always struct
- * type, i.e., "cmm" or "kr". These helper macros allow us not to make struct_type a named argument, thus handling the
+ * type, i.e., "cmm" or "keyring". These helper macros allow us not to make struct_type a named argument, thus handling the
  * case cleanly where there are no more arguments.
  *
  * Note: We work around a VC++ preprocessor bug here. See https://stackoverflow.com/a/4750720
@@ -105,7 +105,7 @@ struct aws_cryptosdk_decryption_materials {
  * non-null before attempting call. If checks fail, sets AWS internal error to AWS_ERROR_UNIMPLEMENTED
  * and returns the return value of aws_raise_error(), i.e., AWS_OP_ERR.
  *
- * Note that this depends on a naming convention of always using "cmm" or "kr" as the name of the pointer variable
+ * Note that this depends on a naming convention of always using "cmm" or "keyring" as the name of the pointer variable
  * as the first argument of the virtual function in the inline functions below which call this macro.
  */
 #define AWS_CRYPTOSDK_PRIVATE_VF_CALL(fn_name, ...) \
@@ -137,8 +137,8 @@ struct aws_cryptosdk_decryption_materials {
     } while (0)
 
 /**
- * Virtual tables for CMM and KR. Any implementation should declare a static instance of this,
- * and the first element of the CMM or KR struct should be a pointer to that static virtual table.
+ * Virtual tables for CMM and keyring. Any implementation should declare a static instance of this,
+ * and the first element of the CMM or keyring struct should be a pointer to that static virtual table.
  */
 struct aws_cryptosdk_cmm_vt {
     /**
@@ -170,7 +170,7 @@ struct aws_cryptosdk_cmm_vt {
 };
 
 static inline void aws_cryptosdk_cmm_destroy(struct aws_cryptosdk_cmm * cmm) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, cmm);
+    if (cmm) AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, cmm);
 }
 
 /**
@@ -181,9 +181,10 @@ static inline void aws_cryptosdk_cmm_destroy(struct aws_cryptosdk_cmm * cmm) {
  *
  * On failure returns AWS_OP_ERR, sets address pointed to by output to NULL, and sets internal AWS error code.
  */
-static inline int aws_cryptosdk_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * cmm,
-                                                                  struct aws_cryptosdk_encryption_materials ** output,
-                                                                  struct aws_cryptosdk_encryption_request * request) {
+static inline int aws_cryptosdk_cmm_generate_encryption_materials(
+    struct aws_cryptosdk_cmm * cmm,
+    struct aws_cryptosdk_encryption_materials ** output,
+    struct aws_cryptosdk_encryption_request * request) {
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(generate_encryption_materials, cmm, output, request);
 }
 
@@ -194,15 +195,16 @@ static inline int aws_cryptosdk_cmm_generate_encryption_materials(struct aws_cry
  *
  * On failure returns AWS_OP_ERR, sets address pointed to by output to NULL, and sets internal AWS error code.
  */
-static inline int aws_cryptosdk_cmm_decrypt_materials(struct aws_cryptosdk_cmm * cmm,
-                                                      struct aws_cryptosdk_decryption_materials ** output,
-                                                      struct aws_cryptosdk_decryption_request * request) {
+static inline int aws_cryptosdk_cmm_decrypt_materials(
+    struct aws_cryptosdk_cmm * cmm,
+    struct aws_cryptosdk_decryption_materials ** output,
+    struct aws_cryptosdk_decryption_request * request) {
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_materials, cmm, output, request);
 }
 
-struct aws_cryptosdk_kr_vt {
+struct aws_cryptosdk_keyring_vt {
     /**
-     * Always set to sizeof(struct aws_cryptosdk_kr_vt).
+     * Always set to sizeof(struct aws_cryptosdk_keyring_vt).
      */
     size_t vt_size;
     /**
@@ -213,7 +215,7 @@ struct aws_cryptosdk_kr_vt {
      * VIRTUAL FUNCTION: must implement unless it is a no-op. It is better to implement it as
      * a no-op function to avoid setting error code.
      */
-    void (*destroy)(struct aws_cryptosdk_kr * kr);
+    void (*destroy)(struct aws_cryptosdk_keyring * keyring);
     /**
      * VIRTUAL FUNCTION: must implement if used for data key generation. If this is the only KR
      * and this is not implemented, encryption will not be possible.
@@ -228,7 +230,7 @@ struct aws_cryptosdk_kr_vt {
      * allocators set to NULL and lengths set to zero. This assures that both clean up and serialization
      * will function correctly.
      */
-    int (*generate_data_key)(struct aws_cryptosdk_kr * kr,
+    int (*generate_data_key)(struct aws_cryptosdk_keyring * keyring,
                              struct aws_cryptosdk_encryption_materials * enc_mat);
     /**
      * VIRTUAL FUNCTION: must implement if used for encryption, except when it is the only KR.
@@ -240,7 +242,7 @@ struct aws_cryptosdk_kr_vt {
      * Implementations must also properly initialize the EDK which is appended to the list as explained in the
      * comments on generate_data_key above.
      */
-    int (*encrypt_data_key)(struct aws_cryptosdk_kr * kr,
+    int (*encrypt_data_key)(struct aws_cryptosdk_keyring * keyring,
                             struct aws_cryptosdk_encryption_materials * enc_mat);
 
     /**
@@ -251,13 +253,13 @@ struct aws_cryptosdk_kr_vt {
      * key buffer when an EDK is decrypted and leave the unencrypted data key buffer pointer set to NULL when
      * no EDK is decrypted.
      */
-    int (*decrypt_data_key)(struct aws_cryptosdk_kr * kr,
+    int (*decrypt_data_key)(struct aws_cryptosdk_keyring * keyring,
                             struct aws_cryptosdk_decryption_materials * dec_mat,
                             const struct aws_cryptosdk_decryption_request * request);
 };
 
-static inline void aws_cryptosdk_kr_destroy(struct aws_cryptosdk_kr * kr) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, kr);
+static inline void aws_cryptosdk_keyring_destroy(struct aws_cryptosdk_keyring * keyring) {
+    if (keyring) AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, keyring);
 }
 
 /**
@@ -269,9 +271,10 @@ static inline void aws_cryptosdk_kr_destroy(struct aws_cryptosdk_kr * kr) {
  *
  * On failure AWS_OP_ERR is returned, an internal AWS error code is set, and no memory is allocated.
  */
-static inline int aws_cryptosdk_kr_generate_data_key(struct aws_cryptosdk_kr * kr,
-                                                     struct aws_cryptosdk_encryption_materials * enc_mat) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL(generate_data_key, kr, enc_mat);
+static inline int aws_cryptosdk_keyring_generate_data_key(
+    struct aws_cryptosdk_keyring * keyring,
+    struct aws_cryptosdk_encryption_materials * enc_mat) {
+    AWS_CRYPTOSDK_PRIVATE_VF_CALL(generate_data_key, keyring, enc_mat);
 }
 
 /**
@@ -282,9 +285,10 @@ static inline int aws_cryptosdk_kr_generate_data_key(struct aws_cryptosdk_kr * k
  *
  * On failure AWS_OP_ERR is returned, an internal AWS error code is set, and no memory is allocated.
  */
-static inline int aws_cryptosdk_kr_encrypt_data_key(struct aws_cryptosdk_kr * kr,
-                                                    struct aws_cryptosdk_encryption_materials * enc_mat) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL(encrypt_data_key, kr, enc_mat);
+static inline int aws_cryptosdk_keyring_encrypt_data_key(
+    struct aws_cryptosdk_keyring * keyring,
+    struct aws_cryptosdk_encryption_materials * enc_mat) {
+    AWS_CRYPTOSDK_PRIVATE_VF_CALL(encrypt_data_key, keyring, enc_mat);
 }
 
 /**
@@ -299,10 +303,11 @@ static inline int aws_cryptosdk_kr_encrypt_data_key(struct aws_cryptosdk_kr * kr
  *
  * On internal failure, AWS_OP_ERR will be returned and an internal error code will be set.
  */
-static inline int aws_cryptosdk_kr_decrypt_data_key(struct aws_cryptosdk_kr * kr,
-                                                    struct aws_cryptosdk_decryption_materials * dec_mat,
-                                                    const struct aws_cryptosdk_decryption_request * request) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_data_key, kr, dec_mat, request);
+static inline int aws_cryptosdk_keyring_decrypt_data_key(
+    struct aws_cryptosdk_keyring * keyring,
+    struct aws_cryptosdk_decryption_materials * dec_mat,
+    const struct aws_cryptosdk_decryption_request * request) {
+    AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_data_key, keyring, dec_mat, request);
 }
 
 
@@ -314,13 +319,14 @@ static inline int aws_cryptosdk_kr_decrypt_data_key(struct aws_cryptosdk_kr * kr
  *
  * On failure, returns NULL and an internal AWS error code is set.
  */
-struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_new(struct aws_allocator * alloc,
-                                                                                   enum aws_cryptosdk_alg_id alg);
+struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_new(
+    struct aws_allocator * alloc,
+    enum aws_cryptosdk_alg_id alg);
 
 /**
  * Deallocates all memory associated with the encryption materials object including the object itself.
  * All keys in the materials will have their associated memory also deallocated, but make sure that they have been
- * initialized properly per the comments on aws_cryptosdk_kr_generate_data_key.
+ * initialized properly per the comments on aws_cryptosdk_keyring_generate_data_key.
  */
 void aws_cryptosdk_encryption_materials_destroy(struct aws_cryptosdk_encryption_materials * enc_mat);
 
@@ -332,8 +338,9 @@ void aws_cryptosdk_encryption_materials_destroy(struct aws_cryptosdk_encryption_
  *
  * On failure, returns NULL and an internal AWS error code is set.
  */
-struct aws_cryptosdk_decryption_materials * aws_cryptosdk_decryption_materials_new(struct aws_allocator * alloc,
-                                                                                   enum aws_cryptosdk_alg_id alg);
+struct aws_cryptosdk_decryption_materials * aws_cryptosdk_decryption_materials_new(
+    struct aws_allocator * alloc,
+    enum aws_cryptosdk_alg_id alg);
 
 /**
  * Deallocates all memory associated with the decryption materials object including the object itself and

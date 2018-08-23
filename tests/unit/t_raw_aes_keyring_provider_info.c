@@ -12,7 +12,7 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <aws/cryptosdk/private/raw_aes_kr.h>
+#include <aws/cryptosdk/private/raw_aes_keyring.h>
 #include "testing.h"
 
 /**
@@ -54,7 +54,7 @@ int serialize_valid_provider_info() {
 }
 
 int parse_valid_provider_info() {
-    struct aws_cryptosdk_kr * kr = aws_cryptosdk_raw_aes_kr_new(aws_default_allocator(),
+    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_raw_aes_keyring_new(aws_default_allocator(),
                                                                 aws_string_bytes(ser_master_key_id),
                                                                 ser_master_key_id->len,
                                                                 aws_string_bytes(ser_provider_id),
@@ -70,12 +70,12 @@ int parse_valid_provider_info() {
 
     TEST_ASSERT_BUF_EQ(iv_output, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb);
 
-    aws_cryptosdk_kr_destroy(kr);
+    aws_cryptosdk_keyring_destroy(kr);
     return 0;
 }
 
-struct test_case raw_aes_kr_provider_info_test_cases[] = {
-    { "raw_aes_kr", "serialize_valid_provider_info", serialize_valid_provider_info },
-    { "raw_aes_kr", "parse_valid_provider_info", parse_valid_provider_info },
+struct test_case raw_aes_keyring_provider_info_test_cases[] = {
+    { "raw_aes_keyring", "serialize_valid_provider_info", serialize_valid_provider_info },
+    { "raw_aes_keyring", "parse_valid_provider_info", parse_valid_provider_info },
     { NULL }
 };

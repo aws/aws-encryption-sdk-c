@@ -28,7 +28,7 @@
 #include <aws/common/encoding.h>
 
 #include "testutil.h"
-#include "zero_kr.h"
+#include "zero_keyring.h"
 
 bool suite_failed = false;
 #define SENTINEL_VALUE ((size_t)0xABCD0123DEADBEEFllu)
@@ -57,7 +57,7 @@ static void decrypt_test_oneshot(
     struct aws_cryptosdk_session *session = NULL;
     struct aws_cryptosdk_cmm *cmm = NULL;
 
-    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), aws_cryptosdk_zero_kr_new()))) unexpected_error();
+    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), aws_cryptosdk_zero_keyring_new()))) unexpected_error();
     if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
 
     uint8_t *outp = outbuf;
@@ -117,7 +117,7 @@ static void decrypt_test_incremental(
     struct aws_cryptosdk_session *session = NULL;
     struct aws_cryptosdk_cmm *cmm = NULL;
 
-    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), aws_cryptosdk_zero_kr_new()))) unexpected_error();
+    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), aws_cryptosdk_zero_keyring_new()))) unexpected_error();
     if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
 
     uint8_t *outp = outbuf;
@@ -286,7 +286,7 @@ static void decrypt_test_badciphertext(
     struct aws_cryptosdk_session *session = NULL;
     struct aws_cryptosdk_cmm *cmm = NULL;
 
-    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), aws_cryptosdk_zero_kr_new()))) unexpected_error();
+    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), aws_cryptosdk_zero_keyring_new()))) unexpected_error();
     if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
 
     uint8_t *outp = outbuf;
