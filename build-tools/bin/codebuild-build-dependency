@@ -28,11 +28,11 @@ set -x
 GIT_URL="$1"
 shift
 
-GIT_REV=HEAD
+GIT_TAG=HEAD
 
-if [ "x${1:-}" == "x--git-rev" ]; then
+if [ "x${1:-}" == "x--git-tag" ]; then
     shift
-    GIT_REV=$1
+    GIT_TAG=$1
     shift
 fi
 
@@ -41,7 +41,9 @@ ROOT="/deps/$BASENAME"
 
 mkdir -p "$ROOT"
 git clone "$GIT_URL" "$ROOT/git"
-(cd $ROOT/git; git reset --hard $GIT_REV)
+(cd $ROOT/git; git reset --hard $GIT_TAG)
+
+# Find the actual commit hash that we checked out
 GITREV="$(cd "$ROOT/git"; git rev-parse HEAD)"
 ID_HASH="$(echo "$GITREV $@" | sha512sum | sed 's/ .*//')"
 S3PATH=s3://awsct-csdk-buildcache/$BASENAME/$ID_HASH.tar.xz
