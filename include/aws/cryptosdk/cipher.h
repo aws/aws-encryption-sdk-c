@@ -26,7 +26,7 @@ enum aws_cryptosdk_aes_key_len {
 };
 
 struct aws_cryptosdk_alg_properties {
-    const char *md_name, *cipher_name;
+    const char *md_name, *cipher_name, *alg_name;
 
     /**
      * Pointer to a structure containing crypto-backend-specific
@@ -35,7 +35,7 @@ struct aws_cryptosdk_alg_properties {
      */
     const struct aws_cryptosdk_alg_impl *impl;
 
-    size_t data_key_len, content_key_len, iv_len, tag_len;
+    size_t data_key_len, content_key_len, iv_len, tag_len, signature_len;
 
     enum aws_cryptosdk_alg_id alg_id;
 };

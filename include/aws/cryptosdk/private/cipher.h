@@ -17,6 +17,16 @@
 #define AWS_CRYPTOSDK_PRIVATE_CIPHER_H
 
 #include <aws/cryptosdk/cipher.h>
+#include <openssl/evp.h>
+
+/*
+ * TODO - Finish splitting cipher.c into common code and backend, and move this into the backends.
+ */
+struct aws_cryptosdk_alg_impl {
+    const EVP_MD *(*md_ctor)(void);
+    const EVP_CIPHER *(*cipher_ctor)(void);
+    const char *curve_name;
+};
 
 /**
  * Internal cryptographic helpers.
@@ -163,4 +173,112 @@ int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
                                   const struct aws_string * key);
 
 
+/**
+ * A structure representing an ongoing sign or verify operation
+ */
+struct aws_cryptosdk_signctx;
+
+/**
+ * Obtains the private key from a signing context, and serializes it to a byte buffer.
+ * The serialization format is not currently guaranteed to remain unchanged.
+ *
+ * This method is intended to be used with caching mechanisms to clone the signing context.
+ */
+int aws_cryptosdk_sig_get_privkey(
+    struct aws_allocator *alloc,
+    struct aws_cryptosdk_signctx *ctx,
+    struct aws_byte_buf *priv_key_buf
+);
+
+/**
+ * Generates a new signature keypair, initializes a signing context, and serializes the public key.
+ * If a non-signing algorithm is used, this function returns successfully, and sets *ctx to NULL.
+ *
+ * @param alloc - the allocator to use
+ * @param pctx - a pointer to a variable to receive the context pointer
+ * @param props - The algorithm properties for the algorithm to use
+ * @param pub_key_buf - A buffer that will receive the public key (in base64 format).
+ *   This buffer will be allocated as part of this call, and does not need to be pre-initialized.
+ */
+int aws_cryptosdk_sig_keygen(
+    struct aws_allocator *alloc,
+    struct aws_cryptosdk_signctx **pctx,
+    const struct aws_cryptosdk_alg_properties *props,
+    struct aws_byte_buf *pub_key_buf
+);
+
+/**
+ * Initializes a new signature context based on a private key serialized using
+ * aws_cryptosdk_sig_get_privkey.
+ *
+ * @param
+ *   alloc - the allocator to use
+ *   ctx   - a pointer to a variable to receive the signing context
+ *   pub_key_buf - a pointer to a buffer that will receive the base-64 public key,
+ *     or NULL if not required
+ *   props - algorithm properties for the algorithm suite in use
+ *   priv_key - the previously serialized private key
+ */
+int aws_cryptosdk_sig_sign_start(
+    struct aws_allocator *alloc,
+    struct aws_cryptosdk_signctx **ctx,
+    struct aws_byte_buf *pub_key_buf,
+    const struct aws_cryptosdk_alg_properties *props,
+    const struct aws_byte_buf *priv_key
+);
+
+/**
+ * Prepares to validate a signature.
+ * If a non-signing algorithm is used, this function returns successfully, and sets *ctx to NULL.
+ *
+ * @param alloc - the allocator to use
+ * @param pctx - a pointer to a variable to receive the context pointer
+ * @param props - The algorithm properties for the algorithm to use
+ * @param pub_key - A buffer containing the (base64) public key
+ */
+int aws_cryptosdk_sig_verify_start(
+    struct aws_allocator *alloc,
+    struct aws_cryptosdk_signctx **pctx,
+    const struct aws_cryptosdk_alg_properties *props,
+    struct aws_byte_buf *pub_key
+);
+
+/**
+ * Supplies some data to an ongoing sign or verify operation
+ */
+int aws_cryptosdk_sig_update(
+    struct aws_cryptosdk_signctx *ctx,
+    const struct aws_byte_buf *buf
+);
+
+/**
+ * Verifies a signature against the data previously passed to aws_cryptosdk_sig_update.
+ * If successful, this function returns AWS_OP_SUCCESS; if the signature was invalid,
+ * raises AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT and returns AWS_OP_ERR.
+ *
+ * The context is always freed, regardless of success or failure.
+ */
+int aws_cryptosdk_sig_verify_finish(
+    struct aws_cryptosdk_signctx *ctx,
+    const struct aws_byte_buf *signature
+);
+
+/**
+ * Generates the final signature based on data previously passed to aws_cryptosdk_sig_update.
+ * The signature buffer will be allocated using 'alloc'.
+ *
+ * The context is always freed, regardless of success or failure.
+ */
+int aws_cryptosdk_sig_sign_finish(
+    struct aws_allocator *alloc,
+    struct aws_cryptosdk_signctx *ctx,
+    struct aws_byte_buf *signature
+);
+
+/**
+ * Aborts an ongoing sign or verify operation, and destroys the signature context.
+ */
+void aws_cryptosdk_sig_abort(
+    struct aws_cryptosdk_signctx *ctx
+);
 #endif // AWS_CRYPTOSDK_PRIVATE_CIPHER_H
