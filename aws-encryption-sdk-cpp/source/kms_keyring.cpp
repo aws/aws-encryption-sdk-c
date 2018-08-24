@@ -12,7 +12,7 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <aws/cryptosdk/kms_c_master_key.h>
+#include <aws/cryptosdk/kms_keyring.h>
 
 #include <stddef.h>
 #include <stdlib.h>

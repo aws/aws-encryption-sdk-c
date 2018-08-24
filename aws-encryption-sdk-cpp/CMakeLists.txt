@@ -83,7 +83,7 @@ if (BUILD_AWS_ENC_SDK_CPP)
 
 
     # TODO enable Integration tests only for those who have access to encrypt decrypt KMS key used in tests
-    add_executable(t_integration_kms_mk tests/integration/t_integration_kms_c_mk.cpp ${TEST_LIB})
+    add_executable(t_integration_kms_mk tests/integration/t_integration_kms_keyring.cpp ${TEST_LIB})
     target_link_libraries(t_integration_kms_mk ${PROJECT_NAME} ${AWS_ENC_SDK_CPP} testlibcpp)
     target_include_directories(t_integration_kms_mk PUBLIC ${PROJECT_SOURCE_DIR}/tests/lib
             ${PROJECT_SOURCE_DIR}/tests/unit

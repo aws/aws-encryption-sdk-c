@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include <aws/cryptosdk/kms_c_master_key.h>
+#include <aws/cryptosdk/kms_keyring.h>
 #include <aws/cryptosdk/private/cpputils.h>
 
 #include <aws/common/array_list.h>

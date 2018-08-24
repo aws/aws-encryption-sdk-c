@@ -28,7 +28,7 @@
 #include <aws/cryptosdk/session.h>
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/private/cpputils.h>
-#include <aws/cryptosdk/kms_c_master_key.h>
+#include <aws/cryptosdk/kms_keyring.h>
 
 #include "testing.h"
 #include "test_crypto.h"
