@@ -16,6 +16,7 @@
 #ifndef AWS_ENCRYPTION_SDK_KMS_CLIENT_MOCK_H
 #define AWS_ENCRYPTION_SDK_KMS_CLIENT_MOCK_H
 
+#include <deque>
 #include <aws/kms/KMSClient.h>
 #include <aws/kms/model/EncryptRequest.h>
 #include <aws/kms/model/EncryptResult.h>
@@ -48,14 +49,17 @@ class KmsClientMock : public Aws::KMS::KMSClient {
     void ExpectGenerateDataKey(const Model::GenerateDataKeyRequest &request,
                                Model::GenerateDataKeyOutcome generate_dk_return);
 
+    bool ExpectingOtherCalls();
   private:
     mutable bool expect_encrypt;
     Model::EncryptRequest expected_encrypt_request;
     Model::EncryptOutcome encrypt_return;
 
-    mutable bool expect_decrypt;
-    Model::DecryptRequest expected_decrypt_request;
-    Model::DecryptOutcome decrypt_return;
+    struct ExpectedDecryptValues {
+        Model::DecryptRequest expected_decrypt_request;
+        Model::DecryptOutcome return_decrypt;
+    };
+    mutable std::deque<ExpectedDecryptValues> expected_decrypt_values;
 
     mutable bool expect_generate_dk;
     Model::GenerateDataKeyRequest expected_generate_dk_request;

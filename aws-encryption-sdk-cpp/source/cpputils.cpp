@@ -99,6 +99,47 @@ int append_key_to_edks(struct aws_allocator *allocator,
                                            key_provider);
 }
 
+bool aws_byte_buf_eq_char_array(const char *buf, size_t idx_start, size_t idx_end, const aws_byte_buf &needle) {
+    if (idx_end == std::string::npos || idx_start == std::string::npos || buf == NULL) {
+        return false;
+    }
+
+    const aws_byte_buf bute_buf_a = aws_byte_buf_from_array((uint8_t *)(buf + idx_start), idx_end - idx_start);
+
+    return aws_byte_buf_eq(&bute_buf_a, &needle);
+}
+
+Aws::String parse_region_from_kms_key_arn(const Aws::String &key_id) {
+    static const aws_byte_buf arn_str = aws_byte_buf_from_c_str("arn");
+    static const aws_byte_buf kms_str = aws_byte_buf_from_c_str("kms");
+    Aws::String rv;
+    size_t idx_start = 0;
+    size_t idx_end = 0;
+    // first group is "arn"
+    idx_end = key_id.find(':', idx_start);
+    if (aws_byte_buf_eq_char_array(key_id.data(), idx_start, idx_end, arn_str) == false) {
+        return rv;
+    }
+    idx_start = idx_end + 1;
+
+    // second group is "aws" but can vary
+    idx_end = key_id.find(':', idx_start);
+    if (idx_end == std::string::npos) { return rv; }
+    idx_start = idx_end + 1;
+
+    // third group is "kms"
+    idx_end = key_id.find(':', idx_start);
+    if (aws_byte_buf_eq_char_array(key_id.data(), idx_start, idx_end, kms_str) == false) {
+        return rv;
+    }
+    idx_start = idx_end + 1;
+
+    // forth group is region
+    idx_end = key_id.find(':', idx_start);
+    if (idx_end == std::string::npos || idx_start >= idx_end) { return rv; }
+    return Aws::String(key_id.data() + idx_start, idx_end - idx_start);
+}
+
 }  // namespace Private
 }  // namespace Cryptosdk
 }  // namespace Aws

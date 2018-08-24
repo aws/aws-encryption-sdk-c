@@ -20,7 +20,7 @@ namespace Cryptosdk {
 namespace Testing {
 
 KmsClientMock::KmsClientMock()
-    : Aws::KMS::KMSClient(), expect_encrypt(false), expect_decrypt(false), expect_generate_dk(false) {}
+    : Aws::KMS::KMSClient(), expect_encrypt(false), expect_generate_dk(false) {}
 
 Model::EncryptOutcome KmsClientMock::Encrypt(const Model::EncryptRequest &request) const {
     if (!expect_encrypt) {
@@ -44,22 +44,22 @@ void KmsClientMock::ExpectEncrypt(const Model::EncryptRequest &request, Model::E
 }
 
 Model::DecryptOutcome KmsClientMock::Decrypt(const Model::DecryptRequest &request) const {
-    if (!expect_decrypt) {
+    if (expected_decrypt_values.size() == 0) {
+        throw std::exception();
+    }
+    ExpectedDecryptValues edv = expected_decrypt_values.front();
+    expected_decrypt_values.pop_front();
+
+    if (edv.expected_decrypt_request.GetCiphertextBlob() != request.GetCiphertextBlob()) {
         throw std::exception();
     }
 
-    if (request.GetCiphertextBlob() != expected_decrypt_request.GetCiphertextBlob()) {
-        throw std::exception();
-    }
-
-    expect_decrypt = false;
-    return decrypt_return;
+    return edv.return_decrypt;
 }
 
 void KmsClientMock::ExpectDecrypt(const Model::DecryptRequest &request, Model::DecryptOutcome decrypt_return) {
-    expect_decrypt = true;
-    expected_decrypt_request = request;
-    this->decrypt_return = decrypt_return;
+    ExpectedDecryptValues edv = {request, decrypt_return};
+    this->expected_decrypt_values.push_back(edv);
 }
 
 Model::GenerateDataKeyOutcome KmsClientMock::GenerateDataKey(const Model::GenerateDataKeyRequest &request) const {
@@ -75,6 +75,7 @@ Model::GenerateDataKeyOutcome KmsClientMock::GenerateDataKey(const Model::Genera
         throw std::exception();
     }
 
+    expect_generate_dk = false;
     return generate_dk_return;
 }
 
@@ -83,6 +84,10 @@ void KmsClientMock::ExpectGenerateDataKey(const Model::GenerateDataKeyRequest &r
     expect_generate_dk = true;
     expected_generate_dk_request = request;
     this->generate_dk_return = generate_dk_return;
+}
+
+bool KmsClientMock::ExpectingOtherCalls() {
+    return (expected_decrypt_values.size() != 0) || expect_encrypt || expect_generate_dk;
 }
 
 }  // namespace Testing

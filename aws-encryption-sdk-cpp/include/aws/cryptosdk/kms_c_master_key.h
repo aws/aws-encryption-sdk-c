@@ -18,6 +18,8 @@
 #include <aws/common/common.h>
 #include <aws/core/utils/memory/AWSMemory.h>
 #include <aws/core/utils/memory/stl/AWSString.h>
+#include <aws/core/utils/memory/stl/AWSMap.h>
+#include <aws/core/utils/memory/stl/AWSVector.h>
 #include <aws/core/utils/Outcome.h>
 #include <aws/kms/KMSClient.h>
 #include <aws/kms/model/EncryptRequest.h>
@@ -49,6 +51,26 @@ struct aws_cryptosdk_kms_mk : aws_cryptosdk_keyring {
  */
 class KmsCMasterKey : public aws_cryptosdk_kms_mk {
   public:
+    //todo move in a separate file
+    class RegionalClientSupplier {
+      public:
+        virtual std::shared_ptr<KMS::KMSClient> getClient(const String &region_name) = 0;
+        virtual ~RegionalClientSupplier() {};
+    };
+
+    class DefaultRegionalClientSupplier : public RegionalClientSupplier {
+      public:
+        std::shared_ptr<KMS::KMSClient> getClient(const String &region_name);
+    };
+
+    class SingleClientSupplier : public RegionalClientSupplier {
+      public:
+        SingleClientSupplier(const std::shared_ptr<KMS::KMSClient> &kms_client);
+        std::shared_ptr<KMS::KMSClient> getClient(const String &region_name);
+      private:
+        std::shared_ptr<KMS::KMSClient> kms_client;
+    };
+
     /**
      * Initializes KmsCMasterKey to use Aws::KMS::KMSClient with a key_id
      * @param kms_client KMS client object
@@ -58,9 +80,19 @@ class KmsCMasterKey : public aws_cryptosdk_kms_mk {
      * @param alloc Allocator structure. An instance of this will be passed around for anything needing memory
      *              allocation
      */
-    KmsCMasterKey(std::shared_ptr<KMS::KMSClient> kms_client,
-                  const Aws::String &key_id,
-                  struct aws_allocator *alloc);
+    KmsCMasterKey(struct aws_allocator *alloc,
+                  std::shared_ptr<Aws::KMS::KMSClient> kms_client,
+                  const String &key_id);
+
+    KmsCMasterKey(struct aws_allocator *alloc,
+                  Aws::List<Aws::String> keyIds,
+                  Aws::List<String> grantTokens = {},
+                  Aws::String defaultRegion = Aws::Region::US_EAST_1,
+                  std::shared_ptr<RegionalClientSupplier> supplier = std::make_shared<DefaultRegionalClientSupplier>());
+
+    KmsCMasterKey(struct aws_allocator *alloc,
+                  Aws::String keyId);
+
     ~KmsCMasterKey();
 
     // non-copyable
@@ -68,10 +100,6 @@ class KmsCMasterKey : public aws_cryptosdk_kms_mk {
     KmsCMasterKey &operator=(const KmsCMasterKey &) = delete;
 
   protected:
-    /**
-     * Constructor that is used for testing purposes. Do not use it.
-     */
-    KmsCMasterKey(std::shared_ptr<Private::KmsShim> &kms, struct aws_allocator *alloc);
 
     /**
      * It attempts to find one of the EDKs to decrypt
@@ -121,13 +149,46 @@ class KmsCMasterKey : public aws_cryptosdk_kms_mk {
      */
     static void DestroyAwsCryptoMk(aws_cryptosdk_keyring *mk);
 
+  protected:
+    Aws::KMS::Model::EncryptRequest CreateEncryptRequest(const Aws::String &key_id,
+                                                         const Aws::Vector<Aws::String> &grant_tokens,
+                                                         const Utils::ByteBuffer &plaintext,
+                                                         const Aws::Map<Aws::String, Aws::String> &encryption_context);
+
+    Aws::KMS::Model::DecryptRequest CreateDecryptRequest(const Aws::String &key_id,
+                                                         const Aws::Vector<Aws::String> &grant_tokens,
+                                                         const Utils::ByteBuffer &ciphertext,
+                                                         const Aws::Map<Aws::String, Aws::String> &encryption_context);
+
+    Aws::KMS::Model::GenerateDataKeyRequest CreateGenerateDataKeyRequest(const Aws::String &key_id,
+                                                                         const Aws::Vector<Aws::String> &grant_tokens,
+                                                                         int number_of_bytes,
+                                                                         const Aws::Map<Aws::String,
+                                                                                        Aws::String> &encryption_context);
+
+    Aws::Map<Aws::String, Aws::String> BuildKeyIDs(Aws::List<Aws::String> key_ids);
+
+    Aws::String GetClientRegion(const Aws::String &key_id);
+    std::shared_ptr<KMS::KMSClient> GetKmsClient(const Aws::String &region);
+    void SaveKmsClientInCache(const Aws::String &region, std::shared_ptr<KMS::KMSClient> &kms_client);
+
   private:
+    void Init(struct aws_allocator *alloc, Aws::List<Aws::String> &in_key_ids);
+
     void InitAwsCryptosdkMk(struct aws_allocator *allocator);
     aws_cryptosdk_keyring_vt CreateAwsCryptosdkMk() const;
 
     struct aws_cryptosdk_keyring_vt kms_mk_vt;
-    std::shared_ptr<Private::KmsShim> kms_shim;
     const aws_byte_buf key_provider;
+
+    std::shared_ptr<RegionalClientSupplier> client_supplier;
+
+    Aws::String default_key_arn;
+    const Aws::String default_region;
+    //TODO add support for grant_tokens
+    Aws::Vector<Aws::String> grant_tokens;
+    Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> cached_clients;
+    Aws::Map<Aws::String, Aws::String> key_ids;
 };
 
 }  // namespace Cryptosdk

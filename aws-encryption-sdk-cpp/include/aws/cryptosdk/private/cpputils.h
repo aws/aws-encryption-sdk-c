@@ -75,6 +75,10 @@ int append_key_to_edks(struct aws_allocator *allocator,
                        const Aws::String *data_key_id,
                        const aws_byte_buf *key_provider);
 
+
+Aws::String parse_region_from_kms_key_arn(const Aws::String &key_id);
+
+
 }  // namespace Private
 }  // namespace Cryptosdk
 }  // namespace Aws

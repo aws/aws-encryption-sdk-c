@@ -25,7 +25,6 @@ using namespace Aws::Cryptosdk::Testing;
 
 const char *TEST_STRING = "Hello World!";
 
-
 static void *s_bad_malloc(struct aws_allocator *allocator, size_t size) {
     return NULL;
 }
@@ -161,10 +160,10 @@ int test_append_key_to_edks_with_OOM_error() {
     struct aws_allocator *oom_allocator = aws_test_bad_allocator();
     EdksTestData ed;
     TEST_ASSERT_ERROR(AWS_ERROR_OOM, append_c_str_key_to_edks(oom_allocator,
-                                                 &ed.edks.encrypted_data_keys,
-                                                 &ed.enc,
-                                                 ed.data_key_id,
-                                                 ed.key_provider));
+                                                              &ed.edks.encrypted_data_keys,
+                                                              &ed.enc,
+                                                              ed.data_key_id,
+                                                              ed.key_provider));
     return 0;
 }
 
@@ -215,6 +214,52 @@ int test_append_key_to_edks_multiple_keys() {
     return 0;
 }
 
+int test_parse_region_from_kms_key_arn() {
+    Aws::String key_arn = "arn:aws:kms:us-west-1:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
+    Aws::String key_arn2 = "arn:xxx:kms:us-west-2:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
+    Aws::String key_arn3 = "arn::kms:us-west-3:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
+    TEST_ASSERT(parse_region_from_kms_key_arn(key_arn) == Aws::String("us-west-1"));
+    TEST_ASSERT(parse_region_from_kms_key_arn(key_arn2) == Aws::String("us-west-2"));
+    TEST_ASSERT(parse_region_from_kms_key_arn(key_arn3) == Aws::String("us-west-3"));
+    return 0;
+}
+
+int test_parse_region_from_kms_key_arn_invalid_arn() {
+    Aws::String empty;
+
+    TEST_ASSERT(
+        parse_region_from_kms_key_arn("arN:aws:kms:us-west-2:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f")
+            == empty);
+
+    TEST_ASSERT(
+        parse_region_from_kms_key_arn(":aws:kms:us-west-2:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f")
+            == empty);
+
+    TEST_ASSERT(
+        parse_region_from_kms_key_arn("arn:aws:kms2:us-west-2:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f")
+            == empty);
+
+    TEST_ASSERT(
+        parse_region_from_kms_key_arn("arn:aws:kms::658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f")
+            == empty);
+
+    TEST_ASSERT(
+        parse_region_from_kms_key_arn(":arn:aws:kms:us-west-1:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f")
+            == empty);
+
+    TEST_ASSERT(parse_region_from_kms_key_arn(":::us-west-2:") == empty);
+    TEST_ASSERT(parse_region_from_kms_key_arn("") == empty);
+    TEST_ASSERT(parse_region_from_kms_key_arn("arn:aws:kms:") == empty);
+    TEST_ASSERT(parse_region_from_kms_key_arn("arn:aws:") == empty);
+    TEST_ASSERT(parse_region_from_kms_key_arn("arn:") == empty);
+    TEST_ASSERT(parse_region_from_kms_key_arn(":") == empty);
+    TEST_ASSERT(parse_region_from_kms_key_arn("arn") == empty);
+
+    // although we can theoretically extract region ARN still is invalid
+    TEST_ASSERT(parse_region_from_kms_key_arn("arn:aws:kms:us-west-3") == empty);
+
+    return 0;
+}
 
 int main() {
     RUN_TEST(test_aws_string_from_c_aws_byte_buf());
@@ -225,4 +270,6 @@ int main() {
     RUN_TEST(test_aws_string_from_c_aws_string());
     RUN_TEST(test_aws_map_from_c_aws_hash_table());
     RUN_TEST(test_aws_byte_buf_dup_from_aws_utils());
+    RUN_TEST(test_parse_region_from_kms_key_arn());
+    RUN_TEST(test_parse_region_from_kms_key_arn_invalid_arn());
 }

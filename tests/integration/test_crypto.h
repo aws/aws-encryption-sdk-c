@@ -47,26 +47,28 @@ void aws_cryptosdk_destroy(struct aws_cryptosdk_all_struct result) {
 int aws_cryptosdk_process(struct aws_cryptosdk_keyring *mk,
                           enum aws_cryptosdk_mode mode,
                           const struct aws_byte_buf *in,
-                          struct aws_byte_buf *out) {
-
+                          struct aws_byte_buf *out,
+                          int expected_process_status = AWS_OP_SUCCESS) {
     struct aws_cryptosdk_all_struct aws_crypto_sdk = aws_cryptosdk_all_init(mode, mk);
-
 
     aws_cryptosdk_session_set_message_size(aws_crypto_sdk.session, in->len);
 
     size_t in_consumed, out_consumed;
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process(aws_crypto_sdk.session,
+    TEST_ASSERT(aws_cryptosdk_session_process(aws_crypto_sdk.session,
                                                       out->buffer, out->len, &out_consumed,
                                                       in->buffer, in->len, &in_consumed
-    ));
+    ) == expected_process_status);
 
-    TEST_ASSERT_INT_EQ(in_consumed, in->len);
-    TEST_ASSERT(aws_cryptosdk_session_is_done(aws_crypto_sdk.session));
+    if (expected_process_status != AWS_OP_ERR) {
+        TEST_ASSERT_INT_EQ(in_consumed, in->len);
+        TEST_ASSERT(aws_cryptosdk_session_is_done(aws_crypto_sdk.session));
+    }
 
     aws_cryptosdk_destroy(aws_crypto_sdk);
 
     out->len = out_consumed;
     return 0;
 }
+
 
 #endif //AWS_ENCRYPTION_SDK_TEST_CRYPTO_H
