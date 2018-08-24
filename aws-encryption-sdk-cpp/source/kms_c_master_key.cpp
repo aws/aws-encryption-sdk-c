@@ -34,28 +34,28 @@ using Private::aws_utils_byte_buffer_from_c_aws_byte_buf;
 using Private::aws_byte_buf_dup_from_aws_utils;
 using Private::aws_map_from_c_aws_hash_table;
 using Private::append_key_to_edks;
-using Private::KmsShim;
 
-static const char *AWS_CRYPTO_SDK_KMS_CLASS_TAG = "KmsCMasterKey";
+static const char *AWS_CRYPTO_SDK_KMS_CLASS_TAG = "KmsKeyring";
 static const char *KEY_PROVIDER_STR = "aws-kms";
 
-void KmsCMasterKey::DestroyAwsCryptoMk(struct aws_cryptosdk_keyring *mk) {
-    struct aws_cryptosdk_kms_mk *kms_mk = static_cast<aws_cryptosdk_kms_mk *>(mk);
-    kms_mk->vtable = NULL;
-    kms_mk->alloc = NULL;
-    kms_mk->mk_data = NULL;
+void KmsKeyring::DestroyAwsCryptoKeyring(struct aws_cryptosdk_keyring *keyring) {
+    struct aws_cryptosdk_kms_keyring *kms_keyring = static_cast<aws_cryptosdk_kms_keyring *>(keyring);
+    kms_keyring->vtable = NULL;
+    kms_keyring->alloc = NULL;
+    kms_keyring->keyring_data = NULL;
 }
 
-int KmsCMasterKey::EncryptDataKey(struct aws_cryptosdk_keyring *mk,
-                                  struct aws_cryptosdk_encryption_materials *enc_mat) {
-    struct aws_cryptosdk_kms_mk *kms_mk = static_cast<aws_cryptosdk_kms_mk *>(mk);
-    if (!kms_mk || !kms_mk->mk_data || !kms_mk->alloc || !enc_mat || !enc_mat->unencrypted_data_key.buffer) {
+int KmsKeyring::EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
+                               struct aws_cryptosdk_encryption_materials *enc_mat) {
+    struct aws_cryptosdk_kms_keyring *kms_keyring = static_cast<aws_cryptosdk_kms_keyring *>(keyring);
+    if (!kms_keyring || !kms_keyring->keyring_data || !kms_keyring->alloc || !enc_mat
+        || !enc_mat->unencrypted_data_key.buffer) {
         AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "KMS encrypt validation failed");
         aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
         abort();
     }
 
-    auto self = kms_mk->mk_data;
+    auto self = kms_keyring->keyring_data;
     auto kms_region = self->GetClientRegion(self->default_key_arn);
     auto kms_client = self->GetKmsClient(kms_region);
     auto kms_client_request = self->CreateEncryptRequest(
@@ -73,22 +73,22 @@ int KmsCMasterKey::EncryptDataKey(struct aws_cryptosdk_keyring *mk,
     }
     self->SaveKmsClientInCache(kms_region, kms_client);
     return append_key_to_edks(
-        kms_mk->alloc, &enc_mat->encrypted_data_keys, &outcome.GetResult().GetCiphertextBlob(),
+        kms_keyring->alloc, &enc_mat->encrypted_data_keys, &outcome.GetResult().GetCiphertextBlob(),
         &outcome.GetResult().GetKeyId(),
         &self->key_provider);
 }
 
-int KmsCMasterKey::DecryptDataKey(struct aws_cryptosdk_keyring *mk,
-                                  struct aws_cryptosdk_decryption_materials *dec_mat,
-                                  const aws_cryptosdk_decryption_request *request) {
-    struct aws_cryptosdk_kms_mk *kms_mk = static_cast<aws_cryptosdk_kms_mk *>(mk);
-    if (!kms_mk || !kms_mk->mk_data || !kms_mk->alloc || !dec_mat || !request) {
+int KmsKeyring::DecryptDataKey(struct aws_cryptosdk_keyring *keyring,
+                               struct aws_cryptosdk_decryption_materials *dec_mat,
+                               const aws_cryptosdk_decryption_request *request) {
+    struct aws_cryptosdk_kms_keyring *kms_keyring = static_cast<aws_cryptosdk_kms_keyring *>(keyring);
+    if (!kms_keyring || !kms_keyring->keyring_data || !kms_keyring->alloc || !dec_mat || !request) {
         AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "KMS decrypt validation failed");
         aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
         abort();
     }
 
-    auto self = kms_mk->mk_data;
+    auto self = kms_keyring->keyring_data;
     dec_mat->unencrypted_data_key = {0};
 
     Aws::StringStream error_buf;
@@ -128,7 +128,7 @@ int KmsCMasterKey::DecryptDataKey(struct aws_cryptosdk_keyring *mk,
         const Aws::String &outcome_key_id = outcome.GetResult().GetKeyId();
         if (outcome_key_id == key_arn) {
             self->SaveKmsClientInCache(kms_region, kms_client);
-            return aws_byte_buf_dup_from_aws_utils(kms_mk->alloc,
+            return aws_byte_buf_dup_from_aws_utils(kms_keyring->alloc,
                                                    &dec_mat->unencrypted_data_key,
                                                    outcome.GetResult().GetPlaintext());
         }
@@ -140,16 +140,16 @@ int KmsCMasterKey::DecryptDataKey(struct aws_cryptosdk_keyring *mk,
     return AWS_OP_SUCCESS;
 }
 
-int KmsCMasterKey::GenerateDataKey(struct aws_cryptosdk_keyring *mk,
-                                   struct aws_cryptosdk_encryption_materials *enc_mat) {
-    struct aws_cryptosdk_kms_mk *kms_mk = static_cast<aws_cryptosdk_kms_mk *>(mk);
-    if (!kms_mk || !kms_mk->mk_data || !kms_mk->alloc || !enc_mat) {
+int KmsKeyring::GenerateDataKey(struct aws_cryptosdk_keyring *keyring,
+                                struct aws_cryptosdk_encryption_materials *enc_mat) {
+    struct aws_cryptosdk_kms_keyring *kms_keyring = static_cast<aws_cryptosdk_kms_keyring *>(keyring);
+    if (!kms_keyring || !kms_keyring->keyring_data || !kms_keyring->alloc || !enc_mat) {
         AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "KMS generate data key validation failed");
         aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
         abort();
     }
 
-    auto self = kms_mk->mk_data;
+    auto self = kms_keyring->keyring_data;
     enc_mat->unencrypted_data_key = {0};
 
     const struct aws_cryptosdk_alg_properties *alg_prop = aws_cryptosdk_alg_props(enc_mat->alg);
@@ -172,14 +172,14 @@ int KmsCMasterKey::GenerateDataKey(struct aws_cryptosdk_keyring *mk,
     }
     self->SaveKmsClientInCache(kms_region, kms_client);
 
-    int rv = aws_byte_buf_dup_from_aws_utils(kms_mk->alloc,
+    int rv = aws_byte_buf_dup_from_aws_utils(kms_keyring->alloc,
                                              &enc_mat->unencrypted_data_key,
                                              outcome.GetResult().GetPlaintext());
     if (rv != AWS_OP_SUCCESS) {
         return rv;
     }
 
-    rv = append_key_to_edks(kms_mk->alloc,
+    rv = append_key_to_edks(kms_keyring->alloc,
                             &enc_mat->encrypted_data_keys,
                             &outcome.GetResult().GetCiphertextBlob(),
                             &outcome.GetResult().GetKeyId(),
@@ -192,63 +192,63 @@ int KmsCMasterKey::GenerateDataKey(struct aws_cryptosdk_keyring *mk,
     return AWS_OP_SUCCESS;
 }
 
-aws_cryptosdk_keyring_vt KmsCMasterKey::CreateAwsCryptosdkMk() const {
-    struct aws_cryptosdk_keyring_vt kms_mk_vt;
-    aws_secure_zero(&kms_mk_vt, sizeof(struct aws_cryptosdk_keyring_vt));
+aws_cryptosdk_keyring_vt KmsKeyring::CreateAwsCryptosdkKeyring() const {
+    struct aws_cryptosdk_keyring_vt kms_keyring_vt;
+    aws_secure_zero(&kms_keyring_vt, sizeof(struct aws_cryptosdk_keyring_vt));
 
-    kms_mk_vt.vt_size = sizeof(struct aws_cryptosdk_keyring_vt);
-    kms_mk_vt.name = KEY_PROVIDER_STR;
-    kms_mk_vt.destroy = &KmsCMasterKey::DestroyAwsCryptoMk;
-    kms_mk_vt.generate_data_key = &KmsCMasterKey::GenerateDataKey;
-    kms_mk_vt.encrypt_data_key = &KmsCMasterKey::EncryptDataKey;
-    kms_mk_vt.decrypt_data_key = &KmsCMasterKey::DecryptDataKey;
-    return kms_mk_vt;
+    kms_keyring_vt.vt_size = sizeof(struct aws_cryptosdk_keyring_vt);
+    kms_keyring_vt.name = KEY_PROVIDER_STR;
+    kms_keyring_vt.destroy = &KmsKeyring::DestroyAwsCryptoKeyring;
+    kms_keyring_vt.generate_data_key = &KmsKeyring::GenerateDataKey;
+    kms_keyring_vt.encrypt_data_key = &KmsKeyring::EncryptDataKey;
+    kms_keyring_vt.decrypt_data_key = &KmsKeyring::DecryptDataKey;
+    return kms_keyring_vt;
 }
 
-void KmsCMasterKey::InitAwsCryptosdkMk(struct aws_allocator *allocator) {
-    static const aws_cryptosdk_keyring_vt kms_mk_vt = CreateAwsCryptosdkMk();
-    vtable = &kms_mk_vt;
+void KmsKeyring::InitAwsCryptosdkKeyring(struct aws_allocator *allocator) {
+    static const aws_cryptosdk_keyring_vt kms_keyring_vt = CreateAwsCryptosdkKeyring();
+    vtable = &kms_keyring_vt;
     alloc = allocator;
-    mk_data = this;
+    keyring_data = this;
 }
 
-Aws::Cryptosdk::KmsCMasterKey::KmsCMasterKey(struct aws_allocator *alloc,
-                                             std::shared_ptr<Aws::KMS::KMSClient> kms_client,
-                                             const String &key_id) :
+Aws::Cryptosdk::KmsKeyring::KmsKeyring(struct aws_allocator *alloc,
+                                       std::shared_ptr<Aws::KMS::KMSClient> kms_client,
+                                       const String &key_id) :
     key_provider(aws_byte_buf_from_c_str(KEY_PROVIDER_STR)),
-    client_supplier(std::make_shared<SingleClientSupplier>(kms_client)),
+    kms_client_supplier(std::make_shared<SingleClientSupplier>(kms_client)),
     default_region("default_region") {
     Aws::List<Aws::String> keyIds;
     keyIds.push_back(key_id);
     Init(alloc, keyIds);
 }
 
-Aws::Cryptosdk::KmsCMasterKey::~KmsCMasterKey() {
-    DestroyAwsCryptoMk(this);
+Aws::Cryptosdk::KmsKeyring::~KmsKeyring() {
+    DestroyAwsCryptoKeyring(this);
 }
 
-Aws::Cryptosdk::KmsCMasterKey::KmsCMasterKey(struct aws_allocator *alloc,
-                                             Aws::List<Aws::String> keyIds,
-                                             Aws::List<String> grantTokens,
-                                             Aws::String defaultRegion,
-                                             std::shared_ptr<RegionalClientSupplier> regional_client_supplier)
+Aws::Cryptosdk::KmsKeyring::KmsKeyring(struct aws_allocator *alloc,
+                                       Aws::List<Aws::String> key_ids,
+                                       Aws::List<String> grantTokens,
+                                       Aws::String defaultRegion,
+                                       std::shared_ptr<RegionalClientSupplier> regional_client_supplier)
     : key_provider(aws_byte_buf_from_c_str(KEY_PROVIDER_STR)),
-      client_supplier(regional_client_supplier),
+      kms_client_supplier(regional_client_supplier),
       default_region(defaultRegion) {
-    Init(alloc, keyIds);
+    Init(alloc, key_ids);
 }
 
-Aws::Cryptosdk::KmsCMasterKey::KmsCMasterKey(struct aws_allocator *alloc,
-                                             Aws::String keyId) :
-    KmsCMasterKey(alloc, Aws::List<Aws::String>{keyId}) {
+Aws::Cryptosdk::KmsKeyring::KmsKeyring(struct aws_allocator *alloc,
+                                       Aws::String keyId) :
+    KmsKeyring(alloc, Aws::List<Aws::String>{keyId}) {
 
 }
 
-Aws::KMS::Model::EncryptRequest KmsCMasterKey::CreateEncryptRequest(const Aws::String &key_id,
-                                                                    const Aws::Vector<Aws::String> &grant_tokens,
-                                                                    const Utils::ByteBuffer &plaintext,
-                                                                    const Aws::Map<Aws::String,
-                                                                                   Aws::String> &encryption_context) {
+Aws::KMS::Model::EncryptRequest KmsKeyring::CreateEncryptRequest(const Aws::String &key_id,
+                                                                 const Aws::Vector<Aws::String> &grant_tokens,
+                                                                 const Utils::ByteBuffer &plaintext,
+                                                                 const Aws::Map<Aws::String,
+                                                                                Aws::String> &encryption_context) const {
     KMS::Model::EncryptRequest encryption_request;
     encryption_request.SetKeyId(key_id);
     encryption_request.SetPlaintext(plaintext);
@@ -259,11 +259,11 @@ Aws::KMS::Model::EncryptRequest KmsCMasterKey::CreateEncryptRequest(const Aws::S
     return encryption_request;
 }
 
-Aws::KMS::Model::DecryptRequest KmsCMasterKey::CreateDecryptRequest(const Aws::String &key_id,
-                                                                    const Aws::Vector<Aws::String> &grant_tokens,
-                                                                    const Utils::ByteBuffer &ciphertext,
-                                                                    const Aws::Map<Aws::String,
-                                                                                   Aws::String> &encryption_context) {
+Aws::KMS::Model::DecryptRequest KmsKeyring::CreateDecryptRequest(const Aws::String &key_id,
+                                                                 const Aws::Vector<Aws::String> &grant_tokens,
+                                                                 const Utils::ByteBuffer &ciphertext,
+                                                                 const Aws::Map<Aws::String,
+                                                                                Aws::String> &encryption_context) const {
     KMS::Model::DecryptRequest request;
     request.SetCiphertextBlob(ciphertext);
 
@@ -273,11 +273,11 @@ Aws::KMS::Model::DecryptRequest KmsCMasterKey::CreateDecryptRequest(const Aws::S
     return request;
 }
 
-Aws::KMS::Model::GenerateDataKeyRequest KmsCMasterKey::CreateGenerateDataKeyRequest(
+Aws::KMS::Model::GenerateDataKeyRequest KmsKeyring::CreateGenerateDataKeyRequest(
     const Aws::String &key_id,
     const Aws::Vector<Aws::String> &grant_tokens,
     int number_of_bytes,
-    const Aws::Map<Aws::String, Aws::String> &encryption_context) {
+    const Aws::Map<Aws::String, Aws::String> &encryption_context) const {
 
     KMS::Model::GenerateDataKeyRequest request;
     request.SetKeyId(key_id);
@@ -289,7 +289,7 @@ Aws::KMS::Model::GenerateDataKeyRequest KmsCMasterKey::CreateGenerateDataKeyRequ
     return request;
 }
 
-Aws::Map<Aws::String, Aws::String> KmsCMasterKey::BuildKeyIDs(Aws::List<Aws::String> in_key_ids) {
+Aws::Map<Aws::String, Aws::String> KmsKeyring::BuildKeyIDs(const Aws::List<Aws::String> &in_key_ids) const {
     Aws::Map<Aws::String, Aws::String> rv;
     for (auto key_id : in_key_ids) {
         String region = Private::parse_region_from_kms_key_arn(key_id);
@@ -302,48 +302,47 @@ Aws::Map<Aws::String, Aws::String> KmsCMasterKey::BuildKeyIDs(Aws::List<Aws::Str
     return rv;
 }
 
-void KmsCMasterKey::Init(struct aws_allocator *alloc, Aws::List<Aws::String> &in_key_ids) {
-    InitAwsCryptosdkMk(alloc);
+void KmsKeyring::Init(struct aws_allocator *alloc, const Aws::List<Aws::String> &in_key_ids) {
+    InitAwsCryptosdkKeyring(alloc);
     default_key_arn = in_key_ids.front();
-    key_ids = BuildKeyIDs(in_key_ids);
+    this->key_ids = BuildKeyIDs(in_key_ids);
 }
 
-Aws::String KmsCMasterKey::GetClientRegion(const Aws::String &key_id) {
+Aws::String KmsKeyring::GetClientRegion(const Aws::String &key_id) const {
     if (key_ids.find(key_id) == key_ids.end()) {
         return "";
     }
-    return key_ids[key_id];
+    return key_ids.at(key_id);
 }
 
-std::shared_ptr<KMS::KMSClient> KmsCMasterKey::GetKmsClient(const Aws::String &region) {
-    if (cached_clients.find(region) != cached_clients.end()) {
-        return cached_clients[region];
+std::shared_ptr<KMS::KMSClient> KmsKeyring::GetKmsClient(const Aws::String &region) const {
+    if (kms_cached_clients.find(region) != kms_cached_clients.end()) {
+        return kms_cached_clients.at(region);
     }
 
-    return client_supplier->getClient(region);
+    return kms_client_supplier->getClient(region);
 }
 
-void KmsCMasterKey::SaveKmsClientInCache(const Aws::String &region, std::shared_ptr<KMS::KMSClient> &kms_client) {
-    if (cached_clients.find(region) != cached_clients.end()) {
-        cached_clients[region] = kms_client;
+void KmsKeyring::SaveKmsClientInCache(const Aws::String &region, std::shared_ptr<KMS::KMSClient> &kms_client) {
+    if (kms_cached_clients.find(region) != kms_cached_clients.end()) {
+        kms_cached_clients[region] = kms_client;
     }
 }
 
-std::shared_ptr<KMS::KMSClient> KmsCMasterKey::DefaultRegionalClientSupplier::getClient(const String &region_name) {
+std::shared_ptr<KMS::KMSClient> KmsKeyring::DefaultRegionalClientSupplier::getClient(const String &region_name) {
     Aws::Client::ClientConfiguration client_configuration;
     client_configuration.region = region_name;
     return Aws::MakeShared<Aws::KMS::KMSClient>("AWS_CRYPTOSDK_REGIONAL_CLIENT_SUPPLIER", client_configuration);
 }
 
-std::shared_ptr<KMS::KMSClient> KmsCMasterKey::SingleClientSupplier::getClient(const String &region_name) {
+std::shared_ptr<KMS::KMSClient> KmsKeyring::SingleClientSupplier::getClient(const String &region_name) {
     return kms_client;
 }
 
-KmsCMasterKey::SingleClientSupplier::SingleClientSupplier(const std::shared_ptr<KMS::KMSClient> &kms_client)
+KmsKeyring::SingleClientSupplier::SingleClientSupplier(const std::shared_ptr<KMS::KMSClient> &kms_client)
     : kms_client(kms_client) {
 
 }
-
 
 }  // namespace Cryptosdk
 }  // namespace Aws

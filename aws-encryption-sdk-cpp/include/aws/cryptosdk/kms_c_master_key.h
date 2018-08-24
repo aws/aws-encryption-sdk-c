@@ -12,8 +12,8 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef AWS_ENCRYPTION_SDK_KMS_C_MASTER_KEY_H
-#define AWS_ENCRYPTION_SDK_KMS_C_MASTER_KEY_H
+#ifndef AWS_ENCRYPTION_SDK_KMS_KEYRING_H
+#define AWS_ENCRYPTION_SDK_KMS_KEYRING_H
 
 #include <aws/common/common.h>
 #include <aws/core/utils/memory/AWSMemory.h>
@@ -34,22 +34,17 @@
 namespace Aws {
 namespace Cryptosdk {
 
-// forward declaration of KmsShim
-namespace Private {
-class KmsShim;
-}  // end namespace Private
+class KmsKeyring;
 
-class KmsCMasterKey;
-
-struct aws_cryptosdk_kms_mk : aws_cryptosdk_keyring {
+struct aws_cryptosdk_kms_keyring : aws_cryptosdk_keyring {
     struct aws_allocator *alloc;
-    KmsCMasterKey *mk_data;
+    KmsKeyring *keyring_data;
 };
 
 /**
- * Class that allows C AWS Enc SDK to use C++ KMS Master Key
+ * Class that allows C AWS Enc SDK to use C++ KMS Keyring
  */
-class KmsCMasterKey : public aws_cryptosdk_kms_mk {
+class KmsKeyring : public aws_cryptosdk_kms_keyring {
   public:
     //todo move in a separate file
     class RegionalClientSupplier {
@@ -72,126 +67,131 @@ class KmsCMasterKey : public aws_cryptosdk_kms_mk {
     };
 
     /**
-     * Initializes KmsCMasterKey to use Aws::KMS::KMSClient with a key_id
+     * Initializes KmsKeyring to use Aws::KMS::KMSClient with a key_id
      * @param kms_client KMS client object
-     * @param key_id A unique identifier for the customer master key (CMK).
-     *               To specify a CMK, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
+     * @param key_id A unique identifier for the customer master key (KMS).
+     *               To specify a master key, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
      *               This should be specified in the same structure as the one required by KMS client
      * @param alloc Allocator structure. An instance of this will be passed around for anything needing memory
      *              allocation
      */
-    KmsCMasterKey(struct aws_allocator *alloc,
-                  std::shared_ptr<Aws::KMS::KMSClient> kms_client,
-                  const String &key_id);
+    KmsKeyring(struct aws_allocator *alloc,
+               std::shared_ptr<Aws::KMS::KMSClient> kms_client,
+               const String &key_id);
 
-    KmsCMasterKey(struct aws_allocator *alloc,
-                  Aws::List<Aws::String> keyIds,
-                  Aws::List<String> grantTokens = {},
-                  Aws::String defaultRegion = Aws::Region::US_EAST_1,
-                  std::shared_ptr<RegionalClientSupplier> supplier = std::make_shared<DefaultRegionalClientSupplier>());
+    KmsKeyring(struct aws_allocator *alloc,
+               Aws::List<Aws::String> key_ids,
+               Aws::List<String> grantTokens = {},
+               Aws::String defaultRegion = Aws::Region::US_EAST_1,
+               std::shared_ptr<RegionalClientSupplier> supplier = std::make_shared<DefaultRegionalClientSupplier>());
 
-    KmsCMasterKey(struct aws_allocator *alloc,
-                  Aws::String keyId);
+    KmsKeyring(struct aws_allocator *alloc,
+               Aws::String keyId);
 
-    ~KmsCMasterKey();
+    ~KmsKeyring();
 
     // non-copyable
-    KmsCMasterKey(const KmsCMasterKey &) = delete;
-    KmsCMasterKey &operator=(const KmsCMasterKey &) = delete;
+    KmsKeyring(const KmsKeyring &) = delete;
+    KmsKeyring &operator=(const KmsKeyring &) = delete;
 
   protected:
 
     /**
      * It attempts to find one of the EDKs to decrypt
      * This function will be automatically called when a Master Key needs to be decrypted
-     * @param mk Pointer to an aws_cryptosdk_keyring object
+     * @param keyring Pointer to an aws_cryptosdk_keyring object
      * @param dec_mat Decryption Materials
      * @param request A structure that contains a list of EDKS and an encryption context.
      * @return On success AWS_OP_SUCCESS will be returned. This does not necessarily mean that the data key will be
-     *         decrypted, as it is normal behavior that a particular MK/MKP may not find an EDK that it can decrypt.
+     *         decrypted, as it is normal behavior that a particular keyring may not find an EDK that it can decrypt.
      *         To determine whether the data key was decrypted, check dec_mat->unencrypted_data_key.buffer. If the
      *         data key was not decrypted, that pointer will be set to NULL. If the data key was decrypted, that pointer
      *         will point to the raw bytes of the key.
      *         On internal failure, AWS_OP_ERR will be returned and an internal error code will be set.
      */
-    static int DecryptDataKey(struct aws_cryptosdk_keyring *mk,
+    static int DecryptDataKey(struct aws_cryptosdk_keyring *keyring,
                               struct aws_cryptosdk_decryption_materials *dec_mat,
                               const aws_cryptosdk_decryption_request *request);
 
     /**
-     * The MK attempts to encrypt the data key.
+     * The keyring attempts to encrypt the data key.
      * This function will be automatically called when a Master Key needs to be encrypted
-     * @param mk Pointer to an aws_cryptosdk_keyring object
+     * @param keyring Pointer to an aws_cryptosdk_keyring object
      * @param enc_mat Encryption materials
      * @return  On success AWS_OP_SUCCESS is returned, the new EDK will be appended onto the list of EDKs.
      *          On failure AWS_OP_ERR is returned, an internal AWS error code is set, and no memory is allocated.
      */
-    static int EncryptDataKey(aws_cryptosdk_keyring *mk,
+    static int EncryptDataKey(aws_cryptosdk_keyring *keyring,
                               struct aws_cryptosdk_encryption_materials *enc_mat);
 
     /**
-     * The MK attempts to generate a new data key, and returns it in both unencrypted and encrypted form.
+     * The keyring attempts to generate a new data key, and returns it in both unencrypted and encrypted form.
      * This function will be automatically called when a Master Key needs to generate a new pair of encrypted,
      * unencrypted data keys
-     * @param mk Pointer to an aws_cryptosdk_keyring object
+     * @param keyring Pointer to an aws_cryptosdk_keyring object
      * @param enc_mat
      * @return On success (1) AWS_OP_SUCCESS is returned, (2) the unencrypted data key buffer will contain the raw
      *         bytes of the data key, and (3) an EDK will be appended onto the list of EDKs.
      *         On failure AWS_OP_ERR is returned, an internal AWS error code is set, and no memory is allocated.
      */
-    static int GenerateDataKey(struct aws_cryptosdk_keyring *mk,
+    static int GenerateDataKey(struct aws_cryptosdk_keyring *keyring,
                                struct aws_cryptosdk_encryption_materials *enc_mat);
 
     /**
      * Destroys all allocated structures, except self.
      * You will need to delete this class
-     * @param mk Pointer to an aws_cryptosdk_keyring object
+     * @param keyring Pointer to an aws_cryptosdk_keyring object
      */
-    static void DestroyAwsCryptoMk(aws_cryptosdk_keyring *mk);
+    static void DestroyAwsCryptoKeyring(aws_cryptosdk_keyring *keyring);
 
   protected:
     Aws::KMS::Model::EncryptRequest CreateEncryptRequest(const Aws::String &key_id,
                                                          const Aws::Vector<Aws::String> &grant_tokens,
                                                          const Utils::ByteBuffer &plaintext,
-                                                         const Aws::Map<Aws::String, Aws::String> &encryption_context);
+                                                         const Aws::Map<Aws::String, Aws::String> &encryption_context) const;
 
     Aws::KMS::Model::DecryptRequest CreateDecryptRequest(const Aws::String &key_id,
                                                          const Aws::Vector<Aws::String> &grant_tokens,
                                                          const Utils::ByteBuffer &ciphertext,
-                                                         const Aws::Map<Aws::String, Aws::String> &encryption_context);
+                                                         const Aws::Map<Aws::String, Aws::String> &encryption_context) const;
 
     Aws::KMS::Model::GenerateDataKeyRequest CreateGenerateDataKeyRequest(const Aws::String &key_id,
                                                                          const Aws::Vector<Aws::String> &grant_tokens,
                                                                          int number_of_bytes,
                                                                          const Aws::Map<Aws::String,
-                                                                                        Aws::String> &encryption_context);
+                                                                                        Aws::String> &encryption_context) const;
 
-    Aws::Map<Aws::String, Aws::String> BuildKeyIDs(Aws::List<Aws::String> key_ids);
+    Aws::Map<Aws::String, Aws::String> BuildKeyIDs(const Aws::List<Aws::String> &key_ids) const;
 
-    Aws::String GetClientRegion(const Aws::String &key_id);
-    std::shared_ptr<KMS::KMSClient> GetKmsClient(const Aws::String &region);
+    Aws::String GetClientRegion(const Aws::String &key_id) const;
+    std::shared_ptr<KMS::KMSClient> GetKmsClient(const Aws::String &region) const;
     void SaveKmsClientInCache(const Aws::String &region, std::shared_ptr<KMS::KMSClient> &kms_client);
 
   private:
-    void Init(struct aws_allocator *alloc, Aws::List<Aws::String> &in_key_ids);
+    void Init(struct aws_allocator *alloc, const Aws::List<Aws::String> &in_key_ids);
+    void InitAwsCryptosdkKeyring(struct aws_allocator *allocator);
+    aws_cryptosdk_keyring_vt CreateAwsCryptosdkKeyring() const;
 
-    void InitAwsCryptosdkMk(struct aws_allocator *allocator);
-    aws_cryptosdk_keyring_vt CreateAwsCryptosdkMk() const;
-
-    struct aws_cryptosdk_keyring_vt kms_mk_vt;
     const aws_byte_buf key_provider;
+    std::shared_ptr<RegionalClientSupplier> kms_client_supplier;
 
-    std::shared_ptr<RegionalClientSupplier> client_supplier;
-
+    // key used for encryption/key generation
     Aws::String default_key_arn;
+    // if no region can be extracted from key_id this will be used as default
     const Aws::String default_region;
+
     //TODO add support for grant_tokens
     Aws::Vector<Aws::String> grant_tokens;
-    Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> cached_clients;
+
+    // A map of <region, kms-client>. A single Kms client is cached for each region. Note that in order to be cached a
+    // client needs to have at least one successful request to KMS.
+    Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> kms_cached_clients;
+
+    // A map of <key-id, region>
     Aws::Map<Aws::String, Aws::String> key_ids;
 };
 
 }  // namespace Cryptosdk
 }  // namespace Aws
 
-#endif // AWS_ENCRYPTION_SDK_KMS_C_MASTER_KEY_H
+#endif // AWS_ENCRYPTION_SDK_KMS_KEYRING_H
