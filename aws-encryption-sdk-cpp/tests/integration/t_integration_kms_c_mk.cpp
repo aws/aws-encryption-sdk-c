@@ -79,10 +79,13 @@ int t_decrypt_encrypt_same_mk() {
     auto kms_c_master_key = Aws::New<KmsCMasterKey>(CLASS_CTAG, td.alloc, td.kms_client, KEY_ARN_STR1);
 
     // encrypt
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_process(kms_c_master_key, AWS_CRYPTOSDK_ENCRYPT, &td.pt_in, &td_out.ct_out));
+    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_c_master_key, AWS_CRYPTOSDK_ENCRYPT, &td.pt_in, &td_out.ct_out));
 
     // decrypt
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_process(kms_c_master_key, AWS_CRYPTOSDK_DECRYPT, &td_out.ct_out, &td_out.pt_out));
+    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_c_master_key,
+                                                   AWS_CRYPTOSDK_DECRYPT,
+                                                   &td_out.ct_out,
+                                                   &td_out.pt_out));
 
     TEST_ASSERT(aws_byte_buf_eq(&td.pt_in, &td_out.pt_out) == true);
 
@@ -98,10 +101,13 @@ int t_decrypt_encrypt_same_mk_autodetect_region() {
     auto kms_c_master_key = Aws::New<KmsCMasterKey>(CLASS_CTAG, td.alloc, KEY_ARN_STR1);
 
     // encrypt
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_process(kms_c_master_key, AWS_CRYPTOSDK_ENCRYPT, &td.pt_in, &td_out.ct_out));
+    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_c_master_key, AWS_CRYPTOSDK_ENCRYPT, &td.pt_in, &td_out.ct_out));
 
     // decrypt
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_process(kms_c_master_key, AWS_CRYPTOSDK_DECRYPT, &td_out.ct_out, &td_out.pt_out));
+    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_c_master_key,
+                                                   AWS_CRYPTOSDK_DECRYPT,
+                                                   &td_out.ct_out,
+                                                   &td_out.pt_out));
 
     TEST_ASSERT(aws_byte_buf_eq(&td.pt_in, &td_out.pt_out) == true);
 
@@ -112,20 +118,20 @@ int t_decrypt_encrypt_same_mk_autodetect_region() {
 
 int test_kms_master_key_encrypt(TestDataOut &td_out, TestData &td, const Aws::String &key_arn) {
     auto kms_c_master_key_encrypt = Aws::New<KmsCMasterKey>(CLASS_CTAG, td.alloc, key_arn);
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_process(kms_c_master_key_encrypt,
-                                              AWS_CRYPTOSDK_ENCRYPT,
-                                              &td.pt_in,
-                                              &td_out.ct_out));
+    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_c_master_key_encrypt,
+                                                   AWS_CRYPTOSDK_ENCRYPT,
+                                                   &td.pt_in,
+                                                   &td_out.ct_out));
     Aws::Delete(kms_c_master_key_encrypt);
     return 0;
 }
 
 int test_kms_master_key_decrypt(TestDataOut &td_out, TestData &td, const Aws::String &key_arn) {
     auto kms_c_master_key_decrypt = Aws::New<KmsCMasterKey>(CLASS_CTAG, td.alloc, key_arn);
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_process(kms_c_master_key_decrypt,
-                                              AWS_CRYPTOSDK_DECRYPT,
-                                              &td_out.ct_out,
-                                              &td_out.pt_out));
+    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_c_master_key_decrypt,
+                                                   AWS_CRYPTOSDK_DECRYPT,
+                                                   &td_out.ct_out,
+                                                   &td_out.pt_out));
     Aws::Delete(kms_c_master_key_decrypt);
     return 0;
 }
@@ -159,10 +165,10 @@ int t_decrypt_encrypt_two_keys_for_decryption() {
 
     // decrypt
     auto kms_c_master_key_decrypt = Aws::New<KmsCMasterKey>(CLASS_CTAG, td.alloc, keys);
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_process(kms_c_master_key_decrypt,
-                                              AWS_CRYPTOSDK_DECRYPT,
-                                              &td_out.ct_out,
-                                              &td_out.pt_out));
+    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_c_master_key_decrypt,
+                                                   AWS_CRYPTOSDK_DECRYPT,
+                                                   &td_out.ct_out,
+                                                   &td_out.pt_out));
     Aws::Delete(kms_c_master_key_decrypt);
 
     TEST_ASSERT(aws_byte_buf_eq(&td.pt_in, &td_out.pt_out) == true);
@@ -184,14 +190,14 @@ int t_integration_two_encryptions_two_decryptions() {
 
     // decrypt
     auto kms_c_master_key_decrypt = Aws::New<KmsCMasterKey>(CLASS_CTAG, td1.alloc, keys);
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_process(kms_c_master_key_decrypt,
-                                              AWS_CRYPTOSDK_DECRYPT,
-                                              &td_out1.ct_out,
-                                              &td_out1.pt_out));
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_process(kms_c_master_key_decrypt,
-                                              AWS_CRYPTOSDK_DECRYPT,
-                                              &td_out2.ct_out,
-                                              &td_out2.pt_out));
+    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_c_master_key_decrypt,
+                                                   AWS_CRYPTOSDK_DECRYPT,
+                                                   &td_out1.ct_out,
+                                                   &td_out1.pt_out));
+    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_c_master_key_decrypt,
+                                                   AWS_CRYPTOSDK_DECRYPT,
+                                                   &td_out2.ct_out,
+                                                   &td_out2.pt_out));
     Aws::Delete(kms_c_master_key_decrypt);
 
     TEST_ASSERT(aws_byte_buf_eq(&td1.pt_in, &td_out1.pt_out) == true);
@@ -211,10 +217,10 @@ int t_decrypt_encrypt_not_matching_key() {
 
     // decrypt should fail
     auto kms_c_master_key_decrypt = Aws::New<KmsCMasterKey>(CLASS_CTAG, td.alloc, KEY_ARN_STR1);
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_process(kms_c_master_key_decrypt,
-                                              AWS_CRYPTOSDK_DECRYPT,
-                                              &td_out.ct_out,
-                                              &td_out.pt_out, AWS_OP_ERR));
+    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_c_master_key_decrypt,
+                                                   AWS_CRYPTOSDK_DECRYPT,
+                                                   &td_out.ct_out,
+                                                   &td_out.pt_out, AWS_OP_ERR));
     Aws::Delete(kms_c_master_key_decrypt);
 
     return 0;

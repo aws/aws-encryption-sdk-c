@@ -21,14 +21,15 @@
 #include <aws/cryptosdk/default_cmm.h>
 #include "testing.h"
 
-struct aws_cryptosdk_all_struct {
+struct test_aws_cryptosdk_all_struct {
     struct aws_cryptosdk_session *session;
     struct aws_cryptosdk_cmm *cmm;
     struct aws_cryptosdk_mkp *mkp;
 };
 
-struct aws_cryptosdk_all_struct aws_cryptosdk_all_init(enum aws_cryptosdk_mode mode, struct aws_cryptosdk_keyring *mk) {
-    struct aws_cryptosdk_all_struct result;
+struct test_aws_cryptosdk_all_struct test_aws_cryptosdk_all_init(enum aws_cryptosdk_mode mode,
+                                                                 struct aws_cryptosdk_keyring *mk) {
+    struct test_aws_cryptosdk_all_struct result;
 
     result.cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), mk);
     if (!result.cmm) abort();
@@ -39,17 +40,17 @@ struct aws_cryptosdk_all_struct aws_cryptosdk_all_init(enum aws_cryptosdk_mode m
     return result;
 }
 
-void aws_cryptosdk_destroy(struct aws_cryptosdk_all_struct result) {
+void test_aws_cryptosdk_destroy(struct test_aws_cryptosdk_all_struct result) {
     aws_cryptosdk_session_destroy(result.session);
     aws_cryptosdk_cmm_destroy(result.cmm);
 }
 
-int aws_cryptosdk_process(struct aws_cryptosdk_keyring *mk,
-                          enum aws_cryptosdk_mode mode,
-                          const struct aws_byte_buf *in,
-                          struct aws_byte_buf *out,
-                          int expected_process_status = AWS_OP_SUCCESS) {
-    struct aws_cryptosdk_all_struct aws_crypto_sdk = aws_cryptosdk_all_init(mode, mk);
+int test_aws_cryptosdk_process(struct aws_cryptosdk_keyring *mk,
+                               enum aws_cryptosdk_mode mode,
+                               const struct aws_byte_buf *in,
+                               struct aws_byte_buf *out,
+                               int expected_process_status = AWS_OP_SUCCESS) {
+    struct test_aws_cryptosdk_all_struct aws_crypto_sdk = test_aws_cryptosdk_all_init(mode, mk);
 
     aws_cryptosdk_session_set_message_size(aws_crypto_sdk.session, in->len);
 
@@ -64,7 +65,7 @@ int aws_cryptosdk_process(struct aws_cryptosdk_keyring *mk,
         TEST_ASSERT(aws_cryptosdk_session_is_done(aws_crypto_sdk.session));
     }
 
-    aws_cryptosdk_destroy(aws_crypto_sdk);
+    test_aws_cryptosdk_destroy(aws_crypto_sdk);
 
     out->len = out_consumed;
     return 0;

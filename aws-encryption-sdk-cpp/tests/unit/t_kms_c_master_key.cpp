@@ -189,7 +189,7 @@ int encrypt_validInputs_returnSuccess() {
     Model::EncryptOutcome return_encrypt(ev.encrypt_result);
 
     ev.kms_client_mock->ExpectEncrypt(ev.GetRequest(), return_encrypt);
-    TEST_ASSERT_INT_EQ(0, ev.kms_mk->EncryptDataKey(ev.kms_mk, ev.enc_mat));
+    TEST_ASSERT_SUCCESS(ev.kms_mk->EncryptDataKey(ev.kms_mk, ev.enc_mat));
 
     TEST_ASSERT_SUCCESS(assert_edks_with_single_element_contains_expected_values(&ev.enc_mat->encrypted_data_keys,
                                                                                  ev.ct,
@@ -206,7 +206,7 @@ int encrypt_kmsFails_returnError() {
     Model::EncryptOutcome return_encrypt; // if no parameter is set the EncryptOutcome.IsSuccess is false
 
     ev.kms_client_mock->ExpectEncrypt(ev.GetRequest(), return_encrypt);
-    TEST_ASSERT_INT_NE(0, ev.kms_mk->EncryptDataKey(ev.kms_mk, ev.enc_mat));
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_KMS_FAILURE, ev.kms_mk->EncryptDataKey(ev.kms_mk, ev.enc_mat));
     return 0;
 }
 
@@ -238,7 +238,7 @@ int decrypt_validInputsButNoKeyMatched_returnSuccess() {
                                                  dv.key_id,
                                                  "invalid provider id"));
 
-    TEST_ASSERT(dv.kms_mk->DecryptDataKey(dv.kms_mk, dv.dec_mat, &dv.decryption_request()) == AWS_OP_SUCCESS);
+    TEST_ASSERT_SUCCESS(dv.kms_mk->DecryptDataKey(dv.kms_mk, dv.dec_mat, &dv.decryption_request()));
     TEST_ASSERT_ADDR_EQ(0, dv.dec_mat->unencrypted_data_key.buffer);
     TEST_ASSERT(dv.kms_client_mock->ExpectingOtherCalls() == false);
     return 0;
@@ -248,7 +248,7 @@ int decrypt_NoKeys_returnSuccess() {
     DecryptValues dv;
     Model::DecryptOutcome return_decrypt(dv.decrypt_result);
 
-    TEST_ASSERT(dv.kms_mk->DecryptDataKey(dv.kms_mk, dv.dec_mat, &dv.decryption_request()) == AWS_OP_SUCCESS);
+    TEST_ASSERT_SUCCESS(dv.kms_mk->DecryptDataKey(dv.kms_mk, dv.dec_mat, &dv.decryption_request()));
     TEST_ASSERT_ADDR_EQ(0, dv.dec_mat->unencrypted_data_key.buffer);
     TEST_ASSERT(dv.kms_client_mock->ExpectingOtherCalls() == false);
     return 0;
@@ -303,7 +303,7 @@ int generateDataKey_validInputs_returnSuccess() {
 
     gv.kms_client_mock->ExpectGenerateDataKey(gv.GetRequest(), return_generate);
 
-    TEST_ASSERT_INT_EQ(0, gv.kms_mk->GenerateDataKey(gv.kms_mk, gv.enc_mat));
+    TEST_ASSERT_SUCCESS(gv.kms_mk->GenerateDataKey(gv.kms_mk, gv.enc_mat));
 
     TEST_ASSERT_SUCCESS(assert_edks_with_single_element_contains_expected_values(&gv.enc_mat->encrypted_data_keys,
                                                                                  gv.ct,
@@ -319,12 +319,11 @@ int generateDataKey_validInputs_returnSuccess() {
 
 int generateDataKey_kmsFails_returnFailure() {
     GenerateDataKeyValues gv;
-    Model::GenerateDataKeyOutcome
-        return_generate; // if no parameter is set the GenerateDataKeyValues.IsSuccess() is false
+    Model::GenerateDataKeyOutcome return_generate;  // if no parameter is set GenerateDataKeyValues.IsSuccess() is false
 
     gv.kms_client_mock->ExpectGenerateDataKey(gv.GetRequest(), return_generate);
 
-    TEST_ASSERT_INT_NE(0, gv.kms_mk->GenerateDataKey(gv.kms_mk, gv.enc_mat));
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_KMS_FAILURE, gv.kms_mk->GenerateDataKey(gv.kms_mk, gv.enc_mat));
 
     TEST_ASSERT(gv.kms_client_mock->ExpectingOtherCalls() == false);
 
