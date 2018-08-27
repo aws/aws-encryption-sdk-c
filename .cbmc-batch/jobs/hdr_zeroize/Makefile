@@ -3,7 +3,7 @@ include ../Makefile
 goto: proofs.goto
 	goto-instrument proofs.goto proofs.goto
 
-proofs.goto: aws-c-common
+proofs.goto: aws-c-common config
 	cd ../../..; \
 	goto-cc .cbmc-batch/hdr_zeroize.c aws-c-common/source/byte_buf.c \
     aws-c-common/source/common.c aws-c-common/source/error.c \

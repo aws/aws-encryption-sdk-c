@@ -1,4 +1,5 @@
-/* Modified version of CBMC's string.c where memcpy doesn't copy anything.
+/* Modified version of CBMC's string.c where memcpy uses a loop to copy
+   fewer than BOUND bytes or else does not copy anything.
    Temporary hack until the normal CBMC implementation's bugs are fixed. */
 
 /* FUNCTION: memcpy */
@@ -9,6 +10,8 @@
 #endif
 
 #undef memcpy
+
+#define BOUND 5
 
 void *memcpy(void *dst, const void *src, size_t n)
 {
@@ -39,7 +42,8 @@ void *memcpy(void *dst, const void *src, size_t n)
     (void)*(const char *)src; // check that the memory is accessible
     (void)*(((char *)dst) + n - 1);       // check that the memory is accessible
     (void)*(((const char *)src) + n - 1); // check that the memory is accessible
-    // Don't actually copy because the values don't matter
+    if (n < BOUND)
+        for(__CPROVER_size_t i=0; i<n ; i++) ((char *)dst)[i]=((const char *)src)[i];
   }
   #endif
   return dst;
@@ -79,7 +83,8 @@ void *__builtin___memcpy_chk(void *dst, const void *src, __CPROVER_size_t n, __C
     (void)*(const char *)src; // check that the memory is accessible
     (void)*(((char *)dst) + n - 1);       // check that the memory is accessible
     (void)*(((const char *)src) + n - 1); // check that the memory is accessible
-    // Don't actually copy because the values don't matter
+    if (n < BOUND)
+        for(__CPROVER_size_t i=0; i<n ; i++) ((char *)dst)[i]=((const char *)src)[i];
   }
   #endif
   return dst;
