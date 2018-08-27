@@ -76,6 +76,13 @@ int append_key_to_edks(struct aws_allocator *allocator,
                        const aws_byte_buf *key_provider);
 
 
+/**
+ * Extracts region from a KMS Key ARN
+ * E.g. From a key like:
+ * arn:aws:kms:us-west-1:[numeric_values]:key/....
+ * it returns us-west-1
+ * If no region can be extracted it return empty string.
+ */
 Aws::String parse_region_from_kms_key_arn(const Aws::String &key_id);
 
 

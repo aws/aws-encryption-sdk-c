@@ -43,12 +43,13 @@ class KmsClientMock : public Aws::KMS::KMSClient {
     void ExpectEncrypt(const Model::EncryptRequest &request, Model::EncryptOutcome encrypt_return);
 
     Model::DecryptOutcome Decrypt(const Model::DecryptRequest &request) const;
-    void ExpectDecrypt(const Model::DecryptRequest &request, Model::DecryptOutcome decrypt_return);
+    void ExpectDecryptAccumulator(const Model::DecryptRequest &request, Model::DecryptOutcome decrypt_return);
 
     Model::GenerateDataKeyOutcome GenerateDataKey(const Model::GenerateDataKeyRequest &request) const;
     void ExpectGenerateDataKey(const Model::GenerateDataKeyRequest &request,
                                Model::GenerateDataKeyOutcome generate_dk_return);
 
+    //TODO automatically crash if ExpectingOtherCalls is true in destructor
     bool ExpectingOtherCalls();
   private:
     mutable bool expect_encrypt;

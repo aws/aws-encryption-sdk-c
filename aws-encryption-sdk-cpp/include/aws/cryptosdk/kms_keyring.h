@@ -23,12 +23,8 @@
 #include <aws/core/utils/Outcome.h>
 #include <aws/kms/KMSClient.h>
 #include <aws/kms/model/EncryptRequest.h>
-#include <aws/kms/model/EncryptRequest.h>
-#include <aws/kms/model/EncryptResult.h>
 #include <aws/kms/model/DecryptRequest.h>
-#include <aws/kms/model/DecryptResult.h>
 #include <aws/kms/model/GenerateDataKeyRequest.h>
-#include <aws/kms/model/GenerateDataKeyResult.h>
 #include <aws/cryptosdk/materials.h>
 
 namespace Aws {
@@ -46,47 +42,81 @@ struct aws_cryptosdk_kms_keyring : aws_cryptosdk_keyring {
  */
 class KmsKeyring : public aws_cryptosdk_kms_keyring {
   public:
-    //todo move in a separate file
+    /**
+     * Interface that supplies KmsKeyring with a new KMSClient in a specific region
+     */
     class RegionalClientSupplier {
       public:
-        virtual std::shared_ptr<KMS::KMSClient> getClient(const String &region_name) = 0;
+        /**
+         * Returns a new KMSClient in the specified region
+         */
+        virtual std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region_name) const = 0;
         virtual ~RegionalClientSupplier() {};
     };
 
+    /**
+     * Provides the default configured KMSClient in a specific region
+     */
     class DefaultRegionalClientSupplier : public RegionalClientSupplier {
       public:
-        std::shared_ptr<KMS::KMSClient> getClient(const String &region_name);
+        std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region_name) const;
     };
 
+    /*
+     * Provides the same KMS client initialized in the constructor regardless of the region
+     * Note this Supplier is not suitable for multiple regions
+     */
     class SingleClientSupplier : public RegionalClientSupplier {
       public:
         SingleClientSupplier(const std::shared_ptr<KMS::KMSClient> &kms_client);
-        std::shared_ptr<KMS::KMSClient> getClient(const String &region_name);
+        std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region_name) const;
       private:
         std::shared_ptr<KMS::KMSClient> kms_client;
     };
 
     /**
+     * Initializes KmsKeyring with a single key_id
+     * @param alloc Allocator structure. An instance of this will be passed around for anything needing memory
+     *              allocation
+     * @param keyId A unique identifier for the customer master key (KMS).
+     *              To specify a master key, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
+     *              This should be specified in the same structure as the one required by KMS client
+     */
+    KmsKeyring(struct aws_allocator *alloc,
+               const Aws::String &keyId);
+
+    /**
      * Initializes KmsKeyring to use Aws::KMS::KMSClient with a key_id
+     * @param alloc Allocator structure. An instance of this will be passed around for anything needing memory
+     *              allocation
      * @param kms_client KMS client object
      * @param key_id A unique identifier for the customer master key (KMS).
      *               To specify a master key, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
      *               This should be specified in the same structure as the one required by KMS client
-     * @param alloc Allocator structure. An instance of this will be passed around for anything needing memory
-     *              allocation
      */
     KmsKeyring(struct aws_allocator *alloc,
-               std::shared_ptr<Aws::KMS::KMSClient> kms_client,
-               const String &key_id);
+               const Aws::String &key_id,
+               std::shared_ptr<Aws::KMS::KMSClient> kms_client);
 
+    /**
+     * Initializes KMSKeyring using a list of KeyIds
+     * @param alloc Allocator structure. An instance of this will be passed around for anything needing memory
+     *              allocation
+     * @param key_ids A list with unique identifier for the customer master key (KMS).
+     *               To specify a master key, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
+     *               This should be specified in the same structure as the one required by KMS client
+     * @param grant_tokens A list of grant tokens. For more information, see <a
+     *                    href="http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token">Grant
+     *                    Tokens</a> in the <i>AWS Key Management Service Developer Guide</i>
+     * @param default_region This region will be used when specifying key IDs for encryption that are not full ARNs,
+     *                      but are instead bare key IDs or aliases.
+     * @param supplier Object that supplies an KMSClient instance to use for a given region.
+     */
     KmsKeyring(struct aws_allocator *alloc,
-               Aws::List<Aws::String> key_ids,
-               Aws::List<String> grantTokens = {},
-               Aws::String defaultRegion = Aws::Region::US_EAST_1,
+               const Aws::List<Aws::String> &key_ids,
+               const Aws::Vector<Aws::String> &grant_tokens = {},
+               const Aws::String &default_region = Aws::Region::US_EAST_1,
                std::shared_ptr<RegionalClientSupplier> supplier = std::make_shared<DefaultRegionalClientSupplier>());
-
-    KmsKeyring(struct aws_allocator *alloc,
-               Aws::String keyId);
 
     ~KmsKeyring();
 
@@ -95,7 +125,6 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
     KmsKeyring &operator=(const KmsKeyring &) = delete;
 
   protected:
-
     /**
      * It attempts to find one of the EDKs to decrypt
      * This function will be automatically called when a Master Key needs to be decrypted
@@ -145,26 +174,54 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
     static void DestroyAwsCryptoKeyring(aws_cryptosdk_keyring *keyring);
 
   protected:
+    /**
+     * Creates a new KMS Encrypt request
+     */
     Aws::KMS::Model::EncryptRequest CreateEncryptRequest(const Aws::String &key_id,
                                                          const Aws::Vector<Aws::String> &grant_tokens,
                                                          const Utils::ByteBuffer &plaintext,
-                                                         const Aws::Map<Aws::String, Aws::String> &encryption_context) const;
+                                                         const Aws::Map<Aws::String,
+                                                                        Aws::String> &encryption_context) const;
 
+    /**
+     * Creates a new KMS Decrypt request
+     */
     Aws::KMS::Model::DecryptRequest CreateDecryptRequest(const Aws::String &key_id,
                                                          const Aws::Vector<Aws::String> &grant_tokens,
                                                          const Utils::ByteBuffer &ciphertext,
-                                                         const Aws::Map<Aws::String, Aws::String> &encryption_context) const;
+                                                         const Aws::Map<Aws::String,
+                                                                        Aws::String> &encryption_context) const;
 
-    Aws::KMS::Model::GenerateDataKeyRequest CreateGenerateDataKeyRequest(const Aws::String &key_id,
-                                                                         const Aws::Vector<Aws::String> &grant_tokens,
-                                                                         int number_of_bytes,
-                                                                         const Aws::Map<Aws::String,
-                                                                                        Aws::String> &encryption_context) const;
+    /**
+     * Creates a new KMS Generate Data Key request
+     */
+    Aws::KMS::Model::GenerateDataKeyRequest CreateGenerateDataKeyRequest(
+        const Aws::String &key_id,
+        const Aws::Vector<Aws::String> &grant_tokens,
+        int number_of_bytes,
+        const Aws::Map<Aws::String, Aws::String> &encryption_context) const;
 
-    Aws::Map<Aws::String, Aws::String> BuildKeyIDs(const Aws::List<Aws::String> &key_ids) const;
+    /**
+     * Returns a new map <KeyId, KMS-Region>
+     */
+    Aws::Map<Aws::String, Aws::String> BuildKeyIds(const Aws::List<Aws::String> &key_ids) const;
 
+    /**
+     * Returns the region of the key_id or an empty string if it can't extract region
+     */
     Aws::String GetClientRegion(const Aws::String &key_id) const;
+
+    /**
+     * Returns the KMS Client for a specific region. It can extract it either from the cache (if it exists) or it will
+     * create a new one
+     */
     std::shared_ptr<KMS::KMSClient> GetKmsClient(const Aws::String &region) const;
+
+    /**
+     * Saves a KMS Client for a specific region in the cache.
+     * Note: a KMS Client can be saved in cache only after a succesful call was made to it
+     * (to guarantee that the region exists)
+     */
     void SaveKmsClientInCache(const Aws::String &region, std::shared_ptr<KMS::KMSClient> &kms_client);
 
   private:
@@ -175,18 +232,18 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
     const aws_byte_buf key_provider;
     std::shared_ptr<RegionalClientSupplier> kms_client_supplier;
 
-    // key used for encryption/key generation
-    Aws::String default_key_arn;
-    // if no region can be extracted from key_id this will be used as default
-    const Aws::String default_region;
+    Aws::String default_key_id;  // default key used for encryption/key generation
+    const Aws::String default_region;  // if no region can be extracted from key_id this will be used as default
 
     //TODO add support for grant_tokens
     Aws::Vector<Aws::String> grant_tokens;
 
+    //TODO use Aws::UnorderedMap
     // A map of <region, kms-client>. A single Kms client is cached for each region. Note that in order to be cached a
     // client needs to have at least one successful request to KMS.
     Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> kms_cached_clients;
 
+    //TODO use Aws::UnorderedMap
     // A map of <key-id, region>
     Aws::Map<Aws::String, Aws::String> key_ids;
 };

@@ -87,10 +87,10 @@ int append_key_to_edks(struct aws_allocator *allocator,
                        const Utils::ByteBuffer *encrypted_data_key,
                        const Aws::String *data_key_id,
                        const aws_byte_buf *key_provider) {
-    struct aws_byte_buf enc_data_key_byte
-        = aws_byte_buf_from_array(encrypted_data_key->GetUnderlyingData(), encrypted_data_key->GetLength());
-    struct aws_byte_buf data_key_id_byte
-        = aws_byte_buf_from_array((const uint8_t *) data_key_id->data(), data_key_id->length());
+    struct aws_byte_buf enc_data_key_byte = aws_byte_buf_from_array(encrypted_data_key->GetUnderlyingData(),
+                                                                    encrypted_data_key->GetLength());
+    struct aws_byte_buf data_key_id_byte = aws_byte_buf_from_array((const uint8_t *) data_key_id->data(),
+                                                                   data_key_id->length());
 
     return append_aws_byte_buf_key_to_edks(allocator,
                                            encrypted_data_keys,
@@ -98,15 +98,24 @@ int append_key_to_edks(struct aws_allocator *allocator,
                                            &data_key_id_byte,
                                            key_provider);
 }
-
-bool aws_byte_buf_eq_char_array(const char *buf, size_t idx_start, size_t idx_end, const aws_byte_buf &needle) {
-    if (idx_end == std::string::npos || idx_start == std::string::npos || buf == NULL) {
+/**
+ * Compares an aws_byte_buf (byte_buf_b) with a sequence of characters (char_buf_a)
+ * @param char_buf_a Sequence of characters
+ * @param idx_start Start position in char_buf_a
+ * @param idx_end End position in char_buf_b
+ * @param byte_buf_b aws_byte_buf to compare with
+ * @return true if the sequence of characters in char_buf_a+idx_start matches the byte_buf_b, false otherwise
+ */
+inline bool aws_byte_buf_eq_char_array(const char *char_buf_a,
+                                       size_t idx_start,
+                                       size_t idx_end,
+                                       const aws_byte_buf &byte_buf_b) {
+    if (idx_end == std::string::npos || idx_start == std::string::npos || char_buf_a == NULL) {
         return false;
     }
 
-    const aws_byte_buf bute_buf_a = aws_byte_buf_from_array((uint8_t *)(buf + idx_start), idx_end - idx_start);
-
-    return aws_byte_buf_eq(&bute_buf_a, &needle);
+    const aws_byte_buf byte_buf_a = aws_byte_buf_from_array((uint8_t *)(char_buf_a + idx_start), idx_end - idx_start);
+    return aws_byte_buf_eq(&byte_buf_a, &byte_buf_b);
 }
 
 Aws::String parse_region_from_kms_key_arn(const Aws::String &key_id) {

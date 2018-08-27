@@ -40,18 +40,18 @@ static struct aws_allocator default_bad_allocator = {
     s_bad_malloc, s_bad_free, s_bad_realloc
 };
 
-struct aws_allocator *aws_test_bad_allocator() {
+struct aws_allocator *t_aws_bad_allocator() {
     return &default_bad_allocator;
 }
 
-int test_aws_string_from_c_aws_byte_buf() {
+int awsStringFromCAwsByteBuf_validInputs_returnAwsString() {
     struct aws_byte_buf b = aws_byte_buf_from_c_str(TEST_STRING);
     Aws::String b_string = aws_string_from_c_aws_byte_buf(&b);
     TEST_ASSERT(b_string == TEST_STRING);
     return 0;
 }
 
-int test_aws_utils_byte_buffer_from_c_aws_byte_buf() {
+int awsUtilsByteBufferFromCAwsByteBuf_validInputs_returnAwsUtils() {
     struct aws_byte_buf b = aws_byte_buf_from_c_str(TEST_STRING);
     Aws::Utils::ByteBuffer b_util = aws_utils_byte_buffer_from_c_aws_byte_buf(&b);
     TEST_ASSERT(
@@ -60,7 +60,7 @@ int test_aws_utils_byte_buffer_from_c_aws_byte_buf() {
     return 0;
 }
 
-int test_aws_string_from_c_aws_string() {
+int awsStringFromCAwsString_validInputs_returnAwsString() {
     struct aws_allocator *allocator = aws_default_allocator();
     const struct aws_string *b = aws_string_new_from_c_str(allocator, TEST_STRING);
     Aws::String b_string = aws_string_from_c_aws_string(b);
@@ -69,7 +69,7 @@ int test_aws_string_from_c_aws_string() {
     return 0;
 }
 
-int test_aws_byte_buf_dup_from_aws_utils() {
+int awsByteBufDupFromAwsUtils_validInputs_returnNewAwsByteBuf() {
     struct aws_allocator *allocator = aws_default_allocator();
     const Aws::Utils::ByteBuffer src((u_char *) TEST_STRING, strlen(TEST_STRING));
     struct aws_byte_buf dest;
@@ -80,7 +80,7 @@ int test_aws_byte_buf_dup_from_aws_utils() {
     return 0;
 }
 
-int test_aws_map_from_c_aws_hash_table() {
+int awsMapFromCAwsHashHable_hashMap_returnAwsMap() {
     const char *key1_c_chr = "key1";
     const char *key2_c_chr = "key2";
     const char *value1_c_chr = "value1";
@@ -139,92 +139,93 @@ struct EdksTestData {
     }
 };
 
-int test_append_key_to_edks() {
-
+int appendKeyToEdks_appendSingleElement_elementIsAppended() {
     EdksTestData ed;
-    TEST_ASSERT_SUCCESS(append_c_str_key_to_edks(ed.allocator,
-                                                 &ed.edks.encrypted_data_keys,
-                                                 &ed.enc,
-                                                 ed.data_key_id,
-                                                 ed.key_provider));
-    TEST_ASSERT_SUCCESS(assert_edks_with_single_element_contains_expected_values(&ed.edks.encrypted_data_keys,
-                                                                                 ed.enc_data,
-                                                                                 ed.data_key_id,
-                                                                                 ed.key_provider,
-                                                                                 ed.allocator));
+    TEST_ASSERT_SUCCESS(t_append_c_str_key_to_edks(ed.allocator,
+                                                   &ed.edks.encrypted_data_keys,
+                                                   &ed.enc,
+                                                   ed.data_key_id,
+                                                   ed.key_provider));
+    TEST_ASSERT_SUCCESS(t_assert_edks_with_single_element_contains_expected_values(&ed.edks.encrypted_data_keys,
+                                                                                   ed.enc_data,
+                                                                                   ed.data_key_id,
+                                                                                   ed.key_provider,
+                                                                                   ed.allocator));
 
     return 0;
 }
 
-int test_append_key_to_edks_with_OOM_error() {
-    struct aws_allocator *oom_allocator = aws_test_bad_allocator();
+int appendKeyToEdks_allocatorThatDoesNotAllocateMemory_returnsOomError() {
+    struct aws_allocator *oom_allocator = t_aws_bad_allocator();
     EdksTestData ed;
-    TEST_ASSERT_ERROR(AWS_ERROR_OOM, append_c_str_key_to_edks(oom_allocator,
-                                                              &ed.edks.encrypted_data_keys,
-                                                              &ed.enc,
-                                                              ed.data_key_id,
-                                                              ed.key_provider));
+    TEST_ASSERT_ERROR(AWS_ERROR_OOM, t_append_c_str_key_to_edks(oom_allocator,
+                                                                &ed.edks.encrypted_data_keys,
+                                                                &ed.enc,
+                                                                ed.data_key_id,
+                                                                ed.key_provider));
     return 0;
 }
 
-int test_append_key_to_edks_multiple_keys() {
+int appendKeyToEdks_multipleElementsAppended_elementsAreAppended() {
     EdksTestData ed1;
     EdksTestData ed2("enc2", "dk2", "kp2");
     EdksTestData ed3("enc3", "dk3", "kp3");
 
     // We append only to ed1.edks.encrypted_data_keys to test accumulation
-    TEST_ASSERT_SUCCESS(append_c_str_key_to_edks(ed1.allocator,
-                                                 &ed1.edks.encrypted_data_keys,
-                                                 &ed1.enc,
-                                                 ed1.data_key_id,
-                                                 ed1.key_provider));
-    TEST_ASSERT_SUCCESS(append_c_str_key_to_edks(ed2.allocator,
-                                                 &ed1.edks.encrypted_data_keys,
-                                                 &ed2.enc,
-                                                 ed2.data_key_id,
-                                                 ed2.key_provider));
-    TEST_ASSERT_SUCCESS(append_c_str_key_to_edks(ed3.allocator,
-                                                 &ed1.edks.encrypted_data_keys,
-                                                 &ed3.enc,
-                                                 ed3.data_key_id,
-                                                 ed3.key_provider));
+    TEST_ASSERT_SUCCESS(t_append_c_str_key_to_edks(ed1.allocator,
+                                                   &ed1.edks.encrypted_data_keys,
+                                                   &ed1.enc,
+                                                   ed1.data_key_id,
+                                                   ed1.key_provider));
+    TEST_ASSERT_SUCCESS(t_append_c_str_key_to_edks(ed2.allocator,
+                                                   &ed1.edks.encrypted_data_keys,
+                                                   &ed2.enc,
+                                                   ed2.data_key_id,
+                                                   ed2.key_provider));
+    TEST_ASSERT_SUCCESS(t_append_c_str_key_to_edks(ed3.allocator,
+                                                   &ed1.edks.encrypted_data_keys,
+                                                   &ed3.enc,
+                                                   ed3.data_key_id,
+                                                   ed3.key_provider));
 
     size_t num_elems = aws_array_list_length(&ed1.edks.encrypted_data_keys);
     TEST_ASSERT_INT_EQ(3, num_elems);
     struct aws_cryptosdk_edk *edk;
     TEST_ASSERT_INT_EQ(0, aws_array_list_get_at_ptr(&ed1.edks.encrypted_data_keys, (void **) &edk, 0));
-    TEST_ASSERT_SUCCESS(assert_edk_contains_expected_values(edk,
-                                                            ed1.enc_data,
-                                                            ed1.data_key_id,
-                                                            ed1.key_provider,
-                                                            ed1.allocator));
+    TEST_ASSERT_SUCCESS(t_assert_edk_contains_expected_values(edk,
+                                                              ed1.enc_data,
+                                                              ed1.data_key_id,
+                                                              ed1.key_provider,
+                                                              ed1.allocator));
     TEST_ASSERT_INT_EQ(0, aws_array_list_get_at_ptr(&ed1.edks.encrypted_data_keys, (void **) &edk, 1));
-    TEST_ASSERT_SUCCESS(assert_edk_contains_expected_values(edk,
-                                                            ed2.enc_data,
-                                                            ed2.data_key_id,
-                                                            ed2.key_provider,
-                                                            ed2.allocator));
+    TEST_ASSERT_SUCCESS(t_assert_edk_contains_expected_values(edk,
+                                                              ed2.enc_data,
+                                                              ed2.data_key_id,
+                                                              ed2.key_provider,
+                                                              ed2.allocator));
     TEST_ASSERT_INT_EQ(0, aws_array_list_get_at_ptr(&ed1.edks.encrypted_data_keys, (void **) &edk, 2));
-    TEST_ASSERT_SUCCESS(assert_edk_contains_expected_values(edk,
-                                                            ed3.enc_data,
-                                                            ed3.data_key_id,
-                                                            ed3.key_provider,
-                                                            ed3.allocator));
+    TEST_ASSERT_SUCCESS(t_assert_edk_contains_expected_values(edk,
+                                                              ed3.enc_data,
+                                                              ed3.data_key_id,
+                                                              ed3.key_provider,
+                                                              ed3.allocator));
 
     return 0;
 }
 
-int test_parse_region_from_kms_key_arn() {
-    Aws::String key_arn = "arn:aws:kms:us-west-1:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
+int parseRegionFromKmsKeyArn_validKeyArn_returnsRegion() {
+    Aws::String key_arn1 = "arn:aws:kms:us-west-1:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
     Aws::String key_arn2 = "arn:xxx:kms:us-west-2:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
     Aws::String key_arn3 = "arn::kms:us-west-3:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
-    TEST_ASSERT(parse_region_from_kms_key_arn(key_arn) == Aws::String("us-west-1"));
+    Aws::String key_arn4 = "arn::kms:us-west-4:1";
+    TEST_ASSERT(parse_region_from_kms_key_arn(key_arn1) == Aws::String("us-west-1"));
     TEST_ASSERT(parse_region_from_kms_key_arn(key_arn2) == Aws::String("us-west-2"));
     TEST_ASSERT(parse_region_from_kms_key_arn(key_arn3) == Aws::String("us-west-3"));
+    TEST_ASSERT(parse_region_from_kms_key_arn(key_arn4) == Aws::String("us-west-4"));
     return 0;
 }
 
-int test_parse_region_from_kms_key_arn_invalid_arn() {
+int parseRegionFromKmsKeyArn_invalidKeyArn_returnsEmpty() {
     Aws::String empty;
 
     TEST_ASSERT(
@@ -258,18 +259,19 @@ int test_parse_region_from_kms_key_arn_invalid_arn() {
     // although we can theoretically extract region ARN still is invalid
     TEST_ASSERT(parse_region_from_kms_key_arn("arn:aws:kms:us-west-3") == empty);
 
+
     return 0;
 }
 
 int main() {
-    RUN_TEST(test_aws_string_from_c_aws_byte_buf());
-    RUN_TEST(test_aws_utils_byte_buffer_from_c_aws_byte_buf());
-    RUN_TEST(test_append_key_to_edks());
-    RUN_TEST(test_append_key_to_edks_with_OOM_error());
-    RUN_TEST(test_append_key_to_edks_multiple_keys());
-    RUN_TEST(test_aws_string_from_c_aws_string());
-    RUN_TEST(test_aws_map_from_c_aws_hash_table());
-    RUN_TEST(test_aws_byte_buf_dup_from_aws_utils());
-    RUN_TEST(test_parse_region_from_kms_key_arn());
-    RUN_TEST(test_parse_region_from_kms_key_arn_invalid_arn());
+    RUN_TEST(awsStringFromCAwsByteBuf_validInputs_returnAwsString());
+    RUN_TEST(awsUtilsByteBufferFromCAwsByteBuf_validInputs_returnAwsUtils());
+    RUN_TEST(appendKeyToEdks_appendSingleElement_elementIsAppended());
+    RUN_TEST(appendKeyToEdks_allocatorThatDoesNotAllocateMemory_returnsOomError());
+    RUN_TEST(appendKeyToEdks_multipleElementsAppended_elementsAreAppended());
+    RUN_TEST(awsStringFromCAwsString_validInputs_returnAwsString());
+    RUN_TEST(awsMapFromCAwsHashHable_hashMap_returnAwsMap());
+    RUN_TEST(awsByteBufDupFromAwsUtils_validInputs_returnNewAwsByteBuf());
+    RUN_TEST(parseRegionFromKmsKeyArn_validKeyArn_returnsRegion());
+    RUN_TEST(parseRegionFromKmsKeyArn_invalidKeyArn_returnsEmpty());
 }

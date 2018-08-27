@@ -72,20 +72,20 @@ struct TestDataOut {
     };
 };
 
-int t_decrypt_encrypt_same_keyring() {
+int generatedkAndDecrypt_sameKeyring_returnSuccess() {
     TestData td;
     TestDataOut td_out;
 
-    auto kms_keyring = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, td.kms_client, KEY_ARN_STR1);
+    auto kms_keyring = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, KEY_ARN_STR1, td.kms_client);
 
-    // encrypt
-    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_keyring, AWS_CRYPTOSDK_ENCRYPT, &td.pt_in, &td_out.ct_out));
+    // egenerate dk
+    TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring, AWS_CRYPTOSDK_ENCRYPT, &td.pt_in, &td_out.ct_out));
 
     // decrypt
-    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_keyring,
-                                                   AWS_CRYPTOSDK_DECRYPT,
-                                                   &td_out.ct_out,
-                                                   &td_out.pt_out));
+    TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring,
+                                                AWS_CRYPTOSDK_DECRYPT,
+                                                &td_out.ct_out,
+                                                &td_out.pt_out));
 
     TEST_ASSERT(aws_byte_buf_eq(&td.pt_in, &td_out.pt_out) == true);
 
@@ -94,78 +94,62 @@ int t_decrypt_encrypt_same_keyring() {
     return 0;
 }
 
-int t_decrypt_encrypt_same_keyring_autodetect_region() {
-    TestData td;
-    TestDataOut td_out;
-
-    auto kms_keyring = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, KEY_ARN_STR1);
-
-    // encrypt
-    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_keyring, AWS_CRYPTOSDK_ENCRYPT, &td.pt_in, &td_out.ct_out));
-
-    // decrypt
-    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_keyring,
-                                                   AWS_CRYPTOSDK_DECRYPT,
-                                                   &td_out.ct_out,
-                                                   &td_out.pt_out));
-
-    TEST_ASSERT(aws_byte_buf_eq(&td.pt_in, &td_out.pt_out) == true);
-
-    Aws::Delete(kms_keyring);
-
+/**
+ * Generates a new key that it saves to td_out using a temporary KmsKeyring object
+ */
+int t_kms_keyring_generate_dk(TestDataOut &td_out, TestData &td, const Aws::String &key_arn) {
+    auto kms_keyring_generate_dk = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, key_arn);
+    TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring_generate_dk,
+                                                AWS_CRYPTOSDK_ENCRYPT,
+                                                &td.pt_in,
+                                                &td_out.ct_out));
+    Aws::Delete(kms_keyring_generate_dk);
     return 0;
 }
 
-int test_kms_keyring_encrypt(TestDataOut &td_out, TestData &td, const Aws::String &key_arn) {
-    auto kms_keyring_encrypt = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, key_arn);
-    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_keyring_encrypt,
-                                                   AWS_CRYPTOSDK_ENCRYPT,
-                                                   &td.pt_in,
-                                                   &td_out.ct_out));
-    Aws::Delete(kms_keyring_encrypt);
-    return 0;
-}
-
-int test_kms_keyring_decrypt(TestDataOut &td_out, TestData &td, const Aws::String &key_arn) {
+/**
+ * Decrypts a key and saves result to td_out using a temporary KmsKeyring object
+ */
+int t_kms_keyring_decrypt(TestDataOut &td_out, TestData &td, const Aws::String &key_arn) {
     auto kms_keyring_decrypt = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, key_arn);
-    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_keyring_decrypt,
-                                                   AWS_CRYPTOSDK_DECRYPT,
-                                                   &td_out.ct_out,
-                                                   &td_out.pt_out));
+    TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring_decrypt,
+                                                AWS_CRYPTOSDK_DECRYPT,
+                                                &td_out.ct_out,
+                                                &td_out.pt_out));
     Aws::Delete(kms_keyring_decrypt);
     return 0;
 }
 
-int t_decrypt_encrypt_two_keyring() {
+int generatedkAndDecrypt_twoDistinctKeyrings_returnSuccess() {
     TestData td;
     TestDataOut td_out;
 
-    // encrypt
-    TEST_ASSERT_SUCCESS(test_kms_keyring_encrypt(td_out, td, KEY_ARN_STR1));
+    // generate dk
+    TEST_ASSERT_SUCCESS(t_kms_keyring_generate_dk(td_out, td, KEY_ARN_STR1));
 
     // decrypt
-    TEST_ASSERT_SUCCESS(test_kms_keyring_decrypt(td_out, td, KEY_ARN_STR1));
+    TEST_ASSERT_SUCCESS(t_kms_keyring_decrypt(td_out, td, KEY_ARN_STR1));
 
     TEST_ASSERT(aws_byte_buf_eq(&td.pt_in, &td_out.pt_out) == true);
 
     return 0;
 }
 
-int t_decrypt_encrypt_two_keys_for_decryption() {
+int generatedkAndDecrypt_oneKeyEncryptsTwoKeysForDecryptionConfigured_returnSuccess() {
     TestData td;
     TestDataOut td_out;
 
     Aws::List<Aws::String> keys = {KEY_ARN_STR1, KEY_ARN_STR2};
 
-    // encrypt
-    TEST_ASSERT_SUCCESS(test_kms_keyring_encrypt(td_out, td, KEY_ARN_STR2));
+    // generate dk
+    TEST_ASSERT_SUCCESS(t_kms_keyring_generate_dk(td_out, td, KEY_ARN_STR2));
 
     // decrypt
     auto kms_keyring_decrypt = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, keys);
-    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_keyring_decrypt,
-                                                   AWS_CRYPTOSDK_DECRYPT,
-                                                   &td_out.ct_out,
-                                                   &td_out.pt_out));
+    TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring_decrypt,
+                                                AWS_CRYPTOSDK_DECRYPT,
+                                                &td_out.ct_out,
+                                                &td_out.pt_out));
     Aws::Delete(kms_keyring_decrypt);
 
     TEST_ASSERT(aws_byte_buf_eq(&td.pt_in, &td_out.pt_out) == true);
@@ -173,7 +157,7 @@ int t_decrypt_encrypt_two_keys_for_decryption() {
     return 0;
 }
 
-int t_integration_two_encryptions_two_decryptions() {
+int generatedkAndDecrypt_twoKeysEncryptsTwoKeyDecrypts_returnSuccess() {
     TestData td1, td2;
     TestDataOut td_out1, td_out2;
 
@@ -181,20 +165,20 @@ int t_integration_two_encryptions_two_decryptions() {
 
     Aws::List<Aws::String> keys = {KEY_ARN_STR1, KEY_ARN_STR2};
 
-    // encrypt
-    TEST_ASSERT_SUCCESS(test_kms_keyring_encrypt(td_out1, td1, KEY_ARN_STR1));
-    TEST_ASSERT_SUCCESS(test_kms_keyring_encrypt(td_out2, td2, KEY_ARN_STR2));
+    // generate dk
+    TEST_ASSERT_SUCCESS(t_kms_keyring_generate_dk(td_out1, td1, KEY_ARN_STR1));
+    TEST_ASSERT_SUCCESS(t_kms_keyring_generate_dk(td_out2, td2, KEY_ARN_STR2));
 
     // decrypt
     auto kms_keyring_decrypt = Aws::New<KmsKeyring>(CLASS_CTAG, td1.alloc, keys);
-    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_keyring_decrypt,
-                                                   AWS_CRYPTOSDK_DECRYPT,
-                                                   &td_out1.ct_out,
-                                                   &td_out1.pt_out));
-    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_keyring_decrypt,
-                                                   AWS_CRYPTOSDK_DECRYPT,
-                                                   &td_out2.ct_out,
-                                                   &td_out2.pt_out));
+    TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring_decrypt,
+                                                AWS_CRYPTOSDK_DECRYPT,
+                                                &td_out1.ct_out,
+                                                &td_out1.pt_out));
+    TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring_decrypt,
+                                                AWS_CRYPTOSDK_DECRYPT,
+                                                &td_out2.ct_out,
+                                                &td_out2.pt_out));
     Aws::Delete(kms_keyring_decrypt);
 
     TEST_ASSERT(aws_byte_buf_eq(&td1.pt_in, &td_out1.pt_out) == true);
@@ -203,25 +187,27 @@ int t_integration_two_encryptions_two_decryptions() {
     return 0;
 }
 
-int t_decrypt_encrypt_not_matching_key() {
+int generatedkAndDecrypt_keyForDecryptionMismatch_returnErr() {
     TestData td;
     TestDataOut td_out;
 
-    Aws::List<Aws::String> keys = {KEY_ARN_STR1, KEY_ARN_STR2};
-
-    // encrypt
-    TEST_ASSERT_SUCCESS(test_kms_keyring_encrypt(td_out, td, KEY_ARN_STR2));
+    // generate dk
+    TEST_ASSERT_SUCCESS(t_kms_keyring_generate_dk(td_out, td, KEY_ARN_STR2));
 
     // decrypt should fail
     auto kms_keyring_decrypt = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, KEY_ARN_STR1);
-    TEST_ASSERT_SUCCESS(test_aws_cryptosdk_process(kms_keyring_decrypt,
-                                                   AWS_CRYPTOSDK_DECRYPT,
-                                                   &td_out.ct_out,
-                                                   &td_out.pt_out, AWS_OP_ERR));
+    TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring_decrypt,
+                                                AWS_CRYPTOSDK_DECRYPT,
+                                                &td_out.ct_out,
+                                                &td_out.pt_out, AWS_OP_ERR));
     Aws::Delete(kms_keyring_decrypt);
 
     return 0;
 }
+
+//todo add more tests for encryption/decryption only
+//todo add more tests for each type of KmsKeyring constructor
+//todo add more tests for grantTokens
 
 int main() {
     SDKOptions *options = Aws::New<SDKOptions>(CLASS_CTAG);
@@ -233,12 +219,11 @@ int main() {
         Aws::MakeShared<Aws::Utils::Logging::DefaultLogSystem>(
             "RunUnitTests", Aws::Utils::Logging::LogLevel::Trace, "aws_encryption_sdk_"));*/
 
-    RUN_TEST(t_decrypt_encrypt_same_keyring());
-    RUN_TEST(t_decrypt_encrypt_two_keyring());
-    RUN_TEST(t_decrypt_encrypt_same_keyring_autodetect_region());
-    RUN_TEST(t_decrypt_encrypt_two_keys_for_decryption());
-    RUN_TEST(t_decrypt_encrypt_not_matching_key());
-    RUN_TEST(t_integration_two_encryptions_two_decryptions());
+    RUN_TEST(generatedkAndDecrypt_sameKeyring_returnSuccess());
+    RUN_TEST(generatedkAndDecrypt_twoDistinctKeyrings_returnSuccess());
+    RUN_TEST(generatedkAndDecrypt_oneKeyEncryptsTwoKeysForDecryptionConfigured_returnSuccess());
+    RUN_TEST(generatedkAndDecrypt_twoKeysEncryptsTwoKeyDecrypts_returnSuccess());
+    RUN_TEST(generatedkAndDecrypt_keyForDecryptionMismatch_returnErr());
 
     //Aws::Utils::Logging::ShutdownAWSLogging();
 

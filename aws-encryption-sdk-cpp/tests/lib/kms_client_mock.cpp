@@ -57,7 +57,8 @@ Model::DecryptOutcome KmsClientMock::Decrypt(const Model::DecryptRequest &reques
     return edv.return_decrypt;
 }
 
-void KmsClientMock::ExpectDecrypt(const Model::DecryptRequest &request, Model::DecryptOutcome decrypt_return) {
+void KmsClientMock::ExpectDecryptAccumulator(const Model::DecryptRequest &request,
+                                             Model::DecryptOutcome decrypt_return) {
     ExpectedDecryptValues edv = {request, decrypt_return};
     this->expected_decrypt_values.push_back(edv);
 }
