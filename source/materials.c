@@ -13,12 +13,11 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/materials.h>
-#include <aws/cryptosdk/cipher.h> // aws_cryptosdk_secure_zero
-#include <stdlib.h> // abort
+#include <aws/cryptosdk/cipher.h>
 
 struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_new(struct aws_allocator * alloc,
-                                                                                   enum aws_cryptosdk_alg_id alg,
-                                                                                   size_t num_keys) {
+                                                                                   enum aws_cryptosdk_alg_id alg) {
+    const int initial_edk_list_size = 4; // just a guess, this will resize as necessary
     int ret;
     struct aws_cryptosdk_encryption_materials * enc_mat;
     enc_mat = aws_mem_acquire(alloc, sizeof(struct aws_cryptosdk_encryption_materials));
@@ -28,9 +27,11 @@ struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_n
     enc_mat->unencrypted_data_key.allocator = NULL;
     enc_mat->unencrypted_data_key.buffer = NULL;
 
-    ret = aws_array_list_init_dynamic(&enc_mat->encrypted_data_keys, alloc, num_keys, sizeof(struct aws_cryptosdk_edk));
+    ret = aws_array_list_init_dynamic(&enc_mat->encrypted_data_keys,
+                                      alloc,
+                                      initial_edk_list_size,
+                                      sizeof(struct aws_cryptosdk_edk));
     if (ret) {
-        aws_byte_buf_clean_up(&enc_mat->unencrypted_data_key);
         aws_mem_release(alloc, enc_mat);
         return NULL;
     }
@@ -48,16 +49,16 @@ void aws_cryptosdk_edk_list_clean_up(struct aws_array_list * edk_list) {
     size_t num_keys = edk_list->length;
     for (size_t key_idx = 0 ; key_idx < num_keys ; ++key_idx) {
         struct aws_cryptosdk_edk * edk;
-        if (aws_array_list_get_at_ptr(edk_list, (void **)&edk, key_idx)) abort();
-        aws_cryptosdk_edk_clean_up(edk);
+        if (!aws_array_list_get_at_ptr(edk_list, (void **)&edk, key_idx)) {
+            aws_cryptosdk_edk_clean_up(edk);
+        }
     }
     aws_array_list_clean_up(edk_list);
 }
 
 void aws_cryptosdk_encryption_materials_destroy(struct aws_cryptosdk_encryption_materials * enc_mat) {
     if (enc_mat) {
-        aws_byte_buf_secure_zero(&enc_mat->unencrypted_data_key);
-        aws_byte_buf_clean_up(&enc_mat->unencrypted_data_key);
+        aws_byte_buf_clean_up_secure(&enc_mat->unencrypted_data_key);
         aws_cryptosdk_edk_list_clean_up(&enc_mat->encrypted_data_keys);
         aws_mem_release(enc_mat->alloc, enc_mat);
     }

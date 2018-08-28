@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef AWS_CRYPTOSDK_TESTS_UNIT_BAD_CMM_H
-#define AWS_CRYPTOSDK_TESTS_UNIT_BAD_CMM_H
+#ifndef AWS_CRYPTOSDK_TESTS_LIB_BAD_CMM_H
+#define AWS_CRYPTOSDK_TESTS_LIB_BAD_CMM_H
 
 #include <aws/cryptosdk/materials.h>
 
@@ -40,4 +40,4 @@ struct aws_cryptosdk_cmm * aws_cryptosdk_null_cmm_new();
  */
 int aws_cryptosdk_cmm_destroy_with_failed_return_value(struct aws_cryptosdk_cmm * cmm);
 
-#endif // AWS_CRYPTOSDK_TESTS_UNIT_BAD_CMM_H
+#endif // AWS_CRYPTOSDK_TESTS_LIB_BAD_CMM_H

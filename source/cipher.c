@@ -15,15 +15,14 @@
 
 #include <openssl/err.h>
 #include <openssl/evp.h>
-#include <openssl/kdf.h>
 #include <openssl/rand.h>
-#include <arpa/inet.h>
 #include <assert.h>
 #include <stdbool.h>
 
 #include <aws/common/byte_order.h>
 #include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/hkdf.h>  
 
 #define MSG_ID_LEN 16
 
@@ -82,45 +81,42 @@ const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryp
 #undef EVP_NULL
 }
 
+static enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id alg_id) {
+    switch (alg_id) {
+        case AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384:
+        case AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384: return SHA384;
+        case AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256:
+        case AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE:
+        case AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE:
+        case AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE: return SHA256;
+        case AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE:
+        case AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE:
+        case AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE:
+        default: return NOSHA;
+    }
+}
+
 int aws_cryptosdk_derive_key(
     const struct aws_cryptosdk_alg_properties *props,
     struct content_key *content_key,
     const struct data_key *data_key,
-    const uint8_t *message_id
-) {
+    const uint8_t *message_id) {
     aws_secure_zero(content_key->keybuf, sizeof(content_key->keybuf));
-
-    if (props->impl->md_ctor == NULL) {
-        memcpy(content_key->keybuf, data_key->keybuf, props->data_key_len);
-        return AWS_OP_SUCCESS;
-    }
-
-    EVP_PKEY_CTX *pctx;
-    size_t outlen = props->content_key_len;
-
     uint8_t info[MSG_ID_LEN + 2];
     uint16_t alg_id = props->alg_id;
     info[0] = alg_id >> 8;
     info[1] = alg_id & 0xFF;
     memcpy(&info[2], message_id, sizeof(info) - 2);
-
-    pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
-    if (pctx == NULL) return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
-
-    if (EVP_PKEY_derive_init(pctx) <= 0) goto err;
-    if (EVP_PKEY_CTX_set_hkdf_md(pctx, props->impl->md_ctor()) <= 0) goto err;
-    if (EVP_PKEY_CTX_set1_hkdf_key(pctx, data_key->keybuf, props->data_key_len) <= 0) goto err;
-    if (EVP_PKEY_CTX_add1_hkdf_info(pctx, info, sizeof(info)) <= 0) goto err;
-    if (EVP_PKEY_derive(pctx, content_key->keybuf, &outlen) <= 0) goto err;
-
-    EVP_PKEY_CTX_free(pctx);
-
-    return AWS_OP_SUCCESS;
-err:
-    EVP_PKEY_CTX_free(pctx);
-
-    aws_secure_zero(content_key->keybuf, sizeof(content_key->keybuf));
-    return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+    enum aws_cryptosdk_sha_version which_sha = aws_cryptosdk_which_sha(props->alg_id);
+    if (which_sha == NOSHA) {
+        memcpy(content_key->keybuf, data_key->keybuf, props->data_key_len);
+        return AWS_OP_SUCCESS;
+    }
+    struct aws_byte_buf myokm = aws_byte_buf_from_array(content_key->keybuf, props->content_key_len);
+    const struct aws_byte_buf mysalt = aws_byte_buf_from_c_str("");
+    const struct aws_byte_buf myikm = aws_byte_buf_from_array(data_key->keybuf, props->data_key_len);
+    const struct aws_byte_buf myinfo = aws_byte_buf_from_array(info, MSG_ID_LEN + 2);
+    return aws_cryptosdk_hkdf(&myokm, which_sha, &mysalt, &myikm, &myinfo);
 }
 
 static EVP_CIPHER_CTX *evp_gcm_cipher_init(
@@ -292,13 +288,13 @@ static int update_frame_aad(
     if (!EVP_CipherUpdate(ctx, NULL, &ignored, message_id, MSG_ID_LEN)) return 0;
     if (!EVP_CipherUpdate(ctx, NULL, &ignored, (const uint8_t *)aad_string, strlen(aad_string))) return 0;
 
-    seqno = htonl(seqno);
+    seqno = aws_hton32(seqno);
     if (!EVP_CipherUpdate(ctx, NULL, &ignored, (const uint8_t *)&seqno, sizeof(seqno))) return 0;
 
     uint32_t size[2];
 
-    size[0] = htonl(data_size >> 32);
-    size[1] = htonl(data_size & 0xFFFFFFFFUL);
+    size[0] = aws_hton32(data_size >> 32);
+    size[1] = aws_hton32(data_size & 0xFFFFFFFFUL);
 
     return EVP_CipherUpdate(ctx, NULL, &ignored, (const uint8_t *)size, sizeof(size));
 }
@@ -453,6 +449,62 @@ int aws_cryptosdk_genrandom(uint8_t *buf, size_t len) {
     return AWS_OP_SUCCESS;
 }
 
+static const EVP_CIPHER * get_alg_from_key_size(size_t key_len) {
+    switch (key_len) {
+    case AWS_CRYPTOSDK_AES_128:
+        return EVP_aes_128_gcm();
+    case AWS_CRYPTOSDK_AES_192:
+        return EVP_aes_192_gcm();
+    case AWS_CRYPTOSDK_AES_256:
+        return EVP_aes_256_gcm();
+    default:
+        return NULL;
+    }
+}
+
+// These implementations of AES-GCM encryption/decryption only support these tag/IV lengths
+static const size_t aes_gcm_tag_len = 16;
+static const size_t aes_gcm_iv_len = 12;
+
+int aws_cryptosdk_aes_gcm_encrypt(struct aws_byte_buf * cipher,
+                                  struct aws_byte_buf * tag,
+                                  const struct aws_byte_cursor plain,
+                                  const struct aws_byte_cursor iv,
+                                  const struct aws_byte_cursor aad,
+                                  const struct aws_string * key) {
+    const EVP_CIPHER * alg = get_alg_from_key_size(key->len);
+    if (!alg || iv.len != aes_gcm_iv_len || tag->capacity < aes_gcm_tag_len || cipher->capacity < plain.len)
+        return aws_raise_error(AWS_ERROR_INVALID_BUFFER_SIZE);
+
+    EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) goto openssl_err;
+
+    if (!EVP_EncryptInit_ex(ctx, alg, NULL, aws_string_bytes(key), iv.ptr)) goto openssl_err;
+
+    int out_len;
+    if (!EVP_EncryptUpdate(ctx, NULL, &out_len, aad.ptr, aad.len)) goto openssl_err;
+
+    if (!EVP_EncryptUpdate(ctx, cipher->buffer, &out_len, plain.ptr, plain.len)) goto openssl_err;
+    int prev_len = out_len;
+
+    if (!EVP_EncryptFinal_ex(ctx, cipher->buffer + out_len, &out_len)) goto openssl_err;
+
+    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, aes_gcm_tag_len, tag->buffer)) goto openssl_err;
+
+    tag->len = aes_gcm_tag_len;
+    cipher->len = prev_len + out_len;
+    assert(cipher->len == plain.len);
+    EVP_CIPHER_CTX_free(ctx);
+    return AWS_OP_SUCCESS;
+
+openssl_err:
+    EVP_CIPHER_CTX_free(ctx);
+    aws_byte_buf_secure_zero(cipher);
+    aws_byte_buf_secure_zero(tag);
+    flush_openssl_errors();
+    return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+}
+
 int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
                                   const struct aws_byte_cursor cipher,
                                   const struct aws_byte_cursor tag,
@@ -460,21 +512,9 @@ int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
                                   const struct aws_byte_cursor aad,
                                   const struct aws_string * key) {
     bool openssl_err = true;
-    const EVP_CIPHER * alg;
-    switch (key->len) {
-    case AWS_CRYPTOSDK_AES_128:
-        alg = EVP_aes_128_gcm();
-        break;
-    case AWS_CRYPTOSDK_AES_192:
-        alg = EVP_aes_192_gcm();
-        break;
-    case AWS_CRYPTOSDK_AES_256:
-        alg = EVP_aes_256_gcm();
-        break;
-    default:
+    const EVP_CIPHER * alg = get_alg_from_key_size(key->len);
+    if (!alg || iv.len != aes_gcm_iv_len || tag.len != aes_gcm_tag_len || plain->capacity < cipher.len)
         return aws_raise_error(AWS_ERROR_INVALID_BUFFER_SIZE);
-    }
-    if (iv.len != 12) return aws_raise_error(AWS_ERROR_INVALID_BUFFER_SIZE);
 
     EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
     if (!ctx) goto decrypt_err;
@@ -502,6 +542,7 @@ int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
     }
     EVP_CIPHER_CTX_free(ctx);
     plain->len = prev_len + out_len;
+    assert(plain->len == cipher.len);
     return AWS_OP_SUCCESS;
 
 decrypt_err:

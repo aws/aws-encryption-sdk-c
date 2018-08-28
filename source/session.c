@@ -365,7 +365,7 @@ void session_change_state(struct aws_cryptosdk_session *session, enum session_st
                 // Bad state
                 abort();
             }
-            // TODO check for MKP config/etc?
+            // TODO check for KR config/etc?
             break;
 
         case ST_WRITE_HEADER:

@@ -64,8 +64,8 @@ static int fill_request(
         const struct aws_cryptosdk_hdr_aad *aad = &session->header.aad_tbl[i];
 
 
-        key = aws_string_from_array_new(session->alloc, aad->key.buffer, aad->key.len);
-        value = aws_string_from_array_new(session->alloc, aad->value.buffer, aad->value.len);
+        key = aws_string_new_from_array(session->alloc, aad->key.buffer, aad->key.len);
+        value = aws_string_new_from_array(session->alloc, aad->value.buffer, aad->value.len);
 
         struct aws_hash_element *pElem;
 
@@ -120,7 +120,7 @@ static int validate_header(struct aws_cryptosdk_session *session) {
 }
 
 int unwrap_keys(
-    struct aws_cryptosdk_session * restrict session
+    struct aws_cryptosdk_session * AWS_RESTRICT session
 ) {
     struct aws_hash_table enc_context;
     struct aws_cryptosdk_decryption_request request;

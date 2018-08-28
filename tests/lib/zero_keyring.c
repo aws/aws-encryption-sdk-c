@@ -13,10 +13,10 @@
  * limitations under the License.
  */
 #include <stdbool.h>
-#include "zero_mk.h"
+#include "zero_keyring.h"
 #include <aws/cryptosdk/cipher.h>
 
-struct zero_mk {const struct aws_cryptosdk_mk_vt * vt;};
+struct zero_keyring {const struct aws_cryptosdk_keyring_vt * vt;};
 
 static const char * literally_null = "null";
 
@@ -47,8 +47,10 @@ static inline bool is_literally_null_edk(const struct aws_cryptosdk_edk * edk) {
     return false;
 }
 
-static int zero_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
+static int zero_keyring_generate_data_key(struct aws_cryptosdk_keyring * kr,
                                      struct aws_cryptosdk_encryption_materials * enc_mat) {
+    (void)kr;
+
     const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(enc_mat->alg);
     if (aws_byte_buf_init(enc_mat->alloc, &enc_mat->unencrypted_data_key, props->data_key_len)) {
         return AWS_OP_ERR;
@@ -61,11 +63,13 @@ static int zero_mk_generate_data_key(struct aws_cryptosdk_mk * mk,
     return aws_array_list_push_back(&enc_mat->encrypted_data_keys, &edk);
 }
 
-static int zero_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
+static int zero_keyring_encrypt_data_key(struct aws_cryptosdk_keyring * kr,
                                     struct aws_cryptosdk_encryption_materials * enc_mat) {
+    (void)kr;
+
     for (size_t byte_idx = 0 ; byte_idx < enc_mat->unencrypted_data_key.len ; ++byte_idx) {
         if (enc_mat->unencrypted_data_key.buffer[byte_idx]) {
-            // Zero MK only encrypts the all zero data key
+            // Zero KR only encrypts the all zero data key
             return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
         }
     }
@@ -74,10 +78,12 @@ static int zero_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
     return aws_array_list_push_back(&enc_mat->encrypted_data_keys, &edk);
 }
 
-static int zero_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
+static int zero_keyring_decrypt_data_key(struct aws_cryptosdk_keyring * kr,
                                     struct aws_cryptosdk_decryption_materials * dec_mat,
                                     const struct aws_cryptosdk_decryption_request * request) {
     const struct aws_array_list * edks = &request->encrypted_data_keys;
+    (void)kr;
+
     // verify there is at least one EDK with length zero present
     size_t num_keys = aws_array_list_length(edks);
     for (size_t key_idx = 0 ; key_idx < num_keys ; ++key_idx) {
@@ -99,18 +105,20 @@ static int zero_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
     return AWS_OP_SUCCESS;
 }
 
-static void zero_mk_destroy(struct aws_cryptosdk_mk * mk) {}
+static void zero_keyring_destroy(struct aws_cryptosdk_keyring * kr) {
+    (void)kr;
+}
 
-static const struct aws_cryptosdk_mk_vt zero_mk_vt = {
-    .vt_size = sizeof(struct aws_cryptosdk_mk_vt),
-    .name = "zero mk",
-    .destroy = zero_mk_destroy,
-    .generate_data_key = zero_mk_generate_data_key,
-    .encrypt_data_key = zero_mk_encrypt_data_key,
-    .decrypt_data_key = zero_mk_decrypt_data_key
+static const struct aws_cryptosdk_keyring_vt zero_keyring_vt = {
+    .vt_size = sizeof(struct aws_cryptosdk_keyring_vt),
+    .name = "zero keyring",
+    .destroy = zero_keyring_destroy,
+    .generate_data_key = zero_keyring_generate_data_key,
+    .encrypt_data_key = zero_keyring_encrypt_data_key,
+    .decrypt_data_key = zero_keyring_decrypt_data_key
 };
 
-static struct zero_mk zero_mk_singleton = {.vt = &zero_mk_vt};
-static struct aws_cryptosdk_mk * mk = (struct aws_cryptosdk_mk *) &zero_mk_singleton;
+static struct zero_keyring zero_keyring_singleton = {.vt = &zero_keyring_vt};
+static struct aws_cryptosdk_keyring * kr = (struct aws_cryptosdk_keyring *) &zero_keyring_singleton;
 
-struct aws_cryptosdk_mk * aws_cryptosdk_zero_mk_new() {return mk;}
+struct aws_cryptosdk_keyring * aws_cryptosdk_zero_keyring_new() {return kr;}
