@@ -34,7 +34,7 @@ int aws_cryptosdk_serialize_enc_context_init(struct aws_allocator * alloc,
     aws_array_list_sort(&elems, aws_cryptosdk_compare_hash_elems_by_key_string);
 
     size_t serialized_len = 2; // First two bytes are the number of key-value pairs.
-    for (int idx = 0; idx < num_elems; ++idx) {
+    for (size_t idx = 0; idx < num_elems; ++idx) {
         struct aws_hash_element elem;
         if (aws_array_list_get_at(&elems, (void *)&elem, idx)) {
             aws_array_list_clean_up(&elems);
@@ -58,7 +58,7 @@ int aws_cryptosdk_serialize_enc_context_init(struct aws_allocator * alloc,
 
     if (!aws_byte_cursor_write_be16(&cur, num_elems)) goto WRITE_ERR;
 
-    for (int idx = 0; idx < num_elems; ++idx) {
+    for (size_t idx = 0; idx < num_elems; ++idx) {
         struct aws_hash_element elem;
         if (aws_array_list_get_at(&elems, (void *)&elem, idx)) {
             aws_array_list_clean_up(&elems);
