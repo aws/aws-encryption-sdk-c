@@ -112,7 +112,7 @@ rethrow:
     result = AWS_OP_ERR;
 cleanup:
     if (materials) {
-        aws_cryptosdk_secure_zero_buf(&materials->unencrypted_data_key);
+        aws_byte_buf_secure_zero(&materials->unencrypted_data_key);
         aws_cryptosdk_encryption_materials_destroy(materials);
     }
 
