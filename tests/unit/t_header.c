@@ -9,6 +9,11 @@
 #include <sys/mman.h>
 #endif
 
+#ifdef _MSC_VER
+#include <malloc.h>
+#define alloca _alloca
+#endif
+
 static const uint8_t test_header_1[] = {
     //version, type, alg ID
     0x01,  0x80,  0x02,  0x14,
@@ -374,7 +379,7 @@ static int overread() {
 
 #else // _POSIX_VERSION
 static int overread() {
-    printf("\nWarning: overread test cannot be performed on this system. Passing trivially.\n");
+    fprintf(stderr, "[SKIPPED] header.overread - not implemented on windows");
     return 0; // can't do overread tests portably
 }
 #endif
@@ -387,7 +392,7 @@ int header_size() {
 
 int simple_header_write() {
     size_t outlen = sizeof(test_header_1) - 1; // not including junk byte
-    uint8_t outbuf[outlen];
+    uint8_t *outbuf = alloca(outlen);
     size_t bytes_written;
 
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_write(&test_header_1_hdr, &bytes_written, outbuf, outlen));
@@ -395,7 +400,7 @@ int simple_header_write() {
     TEST_ASSERT(!memcmp(test_header_1, outbuf, outlen));
 
     size_t outlen2 = sizeof(test_header_2) - 1;
-    uint8_t outbuf2[outlen2];
+    uint8_t *outbuf2 = alloca(outlen2);
     size_t bytes_written2;
 
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_write(&test_header_2_hdr, &bytes_written2, outbuf2, outlen2));
@@ -407,7 +412,7 @@ int simple_header_write() {
 
 int header_failed_write() {
     size_t outlen = sizeof(test_header_1) - 2;
-    uint8_t outbuf[outlen];
+    uint8_t *outbuf = alloca(outlen);
     size_t bytes_written;
     memset(outbuf, 'A', outlen);
 
@@ -420,8 +425,8 @@ int header_failed_write() {
     return 0;
 }
 
+#ifdef _POSIX_VERSION
 int overwrite() {
-
     struct aws_cryptosdk_hdr * test_headers[] = {&test_header_1_hdr, &test_header_2_hdr};
     int pagesize = sysconf(_SC_PAGESIZE);
 
@@ -455,6 +460,12 @@ int overwrite() {
     }
     return 0;
 }
+#else
+int overwrite() {
+    fprintf(stderr, "[SKIPPED] header.overwrite - not implemented on windows");
+    return 0;
+}
+#endif
 
 struct test_case header_test_cases[] = {
     { "header", "parse", simple_header_parse },

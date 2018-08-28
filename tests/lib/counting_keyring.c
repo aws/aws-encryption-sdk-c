@@ -13,11 +13,12 @@
  * limitations under the License.
  */
 #include <stdbool.h>
-#include "counting_mk.h"
+#include "counting_keyring.h"
 #include <aws/cryptosdk/cipher.h>
 #include <aws/common/string.h>
+#include <aws/common/byte_buf.h>
 
-struct counting_mk {const struct aws_cryptosdk_mk_vt * vt;};
+struct counting_keyring {const struct aws_cryptosdk_keyring_vt * vt;};
 
 static inline struct aws_byte_buf aws_string_to_buf(const struct aws_string *s) {
     return aws_byte_buf_from_array(aws_string_bytes(s), s->len);
@@ -27,10 +28,20 @@ AWS_STATIC_STRING_FROM_LITERAL(prov_name, "test_counting");
 AWS_STATIC_STRING_FROM_LITERAL(prov_info, "test_counting_prov_info");
 AWS_STATIC_STRING_FROM_LITERAL(expected_edk, "\x40\x41\x42\x43\x44");
 
-static void set_edk(struct aws_cryptosdk_edk * edk) {
-    edk->provider_id = aws_string_to_buf(prov_name);
-    edk->provider_info = aws_string_to_buf(prov_info);
-    edk->enc_data_key = aws_string_to_buf(expected_edk);
+static int set_edk(struct aws_allocator *alloc, struct aws_cryptosdk_edk * edk) {
+    struct aws_byte_buf src;
+
+    src = aws_string_to_buf(prov_name);
+    if (aws_byte_buf_init_copy(alloc, &edk->provider_id, &src))
+        return AWS_OP_ERR;
+    src = aws_string_to_buf(prov_info);
+    if (aws_byte_buf_init_copy(alloc, &edk->provider_info, &src))
+        return AWS_OP_ERR;
+    src = aws_string_to_buf(expected_edk);
+    if (aws_byte_buf_init_copy(alloc, &edk->enc_data_key, &src))
+        return AWS_OP_ERR;
+
+    return AWS_OP_SUCCESS;
 }
 
 static inline bool str_eq_buf(const struct aws_string *s, const struct aws_byte_buf *buf) {
@@ -45,8 +56,8 @@ static inline bool is_counting_edk(const struct aws_cryptosdk_edk * edk) {
     );
 }
 
-static int counting_mk_generate_data_key(
-    struct aws_cryptosdk_mk * mk,
+static int counting_keyring_generate_data_key(
+    struct aws_cryptosdk_keyring * kr,
     struct aws_cryptosdk_encryption_materials * enc_mat
 ) {
     const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(enc_mat->alg);
@@ -56,21 +67,23 @@ static int counting_mk_generate_data_key(
 
     enc_mat->unencrypted_data_key.len = aws_cryptosdk_alg_props(enc_mat->alg)->data_key_len;
     for (size_t i = 0; i < enc_mat->unencrypted_data_key.len; i++) {
-        enc_mat->unencrypted_data_key.buffer[i] = i;
+        enc_mat->unencrypted_data_key.buffer[i] = (uint8_t)i;
     }
 
     struct aws_cryptosdk_edk edk;
-    set_edk(&edk);
+    if (set_edk(enc_mat->alloc, &edk)) {
+        return AWS_OP_ERR;
+    }
 
     return aws_array_list_push_back(&enc_mat->encrypted_data_keys, &edk);
 }
 
-static int counting_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
+static int counting_keyring_encrypt_data_key(struct aws_cryptosdk_keyring * kr,
                                     struct aws_cryptosdk_encryption_materials * enc_mat
 ) {
     struct aws_byte_buf *unencrypted_data_key = &enc_mat->unencrypted_data_key;
     if (unencrypted_data_key->len != aws_cryptosdk_alg_props(enc_mat->alg)->data_key_len) {
-        // We can't encrypt arbitrary keys with this MK
+        // We can't encrypt arbitrary keys with this KR
         return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     }
 
@@ -82,12 +95,14 @@ static int counting_mk_encrypt_data_key(struct aws_cryptosdk_mk * mk,
     }
 
     struct aws_cryptosdk_edk edk;
-    set_edk(&edk);
+    if (set_edk(enc_mat->alloc, &edk)) {
+        return AWS_OP_ERR;
+    }
 
     return aws_array_list_push_back(&enc_mat->encrypted_data_keys, &edk);
 }
 
-static int counting_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
+static int counting_keyring_decrypt_data_key(struct aws_cryptosdk_keyring * kr,
                                         struct aws_cryptosdk_decryption_materials * dec_mat,
                                         const struct aws_cryptosdk_decryption_request * req
 ) {
@@ -106,7 +121,7 @@ static int counting_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
 
             dec_mat->unencrypted_data_key.len = props->data_key_len;
             for (size_t i = 0; i < dec_mat->unencrypted_data_key.len; i++) {
-                dec_mat->unencrypted_data_key.buffer[i] = i;
+                dec_mat->unencrypted_data_key.buffer[i] = (uint8_t)i;
             }
 
             return AWS_OP_SUCCESS;
@@ -115,19 +130,19 @@ static int counting_mk_decrypt_data_key(struct aws_cryptosdk_mk * mk,
     return AWS_OP_ERR;
 }
 
-static void counting_mk_destroy(struct aws_cryptosdk_mk * mk) {}
+static void counting_keyring_destroy(struct aws_cryptosdk_keyring * kr) {}
 
-static const struct aws_cryptosdk_mk_vt counting_mk_vt = {
-    .vt_size = sizeof(struct aws_cryptosdk_mk_vt),
-    .name = "TEST: counting mk",
-    .destroy = counting_mk_destroy,
-    .generate_data_key = counting_mk_generate_data_key,
-    .encrypt_data_key = counting_mk_encrypt_data_key,
-    .decrypt_data_key = counting_mk_decrypt_data_key
+static const struct aws_cryptosdk_keyring_vt counting_keyring_vt = {
+    .vt_size = sizeof(struct aws_cryptosdk_keyring_vt),
+    .name = "TEST: counting keyring",
+    .destroy = counting_keyring_destroy,
+    .generate_data_key = counting_keyring_generate_data_key,
+    .encrypt_data_key = counting_keyring_encrypt_data_key,
+    .decrypt_data_key = counting_keyring_decrypt_data_key
 };
 
-static struct counting_mk counting_mk_singleton = {.vt = &counting_mk_vt};
+static struct counting_keyring counting_keyring_singleton = {.vt = &counting_keyring_vt};
 
-struct aws_cryptosdk_mk * aws_cryptosdk_counting_mk() {
-    return (struct aws_cryptosdk_mk *)&counting_mk_singleton;
+struct aws_cryptosdk_keyring * aws_cryptosdk_counting_keyring() {
+    return (struct aws_cryptosdk_keyring *)&counting_keyring_singleton;
 }

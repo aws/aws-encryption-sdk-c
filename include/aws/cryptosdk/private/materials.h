@@ -19,8 +19,23 @@
 #include <aws/cryptosdk/materials.h>
 
 /**
+ * Deallocates all memory associated with an EDK. Setting all bytes of EDK to
+ * zero upon creation will make this safe to call even if some buffers are unused.
+ */
+void aws_cryptosdk_edk_clean_up(struct aws_cryptosdk_edk * edk);
+
+/**
  * Deallocates all memory associated with all EDKs in the list and then deallocates the list.
  */
 void aws_cryptosdk_edk_list_clean_up(struct aws_array_list * edk_list);
+
+/**
+ * Returns true if the contents of all EDK byte buffers are identical, false otherwise.
+ */
+static inline bool aws_cryptosdk_edk_eq(const struct aws_cryptosdk_edk * a, const struct aws_cryptosdk_edk * b) {
+    return aws_byte_buf_eq(&a->enc_data_key, &b->enc_data_key) &&
+        aws_byte_buf_eq(&a->provider_info, &b->provider_info) &&
+        aws_byte_buf_eq(&a->provider_id, &b->provider_id);
+}
 
 #endif // AWS_CRYPTOSDK_PRIVATE_MATERIALS_H
