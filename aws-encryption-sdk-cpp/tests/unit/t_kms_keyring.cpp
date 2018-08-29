@@ -371,7 +371,18 @@ int createEncryptRequest_validInputes_returnRequest() {
     return 0;
 }
 
+int kmsKeyRingConstructor_keyIdWithoutRegion_throw() {
+    try {
+        Aws::Cryptosdk::KmsKeyring kms_keyring(aws_default_allocator(), "key_id_no_region");
+    } catch (std::invalid_argument e) {
+        return 0;
+    }
+
+    return AWS_OP_ERR;
+}
+
 //TODO add tests for encryption context and for grant_tokensgrant_tokens
+//TODO add test for multiple keys
 
 
 int main() {
@@ -389,6 +400,7 @@ int main() {
     RUN_TEST(createDecryptRequest_validInputes_returnRequest());
     RUN_TEST(createGenerateDataKeyRequest_validInputes_returnRequest());
     RUN_TEST(createEncryptRequest_validInputes_returnRequest());
+    RUN_TEST(kmsKeyRingConstructor_keyIdWithoutRegion_throw());
 
     Aws::ShutdownAPI(*options);
     Aws::Delete(options);

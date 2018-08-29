@@ -59,7 +59,7 @@ int KmsKeyring::EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
     }
 
     auto self = kms_keyring->keyring_data;
-    auto kms_region = self->GetClientRegion(self->default_key_id);
+    auto kms_region = self->GetRegionForConfiguredKmsKeys(self->default_key_id);
     auto kms_client = self->GetKmsClient(kms_region);
     auto kms_client_request = self->CreateEncryptRequest(
         self->default_key_id,
@@ -112,7 +112,8 @@ int KmsKeyring::DecryptDataKey(struct aws_cryptosdk_keyring *keyring,
         }
 
         const Aws::String key_arn = Private::aws_string_from_c_aws_byte_buf(&edk->provider_info);
-        auto kms_region = self->GetClientRegion(key_arn);
+        auto kms_region = self->GetRegionForConfiguredKmsKeys(key_arn);
+        // If kms_region is empty this means that key_arn was never configured in KmsKeyring.
         // Key saved in provider_info must match the key that has been configured in the KmsKeyring. At this point is
         // not supported to use another key (like an alias)
         if (kms_region == "") {
@@ -165,7 +166,7 @@ int KmsKeyring::GenerateDataKey(struct aws_cryptosdk_keyring *keyring,
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
-    auto kms_region = self->GetClientRegion(self->default_key_id);
+    auto kms_region = self->GetRegionForConfiguredKmsKeys(self->default_key_id);
     auto kms_client = self->GetKmsClient(kms_region);
     auto kms_request = self->CreateGenerateDataKeyRequest(self->default_key_id,
                                                           self->grant_tokens,
@@ -199,21 +200,15 @@ int KmsKeyring::GenerateDataKey(struct aws_cryptosdk_keyring *keyring,
     return AWS_OP_SUCCESS;
 }
 
-aws_cryptosdk_keyring_vt KmsKeyring::CreateAwsCryptosdkKeyring() const {
-    struct aws_cryptosdk_keyring_vt kms_keyring_vt;
-    aws_secure_zero(&kms_keyring_vt, sizeof(struct aws_cryptosdk_keyring_vt));
-
-    kms_keyring_vt.vt_size = sizeof(struct aws_cryptosdk_keyring_vt);
-    kms_keyring_vt.name = KEY_PROVIDER_STR;
-    kms_keyring_vt.destroy = &KmsKeyring::DestroyAwsCryptoKeyring;
-    kms_keyring_vt.generate_data_key = &KmsKeyring::GenerateDataKey;
-    kms_keyring_vt.encrypt_data_key = &KmsKeyring::EncryptDataKey;
-    kms_keyring_vt.decrypt_data_key = &KmsKeyring::DecryptDataKey;
-    return kms_keyring_vt;
-}
-
 void KmsKeyring::InitAwsCryptosdkKeyring(struct aws_allocator *allocator) {
-    static const aws_cryptosdk_keyring_vt kms_keyring_vt = CreateAwsCryptosdkKeyring();
+    static const aws_cryptosdk_keyring_vt kms_keyring_vt = {
+        sizeof(struct aws_cryptosdk_keyring_vt),  // size
+        KEY_PROVIDER_STR,  // name
+        &KmsKeyring::DestroyAwsCryptoKeyring,  // destroy callback
+        &KmsKeyring::GenerateDataKey,  // generate_data_key callback
+        &KmsKeyring::EncryptDataKey,  // encrypt callback
+        &KmsKeyring::DecryptDataKey   // decrypt callback
+    };
     vtable = &kms_keyring_vt;
     alloc = allocator;
     keyring_data = this;
@@ -222,7 +217,7 @@ void KmsKeyring::InitAwsCryptosdkKeyring(struct aws_allocator *allocator) {
 Aws::Cryptosdk::KmsKeyring::KmsKeyring(struct aws_allocator *alloc,
                                        const String &key_id,
                                        std::shared_ptr<Aws::KMS::KMSClient> kms_client) :
-    KmsKeyring(alloc, {key_id}, {}, "default_region",
+    KmsKeyring(alloc, {key_id}, "default_region", {},
                std::make_shared<SingleClientSupplier>(kms_client)) {
 }
 
@@ -232,20 +227,23 @@ Aws::Cryptosdk::KmsKeyring::~KmsKeyring() {
 
 Aws::Cryptosdk::KmsKeyring::KmsKeyring(struct aws_allocator *alloc,
                                        const Aws::List<Aws::String> &key_ids,
+                                       const String &default_region,
                                        const Aws::Vector<Aws::String> &grant_tokens,
-                                       const Aws::String &default_region,
-                                       std::shared_ptr<RegionalClientSupplier> regional_client_supplier)
+                                       std::shared_ptr<RegionalClientSupplier> regional_client_supplier,
+                                       const Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &kms_key_cache)
     : key_provider(aws_byte_buf_from_c_str(KEY_PROVIDER_STR)),
       kms_client_supplier(regional_client_supplier),
       default_region(default_region),
-      grant_tokens(grant_tokens) {
+      grant_tokens(grant_tokens),
+      kms_cached_clients(kms_key_cache) {
     Init(alloc, key_ids);
 }
 
 Aws::Cryptosdk::KmsKeyring::KmsKeyring(struct aws_allocator *alloc,
-                                       const Aws::String &keyId) :
-    KmsKeyring(alloc, Aws::List<Aws::String>{keyId}) {
-
+                                       const Aws::String &key_id) :
+    KmsKeyring(alloc,
+               Aws::List<Aws::String>{key_id},
+               Private::parse_region_from_kms_key_arn(key_id)) {
 }
 
 Aws::KMS::Model::EncryptRequest KmsKeyring::CreateEncryptRequest(const Aws::String &key_id,
@@ -313,13 +311,16 @@ void KmsKeyring::Init(struct aws_allocator *alloc, const Aws::List<Aws::String> 
     if (in_key_ids.front().size() == 0) {
         throw std::invalid_argument("Invalid default key id");
     }
+    if (default_region == "") {
+        throw std::invalid_argument("Invalid default region");
+    }
 
     InitAwsCryptosdkKeyring(alloc);
     default_key_id = in_key_ids.front();
     this->key_ids = BuildKeyIds(in_key_ids);
 }
 
-Aws::String KmsKeyring::GetClientRegion(const Aws::String &key_id) const {
+Aws::String KmsKeyring::GetRegionForConfiguredKmsKeys(const Aws::String &key_id) const {
     if (key_ids.find(key_id) == key_ids.end()) {
         return "";
     }
@@ -335,9 +336,13 @@ std::shared_ptr<KMS::KMSClient> KmsKeyring::GetKmsClient(const Aws::String &regi
 }
 
 void KmsKeyring::SaveKmsClientInCache(const Aws::String &region, std::shared_ptr<KMS::KMSClient> &kms_client) {
+    std::unique_lock<std::mutex> lock(keyring_cache_mutex);
     if (kms_cached_clients.find(region) != kms_cached_clients.end()) {
         kms_cached_clients[region] = kms_client;
     }
+}
+const Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &KmsKeyring::GetKmsCachedClients() const {
+    return kms_cached_clients;
 }
 
 std::shared_ptr<KMS::KMSClient> KmsKeyring::DefaultRegionalClientSupplier::GetClient(

@@ -15,6 +15,7 @@
 #ifndef AWS_ENCRYPTION_SDK_KMS_KEYRING_H
 #define AWS_ENCRYPTION_SDK_KMS_KEYRING_H
 
+#include <mutex>
 #include <aws/common/common.h>
 #include <aws/core/utils/memory/AWSMemory.h>
 #include <aws/core/utils/memory/stl/AWSString.h>
@@ -76,14 +77,16 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
 
     /**
      * Initializes KmsKeyring with a single key_id
+     *
+     * Note: if KMS region can't be extracted from key_id this will throw std::invalid_argument
      * @param alloc Allocator structure. An instance of this will be passed around for anything needing memory
      *              allocation
-     * @param keyId A unique identifier for the customer master key (KMS).
+     * @param key_id A unique identifier for the customer master key (KMS).
      *              To specify a master key, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
      *              This should be specified in the same structure as the one required by KMS client
      */
     KmsKeyring(struct aws_allocator *alloc,
-               const Aws::String &keyId);
+               const Aws::String &key_id);
 
     /**
      * Initializes KmsKeyring to use Aws::KMS::KMSClient with a key_id
@@ -98,6 +101,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
                const Aws::String &key_id,
                std::shared_ptr<Aws::KMS::KMSClient> kms_client);
 
+    //TODO add a builder
     /**
      * Initializes KMSKeyring using a list of KeyIds
      * @param alloc Allocator structure. An instance of this will be passed around for anything needing memory
@@ -114,9 +118,11 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
      */
     KmsKeyring(struct aws_allocator *alloc,
                const Aws::List<Aws::String> &key_ids,
+               const String &default_region,
                const Aws::Vector<Aws::String> &grant_tokens = {},
-               const Aws::String &default_region = Aws::Region::US_EAST_1,
-               std::shared_ptr<RegionalClientSupplier> supplier = std::make_shared<DefaultRegionalClientSupplier>());
+               std::shared_ptr<RegionalClientSupplier> supplier = std::make_shared<DefaultRegionalClientSupplier>(),
+               const Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &kms_key_cache
+                                                       = Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>>());
 
     ~KmsKeyring();
 
@@ -124,10 +130,14 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
     KmsKeyring(const KmsKeyring &) = delete;
     KmsKeyring &operator=(const KmsKeyring &) = delete;
 
+    /**
+     * Returns cached clients from this object
+     */
+    const Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &GetKmsCachedClients() const;
   protected:
     /**
      * It attempts to find one of the EDKs to decrypt
-     * This function will be automatically called when a Master Key needs to be decrypted
+     * This function will be automatically called when a Data Key needs to be decrypted
      * @param keyring Pointer to an aws_cryptosdk_keyring object
      * @param dec_mat Decryption Materials
      * @param request A structure that contains a list of EDKS and an encryption context.
@@ -144,7 +154,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
 
     /**
      * The keyring attempts to encrypt the data key.
-     * This function will be automatically called when a Master Key needs to be encrypted
+     * This function will be automatically called when a Data Key needs to be encrypted
      * @param keyring Pointer to an aws_cryptosdk_keyring object
      * @param enc_mat Encryption materials
      * @return  On success AWS_OP_SUCCESS is returned, the new EDK will be appended onto the list of EDKs.
@@ -155,7 +165,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
 
     /**
      * The keyring attempts to generate a new data key, and returns it in both unencrypted and encrypted form.
-     * This function will be automatically called when a Master Key needs to generate a new pair of encrypted,
+     * This function will be automatically called when a Keyring needs to generate a new pair of encrypted,
      * unencrypted data keys
      * @param keyring Pointer to an aws_cryptosdk_keyring object
      * @param enc_mat
@@ -209,7 +219,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
     /**
      * Returns the region of the key_id or an empty string if it can't extract region
      */
-    Aws::String GetClientRegion(const Aws::String &key_id) const;
+    Aws::String GetRegionForConfiguredKmsKeys(const Aws::String &key_id) const;
 
     /**
      * Returns the KMS Client for a specific region. It can extract it either from the cache (if it exists) or it will
@@ -227,7 +237,6 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
   private:
     void Init(struct aws_allocator *alloc, const Aws::List<Aws::String> &in_key_ids);
     void InitAwsCryptosdkKeyring(struct aws_allocator *allocator);
-    aws_cryptosdk_keyring_vt CreateAwsCryptosdkKeyring() const;
 
     const aws_byte_buf key_provider;
     std::shared_ptr<RegionalClientSupplier> kms_client_supplier;
@@ -246,6 +255,8 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
     //TODO use Aws::UnorderedMap
     // A map of <key-id, region>
     Aws::Map<Aws::String, Aws::String> key_ids;
+
+    std::mutex keyring_cache_mutex;
 };
 
 }  // namespace Cryptosdk
