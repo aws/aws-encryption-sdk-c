@@ -4,40 +4,6 @@
 
 #define MSG_ID_LEN 16
 
-EVP_CipherUpdate(
-    EVP_CIPHER_CTX *ctx,
-    unsigned char *out,
-    int *outl,
-    const unsigned char *in,
-    int inl 
-) {
-    if (out) {
-        *outl = nondet_int();
-        __CPROVER_assume(outl >= 0); 
-        out = malloc(outl);
-    }   
-    if (inl) {
-        size_t idx = nondet_size_t();
-        // nondeterministic index "within bounds" if inl is correct
-        __CPROVER_assume(idx < inl);
-        // access should be ok
-        out[idx];
-    }   
-}
-
-int update_frame_aad_verify (
-    EVP_CIPHER_CTX *ctx,
-    const uint8_t *message_id,
-    int body_frame_type,
-    uint32_t seqno,
-    uint64_t data_size
-) {
-    ctx = malloc(nondet_size_t());
-    message_id = malloc(MSG_ID_LEN);
-    update_frame_aad(ctx, message_id, body_frame_type, seqno, data_size);
-}
-
-
 const EVP_MD *nondet_EVP_MD_ptr();
 const EVP_CIPHER *nondet_EVP_CIPHER_ptr();
 
