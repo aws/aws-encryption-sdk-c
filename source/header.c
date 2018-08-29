@@ -119,6 +119,9 @@ int aws_cryptosdk_hdr_parse_init(struct aws_allocator * allocator, struct aws_cr
 
         uint16_t aad_count;
         if (!aws_byte_cursor_read_be16(&cur, &aad_count)) goto SHORT_BUF;
+        // aad_count may not be zero. In the case of empty encryption context, aad_len must
+        // be zero and the AAD field in the header is skipped entirely.
+        if (!aad_count) goto PARSE_ERR;
         hdr->aad_count = aad_count;
 
         size_t aad_tbl_size = aad_count*sizeof(struct aws_cryptosdk_hdr_aad);
@@ -156,6 +159,7 @@ int aws_cryptosdk_hdr_parse_init(struct aws_allocator * allocator, struct aws_cr
 
     uint16_t edk_count;
     if (!aws_byte_cursor_read_be16(&cur, &edk_count)) goto SHORT_BUF;
+    if (!edk_count) goto PARSE_ERR;
     hdr->edk_count = edk_count;
 
     size_t edk_tbl_size = edk_count*sizeof(struct aws_cryptosdk_edk);

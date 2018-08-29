@@ -307,6 +307,13 @@ int aws_cryptosdk_deserialize_frame(
         result = AWS_ERROR_SHORT_BUFFER;
     }
 
+    if (state.ciphertext_size > SIZE_MAX || state.plaintext_size > SIZE_MAX) {
+        // The ciphertext or plaintext is too large to hold in memory on this platform.
+        // This avoids issues with integer truncation resulting in the upper bits of
+        // the frame size being ignored on 32-bit platforms.
+        result = AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED;
+    }
+
     *plaintext_size = state.plaintext_size;
     *ciphertext_size = state.ciphertext_size;
 
