@@ -145,7 +145,7 @@ static const uint8_t test_header_2[] = { // same as test_header_1 with no AAD se
     0xFF
 };
 
-static const uint8_t bad_header_1[] = { // nonzero reserve bytes
+static const uint8_t hdr_with_nonzero_reserve_bytes[] = {
     //version, type, alg ID
     0x01,  0x80,  0x02,  0x14,
     //message ID
@@ -153,7 +153,9 @@ static const uint8_t bad_header_1[] = { // nonzero reserve bytes
     //AAD length (0 bytes)
     0x00, 0x00,
     //edk count
-    0x00, 0x00,
+    0x00, 0x01,
+    //edk #0 (all empty fields)
+    0x00,  0x00,  0x00,  0x00,  0x00,  0x00,
     //content type
     0x02,
     //reserved
@@ -165,10 +167,65 @@ static const uint8_t bad_header_1[] = { // nonzero reserve bytes
     //iv  FIXME: this IV and authentication tag is not valid, change when we implement authentication
     0x00,  0x01,  0x02,  0x03,  0x04,  0x05,  0x06,  0x07,  0x08,  0x09,  0x0a,  0x0b,
     //header auth
-    0xde,  0xad,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0xbe, 0xef,
-    // extra byte - used to verify that we can parse with extra trailing junk
-    0xFF
+    0xde,  0xad,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0xbe, 0xef
 };
+
+static const uint8_t hdr_with_zero_aad_count[] = { // AAD len can be zero, but AAD count cannot
+    //version, type, alg ID
+    0x01,  0x80,  0x02,  0x14,
+    //message ID
+    0x11,  0x22,  0x33,  0x44,  0x55,  0x66,  0x77,  0x88,  0x11,  0x22,  0x33,  0x44,  0x55,  0x66,  0x77,  0x88,
+    //AAD length (2 bytes)
+    0x00, 0x02,
+    //AAD count
+    0x00, 0x00,
+    //edk count
+    0x00, 0x01,
+    //edk #0 (all empty fields)
+    0x00,  0x00,  0x00,  0x00,  0x00,  0x00,
+    //content type
+    0x02,
+    //reserved
+    0x00,  0x00,  0x00,  0x00,
+    //iv len
+    0x0c,
+    //frame length
+    0x00,  0x00,  0x10,  0x00,
+    //iv  FIXME: this IV and authentication tag is not valid, change when we implement authentication
+    0x00,  0x01,  0x02,  0x03,  0x04,  0x05,  0x06,  0x07,  0x08,  0x09,  0x0a,  0x0b,
+    //header auth
+    0xde,  0xad,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0xbe, 0xef
+};
+
+static const uint8_t hdr_with_zero_edk_count[] = {
+    //version, type, alg ID
+    0x01,  0x80,  0x02,  0x14,
+    //message ID
+    0x11,  0x22,  0x33,  0x44,  0x55,  0x66,  0x77,  0x88,  0x11,  0x22,  0x33,  0x44,  0x55,  0x66,  0x77,  0x88,
+    //AAD length (0 bytes)
+    0x00, 0x00,
+    //edk count
+    0x00, 0x00,
+    //content type
+    0x02,
+    //reserved
+    0x00,  0x00,  0x00,  0x00,
+    //iv len
+    0x0c,
+    //frame length
+    0x00,  0x00,  0x10,  0x00,
+    //iv  FIXME: this IV and authentication tag is not valid, change when we implement authentication
+    0x00,  0x01,  0x02,  0x03,  0x04,  0x05,  0x06,  0x07,  0x08,  0x09,  0x0a,  0x0b,
+    //header auth
+    0xde,  0xad,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0xbe, 0xef
+};
+
+static const uint8_t *bad_headers[] = {hdr_with_nonzero_reserve_bytes,
+                                       hdr_with_zero_aad_count,
+                                       hdr_with_zero_edk_count};
+static const size_t bad_headers_sz[] = {sizeof(hdr_with_nonzero_reserve_bytes),
+                                        sizeof(hdr_with_zero_aad_count),
+                                        sizeof(hdr_with_zero_edk_count)};
 
 struct aws_cryptosdk_hdr test_header_2_hdr = {
     .alg_id = AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
@@ -301,11 +358,15 @@ int failed_parse() {
     TEST_ASSERT_INT_EQ(aws_cryptosdk_hdr_size(&hdr), 0);
 
     // faulty header
-    struct aws_cryptosdk_hdr hdr2;
-    TEST_ASSERT_INT_NE(AWS_OP_SUCCESS,
-                       aws_cryptosdk_hdr_parse_init(allocator, &hdr2, bad_header_1, sizeof(bad_header_1)));
+    size_t num_bad_hdrs = sizeof(bad_headers)/sizeof(uint8_t *);
 
-    TEST_ASSERT_INT_EQ(aws_cryptosdk_hdr_size(&hdr2), 0);
+    for (size_t hdr_idx = 0; hdr_idx < num_bad_hdrs; ++hdr_idx) {
+        struct aws_cryptosdk_hdr hdr2;
+        TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT,
+                          aws_cryptosdk_hdr_parse_init(allocator, &hdr2, bad_headers[hdr_idx], bad_headers_sz[hdr_idx]));
+
+        TEST_ASSERT_INT_EQ(aws_cryptosdk_hdr_size(&hdr2), 0);
+    }
 
     return 0;
 }
