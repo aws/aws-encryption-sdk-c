@@ -463,8 +463,8 @@ static const EVP_CIPHER * get_alg_from_key_size(size_t key_len) {
 }
 
 // These implementations of AES-GCM encryption/decryption only support these tag/IV lengths
-static const int aes_gcm_tag_len = 16;
-static const int aes_gcm_iv_len = 12;
+static const size_t aes_gcm_tag_len = 16;
+static const size_t aes_gcm_iv_len = 12;
 
 int aws_cryptosdk_aes_gcm_encrypt(struct aws_byte_buf * cipher,
                                   struct aws_byte_buf * tag,
