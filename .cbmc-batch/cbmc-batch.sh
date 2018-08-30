@@ -13,9 +13,7 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
-set -u
-set -x
+set -eux
 
 if [ "$#" -eq 0 ]; then
     echo "Specify option -s to start jobs, -e to end jobs, and -c to cleanup bookkeeping"
