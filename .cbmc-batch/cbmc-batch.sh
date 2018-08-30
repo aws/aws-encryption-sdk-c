@@ -47,7 +47,7 @@ while getopts ":sec" opt; do
                 make -f $Makefile copy
                 dir=${Makefile#*-} # directory name from copy
                 job=${dir%-local-*-*} # original job name
-                check="$( python check_result.py $dir jobs/$job/cbmc-batch.yaml )"
+                check="$( ./check_result.py $dir jobs/$job/cbmc-batch.yaml )"
                 echo "$job: $check" >> $result
             done
             ;;
