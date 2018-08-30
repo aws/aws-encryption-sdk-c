@@ -27,14 +27,18 @@ In order to start the CBMC Batch jobs and check results locally, you need to hav
 
 You can start the CBMC Batch jobs locally by running
 
-    bash cbmc-batch.sh --start
+    bash cbmc-batch.sh -s
 
 You can then check CBMC Batch results locally by running
 
-	bash cbmc-batch.sh --end
+	bash cbmc-batch.sh -e
 
 This will run until all the jobs have finished and output results in `results.txt`.
 
 You can clean up the local CBMC Batch bookkeeping files by running
 
-    bash cbmc-batch.sh --cleanup
+    bash cbmc-batch.sh -c
+
+The options can be combined, e.g. the following will start the jobs, check their outputs, and then remove all the bookkeeping files:
+
+    bash cbmc-batch.sh -sec
