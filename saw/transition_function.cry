@@ -6,219 +6,219 @@ import type_def
 
 writeHeader : current_state -> current_state
 writeHeader state_old = 
-	if state_old.output_buffer.len >= state_old.sess.header_size then 
-		{sess = sess_new_success
-		, output_buffer = output_buffer_new_success
-		, input_buffer = state_old.input_buffer
-		}
-			where sess_new_success = {output_size_estimate = state_old.sess.header_size
-						, input_size_estimate = state_old.sess.input_size_estimate
-						, header_size = state_old.sess.header_size
-						, state = ST_ENCRYPT_BODY
-						, mode = state_old.sess.mode
-						, precise_size = state_old.sess.precise_size
-						, data_so_far = state_old.sess.data_so_far
-						, frame_size = state_old.sess.frame_size
-						, precise_size_known = state_old.sess.precise_size_known
-						, alg_prop = state_old.sess.alg_prop
-						, header = state_old.sess.header
-						 }
-			where output_buffer_new_success = {ptr = state_old.output_buffer.ptr + state_old.sess.header_size
-					 		, len = state_old.output_buffer.len - state_old.sess.header_size
-					 		}
-	else {sess = sess_new_fail
-		, output_buffer = output_buffer_new_fail
-		, input_buffer = state_old.input_buffer
-		}
-			where sess_new_fail = {output_size_estimate = state_old.sess.header_size
-						, input_size_estimate = state_old.sess.input_size_estimate
-						, header_size = state_old.sess.header_size
-						, state = state_old.sess.state 
-						, mode = state_old.sess.mode
-						, precise_size = state_old.sess.precise_size
-						, data_so_far = state_old.sess.data_so_far
-						, frame_size = state_old.sess.frame_size
-						, precise_size_known = state_old.sess.precise_size_known
-						, alg_prop = state_old.sess.alg_prop
-						, header = state_old.sess.header
-					 	}
-			where output_buffer_new_fail = {ptr = state_old.output_buffer.ptr 
-					 	, len = state_old.output_buffer.len
-					 	} 
+    if state_old.output_buffer.len >= state_old.sess.header_size then 
+        {sess = sess_new_success
+        , output_buffer = output_buffer_new_success
+        , input_buffer = state_old.input_buffer
+        }
+            where sess_new_success = {output_size_estimate = state_old.sess.header_size
+                        , input_size_estimate = state_old.sess.input_size_estimate
+                        , header_size = state_old.sess.header_size
+                        , state = ST_ENCRYPT_BODY
+                        , mode = state_old.sess.mode
+                        , precise_size = state_old.sess.precise_size
+                        , data_so_far = state_old.sess.data_so_far
+                        , frame_size = state_old.sess.frame_size
+                        , precise_size_known = state_old.sess.precise_size_known
+                        , alg_prop = state_old.sess.alg_prop
+                        , header = state_old.sess.header
+                         }
+            where output_buffer_new_success = {ptr = state_old.output_buffer.ptr + state_old.sess.header_size
+                            , len = state_old.output_buffer.len - state_old.sess.header_size
+                            }
+    else {sess = sess_new_fail
+        , output_buffer = output_buffer_new_fail
+        , input_buffer = state_old.input_buffer
+        }
+            where sess_new_fail = {output_size_estimate = state_old.sess.header_size
+                        , input_size_estimate = state_old.sess.input_size_estimate
+                        , header_size = state_old.sess.header_size
+                        , state = state_old.sess.state 
+                        , mode = state_old.sess.mode
+                        , precise_size = state_old.sess.precise_size
+                        , data_so_far = state_old.sess.data_so_far
+                        , frame_size = state_old.sess.frame_size
+                        , precise_size_known = state_old.sess.precise_size_known
+                        , alg_prop = state_old.sess.alg_prop
+                        , header = state_old.sess.header
+                        }
+            where output_buffer_new_fail = {ptr = state_old.output_buffer.ptr 
+                        , len = state_old.output_buffer.len
+                        } 
 
 
 // Cryptol translation of function try_parse_header in session_decrypt.c (line 156 - 191)
 
 getHeaderSize : current_state -> [32]
 getHeaderSize state_old = 
-	if ( state_old.sess.header.aad_len_total > 0 ) then (18 + MESSAGE_ID_LEN + state_old.sess.header.aad_len_total + state_old.sess.header.edk_len_total)
-	else (20 + MESSAGE_ID_LEN + state_old.sess.header.aad_len_total + state_old.sess.header.edk_len_total)
+    if ( state_old.sess.header.aad_len_total > 0 ) then (18 + MESSAGE_ID_LEN + state_old.sess.header.aad_len_total + state_old.sess.header.edk_len_total)
+    else (20 + MESSAGE_ID_LEN + state_old.sess.header.aad_len_total + state_old.sess.header.edk_len_total)
 
 updateInputBuffer : current_state -> [32]
 updateInputBuffer state_old = 
-	if ( state_old.sess.input_size_estimate < state_old.input_buffer.len ) then 
-		if ( (state_old.input_buffer.len + 128) < state_old.input_buffer.len ) then ( SIZE_T - 1 )
-		else  (state_old.input_buffer.len + 128)
-	else state_old.sess.input_size_estimate
+    if ( state_old.sess.input_size_estimate < state_old.input_buffer.len ) then 
+        if ( (state_old.input_buffer.len + 128) < state_old.input_buffer.len ) then ( SIZE_T - 1 )
+        else  (state_old.input_buffer.len + 128)
+    else state_old.sess.input_size_estimate
 
 
 parseHeader : current_state -> current_state 
 parseHeader state_old = 
-	if (state_old.input_buffer.len < ( getHeaderSize state_old ) ) then {sess = sess_new_fail
-																	, output_buffer = state_old.output_buffer
-																	, input_buffer = state_old.input_buffer
-																	}
-		where sess_new_fail = { output_size_estimate = 0
-								, input_size_estimate = ( updateInputBuffer state_old )
-								, header_size = state_old.sess.header_size
-								, state = state_old.sess.state 
-								, mode = state_old.sess.mode
-								, precise_size = state_old.sess.precise_size
-								, data_so_far = state_old.sess.data_so_far
-								, frame_size = state_old.sess.frame_size
-								, precise_size_known = state_old.sess.precise_size_known
-								, alg_prop = state_old.sess.alg_prop
-								, header = state_old.sess.header
-								}
+    if (state_old.input_buffer.len < ( getHeaderSize state_old ) ) then {sess = sess_new_fail
+                                                                    , output_buffer = state_old.output_buffer
+                                                                    , input_buffer = state_old.input_buffer
+                                                                    }
+        where sess_new_fail = { output_size_estimate = 0
+                                , input_size_estimate = ( updateInputBuffer state_old )
+                                , header_size = state_old.sess.header_size
+                                , state = state_old.sess.state 
+                                , mode = state_old.sess.mode
+                                , precise_size = state_old.sess.precise_size
+                                , data_so_far = state_old.sess.data_so_far
+                                , frame_size = state_old.sess.frame_size
+                                , precise_size_known = state_old.sess.precise_size_known
+                                , alg_prop = state_old.sess.alg_prop
+                                , header = state_old.sess.header
+                                }
 
-	else { sess = sess_new_succ
-		, output_buffer = state_old.output_buffer
-		, input_buffer = { ptr = state_old.input_buffer.ptr + ( getHeaderSize state_old )
-						, len = state_old.output_buffer.ptr - ( getHeaderSize state_old )
-						}
-		}
-		where sess_new_succ = { output_size_estimate = state_old.sess.output_size_estimate
-								, input_size_estimate = state_old.sess.input_size_estimate
-								, header_size = state_old.sess.header_size
-								, state = ST_UNWRAP_KEY 
-								, mode = state_old.sess.mode
-								, precise_size = state_old.sess.precise_size
-								, data_so_far = state_old.sess.data_so_far
-								, frame_size = state_old.sess.frame_size
-								, precise_size_known = state_old.sess.precise_size_known
-								, alg_prop = state_old.sess.alg_prop
-								, header = state_old.sess.header
-								}
+    else { sess = sess_new_succ
+        , output_buffer = state_old.output_buffer
+        , input_buffer = { ptr = state_old.input_buffer.ptr + ( getHeaderSize state_old )
+                        , len = state_old.output_buffer.ptr - ( getHeaderSize state_old )
+                        }
+        }
+        where sess_new_succ = { output_size_estimate = state_old.sess.output_size_estimate
+                                , input_size_estimate = state_old.sess.input_size_estimate
+                                , header_size = state_old.sess.header_size
+                                , state = ST_UNWRAP_KEY 
+                                , mode = state_old.sess.mode
+                                , precise_size = state_old.sess.precise_size
+                                , data_so_far = state_old.sess.data_so_far
+                                , frame_size = state_old.sess.frame_size
+                                , precise_size_known = state_old.sess.precise_size_known
+                                , alg_prop = state_old.sess.alg_prop
+                                , header = state_old.sess.header
+                                }
 
-	
-	
+    
+    
 
 // Cryptol translation of function try_encrypt_body in session_encrypt.c (line 238 - 333)
 
 
 encryptHelper : current_state -> [32] -> [32] -> [4] -> current_state 
 encryptHelper state_old size_in size_out new_state = 
-	if ( state_old.input_buffer.len < size_in ) || ( state_old.output_buffer.len < size_out ) then 
-		{ sess = { output_size_estimate = size_out
-				, input_size_estimate = size_in
-				, header_size = state_old.sess.header_size
-				, state = state_old.sess.state
-				, mode = state_old.sess.mode
-				, precise_size = state_old.sess.precise_size
-				, data_so_far = state_old.sess.data_so_far
-				, frame_size = state_old.sess.frame_size
-				, precise_size_known = state_old.sess.precise_size_known
-				, alg_prop = state_old.sess.alg_prop
-				, header = state_old.sess.header
-				}
-		, output_buffer = state_old.output_buffer
-		, input_buffer = state_old.input_buffer
-		}
-	else { sess = { output_size_estimate = size_out
-					, input_size_estimate = size_in
-					, header_size = state_old.sess.header_size
-					, state = new_state
-					, mode = state_old.sess.mode
-					, precise_size = state_old.sess.precise_size
-					, data_so_far = state_old.sess.data_so_far + size_in 
-					, frame_size = state_old.sess.frame_size
-					, precise_size_known = state_old.sess.precise_size_known
-					, alg_prop = state_old.sess.alg_prop
-					, header = state_old.sess.header
-				}
-				, output_buffer = { ptr = state_old.output_buffer.ptr + size_out
-									, len = state_old.output_buffer.len - size_out
-									}
-				, input_buffer = { ptr = state_old.input_buffer.ptr + size_in
-									, len = state_old.input_buffer.len - size_in
-									}		
-		}
+    if ( state_old.input_buffer.len < size_in ) || ( state_old.output_buffer.len < size_out ) then 
+        { sess = { output_size_estimate = size_out
+                , input_size_estimate = size_in
+                , header_size = state_old.sess.header_size
+                , state = state_old.sess.state
+                , mode = state_old.sess.mode
+                , precise_size = state_old.sess.precise_size
+                , data_so_far = state_old.sess.data_so_far
+                , frame_size = state_old.sess.frame_size
+                , precise_size_known = state_old.sess.precise_size_known
+                , alg_prop = state_old.sess.alg_prop
+                , header = state_old.sess.header
+                }
+        , output_buffer = state_old.output_buffer
+        , input_buffer = state_old.input_buffer
+        }
+    else { sess = { output_size_estimate = size_out
+                    , input_size_estimate = size_in
+                    , header_size = state_old.sess.header_size
+                    , state = new_state
+                    , mode = state_old.sess.mode
+                    , precise_size = state_old.sess.precise_size
+                    , data_so_far = state_old.sess.data_so_far + size_in 
+                    , frame_size = state_old.sess.frame_size
+                    , precise_size_known = state_old.sess.precise_size_known
+                    , alg_prop = state_old.sess.alg_prop
+                    , header = state_old.sess.header
+                }
+                , output_buffer = { ptr = state_old.output_buffer.ptr + size_out
+                                    , len = state_old.output_buffer.len - size_out
+                                    }
+                , input_buffer = { ptr = state_old.input_buffer.ptr + size_in
+                                    , len = state_old.input_buffer.len - size_in
+                                    }       
+        }
 
 encryptBodyFramed : current_state -> current_state
 encryptBodyFramed state_old = 
-	if ( state_old.sess.precise_size_known == 1 ) && (state_old.sess.precise_size - state_old.sess.data_so_far < state_old.sess.frame_size) then 
-		encryptHelper state_old (state_old.sess.precise_size - state_old.sess.data_so_far) (8 + state_old.sess.alg_prop.iv_len + 4 + state_old.sess.precise_size - state_old.sess.data_so_far + state_old.sess.alg_prop.tag_len) ST_WRITE_TRAILER
-	else encryptHelper state_old state_old.sess.frame_size (4 + state_old.sess.alg_prop.iv_len + state_old.sess.frame_size + state_old.sess.alg_prop.tag_len) ST_ENCRYPT_BODY
+    if ( state_old.sess.precise_size_known == 1 ) && (state_old.sess.precise_size - state_old.sess.data_so_far < state_old.sess.frame_size) then 
+        encryptHelper state_old (state_old.sess.precise_size - state_old.sess.data_so_far) (8 + state_old.sess.alg_prop.iv_len + 4 + state_old.sess.precise_size - state_old.sess.data_so_far + state_old.sess.alg_prop.tag_len) ST_WRITE_TRAILER
+    else encryptHelper state_old state_old.sess.frame_size (4 + state_old.sess.alg_prop.iv_len + state_old.sess.frame_size + state_old.sess.alg_prop.tag_len) ST_ENCRYPT_BODY
 
 encryptBodyUnframed : current_state -> current_state
 encryptBodyUnframed state_old = 
-	if ( state_old.sess.precise_size_known == 1 ) then encryptHelper state_old state_old.sess.precise_size (state_old.sess.alg_prop.iv_len + 8 + state_old.sess.precise_size + state_old.sess.alg_prop.tag_len) ST_WRITE_TRAILER
-	else { sess = { output_size_estimate = 0
-					, input_size_estimate = 0
-					, header_size = state_old.sess.header_size
-					, state = state_old.sess.state
-					, mode = state_old.sess.mode
-					, precise_size = state_old.sess.precise_size
-					, data_so_far = state_old.sess.data_so_far
-					, frame_size = state_old.sess.frame_size
-					, precise_size_known = state_old.sess.precise_size_known
-					, alg_prop = state_old.sess.alg_prop
-					, header = state_old.sess.header
-				}
-				, output_buffer = state_old.output_buffer
-				, input_buffer = state_old.input_buffer	
-		}
+    if ( state_old.sess.precise_size_known == 1 ) then encryptHelper state_old state_old.sess.precise_size (state_old.sess.alg_prop.iv_len + 8 + state_old.sess.precise_size + state_old.sess.alg_prop.tag_len) ST_WRITE_TRAILER
+    else { sess = { output_size_estimate = 0
+                    , input_size_estimate = 0
+                    , header_size = state_old.sess.header_size
+                    , state = state_old.sess.state
+                    , mode = state_old.sess.mode
+                    , precise_size = state_old.sess.precise_size
+                    , data_so_far = state_old.sess.data_so_far
+                    , frame_size = state_old.sess.frame_size
+                    , precise_size_known = state_old.sess.precise_size_known
+                    , alg_prop = state_old.sess.alg_prop
+                    , header = state_old.sess.header
+                }
+                , output_buffer = state_old.output_buffer
+                , input_buffer = state_old.input_buffer 
+        }
 
 encryptBody : current_state -> current_state
 encryptBody state_old = 
-	if state_old.sess.frame_size > 0 then encryptBodyFramed state_old
-	else encryptBodyUnframed state_old
-		
+    if state_old.sess.frame_size > 0 then encryptBodyFramed state_old
+    else encryptBodyUnframed state_old
+        
 
 // Partial Cryptol translation of function try_decrypt_body in session_decrypt.c (line 193 - 252)
 
 decryptHelper : current_state -> [32] -> [32] -> [4] -> current_state
 decryptHelper state_old size_in size_out new_state = 
-	if ( state_old.input_buffer.len < size_in ) || ( state_old.output_buffer.len < size_out ) then 
-		{ sess = { output_size_estimate = size_out
-				, input_size_estimate = size_in
-				, header_size = state_old.sess.header_size
-				, state = state_old.sess.state
-				, mode = state_old.sess.mode
-				, precise_size = state_old.sess.precise_size
-				, data_so_far = state_old.sess.data_so_far
-				, frame_size = state_old.sess.frame_size
-				, precise_size_known = state_old.sess.precise_size_known
-				, alg_prop = state_old.sess.alg_prop
-				, header = state_old.sess.header
-				}
-		, output_buffer = state_old.output_buffer
-		, input_buffer = state_old.input_buffer
-		}
-	else { sess = { output_size_estimate = size_out
-					, input_size_estimate = size_in
-					, header_size = state_old.sess.header_size
-					, state = new_state
-					, mode = state_old.sess.mode
-					, precise_size = state_old.sess.precise_size
-					, data_so_far = state_old.sess.data_so_far + size_in 
-					, frame_size = state_old.sess.frame_size
-					, precise_size_known = state_old.sess.precise_size_known
-					, alg_prop = state_old.sess.alg_prop
-					, header = state_old.sess.header
-				}
-				, output_buffer = { ptr = state_old.output_buffer.ptr + size_out
-									, len = state_old.output_buffer.len - size_out
-									}
-				, input_buffer = { ptr = state_old.input_buffer.ptr + size_in
-									, len = state_old.input_buffer.len - size_in
-									}		
-		}
+    if ( state_old.input_buffer.len < size_in ) || ( state_old.output_buffer.len < size_out ) then 
+        { sess = { output_size_estimate = size_out
+                , input_size_estimate = size_in
+                , header_size = state_old.sess.header_size
+                , state = state_old.sess.state
+                , mode = state_old.sess.mode
+                , precise_size = state_old.sess.precise_size
+                , data_so_far = state_old.sess.data_so_far
+                , frame_size = state_old.sess.frame_size
+                , precise_size_known = state_old.sess.precise_size_known
+                , alg_prop = state_old.sess.alg_prop
+                , header = state_old.sess.header
+                }
+        , output_buffer = state_old.output_buffer
+        , input_buffer = state_old.input_buffer
+        }
+    else { sess = { output_size_estimate = size_out
+                    , input_size_estimate = size_in
+                    , header_size = state_old.sess.header_size
+                    , state = new_state
+                    , mode = state_old.sess.mode
+                    , precise_size = state_old.sess.precise_size
+                    , data_so_far = state_old.sess.data_so_far + size_in 
+                    , frame_size = state_old.sess.frame_size
+                    , precise_size_known = state_old.sess.precise_size_known
+                    , alg_prop = state_old.sess.alg_prop
+                    , header = state_old.sess.header
+                }
+                , output_buffer = { ptr = state_old.output_buffer.ptr + size_out
+                                    , len = state_old.output_buffer.len - size_out
+                                    }
+                , input_buffer = { ptr = state_old.input_buffer.ptr + size_in
+                                    , len = state_old.input_buffer.len - size_in
+                                    }       
+        }
 
 //TODO: Size of the unframed data is stored in the ciphertext (input_buffer). What is the best way to model this?
 //TODO: Should not be using state_old.sess.precise_size. This is only temporary. 
 decryptBodyUnframed : current_state -> current_state 
-decryptBodyUnframed state_old = decryptHelper state_old ( state_old.sess.alg_prop.iv_len + 8 + state_old.sess.precise_size + state_old.sess.alg_prop.tag_len) 	state_old.sess.precise_size ST_CHECK_TRAILER
+decryptBodyUnframed state_old = decryptHelper state_old ( state_old.sess.alg_prop.iv_len + 8 + state_old.sess.precise_size + state_old.sess.alg_prop.tag_len)   state_old.sess.precise_size ST_CHECK_TRAILER
 
 //TODO: Whether the frame is final as well as the size of the final frame is stored in the ciphertext (input_buffer). What is the best way to model this?
 
@@ -227,7 +227,7 @@ decryptBodyFramed state_old = state_old
 
 decryptBody : current_state -> current_state 
 decryptBody state_old = 
-	if ( state_old.sess.frame_size > 0 ) then decryptBodyUnframed state_old
-	else decryptBodyUnframed state_old
+    if ( state_old.sess.frame_size > 0 ) then decryptBodyUnframed state_old
+    else decryptBodyUnframed state_old
 
 
