@@ -17,31 +17,25 @@
 #define AWS_CRYPTOSDK_PRIVATE_HEADER_H
 
 #include <aws/common/byte_buf.h>
+#include <aws/common/hash_table.h>
 #include "aws/cryptosdk/header.h"
 #include "aws/cryptosdk/materials.h" // struct aws_cryptosdk_edk
 
 #define MESSAGE_ID_LEN 16
-
-/**
- * Used to pass encryption context key-value pairs.
- */
-struct aws_cryptosdk_hdr_aad {
-    struct aws_byte_buf key, value;
-};
-
 struct aws_cryptosdk_hdr {
+    struct aws_allocator *alloc;
+
     uint16_t alg_id;
 
-    uint16_t aad_count;
-    uint16_t edk_count;
     uint32_t frame_len;
 
     struct aws_byte_buf iv, auth_tag;
 
     uint8_t message_id[MESSAGE_ID_LEN];
 
-    struct aws_cryptosdk_hdr_aad *aad_tbl;
-    struct aws_cryptosdk_edk *edk_tbl;
+    // aws_string * -> aws_string *
+    struct aws_hash_table enc_context;
+    struct aws_array_list edk_list;
 
     // number of bytes of header except for IV and auth tag,
     // i.e., exactly the bytes that get authenticated
@@ -64,26 +58,33 @@ enum aws_cryptosdk_hdr_content_type {
 };
 
 /**
- * Frees all memory which has been allocated to hdr object and zeroizes hdr.
- * This is idempotent. Multiple frees are safe.
+ * Initializes the header datastructure; on return, all fields are zeroed,
+ * except for enc_context and edk_tbl, which are empty.
  */
-void aws_cryptosdk_hdr_clean_up(struct aws_allocator * allocator,
-                                struct aws_cryptosdk_hdr *hdr);
+int aws_cryptosdk_hdr_init(struct aws_cryptosdk_hdr *hdr, struct aws_allocator *alloc);
+
+/**
+ * Frees all memory which has been allocated to hdr object and zeroizes hdr.
+ * This method is idempotent - that is, it can safely be called multiple times
+ * on the same header without an intervening init; however it cannot be called
+ * on an _uninitialized_ header.
+ */
+void aws_cryptosdk_hdr_clean_up(struct aws_cryptosdk_hdr *hdr);
+
+/**
+ * Resets the header to the same state as it would have after hdr_init
+ */
+void aws_cryptosdk_hdr_clear(struct aws_cryptosdk_hdr *hdr);
 
 /**
  * Reads raw header data from src and populates hdr with all of the information about the
- * message. hdr is assumed to be an uninitialized hdr struct when this is called. If hdr
- * has any memory already allocated to it, that memory will be lost.
+ * message. hdr must have been initialized with aws_cryptosdk_hdr_init.
  *
- * If this succeeds, hdr will have memory allocated to it, which must be freed with
- * aws_cryptosdk_hdr_clean_up.
- *
- * If this fails, no memory will be allocated and hdr will be zeroized.
+ * This function will clear the header before parsing, and will leave the header in a cleared
+ * state on failure.
  */
-int aws_cryptosdk_hdr_parse_init(struct aws_allocator * allocator,
-                                 struct aws_cryptosdk_hdr *hdr,
-                                 const uint8_t *src,
-                                 size_t src_len);
+int aws_cryptosdk_hdr_parse(struct aws_cryptosdk_hdr *hdr,
+                            struct aws_byte_cursor *cursor);
 
 /**
  * Reads information from already parsed hdr object and determines how many bytes are

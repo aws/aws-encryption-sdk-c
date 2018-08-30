@@ -87,8 +87,13 @@ int aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(struct aws_cryptosdk_
      */
     assert(data_key_len == data_key->len);
 
-    struct aws_byte_buf aad;
-    if (aws_cryptosdk_serialize_enc_context_init(self->alloc, &aad, enc_mat->enc_context)) {
+    size_t aad_len;
+    struct aws_byte_buf aad = {0};
+    if (aws_cryptosdk_context_size(&aad_len, enc_mat->enc_context)
+        || aws_byte_buf_init(enc_mat->alloc, &aad, aad_len)
+        || aws_cryptosdk_context_serialize(enc_mat->alloc, &aad, enc_mat->enc_context)) {
+        aws_byte_buf_clean_up(&aad);
+
         return AWS_OP_ERR;
     }
 
@@ -161,8 +166,13 @@ static int raw_aes_keyring_decrypt_data_key(struct aws_cryptosdk_keyring * kr,
                                        const struct aws_cryptosdk_decryption_request * request) {
     struct raw_aes_keyring * self = (struct raw_aes_keyring *)kr;
 
-    struct aws_byte_buf aad;
-    if (aws_cryptosdk_serialize_enc_context_init(request->alloc, &aad, request->enc_context)) {
+    size_t aad_len;
+    struct aws_byte_buf aad = {0};
+    if (aws_cryptosdk_context_size(&aad_len, request->enc_context)
+        || aws_byte_buf_init(request->alloc, &aad, aad_len)
+        || aws_cryptosdk_context_serialize(dec_mat->alloc, &aad, request->enc_context)) {
+        aws_byte_buf_clean_up(&aad);
+
         return AWS_OP_ERR;
     }
 

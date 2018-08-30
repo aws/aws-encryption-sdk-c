@@ -34,7 +34,7 @@ int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_
     session->header_copy = NULL;
     session->header_size = 0;
 
-    aws_cryptosdk_hdr_clean_up(session->alloc, &session->header);
+    aws_cryptosdk_hdr_clear(&session->header);
 
     /* Stash the state we want to keep and zero the rest */
     struct aws_cryptosdk_session new_session;
@@ -43,8 +43,15 @@ int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_
     new_session.cmm = session->cmm;
     new_session.frame_size = session->frame_size;
     new_session.mode = mode;
+    // Preserve the allocated structures in the header.
+    //
+    // It's not necessarily safe to move hash tables around, but we're moving it back into its original memory location,
+    // so as long as nobody is observing it from another thread (which is a violation of our API contract), nobody
+    // should notice.
+    new_session.header = session->header;
 
-    // Make sure we scrub any sensitive data from the old session before overwriting it.
+    // Make sure we scrub any sensitive data from the old session before overwriting it (we don't know how the compiler
+    // might optimize the following copy).
     aws_secure_zero(session, sizeof(*session));
     *session = new_session;
 
@@ -75,8 +82,14 @@ static struct aws_cryptosdk_session *aws_cryptosdk_session_new(
     session->alloc = allocator;
     session->frame_size = DEFAULT_FRAME_SIZE;
 
+    if (aws_cryptosdk_hdr_init(&session->header, allocator)) {
+        aws_mem_release(allocator, session);
+        return NULL;
+    }
+
     // This can fail due to invalid mode
     if (aws_cryptosdk_session_reset(session, mode)) {
+        aws_cryptosdk_hdr_clean_up(&session->header);
         aws_mem_release(allocator, session);
         return NULL;
     }
@@ -102,6 +115,9 @@ void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session) {
     struct aws_allocator *alloc = session->alloc;
 
     aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT); // frees header arena and other dynamically allocated stuff
+
+    aws_cryptosdk_hdr_clean_up(&session->header);
+
     aws_secure_zero(session, sizeof(*session));
 
     aws_mem_release(alloc, session);
@@ -161,6 +177,19 @@ int aws_cryptosdk_session_set_message_bound(
     }
 
     return AWS_OP_SUCCESS;
+}
+
+struct aws_hash_table *aws_cryptosdk_session_get_context(struct aws_cryptosdk_session *session) {
+    if ((session->mode == AWS_CRYPTOSDK_ENCRYPT && session->state == ST_CONFIG) ||
+        (session->mode == AWS_CRYPTOSDK_DECRYPT && (
+            session->state == ST_DECRYPT_BODY || session->state == ST_CHECK_TRAILER || session->state == ST_DONE
+        ))
+    ) {
+        return &session->header.enc_context;
+    }
+
+    aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    return NULL;
 }
 
 int aws_cryptosdk_session_process(
