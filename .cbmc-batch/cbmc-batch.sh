@@ -56,5 +56,6 @@ while getopts ":sec" opt; do
             ;;
         \?)
             echo "Specify option -s to start jobs, -e to end jobs, and -c to cleanup bookkeeping"
+            exit 1
     esac
 done
