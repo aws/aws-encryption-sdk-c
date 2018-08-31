@@ -14,33 +14,40 @@
  */
 
 #include "kms_client_mock.h"
+#include <stdexcept>
 
 namespace Aws {
 namespace Cryptosdk {
 namespace Testing {
+using std::logic_error;
 
 KmsClientMock::KmsClientMock()
-    : Aws::KMS::KMSClient(), expect_encrypt(false), expect_generate_dk(false) {}
+    : Aws::KMS::KMSClient(), expect_generate_dk(false) {}
 
 Model::EncryptOutcome KmsClientMock::Encrypt(const Model::EncryptRequest &request) const {
-    if (!expect_encrypt) {
-        throw std::exception();
+    if (expected_encrypt_values.size() == 0) {
+        throw logic_error("Unexpected call to encrypt");
     }
 
-    if (request.GetKeyId() != expected_encrypt_request.GetKeyId()) {
-        throw std::exception();
+    ExpectedEncryptValues eev = expected_encrypt_values.front();
+    expected_encrypt_values.pop_front();
+
+    if (request.GetKeyId() != eev.expected_encrypt_request.GetKeyId()) {
+        throw logic_error(std::string("Got :") + request.GetKeyId().c_str() + " expecting: "
+                              + eev.expected_encrypt_request.GetKeyId().c_str());
     }
 
-    if (request.GetPlaintext() != expected_encrypt_request.GetPlaintext()) {
-        throw std::exception();
+    if (request.GetPlaintext() != eev.expected_encrypt_request.GetPlaintext()) {
+        throw logic_error(
+            std::string("Got :") + reinterpret_cast<const char *>(request.GetPlaintext().GetUnderlyingData())
+                + " expecting: "
+                + reinterpret_cast<const char *>(eev.expected_encrypt_request.GetPlaintext().GetUnderlyingData()));
     }
-    expect_encrypt = false;
-    return encrypt_return;
+    return eev.encrypt_return;
 }
-void KmsClientMock::ExpectEncrypt(const Model::EncryptRequest &request, Model::EncryptOutcome encrypt_return) {
-    expect_encrypt = true;
-    expected_encrypt_request = request;
-    this->encrypt_return = encrypt_return;
+void KmsClientMock::ExpectEncryptAccumulator(const Model::EncryptRequest &request, Model::EncryptOutcome encrypt_return) {
+    ExpectedEncryptValues eev = { request, encrypt_return };
+    this->expected_encrypt_values.push_back(eev);
 }
 
 Model::DecryptOutcome KmsClientMock::Decrypt(const Model::DecryptRequest &request) const {
@@ -88,7 +95,7 @@ void KmsClientMock::ExpectGenerateDataKey(const Model::GenerateDataKeyRequest &r
 }
 
 bool KmsClientMock::ExpectingOtherCalls() {
-    return (expected_decrypt_values.size() != 0) || expect_encrypt || expect_generate_dk;
+    return (expected_decrypt_values.size() != 0) || (expected_encrypt_values.size() != 0) || expect_generate_dk;
 }
 
 }  // namespace Testing

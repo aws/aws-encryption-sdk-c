@@ -42,6 +42,8 @@ static inline bool aws_cryptosdk_edk_eq(const struct aws_cryptosdk_edk * a, cons
         aws_byte_buf_eq(&a->provider_id, &b->provider_id);
 }
 
+int aws_cryptosdk_transfer_edk_list(struct aws_array_list *dest, struct aws_array_list *src);
+
 #ifdef __cplusplus
 }
 #endif

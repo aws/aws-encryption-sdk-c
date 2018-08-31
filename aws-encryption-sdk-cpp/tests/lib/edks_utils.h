@@ -82,6 +82,25 @@ int t_assert_edks_with_single_element_contains_expected_values(const struct aws_
 }
 
 /**
+ * Assets that an edks list has a single element with the expected values for expected_ct, expected_key_id,
+ * expected_provider_id
+ */
+int t_assert_edks_equals(const struct aws_array_list *encrypted_data_keys_a,
+                         const struct aws_array_list *encrypted_data_keys_b) {
+    TEST_ASSERT_INT_EQ(aws_array_list_length(encrypted_data_keys_a), aws_array_list_length(encrypted_data_keys_b));
+
+    for (size_t idx = 0; idx < aws_array_list_length(encrypted_data_keys_a); idx++) {
+        struct aws_cryptosdk_edk *edk_a;
+        struct aws_cryptosdk_edk *edk_b;
+        TEST_ASSERT_SUCCESS(aws_array_list_get_at_ptr(encrypted_data_keys_a, (void **) &edk_a, idx));
+        TEST_ASSERT_SUCCESS(aws_array_list_get_at_ptr(encrypted_data_keys_b, (void **) &edk_b, idx));
+        TEST_ASSERT(aws_cryptosdk_edk_eq(edk_a, edk_b) == true);
+    }
+    return AWS_OP_SUCCESS;
+}
+
+
+/**
  * Appends a new key to the encrypted_data_keys.
  * Same as append_key_to_edks() with the only difference that data_key_id and key_provider is a c_str
  */

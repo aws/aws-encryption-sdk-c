@@ -40,7 +40,7 @@ class KmsClientMock : public Aws::KMS::KMSClient {
     KmsClientMock();
 
     Model::EncryptOutcome Encrypt(const Model::EncryptRequest &request) const;
-    void ExpectEncrypt(const Model::EncryptRequest &request, Model::EncryptOutcome encrypt_return);
+    void ExpectEncryptAccumulator(const Model::EncryptRequest &request, Model::EncryptOutcome encrypt_return);
 
     Model::DecryptOutcome Decrypt(const Model::DecryptRequest &request) const;
     void ExpectDecryptAccumulator(const Model::DecryptRequest &request, Model::DecryptOutcome decrypt_return);
@@ -52,9 +52,11 @@ class KmsClientMock : public Aws::KMS::KMSClient {
     //TODO automatically crash if ExpectingOtherCalls is true in destructor
     bool ExpectingOtherCalls();
   private:
-    mutable bool expect_encrypt;
-    Model::EncryptRequest expected_encrypt_request;
-    Model::EncryptOutcome encrypt_return;
+    struct ExpectedEncryptValues {
+        Model::EncryptRequest expected_encrypt_request;
+        Model::EncryptOutcome encrypt_return;
+    };
+    mutable std::deque<ExpectedEncryptValues> expected_encrypt_values;
 
     struct ExpectedDecryptValues {
         Model::DecryptRequest expected_decrypt_request;

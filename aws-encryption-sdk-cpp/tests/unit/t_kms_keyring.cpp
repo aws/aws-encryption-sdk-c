@@ -38,6 +38,12 @@ struct KmsMasterKeyExposer : Aws::Cryptosdk::KmsKeyring {
                         std::shared_ptr<Aws::KMS::KMSClient> kms,
                         const Aws::String &key_id)
         : KmsKeyring(allocator, key_id, kms) {}
+    KmsMasterKeyExposer(struct aws_allocator *allocator,
+                        std::shared_ptr<Aws::KMS::KMSClient> kms,
+                        const Aws::List<Aws::String> &key_ids)
+                        : KmsKeyring(allocator, key_ids, Aws::Region::CN_NORTH_1, {}, Aws::MakeShared<SingleClientSupplier>("KMS_EXPOSER", kms)) {
+    }
+
     using KmsKeyring::EncryptDataKey;
     using KmsKeyring::DecryptDataKey;
     using KmsKeyring::GenerateDataKey;
@@ -45,6 +51,10 @@ struct KmsMasterKeyExposer : Aws::Cryptosdk::KmsKeyring {
     using KmsKeyring::CreateDecryptRequest;
     using KmsKeyring::CreateGenerateDataKeyRequest;
 };
+
+Aws::Utils::ByteBuffer t_aws_utils_bb_from_char(const char *str) {
+    return Aws::Utils::ByteBuffer((unsigned char *) str, strlen(str));
+}
 
 /**
  * Values used in all tests
@@ -66,15 +76,20 @@ struct TestValues {
     // TODO add tests for grant_todens;
     Aws::Vector<Aws::String> grant_tokens;
 
-    TestValues() : allocator(aws_default_allocator()),
+    TestValues() : TestValues({ "Key_id" }) {
+    };
+
+    TestValues(const Aws::List<Aws::String> &key_ids) : allocator(aws_default_allocator()),
                    kms_client_mock(Aws::MakeShared<KmsClientMock>(CLASS_TAG)),
                    kms_keyring(Aws::New<KmsMasterKeyExposer>(CLASS_TAG,
                                                              allocator,
                                                              std::shared_ptr<Aws::KMS::KMSClient>(kms_client_mock),
-                                                             key_id)),
+                                                             key_ids)),
                    pt_bb((unsigned char *) pt, strlen(pt)),
                    ct_bb((unsigned char *) ct, strlen(ct)),
-                   pt_aws_byte(aws_byte_buf_from_c_str(pt)) {}
+                   pt_aws_byte(aws_byte_buf_from_c_str(pt)) {
+    }
+
 
     //TODO implement this
     Aws::Map<Aws::String, Aws::String> GetEncryptionContext() {
@@ -87,22 +102,42 @@ struct TestValues {
 };
 
 struct EncryptTestValues : public TestValues {
-    Model::EncryptResult encrypt_result;
     struct aws_cryptosdk_encryption_materials *enc_mat;
 
-    EncryptTestValues() :
-        enc_mat(aws_cryptosdk_encryption_materials_new(allocator, AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE)) {
+    EncryptTestValues() : EncryptTestValues( { "Key_id" } ) {
+
+    }
+    EncryptTestValues(const Aws::List<Aws::String> &key_ids)
+        : TestValues(key_ids),
+          enc_mat(aws_cryptosdk_encryption_materials_new(allocator, AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE)) {
         enc_mat->enc_context = NULL;
-        encrypt_result.SetKeyId(key_id);
-        encrypt_result.SetCiphertextBlob(ct_bb);
 
         enc_mat->unencrypted_data_key = aws_byte_buf_from_c_str(pt);
     }
 
+    Model::EncryptResult GetResult() {
+        return GetResult(key_id);
+    }
+
+    Model::EncryptResult GetResult(const Aws::String &in_key_id) {
+        return GetResult(in_key_id, ct_bb);
+    }
+
+    Model::EncryptResult GetResult(const Aws::String &in_key_id, const Aws::Utils::ByteBuffer &in_ct_bb) {
+        Model::EncryptResult encrypt_result;
+        encrypt_result.SetKeyId(in_key_id);
+        encrypt_result.SetCiphertextBlob(in_ct_bb);
+        return encrypt_result;
+    }
+
     Model::EncryptRequest GetRequest() {
+        return GetRequest(key_id, pt_bb);
+    }
+
+    Model::EncryptRequest GetRequest(const Aws::String &in_key_id, const Aws::Utils::ByteBuffer &in_pt_bb) {
         Model::EncryptRequest request;
-        request.SetKeyId(key_id);
-        request.SetPlaintext(pt_bb);
+        request.SetKeyId(in_key_id);
+        request.SetPlaintext(in_pt_bb);
         return request;
     }
 
@@ -186,9 +221,8 @@ class DecryptValues : public TestValues {
 
 int encrypt_validInputs_returnSuccess() {
     EncryptTestValues ev;
-    Model::EncryptOutcome return_encrypt(ev.encrypt_result);
 
-    ev.kms_client_mock->ExpectEncrypt(ev.GetRequest(), return_encrypt);
+    ev.kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest(), ev.GetResult());
     TEST_ASSERT_SUCCESS(ev.kms_keyring->EncryptDataKey(ev.kms_keyring, ev.enc_mat));
 
     TEST_ASSERT_SUCCESS(t_assert_edks_with_single_element_contains_expected_values(&ev.enc_mat->encrypted_data_keys,
@@ -201,11 +235,90 @@ int encrypt_validInputs_returnSuccess() {
     return 0;
 }
 
+int expect_encrypt(struct aws_array_list &expected_edks, EncryptTestValues &ev, const char *key, const char *in_pt, const char *expected_ct) {
+    Aws::Utils::ByteBuffer pt = t_aws_utils_bb_from_char(in_pt);
+    Aws::Utils::ByteBuffer ct = t_aws_utils_bb_from_char(expected_ct);
+    ev.kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest(key, pt), ev.GetResult(key, ct));
+    TEST_ASSERT_SUCCESS(t_append_c_str_key_to_edks(ev.allocator, &expected_edks, &ct, key, ev.provider_id));
+    return AWS_OP_SUCCESS;
+}
+
+int encrypt_validInputsMultipleKeys_returnSuccess() {
+    EncryptTestValues ev({"key1", "key2", "key3"});
+    struct aws_array_list expected_edks;
+    TEST_ASSERT_SUCCESS(aws_array_list_init_dynamic(&expected_edks, ev.allocator, 3, sizeof(struct aws_cryptosdk_edk)));
+
+    TEST_ASSERT_SUCCESS(expect_encrypt(expected_edks, ev, "key1", ev.pt, "ct1"));
+    TEST_ASSERT_SUCCESS(expect_encrypt(expected_edks, ev, "key2", ev.pt, "ct2"));
+    TEST_ASSERT_SUCCESS(expect_encrypt(expected_edks, ev, "key3", ev.pt, "ct3"));
+
+    TEST_ASSERT_SUCCESS(ev.kms_keyring->EncryptDataKey(ev.kms_keyring, ev.enc_mat));
+    TEST_ASSERT_SUCCESS(t_assert_edks_equals(&ev.enc_mat->encrypted_data_keys, &expected_edks));
+    TEST_ASSERT(ev.kms_client_mock->ExpectingOtherCalls() == false);
+
+    aws_cryptosdk_edk_list_clean_up(&expected_edks);
+
+    return 0;
+}
+
+int encrypt_multipleKeysOneFails_returnFail() {
+    EncryptTestValues ev({"key1", "key2", "key3"});
+    Aws::Utils::ByteBuffer ct = t_aws_utils_bb_from_char("expected_ct");
+    Model::EncryptOutcome error_return; // this will set IsSuccess to false
+
+    ev.kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest("key1", ev.pt_bb), ev.GetResult("key1", ct));
+    ev.kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest("key2", ev.pt_bb), error_return);
+
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_KMS_FAILURE, ev.kms_keyring->EncryptDataKey(ev.kms_keyring, ev.enc_mat));
+
+    TEST_ASSERT_INT_EQ(0, aws_array_list_length(&ev.enc_mat->encrypted_data_keys));
+    TEST_ASSERT(ev.kms_client_mock->ExpectingOtherCalls() == false);
+
+    TEST_ASSERT(ev.kms_client_mock->ExpectingOtherCalls() == false);
+    return 0;
+}
+
+// assuming that enc_mat->encrypted_data_keys had something before the EncryptDataKey call and we are not able to
+// encrypt, we should't modify anything
+int encrypt_multipleKeysOneFails_initialEdksAreNotAffected() {
+    EncryptTestValues ev({"key1", "key2", "key3"});
+    Model::EncryptOutcome error_return; // this will set IsSuccess to false
+    const char *initial_ct = "initial_ct";
+    auto initial_ct_bb = t_aws_utils_bb_from_char(initial_ct);
+    const char *initial_key = "initial_key";
+
+    // artificially add a new edk
+    TEST_ASSERT_SUCCESS(t_append_c_str_key_to_edks(ev.allocator,
+                                                   &ev.enc_mat->encrypted_data_keys,
+                                                   &initial_ct_bb,
+                                                   initial_key,
+                                                   ev.provider_id));
+
+
+    // first request works
+    ev.kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest("key1", ev.pt_bb), ev.GetResult("key1", ev.ct_bb));
+    // second request will fail
+    ev.kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest("key2", ev.pt_bb), error_return);
+
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_KMS_FAILURE, ev.kms_keyring->EncryptDataKey(ev.kms_keyring, ev.enc_mat));
+
+    // we should have the initial edk
+    TEST_ASSERT_SUCCESS(t_assert_edks_with_single_element_contains_expected_values(&ev.enc_mat->encrypted_data_keys,
+                                                                                   initial_ct,
+                                                                                   initial_key,
+                                                                                   ev.provider_id,
+                                                                                   ev.allocator));
+
+    TEST_ASSERT(ev.kms_client_mock->ExpectingOtherCalls() == false);
+    return 0;
+}
+
+
 int encrypt_kmsFails_returnError() {
     EncryptTestValues ev;
     Model::EncryptOutcome return_encrypt; // if no parameter is set the EncryptOutcome.IsSuccess is false
 
-    ev.kms_client_mock->ExpectEncrypt(ev.GetRequest(), return_encrypt);
+    ev.kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest(), return_encrypt);
     TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_KMS_FAILURE, ev.kms_keyring->EncryptDataKey(ev.kms_keyring, ev.enc_mat));
     return 0;
 }
@@ -382,7 +495,7 @@ int kmsKeyRingConstructor_keyIdWithoutRegion_throw() {
 }
 
 //TODO add tests for encryption context and for grant_tokensgrant_tokens
-//TODO add test for multiple keys
+//TODO add test for multiple keys decryption
 
 
 int main() {
@@ -391,6 +504,9 @@ int main() {
 
     RUN_TEST(encrypt_validInputs_returnSuccess());
     RUN_TEST(encrypt_kmsFails_returnError());
+    RUN_TEST(encrypt_validInputsMultipleKeys_returnSuccess());
+    RUN_TEST(encrypt_multipleKeysOneFails_returnFail());
+    RUN_TEST(encrypt_multipleKeysOneFails_initialEdksAreNotAffected());
     RUN_TEST(decrypt_validInputs_returnSuccess());
     RUN_TEST(decrypt_validInputsButNoKeyMatched_returnSuccess());
     RUN_TEST(decrypt_noKeys_returnSuccess());

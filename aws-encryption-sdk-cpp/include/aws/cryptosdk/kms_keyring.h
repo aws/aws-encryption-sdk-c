@@ -116,12 +116,14 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
      *                      but are instead bare key IDs or aliases.
      * @param supplier Object that supplies an KMSClient instance to use for a given region.
      */
-    KmsKeyring(struct aws_allocator *alloc,
-               const Aws::List<Aws::String> &key_ids,
-               const String &default_region,
-               const Aws::Vector<Aws::String> &grant_tokens = {},
-               std::shared_ptr<RegionalClientSupplier> supplier = std::make_shared<DefaultRegionalClientSupplier>(),
-               const Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &kms_key_cache
+    KmsKeyring(
+        struct aws_allocator *alloc,
+        const Aws::List<Aws::String> &key_ids,
+        const String &default_region,
+        const Aws::Vector<Aws::String> &grant_tokens = {},
+        std::shared_ptr<RegionalClientSupplier> supplier = Aws::MakeShared<DefaultRegionalClientSupplier>
+            ("KMS_DEFAULT_REGIONAL_SUPPLIER"),
+        const Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &kms_key_cache
                                                        = Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>>());
 
     ~KmsKeyring();
