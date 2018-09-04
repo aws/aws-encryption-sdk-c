@@ -59,11 +59,11 @@ Aws::Map<Aws::String, Aws::String> aws_map_from_c_aws_hash_table(const struct aw
     return result;
 }
 
-int append_aws_byte_buf_key_to_edks(struct aws_allocator *allocator,
-                                    struct aws_array_list *encrypted_data_keys,
-                                    const struct aws_byte_buf *encrypted_data_key,
-                                    const struct aws_byte_buf *data_key_id,
-                                    const aws_byte_buf *key_provider) {
+int append_aws_byte_buf_key_dup_to_edks(struct aws_allocator *allocator,
+                                        struct aws_array_list *encrypted_data_keys,
+                                        const struct aws_byte_buf *encrypted_data_key,
+                                        const struct aws_byte_buf *data_key_id,
+                                        const aws_byte_buf *key_provider) {
     struct aws_cryptosdk_edk edk{};
     edk.provider_id = {0};
     edk.provider_info = {0};
@@ -82,39 +82,42 @@ int append_aws_byte_buf_key_to_edks(struct aws_allocator *allocator,
     return AWS_OP_SUCCESS;
 }
 
-int append_key_to_edks(struct aws_allocator *allocator,
-                       struct aws_array_list *encrypted_data_keys,
-                       const Utils::ByteBuffer *encrypted_data_key,
-                       const Aws::String *data_key_id,
-                       const aws_byte_buf *key_provider) {
+int append_key_dup_to_edks(struct aws_allocator *allocator,
+                           struct aws_array_list *encrypted_data_keys,
+                           const Utils::ByteBuffer *encrypted_data_key,
+                           const Aws::String *data_key_id,
+                           const aws_byte_buf *key_provider) {
+    // although this functions will not copy, append_aws_byte_buf_key_dup_to_edks will create a duplicate
+    // of enc_data_key_byte, data_key_id_byte and key_provider before appending them
     struct aws_byte_buf enc_data_key_byte = aws_byte_buf_from_array(encrypted_data_key->GetUnderlyingData(),
                                                                     encrypted_data_key->GetLength());
     struct aws_byte_buf data_key_id_byte = aws_byte_buf_from_array((const uint8_t *) data_key_id->data(),
                                                                    data_key_id->length());
 
-    return append_aws_byte_buf_key_to_edks(allocator,
-                                           encrypted_data_keys,
-                                           &enc_data_key_byte,
-                                           &data_key_id_byte,
-                                           key_provider);
+    return append_aws_byte_buf_key_dup_to_edks(allocator,
+                                               encrypted_data_keys,
+                                               &enc_data_key_byte,
+                                               &data_key_id_byte,
+                                               key_provider);
 }
 /**
  * Compares an aws_byte_buf (byte_buf_b) with a sequence of characters (char_buf_a)
  * @param char_buf_a Sequence of characters
- * @param idx_start Start position in char_buf_a
- * @param idx_end End position in char_buf_b
+ * @param a_idx_start Start position in char_buf_a
+ * @param a_idx_end End position in char_buf_a
  * @param byte_buf_b aws_byte_buf to compare with
  * @return true if the sequence of characters in char_buf_a+idx_start matches the byte_buf_b, false otherwise
  */
-inline bool aws_byte_buf_eq_char_array(const char *char_buf_a,
-                                       size_t idx_start,
-                                       size_t idx_end,
+inline static bool aws_byte_buf_eq_char_array(const char *char_buf_a,
+                                       size_t a_idx_start,
+                                       size_t a_idx_end,
                                        const aws_byte_buf &byte_buf_b) {
-    if (idx_end == std::string::npos || idx_start == std::string::npos || char_buf_a == NULL) {
+    if (a_idx_end == std::string::npos || a_idx_start == std::string::npos || char_buf_a == NULL) {
         return false;
     }
 
-    const aws_byte_buf byte_buf_a = aws_byte_buf_from_array((uint8_t *)(char_buf_a + idx_start), idx_end - idx_start);
+    const aws_byte_buf byte_buf_a = aws_byte_buf_from_array((uint8_t *)(char_buf_a + a_idx_start),
+                                                            a_idx_end - a_idx_start);
     return aws_byte_buf_eq(&byte_buf_a, &byte_buf_b);
 }
 

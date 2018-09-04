@@ -75,6 +75,12 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
         std::shared_ptr<KMS::KMSClient> kms_client;
     };
 
+    //TODO remove this once we have a builder
+    // We allow to create a new KmsMasterKey only by calling Aws::New. This is because during the destruction we call
+    // Aws::Delete(...)
+    template<typename T, typename ...ArgTypes>
+    friend T *Aws::New(const char *allocationTag, ArgTypes &&... args);
+  protected:
     /**
      * Initializes KmsKeyring with a single key_id
      *
@@ -126,6 +132,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
         const Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &kms_key_cache
                                                        = Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>>());
 
+  public:
     ~KmsKeyring();
 
     // non-copyable
@@ -136,6 +143,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
      * Returns cached clients from this object
      */
     const Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &GetKmsCachedClients() const;
+
   protected:
     /**
      * It attempts to find one of the EDKs to decrypt
@@ -179,8 +187,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
                                struct aws_cryptosdk_encryption_materials *enc_mat);
 
     /**
-     * Destroys all allocated structures, except self.
-     * You will need to delete this class
+     * Destroys all allocated structures
      * @param keyring Pointer to an aws_cryptosdk_keyring object
      */
     static void DestroyAwsCryptoKeyring(aws_cryptosdk_keyring *keyring);

@@ -37,21 +37,23 @@ namespace Cryptosdk {
 using Private::aws_utils_byte_buffer_from_c_aws_byte_buf;
 using Private::aws_byte_buf_dup_from_aws_utils;
 using Private::aws_map_from_c_aws_hash_table;
-using Private::append_key_to_edks;
+using Private::append_key_dup_to_edks;
 
 static const char *AWS_CRYPTO_SDK_KMS_CLASS_TAG = "KmsKeyring";
 static const char *KEY_PROVIDER_STR = "aws-kms";
 
 void KmsKeyring::DestroyAwsCryptoKeyring(struct aws_cryptosdk_keyring *keyring) {
     struct aws_cryptosdk_kms_keyring *kms_keyring = static_cast<aws_cryptosdk_kms_keyring *>(keyring);
-    kms_keyring->vtable = NULL;
-    kms_keyring->alloc = NULL;
-    kms_keyring->keyring_data = NULL;
+    if (kms_keyring->keyring_data != NULL){
+        Aws::Delete(kms_keyring->keyring_data);
+        kms_keyring->keyring_data = NULL;
+    }
 }
 
 int KmsKeyring::EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
                                struct aws_cryptosdk_encryption_materials *enc_mat) {
-    // class that prevents memory leak of aws_list (even if a function throws)
+    // Class that prevents memory leak of aws_list (even if a function throws)
+    // When the object will be destroyed it will call aws_cryptosdk_edk_list_clean_up
     class EdksRaii {
       public:
         ~EdksRaii() {
@@ -69,8 +71,6 @@ int KmsKeyring::EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
     struct aws_cryptosdk_kms_keyring *kms_keyring = static_cast<aws_cryptosdk_kms_keyring *>(keyring);
     if (!kms_keyring || !kms_keyring->keyring_data || !kms_keyring->alloc || !enc_mat
         || !enc_mat->unencrypted_data_key.buffer) {
-        AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "KMS encrypt validation failed");
-        aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
         abort();
     }
     auto self = kms_keyring->keyring_data;
@@ -98,7 +98,7 @@ int KmsKeyring::EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
             return aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
         }
         self->SaveKmsClientInCache(kms_region, kms_client);
-        auto rv = append_key_to_edks(
+        auto rv = append_key_dup_to_edks(
             kms_keyring->alloc,
             &edks.aws_list,
             &outcome.GetResult().GetCiphertextBlob(),
@@ -117,8 +117,6 @@ int KmsKeyring::DecryptDataKey(struct aws_cryptosdk_keyring *keyring,
                                const aws_cryptosdk_decryption_request *request) {
     struct aws_cryptosdk_kms_keyring *kms_keyring = static_cast<aws_cryptosdk_kms_keyring *>(keyring);
     if (!kms_keyring || !kms_keyring->keyring_data || !kms_keyring->alloc || !dec_mat || !request) {
-        AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "KMS decrypt validation failed");
-        aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
         abort();
     }
 
@@ -181,8 +179,6 @@ int KmsKeyring::GenerateDataKey(struct aws_cryptosdk_keyring *keyring,
                                 struct aws_cryptosdk_encryption_materials *enc_mat) {
     struct aws_cryptosdk_kms_keyring *kms_keyring = static_cast<aws_cryptosdk_kms_keyring *>(keyring);
     if (!kms_keyring || !kms_keyring->keyring_data || !kms_keyring->alloc || !enc_mat) {
-        AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "KMS generate data key validation failed");
-        aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
         abort();
     }
 
@@ -216,11 +212,11 @@ int KmsKeyring::GenerateDataKey(struct aws_cryptosdk_keyring *keyring,
         return rv;
     }
 
-    rv = append_key_to_edks(kms_keyring->alloc,
-                            &enc_mat->encrypted_data_keys,
-                            &outcome.GetResult().GetCiphertextBlob(),
-                            &outcome.GetResult().GetKeyId(),
-                            &self->key_provider);
+    rv = append_key_dup_to_edks(kms_keyring->alloc,
+                                &enc_mat->encrypted_data_keys,
+                                &outcome.GetResult().GetCiphertextBlob(),
+                                &outcome.GetResult().GetKeyId(),
+                                &self->key_provider);
     if (rv != AWS_OP_SUCCESS) {
         aws_byte_buf_clean_up(&enc_mat->unencrypted_data_key);
         return rv;
@@ -251,7 +247,6 @@ Aws::Cryptosdk::KmsKeyring::KmsKeyring(struct aws_allocator *alloc,
 }
 
 Aws::Cryptosdk::KmsKeyring::~KmsKeyring() {
-    DestroyAwsCryptoKeyring(this);
 }
 
 Aws::Cryptosdk::KmsKeyring::KmsKeyring(struct aws_allocator *alloc,

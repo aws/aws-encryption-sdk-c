@@ -31,7 +31,7 @@ namespace Cryptosdk {
 namespace Testing {
 
 using std::string;
-using Aws::Cryptosdk::Private::append_key_to_edks;
+using Aws::Cryptosdk::Private::append_key_dup_to_edks;
 
 
 /**
@@ -82,8 +82,7 @@ int t_assert_edks_with_single_element_contains_expected_values(const struct aws_
 }
 
 /**
- * Assets that an edks list has a single element with the expected values for expected_ct, expected_key_id,
- * expected_provider_id
+ * Assets that an encrypted_data_keys_a has the same elements as encrypted_data_keys_b
  */
 int t_assert_edks_equals(const struct aws_array_list *encrypted_data_keys_a,
                          const struct aws_array_list *encrypted_data_keys_b) {
@@ -111,11 +110,11 @@ int t_append_c_str_key_to_edks(struct aws_allocator *allocator,
                                const char *key_provider) {
     aws_byte_buf key_provider_bb = aws_byte_buf_from_c_str(key_provider);
     Aws::String data_key_id_str(data_key_id);
-    return append_key_to_edks(allocator,
-                              encrypted_data_keys,
-                              enc_data_key,
-                              &data_key_id_str,
-                              &key_provider_bb);
+    return append_key_dup_to_edks(allocator,
+                                  encrypted_data_keys,
+                                  enc_data_key,
+                                  &data_key_id_str,
+                                  &key_provider_bb);
 }
 
 }  // namespace Testing
