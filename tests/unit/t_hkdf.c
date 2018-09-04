@@ -135,7 +135,7 @@ static const uint8_t tv_5_okm_desired[] = { 0xc8, 0xc9, 0x6e, 0x71, 0x0f, 0x89, 
 static const uint8_t tv_6_ikm[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09 };
 
 struct hkdf_test_vectors tv[] = {
-    { .which_sha   = SHA256,
+    { .which_sha   = AWS_CRYPTOSDK_SHA256,
       .ikm         = tv_0_ikm,
       .ikm_len     = 22,
       .salt        = tv_0_salt,
@@ -145,7 +145,7 @@ struct hkdf_test_vectors tv[] = {
       .okm_desired = tv_0_okm_desired,
       .okm_len     = 42 },
 
-    { .which_sha   = SHA256,
+    { .which_sha   = AWS_CRYPTOSDK_SHA256,
       .ikm         = tv_1_ikm,
       .ikm_len     = 80,
       .salt        = tv_1_salt,
@@ -155,7 +155,7 @@ struct hkdf_test_vectors tv[] = {
       .okm_desired = tv_1_okm_desired,
       .okm_len     = 82 },
 
-    { .which_sha   = SHA256,
+    { .which_sha   = AWS_CRYPTOSDK_SHA256,
       .ikm         = tv_2_ikm,
       .ikm_len     = 22,
       .salt        = NULL,
@@ -165,7 +165,7 @@ struct hkdf_test_vectors tv[] = {
       .okm_desired = tv_2_okm_desired,
       .okm_len     = 42 },
 
-    { .which_sha   = SHA384,
+    { .which_sha   = AWS_CRYPTOSDK_SHA384,
       .ikm         = tv_3_ikm,
       .ikm_len     = 22,
       .salt        = tv_3_salt,
@@ -175,7 +175,7 @@ struct hkdf_test_vectors tv[] = {
       .okm_desired = tv_3_okm_desired,
       .okm_len     = 42 },
 
-    { .which_sha   = SHA384,
+    { .which_sha   = AWS_CRYPTOSDK_SHA384,
       .ikm         = tv_4_ikm,
       .ikm_len     = 80,
       .salt        = tv_4_salt,
@@ -185,7 +185,7 @@ struct hkdf_test_vectors tv[] = {
       .okm_desired = tv_4_okm_desired,
       .okm_len     = 82 },
 
-    { .which_sha   = SHA384,
+    { .which_sha   = AWS_CRYPTOSDK_SHA384,
       .ikm         = tv_5_ikm,
       .ikm_len     = 22,
       .salt        = NULL,
@@ -195,7 +195,7 @@ struct hkdf_test_vectors tv[] = {
       .okm_desired = tv_5_okm_desired,
       .okm_len     = 42 },
 
-    { .which_sha   = NOSHA,
+    { .which_sha   =  AWS_CRYPTOSDK_NOSHA,
       .ikm         = tv_6_ikm,
       .ikm_len     = 10 },
 };

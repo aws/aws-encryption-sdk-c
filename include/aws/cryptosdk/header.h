@@ -33,4 +33,11 @@ enum aws_cryptosdk_alg_id {
     AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE    = 0x0014
 };
 
+enum aws_cryptosdk_rsa_wrapping_alg_id { 
+    RSA_PKCS1, 
+    RSA_OAEP_SHA1_MGF1,
+    RSA_OAEP_SHA256_MGF1,
+    NO_PADDING,
+};
+
 #endif // AWS_CRYPTOSDK_HEADER_H

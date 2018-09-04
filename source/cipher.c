@@ -16,6 +16,8 @@
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
+#include <openssl/pem.h>
+#include <openssl/rsa.h>
 #include <assert.h>
 #include <stdbool.h>
 
@@ -84,15 +86,15 @@ const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryp
 static enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id alg_id) {
     switch (alg_id) {
         case AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384:
-        case AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384: return SHA384;
+        case AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384: return AWS_CRYPTOSDK_SHA384;
         case AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256:
         case AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE:
         case AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE:
-        case AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE: return SHA256;
+        case AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE: return AWS_CRYPTOSDK_SHA256;
         case AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE:
         case AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE:
         case AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE:
-        default: return NOSHA;
+        default: return AWS_CRYPTOSDK_NOSHA;
     }
 }
 
@@ -108,7 +110,7 @@ int aws_cryptosdk_derive_key(
     info[1] = alg_id & 0xFF;
     memcpy(&info[2], message_id, sizeof(info) - 2);
     enum aws_cryptosdk_sha_version which_sha = aws_cryptosdk_which_sha(props->alg_id);
-    if (which_sha == NOSHA) {
+    if (which_sha == AWS_CRYPTOSDK_NOSHA) {
         memcpy(content_key->keybuf, data_key->keybuf, props->data_key_len);
         return AWS_OP_SUCCESS;
     }
@@ -552,5 +554,50 @@ decrypt_err:
         flush_openssl_errors();
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
+    return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
+}
+
+// key is a RSA private Key used to decrypt message
+int aws_cryptosdk_rsa_decrypt(
+    struct aws_byte_buf * plain,
+    const struct aws_byte_cursor cipher,
+    const uint8_t * key, enum aws_cryptosdk_rsa_wrapping_alg_id wrapping_alg_id ) {
+    int padding = -1;
+    switch (wrapping_alg_id) {
+        case RSA_PKCS1:
+            padding = RSA_PKCS1_PADDING;
+            break;
+        case RSA_OAEP_SHA1_MGF1:
+            padding = RSA_PKCS1_OAEP_PADDING;
+            break;
+        case RSA_OAEP_SHA256_MGF1: 
+        default:
+        return AWS_OP_ERR; 
+    }
+    EVP_PKEY *pkey = EVP_PKEY_new();
+    size_t outlen = 0;
+    BIO *bio = BIO_new_mem_buf(key, -1);
+    pkey = PEM_read_bio_PrivateKey(bio, &pkey , NULL, NULL);
+    if (!pkey) goto err;
+    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pkey, NULL);
+    if (!ctx) goto   err;
+    if (EVP_PKEY_decrypt_init(ctx) <= 0) goto err;
+    if (EVP_PKEY_CTX_set_rsa_padding(ctx, padding) <= 0) goto err;
+    if (EVP_PKEY_decrypt(ctx, NULL, &outlen, cipher.ptr, cipher.len) <= 0) goto err;
+    if (outlen == 0) goto err;
+    if(!plain->buffer) goto err;
+    if (EVP_PKEY_decrypt(ctx, plain->buffer, &outlen,  cipher.ptr, cipher.len) <= 0) goto err; 
+
+    EVP_PKEY_CTX_free(ctx);
+    EVP_PKEY_free(pkey);
+    BIO_flush(bio);
+    BIO_free_all(bio);
+    return AWS_OP_SUCCESS;
+
+err:
+    aws_byte_buf_secure_zero(plain);
+    EVP_PKEY_free(pkey);
+    BIO_flush(bio);
+    BIO_free_all(bio);
     return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
 }
