@@ -315,7 +315,7 @@ int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_
     size_t edk_count = aws_array_list_length(&hdr->edk_list);
     if (!aws_byte_cursor_write_be16(&output, edk_count)) goto WRITE_ERR;
 
-    for (int idx = 0 ; idx < edk_count ; ++idx) {
+    for (size_t idx = 0 ; idx < edk_count ; ++idx) {
         void *vp_edk;
 
         aws_array_list_get_at_ptr(&hdr->edk_list, &vp_edk, idx);
