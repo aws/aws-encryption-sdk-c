@@ -83,7 +83,7 @@ static int set_up_all_the_things(
     req.alloc = alloc;
     req.alg = alg;
     TEST_ASSERT_SUCCESS(
-        aws_array_list_init_dynamic(&req.encrypted_data_keys, alloc, 1, sizeof(struct aws_cryptosdk_edk)));
+        aws_array_list_init_dynamic(&req.encrypted_data_keys, alloc, 7, sizeof(struct aws_cryptosdk_edk)));
     dec_mat = aws_cryptosdk_decryption_materials_new(alloc, alg);
     TEST_ASSERT_ADDR_NOT_NULL(dec_mat);
     return 0;

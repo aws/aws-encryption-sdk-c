@@ -574,7 +574,6 @@ int aws_cryptosdk_rsa_decrypt(
     size_t outlen = 0;
     BIO *bio = BIO_new_mem_buf(key, -1);
     pkey = PEM_read_bio_PrivateKey(bio, &pkey, NULL, NULL);
-    if (!pkey) goto err;
     EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pkey, NULL);
     if (!ctx) goto err;
     if (EVP_PKEY_decrypt_init(ctx) <= 0) goto err;
@@ -592,14 +591,13 @@ int aws_cryptosdk_rsa_decrypt(
     }
     EVP_PKEY_CTX_free(ctx);
     EVP_PKEY_free(pkey);
-    BIO_flush(bio);
     BIO_free_all(bio);
     return AWS_OP_SUCCESS;
 
 err:
     aws_byte_buf_secure_zero(plain);
+    EVP_PKEY_CTX_free(ctx);
     EVP_PKEY_free(pkey);
-    BIO_flush(bio);
     BIO_free_all(bio);
     if (openssl_err) {
         flush_openssl_errors();
