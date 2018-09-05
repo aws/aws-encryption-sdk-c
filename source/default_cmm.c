@@ -31,7 +31,11 @@ static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * 
 
     enc_mat->enc_context = request->enc_context;
 
-    if (aws_cryptosdk_keyring_generate_data_key(self->kr, enc_mat)) goto err;
+    if (aws_cryptosdk_keyring_generate_or_encrypt_data_key(self->kr,
+                                                           &enc_mat->unencrypted_data_key,
+                                                           &enc_mat->encrypted_data_keys,
+                                                           request->enc_context,
+                                                           request->requested_alg)) goto err;
 
 // TODO: implement trailing signatures
 
@@ -45,15 +49,19 @@ err:
 }
 
 static int default_cmm_decrypt_materials(struct aws_cryptosdk_cmm * cmm,
-                                          struct aws_cryptosdk_decryption_materials ** output,
-                                          struct aws_cryptosdk_decryption_request * request) {
+                                         struct aws_cryptosdk_decryption_materials ** output,
+                                         struct aws_cryptosdk_decryption_request * request) {
     struct aws_cryptosdk_decryption_materials * dec_mat;
     struct default_cmm * self = (struct default_cmm *) cmm;
 
     dec_mat = aws_cryptosdk_decryption_materials_new(request->alloc, request->alg);
     if (!dec_mat) goto err;
 
-    if (aws_cryptosdk_keyring_decrypt_data_key(self->kr, dec_mat, request)) goto err;
+    if (aws_cryptosdk_keyring_decrypt_data_key(self->kr,
+                                               &dec_mat->unencrypted_data_key,
+                                               &request->encrypted_data_keys,
+                                               request->enc_context,
+                                               request->alg)) goto err;
 
     if (!dec_mat->unencrypted_data_key.buffer) {
         aws_raise_error(AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT);

@@ -101,8 +101,8 @@ static int decrypt_data_key_and_verify_same_as_one_in_enc_mat() {
 
 static enum aws_cryptosdk_aes_key_len raw_key_lens[] = {AWS_CRYPTOSDK_AES_128, AWS_CRYPTOSDK_AES_192, AWS_CRYPTOSDK_AES_256};
 static enum aws_cryptosdk_alg_id algs[] = {AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-                                    AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-                                    AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE};
+                                           AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
+                                           AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE};
 
 int encrypt_decrypt_data_key() {
     for (int fill_enc_context = 0; fill_enc_context < 2; ++fill_enc_context) {
