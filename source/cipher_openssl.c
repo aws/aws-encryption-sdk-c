@@ -16,15 +16,44 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include <openssl/opensslv.h>
+#include <openssl/crypto.h>
+
 #include <openssl/evp.h>
 #include <openssl/ec.h>
 #include <openssl/err.h>
+#include <openssl/ecdsa.h>
 
 #include <aws/common/encoding.h>
 
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/private/cipher.h>
+
+// Compatibility hacks for openssl API changes between major versions
+#if OPENSSL_VERSION_NUMBER < 0x10100000
+#define OSSL_100
+#endif
+
+#ifdef OSSL_100
+
+#define EVP_MD_CTX_new EVP_MD_CTX_create
+#define EVP_MD_CTX_free EVP_MD_CTX_destroy
+
+static void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **r, const BIGNUM **s) {
+    *r = sig->r;
+    *s = sig->s;
+}
+
+static void ECDSA_SIG_set0(ECDSA_SIG *sig, BIGNUM *r, BIGNUM *s) {
+    if (sig->r) BN_free(sig->r);
+    if (sig->s) BN_free(sig->s);
+
+    sig->r = r;
+    sig->s = r;
+}
+
+#endif
 
 struct aws_cryptosdk_signctx {
     struct aws_allocator *alloc;
@@ -485,6 +514,18 @@ int aws_cryptosdk_sig_sign_finish(
 
     digestlen = EVP_MD_CTX_size(ctx->ctx);
 
+    const EC_GROUP *group = EC_KEY_get0_group(ctx->keypair);
+#ifndef OSSL_100
+    const BIGNUM *order = EC_GROUP_get0_order(group);
+#else
+    BIGNUM *order = BN_new();
+
+    if (!order || !EC_GROUP_get_order(group, order, NULL)) {
+        result = AWS_ERROR_OOM;
+        goto out;
+    }
+#endif
+
     if (digestlen > sizeof(digestbuf)) {
         /* Should never happen */
         goto out;
@@ -548,9 +589,6 @@ int aws_cryptosdk_sig_sign_finish(
          */
         const unsigned char *psig = signature->buffer;
         if (d2i_ECDSA_SIG(&sig, &psig, signature->len)) {
-            const EC_GROUP *group = EC_KEY_get0_group(ctx->keypair);
-            const BIGNUM *order = EC_GROUP_get0_order(group);
-
             const BIGNUM *orig_r, *orig_s;
             ECDSA_SIG_get0(sig, (const BIGNUM **)&orig_r, (const BIGNUM **)&orig_s);
 
@@ -591,6 +629,9 @@ int aws_cryptosdk_sig_sign_finish(
 out:
     if (result != AWS_OP_SUCCESS) aws_raise_error(result);
 rethrow:
+#ifdef OSSL_100
+    BN_free(order);
+#endif
     EVP_PKEY_CTX_free(sign_ctx);
     aws_cryptosdk_sig_abort(ctx);
     aws_secure_zero(digestbuf, sizeof(digestbuf));
