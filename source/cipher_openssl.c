@@ -160,7 +160,7 @@ static int serialize_pubkey(struct aws_allocator *alloc, EC_KEY *keypair, struct
     return AWS_OP_SUCCESS;
 
 err:
-    aws_secure_zero(buf, length);
+    // buf holds a public key, so we don't need to zeroize it.
     free(buf);
     aws_byte_buf_secure_zero(pub_key);
 
@@ -175,6 +175,7 @@ int aws_cryptosdk_sig_get_privkey(
     unsigned char *buf = NULL;
     int length;
     struct aws_byte_buf binary;
+    int rv = AWS_OP_ERR;
 
     memset(priv_key_buf, 0, sizeof(*priv_key_buf));
 
@@ -193,18 +194,21 @@ int aws_cryptosdk_sig_get_privkey(
         goto err;
     }
 
-    free(buf);
-
-    return AWS_OP_SUCCESS;
+    rv = AWS_OP_SUCCESS;
 err:
-    aws_secure_zero(buf, length);
-    free(buf);
-    aws_byte_buf_clean_up_secure(priv_key_buf);
+    if (buf) {
+        aws_secure_zero(buf, length);
+        free(buf);
+    }
 
-    return AWS_OP_ERR;
+    if (rv != AWS_OP_SUCCESS) {
+        aws_byte_buf_clean_up_secure(priv_key_buf);
+    }
+
+    return rv;
 }
 
-int aws_cryptosdk_sig_keygen(
+int aws_cryptosdk_sig_sign_start_keygen(
     struct aws_cryptosdk_signctx **pctx,
     struct aws_allocator *alloc,
     struct aws_byte_buf *pub_key_buf,
@@ -295,6 +299,14 @@ int aws_cryptosdk_sig_sign_start(
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
+    if (bufp != priv_key->buffer + priv_key->len) {
+        // Trailing garbage in the serialized private key
+        // This should never happen, as this is an internal (trusted) datapath, but
+        // check anyway
+        EC_KEY_free(keypair);
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+    }
+
     if (!is_group_correct(EC_KEY_get0_group(keypair), props)) {
         EC_KEY_free(keypair);
 
@@ -347,6 +359,12 @@ static int load_pubkey(EC_KEY **key, const struct aws_cryptosdk_alg_properties *
     const unsigned char *pBuf = b64_decode_buf.buffer;
 
     if (!o2i_ECPublicKey(key, &pBuf, b64_decode_buf.len)) {
+        result = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
+        goto out;
+    }
+
+    if (pBuf != b64_decode_buf.buffer + b64_decode_buf.len) {
+        // Trailing garbage in the serialized public key
         result = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
         goto out;
     }
@@ -523,17 +541,21 @@ int aws_cryptosdk_sig_sign_finish(
          *
          * In the vast majority of cases, we can resolve this by negating s in the
          * signature relative to the group order (which does not invalidate the
-         * signature); if this fails, we'll pick a new nonce by redoing the signature.
+         * signature). If this fails, we'll just generate a brand new signature;
+         * since ECDSA signatures contain a random component, this will usually either
+         * get us to the desired size directly, or at least make it so the negation
+         * trick works.
          */
         const unsigned char *psig = signature->buffer;
         if (d2i_ECDSA_SIG(&sig, &psig, signature->len)) {
             const EC_GROUP *group = EC_KEY_get0_group(ctx->keypair);
             const BIGNUM *order = EC_GROUP_get0_order(group);
 
-            BIGNUM *r, *s;
-            ECDSA_SIG_get0(sig, (const BIGNUM **)&r, (const BIGNUM **)&s);
-            r = BN_dup(r);
-            s = BN_dup(s);
+            const BIGNUM *orig_r, *orig_s;
+            ECDSA_SIG_get0(sig, (const BIGNUM **)&orig_r, (const BIGNUM **)&orig_s);
+
+            BIGNUM *r = BN_dup(orig_r);
+            BIGNUM *s = BN_dup(orig_s);
 
             if (!r || !s) {
                 result = AWS_ERROR_OOM;

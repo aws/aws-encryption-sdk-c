@@ -192,7 +192,8 @@ int aws_cryptosdk_sig_get_privkey(
 
 /**
  * Generates a new signature keypair, initializes a signing context, and serializes the public key.
- * If a non-signing algorithm is used, this function returns successfully, and sets *ctx to NULL.
+ * If a non-signing algorithm is used, this function returns successfully, sets *ctx to NULL,
+ * and zeroes pub_key_buf.
  *
  * @param alloc - the allocator to use
  * @param pctx - a pointer to a variable to receive the context pointer
@@ -200,7 +201,7 @@ int aws_cryptosdk_sig_get_privkey(
  * @param pub_key_buf - A buffer that will receive the public key (in base64 format).
  *   This buffer will be allocated as part of this call, and does not need to be pre-initialized.
  */
-int aws_cryptosdk_sig_keygen(
+int aws_cryptosdk_sig_sign_start_keygen(
     struct aws_cryptosdk_signctx **pctx,
     struct aws_allocator *alloc,
     struct aws_byte_buf *pub_key_buf,
@@ -256,6 +257,9 @@ int aws_cryptosdk_sig_update(
  * If successful, this function returns AWS_OP_SUCCESS; if the signature was invalid,
  * raises AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT and returns AWS_OP_ERR.
  *
+ * The context must have been created in verify mode, using aws_cryptosdk_sig_verify_start;
+ * failing to do so results in undefined behavior.
+ *
  * The context is always freed, regardless of success or failure.
  */
 int aws_cryptosdk_sig_verify_finish(
@@ -267,6 +271,9 @@ int aws_cryptosdk_sig_verify_finish(
  * Generates the final signature based on data previously passed to aws_cryptosdk_sig_update.
  * The signature buffer will be allocated using 'alloc'.
  *
+ * The context must have been created in verify mode, using aws_cryptosdk_sig_sign_start[_keygen];
+ * failing to do so results in undefined behavior.
+ *
  * The context is always freed, regardless of success or failure.
  */
 int aws_cryptosdk_sig_sign_finish(
@@ -277,6 +284,7 @@ int aws_cryptosdk_sig_sign_finish(
 
 /**
  * Aborts an ongoing sign or verify operation, and destroys the signature context.
+ * If ctx is null, this operation is a no-op.
  */
 void aws_cryptosdk_sig_abort(
     struct aws_cryptosdk_signctx *ctx
