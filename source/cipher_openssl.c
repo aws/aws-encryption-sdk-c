@@ -168,8 +168,8 @@ err:
 }
 
 int aws_cryptosdk_sig_get_privkey(
-    struct aws_allocator *alloc,
     struct aws_cryptosdk_signctx *ctx,
+    struct aws_allocator *alloc,
     struct aws_byte_buf *priv_key_buf
 ) {
     unsigned char *buf = NULL;
@@ -205,10 +205,10 @@ err:
 }
 
 int aws_cryptosdk_sig_keygen(
-    struct aws_allocator *alloc,
     struct aws_cryptosdk_signctx **pctx,
-    const struct aws_cryptosdk_alg_properties *props,
-    struct aws_byte_buf *pub_key_buf
+    struct aws_allocator *alloc,
+    struct aws_byte_buf *pub_key_buf,
+    const struct aws_cryptosdk_alg_properties *props
 ) {
     EC_GROUP *group = NULL;
     EC_KEY *keypair = NULL;
@@ -276,8 +276,8 @@ void aws_cryptosdk_sig_abort(
 }
 
 int aws_cryptosdk_sig_sign_start(
-    struct aws_allocator *alloc,
     struct aws_cryptosdk_signctx **ctx,
+    struct aws_allocator *alloc,
     struct aws_byte_buf *pub_key_buf,
     const struct aws_cryptosdk_alg_properties *props,
     const struct aws_byte_buf *priv_key
@@ -317,7 +317,7 @@ int aws_cryptosdk_sig_sign_start(
     return *ctx ? AWS_OP_SUCCESS : AWS_OP_ERR;
 }
 
-static int load_pubkey(EC_KEY **key, const struct aws_cryptosdk_alg_properties *props, struct aws_byte_buf *pub_key) {
+static int load_pubkey(EC_KEY **key, const struct aws_cryptosdk_alg_properties *props, const struct aws_byte_buf *pub_key) {
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     EC_GROUP *group = NULL;
     /* This buffer is large enough to hold compressed points for all currently supported curves */
@@ -366,10 +366,10 @@ out:
 }
 
 int aws_cryptosdk_sig_verify_start(
-    struct aws_allocator *alloc,
     struct aws_cryptosdk_signctx **pctx,
-    const struct aws_cryptosdk_alg_properties *props,
-    struct aws_byte_buf *pub_key
+    struct aws_allocator *alloc,
+    const struct aws_byte_buf *pub_key,
+    const struct aws_cryptosdk_alg_properties *props
 ) {
     EC_KEY *key = NULL;
     struct aws_cryptosdk_signctx *ctx = NULL;
@@ -452,8 +452,8 @@ int aws_cryptosdk_sig_verify_finish(
 }
 
 int aws_cryptosdk_sig_sign_finish(
-    struct aws_allocator *alloc,
     struct aws_cryptosdk_signctx *ctx,
+    struct aws_allocator *alloc,
     struct aws_byte_buf *signature
 ) {
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;

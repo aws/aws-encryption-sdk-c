@@ -45,7 +45,7 @@ static int sign_message(
     struct aws_cryptosdk_signctx *ctx;
 
     TEST_ASSERT_SUCCESS(
-        aws_cryptosdk_sig_keygen(aws_default_allocator(), &ctx, props, pubkey)
+        aws_cryptosdk_sig_keygen(&ctx, aws_default_allocator(), pubkey, props)
     );
 
     TEST_ASSERT_ADDR_NOT_NULL(ctx);
@@ -55,7 +55,7 @@ static int sign_message(
     );
 
     TEST_ASSERT_SUCCESS(
-        aws_cryptosdk_sig_sign_finish(aws_default_allocator(), ctx, sig)
+        aws_cryptosdk_sig_sign_finish(ctx, aws_default_allocator(), sig)
     );
 
     return 0;
@@ -72,10 +72,10 @@ static int check_signature(
 
     if (expect_valid) {
         TEST_ASSERT_SUCCESS(
-            aws_cryptosdk_sig_verify_start(aws_default_allocator(), &ctx, props, pubkey)
+            aws_cryptosdk_sig_verify_start(&ctx, aws_default_allocator(), pubkey, props)
         );
     } else {
-        int rv = aws_cryptosdk_sig_verify_start(aws_default_allocator(), &ctx, props, pubkey);
+        int rv = aws_cryptosdk_sig_verify_start(&ctx, aws_default_allocator(), pubkey, props);
 
         if (rv != 0) {
             TEST_ASSERT_INT_EQ(aws_last_error(), AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
@@ -251,13 +251,13 @@ static int t_partial_update() {
 
         struct aws_cryptosdk_signctx *ctx;
 
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_keygen(aws_default_allocator(), &ctx, props, &pub_key_buf));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_keygen(&ctx, aws_default_allocator(), &pub_key_buf, props));
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, &d_1_1));
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, &d_empty));
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, &d_1_2));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_finish(aws_default_allocator(), ctx, &sig_buf));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_finish(ctx, aws_default_allocator(), &sig_buf));
 
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_start(aws_default_allocator(), &ctx, props, &pub_key_buf));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_start(&ctx, aws_default_allocator(), &pub_key_buf, props));
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, &d_empty));
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, &d_2_1));
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, &d_2_2));
@@ -277,14 +277,14 @@ static int t_serialize_privkey() {
         struct aws_cryptosdk_signctx *ctx;
         struct aws_byte_buf data = aws_byte_buf_from_c_str("Hello, world!");
 
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_keygen(aws_default_allocator(), &ctx, props, &pub_key_buf));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_get_privkey(aws_default_allocator(), ctx, &priv_key_buf));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_keygen(&ctx, aws_default_allocator(), &pub_key_buf, props));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_get_privkey(ctx, aws_default_allocator(), &priv_key_buf));
         aws_cryptosdk_sig_abort(ctx);
 
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_start(aws_default_allocator(), &ctx, &pub_key_buf_2, props, &priv_key_buf));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_start(&ctx, aws_default_allocator(), &pub_key_buf_2, props, &priv_key_buf));
         TEST_ASSERT(aws_byte_buf_eq(&pub_key_buf, &pub_key_buf_2));
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, &data));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_finish(aws_default_allocator(), ctx, &sig_buf));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_finish(ctx, aws_default_allocator(), &sig_buf));
 
         TEST_ASSERT_SUCCESS(check_signature(props, true, &pub_key_buf, &sig_buf, &data));
 
@@ -304,10 +304,10 @@ static int t_empty_signature() {
 
         struct aws_cryptosdk_signctx *ctx;
 
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_keygen(aws_default_allocator(), &ctx, props, &pub_key_buf));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_finish(aws_default_allocator(), ctx, &sig_buf));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_keygen(&ctx, aws_default_allocator(), &pub_key_buf, props));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_finish(ctx, aws_default_allocator(), &sig_buf));
 
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_start(aws_default_allocator(), &ctx, props, &pub_key_buf));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_start(&ctx, aws_default_allocator(), &pub_key_buf, props));
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, &d_empty));
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_finish(ctx, &sig_buf));
 

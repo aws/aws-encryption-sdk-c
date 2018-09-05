@@ -185,8 +185,8 @@ struct aws_cryptosdk_signctx;
  * This method is intended to be used with caching mechanisms to clone the signing context.
  */
 int aws_cryptosdk_sig_get_privkey(
-    struct aws_allocator *alloc,
     struct aws_cryptosdk_signctx *ctx,
+    struct aws_allocator *alloc,
     struct aws_byte_buf *priv_key_buf
 );
 
@@ -201,10 +201,10 @@ int aws_cryptosdk_sig_get_privkey(
  *   This buffer will be allocated as part of this call, and does not need to be pre-initialized.
  */
 int aws_cryptosdk_sig_keygen(
-    struct aws_allocator *alloc,
     struct aws_cryptosdk_signctx **pctx,
-    const struct aws_cryptosdk_alg_properties *props,
-    struct aws_byte_buf *pub_key_buf
+    struct aws_allocator *alloc,
+    struct aws_byte_buf *pub_key_buf,
+    const struct aws_cryptosdk_alg_properties *props
 );
 
 /**
@@ -220,8 +220,8 @@ int aws_cryptosdk_sig_keygen(
  *   priv_key - the previously serialized private key
  */
 int aws_cryptosdk_sig_sign_start(
-    struct aws_allocator *alloc,
     struct aws_cryptosdk_signctx **ctx,
+    struct aws_allocator *alloc,
     struct aws_byte_buf *pub_key_buf,
     const struct aws_cryptosdk_alg_properties *props,
     const struct aws_byte_buf *priv_key
@@ -237,10 +237,10 @@ int aws_cryptosdk_sig_sign_start(
  * @param pub_key - A buffer containing the (base64) public key
  */
 int aws_cryptosdk_sig_verify_start(
-    struct aws_allocator *alloc,
     struct aws_cryptosdk_signctx **pctx,
-    const struct aws_cryptosdk_alg_properties *props,
-    struct aws_byte_buf *pub_key
+    struct aws_allocator *alloc,
+    const struct aws_byte_buf *pub_key,
+    const struct aws_cryptosdk_alg_properties *props
 );
 
 /**
@@ -270,8 +270,8 @@ int aws_cryptosdk_sig_verify_finish(
  * The context is always freed, regardless of success or failure.
  */
 int aws_cryptosdk_sig_sign_finish(
-    struct aws_allocator *alloc,
     struct aws_cryptosdk_signctx *ctx,
+    struct aws_allocator *alloc,
     struct aws_byte_buf *signature
 );
 
