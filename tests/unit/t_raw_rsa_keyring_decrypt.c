@@ -14,25 +14,24 @@
  */
 #include <aws/cryptosdk/private/materials.h>
 #include <aws/cryptosdk/private/raw_rsa_keyring.h>
-#include <stdlib.h>
 #include "raw_rsa_keyring_test_vectors.h"
 #include "testing.h"
 
 static struct aws_cryptosdk_edk good_edk() {
-    return rsa_edk_init_from_test_vector_idx(0);
+    return edk_init_test_vector_idx(0);
 }
 /**
  * A bunch of wrong EDKs for testing various failure scenarios.
  */
 static struct aws_cryptosdk_edk empty_edk() {
-    struct aws_cryptosdk_edk edk = {{0}};
+    struct aws_cryptosdk_edk edk = { { 0 } };
     return edk;
 }
 static struct aws_cryptosdk_edk wrong_provider_id_edk() {
     struct aws_cryptosdk_edk edk = good_edk();
-    edk.provider_id = aws_byte_buf_from_c_str("foobar");
+    edk.provider_id = aws_byte_buf_from_c_str("HelloWorld");
     return edk;
-} 
+}
 static struct aws_cryptosdk_edk wrong_edk_bytes_len_edk() {
     struct aws_cryptosdk_edk edk = good_edk();
     edk.enc_data_key.len--;
@@ -41,10 +40,8 @@ static struct aws_cryptosdk_edk wrong_edk_bytes_len_edk() {
 
 static struct aws_cryptosdk_edk wrong_edk_bytes() {
     struct aws_cryptosdk_edk edk = good_edk();
-    static const uint8_t edk_bytes[] =
-    {0xDE, 0xAD, 0xBE, 0xEF, 0x35, 0x20, 0x07, 0x38, 0xe4, 0x9e, 0x34, 0xfa, 0xa6, 0xbf, 0x11, 0xed,
-     0x45, 0x40, 0x97, 0xfd, 0xb8, 0xe3, 0x36, 0x75, 0x5c, 0x03, 0xbb, 0x9f, 0xa4, 0x42, 0x9e, 0x66,
-     0x44, 0x7c, 0x39, 0xf7, 0x7f, 0xfe, 0xbc, 0xa5, 0x98, 0x70, 0xe9, 0xa8, 0xc9, 0xb5, 0x7f, 0x6f};
+    static const uint8_t edk_bytes[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b,
+                                         0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17 };
     edk.enc_data_key = aws_byte_buf_from_array(edk_bytes, sizeof(edk_bytes));
     return edk;
 }
@@ -56,32 +53,30 @@ static struct aws_cryptosdk_edk wrong_provider_info_len_edk() {
 }
 static struct aws_cryptosdk_edk wrong_master_key_id_edk() {
     struct aws_cryptosdk_edk edk = good_edk();
-    static const uint8_t edk_provider_info[] =
-        "asdfhasiufhiasuhviawurhgiuawrhefiuOOPS"; // wrong master key ID
+    static const uint8_t edk_provider_info[] = "asdfhasiufhiasuhviawurhgiuawrhefiuOOPS";  // wrong master key ID
     aws_byte_buf_clean_up(&edk.provider_info);
     edk.provider_info = aws_byte_buf_from_array(edk_provider_info, sizeof(edk_provider_info) - 1);
     return edk;
 }
 
-
 typedef struct aws_cryptosdk_edk (*edk_generator)();
 
-edk_generator rsa_edk_gens[] = { empty_edk,
-                            wrong_provider_id_edk,
-                            wrong_edk_bytes_len_edk,
-                            wrong_edk_bytes,
-                            wrong_provider_info_len_edk,
-                            wrong_master_key_id_edk,
-                            good_edk };
-                            
+edk_generator rsa_edk_gens[] = {
+    empty_edk,
+    wrong_provider_id_edk,
+    wrong_edk_bytes_len_edk,
+    wrong_edk_bytes,
+    wrong_provider_info_len_edk,
+    wrong_master_key_id_edk,
+    good_edk
+};
 static struct aws_allocator *alloc;
 static struct aws_cryptosdk_keyring *kr;
 static struct aws_cryptosdk_decryption_request req;
 static struct aws_cryptosdk_decryption_materials *dec_mat;
 
 static int set_up_all_the_things(
-    enum aws_cryptosdk_rsa_wrapping_alg_id wrapping_alg_id,
-    enum aws_cryptosdk_alg_id alg) {
+    enum aws_cryptosdk_rsa_wrapping_alg_id wrapping_alg_id, enum aws_cryptosdk_alg_id alg) {
     alloc = aws_default_allocator();
     kr = raw_rsa_keyring_tv_new(alloc, wrapping_alg_id);
     TEST_ASSERT_ADDR_NOT_NULL(kr);
@@ -100,28 +95,29 @@ static void tear_down_all_the_things() {
     aws_cryptosdk_keyring_destroy(kr);
 }
 
-int rsa_decrypt_data_key_test_vectors() {
+int decrypt_data_key_from_test_vectors() {
     for (struct raw_rsa_keyring_test_vector *tv = raw_rsa_keyring_test_vectors; tv->data_key; ++tv) {
         TEST_ASSERT_SUCCESS(set_up_all_the_things(tv->wrapping_alg_id, tv->alg));
 
-        struct aws_cryptosdk_edk edk = rsa_edk_init_from_test_vector(tv);
+        struct aws_cryptosdk_edk edk = edk_init_test_vector(tv);
         aws_array_list_push_back(&req.encrypted_data_keys, (void *)&edk);
 
         TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_decrypt_data_key(kr, dec_mat, &req));
         TEST_ASSERT_ADDR_NOT_NULL(dec_mat->unencrypted_data_key.buffer);
-        
-        TEST_ASSERT(!memcmp(dec_mat->unencrypted_data_key.buffer,tv->data_key, tv->data_key_len));
+
+        struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv->data_key, tv->data_key_len);
+        TEST_ASSERT(aws_byte_buf_eq(&dec_mat->unencrypted_data_key, &known_answer));
     }
 
     tear_down_all_the_things();
     return 0;
 }
 
-int rsa_decrypt_data_key_multiple_edks() {
+int decrypt_data_key_from_multiple_edks() {
     struct raw_rsa_keyring_test_vector tv = raw_rsa_keyring_test_vectors[0];
     TEST_ASSERT_SUCCESS(set_up_all_the_things(tv.wrapping_alg_id, tv.alg));
 
-    for (int idx = 0; idx < sizeof(rsa_edk_gens)/sizeof(edk_generator); ++idx) {
+    for (int idx = 0; idx < sizeof(rsa_edk_gens) / sizeof(edk_generator); ++idx) {
         struct aws_cryptosdk_edk edk = rsa_edk_gens[idx]();
         aws_array_list_push_back(&req.encrypted_data_keys, (void *)&edk);
     }
@@ -129,31 +125,34 @@ int rsa_decrypt_data_key_multiple_edks() {
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_decrypt_data_key(kr, dec_mat, &req));
     TEST_ASSERT_ADDR_NOT_NULL(dec_mat->unencrypted_data_key.buffer);
 
-    TEST_ASSERT(!memcmp(dec_mat->unencrypted_data_key.buffer,tv.data_key, tv.data_key_len));
+    struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv.data_key, tv.data_key_len);
+    TEST_ASSERT(aws_byte_buf_eq(&dec_mat->unencrypted_data_key, &known_answer));
 
     tear_down_all_the_things();
     return 0;
 }
 
-int rsa_decrypt_data_key_no_good_edk() {
+int decrypt_data_key_from_bad_edk() {
     struct raw_rsa_keyring_test_vector tv = raw_rsa_keyring_test_vectors[0];
     TEST_ASSERT_SUCCESS(set_up_all_the_things(tv.wrapping_alg_id, tv.alg));
 
-    for (int idx = 0; idx < sizeof(rsa_edk_gens)/sizeof(edk_generator) - 1; ++idx) {
+    for (int idx = 0; idx < sizeof(rsa_edk_gens) / sizeof(edk_generator) - 1; ++idx) {
         struct aws_cryptosdk_edk edk = rsa_edk_gens[idx]();
         aws_array_list_push_back(&req.encrypted_data_keys, (void *)&edk);
     }
 
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_decrypt_data_key(kr, dec_mat, &req));
     TEST_ASSERT_ADDR_NULL(dec_mat->unencrypted_data_key.buffer);
+    struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv.data_key, tv.data_key_len);
+    TEST_ASSERT(!aws_byte_buf_eq(&dec_mat->unencrypted_data_key, &known_answer));
 
     tear_down_all_the_things();
     return 0;
 }
 
 struct test_case raw_rsa_keyring_decrypt_test_cases[] = {
-    { "raw_rsa_keyring", "decrypt_data_key_test_vectors", rsa_decrypt_data_key_test_vectors }, 
-    { "raw_rsa_keyring", "decrypt_data_key_multiple_edks",rsa_decrypt_data_key_multiple_edks }, 
-    { "raw_rsa_keyring", "decrypt_data_key_no_good_edk", rsa_decrypt_data_key_no_good_edk },
+    { "raw_rsa_keyring", "decrypt_data_key_from_test_vectors", decrypt_data_key_from_test_vectors },
+    { "raw_rsa_keyring", "decrypt_data_key_from_multiple_edks", decrypt_data_key_from_multiple_edks },
+    { "raw_rsa_keyring", "decrypt_data_key_from_bad_edk", decrypt_data_key_from_bad_edk },
     { NULL }
 };

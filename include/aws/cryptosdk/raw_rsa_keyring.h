@@ -15,8 +15,8 @@
 #ifndef AWS_CRYPTOSDK_RAW_RSA_KEYRING_H
 #define AWS_CRYPTOSDK_RAW_RSA_KEYRING_H
 
-#include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/cipher.h>
+#include <aws/cryptosdk/materials.h>
 
 struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     struct aws_allocator *alloc,
@@ -27,4 +27,4 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     const uint8_t *raw_key_bytes,
     enum aws_cryptosdk_rsa_wrapping_alg_id wrapping_alg_id);
 
-#endif // AWS_CRYPTOSDK_RAW_RSA_KEYRING_H
+#endif  // AWS_CRYPTOSDK_RAW_RSA_KEYRING_H

@@ -12,24 +12,19 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <assert.h>
-#include <aws/common/byte_order.h>
 #include <aws/cryptosdk/private/cipher.h>
-#include <aws/cryptosdk/private/enc_context.h>
-#include <aws/cryptosdk/private/materials.h>
 #include <aws/cryptosdk/private/raw_rsa_keyring.h>
-#include <aws/cryptosdk/private/utils.h>
 
 static int raw_rsa_keyring_encrypt_data_key(
     struct aws_cryptosdk_keyring *kr, struct aws_cryptosdk_encryption_materials *enc_mat) {
     // TODO Implement
-    return AWS_OP_SUCCESS;
+    return AWS_OP_ERR;
 }
 
 static int raw_rsa_keyring_generate_data_key(
     struct aws_cryptosdk_keyring *kr, struct aws_cryptosdk_encryption_materials *enc_mat) {
     // TODO Implement
-    return AWS_OP_SUCCESS;
+    return AWS_OP_ERR;
 }
 
 static int raw_rsa_keyring_decrypt_data_key(
@@ -39,22 +34,23 @@ static int raw_rsa_keyring_decrypt_data_key(
     struct raw_rsa_keyring *self = (struct raw_rsa_keyring *)kr;
     const struct aws_array_list *edks = &request->encrypted_data_keys;
     size_t num_edks = aws_array_list_length(edks);
-    const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(dec_mat->alg);
-    if (aws_byte_buf_init(request->alloc, &dec_mat->unencrypted_data_key, props->data_key_len)) {
-        return AWS_OP_ERR;
-    }
+    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(dec_mat->alg);
+    if (aws_byte_buf_init(request->alloc, &dec_mat->unencrypted_data_key, props->data_key_len)) { return AWS_OP_ERR; }
 
     for (size_t edk_idx = 0; edk_idx < num_edks; ++edk_idx) {
         const struct aws_cryptosdk_edk *edk;
+
         if (aws_array_list_get_at_ptr(edks, (void **)&edk, edk_idx)) { return AWS_OP_ERR; }
         if (!edk->provider_id.len || !edk->provider_info.len || !edk->enc_data_key.len) continue;
-
         if (!aws_string_eq_byte_buf(self->provider_id, &edk->provider_id)) continue;
         if (!aws_string_eq_byte_buf(self->master_key_id, &edk->provider_info)) continue;
 
         const struct aws_byte_buf *edk_bytes = &edk->enc_data_key;
+        dec_mat->unencrypted_data_key.len = props->data_key_len;
 
-        if (aws_cryptosdk_rsa_decrypt(&dec_mat->unencrypted_data_key, aws_byte_cursor_from_array(edk_bytes->buffer, edk_bytes->len),  self->raw_key, self->wrapping_alg_id)) {
+        if (aws_cryptosdk_rsa_decrypt(
+                &dec_mat->unencrypted_data_key, aws_byte_cursor_from_array(edk_bytes->buffer, edk_bytes->len),
+                self->raw_key, self->wrapping_alg_id)) {
             /* We are here either because of a ciphertext mismatch
              * or because of an OpenSSL error. In either case, nothing
              *  better to do than just moving on to next EDK, so clear the error code.
@@ -108,9 +104,9 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     kr->raw_key = raw_key_bytes;
     if (!kr->raw_key) goto oom_err;
 
+    kr->wrapping_alg_id = wrapping_alg_id;
     kr->vt = &raw_rsa_keyring_vt;
     kr->alloc = alloc;
-    kr->wrapping_alg_id = wrapping_alg_id;
     return (struct aws_cryptosdk_keyring *)kr;
 
 oom_err:

@@ -15,17 +15,17 @@
 #ifndef AWS_CRYPTOSDK_PRIVATE_RAW_RSA_KEYRING_H
 #define AWS_CRYPTOSDK_PRIVATE_RAW_RSA_KEYRING_H
 
-#include <aws/cryptosdk/raw_rsa_keyring.h>
 #include <aws/common/string.h>
-
+#include <aws/cryptosdk/raw_rsa_keyring.h>
 
 struct raw_rsa_keyring {
-    const struct aws_cryptosdk_keyring_vt * vt;
-    struct aws_allocator * alloc;
-    const struct aws_string * master_key_id;
-    const struct aws_string * provider_id;
-    const uint8_t * raw_key;
+    const struct aws_cryptosdk_keyring_vt *vt;
+    struct aws_allocator *alloc;
+    const struct aws_string *master_key_id;
+    const struct aws_string *provider_id;
+    const uint8_t *raw_key;
+    size_t raw_key_len;
     enum aws_cryptosdk_rsa_wrapping_alg_id wrapping_alg_id;
 };
 
-#endif // AWS_CRYPTOSDK_PRIVATE_RAW_RSA_KEYRING_H
+#endif  // AWS_CRYPTOSDK_PRIVATE_RAW_RSA_KEYRING_H
