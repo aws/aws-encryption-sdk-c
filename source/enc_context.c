@@ -32,8 +32,6 @@ int aws_cryptosdk_context_size(size_t *size, const struct aws_hash_table *enc_co
         return AWS_OP_SUCCESS;
     }
 
-    // We don't need to sort just to get the size
-
     for (struct aws_hash_iter iter = aws_hash_iter_begin(enc_context);
          !aws_hash_iter_done(&iter); aws_hash_iter_next(&iter))
     {
@@ -115,23 +113,21 @@ int aws_cryptosdk_context_deserialize(struct aws_allocator *alloc, struct aws_ha
     if (!aws_byte_cursor_read_be16(cursor, &elem_count)) goto SHORT_BUF;
     if (!elem_count) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
 
-    for (size_t i = 0; i < elem_count; i++) {
+    // Note: We must ensure i is larger than 16 bits; otherwise, malicious ciphertext could cause an infinite loop by setting
+    // elem_count = UINT16_MAX
+    for (uint32_t i = 0; i < elem_count; i++) {
         uint16_t len;
-        struct aws_byte_cursor k_cursor, v_cursor;
 
         if (!aws_byte_cursor_read_be16(cursor, &len)) goto SHORT_BUF;
-        k_cursor = aws_byte_cursor_advance_nospec(cursor, len);
+        struct aws_byte_cursor k_cursor = aws_byte_cursor_advance_nospec(cursor, len);
         if (!k_cursor.ptr) goto SHORT_BUF;
 
         if (!aws_byte_cursor_read_be16(cursor, &len)) goto SHORT_BUF;
-        v_cursor = aws_byte_cursor_advance_nospec(cursor, len);
+        struct aws_byte_cursor v_cursor = aws_byte_cursor_advance_nospec(cursor, len);
         if (!v_cursor.ptr) goto SHORT_BUF;
 
-        const struct aws_string *k = NULL;
-        const struct aws_string *v = NULL;
-
-        k = aws_string_new_from_array(alloc, k_cursor.ptr, k_cursor.len);
-        v = aws_string_new_from_array(alloc, v_cursor.ptr, v_cursor.len);
+        const struct aws_string *k = aws_string_new_from_array(alloc, k_cursor.ptr, k_cursor.len);
+        const struct aws_string *v = aws_string_new_from_array(alloc, v_cursor.ptr, v_cursor.len);
 
         if (!k || !v || aws_hash_table_put(enc_context, k, (void *)v, NULL)) {
             aws_string_destroy((void *)k);

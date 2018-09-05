@@ -71,18 +71,16 @@ static int is_known_type(uint8_t content_type) {
 int aws_cryptosdk_hdr_init(struct aws_cryptosdk_hdr *hdr, struct aws_allocator *alloc) {
     aws_secure_zero(hdr, sizeof(*hdr));
 
-    hdr->alloc = alloc;
-
     if (aws_hash_table_init(&hdr->enc_context, alloc, INITIAL_CONTEXT_SIZE, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy)) {
-        hdr->alloc = NULL;
         return AWS_OP_ERR;
     }
 
     if (aws_array_list_init_dynamic(&hdr->edk_list, alloc, 1, sizeof(struct aws_cryptosdk_edk))) {
         aws_hash_table_clean_up(&hdr->enc_context);
-        hdr->alloc = NULL;
         return AWS_OP_ERR;
     }
+
+    hdr->alloc = alloc;
 
     return AWS_OP_SUCCESS;
 }
@@ -197,10 +195,9 @@ int aws_cryptosdk_hdr_parse(struct aws_cryptosdk_hdr *hdr, struct aws_byte_curso
     if (!aws_byte_cursor_read_be16(&cur, &edk_count)) goto SHORT_BUF;
     if (!edk_count) goto PARSE_ERR;
 
-    for (size_t i = 0; i < edk_count; ++i) {
-        struct aws_cryptosdk_edk edk;
-
-        memset(&edk, 0, sizeof(edk));
+    // i must be more than 16 bits wide to avoid an infinite loop if edk_count == UINT16_MAX
+    for (uint32_t i = 0; i < edk_count; ++i) {
+        struct aws_cryptosdk_edk edk = {{0}};
 
         if (parse_edk(hdr->alloc, &edk, &cur)) {
             edk_clean_up(&edk);
@@ -272,9 +269,9 @@ static const union {
 int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr) {
     if (!memcmp(hdr, &zero.hdr, sizeof(struct aws_cryptosdk_hdr))) return 0;
 
-    int idx;
-    int edk_count = aws_array_list_length(&hdr->edk_list);
-    int bytes = 18 + MESSAGE_ID_LEN + hdr->iv.len + hdr->auth_tag.len;
+    size_t idx;
+    size_t edk_count = aws_array_list_length(&hdr->edk_list);
+    size_t bytes = 18 + MESSAGE_ID_LEN + hdr->iv.len + hdr->auth_tag.len;
     size_t aad_len;
 
     if (aws_cryptosdk_context_size(&aad_len, &hdr->enc_context)) {
@@ -303,6 +300,7 @@ int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_
     if (!aws_byte_cursor_write(&output, hdr->message_id, MESSAGE_ID_LEN)) goto WRITE_ERR;
 
     // TODO - unify everything on byte_bufs when the aws-c-common refactor lands
+    // See: https://github.com/awslabs/aws-c-common/pull/130
     struct aws_byte_cursor aad_length_field = aws_byte_cursor_advance(&output, 2);
     struct aws_byte_buf aad_space = aws_byte_buf_from_array(output.ptr, output.len);
 
