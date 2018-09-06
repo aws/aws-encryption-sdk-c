@@ -94,7 +94,11 @@ static void tear_down_all_the_things() {
     aws_cryptosdk_edk_list_clean_up(&req.encrypted_data_keys);
     aws_cryptosdk_keyring_destroy(kr);
 }
-
+/**
+ * RSA Data key decryption with set of known test vectors. This set contains test vectors for the three 
+ * supported algorithms: RSA with PKCS1 Padding, RSA with OAEP/SHA-1/MGF1 Padding, RSA with OAEP/SHA-256/MGF1 Padding. 
+ * This set includes wrapping keys of 256, 192, and 128 bits. Same vectors as used in decrypt_data_key_test_vectors.
+ */
 int decrypt_data_key_from_test_vectors() {
     for (struct raw_rsa_keyring_test_vector *tv = raw_rsa_keyring_test_vectors; tv->data_key; ++tv) {
         TEST_ASSERT_SUCCESS(set_up_all_the_things(tv->wrapping_alg_id, tv->alg));
@@ -107,12 +111,14 @@ int decrypt_data_key_from_test_vectors() {
 
         struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv->data_key, tv->data_key_len);
         TEST_ASSERT(aws_byte_buf_eq(&dec_mat->unencrypted_data_key, &known_answer));
+        
+        tear_down_all_the_things();
     }
-
-    tear_down_all_the_things();
     return 0;
 }
-
+/**
+ * Same as the first test vector but EDK list has many wrong EDKs which fail for different reasons before getting to good one.
+ */
 int decrypt_data_key_from_multiple_edks() {
     struct raw_rsa_keyring_test_vector tv = raw_rsa_keyring_test_vectors[0];
     TEST_ASSERT_SUCCESS(set_up_all_the_things(tv.wrapping_alg_id, tv.alg));
@@ -131,7 +137,9 @@ int decrypt_data_key_from_multiple_edks() {
     tear_down_all_the_things();
     return 0;
 }
-
+/**
+ * Same as the last test but omits the final (good) EDK from the list, so decryption fails.
+ */
 int decrypt_data_key_from_bad_edk() {
     struct raw_rsa_keyring_test_vector tv = raw_rsa_keyring_test_vectors[0];
     TEST_ASSERT_SUCCESS(set_up_all_the_things(tv.wrapping_alg_id, tv.alg));
@@ -143,8 +151,6 @@ int decrypt_data_key_from_bad_edk() {
 
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_decrypt_data_key(kr, dec_mat, &req));
     TEST_ASSERT_ADDR_NULL(dec_mat->unencrypted_data_key.buffer);
-    struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv.data_key, tv.data_key_len);
-    TEST_ASSERT(!aws_byte_buf_eq(&dec_mat->unencrypted_data_key, &known_answer));
 
     tear_down_all_the_things();
     return 0;

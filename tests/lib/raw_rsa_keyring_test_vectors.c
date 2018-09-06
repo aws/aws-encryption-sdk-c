@@ -17,8 +17,10 @@
 
 static const uint8_t raw_rsa_keyring_tv_master_key_id[] = "asdfhasiufhiasuhviawurhgiuawrhefiuawhf";
 static const uint8_t raw_rsa_keyring_tv_provider_id[] = "asoghis";
-/* Will change the way key is obtained in the next PR. 
-I shall be making use of the PEM Parser provided by the C-SDK team in the aws-c-io library*/
+
+/* Will change the way key is obtained in a new PR. 
+I shall be making use of the PEM Parser provided by the C-SDK team in the aws-c-io library inorder
+to load the private-key.pem file to a string that can then be passed around*/
 static const uint8_t raw_rsa_keyring_tv_wrapping_key[] = "-----BEGIN PRIVATE KEY-----\n"
 "MIIJQQIBADANBgkqhkiG9w0BAQEFAASCCSswggknAgEAAoICAQCmTHvqwuxxq4FJ\n"
 "eUoyDaLGNqlZUYldsetFaq8/VtNqGU+JR005oB0G/Jx9bo8IJaO5bfTMZO6FlaNl\n"
@@ -197,7 +199,7 @@ static const uint8_t tv_2_edk_bytes[] = {
 static const uint8_t tv_3_data_key[] = { 0x58, 0x85, 0xa8, 0xc2, 0x89, 0x09, 0x80, 0xf5,
                                          0xea, 0xf0, 0xa4, 0xc3, 0xbb, 0xa4, 0x42, 0xee };
 
-// 512 bytes encrypted data key
+// 512 bytes encrypted data key 
 static const uint8_t tv_3_edk_bytes[] = {
     0x03, 0xca, 0xe7, 0xd7, 0x5b, 0x91, 0x03, 0xfa, 0x04, 0x57, 0x54, 0x4e, 0x8e, 0xbd, 0x82, 0xa0, 0x0c, 0x18, 0xb0,
     0xe5, 0x34, 0xd9, 0x4d, 0xf7, 0x1f, 0x8d, 0xbc, 0x3e, 0x11, 0xae, 0x22, 0xa5, 0x85, 0xb3, 0xe3, 0x7f, 0xc8, 0x53,
