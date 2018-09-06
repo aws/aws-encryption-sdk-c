@@ -72,7 +72,7 @@ struct TestDataOut {
     };
 };
 
-int generatedkAndDecrypt_sameKeyring_returnSuccess() {
+int generatedkAndDecrypt_sameKeyring_returnSuccess(const char *key) {
     TestData td;
     TestDataOut td_out;
 
@@ -92,6 +92,15 @@ int generatedkAndDecrypt_sameKeyring_returnSuccess() {
     Aws::Delete(kms_keyring);
 
     return 0;
+}
+
+
+int generatedkAndDecrypt_sameKeyringKey1_returnSuccess() {
+    return generatedkAndDecrypt_sameKeyring_returnSuccess(KEY_ARN_STR1);
+}
+
+int generatedkAndDecrypt_sameKeyringKey2_returnSuccess() {
+    return generatedkAndDecrypt_sameKeyring_returnSuccess(KEY_ARN_STR2);
 }
 
 /**
@@ -208,6 +217,7 @@ int generatedkAndDecrypt_keyForDecryptionMismatch_returnErr() {
 //todo add more tests for encryption/decryption only
 //todo add more tests for each type of KmsKeyring constructor
 //todo add more tests for grantTokens
+//todo We'll need tests for the default region that encrypt with key IDs of the form [uuid] or alias/whatever.
 
 int main() {
     SDKOptions *options = Aws::New<SDKOptions>(CLASS_CTAG);
@@ -219,7 +229,8 @@ int main() {
         Aws::MakeShared<Aws::Utils::Logging::DefaultLogSystem>(
             "RunUnitTests", Aws::Utils::Logging::LogLevel::Trace, "aws_encryption_sdk_"));*/
 
-    RUN_TEST(generatedkAndDecrypt_sameKeyring_returnSuccess());
+    RUN_TEST(generatedkAndDecrypt_sameKeyringKey1_returnSuccess());
+    RUN_TEST(generatedkAndDecrypt_sameKeyringKey2_returnSuccess());
     RUN_TEST(generatedkAndDecrypt_twoDistinctKeyrings_returnSuccess());
     RUN_TEST(generatedkAndDecrypt_oneKeyEncryptsTwoKeysForDecryptionConfigured_returnSuccess());
     RUN_TEST(generatedkAndDecrypt_twoKeysEncryptsTwoKeyDecrypts_returnSuccess());

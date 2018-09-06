@@ -254,12 +254,12 @@ Aws::Cryptosdk::KmsKeyring::KmsKeyring(struct aws_allocator *alloc,
                                        const String &default_region,
                                        const Aws::Vector<Aws::String> &grant_tokens,
                                        std::shared_ptr<RegionalClientSupplier> regional_client_supplier,
-                                       const Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &kms_key_cache)
+                                       const Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &kms_client_cache)
     : key_provider(aws_byte_buf_from_c_str(KEY_PROVIDER_STR)),
       kms_client_supplier(regional_client_supplier),
       default_region(default_region),
       grant_tokens(grant_tokens),
-      kms_cached_clients(kms_key_cache) {
+      kms_cached_clients(kms_client_cache) {
     Init(alloc, key_ids);
 }
 
@@ -352,6 +352,7 @@ Aws::String KmsKeyring::GetRegionForConfiguredKmsKeys(const Aws::String &key_id)
 }
 
 std::shared_ptr<KMS::KMSClient> KmsKeyring::GetKmsClient(const Aws::String &region) const {
+    std::unique_lock<std::mutex> lock(keyring_cache_mutex);
     if (kms_cached_clients.find(region) != kms_cached_clients.end()) {
         return kms_cached_clients.at(region);
     }
@@ -365,7 +366,8 @@ void KmsKeyring::SaveKmsClientInCache(const Aws::String &region, std::shared_ptr
         kms_cached_clients[region] = kms_client;
     }
 }
-const Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &KmsKeyring::GetKmsCachedClients() const {
+const Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> KmsKeyring::GetKmsCachedClients() const {
+    std::unique_lock<std::mutex> lock(keyring_cache_mutex);
     return kms_cached_clients;
 }
 

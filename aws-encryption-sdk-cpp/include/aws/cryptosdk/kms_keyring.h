@@ -109,7 +109,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
 
     //TODO add a builder
     /**
-     * Initializes KMSKeyring using a list of KeyIds
+     * Initializes KmsKeyring using a list of KeyIds
      * @param alloc Allocator structure. An instance of this will be passed around for anything needing memory
      *              allocation
      * @param key_ids A list with unique identifier for the customer master key (KMS).
@@ -121,6 +121,9 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
      * @param default_region This region will be used when specifying key IDs for encryption that are not full ARNs,
      *                      but are instead bare key IDs or aliases.
      * @param supplier Object that supplies an KMSClient instance to use for a given region.
+     * @param kms_client_cache A cache object for the kms clients. This allows re-usability of Kms clients among
+     *                         multiple instances of KmsKeyring. Can be used in applications that frequently create new
+     *                         keyrings and are sensitive to performance.
      */
     KmsKeyring(
         struct aws_allocator *alloc,
@@ -129,7 +132,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
         const Aws::Vector<Aws::String> &grant_tokens = {},
         std::shared_ptr<RegionalClientSupplier> supplier = Aws::MakeShared<DefaultRegionalClientSupplier>
             ("KMS_DEFAULT_REGIONAL_SUPPLIER"),
-        const Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &kms_key_cache
+        const Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &kms_client_cache
                                                        = Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>>());
 
   public:
@@ -142,7 +145,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
     /**
      * Returns cached clients from this object
      */
-    const Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &GetKmsCachedClients() const;
+    const Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> GetKmsCachedClients() const;
 
   protected:
     /**
@@ -265,7 +268,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
     // A map of <key-id, region>
     Aws::Map<Aws::String, Aws::String> key_ids;
 
-    std::mutex keyring_cache_mutex;
+    mutable std::mutex keyring_cache_mutex;
 };
 
 }  // namespace Cryptosdk

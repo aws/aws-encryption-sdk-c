@@ -208,10 +208,30 @@ class DecryptValues : public TestValues {
         edks(allocator) {
     };
 
+    DecryptValues(const Aws::List<Aws::String> &key_ids)
+    : TestValues(key_ids),
+      dec_mat(aws_cryptosdk_decryption_materials_new(allocator, AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE)),
+      edks(allocator) {
+
+    }
+
     Model::DecryptRequest GetRequest() {
         Model::DecryptRequest request;
         request.SetCiphertextBlob(ct_bb);
         return request;
+    }
+
+    Model::DecryptRequest GetRequest(const Aws::Utils::ByteBuffer &in_ct_bb) {
+        Model::DecryptRequest request;
+        request.SetCiphertextBlob(in_ct_bb);
+        return request;
+    }
+
+    Model::DecryptResult GetResult(const Aws::String &key, const Aws::Utils::ByteBuffer &pt_bb) {
+        Model::DecryptResult rv;
+        rv.SetKeyId(key);
+        rv.SetPlaintext(pt_bb);
+        return rv;
     }
 
     struct aws_cryptosdk_decryption_request &decryption_request() {
@@ -277,6 +297,34 @@ int encrypt_validInputsMultipleKeys_returnSuccess() {
     TEST_ASSERT(ev.kms_client_mock->ExpectingOtherCalls() == false);
 
     aws_cryptosdk_edk_list_clean_up(&expected_edks);
+
+    return 0;
+}
+
+int encrypt_emptyRegionNameInKeys_returnSuccess() {
+    Aws::List<Aws::String> key = {"arn:aws:kms::123456789010:whatever"};
+    EncryptTestValues ev(key);
+
+    auto kms_client_mock = Aws::MakeShared<KmsClientMock>(CLASS_TAG);
+    auto kms_keyring = Aws::New<KmsMasterKeyExposer>(CLASS_TAG,
+                                                     ev.allocator,
+                                                     kms_client_mock,
+                                                     key
+    );
+
+    kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest(key.front().c_str(), ev.pt_bb),
+                                              ev.GetResult(key.front().c_str()));
+    TEST_ASSERT_SUCCESS(kms_keyring->EncryptDataKey(kms_keyring, ev.enc_mat));
+
+    TEST_ASSERT_SUCCESS(t_assert_edks_with_single_element_contains_expected_values(&ev.enc_mat->encrypted_data_keys,
+                                                                                   ev.ct,
+                                                                                   key.front().c_str(),
+                                                                                   ev.provider_id,
+                                                                                   ev.allocator));
+
+    TEST_ASSERT(ev.kms_client_mock->ExpectingOtherCalls() == false);
+
+    Aws::Delete(kms_keyring);
 
     return 0;
 }
@@ -356,6 +404,34 @@ int decrypt_validInputs_returnSuccess() {
     TEST_ASSERT_SUCCESS(dv.kms_keyring->DecryptDataKey(dv.kms_keyring, dv.dec_mat, &dv.decryption_request()));
     TEST_ASSERT(aws_byte_buf_eq(&dv.dec_mat->unencrypted_data_key, &dv.pt_aws_byte) == true);
     TEST_ASSERT(dv.kms_client_mock->ExpectingOtherCalls() == false);
+    return 0;
+}
+
+int decrypt_emptyRegionNameInKeys_returnSuccess() {
+    Aws::String key = {"arn:aws:kms::123456789010:whatever"};
+    DecryptValues dv( { key } );
+
+    auto kms_client_mock = Aws::MakeShared<KmsClientMock>(CLASS_TAG);
+    auto kms_keyring = Aws::New<KmsMasterKeyExposer>(CLASS_TAG,
+                                                     dv.allocator,
+                                                     kms_client_mock,
+                                                     key
+    );
+    TEST_ASSERT_SUCCESS(t_append_c_str_key_to_edks(dv.allocator,
+                                                   &dv.edks.encrypted_data_keys,
+                                                   &dv.ct_bb,
+                                                   key.c_str(),
+                                                   dv.provider_id));
+
+
+    kms_client_mock->ExpectDecryptAccumulator(dv.GetRequest(), dv.GetResult(key, dv.pt_bb));
+
+    TEST_ASSERT_SUCCESS(kms_keyring->DecryptDataKey(kms_keyring, dv.dec_mat, &dv.decryption_request()));
+    TEST_ASSERT(aws_byte_buf_eq(&dv.dec_mat->unencrypted_data_key, &dv.pt_aws_byte) == true);
+    TEST_ASSERT(dv.kms_client_mock->ExpectingOtherCalls() == false);
+
+    Aws::Delete(kms_keyring);
+
     return 0;
 }
 
@@ -523,9 +599,11 @@ int main() {
     RUN_TEST(encrypt_validInputs_returnSuccess());
     RUN_TEST(encrypt_kmsFails_returnError());
     RUN_TEST(encrypt_validInputsMultipleKeys_returnSuccess());
+    RUN_TEST(encrypt_emptyRegionNameInKeys_returnSuccess());
     RUN_TEST(encrypt_multipleKeysOneFails_returnFail());
     RUN_TEST(encrypt_multipleKeysOneFails_initialEdksAreNotAffected());
     RUN_TEST(decrypt_validInputs_returnSuccess());
+    RUN_TEST(decrypt_emptyRegionNameInKeys_returnSuccess());
     RUN_TEST(decrypt_validInputsButNoKeyMatched_returnSuccess());
     RUN_TEST(decrypt_noKeys_returnSuccess());
     RUN_TEST(decrypt_validInputsWithMultipleEdks_returnSuccess());
