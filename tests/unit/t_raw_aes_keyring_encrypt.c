@@ -17,6 +17,8 @@
 #include "raw_aes_keyring_test_vectors.h"
 #include "testing.h"
 
+#if 0
+
 static struct aws_allocator * alloc;
 static struct aws_cryptosdk_keyring * kr;
 static struct aws_hash_table enc_context;
@@ -186,9 +188,13 @@ int encrypt_data_key_test_vectors() {
     return 0;
 }
 
+#endif // #if 0
+
 struct test_case raw_aes_keyring_encrypt_test_cases[] = {
+/*
     { "raw_aes_keyring", "encrypt_decrypt_data_key", encrypt_decrypt_data_key },
     { "raw_aes_keyring", "generate_decrypt_data_key", generate_decrypt_data_key },
     { "raw_aes_keyring", "encrypt_data_key_test_vectors", encrypt_data_key_test_vectors },
+*/
     { NULL }
 };
