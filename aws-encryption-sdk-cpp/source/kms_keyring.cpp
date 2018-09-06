@@ -57,14 +57,20 @@ int KmsKeyring::EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
     class EdksRaii {
       public:
         ~EdksRaii() {
-            aws_cryptosdk_edk_list_clean_up(&aws_list);
+            if (initialized) {
+                aws_cryptosdk_edk_list_clean_up(&aws_list);
+                initialized = false;
+            }
         }
         int Create(struct aws_allocator *alloc, size_t initial_item_allocation) {
-            return aws_array_list_init_dynamic(&aws_list,
-                                               alloc,
-                                               initial_item_allocation,
-                                               sizeof(struct aws_cryptosdk_edk));
+            auto rv = aws_array_list_init_dynamic(&aws_list,
+                                                  alloc,
+                                                  initial_item_allocation,
+                                                  sizeof(struct aws_cryptosdk_edk));
+            initialized = (rv == AWS_OP_SUCCESS)?true:false;
+            return rv;
         }
+        bool initialized = false;
         struct aws_array_list aws_list;
     };
 

@@ -44,7 +44,9 @@ const char *CLASS_CTAG = "Test KMS";
  * You should never use it in production!
  */
 const char *KEY_ARN_STR1 = "arn:aws:kms:us-west-2:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
+const char *KEY_ARN_STR1_REGION = Aws::Region::US_WEST_2;
 const char *KEY_ARN_STR2 = "arn:aws:kms:eu-central-1:658956600833:key/75414c93-5285-4b57-99c9-30c1cf0a22c2";
+const char *KEY_ARN_STR2_REGION = Aws::Region::EU_CENTRAL_1;
 
 struct TestData {
     struct aws_allocator *alloc;
@@ -53,9 +55,9 @@ struct TestData {
     Aws::Client::ClientConfiguration client_configuration;
     std::shared_ptr<Aws::KMS::KMSClient> kms_client;
 
-    TestData() : alloc(aws_default_allocator()),
+    TestData(Aws::String region = Aws::Region::US_WEST_2) : alloc(aws_default_allocator()),
                  pt_in(aws_byte_buf_from_array(pt_str, sizeof(pt_str))) {
-        client_configuration.region = Aws::Region::US_WEST_2;
+        client_configuration.region = region;
         kms_client = Aws::MakeShared<Aws::KMS::KMSClient>(CLASS_CTAG, client_configuration);
     }
 };
@@ -72,13 +74,13 @@ struct TestDataOut {
     };
 };
 
-int generatedkAndDecrypt_sameKeyring_returnSuccess(const char *key) {
-    TestData td;
+int generatedkAndDecrypt_sameKeyring_returnSuccess(const char *key, const char *region) {
+    TestData td(region);
     TestDataOut td_out;
 
-    auto kms_keyring = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, KEY_ARN_STR1, td.kms_client);
+    auto kms_keyring = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, key, td.kms_client);
 
-    // egenerate dk
+    // generate dk
     TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring, AWS_CRYPTOSDK_ENCRYPT, &td.pt_in, &td_out.ct_out));
 
     // decrypt
@@ -96,11 +98,11 @@ int generatedkAndDecrypt_sameKeyring_returnSuccess(const char *key) {
 
 
 int generatedkAndDecrypt_sameKeyringKey1_returnSuccess() {
-    return generatedkAndDecrypt_sameKeyring_returnSuccess(KEY_ARN_STR1);
+    return generatedkAndDecrypt_sameKeyring_returnSuccess(KEY_ARN_STR1, KEY_ARN_STR1_REGION);
 }
 
 int generatedkAndDecrypt_sameKeyringKey2_returnSuccess() {
-    return generatedkAndDecrypt_sameKeyring_returnSuccess(KEY_ARN_STR2);
+    return generatedkAndDecrypt_sameKeyring_returnSuccess(KEY_ARN_STR2, KEY_ARN_STR2_REGION);
 }
 
 /**
