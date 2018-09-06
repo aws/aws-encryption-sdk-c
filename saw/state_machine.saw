@@ -19,7 +19,7 @@ sat_print yices s;
 print "\n";
 
 
-print "Is there any (non-error or done) state from which the loop does not continue when the precise size is known special?";
+print "Is there any (non-error or done) state from which the loop does not continue when the precise size is known?";
 let s = {{loopContinuesPreciseSym}};
 sat_print yices s;
 print "\n";

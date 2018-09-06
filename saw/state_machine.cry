@@ -4,9 +4,11 @@ import type_def
 import transition_function
     
 
-// Translation of the the work inside the switch statement of the aws_cryptosdk_session_process function of session.c (lines 185 - 240)
+// Translation of the the work inside the switch statement of the aws_cryptosdk_session_process function of session.c 
+//(lines 185 - 240)
 // Currently, transitions from ST_CONFIG, ST_WRITE_HEADER and ST_ENCRYPT_BODY are modeled. 
-// All other states are assumed to just transition to the next subsequent state (even ST_DONE and ST_ERROR), even though this is not necessarily accurate.
+// All other states are assumed to just transition to the next subsequent state (even ST_DONE and ST_ERROR), even 
+//though this is not necessarily accurate.
 
 processState : current_state -> current_state
 processState state_old = 
@@ -102,19 +104,11 @@ getNewBufferSize old_size estimate_size =
 updateBuffers : current_state -> current_state
 updateBuffers old_state = {sess = old_state.sess
                            , output_buffer = { ptr = old_state.output_buffer.ptr
-                                              , len = getNewBufferSize old_state.output_buffer.len old_state.sess.output_size_estimate
+                                              , len = getNewBufferSize old_state.output_buffer.len 
+                                              old_state.sess.output_size_estimate
                                               }
                            , input_buffer = {ptr = old_state.input_buffer.ptr
-                                            , len = getNewBufferSize old_state.input_buffer.len old_state.sess.input_size_estimate 
+                                            , len = getNewBufferSize old_state.input_buffer.len 
+                                            old_state.sess.input_size_estimate 
                                             }
                            }
-
-
-stateA = { sess = 
-        { output_size_estimate = 0, input_size_estimate = 0, header_size = 2147483648, state = ST_ENCRYPT_BODY, mode = 1, precise_size = 4013723674, data_so_far = 0, frame_size = 3882822912, precise_size_known = 1
-        , alg_prop = {iv_len = 96, tag_len = 128}
-        , header = {aad_len_total = 0, edk_len_total = 0}
-        }
-    , output_buffer = {ptr = 0, len = 2147483648}
-    , input_buffer = {ptr = 0, len = 1073741824}
-    }

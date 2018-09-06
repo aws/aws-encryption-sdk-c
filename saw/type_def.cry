@@ -1,7 +1,8 @@
 module type_def where
 
 
-// Compound type that stores all the variables that determine if the loop in the aws_cryptosdk_session_process function of session.c has made progress (line 242)
+// Compound type that stores all the variables that determine if the loop in the aws_cryptosdk_session_process 
+// function of session.c has made progress (line 242)
 type current_state = {sess : session
                       , output_buffer : aws_byte_cursor
                       , input_buffer : aws_byte_cursor

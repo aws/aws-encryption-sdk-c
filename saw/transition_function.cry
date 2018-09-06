@@ -147,13 +147,19 @@ encryptHelper state_old size_in size_out new_state =
 
 encryptBodyFramed : current_state -> current_state
 encryptBodyFramed state_old = 
-    if ( state_old.sess.precise_size_known == 1 ) && (state_old.sess.precise_size - state_old.sess.data_so_far < state_old.sess.frame_size) then 
-        encryptHelper state_old (state_old.sess.precise_size - state_old.sess.data_so_far) (8 + state_old.sess.alg_prop.iv_len + 4 + state_old.sess.precise_size - state_old.sess.data_so_far + state_old.sess.alg_prop.tag_len) ST_WRITE_TRAILER
-    else encryptHelper state_old state_old.sess.frame_size (4 + state_old.sess.alg_prop.iv_len + state_old.sess.frame_size + state_old.sess.alg_prop.tag_len) ST_ENCRYPT_BODY
+    if ( state_old.sess.precise_size_known == 1 ) && (state_old.sess.precise_size - state_old.sess.data_so_far < 
+    state_old.sess.frame_size) then 
+        encryptHelper state_old (state_old.sess.precise_size - state_old.sess.data_so_far) (8 + 
+        state_old.sess.alg_prop.iv_len + 4 + state_old.sess.precise_size - state_old.sess.data_so_far + 
+        state_old.sess.alg_prop.tag_len) ST_WRITE_TRAILER
+    else encryptHelper state_old state_old.sess.frame_size (4 + state_old.sess.alg_prop.iv_len + 
+    state_old.sess.frame_size + state_old.sess.alg_prop.tag_len) ST_ENCRYPT_BODY
 
 encryptBodyUnframed : current_state -> current_state
 encryptBodyUnframed state_old = 
-    if ( state_old.sess.precise_size_known == 1 ) then encryptHelper state_old state_old.sess.precise_size (state_old.sess.alg_prop.iv_len + 8 + state_old.sess.precise_size + state_old.sess.alg_prop.tag_len) ST_WRITE_TRAILER
+    if ( state_old.sess.precise_size_known == 1 ) then encryptHelper state_old state_old.sess.precise_size (
+    state_old.sess.alg_prop.iv_len + 8 + state_old.sess.precise_size + state_old.sess.alg_prop.tag_len) 
+    ST_WRITE_TRAILER
     else { sess = { output_size_estimate = 0
                     , input_size_estimate = 0
                     , header_size = state_old.sess.header_size
@@ -219,9 +225,10 @@ decryptHelper state_old size_in size_out new_state =
 //TODO: Size of the unframed data is stored in the ciphertext (input_buffer). What is the best way to model this?
 //TODO: Should not be using state_old.sess.precise_size. This is only temporary. 
 decryptBodyUnframed : current_state -> current_state 
-decryptBodyUnframed state_old = decryptHelper state_old ( state_old.sess.alg_prop.iv_len + 8 + state_old.sess.precise_size + state_old.sess.alg_prop.tag_len)   state_old.sess.precise_size ST_CHECK_TRAILER
+decryptBodyUnframed state_old = decryptHelper state_old ( state_old.sess.alg_prop.iv_len + 8 + 
+state_old.sess.precise_size + state_old.sess.alg_prop.tag_len)   state_old.sess.precise_size ST_CHECK_TRAILER
 
-//TODO: Whether the frame is final as well as the size of the final frame is stored in the ciphertext (input_buffer). What is the best way to model this?
+//TODO: Whether the frame is final as well as the size of the final frame is stored in the ciphertext (input_buffer). 
 
 decryptBodyFramed : current_state -> current_state 
 decryptBodyFramed state_old = state_old 
