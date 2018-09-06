@@ -290,6 +290,11 @@ static inline int aws_cryptosdk_keyring_generate_or_encrypt_data_key(
     const struct aws_hash_table * enc_context,
     enum aws_cryptosdk_alg_id alg) {
     if (!unencrypted_data_key->buffer && aws_array_list_length(edks)) {
+        /* If a data key has not already been generated, there should be no EDKs.
+         * Generating a new one and then pushing new EDKs on the list would cause the
+         * list of EDKs to be inconsistent. (i.e., they would decrypt to different data
+         * keys.) We should never get into this state, so exit with an error.
+         */
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     }
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(generate_or_encrypt_data_key,
