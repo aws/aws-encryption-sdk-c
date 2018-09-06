@@ -51,7 +51,8 @@ writeHeader state_old =
 
 getHeaderSize : current_state -> [32]
 getHeaderSize state_old = 
-    if ( state_old.sess.header.aad_len_total > 0 ) then (18 + MESSAGE_ID_LEN + state_old.sess.header.aad_len_total + state_old.sess.header.edk_len_total)
+    if ( state_old.sess.header.aad_len_total > 0 ) then 
+        (18 + MESSAGE_ID_LEN + state_old.sess.header.aad_len_total + state_old.sess.header.edk_len_total)
     else (20 + MESSAGE_ID_LEN + state_old.sess.header.aad_len_total + state_old.sess.header.edk_len_total)
 
 updateInputBuffer : current_state -> [32]
@@ -65,9 +66,9 @@ updateInputBuffer state_old =
 parseHeader : current_state -> current_state 
 parseHeader state_old = 
     if (state_old.input_buffer.len < ( getHeaderSize state_old ) ) then {sess = sess_new_fail
-                                                                    , output_buffer = state_old.output_buffer
-                                                                    , input_buffer = state_old.input_buffer
-                                                                    }
+                                                                        , output_buffer = state_old.output_buffer
+                                                                        , input_buffer = state_old.input_buffer
+                                                                        }
         where sess_new_fail = { output_size_estimate = 0
                                 , input_size_estimate = ( updateInputBuffer state_old )
                                 , header_size = state_old.sess.header_size

@@ -29,7 +29,7 @@ type session = {
 // See <aws/common/byte_buf.h>: 43 - 46 
 
 type aws_byte_cursor = {
-    ptr : [32]
+    ptr : [32] //NOTE: actual size in the c code is [8]. This is to add other fields (such as header size with ease)
     , len : [32]
     }
 
