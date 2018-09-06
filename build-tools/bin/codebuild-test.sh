@@ -20,7 +20,7 @@ set -x # Echo commands as they're executed
 PATH=$PWD/build-tools/bin:$PATH
 
 build-tools/bin/codebuild-build-dependency https://github.com/awslabs/aws-c-common.git
-build-tools/bin/codebuild-build-dependency https://github.com/awslabs/aws-sdk-cpp.git --git-rev 1.5.20 -DBUILD_ONLY="kms;lambda"
+build-tools/bin/codebuild-build-dependency https://github.com/awslabs/aws-sdk-cpp.git --git-tag 1.5.20 -DBUILD_ONLY="kms;lambda"
 mkdir build
 ls -l /deps/aws-c-common/install/lib/aws-c-common/cmake
 (cd build;
