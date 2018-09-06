@@ -15,8 +15,8 @@
 
 #include <openssl/err.h>
 #include <openssl/evp.h>
-#include <openssl/rand.h>
 #include <openssl/pem.h>
+#include <openssl/rand.h>
 #include <openssl/rsa.h>
 #include <assert.h>
 #include <stdbool.h>
@@ -563,18 +563,22 @@ int aws_cryptosdk_rsa_decrypt(
     const uint8_t *key,
     enum aws_cryptosdk_rsa_wrapping_alg_id wrapping_alg_id) {
     int padding = -1;
-    bool openssl_err = true;
     switch (wrapping_alg_id) {
         case RSA_PKCS1: padding = RSA_PKCS1_PADDING; break;
         case RSA_OAEP_SHA1_MGF1: padding = RSA_PKCS1_OAEP_PADDING; break;
         case RSA_OAEP_SHA256_MGF1: padding = RSA_PKCS1_OAEP_PADDING; break;
         default: return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     }
+    bool openssl_err = true;
+    BIO *bio = NULL;
+    EVP_PKEY_CTX *ctx = NULL;
     EVP_PKEY *pkey = EVP_PKEY_new();
-    size_t outlen = 0;
-    BIO *bio = BIO_new_mem_buf(key, -1);
+    if (!pkey) goto err;
+    bio = BIO_new_mem_buf(key, -1);
+    if (!bio) goto err;
     pkey = PEM_read_bio_PrivateKey(bio, &pkey, NULL, NULL);
-    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pkey, NULL);
+    if (!pkey) goto err;
+    ctx = EVP_PKEY_CTX_new(pkey, NULL);
     if (!ctx) goto err;
     if (EVP_PKEY_decrypt_init(ctx) <= 0) goto err;
     if (EVP_PKEY_CTX_set_rsa_padding(ctx, padding) <= 0) goto err;
@@ -582,6 +586,7 @@ int aws_cryptosdk_rsa_decrypt(
         if (EVP_PKEY_CTX_set_rsa_oaep_md(ctx, EVP_sha256()) <= 0) goto err;
         if (EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, EVP_sha256()) <= 0) goto err;
     }
+    size_t outlen = 0;
     if (EVP_PKEY_decrypt(ctx, NULL, &outlen, cipher.ptr, cipher.len) <= 0) goto err;
     if (outlen == 0) goto err;
     if (!plain->buffer) goto err;

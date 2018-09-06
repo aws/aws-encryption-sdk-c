@@ -96,20 +96,20 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     memset(kr, 0, sizeof(struct raw_rsa_keyring));
 
     kr->master_key_id = aws_string_new_from_array(alloc, master_key_id, master_key_id_len);
-    if (!kr->master_key_id) goto oom_err;
+    if (!kr->master_key_id) goto err;
 
     kr->provider_id = aws_string_new_from_array(alloc, provider_id, provider_id_len);
-    if (!kr->provider_id) goto oom_err;
+    if (!kr->provider_id) goto err;
 
+    if (!raw_key_bytes) goto err;
     kr->raw_key = raw_key_bytes;
-    if (!kr->raw_key) goto oom_err;
 
     kr->wrapping_alg_id = wrapping_alg_id;
     kr->vt = &raw_rsa_keyring_vt;
     kr->alloc = alloc;
     return (struct aws_cryptosdk_keyring *)kr;
 
-oom_err:
+err:
     aws_string_destroy((void *)kr->master_key_id);
     aws_string_destroy((void *)kr->provider_id);
     aws_mem_release(alloc, kr);

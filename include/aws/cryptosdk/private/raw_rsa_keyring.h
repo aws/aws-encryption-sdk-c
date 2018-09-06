@@ -15,7 +15,6 @@
 #ifndef AWS_CRYPTOSDK_PRIVATE_RAW_RSA_KEYRING_H
 #define AWS_CRYPTOSDK_PRIVATE_RAW_RSA_KEYRING_H
 
-#include <aws/common/string.h>
 #include <aws/cryptosdk/raw_rsa_keyring.h>
 
 struct raw_rsa_keyring {
