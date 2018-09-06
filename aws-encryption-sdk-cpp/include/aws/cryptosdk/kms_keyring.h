@@ -43,73 +43,26 @@ struct aws_cryptosdk_kms_keyring : aws_cryptosdk_keyring {
  */
 class KmsKeyring : public aws_cryptosdk_kms_keyring {
   public:
+    class RegionalClientSupplier;
     /**
-     * Interface that supplies KmsKeyring with a new KMSClient in a specific region
+     *
+     * @param constructor_key Parameter used to enforce calling of this constructor only from friend classes
      */
-    class RegionalClientSupplier {
-      public:
-        /**
-         * Returns a new KMSClient in the specified region
-         */
-        virtual std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region_name) const = 0;
-        virtual ~RegionalClientSupplier() {};
-    };
+    ~KmsKeyring();
+
+    // non-copyable
+    KmsKeyring(const KmsKeyring &) = delete;
+    KmsKeyring &operator=(const KmsKeyring &) = delete;
 
     /**
-     * Provides the default configured KMSClient in a specific region
+     * Returns cached clients from this object
      */
-    class DefaultRegionalClientSupplier : public RegionalClientSupplier {
-      public:
-        std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region_name) const;
-    };
+    const Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> GetKmsCachedClients() const;
 
-    /*
-     * Provides the same KMS client initialized in the constructor regardless of the region
-     * Note this Supplier is not suitable for multiple regions
-     */
-    class SingleClientSupplier : public RegionalClientSupplier {
-      public:
-        SingleClientSupplier(const std::shared_ptr<KMS::KMSClient> &kms_client);
-        std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region_name) const;
-      private:
-        std::shared_ptr<KMS::KMSClient> kms_client;
-    };
-
-    //TODO remove this once we have a builder
-    // We allow to create a new KmsMasterKey only by calling Aws::New. This is because during the destruction we call
-    // Aws::Delete(...)
-    template<typename T, typename ...ArgTypes>
-    friend T *Aws::New(const char *allocationTag, ArgTypes &&... args);
   protected:
     /**
-     * Initializes KmsKeyring with a single key_id
-     *
-     * Note: if KMS region can't be extracted from key_id this will throw std::invalid_argument
-     * @param alloc Allocator structure. An instance of this will be passed around for anything needing memory
-     *              allocation
-     * @param key_id A unique identifier for the customer master key (KMS).
-     *              To specify a master key, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
-     *              This should be specified in the same structure as the one required by KMS client
-     */
-    KmsKeyring(struct aws_allocator *alloc,
-               const Aws::String &key_id);
-
-    /**
-     * Initializes KmsKeyring to use Aws::KMS::KMSClient with a key_id
-     * @param alloc Allocator structure. An instance of this will be passed around for anything needing memory
-     *              allocation
-     * @param kms_client KMS client object
-     * @param key_id A unique identifier for the customer master key (KMS).
-     *               To specify a master key, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
-     *               This should be specified in the same structure as the one required by KMS client
-     */
-    KmsKeyring(struct aws_allocator *alloc,
-               const Aws::String &key_id,
-               std::shared_ptr<Aws::KMS::KMSClient> kms_client);
-
-    //TODO add a builder
-    /**
      * Initializes KmsKeyring using a list of KeyIds
+     * Use KmsKeyring::Builder to allocate a new KmsKeyring.
      * @param alloc Allocator structure. An instance of this will be passed around for anything needing memory
      *              allocation
      * @param key_ids A list with unique identifier for the customer master key (KMS).
@@ -129,25 +82,10 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
         struct aws_allocator *alloc,
         const Aws::List<Aws::String> &key_ids,
         const String &default_region,
-        const Aws::Vector<Aws::String> &grant_tokens = {},
-        std::shared_ptr<RegionalClientSupplier> supplier = Aws::MakeShared<DefaultRegionalClientSupplier>
-            ("KMS_DEFAULT_REGIONAL_SUPPLIER"),
-        const Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &kms_client_cache
-                                                       = Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>>());
+        const Aws::Vector<Aws::String> &grant_tokens,
+        std::shared_ptr<RegionalClientSupplier> supplier,
+        const Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &kms_client_cache);
 
-  public:
-    ~KmsKeyring();
-
-    // non-copyable
-    KmsKeyring(const KmsKeyring &) = delete;
-    KmsKeyring &operator=(const KmsKeyring &) = delete;
-
-    /**
-     * Returns cached clients from this object
-     */
-    const Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> GetKmsCachedClients() const;
-
-  protected:
     /**
      * It attempts to find one of the EDKs to decrypt
      * This function will be automatically called when a Data Key needs to be decrypted
@@ -195,7 +133,6 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
      */
     static void DestroyAwsCryptoKeyring(aws_cryptosdk_keyring *keyring);
 
-  protected:
     /**
      * Creates a new KMS Encrypt request
      */
@@ -269,6 +206,139 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
     Aws::Map<Aws::String, Aws::String> key_ids;
 
     mutable std::mutex keyring_cache_mutex;
+
+  public:
+    /**
+     * Interface that supplies KmsKeyring with a new KMSClient in a specific region
+     */
+    class RegionalClientSupplier {
+      public:
+        /**
+         * Returns a new KMSClient in the specified region
+         */
+        virtual std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region_name) const = 0;
+        virtual ~RegionalClientSupplier() {};
+    };
+
+    /**
+     * Provides the default configured KMSClient in a specific region
+     */
+    class DefaultRegionalClientSupplier : public RegionalClientSupplier {
+      public:
+        std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region_name) const;
+    };
+
+    /*
+     * Provides the same KMS client initialized in the constructor regardless of the region
+     * Note this Supplier is not suitable for multiple regions
+     */
+    class SingleClientSupplier : public RegionalClientSupplier {
+      public:
+        SingleClientSupplier(const std::shared_ptr<KMS::KMSClient> &kms_client);
+        std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region_name) const;
+      private:
+        std::shared_ptr<KMS::KMSClient> kms_client;
+    };
+
+  public:
+    /**
+     * Builds a new KmsKeyring object
+     */
+    class Builder {
+      public:
+        /**
+         * Sets allocator structure. An instance of this will be passed around for anything needing memory
+         * allocation.
+         * If no allocator is set the aws_default_allocator() is used
+         */
+        Builder &SetAllocator(struct aws_allocator *alloc);
+
+        /**
+         * Sets default region. This region will be used when specifying key IDs for encryption that are not full ARNs,
+         * but are instead bare key IDs or aliases.
+         * If KMS Client is set then the RegionalClientSupplier and default_region parameters are ignored
+         */
+        Builder &SetDefaultRegion(const String &default_region);
+
+        /**
+         * Appends KMS keys to the already configured keys.
+         * To specify a master key, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
+         * This should be specified in the same structure as the one required by KMS client
+         * At least one key needs to be configured!
+         */
+        Builder &AppendKeyIds(const Aws::List<Aws::String> &key_ids);
+
+        /**
+         * Appends a new KMS key to the already configured keys
+         * To specify a master key, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
+         * This should be specified in the same structure as the one required by KMS client
+         * At least one key needs to be configured!
+         */
+        Builder &AppendKeyId(const Aws::String &key_id);
+
+        /**
+         * Sets a single KMS key to be used
+         * To specify a master key, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
+         * This should be specified in the same structure as the one required by KMS client
+         * At least one key needs to be configured!
+         */
+        Builder &SetKeyId(const Aws::String &key_id);
+
+        /**
+         * Sets a list with unique identifiers for the customer master key (KMS)
+         * To specify a master key, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
+         * This should be specified in the same structure as the one required by KMS client
+         * At least one key needs to be configured!
+         */
+        Builder &SetKeyIds(const Aws::List<Aws::String> &key_ids);
+
+        /**
+         *  A list of grant tokens. For more information, see
+         *  <a href="http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token">Grant
+         *  Tokens</a> in the <i>AWS Key Management Service Developer Guide</i>
+         */
+        Builder &SetGrantTokens(const Aws::Vector<Aws::String> &grant_tokens);
+
+        /**
+         * Sets the object that supplies a KMSClient instance to use for a given region.
+         */
+        Builder &SetRegionalClientSupplier(const std::shared_ptr<RegionalClientSupplier> &client_supplier);
+
+        /**
+         * Sets a cache object for the kms clients. This allows re-usability of Kms clients among
+         * multiple instances of KmsKeyring. Can be used in applications that frequently create new
+         * keyrings and are sensitive to performance.
+         */
+        Builder &SetKmsClientCache(const Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &kms_key_cache);
+
+        /**
+         * KmsKeyring will use only this KMS Client regardless of the configured region.
+         * If KMS Client is set then the RegionalClientSupplier and default_region parameters are ignored
+         */
+        Builder &SetKmsClient(std::shared_ptr<KMS::KMSClient> kms_client);
+
+        /**
+         * Creates a new KmsKeyring object or return NULL if parameters are invalid
+         */
+        KmsKeyring *Build() const;
+
+        /**
+         * Returns true if parameters are valid
+         */
+        bool ValidParameters() const;
+      protected:
+        Aws::String BuildDefaultRegion() const;
+        std::shared_ptr<RegionalClientSupplier> BuildClientSupplier() const;
+        struct aws_allocator * BuildAllocator() const;
+      private:
+        struct aws_allocator *alloc;
+        Aws::List<Aws::String> key_ids;
+        Aws::String default_region;
+        std::shared_ptr<KMS::KMSClient> kms_client;
+        Aws::Vector<Aws::String> grant_tokens;
+        std::shared_ptr<RegionalClientSupplier> client_supplier;
+        Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> kms_key_cache;
+    };
 };
 
 }  // namespace Cryptosdk

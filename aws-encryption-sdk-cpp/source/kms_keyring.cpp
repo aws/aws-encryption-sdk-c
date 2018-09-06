@@ -245,13 +245,6 @@ void KmsKeyring::InitAwsCryptosdkKeyring(struct aws_allocator *allocator) {
     keyring_data = this;
 }
 
-Aws::Cryptosdk::KmsKeyring::KmsKeyring(struct aws_allocator *alloc,
-                                       const String &key_id,
-                                       std::shared_ptr<Aws::KMS::KMSClient> kms_client) :
-    KmsKeyring(alloc, {key_id}, "default_region", {},
-               std::make_shared<SingleClientSupplier>(kms_client)) {
-}
-
 Aws::Cryptosdk::KmsKeyring::~KmsKeyring() {
 }
 
@@ -267,13 +260,6 @@ Aws::Cryptosdk::KmsKeyring::KmsKeyring(struct aws_allocator *alloc,
       grant_tokens(grant_tokens),
       kms_cached_clients(kms_client_cache) {
     Init(alloc, key_ids);
-}
-
-Aws::Cryptosdk::KmsKeyring::KmsKeyring(struct aws_allocator *alloc,
-                                       const Aws::String &key_id) :
-    KmsKeyring(alloc,
-               Aws::List<Aws::String>{key_id},
-               Private::parse_region_from_kms_key_arn(key_id)) {
 }
 
 Aws::KMS::Model::EncryptRequest KmsKeyring::CreateEncryptRequest(const Aws::String &key_id,
@@ -392,6 +378,157 @@ KmsKeyring::SingleClientSupplier::SingleClientSupplier(const std::shared_ptr<KMS
     : kms_client(kms_client) {
 
 }
+
+Aws::String KmsKeyring::Builder::BuildDefaultRegion() const {
+    auto built_default_region = default_region;
+
+    if (built_default_region == "" && key_ids.size() == 1) {
+        built_default_region = Private::parse_region_from_kms_key_arn(key_ids.front());
+    }
+
+    if (kms_client) {
+        // we use a magic key when no region was supplied but kms_client was configured because we will use the
+        // region already configured inside the kms_client
+        built_default_region = "default_region";
+    }
+
+    return built_default_region;
+}
+
+std::shared_ptr<KmsKeyring::RegionalClientSupplier> KmsKeyring::Builder::BuildClientSupplier() const {
+    auto built_client_supplier = client_supplier;
+
+    if (kms_client) {
+        built_client_supplier = Aws::MakeShared<SingleClientSupplier>(AWS_CRYPTO_SDK_KMS_CLASS_TAG, kms_client);
+    }
+
+    if (!built_client_supplier) {
+        built_client_supplier = Aws::MakeShared<DefaultRegionalClientSupplier>(AWS_CRYPTO_SDK_KMS_CLASS_TAG);
+    }
+
+    return built_client_supplier;
+}
+
+
+bool KmsKeyring::Builder::ValidParameters() const {
+    if (key_ids.size() == 0) {
+        AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "No key_id was provided");
+        return false;
+    }
+
+    for (auto key : key_ids) {
+        if (key.size() == 0) {
+            AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "A key that was provided is empty");
+            return false;
+        }
+    }
+
+    if (BuildDefaultRegion() == "") {
+        AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "Default region was not provided");
+        return false;
+    }
+
+    return true;
+}
+
+struct aws_allocator *KmsKeyring::Builder::BuildAllocator() const {
+    return (alloc == NULL)? aws_default_allocator() : alloc;
+}
+
+KmsKeyring *KmsKeyring::Builder::Build() const {
+    if (!ValidParameters()) {
+        aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
+        return NULL;
+    }
+
+    /**
+     * Class that allows Aws::New to allocate a new KmsKeyring object despite of the protected constructor.
+     * KmsKeyring should be constructed only through builder because during the DestroyAwsCryptoKeyring() phase we have
+     * to destroy "self" and we assume that it was allocated using Aws::New and because we are doing some parameter
+     * checks in builder rather than constructor (in the constructor we can't throw due to no-throw policy). Any other
+     * method of allocating memory should be forbidden.
+     * Aws::New accepts to allocate memory only for classes that have public constructors or friend classes. Since we
+     * want to allow construction of KmsKeyring only through the builder, a friendship with Aws::New doesn't help
+     * because would allow anyone to construct it without the builder. Instead the alternative was to declare a child
+     * class with public constructor just for initialization
+     */
+    struct KmsKeyringWithPublicConstructor : public KmsKeyring {
+        KmsKeyringWithPublicConstructor(struct aws_allocator *alloc,
+                                        const Aws::List<Aws::String> &key_ids,
+                                        const String &default_region,
+                                        const Aws::Vector<Aws::String> &grant_tokens,
+                                        std::shared_ptr<RegionalClientSupplier> client_supplier,
+                                        const Aws::Map<Aws::String,
+                                                       std::shared_ptr<Aws::KMS::KMSClient>> &kms_client_cache) :
+            KmsKeyring(alloc,
+                       key_ids,
+                       default_region,
+                       grant_tokens,
+                       client_supplier,
+                       kms_client_cache) { /* no-op */ }
+    };
+
+    return Aws::New<KmsKeyringWithPublicConstructor>(AWS_CRYPTO_SDK_KMS_CLASS_TAG,
+                                                     BuildAllocator(),
+                                                     key_ids,
+                                                     BuildDefaultRegion(),
+                                                     grant_tokens,
+                                                     BuildClientSupplier(),
+                                                     kms_key_cache);
+}
+
+KmsKeyring::Builder &KmsKeyring::Builder::SetAllocator(struct aws_allocator *alloc) {
+    this->alloc = alloc;
+    return *this;
+}
+
+KmsKeyring::Builder &KmsKeyring::Builder::SetDefaultRegion(const String &default_region) {
+    this->default_region = default_region;
+    return *this;
+}
+
+KmsKeyring::Builder &KmsKeyring::Builder::AppendKeyIds(const Aws::List<Aws::String> &key_ids) {
+    this->key_ids.insert(this->key_ids.end(), key_ids.begin(), key_ids.end());
+    return *this;
+}
+
+KmsKeyring::Builder &KmsKeyring::Builder::AppendKeyId(const Aws::String &key_id) {
+    this->key_ids.push_back(key_id);
+    return *this;
+}
+
+KmsKeyring::Builder &KmsKeyring::Builder::SetKeyId(const Aws::String &key_id) {
+    this->key_ids = {key_id};
+    return *this;
+}
+
+KmsKeyring::Builder &KmsKeyring::Builder::SetKeyIds(const Aws::List<Aws::String> &key_ids) {
+    this->key_ids = key_ids;
+    return *this;
+}
+
+KmsKeyring::Builder &KmsKeyring::Builder::SetGrantTokens(const Aws::Vector<Aws::String> &grant_tokens) {
+    this->grant_tokens = grant_tokens;
+    return *this;
+}
+
+KmsKeyring::Builder &KmsKeyring::Builder::SetRegionalClientSupplier(
+        const std::shared_ptr<RegionalClientSupplier> &client_supplier) {
+    this->client_supplier = client_supplier;
+    return *this;
+}
+
+KmsKeyring::Builder &KmsKeyring::Builder::SetKmsClientCache(
+        const Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &kms_key_cache) {
+    this->kms_key_cache = kms_key_cache;
+    return *this;
+}
+
+KmsKeyring::Builder &KmsKeyring::Builder::SetKmsClient(std::shared_ptr<KMS::KMSClient> kms_client) {
+    this->kms_client = kms_client;
+    return *this;
+}
+
 
 }  // namespace Cryptosdk
 }  // namespace Aws

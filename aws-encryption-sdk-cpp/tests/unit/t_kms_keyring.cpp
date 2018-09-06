@@ -38,15 +38,17 @@ struct KmsMasterKeyExposer : Aws::Cryptosdk::KmsKeyring {
     KmsMasterKeyExposer(struct aws_allocator *allocator,
                         std::shared_ptr<Aws::KMS::KMSClient> kms,
                         const Aws::String &key_id)
-        : KmsKeyring(allocator, key_id, kms) {}
+        : KmsMasterKeyExposer(allocator, kms, Aws::List<Aws::String> { key_id }) {
+    }
     KmsMasterKeyExposer(struct aws_allocator *allocator,
                         std::shared_ptr<Aws::KMS::KMSClient> kms,
                         const Aws::List<Aws::String> &key_ids)
         : KmsKeyring(allocator,
                      key_ids,
-                     Aws::Region::CN_NORTH_1,
+                     "default_region",
                      {},
-                     Aws::MakeShared<SingleClientSupplier>("KMS_EXPOSER", kms)) {
+                     Aws::MakeShared<SingleClientSupplier>("KMS_EXPOSER", kms),
+                     {}) {
     }
   public:
     using KmsKeyring::EncryptDataKey;
@@ -578,16 +580,88 @@ int createEncryptRequest_validInputes_returnRequest() {
     return 0;
 }
 
-/*
-TODO At this moment there is a memory leak when I try to throw in a constructor that is allocated with Aws::New
- Commenting this until the problem is fixed
-int kmsKeyRingConstructor_keyIdWithoutRegion_throw() {
-    try {
-        Aws::New<Aws::Cryptosdk::KmsKeyring>("CTAG", aws_default_allocator(), "key_id_no_region");
-    } catch (std::invalid_argument e) {
-        return AWS_OP_SUCCESS;
-    }
-}*/
+// exposes protected members
+struct KmsKeyringBuilderExposer : KmsKeyring::Builder {
+  public:
+    using KmsKeyring::Builder::BuildDefaultRegion;
+    using KmsKeyring::Builder::BuildClientSupplier;
+    using KmsKeyring::Builder::ValidParameters;
+    using KmsKeyring::Builder::BuildAllocator;
+};
+
+int testBuilder_buildDefaultRegion_buildsRegion() {
+    const static char *default_region = "test";
+    KmsKeyringBuilderExposer a;
+    a.SetDefaultRegion(default_region);
+    TEST_ASSERT(a.BuildDefaultRegion() == default_region);
+
+    a.SetDefaultRegion("");
+    a.SetKeyId("arn:aws:kms:region_extracted_from_key:");
+    TEST_ASSERT(a.BuildDefaultRegion() == "region_extracted_from_key");
+
+    // no default region is set if there are two keys
+    a.AppendKeyId("key2");
+    TEST_ASSERT(a.BuildDefaultRegion() == "");
+
+    TestValues tv;
+    a.SetKmsClient(tv.kms_client_mock);
+    TEST_ASSERT(a.BuildDefaultRegion() == "default_region");
+
+    return 0;
+}
+
+
+int testBuilder_buildClientSupplier_buildsClient() {
+    KmsKeyringBuilderExposer a;
+    TEST_ASSERT(dynamic_cast<KmsKeyring::DefaultRegionalClientSupplier*>(a.BuildClientSupplier().get()) != NULL);
+
+    TestValues tv;
+    a.SetKmsClient(tv.kms_client_mock);
+    TEST_ASSERT(dynamic_cast<KmsKeyring::SingleClientSupplier*>(a.BuildClientSupplier().get()) != NULL);
+
+    return 0;
+}
+
+int testBuilder_invalidInputs_isValidReturnFalse() {
+    KmsKeyringBuilderExposer a;
+
+    // no keys
+    TEST_ASSERT(a.ValidParameters() == false);
+
+    // no keys
+    a.SetAllocator(aws_default_allocator());
+    TEST_ASSERT(a.ValidParameters() == false);
+
+    // minimum valid parameters are met
+    a.SetKeyId("arn:aws:kms:region_extracted_from_key:");
+    TEST_ASSERT(a.ValidParameters() == true);
+
+    // no keys that contain region
+    a.SetAllocator(aws_default_allocator());
+    a.SetKeyId("arn:aws:kms:");
+    TEST_ASSERT(a.ValidParameters() == false);
+
+    a.SetDefaultRegion("default_region_set");
+    TEST_ASSERT(a.ValidParameters() == true);
+
+    // empty key is not allowed
+    a.AppendKeyId("");
+    TEST_ASSERT(a.ValidParameters() == false);
+
+    return 0;
+}
+
+int testBuilder_allocator_returnAlloc() {
+    KmsKeyringBuilderExposer a;
+    struct aws_allocator test_alloc;
+
+    TEST_ASSERT_ADDR_NE(NULL, a.BuildAllocator());
+    a.SetAllocator(&test_alloc);
+
+    TEST_ASSERT_ADDR_EQ(&test_alloc, a.BuildAllocator());
+
+    return 0;
+}
 
 //TODO add tests for encryption context and for grant_tokensgrant_tokens
 //TODO add test for multiple keys decryption
@@ -612,7 +686,10 @@ int main() {
     RUN_TEST(createDecryptRequest_validInputes_returnRequest());
     RUN_TEST(createGenerateDataKeyRequest_validInputes_returnRequest());
     RUN_TEST(createEncryptRequest_validInputes_returnRequest());
-    //RUN_TEST(kmsKeyRingConstructor_keyIdWithoutRegion_throw());
+    RUN_TEST(testBuilder_buildDefaultRegion_buildsRegion());
+    RUN_TEST(testBuilder_buildClientSupplier_buildsClient());
+    RUN_TEST(testBuilder_invalidInputs_isValidReturnFalse());
+    RUN_TEST(testBuilder_allocator_returnAlloc());
 
     Aws::ShutdownAPI(*options);
     Aws::Delete(options);

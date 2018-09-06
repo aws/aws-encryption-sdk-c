@@ -78,7 +78,7 @@ int generatedkAndDecrypt_sameKeyring_returnSuccess(const char *key, const char *
     TestData td(region);
     TestDataOut td_out;
 
-    auto kms_keyring = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, key, td.kms_client);
+    auto kms_keyring = KmsKeyring::Builder().SetAllocator(td.alloc).SetKmsClient(td.kms_client).SetKeyId(key).Build();
 
     // generate dk
     TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring, AWS_CRYPTOSDK_ENCRYPT, &td.pt_in, &td_out.ct_out));
@@ -109,7 +109,7 @@ int generatedkAndDecrypt_sameKeyringKey2_returnSuccess() {
  * Generates a new key that it saves to td_out using a temporary KmsKeyring object
  */
 int t_kms_keyring_generate_dk(TestDataOut &td_out, TestData &td, const Aws::String &key_arn) {
-    auto kms_keyring_generate_dk = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, key_arn);
+    auto kms_keyring_generate_dk = KmsKeyring::Builder().SetAllocator(td.alloc).SetKeyId(key_arn).Build();
     TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring_generate_dk,
                                                 AWS_CRYPTOSDK_ENCRYPT,
                                                 &td.pt_in,
@@ -122,7 +122,7 @@ int t_kms_keyring_generate_dk(TestDataOut &td_out, TestData &td, const Aws::Stri
  * Decrypts a key and saves result to td_out using a temporary KmsKeyring object
  */
 int t_kms_keyring_decrypt(TestDataOut &td_out, TestData &td, const Aws::String &key_arn) {
-    auto kms_keyring_decrypt = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, key_arn);
+    auto kms_keyring_decrypt = KmsKeyring::Builder().SetAllocator(td.alloc).SetKeyId(key_arn).Build();
     TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring_decrypt,
                                                 AWS_CRYPTOSDK_DECRYPT,
                                                 &td_out.ct_out,
@@ -156,7 +156,8 @@ int generatedkAndDecrypt_oneKeyEncryptsTwoKeysForDecryptionConfigured_returnSucc
     TEST_ASSERT_SUCCESS(t_kms_keyring_generate_dk(td_out, td, KEY_ARN_STR2));
 
     // decrypt
-    auto kms_keyring_decrypt = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, keys, Aws::Region::CN_NORTH_1);
+    auto kms_keyring_decrypt = KmsKeyring::Builder().SetAllocator(td.alloc)
+                                                    .SetKeyIds(keys).SetDefaultRegion(Aws::Region::CN_NORTH_1).Build();
     TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring_decrypt,
                                                 AWS_CRYPTOSDK_DECRYPT,
                                                 &td_out.ct_out,
@@ -181,7 +182,8 @@ int generatedkAndDecrypt_twoKeysEncryptsTwoKeyDecrypts_returnSuccess() {
     TEST_ASSERT_SUCCESS(t_kms_keyring_generate_dk(td_out2, td2, KEY_ARN_STR2));
 
     // decrypt
-    auto kms_keyring_decrypt = Aws::New<KmsKeyring>(CLASS_CTAG, td1.alloc, keys, Aws::Region::CN_NORTH_1);
+    auto kms_keyring_decrypt = KmsKeyring::Builder().SetAllocator(td1.alloc)
+                                                    .SetKeyIds(keys).SetDefaultRegion(Aws::Region::CN_NORTH_1).Build();
     TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring_decrypt,
                                                 AWS_CRYPTOSDK_DECRYPT,
                                                 &td_out1.ct_out,
@@ -206,7 +208,7 @@ int generatedkAndDecrypt_keyForDecryptionMismatch_returnErr() {
     TEST_ASSERT_SUCCESS(t_kms_keyring_generate_dk(td_out, td, KEY_ARN_STR2));
 
     // decrypt should fail
-    auto kms_keyring_decrypt = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, KEY_ARN_STR1);
+    auto kms_keyring_decrypt = KmsKeyring::Builder().SetAllocator(td.alloc).SetKeyId(KEY_ARN_STR1).Build();
     TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring_decrypt,
                                                 AWS_CRYPTOSDK_DECRYPT,
                                                 &td_out.ct_out,
