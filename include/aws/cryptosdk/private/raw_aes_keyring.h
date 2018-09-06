@@ -67,8 +67,8 @@ bool aws_cryptosdk_parse_provider_info(struct aws_cryptosdk_keyring * kr,
                                        const struct aws_byte_buf * provider_info);
 
 /**
- * Does everything that the raw AES KR's encrypt_data_key virtual function does
- * except random generation of the IV. Used for testing with known inputs.
+ * Does everything that the raw AES KR's generate_or_encrypt_data_key virtual function
+ * does except random generation of the data key and IV. For testing with known inputs.
  */
 int aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(
     struct aws_cryptosdk_keyring * kr,
