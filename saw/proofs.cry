@@ -5,17 +5,8 @@ import state_machine
 
 // Function to determine if known preconditons about the fields of the state are met. 
 
-preconditionsMet : [32] -> [32] -> [32]-> [4] -> [1] -> [32] -> [32] -> [32] -> [1] -> [32] -> [32]-> [32] -> [32] -> [32] -> [32] -> [32] -> [32] -> Bit
-preconditionsMet output_size input_size hdr_size st md precise_sz d_so_far f_size ps_known iv_length tag_length aad_len edk_len output_ptr output_len input_ptr input_len = 
-    if d_so_far > precise_sz then False
-    else if f_size >= MAX_FRAME_SIZE then False
-    else if iv_length != 96 then False
-    else if tag_length != 128 then False 
-    else if st >=ST_DONE then False
-    else True 
-
-preconditionsMetState : current_state -> Bit
-preconditionsMetState current_state = 
+preconditionsMet : current_state -> Bit
+preconditionsMet current_state = 
     if current_state.sess.data_so_far > current_state.sess.precise_size then False
     else if current_state.sess.frame_size >= MAX_FRAME_SIZE then False
     else if current_state.sess.alg_prop.iv_len != 96 then False
@@ -27,7 +18,7 @@ preconditionsMetState current_state =
 
 progressMadeSym : current_state -> Bit
 progressMadeSym state = 
-    if ~preconditionsMetState state then False
+    if ~preconditionsMet state then False
     else ~progressMade state
 
 
@@ -35,7 +26,7 @@ progressMadeSym state =
 
 loopContinuesSym : current_state -> Bit
 loopContinuesSym state = 
-    if ~preconditionsMetState state then False
+    if ~preconditionsMet state then False
     else ~loopContinues state
 
 
@@ -43,7 +34,7 @@ loopContinuesSym state =
 
 progressMadePreciseSym : current_state -> Bit
 progressMadePreciseSym state = 
-    if ~preconditionsMetState state then False
+    if ~preconditionsMet state then False
     else if state.sess.precise_size_known == 0 then False
     else ~progressMade state
 
@@ -51,7 +42,7 @@ progressMadePreciseSym state =
 
 loopContinuesPreciseSym : current_state -> Bit
 loopContinuesPreciseSym state = 
-    if ~preconditionsMetState state then False
+    if ~preconditionsMet state then False
     else if state.sess.precise_size_known == 0 then False
     else ~loopContinues state
 
@@ -60,7 +51,7 @@ loopContinuesPreciseSym state =
 
 writeHeaderContinuesOneUpdateSym : current_state -> Bit
 writeHeaderContinuesOneUpdateSym state = 
-    if ~preconditionsMetState state then False
+    if ~preconditionsMet state then False
     else if state.sess.state != ST_WRITE_HEADER then False 
     else  ~loopContinues ( updateBuffers (processState state) ) && (~loopContinues state)
 
@@ -72,7 +63,7 @@ writeHeaderContinuesOneUpdateSym state =
 
 encryptBodyContinuesOneUpdatePreciseSym : current_state -> Bit
 encryptBodyContinuesOneUpdatePreciseSym state = 
-    if ~preconditionsMetState state then False
+    if ~preconditionsMet state then False
     else if state.sess.precise_size_known == 0 then False 
     else if state.sess.state != ST_ENCRYPT_BODY then False 
     else  ~loopContinues ( updateBuffers (processState state) ) && (~loopContinues state)
@@ -83,7 +74,7 @@ encryptBodyContinuesOneUpdatePreciseSym state =
 
 encryptBodyContinuesOneUpdateNotPreciseSym : current_state -> Bit
 encryptBodyContinuesOneUpdateNotPreciseSym state = 
-    if ~preconditionsMetState state then False
+    if ~preconditionsMet state then False
     else if state.sess.state != ST_ENCRYPT_BODY then False 
     else  ~loopContinues ( updateBuffers (processState state) ) && (~loopContinues state)
 
