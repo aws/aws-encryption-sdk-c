@@ -1,0 +1,21 @@
+module helper_functions where 
+
+import type_def
+
+
+//Helper function to be used to update the state 
+
+advanceStateOnly : session -> [4] -> session
+advanceStateOnly session_old new_state= {output_size_estimate = session_old.output_size_estimate
+                                , input_size_estimate = session_old.input_size_estimate 
+                                , header_size = session_old.header_size
+                                , state = new_state
+                                , mode = session_old.mode
+                                , precise_size = session_old.precise_size
+                                , data_so_far = session_old.data_so_far
+                                , frame_size = session_old.frame_size
+                                , precise_size_known = session_old.precise_size_known
+                                , alg_prop = session_old.alg_prop
+                                , header = session_old.header
+                                }
+

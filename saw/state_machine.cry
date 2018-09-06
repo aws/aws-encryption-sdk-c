@@ -2,6 +2,7 @@ module state_machine where
 
 import type_def
 import transition_function
+import helper_functions
     
 
 // Translation of the the work inside the switch statement of the aws_cryptosdk_session_process function of session.c 
@@ -13,36 +14,12 @@ import transition_function
 processState : current_state -> current_state
 processState state_old = 
     if (state_old.sess.state == ST_CONFIG) && (state_old.sess.mode == 0) then 
-        { sess = 
-            {output_size_estimate = state_old.sess.output_size_estimate
-            , input_size_estimate = state_old.sess.input_size_estimate 
-            , header_size = state_old.sess.header_size
-            , state = ST_GEN_KEY
-            , mode = state_old.sess.mode
-            , precise_size = state_old.sess.precise_size
-            , data_so_far = state_old.sess.data_so_far
-            , frame_size = state_old.sess.frame_size
-            , precise_size_known = state_old.sess.precise_size_known
-            , alg_prop = state_old.sess.alg_prop
-            , header = state_old.sess.header
-            }
+        { sess = advanceStateOnly state_old.sess ST_GEN_KEY 
         , output_buffer = state_old.output_buffer
         , input_buffer = state_old.input_buffer
         }
     else if state_old.sess.state == ST_CHECK_TRAILER then 
-        {sess = 
-            {output_size_estimate = state_old.sess.output_size_estimate
-            , input_size_estimate = state_old.sess.input_size_estimate
-            , header_size = state_old.sess.header_size
-            , state = ST_DONE
-            , mode = state_old.sess.mode
-            , precise_size = state_old.sess.precise_size
-            , data_so_far = state_old.sess.data_so_far
-            , frame_size = state_old.sess.frame_size
-            , precise_size_known = state_old.sess.precise_size_known
-            , alg_prop = state_old.sess.alg_prop
-            , header = state_old.sess.header
-            }
+        {sess = advanceStateOnly state_old.sess ST_DONE 
         , output_buffer = state_old.output_buffer
         , input_buffer = state_old.input_buffer 
         }
