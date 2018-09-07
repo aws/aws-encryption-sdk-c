@@ -1,3 +1,19 @@
+/*
+ * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+ * this file except in compliance with the License. A copy of the License is
+ * located at
+ *
+ *     http://aws.amazon.com/apache2.0/
+ *
+ * or in the "license" file accompanying this file. This file is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
 module state_machine where
 
 import type_def
@@ -6,17 +22,17 @@ import helper_functions
     
 
 // Translation of the the work inside the switch statement of the aws_cryptosdk_session_process function of session.c 
-//(lines 185 - 240)
+// (lines 185 - 240)
 // Currently, transitions from ST_CONFIG, ST_WRITE_HEADER and ST_ENCRYPT_BODY are modeled. 
 // All other states are assumed to just transition to the next subsequent state (even ST_DONE and ST_ERROR), even 
-//though this is not necessarily accurate.
-
+// though this is not necessarily accurate.
 processState : current_state -> current_state
 processState state_old = 
     if (state_old.sess.state == ST_CONFIG) && (state_old.sess.mode == 0) then 
-        { sess = advanceStateOnly state_old.sess ST_GEN_KEY 
-        , output_buffer = state_old.output_buffer
-        , input_buffer = state_old.input_buffer
+        { 
+        sess = advanceStateOnly state_old.sess ST_GEN_KEY,
+         output_buffer = state_old.output_buffer, 
+         input_buffer = state_old.input_buffer
         }
     else if state_old.sess.state == ST_CHECK_TRAILER then 
         {sess = advanceStateOnly state_old.sess ST_DONE 
@@ -33,7 +49,7 @@ processState state_old =
 
 
 // Function to determine is progress has been made after a call of processState (line 242 of session.c)
-
+// isStateChanged
 cmpState : current_state -> current_state -> Bit
 cmpState state_new state_old = 
     if state_new.sess.state != state_old.sess.state then True
@@ -42,7 +58,7 @@ cmpState state_new state_old =
     else False 
 
 // Function to determine if a need for larger output or input buffers has been detected. 
-
+// isBufferUpdateNeeded 
 bufferUpdated : current_state -> Bit 
 bufferUpdated state_new = 
     if state_new.sess.output_size_estimate > state_new.output_buffer.len then True 
@@ -52,7 +68,7 @@ bufferUpdated state_new =
 
 // Function that determines if the loop can continue (line 243 of session.c)
 // Assumption is that AWS_OP_SUCCESS has been returned. 
-
+// doesLoopContinue
 property loopContinues x = ( cmpState (processState x) x == True )
 
 // Function that determines if either the loop continues or if a need for larger buffers has been detected. 
@@ -61,7 +77,7 @@ property progressMade x = ( cmpState (processState x) x == True ) || ( bufferUpd
 
 //Function to generate new input/output buffers based on the input and output size estimates 
 
-getNewBufferSize : [32] -> [32] -> [32]
+getNewBufferSize : SIZE_T_BITS -> SIZE_T_BITS -> SIZE_T_BITS
 getNewBufferSize old_size estimate_size = 
     if estimate_size > old_size then estimate_size
     else old_size
@@ -70,7 +86,7 @@ updateBuffers : current_state -> current_state
 updateBuffers old_state = {sess = old_state.sess
                            , output_buffer = { ptr = old_state.output_buffer.ptr
                                               , len = getNewBufferSize old_state.output_buffer.len 
-                                              old_state.sess.output_size_estimate
+                                              old_state.sess.output_size_estimate //changed
                                               }
                            , input_buffer = {ptr = old_state.input_buffer.ptr
                                             , len = getNewBufferSize old_state.input_buffer.len 

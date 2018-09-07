@@ -5,8 +5,9 @@ import type_def
 
 //Helper function to update the state of the session and no other field. 
 
-advanceStateOnly : session -> [4] -> session
-advanceStateOnly session_old new_state = {output_size_estimate = session_old.output_size_estimate
+advanceStateOnly : session_c -> [4] -> session_c
+advanceStateOnly session_old new_state = {
+                                output_size_estimate = session_old.output_size_estimate
                                 , input_size_estimate = session_old.input_size_estimate 
                                 , header_size = session_old.header_size
                                 , state = new_state
@@ -19,7 +20,7 @@ advanceStateOnly session_old new_state = {output_size_estimate = session_old.out
                                 , header = session_old.header
                                 }
 
-updateOutputInputEstimates : session -> [32] -> [32] -> session 
+updateOutputInputEstimates : session_c -> SIZE_T_BITS -> SIZE_T_BITS -> session_c
 updateOutputInputEstimates session_old new_output_est new_input_est = {output_size_estimate = new_output_est
                                                                 , input_size_estimate = new_input_est 
                                                                 , header_size = session_old.header_size

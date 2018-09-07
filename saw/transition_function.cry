@@ -5,18 +5,30 @@ import helper_functions
 
 // Cryptol translation of function try_write_header in session_encrypt.c (line 219 - 236)
 
+// Success criteria : there is enough room in the buffer to write the header 
+
+// Success case : state is updated
+//                output size estimate is the size of the header
+//                output buffer len has decreased by header size
+//                output buffer ptr has increased by header size 
+
+// Failure case : output size estimate is the size of the header 
+// tryWriteHeaderModel
 writeHeader : current_state -> current_state
 writeHeader state_old = 
-    if state_old.output_buffer.len >= state_old.sess.header_size then 
-        {sess = ( updateOutputInputEstimates ( advanceStateOnly state_old.sess ST_ENCRYPT_BODY) 
-                                state_old.sess.header_size state_old.sess.input_size_estimate )
-        , output_buffer = output_buffer_new_success 
-        , input_buffer = state_old.input_buffer
-        }
+    if state_old.output_buffer.len >= state_old.sess.header_size then {
+        sess = ( updateOutputInputEstimates 
+                    ( advanceStateOnly state_old.sess ST_ENCRYPT_BODY ) 
+                    state_old.sess.header_size
+                    state_old.sess.input_size_estimate ), 
+        output_buffer = output_buffer_new_success,  
+        input_buffer = state_old.input_buffer
+    }
             where output_buffer_new_success = {ptr = state_old.output_buffer.ptr + state_old.sess.header_size
                             , len = state_old.output_buffer.len - state_old.sess.header_size
-                            }
-    else {sess = updateOutputInputEstimates state_old.sess state_old.sess.header_size 
+                            } //inline this 
+    else {
+        sess = updateOutputInputEstimates state_old.sess state_old.sess.header_size 
                                                             state_old.sess.input_size_estimate
         , output_buffer = state_old.output_buffer
         , input_buffer = state_old.input_buffer
@@ -25,45 +37,74 @@ writeHeader state_old =
 
 // Cryptol translation of function try_parse_header in session_decrypt.c (line 156 - 191)
 
-getHeaderSize : current_state -> [32]
+// Success criteria : the full header can be read from the input buffer
+
+// Success case : state is updated
+//                input buffer len has decreased by header size
+//                input buffer ptr has increased by header size 
+
+// Failure case : input size estimate is increased by 128 
+//                if this increase results in overflow: set to size_t - 1 
+
+getHeaderSize : current_state -> SIZE_T_BITS
 getHeaderSize state_old = 
     if ( state_old.sess.header.aad_len_total > 0 ) then 
-        (18 + MESSAGE_ID_LEN + state_old.sess.header.aad_len_total + state_old.sess.header.edk_len_total)
-    else (20 + MESSAGE_ID_LEN + state_old.sess.header.aad_len_total + state_old.sess.header.edk_len_total)
+        ( 18 + MESSAGE_ID_LEN + state_old.sess.header.aad_len_total + state_old.sess.header.edk_len_total )
+    else ( 20 + MESSAGE_ID_LEN + state_old.sess.header.aad_len_total + state_old.sess.header.edk_len_total )
 
-updateInputBuffer : current_state -> [32]
+updateInputBuffer : current_state -> SIZE_T_BITS
 updateInputBuffer state_old = 
     if ( state_old.sess.input_size_estimate < state_old.input_buffer.len ) then 
-        if ( (state_old.input_buffer.len + 128) < state_old.input_buffer.len ) then ( SIZE_T - 1 )
+        if ( (state_old.input_buffer.len + 128) < state_old.input_buffer.len ) then ( SIZE_T_MAX - 1 )
         else  (state_old.input_buffer.len + 128)
     else state_old.sess.input_size_estimate
 
-
+//parseHeaderModel
 parseHeader : current_state -> current_state 
 parseHeader state_old = 
-    if (state_old.input_buffer.len < ( getHeaderSize state_old ) ) then {sess = updateOutputInputEstimates 
-                                                                    state_old.sess 0 ( updateInputBuffer state_old )
-                                                                        , output_buffer = state_old.output_buffer
-                                                                        , input_buffer = state_old.input_buffer
-                                                                        }
+    if (state_old.input_buffer.len < ( getHeaderSize state_old ) ) then 
+        {
+        sess = updateOutputInputEstimates 
+                state_old.sess 
+                0 
+                ( updateInputBuffer state_old ),
+        output_buffer = state_old.output_buffer,
+        input_buffer = state_old.input_buffer 
+        }
 
-    else { sess = advanceStateOnly state_old.sess ST_UNWRAP_KEY
-        , output_buffer = state_old.output_buffer
-        , input_buffer = { ptr = state_old.input_buffer.ptr + ( getHeaderSize state_old )
-                        , len = state_old.output_buffer.ptr - ( getHeaderSize state_old )
+    else 
+        {
+        sess = advanceStateOnly state_old.sess ST_UNWRAP_KEY,
+        output_buffer = state_old.output_buffer, //UNCHANGED 
+        input_buffer = { 
+                        ptr = state_old.input_buffer.ptr + ( getHeaderSize state_old ), 
+                        len = state_old.output_buffer.ptr - ( getHeaderSize state_old )
                         }
         }
     
 
 // Cryptol translation of function try_encrypt_body in session_encrypt.c (line 238 - 333)
 
+// Next state criteria : the precise_size is known 
+//                       we are encrypting a final frame (if message is framed)
 
-encryptHelper : current_state -> [32] -> [32] -> [4] -> current_state 
+// Other success criteria : in non-framed case, the precise size must be known 
+//                          
+
+// Success case : state is updated
+//                input buffer len has decreased by header size
+//                input buffer ptr has increased by header size 
+
+// Failure case : input size estimate is increased by 128 
+//                if this increase results in overflow: set to size_t - 1 
+
+
+encryptHelper : current_state -> SIZE_T_BITS -> SIZE_T_BITS -> [4] -> current_state 
 encryptHelper state_old size_in size_out new_state = 
     if ( state_old.input_buffer.len < size_in ) || ( state_old.output_buffer.len < size_out ) then 
         { sess = updateOutputInputEstimates state_old.sess size_out size_in 
-        , output_buffer = state_old.output_buffer
-        , input_buffer = state_old.input_buffer
+        , output_buffer = state_old.output_buffer //UNCHANGED 
+        , input_buffer = state_old.input_buffer   //UNCHANGED 
         }
     else { sess = updateOutputInputEstimates (advanceStateOnly state_old.sess new_state) size_out size_in
                 , output_buffer = { ptr = state_old.output_buffer.ptr + size_out
@@ -76,11 +117,14 @@ encryptHelper state_old size_in size_out new_state =
 
 encryptBodyFramed : current_state -> current_state
 encryptBodyFramed state_old = 
-    if ( state_old.sess.precise_size_known == 1 ) && (state_old.sess.precise_size - state_old.sess.data_so_far < 
-    state_old.sess.frame_size) then 
-        encryptHelper state_old (state_old.sess.precise_size - state_old.sess.data_so_far) (8 + 
-        state_old.sess.alg_prop.iv_len + 4 + state_old.sess.precise_size - state_old.sess.data_so_far + 
-        state_old.sess.alg_prop.tag_len) ST_WRITE_TRAILER
+    if ( state_old.sess.precise_size_known == 1 ) 
+        && (state_old.sess.precise_size - state_old.sess.data_so_far < state_old.sess.frame_size) then 
+            encryptHelper 
+                state_old 
+                (state_old.sess.precise_size - state_old.sess.data_so_far) 
+                (8 + state_old.sess.alg_prop.iv_len + 4 + state_old.sess.precise_size 
+                    - state_old.sess.data_so_far + state_old.sess.alg_prop.tag_len)
+                ST_WRITE_TRAILER
     else encryptHelper state_old state_old.sess.frame_size (4 + state_old.sess.alg_prop.iv_len + 
     state_old.sess.frame_size + state_old.sess.alg_prop.tag_len) ST_ENCRYPT_BODY
 
@@ -94,6 +138,7 @@ encryptBodyUnframed state_old =
             , input_buffer = state_old.input_buffer 
         }
 
+
 encryptBody : current_state -> current_state
 encryptBody state_old = 
     if state_old.sess.frame_size > 0 then encryptBodyFramed state_old
@@ -102,7 +147,7 @@ encryptBody state_old =
 
 // Partial Cryptol translation of function try_decrypt_body in session_decrypt.c (line 193 - 252)
 
-decryptHelper : current_state -> [32] -> [32] -> [4] -> current_state
+decryptHelper : current_state -> SIZE_T_BITS -> SIZE_T_BITS -> [4] -> current_state
 decryptHelper state_old size_in size_out new_state = 
     if ( state_old.input_buffer.len < size_in ) || ( state_old.output_buffer.len < size_out ) then 
         { sess = updateOutputInputEstimates state_old.sess size_out size_in 

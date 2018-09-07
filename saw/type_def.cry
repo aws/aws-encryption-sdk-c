@@ -1,51 +1,68 @@
+
+/*
+ * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+ * this file except in compliance with the License. A copy of the License is
+ * located at
+ *
+ *     http://aws.amazon.com/apache2.0/
+ *
+ * or in the "license" file accompanying this file. This file is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
 module type_def where
 
 
 // Compound type that stores all the variables that determine if the loop in the aws_cryptosdk_session_process 
 // function of session.c has made progress (line 242)
-type current_state = {sess : session
-                      , output_buffer : aws_byte_cursor
-                      , input_buffer : aws_byte_cursor
-                      }
+type current_state = {
+                    sess : session_c, 
+                    output_buffer : aws_byte_cursor_c, 
+                    input_buffer : aws_byte_cursor_c
+                    }
 
 
-// TODO: size of the output_size_estimate, input_size_estimate, header_size fields. 32-bit integers too large?
-// TODO: session type is not currently complete. Only has the fields necessary for current proofs. 
 // See <aws/cryptosdk/private/session.h>: 50 - 82 
-
-type session = {
-    output_size_estimate : [32] 
-    , input_size_estimate : [32]
-    , header_size : [32]
-    , state : [4] 
-    , mode : [1] //do we encrypt (0) or decrypt (1) 
-    , precise_size : [32]
-    , data_so_far : [32]
-    , frame_size : [32] // if frame size is zero, the message is unframed
-    , precise_size_known : [1]
-    , alg_prop : alg_properties 
-    , header : hdr
+// NOTE: Incomplete implementation - only has the fields necessary for current proofs. 
+type session_c = {
+    output_size_estimate : SIZE_T_BITS, 
+    input_size_estimate : SIZE_T_BITS,
+    header_size : SIZE_T_BITS,
+    state : [4],
+    mode : [1], //boolean flag: encrypt (0) or decrypt (1) 
+    precise_size : [64],
+    data_so_far : [64],
+    frame_size : [64], // if frame size is zero, the message is unframed
+    precise_size_known : [1],
+    alg_prop : alg_properties_c,
+    header : hdr_c
     }
 
 // See <aws/common/byte_buf.h>: 43 - 46 
-
-type aws_byte_cursor = {
-    ptr : [32] //NOTE: actual size in the c code is [8]. This is to add other fields (such as header size with ease)
-    , len : [32]
+type aws_byte_cursor_c = {
+    ptr : SIZE_T_BITS, //TODO: actual size in the c code is [8]. Figure out casting
+    len : SIZE_T_BITS
     }
 
 // <aws/cryptosdk/cipher.h>> : 28 - 41
-
-type alg_properties = {
-    iv_len : [32]
-    , tag_len : [32]
+// NOTE: Incomplete implementation - only has the fields necessary for current proofs. 
+type alg_properties_c = {
+    iv_len : SIZE_T_BITS,
+    tag_len : SIZE_T_BITS
 }
 
 // <aws/cryptosdk/private/header.h>: 32 - 49
-// Very over-simplified. Currently multiple fields are concatenated. 
-type hdr = {
-    aad_len_total : [32]
-    , edk_len_total : [32]
+// Over-simplified. 
+// Multiple fields missing or concatenated. 
+type hdr_c = {
+    aad_len_total : SIZE_T_BITS, \\ Length of the total amount of aad : sum of the key and value across all aad. 
+    edk_len_total : SIZE_T_BITS  \\ Length of the total edk : sum of provider_id, provider_info and enc_data_key for   
+                                    \\ all edk
 }
 
 // <aws/cryptosdk/private/header.h>: 16
@@ -79,5 +96,5 @@ ST_ERROR = 10
 DEFAULT_FRAME_SIZE = 256 * 1024
 MAX_FRAME_SIZE = 4294967295
 
-
-SIZE_T = 4294967295 //because I used 32 bit integers. Can be updated. 
+type SIZE_T_BITS = [64]
+SIZE_T_MAX = 2^64-1 //because I used 32 bit integers. Can be updated. 
