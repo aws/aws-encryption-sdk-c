@@ -31,36 +31,36 @@ processState state_old =
     if (state_old.sess.state == ST_CONFIG) && (state_old.sess.mode == 0) then 
         { 
         sess = advanceStateOnly state_old.sess ST_GEN_KEY,
-         output_buffer = state_old.output_buffer, 
-         input_buffer = state_old.input_buffer
+        output_buffer = state_old.output_buffer, 
+        input_buffer = state_old.input_buffer
         }
     else if state_old.sess.state == ST_CHECK_TRAILER then 
-        {sess = advanceStateOnly state_old.sess ST_DONE 
-        , output_buffer = state_old.output_buffer
-        , input_buffer = state_old.input_buffer 
+        {
+        sess = advanceStateOnly state_old.sess ST_DONE,
+        output_buffer = state_old.output_buffer,
+        input_buffer = state_old.input_buffer 
         }
-    else if state_old.sess.state == ST_WRITE_HEADER then writeHeader state_old
-    else if state_old.sess.state == ST_ENCRYPT_BODY then encryptBody state_old
+    else if state_old.sess.state == ST_WRITE_HEADER then tryWriteHeaderModel state_old
+    else if state_old.sess.state == ST_ENCRYPT_BODY then tryEncryptBodyModel state_old
     else 
-        {sess = advanceStateOnly state_old.sess ( state_old.sess.state + 1 ) 
-        , output_buffer = state_old.output_buffer
-        , input_buffer = state_old.input_buffer 
+        {
+        sess = advanceStateOnly state_old.sess ( state_old.sess.state + 1 ), 
+        output_buffer = state_old.output_buffer, 
+        input_buffer = state_old.input_buffer 
         }
 
 
-// Function to determine is progress has been made after a call of processState (line 242 of session.c)
-// isStateChanged
-cmpState : current_state -> current_state -> Bit
-cmpState state_new state_old = 
+// Has the state changed after a call of processState (line 242 of session.c)
+isStateChanged : current_state -> current_state -> Bit
+isStateChanged state_new state_old = 
     if state_new.sess.state != state_old.sess.state then True
     else if state_new.output_buffer.ptr != state_old.output_buffer.ptr then True 
     else if state_new.input_buffer.ptr != state_old.input_buffer.ptr then True
     else False 
 
-// Function to determine if a need for larger output or input buffers has been detected. 
-// isBufferUpdateNeeded 
-bufferUpdated : current_state -> Bit 
-bufferUpdated state_new = 
+// Are larger output or input buffers needed. 
+isBufferUpdateNeeded : current_state -> Bit 
+isBufferUpdateNeeded state_new = 
     if state_new.sess.output_size_estimate > state_new.output_buffer.len then True 
     else if state_new.sess.input_size_estimate > state_new.input_buffer.len then True 
     else False
@@ -68,28 +68,31 @@ bufferUpdated state_new =
 
 // Function that determines if the loop can continue (line 243 of session.c)
 // Assumption is that AWS_OP_SUCCESS has been returned. 
-// doesLoopContinue
-property loopContinues x = ( cmpState (processState x) x == True )
+property doesLoopContinueProperty x = ( isStateChanged (processState x) x == True )
 
 // Function that determines if either the loop continues or if a need for larger buffers has been detected. 
-
-property progressMade x = ( cmpState (processState x) x == True ) || ( bufferUpdated  (processState x) == True )
+property isProgressMadeProperty x = ( isStateChanged (processState x) x == True ) 
+                                        || ( isBufferUpdateNeeded  (processState x) == True )
 
 //Function to generate new input/output buffers based on the input and output size estimates 
-
 getNewBufferSize : SIZE_T_BITS -> SIZE_T_BITS -> SIZE_T_BITS
 getNewBufferSize old_size estimate_size = 
     if estimate_size > old_size then estimate_size
     else old_size
 
 updateBuffers : current_state -> current_state
-updateBuffers old_state = {sess = old_state.sess
-                           , output_buffer = { ptr = old_state.output_buffer.ptr
-                                              , len = getNewBufferSize old_state.output_buffer.len 
-                                              old_state.sess.output_size_estimate //changed
-                                              }
-                           , input_buffer = {ptr = old_state.input_buffer.ptr
-                                            , len = getNewBufferSize old_state.input_buffer.len 
-                                            old_state.sess.input_size_estimate 
+updateBuffers old_state = {
+                            sess = old_state.sess,
+                            output_buffer = { 
+                                            ptr = old_state.output_buffer.ptr, 
+                                            len = getNewBufferSize 
+                                                old_state.output_buffer.len 
+                                                old_state.sess.output_size_estimate
+                                              },
+                           input_buffer = {
+                                            ptr = old_state.input_buffer.ptr,
+                                            len = getNewBufferSize 
+                                                old_state.input_buffer.len 
+                                                old_state.sess.input_size_estimate 
                                             }
                            }

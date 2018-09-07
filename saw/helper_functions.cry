@@ -31,22 +31,22 @@ advanceStateOnly session_old new_state = {
                                         frame_size = session_old.frame_size,
                                         precise_size_known = session_old.precise_size_known,
                                         alg_prop = session_old.alg_prop,
-                                        header = session_old.header,
+                                        header = session_old.header
                                         }
 
 //Helper function to update the input and output size estimates only. 
 updateOutputInputEstimates : session_c -> SIZE_T_BITS -> SIZE_T_BITS -> session_c
 updateOutputInputEstimates session_old output_est input_est = {
-                                                                output_size_estimate = output_est
-                                                                input_size_estimate = input_est 
-                                                                header_size = session_old.header_size
-                                                                state = session_old.state
-                                                                mode = session_old.mode
-                                                                precise_size = session_old.precise_size
-                                                                data_so_far = session_old.data_so_far
-                                                                frame_size = session_old.frame_size
-                                                                precise_size_known = session_old.precise_size_known
-                                                                alg_prop = session_old.alg_prop
+                                                                output_size_estimate = output_est,
+                                                                input_size_estimate = input_est,
+                                                                header_size = session_old.header_size,
+                                                                state = session_old.state,
+                                                                mode = session_old.mode,
+                                                                precise_size = session_old.precise_size,
+                                                                data_so_far = session_old.data_so_far,
+                                                                frame_size = session_old.frame_size,
+                                                                precise_size_known = session_old.precise_size_known,
+                                                                alg_prop = session_old.alg_prop,
                                                                 header = session_old.header
                                                                 }
         

@@ -1,3 +1,6 @@
+
+
+
 module proofs where 
 
 import type_def
@@ -25,14 +28,14 @@ arePreconditionsMet current_state =
 isProgressMade : current_state -> Bit
 isProgressMade state = 
     if ~arePreconditionsMet state then False
-    else ~progressMade state
+    else ~isProgressMadeProperty state
 
 
 // Does the loop continues for any arbitrary state.
 doesLoopContinue : current_state -> Bit
 doesLoopContinue state = 
     if ~arePreconditionsMet state then False
-    else ~loopContinues state
+    else ~doesLoopContinueProperty state
 
 
 // Is progress made for any arbitrary state when the precise size is known.
@@ -40,7 +43,7 @@ isProgressMadeSizeKnown : current_state -> Bit
 isProgressMadeSizeKnown state = 
     if ~arePreconditionsMet state then False
     else if state.sess.precise_size_known == 0 then False
-    else ~progressMade state
+    else ~isProgressMadeProperty state
 
 
 // Does the loop continues for any arbitrary state when the precise size is known. 
@@ -48,7 +51,7 @@ doesLoopContinueSizeKnown : current_state -> Bit
 doesLoopContinueSizeKnown state = 
     if ~arePreconditionsMet state then False
     else if state.sess.precise_size_known == 0 then False
-    else ~loopContinues state
+    else ~doesLoopContinueProperty state
 
 
 // Does the loop continues after 1 update of the input/output buffers for the ST_WRITE_HEADER state?
@@ -57,7 +60,7 @@ doesWriteHeaderContinueAfterUpdate : current_state -> Bit
 doesWriteHeaderContinueAfterUpdate state = 
     if ~arePreconditionsMet state then False
     else if state.sess.state != ST_WRITE_HEADER then False 
-    else  ~loopContinues ( updateBuffers (processState state) ) && (~loopContinues state)
+    else  ~doesLoopContinueProperty ( updateBuffers (processState state) ) && (~doesLoopContinueProperty state)
 
 // Does loop continues after 1 update of the input/output buffers for the ST_ENCRYPT_BODY state.  
 // Here an update means the size of the buffers has been increased to the input/output size estimates. 
@@ -66,7 +69,7 @@ doesEncryptBodyContinueAfterUpdate : current_state -> Bit
 doesEncryptBodyContinueAfterUpdate state = 
     if ~arePreconditionsMet state then False
     else if state.sess.state != ST_ENCRYPT_BODY then False 
-    else  ~loopContinues ( updateBuffers (processState state) ) && (~loopContinues state)
+    else  ~doesLoopContinueProperty ( updateBuffers (processState state) ) && (~doesLoopContinueProperty state)
 
 
 // Does loop continues after 1 update of the input/output buffers for the ST_ENCRYPT_BODY state.  
@@ -77,6 +80,6 @@ doesEncryptBodyContinueAfterUpdateSizeKnown state =
     if ~arePreconditionsMet state then False
     else if state.sess.precise_size_known == 0 then False 
     else if state.sess.state != ST_ENCRYPT_BODY then False 
-    else  ~loopContinues ( updateBuffers (processState state) ) && (~loopContinues state)
+    else  ~doesLoopContinueProperty ( updateBuffers (processState state) ) && (~doesLoopContinueProperty state)
 
 

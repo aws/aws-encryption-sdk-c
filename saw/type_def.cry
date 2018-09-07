@@ -59,9 +59,9 @@ type alg_properties_c = {
 // Over-simplified. 
 // Multiple fields missing or concatenated. 
 type hdr_c = {
-    aad_len_total : SIZE_T_BITS, \\ Length of the total amount of aad : sum of the key and value across all aad. 
-    edk_len_total : SIZE_T_BITS  \\ Length of the total edk : sum of provider_id, provider_info and enc_data_key for   
-                                    \\ all edk
+    aad_len_total : SIZE_T_BITS, // Length of the total amount of aad : sum of the key and value across all aad. 
+    edk_len_total : SIZE_T_BITS  // Length of the total edk : sum of provider_id, provider_info and enc_data_key for   
+                                    // all edk
 }
 
 // <aws/cryptosdk/private/header.h>: 16
@@ -97,3 +97,7 @@ MAX_FRAME_SIZE = 4294967295
 
 type SIZE_T_BITS = [64]
 SIZE_T_MAX = 2^64-1 //because I used 64 bit integers. Can be updated. 
+
+HEADER_FIELD_OVERHEAD = 18 
+HEADER_FIELD_OVERHEAD_WITH_AAD = 20 
+DEFAULT_SIZE_INCREMENT = 128 
