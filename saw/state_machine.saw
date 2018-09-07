@@ -2,42 +2,42 @@ import "proofs.cry";
 
 
 print "Is there any (non-error or done) state from which neither the loop continues nor a larger buffer is expected?";
-let s = {{progressMadeSym}};
+let s = {{isProgressMade}};
 sat_print yices s;
 print "\n";
 
 
 print "Is there any (non-error or done) state from which the loop does not continue?";
-let s = {{loopContinuesSym}};
+let s = {{doesLoopContinue}};
 sat_print yices s;
 print "\n";
 
 
 print "Is there any (non-error or done) state from which neither the loop continues nor a larger buffer is expected when the precise size is known?";
-let s = {{progressMadePreciseSym}};
+let s = {{isProgressMadeSizeKnown}};
 sat_print yices s;
 print "\n";
 
 
 print "Is there any (non-error or done) state from which the loop does not continue when the precise size is known?";
-let s = {{loopContinuesPreciseSym}};
+let s = {{doesLoopContinueSizeKnown}};
 sat_print yices s;
 print "\n";
 
 
 print "Is it possible to not progress from the ST_WRITE_HEADER state after one buffer update acording to the size estimates?";
-let s = {{writeHeaderContinuesOneUpdateSym}};
+let s = {{doesWriteHeaderContinueAfterUpdate}};
+sat_print yices s;
+print "\n";
+
+
+print "Is it possible to not progress from the ST_ENCRYPT_BODY state after one buffer update acording to the size estimates?";
+let s = {{doesEncryptBodyContinueAfterUpdate}};
 sat_print yices s;
 print "\n";
 
 
 print "Is it possible to not progress from the ST_ENCRYPT_BODY state when precise size is known after one buffer update acording to the size estimates?";
-let s = {{encryptBodyContinuesOneUpdatePreciseSym}};
-sat_print yices s;
-print "\n";
-
-
-print "Is it possible to not progress from the ST_ENCRYPT_BODY state when precise size may not be known after one buffer update acording to the size estimates?";
-let s = {{encryptBodyContinuesOneUpdateNotPreciseSym}};
+let s = {{doesEncryptBodyContinueAfterUpdateSizeKnown}};
 sat_print yices s;
 print "\n";

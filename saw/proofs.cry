@@ -3,85 +3,80 @@ module proofs where
 import type_def
 import state_machine
 
-// Function to determine if known preconditons about the fields of the state are met. 
+/* In this file, a set of state machine properties are specified. 
+These properties can be proven using SAW configured with some satisfiability solver. 
+In all properties, progress is considered from any non-error and non-done state.
+*/
 
-preconditionsMet : current_state -> Bit
-preconditionsMet current_state = 
-    if current_state.sess.data_so_far > current_state.sess.precise_size then False
-    else if current_state.sess.frame_size >= MAX_FRAME_SIZE then False
-    else if current_state.sess.alg_prop.iv_len != 96 then False
-    else if current_state.sess.alg_prop.tag_len != 128 then False 
-    else if current_state.sess.state >=ST_DONE then False
+
+
+// Are known preconditons about the fields of the state are met. 
+arePreconditionsMet : current_state -> Bit
+arePreconditionsMet current_state = 
+    if current_state.sess.data_so_far > current_state.sess.precise_size then False //SANITY CHECK
+    else if current_state.sess.frame_size >= MAX_FRAME_SIZE then False             //SANITY CHECK
+    else if current_state.sess.state >=ST_DONE then False                          //SANITY CHECK
+    else if current_state.sess.alg_prop.iv_len != 96 then False                    //ACCORDING TO DOC
+    else if current_state.sess.alg_prop.tag_len != 128 then False                  //ACCORDING TO DOC
     else True 
 
-//Function used in saw to create determine if progress is made for any arbitrary state, excluding the ST_DONE and
-//ST_ERROR states. 
 
-progressMadeSym : current_state -> Bit
-progressMadeSym state = 
-    if ~preconditionsMet state then False
+// Is progress made for any arbitrary state.
+isProgressMade : current_state -> Bit
+isProgressMade state = 
+    if ~arePreconditionsMet state then False
     else ~progressMade state
 
 
-//Function used in saw to create determine if the loop continues for any arbitrary state, excluding the ST_DONE and
-//ST_ERROR states. 
-
-loopContinuesSym : current_state -> Bit
-loopContinuesSym state = 
-    if ~preconditionsMet state then False
+// Does the loop continues for any arbitrary state.
+doesLoopContinue : current_state -> Bit
+doesLoopContinue state = 
+    if ~arePreconditionsMet state then False
     else ~loopContinues state
 
 
-//Function used in saw to create determine if progress is made for any arbitrary state when the precise size is known,
-//excluding the ST_DONE and ST_ERROR states. 
-
-progressMadePreciseSym : current_state -> Bit
-progressMadePreciseSym state = 
-    if ~preconditionsMet state then False
+// Is progress made for any arbitrary state when the precise size is known.
+isProgressMadeSizeKnown : current_state -> Bit
+isProgressMadeSizeKnown state = 
+    if ~arePreconditionsMet state then False
     else if state.sess.precise_size_known == 0 then False
     else ~progressMade state
 
-//Function used in saw to create determine if the loop continues for any arbitrary state when the precise size is
-//known, excluding the ST_DONE and ST_ERROR states. 
 
-loopContinuesPreciseSym : current_state -> Bit
-loopContinuesPreciseSym state = 
-    if ~preconditionsMet state then False
+// Does the loop continues for any arbitrary state when the precise size is known. 
+doesLoopContinueSizeKnown : current_state -> Bit
+doesLoopContinueSizeKnown state = 
+    if ~arePreconditionsMet state then False
     else if state.sess.precise_size_known == 0 then False
     else ~loopContinues state
 
-//Function used in saw to create determine if the loop continues after 1 update of the input/output buffers for the
-//ST_WRITE_HEADER state.  
-//Here an update means the size of the buffers has been increased to the input/output size estimates. 
 
-writeHeaderContinuesOneUpdateSym : current_state -> Bit
-writeHeaderContinuesOneUpdateSym state = 
-    if ~preconditionsMet state then False
+// Does the loop continues after 1 update of the input/output buffers for the ST_WRITE_HEADER state?
+// Here an update means the size of the buffers has been increased to the input/output size estimates. 
+doesWriteHeaderContinueAfterUpdate : current_state -> Bit
+doesWriteHeaderContinueAfterUpdate state = 
+    if ~arePreconditionsMet state then False
     else if state.sess.state != ST_WRITE_HEADER then False 
     else  ~loopContinues ( updateBuffers (processState state) ) && (~loopContinues state)
 
+// Does loop continues after 1 update of the input/output buffers for the ST_ENCRYPT_BODY state.  
+// Here an update means the size of the buffers has been increased to the input/output size estimates. 
+// We do not assume the precise size is known 
+doesEncryptBodyContinueAfterUpdate : current_state -> Bit
+doesEncryptBodyContinueAfterUpdate state = 
+    if ~arePreconditionsMet state then False
+    else if state.sess.state != ST_ENCRYPT_BODY then False 
+    else  ~loopContinues ( updateBuffers (processState state) ) && (~loopContinues state)
 
-//Function used in saw to create determine if the loop continues after 1 update of the input/output buffers for the 
-//ST_ENCRYPT_BODY state.  
-//Here we assume the precise size is known 
-//Here an update means the size of the buffers has been increased to the input/output size estimates. 
 
-
-encryptBodyContinuesOneUpdatePreciseSym : current_state -> Bit
-encryptBodyContinuesOneUpdatePreciseSym state = 
-    if ~preconditionsMet state then False
+// Does loop continues after 1 update of the input/output buffers for the ST_ENCRYPT_BODY state.  
+// Here an update means the size of the buffers has been increased to the input/output size estimates. 
+// We assume the precise size is known 
+doesEncryptBodyContinueAfterUpdateSizeKnown : current_state -> Bit
+doesEncryptBodyContinueAfterUpdateSizeKnown state = 
+    if ~arePreconditionsMet state then False
     else if state.sess.precise_size_known == 0 then False 
     else if state.sess.state != ST_ENCRYPT_BODY then False 
     else  ~loopContinues ( updateBuffers (processState state) ) && (~loopContinues state)
 
-//Function used in saw to create determine if the loop continues after 1 update of the input/output buffers for the
-//ST_ENCRYPT_BODY state.  
-//Here we make no assumptions about if the precise size is known. 
-//Here an update means the size of the buffers has been increased to the input/output size estimates. 
-
-encryptBodyContinuesOneUpdateNotPreciseSym : current_state -> Bit
-encryptBodyContinuesOneUpdateNotPreciseSym state = 
-    if ~preconditionsMet state then False
-    else if state.sess.state != ST_ENCRYPT_BODY then False 
-    else  ~loopContinues ( updateBuffers (processState state) ) && (~loopContinues state)
 
