@@ -11,7 +11,6 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-cbmcpkg: cbmc-ubuntu16.tar.gz
 jobos: ubuntu16
 cbmcflags: "--bounds-check;--pointer-check;--function;aws_cryptosdk_hdr_clean_up_verify;--unwindset;__builtin___memcpy_chk.0:4,memcpy_chk.0:4,memcpy.0:4,aws_cryptosdk_hdr_clean_up.0:2,aws_cryptosdk_hdr_clean_up.1:2,get_aws_cryptosdk_hdr_ptr.0:2,get_aws_cryptosdk_hdr_ptr.1:2;--unwinding-assertions;--trace;--memory-leak-check"
 goto: proofs.goto
