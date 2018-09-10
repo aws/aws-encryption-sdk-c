@@ -75,7 +75,7 @@ updateInputBuffer : current_state -> SIZE_T_BITS
 updateInputBuffer state_old = 
     if ( state_old.sess.input_size_estimate < state_old.input_buffer.len ) then 
         if ( (state_old.input_buffer.len + DEFAULT_SIZE_INCREMENT) < state_old.input_buffer.len ) then 
-             SIZE_T_MAX - 1 )
+             ( SIZE_T_MAX - 1 )
         else  (state_old.input_buffer.len + DEFAULT_SIZE_INCREMENT)
     else state_old.sess.input_size_estimate
 
