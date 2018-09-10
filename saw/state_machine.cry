@@ -24,8 +24,7 @@ import helper_functions
 // Translation of the the work inside the switch statement of the aws_cryptosdk_session_process function of session.c 
 // (lines 185 - 240)
 // Currently, transitions from ST_CONFIG, ST_WRITE_HEADER and ST_ENCRYPT_BODY are modeled. 
-// All other states are assumed to just transition to the next subsequent state (even ST_DONE and ST_ERROR), even 
-// though this is not necessarily accurate.
+// All other states are assumed to just transition to the next state, though this is not necessarily accurate.
 processState : current_state -> current_state
 processState state_old = 
     if (state_old.sess.state == ST_CONFIG) && (state_old.sess.mode == 0) then 
