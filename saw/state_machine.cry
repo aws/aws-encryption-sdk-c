@@ -29,25 +29,17 @@ import helper_functions
 processState : current_state -> current_state
 processState state_old = 
     if (state_old.sess.state == ST_CONFIG) && (state_old.sess.mode == 0) then 
-        { 
-        sess = advanceStateOnly state_old.sess ST_GEN_KEY,
-        output_buffer = state_old.output_buffer, 
-        input_buffer = state_old.input_buffer
-        }
-    else if state_old.sess.state == ST_CHECK_TRAILER then 
-        {
-        sess = advanceStateOnly state_old.sess ST_DONE,
-        output_buffer = state_old.output_buffer,
-        input_buffer = state_old.input_buffer 
-        }
+        advanceSessionByStateOnly state_old ST_GEN_KEY
+    else if state_old.sess.state == ST_CONFIG then advanceSessionByStateOnly state_old ST_READ_HEADER
+    else if state_old.sess.state == ST_READ_HEADER then advanceSessionByStateOnly state_old ST_UNWRAP_KEY
+    else if state_old.sess.state == ST_UNWRAP_KEY then advanceSessionByStateOnly state_old ST_DECRYPT_BODY
+    else if state_old.sess.state == ST_DECRYPT_BODY then advanceSessionByStateOnly state_old ST_CHECK_TRAILER
+    else if state_old.sess.state == ST_CHECK_TRAILER then advanceSessionByStateOnly state_old ST_DONE
+    else if state_old.sess.state == ST_GEN_KEY then advanceSessionByStateOnly state_old ST_WRITE_HEADER
     else if state_old.sess.state == ST_WRITE_HEADER then tryWriteHeaderModel state_old
     else if state_old.sess.state == ST_ENCRYPT_BODY then tryEncryptBodyModel state_old
-    else 
-        {
-        sess = advanceStateOnly state_old.sess ( state_old.sess.state + 1 ), 
-        output_buffer = state_old.output_buffer, 
-        input_buffer = state_old.input_buffer 
-        }
+    else if state_old.sess.state == ST_WRITE_TRAILER then advanceSessionByStateOnly state_old ST_DONE
+    else state_old //ST_DONE and ST_ERROR remain in the same state
 
 
 // Has the state changed after a call of processState (line 242 of session.c)

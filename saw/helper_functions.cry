@@ -49,7 +49,27 @@ updateOutputInputEstimates session_old output_est input_est = {
                                                                 alg_prop = session_old.alg_prop,
                                                                 header = session_old.header
                                                                 }
-        
+
+//Helper function to changed only the session of the current_state to a new state.        
+advanceSessionByStateOnly : current_state -> [4] -> current_state
+advanceSessionByStateOnly state_old new_state = {
+                                                sess = {
+                                                        output_size_estimate = state_old.sess.output_size_estimate,
+                                                        input_size_estimate = state_old.sess.input_size_estimate,
+                                                        header_size = state_old.sess.header_size,
+                                                        state = new_state,
+                                                        mode = state_old.sess.mode,
+                                                        precise_size = state_old.sess.precise_size,
+                                                        data_so_far = state_old.sess.data_so_far,
+                                                        frame_size = state_old.sess.frame_size,
+                                                        precise_size_known = state_old.sess.precise_size_known,
+                                                        alg_prop = state_old.sess.alg_prop,
+                                                        header = state_old.sess.header
+                                                        },
+                                                output_buffer = state_old.output_buffer, 
+                                                input_buffer = state_old.input_buffer
+                                                }
+
 
 
                                                     
