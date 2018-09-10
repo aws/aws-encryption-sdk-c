@@ -561,12 +561,12 @@ int aws_cryptosdk_rsa_decrypt(
     struct aws_byte_buf *plain,
     const struct aws_byte_cursor cipher,
     const uint8_t *key,
-    enum aws_cryptosdk_rsa_wrapping_alg_id wrapping_alg_id) {
+    enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
     int padding = -1;
-    switch (wrapping_alg_id) {
-        case RSA_PKCS1: padding = RSA_PKCS1_PADDING; break;
-        case RSA_OAEP_SHA1_MGF1: padding = RSA_PKCS1_OAEP_PADDING; break;
-        case RSA_OAEP_SHA256_MGF1: padding = RSA_PKCS1_OAEP_PADDING; break;
+    switch (rsa_padding_mode) {
+        case AWS_CRYPTOSDK_RSA_PKCS1: padding = RSA_PKCS1_PADDING; break;
+        case AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1: padding = RSA_PKCS1_OAEP_PADDING; break;
+        case AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1: padding = RSA_PKCS1_OAEP_PADDING; break;
         default: return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     }
     bool openssl_err = true;
@@ -582,7 +582,7 @@ int aws_cryptosdk_rsa_decrypt(
     if (!ctx) goto err;
     if (EVP_PKEY_decrypt_init(ctx) <= 0) goto err;
     if (EVP_PKEY_CTX_set_rsa_padding(ctx, padding) <= 0) goto err;
-    if (wrapping_alg_id == RSA_OAEP_SHA256_MGF1) {
+    if (rsa_padding_mode == AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1) {
         if (EVP_PKEY_CTX_set_rsa_oaep_md(ctx, EVP_sha256()) <= 0) goto err;
         if (EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, EVP_sha256()) <= 0) goto err;
     }

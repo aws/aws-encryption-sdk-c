@@ -50,7 +50,7 @@ static int raw_rsa_keyring_decrypt_data_key(
 
         if (aws_cryptosdk_rsa_decrypt(
                 &dec_mat->unencrypted_data_key, aws_byte_cursor_from_array(edk_bytes->buffer, edk_bytes->len),
-                self->raw_key, self->wrapping_alg_id)) {
+                self->raw_key, self->rsa_padding_mode)) {
             /* We are here either because of a ciphertext mismatch
              * or because of an OpenSSL error. In either case, nothing
              *  better to do than just moving on to next EDK, so clear the error code.
@@ -90,7 +90,7 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     const uint8_t *provider_id,
     size_t provider_id_len,
     const uint8_t *raw_key_bytes,
-    enum aws_cryptosdk_rsa_wrapping_alg_id wrapping_alg_id) {
+    enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
     struct raw_rsa_keyring *kr = aws_mem_acquire(alloc, sizeof(struct raw_rsa_keyring));
     if (!kr) return NULL;
     memset(kr, 0, sizeof(struct raw_rsa_keyring));
@@ -104,7 +104,7 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     if (!raw_key_bytes) goto err;
     kr->raw_key = raw_key_bytes;
 
-    kr->wrapping_alg_id = wrapping_alg_id;
+    kr->rsa_padding_mode = rsa_padding_mode;
     kr->vt = &raw_rsa_keyring_vt;
     kr->alloc = alloc;
     return (struct aws_cryptosdk_keyring *)kr;

@@ -24,7 +24,7 @@ struct raw_rsa_keyring {
     const struct aws_string *provider_id;
     const uint8_t *raw_key;
     size_t raw_key_len;
-    enum aws_cryptosdk_rsa_wrapping_alg_id wrapping_alg_id;
+    enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode;
 };
 
 #endif  // AWS_CRYPTOSDK_PRIVATE_RAW_RSA_KEYRING_H

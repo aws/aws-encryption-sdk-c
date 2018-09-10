@@ -75,10 +75,9 @@ static struct aws_cryptosdk_keyring *kr;
 static struct aws_cryptosdk_decryption_request req;
 static struct aws_cryptosdk_decryption_materials *dec_mat;
 
-static int set_up_all_the_things(
-    enum aws_cryptosdk_rsa_wrapping_alg_id wrapping_alg_id, enum aws_cryptosdk_alg_id alg) {
+static int set_up_all_the_things(enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode, enum aws_cryptosdk_alg_id alg) {
     alloc = aws_default_allocator();
-    kr = raw_rsa_keyring_tv_new(alloc, wrapping_alg_id);
+    kr = raw_rsa_keyring_tv_new(alloc, rsa_padding_mode);
     TEST_ASSERT_ADDR_NOT_NULL(kr);
     req.alloc = alloc;
     req.alg = alg;
@@ -95,13 +94,13 @@ static void tear_down_all_the_things() {
     aws_cryptosdk_keyring_destroy(kr);
 }
 /**
- * RSA Data key decryption with set of known test vectors. This set contains test vectors for the three 
- * supported algorithms: RSA with PKCS1 Padding, RSA with OAEP/SHA-1/MGF1 Padding, RSA with OAEP/SHA-256/MGF1 Padding. 
+ * RSA Data key decryption with set of known test vectors. This set contains test vectors for the three
+ * supported algorithms: RSA with PKCS1 Padding, RSA with OAEP/SHA-1/MGF1 Padding, RSA with OAEP/SHA-256/MGF1 Padding.
  * This set includes wrapping keys of 256, 192, and 128 bits. Same vectors as used in decrypt_data_key_test_vectors.
  */
 int decrypt_data_key_from_test_vectors() {
     for (struct raw_rsa_keyring_test_vector *tv = raw_rsa_keyring_test_vectors; tv->data_key; ++tv) {
-        TEST_ASSERT_SUCCESS(set_up_all_the_things(tv->wrapping_alg_id, tv->alg));
+        TEST_ASSERT_SUCCESS(set_up_all_the_things(tv->rsa_padding_mode, tv->alg));
 
         struct aws_cryptosdk_edk edk = edk_init_test_vector(tv);
         aws_array_list_push_back(&req.encrypted_data_keys, (void *)&edk);
@@ -111,17 +110,18 @@ int decrypt_data_key_from_test_vectors() {
 
         struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv->data_key, tv->data_key_len);
         TEST_ASSERT(aws_byte_buf_eq(&dec_mat->unencrypted_data_key, &known_answer));
-        
+
         tear_down_all_the_things();
     }
     return 0;
 }
 /**
- * Same as the first test vector but EDK list has many wrong EDKs which fail for different reasons before getting to good one.
+ * Same as the first test vector but EDK list has many wrong EDKs which fail for different reasons before getting to
+ * good one.
  */
 int decrypt_data_key_from_multiple_edks() {
     struct raw_rsa_keyring_test_vector tv = raw_rsa_keyring_test_vectors[0];
-    TEST_ASSERT_SUCCESS(set_up_all_the_things(tv.wrapping_alg_id, tv.alg));
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(tv.rsa_padding_mode, tv.alg));
 
     for (int idx = 0; idx < sizeof(rsa_edk_gens) / sizeof(edk_generator); ++idx) {
         struct aws_cryptosdk_edk edk = rsa_edk_gens[idx]();
@@ -142,7 +142,7 @@ int decrypt_data_key_from_multiple_edks() {
  */
 int decrypt_data_key_from_bad_edk() {
     struct raw_rsa_keyring_test_vector tv = raw_rsa_keyring_test_vectors[0];
-    TEST_ASSERT_SUCCESS(set_up_all_the_things(tv.wrapping_alg_id, tv.alg));
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(tv.rsa_padding_mode, tv.alg));
 
     for (int idx = 0; idx < sizeof(rsa_edk_gens) / sizeof(edk_generator) - 1; ++idx) {
         struct aws_cryptosdk_edk edk = rsa_edk_gens[idx]();

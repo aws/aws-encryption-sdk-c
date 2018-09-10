@@ -163,8 +163,9 @@ int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
                                   const struct aws_string * key);
 
 int aws_cryptosdk_rsa_decrypt(
-    struct aws_byte_buf * plain,
+    struct aws_byte_buf *plain,
     const struct aws_byte_cursor cipher,
-    const uint8_t * key, enum aws_cryptosdk_rsa_wrapping_alg_id wrapping_alg_id );
+    const uint8_t *key,
+    enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);
 
 #endif // AWS_CRYPTOSDK_PRIVATE_CIPHER_H

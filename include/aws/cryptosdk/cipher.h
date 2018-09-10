@@ -25,6 +25,12 @@ enum aws_cryptosdk_aes_key_len {
     AWS_CRYPTOSDK_AES_256 = 256/8
 };
 
+enum aws_cryptosdk_rsa_padding_mode {
+    AWS_CRYPTOSDK_RSA_PKCS1,
+    AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1,
+    AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1,
+};
+
 struct aws_cryptosdk_alg_properties {
     const char *md_name, *cipher_name;
 

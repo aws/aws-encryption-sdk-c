@@ -19,10 +19,10 @@
 #include <aws/cryptosdk/materials.h>
 
 struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new(
-    struct aws_allocator *alloc, enum aws_cryptosdk_rsa_wrapping_alg_id wrapping_alg_id);
+    struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);
 
 struct raw_rsa_keyring_test_vector {
-    enum aws_cryptosdk_rsa_wrapping_alg_id wrapping_alg_id;
+    enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode;
     enum aws_cryptosdk_alg_id alg;
     const uint8_t *data_key;
     size_t data_key_len;

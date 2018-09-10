@@ -18,69 +18,66 @@
 static const uint8_t raw_rsa_keyring_tv_master_key_id[] = "asdfhasiufhiasuhviawurhgiuawrhefiuawhf";
 static const uint8_t raw_rsa_keyring_tv_provider_id[] = "asoghis";
 
-/* Will change the way key is obtained in a new PR. 
-I shall be making use of the PEM Parser provided by the C-SDK team in the aws-c-io library inorder
-to load the private-key.pem file to a string that can then be passed around*/
-static const uint8_t raw_rsa_keyring_tv_wrapping_key[] = "-----BEGIN PRIVATE KEY-----\n"
-"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\n"
-"r1kmH86LkDARuxu2Vm1EoHP9L/wk\n"
-"-----END PRIVATE KEY-----";
+static const uint8_t raw_rsa_keyring_tv_wrapping_key[] =
+    "-----BEGIN PRIVATE KEY-----\n"
+    "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\n"
+    "r1kmH86LkDARuxu2Vm1EoHP9L/wk\n"
+    "-----END PRIVATE KEY-----";
 
 struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new(
-    struct aws_allocator *alloc,
-    enum aws_cryptosdk_rsa_wrapping_alg_id wrapping_alg_id) {
+    struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
     return aws_cryptosdk_raw_rsa_keyring_new(
         alloc, raw_rsa_keyring_tv_master_key_id, sizeof(raw_rsa_keyring_tv_master_key_id),
         raw_rsa_keyring_tv_provider_id, sizeof(raw_rsa_keyring_tv_provider_id), raw_rsa_keyring_tv_wrapping_key,
-        wrapping_alg_id);
+        rsa_padding_mode);
 }
 
 struct aws_cryptosdk_edk edk_init(const uint8_t *edk_bytes, size_t edk_len) {
@@ -92,7 +89,7 @@ struct aws_cryptosdk_edk edk_init(const uint8_t *edk_bytes, size_t edk_len) {
     return edk;
 }
 
-// Test vector 0: 128 bit data key, wrapping key RSA_PKCS1, empty encryption context
+// Test vector 0: 128 bit data key, RSA wrapping key with PKCS1 padding, empty encryption context
 static const uint8_t tv_0_data_key[] = { 0x2b, 0xe4, 0xd0, 0x88, 0xea, 0xf3, 0xc1, 0x31,
                                          0x90, 0x52, 0x02, 0xd1, 0x09, 0x25, 0x15, 0x85 };
 // 512 bytes encrypted data key
@@ -126,7 +123,7 @@ static const uint8_t tv_0_edk_bytes[] = {
     0x3f, 0xb9, 0x36, 0x8f, 0x98, 0x2c, 0xbf, 0x87, 0x1a, 0x14, 0x77, 0x8e, 0x92, 0x6a, 0xd4, 0x16, 0xc5, 0xe0
 };
 
-// Test vector 1: 192 bit data key, wrapping key RSA_PKCS1, empty encryption context
+// Test vector 1: 192 bit data key, RSA wrapping key with PKCS1 Padding, empty encryption context
 static const uint8_t tv_1_data_key[] = { 0xe6, 0xd2, 0xee, 0x27, 0xc4, 0x22, 0xff, 0x3e, 0x8a, 0x1d, 0xb6, 0x77,
                                          0x19, 0xe0, 0x15, 0x47, 0xd7, 0x9b, 0x82, 0x0b, 0x16, 0x08, 0xcc, 0x99 };
 // 512 bytes encrypted data key
@@ -160,7 +157,7 @@ static const uint8_t tv_1_edk_bytes[] = {
     0xaf, 0xc3, 0x42, 0xf5, 0x31, 0x8a, 0xf1, 0xce, 0x64, 0x1d, 0xa2, 0x0f, 0xfa, 0x52, 0x71, 0x56, 0x13, 0x2b
 };
 
-// Test vector 2: 256 bit data key,  wrapping key RSA_PKCS1, empty encryption context
+// Test vector 2: 256 bit data key,  RSA wrapping key with PKCS1 Padding, empty encryption context
 static const uint8_t tv_2_data_key[] = { 0x4d, 0x4c, 0xe5, 0x8a, 0xbd, 0x6b, 0x6b, 0x71, 0x9e, 0x02, 0x24,
                                          0xc6, 0x46, 0x81, 0x30, 0x11, 0x23, 0x7a, 0xfa, 0x0d, 0xfa, 0x2d,
                                          0x6b, 0x01, 0xca, 0xf8, 0xe3, 0x33, 0x86, 0x69, 0x0f, 0xd1 };
@@ -195,11 +192,11 @@ static const uint8_t tv_2_edk_bytes[] = {
     0x26, 0x8f, 0x58, 0x53, 0x4d, 0x44, 0xb4, 0x4c, 0x73, 0x68, 0x30, 0x5c, 0x98, 0x30, 0x94, 0x0e, 0xb1, 0xdb
 };
 
-// Test vector 3: 128 bit data key, wrapping key RSA_OAEP_SHA1_MGF1, empty encryption context
+// Test vector 3: 128 bit data key, RSA wrapping key with OAEP_SHA1_MGF1 padding, empty encryption context
 static const uint8_t tv_3_data_key[] = { 0x58, 0x85, 0xa8, 0xc2, 0x89, 0x09, 0x80, 0xf5,
                                          0xea, 0xf0, 0xa4, 0xc3, 0xbb, 0xa4, 0x42, 0xee };
 
-// 512 bytes encrypted data key 
+// 512 bytes encrypted data key
 static const uint8_t tv_3_edk_bytes[] = {
     0x03, 0xca, 0xe7, 0xd7, 0x5b, 0x91, 0x03, 0xfa, 0x04, 0x57, 0x54, 0x4e, 0x8e, 0xbd, 0x82, 0xa0, 0x0c, 0x18, 0xb0,
     0xe5, 0x34, 0xd9, 0x4d, 0xf7, 0x1f, 0x8d, 0xbc, 0x3e, 0x11, 0xae, 0x22, 0xa5, 0x85, 0xb3, 0xe3, 0x7f, 0xc8, 0x53,
@@ -230,7 +227,7 @@ static const uint8_t tv_3_edk_bytes[] = {
     0x45, 0xf3, 0xe7, 0x6b, 0xa8, 0x83, 0x56, 0x81, 0x2b, 0x25, 0xef, 0xae, 0x81, 0x2e, 0xfc, 0x24, 0xda, 0x34
 };
 
-// Test vector 4: 192 bit data key, wrapping key RSA_OAEP_SHA1_MGF1, empty encryption context
+// Test vector 4: 192 bit data key, RSA wrapping key with RSA_OAEP_SHA1_MGF1 padding, empty encryption context
 static const uint8_t tv_4_data_key[] = { 0xae, 0x63, 0xbe, 0x99, 0x84, 0x30, 0x35, 0x6b, 0xe0, 0x6e, 0x77, 0x78,
                                          0xb3, 0x13, 0x3c, 0x61, 0xfc, 0x3e, 0x1e, 0xaa, 0xd8, 0xe0, 0x4f, 0x95 };
 
@@ -265,7 +262,7 @@ static const uint8_t tv_4_edk_bytes[] = {
     0xa7, 0x5b, 0xd3, 0x32, 0x1f, 0x3c, 0xf1, 0x15, 0xfb, 0xe2, 0x91, 0xf8, 0xfa, 0x7d, 0x11, 0xb5, 0x97, 0x25
 };
 
-// Test vector 5: 256 bit data key, wrapping key RSA_OAEP_SHA1_MGF1, empty encryption context
+// Test vector 5: 256 bit data key, RSA wrapping key with RSA_OAEP_SHA1_MGF1 padding, empty encryption context
 static const uint8_t tv_5_data_key[] = { 0x2b, 0xb6, 0xf1, 0xff, 0xd9, 0x04, 0x95, 0x2b, 0xef, 0x97, 0x96,
                                          0x46, 0xef, 0x49, 0x7b, 0x6e, 0xfc, 0x0c, 0xae, 0xfe, 0xea, 0x20,
                                          0x49, 0x6d, 0x45, 0xaa, 0xe9, 0x88, 0x0c, 0x05, 0x4f, 0x35 };
@@ -301,7 +298,7 @@ static const uint8_t tv_5_edk_bytes[] = {
     0xe8, 0x94, 0x2a, 0xb0, 0x11, 0x06, 0xd7, 0xdd, 0x64, 0xa5, 0xa8, 0x92, 0xe2, 0xaf, 0xc6, 0xed, 0xb7, 0xba
 };
 
-// Test vector 6: 128 bit data key, wrapping key RSA_OAEP_SHA256_MGF1, empty encryption context
+// Test vector 6: 128 bit data key, RSA wrapping key with RSA_OAEP_SHA256_MGF1 padding, empty encryption context
 static const uint8_t tv_6_data_key[] = { 0x2a, 0xfb, 0x7c, 0x61, 0x4e, 0xd4, 0x31, 0x9d,
                                          0x0b, 0x9c, 0xb1, 0xbd, 0x1a, 0x87, 0x2d, 0x4a };
 
@@ -336,7 +333,7 @@ static const uint8_t tv_6_edk_bytes[] = {
     0x44, 0xa7, 0xed, 0x1e, 0x41, 0x7b, 0xcd, 0x11, 0x7a, 0xcd, 0x9c, 0x23, 0x1c, 0xa8, 0xca, 0x8c, 0x2a, 0x30
 };
 
-// Test vector 7: 192 bit data key, wrapping key RSA_OAEP_SHA256_MGF1, empty encryption context
+// Test vector 7: 192 bit data key, RSA wrapping key with RSA_OAEP_SHA256_MGF1 padding, empty encryption context
 static const uint8_t tv_7_data_key[] = { 0x51, 0x7a, 0xa8, 0x94, 0xc6, 0x33, 0xf7, 0xfe, 0xc4, 0x3d, 0x16, 0x58,
                                          0x28, 0xf5, 0x6a, 0xc0, 0xed, 0x04, 0xc7, 0x83, 0xec, 0x60, 0x45, 0xa1 };
 
@@ -371,7 +368,7 @@ static const uint8_t tv_7_edk_bytes[] = {
     0xf0, 0x8f, 0x44, 0xc2, 0x5b, 0xfe, 0xd9, 0xe4, 0x5f, 0xc9, 0x1e, 0xcd, 0x89, 0x6c, 0x6a, 0xa4, 0xb2, 0x14
 };
 
-// Test vector 8: 256 bit data key, wrapping key RSA_OAEP_SHA256_MGF1, empty encryption context
+// Test vector 8: 256 bit data key, RSA wrapping key with RSA_OAEP_SHA256_MGF1 padding, empty encryption context
 static const uint8_t tv_8_data_key[] = { 0x94, 0xe6, 0x5e, 0x87, 0xda, 0x7b, 0xb9, 0xf3, 0xc7, 0x7e, 0x30,
                                          0xd9, 0xb1, 0xa9, 0xbc, 0x80, 0xc6, 0x5f, 0x02, 0xd8, 0x52, 0x51,
                                          0x18, 0xde, 0xd9, 0x04, 0xbf, 0x73, 0x74, 0x75, 0xc3, 0x2b };
@@ -408,70 +405,79 @@ static const uint8_t tv_8_edk_bytes[] = {
 };
 
 struct raw_rsa_keyring_test_vector raw_rsa_keyring_test_vectors[] = {
-    {.wrapping_alg_id = RSA_PKCS1,
-     .alg = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-     .data_key = tv_0_data_key,
-     .data_key_len = sizeof(tv_0_data_key),
-     .edk_bytes = tv_0_edk_bytes,
-     .edk_bytes_len = sizeof(tv_0_edk_bytes),
+    {
+        .rsa_padding_mode = AWS_CRYPTOSDK_RSA_PKCS1,
+        .alg = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .data_key = tv_0_data_key,
+        .data_key_len = sizeof(tv_0_data_key),
+        .edk_bytes = tv_0_edk_bytes,
+        .edk_bytes_len = sizeof(tv_0_edk_bytes),
     },
-    {.wrapping_alg_id = RSA_PKCS1,
-     .alg = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-     .data_key = tv_1_data_key,
-     .data_key_len = sizeof(tv_1_data_key),
-     .edk_bytes = tv_1_edk_bytes,
-     .edk_bytes_len = sizeof(tv_1_edk_bytes),
+    {
+        .rsa_padding_mode = AWS_CRYPTOSDK_RSA_PKCS1,
+        .alg = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .data_key = tv_1_data_key,
+        .data_key_len = sizeof(tv_1_data_key),
+        .edk_bytes = tv_1_edk_bytes,
+        .edk_bytes_len = sizeof(tv_1_edk_bytes),
     },
-    {.wrapping_alg_id = RSA_PKCS1,
-     .alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-     .data_key = tv_2_data_key,
-     .data_key_len = sizeof(tv_2_data_key),
-     .edk_bytes = tv_2_edk_bytes,
-     .edk_bytes_len = sizeof(tv_2_edk_bytes),
+    {
+        .rsa_padding_mode = AWS_CRYPTOSDK_RSA_PKCS1,
+        .alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .data_key = tv_2_data_key,
+        .data_key_len = sizeof(tv_2_data_key),
+        .edk_bytes = tv_2_edk_bytes,
+        .edk_bytes_len = sizeof(tv_2_edk_bytes),
     },
-    {.wrapping_alg_id = RSA_OAEP_SHA1_MGF1,
-     .alg = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-     .data_key = tv_3_data_key,
-     .data_key_len = sizeof(tv_3_data_key),
-     .edk_bytes = tv_3_edk_bytes,
-     .edk_bytes_len = sizeof(tv_3_edk_bytes),
+    {
+        .rsa_padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1,
+        .alg = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .data_key = tv_3_data_key,
+        .data_key_len = sizeof(tv_3_data_key),
+        .edk_bytes = tv_3_edk_bytes,
+        .edk_bytes_len = sizeof(tv_3_edk_bytes),
     },
-    {.wrapping_alg_id = RSA_OAEP_SHA1_MGF1,
-     .alg = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-     .data_key = tv_4_data_key,
-     .data_key_len = sizeof(tv_4_data_key),
-     .edk_bytes = tv_4_edk_bytes,
-     .edk_bytes_len = sizeof(tv_4_edk_bytes),
+    {
+        .rsa_padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1,
+        .alg = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .data_key = tv_4_data_key,
+        .data_key_len = sizeof(tv_4_data_key),
+        .edk_bytes = tv_4_edk_bytes,
+        .edk_bytes_len = sizeof(tv_4_edk_bytes),
     },
-    {.wrapping_alg_id = RSA_OAEP_SHA1_MGF1,
-     .alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-     .data_key = tv_5_data_key,
-     .data_key_len = sizeof(tv_5_data_key),
-     .edk_bytes = tv_5_edk_bytes,
-     .edk_bytes_len = sizeof(tv_5_edk_bytes),
+    {
+        .rsa_padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1,
+        .alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .data_key = tv_5_data_key,
+        .data_key_len = sizeof(tv_5_data_key),
+        .edk_bytes = tv_5_edk_bytes,
+        .edk_bytes_len = sizeof(tv_5_edk_bytes),
     },
-   {.wrapping_alg_id = RSA_OAEP_SHA256_MGF1,
-     .alg = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-     .data_key = tv_6_data_key,
-     .data_key_len = sizeof(tv_6_data_key),
-     .edk_bytes = tv_6_edk_bytes,
-     .edk_bytes_len = sizeof(tv_6_edk_bytes),
+    {
+        .rsa_padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1,
+        .alg = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .data_key = tv_6_data_key,
+        .data_key_len = sizeof(tv_6_data_key),
+        .edk_bytes = tv_6_edk_bytes,
+        .edk_bytes_len = sizeof(tv_6_edk_bytes),
     },
-    {.wrapping_alg_id = RSA_OAEP_SHA256_MGF1,
-     .alg = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-     .data_key = tv_7_data_key,
-     .data_key_len = sizeof(tv_7_data_key),
-     .edk_bytes = tv_7_edk_bytes,
-     .edk_bytes_len = sizeof(tv_7_edk_bytes),
+    {
+        .rsa_padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1,
+        .alg = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .data_key = tv_7_data_key,
+        .data_key_len = sizeof(tv_7_data_key),
+        .edk_bytes = tv_7_edk_bytes,
+        .edk_bytes_len = sizeof(tv_7_edk_bytes),
     },
-    {.wrapping_alg_id = RSA_OAEP_SHA256_MGF1,
-     .alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-     .data_key = tv_8_data_key,
-     .data_key_len = sizeof(tv_8_data_key),
-     .edk_bytes = tv_8_edk_bytes,
-     .edk_bytes_len = sizeof(tv_8_edk_bytes),
+    {
+        .rsa_padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1,
+        .alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .data_key = tv_8_data_key,
+        .data_key_len = sizeof(tv_8_data_key),
+        .edk_bytes = tv_8_edk_bytes,
+        .edk_bytes_len = sizeof(tv_8_edk_bytes),
     },
-    {0}
+    { 0 }
 };
 
 struct aws_cryptosdk_edk edk_init_test_vector(struct raw_rsa_keyring_test_vector *tv) {
@@ -479,6 +485,5 @@ struct aws_cryptosdk_edk edk_init_test_vector(struct raw_rsa_keyring_test_vector
 }
 
 struct aws_cryptosdk_edk edk_init_test_vector_idx(int idx) {
-    return edk_init(
-        raw_rsa_keyring_test_vectors[idx].edk_bytes, raw_rsa_keyring_test_vectors[idx].edk_bytes_len);
+    return edk_init(raw_rsa_keyring_test_vectors[idx].edk_bytes, raw_rsa_keyring_test_vectors[idx].edk_bytes_len);
 }
