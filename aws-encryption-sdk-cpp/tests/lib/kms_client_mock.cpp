@@ -43,6 +43,11 @@ Model::EncryptOutcome KmsClientMock::Encrypt(const Model::EncryptRequest &reques
                 + " expecting: "
                 + reinterpret_cast<const char *>(eev.expected_encrypt_request.GetPlaintext().GetUnderlyingData()));
     }
+
+    if (request.GetGrantTokens() != grant_tokens) {
+        throw logic_error("Got another set of expected grant tokens");
+    }
+
     return eev.encrypt_return;
 }
 void KmsClientMock::ExpectEncryptAccumulator(const Model::EncryptRequest &request, Model::EncryptOutcome encrypt_return) {
@@ -59,6 +64,10 @@ Model::DecryptOutcome KmsClientMock::Decrypt(const Model::DecryptRequest &reques
 
     if (edv.expected_decrypt_request.GetCiphertextBlob() != request.GetCiphertextBlob()) {
         throw std::exception();
+    }
+
+    if (request.GetGrantTokens() != grant_tokens) {
+        throw logic_error("Got another set of expected grant tokens");
     }
 
     return edv.return_decrypt;
@@ -83,6 +92,10 @@ Model::GenerateDataKeyOutcome KmsClientMock::GenerateDataKey(const Model::Genera
         throw std::exception();
     }
 
+    if (request.GetGrantTokens() != grant_tokens) {
+        throw logic_error("Got another set of expected grant tokens");
+    }
+
     expect_generate_dk = false;
     return generate_dk_return;
 }
@@ -96,6 +109,11 @@ void KmsClientMock::ExpectGenerateDataKey(const Model::GenerateDataKeyRequest &r
 
 bool KmsClientMock::ExpectingOtherCalls() {
     return (expected_decrypt_values.size() != 0) || (expected_encrypt_values.size() != 0) || expect_generate_dk;
+}
+
+
+void KmsClientMock::ExpectGrantTokens(const Aws::Vector<Aws::String> &grant_tokens) {
+    this->grant_tokens = grant_tokens;
 }
 
 }  // namespace Testing

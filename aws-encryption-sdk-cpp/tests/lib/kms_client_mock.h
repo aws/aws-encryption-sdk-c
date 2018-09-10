@@ -49,6 +49,8 @@ class KmsClientMock : public Aws::KMS::KMSClient {
     void ExpectGenerateDataKey(const Model::GenerateDataKeyRequest &request,
                                Model::GenerateDataKeyOutcome generate_dk_return);
 
+    void ExpectGrantTokens(const Aws::Vector<Aws::String> &grant_tokens);
+
     //TODO automatically crash if ExpectingOtherCalls is true in destructor
     bool ExpectingOtherCalls();
   private:
@@ -67,6 +69,8 @@ class KmsClientMock : public Aws::KMS::KMSClient {
     mutable bool expect_generate_dk;
     Model::GenerateDataKeyRequest expected_generate_dk_request;
     Model::GenerateDataKeyOutcome generate_dk_return;
+
+    Aws::Vector<Aws::String> grant_tokens;
 
 };
 
