@@ -18,6 +18,7 @@
 #include <aws/cryptosdk/cipher.h> // aws_cryptosdk_secure_zero
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/private/enc_context.h>
+#include <aws/cryptosdk/private/materials.h>
 #include <aws/common/byte_buf.h>
 
 #define INITIAL_CONTEXT_SIZE 4
@@ -85,25 +86,6 @@ int aws_cryptosdk_hdr_init(struct aws_cryptosdk_hdr *hdr, struct aws_allocator *
     return AWS_OP_SUCCESS;
 }
 
-static inline void edk_clean_up(struct aws_cryptosdk_edk *edk) {
-    aws_byte_buf_clean_up(&edk->enc_data_key);
-    aws_byte_buf_clean_up(&edk->provider_id);
-    aws_byte_buf_clean_up(&edk->provider_info);
-}
-
-static inline void clear_edks(struct aws_cryptosdk_hdr *hdr) {
-    size_t edk_count = aws_array_list_length(&hdr->edk_list);
-
-    for (size_t i = 0; i < edk_count; i++) {
-        void *vp_edk;
-        aws_array_list_get_at_ptr(&hdr->edk_list, &vp_edk, i);
-
-        edk_clean_up(vp_edk);
-    }
-
-    aws_array_list_clear(&hdr->edk_list);
-}
-
 void aws_cryptosdk_hdr_clear(struct aws_cryptosdk_hdr *hdr) {
     struct aws_cryptosdk_hdr new_header;
     aws_secure_zero(&new_header, sizeof(new_header));
@@ -116,7 +98,7 @@ void aws_cryptosdk_hdr_clear(struct aws_cryptosdk_hdr *hdr) {
     memcpy(hdr, &new_header, sizeof(new_header));
 
     aws_hash_table_clear(&hdr->enc_context);
-    clear_edks(hdr);
+    aws_cryptosdk_edk_list_clear(&hdr->edk_list);
 }
 
 void aws_cryptosdk_hdr_clean_up(struct aws_cryptosdk_hdr *hdr) {
@@ -125,7 +107,7 @@ void aws_cryptosdk_hdr_clean_up(struct aws_cryptosdk_hdr *hdr) {
         return;
     }
 
-    clear_edks(hdr);
+    aws_cryptosdk_edk_list_clean_up(&hdr->edk_list);
 
     aws_array_list_clean_up(&hdr->edk_list);
     aws_hash_table_clean_up(&hdr->enc_context);
@@ -200,7 +182,7 @@ int aws_cryptosdk_hdr_parse(struct aws_cryptosdk_hdr *hdr, struct aws_byte_curso
         struct aws_cryptosdk_edk edk = {{0}};
 
         if (parse_edk(hdr->alloc, &edk, &cur)) {
-            edk_clean_up(&edk);
+            aws_cryptosdk_edk_clean_up(&edk);
             goto RETHROW;
         }
 
