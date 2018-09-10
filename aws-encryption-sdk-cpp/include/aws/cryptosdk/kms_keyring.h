@@ -192,8 +192,6 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
 
     Aws::String default_key_id;  // default key used for encryption/key generation
     const Aws::String default_region;  // if no region can be extracted from key_id this will be used as default
-
-    //TODO add support for grant_tokens
     Aws::Vector<Aws::String> grant_tokens;
 
     //TODO use Aws::UnorderedMap

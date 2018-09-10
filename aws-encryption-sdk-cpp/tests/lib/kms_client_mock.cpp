@@ -45,7 +45,11 @@ Model::EncryptOutcome KmsClientMock::Encrypt(const Model::EncryptRequest &reques
     }
 
     if (request.GetGrantTokens() != grant_tokens) {
-        throw logic_error("Got another set of expected grant tokens");
+        throw logic_error("Got other grant tokens than expected");
+    }
+
+    if (request.GetEncryptionContext() != eev.expected_encrypt_request.GetEncryptionContext()) {
+        throw logic_error("Got other encryption context than expected");
     }
 
     return eev.encrypt_return;
@@ -67,7 +71,11 @@ Model::DecryptOutcome KmsClientMock::Decrypt(const Model::DecryptRequest &reques
     }
 
     if (request.GetGrantTokens() != grant_tokens) {
-        throw logic_error("Got another set of expected grant tokens");
+        throw logic_error("Got other grant tokens than expected");
+    }
+
+    if (request.GetEncryptionContext() != edv.expected_decrypt_request.GetEncryptionContext()) {
+        throw logic_error("Got other encryption context than expected");
     }
 
     return edv.return_decrypt;
@@ -93,7 +101,11 @@ Model::GenerateDataKeyOutcome KmsClientMock::GenerateDataKey(const Model::Genera
     }
 
     if (request.GetGrantTokens() != grant_tokens) {
-        throw logic_error("Got another set of expected grant tokens");
+        throw logic_error("Got other grant tokens than expected");
+    }
+
+    if (request.GetEncryptionContext() != expected_generate_dk_request.GetEncryptionContext()) {
+        throw logic_error("Got other encryption context than expected");
     }
 
     expect_generate_dk = false;
