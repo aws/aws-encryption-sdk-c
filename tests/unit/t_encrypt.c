@@ -196,7 +196,10 @@ static int probe_buffer_size_estimates() {
 
 static int test_small_buffers() {
     init_bufs(31);
-    create_session(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_zero_keyring_new());
+    struct aws_cryptosdk_keyring* kr = aws_cryptosdk_zero_keyring_new(aws_default_allocator());
+    TEST_ASSERT_ADDR_NOT_NULL(kr);
+
+    create_session(AWS_CRYPTOSDK_ENCRYPT, kr);
     aws_cryptosdk_session_set_frame_size(session, 16);
 
     if (probe_buffer_size_estimates()) return 1; // should emit header
@@ -211,15 +214,17 @@ static int test_small_buffers() {
     if (check_ciphertext()) return 1;
 
     free_bufs();
-
+    aws_cryptosdk_keyring_destroy(kr);
     return 0;
 }
 
 int test_simple_roundtrip() {
     init_bufs(1024);
+    struct aws_cryptosdk_keyring* kr = aws_cryptosdk_zero_keyring_new(aws_default_allocator());
+    TEST_ASSERT_ADDR_NOT_NULL(kr);
 
     size_t ct_consumed, pt_consumed;
-    create_session(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_zero_keyring_new());
+    create_session(AWS_CRYPTOSDK_ENCRYPT, kr);
     aws_cryptosdk_session_set_message_size(session, pt_size);
     precise_size_set = true;
 
@@ -229,7 +234,7 @@ int test_simple_roundtrip() {
     if (check_ciphertext()) return 1;
 
     free_bufs();
-
+    aws_cryptosdk_keyring_destroy(kr);
     return 0;
 }
 
@@ -237,14 +242,18 @@ int test_different_keyring_cant_decrypt() {
     init_bufs(1 /*1024*/);
 
     size_t ct_consumed, pt_consumed;
-    create_session(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_counting_keyring());
+    struct aws_cryptosdk_keyring* counting_kr = aws_cryptosdk_counting_keyring_new(aws_default_allocator());
+    TEST_ASSERT_ADDR_NOT_NULL(counting_kr);
+    create_session(AWS_CRYPTOSDK_ENCRYPT, counting_kr);
     aws_cryptosdk_session_set_message_size(session, pt_size);
     precise_size_set = true;
 
     if (pump_ciphertext(2048, &ct_consumed, pt_size, &pt_consumed)) return 1;
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
 
-    create_session(AWS_CRYPTOSDK_DECRYPT, aws_cryptosdk_zero_keyring_new());
+    struct aws_cryptosdk_keyring* zero_kr = aws_cryptosdk_zero_keyring_new(aws_default_allocator());
+    TEST_ASSERT_ADDR_NOT_NULL(zero_kr);
+    create_session(AWS_CRYPTOSDK_DECRYPT, zero_kr);
     hexdump(stderr, ct_buf, ct_size);
 
 #if 0
@@ -265,7 +274,8 @@ int test_different_keyring_cant_decrypt() {
 #endif
 
     free_bufs();
-
+    aws_cryptosdk_keyring_destroy(counting_kr);
+    aws_cryptosdk_keyring_destroy(zero_kr);
     return 0;
 }
 
@@ -274,7 +284,9 @@ int test_changed_keyring_can_decrypt() {
     init_bufs(1 /*1024*/);
 
     size_t ct_consumed, pt_consumed;
-    create_session(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_counting_keyring());
+    struct aws_cryptosdk_keyring* counting_kr = aws_cryptosdk_counting_keyring_new(aws_default_allocator());
+    TEST_ASSERT_ADDR_NOT_NULL(counting_kr);
+    create_session(AWS_CRYPTOSDK_ENCRYPT, counting_kr);
     aws_cryptosdk_session_set_message_size(session, pt_size);
     precise_size_set = true;
 
@@ -284,7 +296,7 @@ int test_changed_keyring_can_decrypt() {
     if (check_ciphertext()) return 1;
 
     free_bufs();
-
+    aws_cryptosdk_keyring_destroy(counting_kr);
     return 0;
 }
 

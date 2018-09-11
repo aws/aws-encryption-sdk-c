@@ -22,7 +22,7 @@
 int default_cmm_zero_keyring_enc_mat() {
     struct aws_hash_table enc_context;
     struct aws_allocator * alloc = aws_default_allocator();
-    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_zero_keyring_new();
+    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_zero_keyring_new(alloc);
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(alloc, kr);
 
     struct aws_cryptosdk_encryption_request req;
@@ -59,7 +59,7 @@ int default_cmm_zero_keyring_enc_mat() {
 
 int default_cmm_zero_keyring_dec_mat() {
     struct aws_allocator * alloc = aws_default_allocator();
-    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_zero_keyring_new();
+    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_zero_keyring_new(alloc);
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(alloc, kr);
 
     struct aws_cryptosdk_decryption_request req;

@@ -167,11 +167,15 @@ static int test_basic() {
 
     size_t pt_consumed, ct_consumed;
 
-    struct aws_cryptosdk_session *session;
+
+    struct aws_allocator *alloc = aws_default_allocator();
+    struct aws_cryptosdk_keyring *kr = NULL;
+    struct aws_cryptosdk_session *session = NULL;
     struct aws_cryptosdk_cmm *cmm = NULL;
 
-    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), aws_cryptosdk_zero_keyring_new()))) abort();
-    if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm))) abort();
+    if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) abort();
+    if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) abort();
+    if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_ENCRYPT, cmm))) abort();
 
     aws_cryptosdk_session_set_message_size(session, sizeof(plaintext));
     
@@ -185,6 +189,7 @@ static int test_basic() {
 
     aws_cryptosdk_session_destroy(session);
     aws_cryptosdk_cmm_destroy(cmm);
+    aws_cryptosdk_keyring_destroy(kr);
 
     hexdump(stderr, ciphertext, ct_consumed);
 
@@ -200,10 +205,13 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
     uint8_t *ciphertext = malloc(plaintext_sz);
     size_t ciphertext_buf_sz = plaintext_sz;
 
-    struct aws_cryptosdk_session *session;
+    struct aws_allocator *alloc = aws_default_allocator();
+    struct aws_cryptosdk_keyring *kr = NULL;
+    struct aws_cryptosdk_session *session = NULL;
     struct aws_cryptosdk_cmm *cmm = NULL;
 
-    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), aws_cryptosdk_zero_keyring_new()))) abort();
+    if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) abort();
+    if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) abort();
     if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm))) abort();
 
     if (early_size) aws_cryptosdk_session_set_message_size(session, plaintext_sz);
@@ -259,6 +267,7 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
 
     aws_cryptosdk_session_destroy(session);
     aws_cryptosdk_cmm_destroy(cmm);
+    aws_cryptosdk_kr_destroy(kr);
 
     return 0;
 }
