@@ -47,9 +47,9 @@ tryWriteHeaderModel state_old =
         sess = updateOutputInputEstimates 
             state_old.sess 
             state_old.sess.header_size 
-            state_old.sess.input_size_estimate
-        , output_buffer = state_old.output_buffer
-        , input_buffer = state_old.input_buffer
+            state_old.sess.input_size_estimate,
+        output_buffer = state_old.output_buffer,
+        input_buffer = state_old.input_buffer
         }
 
 
