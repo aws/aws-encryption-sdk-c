@@ -18,6 +18,22 @@
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/materials.h>
 
+/**
+ * A Keyring (KR) which does local RSA encryption and decryption of data keys using
+ * the bytes in the array provided as the RSA key.
+ *
+ * Master key ID, provider ID and raw key bytes provided by the caller are copied into
+ * the state of the KR, so those arrays do not need to be maintained while using the KR.
+ * For maximum security, the caller should zero out the array of raw key bytes after
+ * creating this object.
+ *
+ * The master key ID and provider ID are solely used to determine which master
+ * key to use, so if they do not match, this KR will not find the encrypted data key to
+ * decrypt. In other words, a raw RSA KR which attempts to decrypt data previously
+ * encrypted by another raw RSA KR must have the same master key ID and provider ID.
+ *
+ * On failure returns NULL and sets an internal AWS error code.
+ */
 struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     struct aws_allocator *alloc,
     const uint8_t *master_key_id,
