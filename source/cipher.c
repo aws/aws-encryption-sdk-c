@@ -560,8 +560,9 @@ decrypt_err:
 int aws_cryptosdk_rsa_decrypt(
     struct aws_byte_buf *plain,
     const struct aws_byte_cursor cipher,
-    const uint8_t *key,
+    const struct aws_string *rsa_private_key,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
+    if (!plain->buffer) return aws_raise_error(AWS_ERROR_INVALID_BUFFER_SIZE);
     int padding = -1;
     switch (rsa_padding_mode) {
         case AWS_CRYPTOSDK_RSA_PKCS1: padding = RSA_PKCS1_PADDING; break;
@@ -569,12 +570,12 @@ int aws_cryptosdk_rsa_decrypt(
         case AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1: padding = RSA_PKCS1_OAEP_PADDING; break;
         default: return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     }
-    bool openssl_err = true;
     BIO *bio = NULL;
     EVP_PKEY_CTX *ctx = NULL;
+    int err_code = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     EVP_PKEY *pkey = EVP_PKEY_new();
     if (!pkey) goto err;
-    bio = BIO_new_mem_buf(key, -1);
+    bio = BIO_new_mem_buf(aws_string_bytes(rsa_private_key), -1);
     if (!bio) goto err;
     pkey = PEM_read_bio_PrivateKey(bio, &pkey, NULL, NULL);
     if (!pkey) goto err;
@@ -588,15 +589,15 @@ int aws_cryptosdk_rsa_decrypt(
     }
     size_t outlen = 0;
     if (EVP_PKEY_decrypt(ctx, NULL, &outlen, cipher.ptr, cipher.len) <= 0) goto err;
-    if (outlen == 0) goto err;
-    if (!plain->buffer) goto err;
+    if (outlen <= 0) goto err;
     if (EVP_PKEY_decrypt(ctx, plain->buffer, &outlen, cipher.ptr, cipher.len) <= 0) {
-        openssl_err = false;
+        err_code = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
         goto err;
     }
     EVP_PKEY_CTX_free(ctx);
     EVP_PKEY_free(pkey);
     BIO_free_all(bio);
+    plain->len = outlen;
     return AWS_OP_SUCCESS;
 
 err:
@@ -604,9 +605,6 @@ err:
     EVP_PKEY_CTX_free(ctx);
     EVP_PKEY_free(pkey);
     BIO_free_all(bio);
-    if (openssl_err) {
-        flush_openssl_errors();
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
-    }
-    return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
+    flush_openssl_errors();
+    return aws_raise_error(err_code);
 }

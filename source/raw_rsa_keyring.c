@@ -14,6 +14,8 @@
  */
 #include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/private/raw_rsa_keyring.h>
+#include <assert.h>
+#include <string.h>
 
 static int raw_rsa_keyring_encrypt_data_key(
     struct aws_cryptosdk_keyring *kr, struct aws_cryptosdk_encryption_materials *enc_mat) {
@@ -46,7 +48,6 @@ static int raw_rsa_keyring_decrypt_data_key(
         if (!aws_string_eq_byte_buf(self->master_key_id, &edk->provider_info)) continue;
 
         const struct aws_byte_buf *edk_bytes = &edk->enc_data_key;
-        dec_mat->unencrypted_data_key.len = props->data_key_len;
 
         if (aws_cryptosdk_rsa_decrypt(
                 &dec_mat->unencrypted_data_key, aws_byte_cursor_from_array(edk_bytes->buffer, edk_bytes->len),
@@ -57,6 +58,7 @@ static int raw_rsa_keyring_decrypt_data_key(
              */
             aws_reset_error();
         } else {
+            assert(dec_mat->unencrypted_data_key.len == props->data_key_len);
             goto success;
         }
     }
@@ -100,10 +102,9 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
 
     kr->provider_id = aws_string_new_from_array(alloc, provider_id, provider_id_len);
     if (!kr->provider_id) goto err;
-
-    if (!raw_key_bytes) goto err;
-    kr->raw_key = raw_key_bytes;
-
+    kr->raw_key = aws_string_new_from_array(alloc, raw_key_bytes, strlen((const char *)raw_key_bytes));
+    if (!kr->raw_key) goto err;
+    
     kr->rsa_padding_mode = rsa_padding_mode;
     kr->vt = &raw_rsa_keyring_vt;
     kr->alloc = alloc;
