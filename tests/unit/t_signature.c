@@ -48,8 +48,8 @@ static const enum aws_cryptosdk_alg_id SIG_ALGORITHMS[] = {
 
 static int sign_message(
     const struct aws_cryptosdk_alg_properties *props,
-    const struct aws_string **pubkey,
-    const struct aws_string **sig,
+    struct aws_string **pubkey,
+    struct aws_string **sig,
     const struct aws_byte_cursor *data
 ) {
     struct aws_cryptosdk_signctx *ctx;
@@ -108,13 +108,13 @@ static int check_signature(
 
 static int t_basic_signature_sign_verify() {
     FOREACH_ALGORITHM(props) {
-        const struct aws_string *pub_key, *sig;
+        struct aws_string *pub_key, *sig;
 
         TEST_ASSERT_SUCCESS(sign_message(props, &pub_key, &sig, &test_cursor));
         TEST_ASSERT_SUCCESS(check_signature(props, true, pub_key, sig, &test_cursor));
 
-        aws_string_destroy((struct aws_string *)pub_key);
-        aws_string_destroy((struct aws_string *)sig);
+        aws_string_destroy(pub_key);
+        aws_string_destroy(sig);
     }
 
     return 0;
@@ -123,7 +123,7 @@ static int t_basic_signature_sign_verify() {
 static int t_signature_length() {
     FOREACH_ALGORITHM(props) {
         size_t len = props->signature_len;
-        const struct aws_string *pub_key, *sig;
+        struct aws_string *pub_key, *sig;
 
         /*
          * Normally, EC signatures have slightly non-deterministic length in DER encoding, make sure that
@@ -136,8 +136,8 @@ static int t_signature_length() {
             TEST_ASSERT_INT_EQ(decoded_len, len);
             TEST_ASSERT_SUCCESS(check_signature(props, true, pub_key, sig, &test_cursor));
 
-            aws_string_destroy((struct aws_string *)pub_key);
-            aws_string_destroy((struct aws_string *)sig);
+            aws_string_destroy(pub_key);
+            aws_string_destroy(sig);
         }
     }
 
@@ -146,7 +146,7 @@ static int t_signature_length() {
 
 static int t_bad_signatures() {
     FOREACH_ALGORITHM(props) {
-        const struct aws_string *pub_key, *sig;
+        struct aws_string *pub_key, *sig;
 
         TEST_ASSERT_SUCCESS(sign_message(props, &pub_key, &sig, &test_cursor));
         uint8_t *buffer = (uint8_t *)aws_string_bytes(sig);
@@ -168,8 +168,8 @@ static int t_bad_signatures() {
             buffer[i/8] ^= (1 << (i % 8));
         }
 
-        aws_string_destroy((struct aws_string *)pub_key);
-        aws_string_destroy((struct aws_string *)sig);
+        aws_string_destroy(pub_key);
+        aws_string_destroy(sig);
     }
 
     return 0;
@@ -177,17 +177,17 @@ static int t_bad_signatures() {
 
 static int t_key_mismatch() {
     FOREACH_ALGORITHM(props) {
-        const struct aws_string *pub_key_1, *pub_key_2, *sig;
+        struct aws_string *pub_key_1, *pub_key_2, *sig;
 
         TEST_ASSERT_SUCCESS(sign_message(props, &pub_key_1, &sig, &test_cursor));
-        aws_string_destroy((struct aws_string *)sig);
+        aws_string_destroy(sig);
 
         TEST_ASSERT_SUCCESS(sign_message(props, &pub_key_2, &sig, &test_cursor));
         TEST_ASSERT_SUCCESS(check_signature(props, false, pub_key_1, sig, &test_cursor));
 
-        aws_string_destroy((struct aws_string *)pub_key_1);
-        aws_string_destroy((struct aws_string *)pub_key_2);
-        aws_string_destroy((struct aws_string *)sig);
+        aws_string_destroy(pub_key_1);
+        aws_string_destroy(pub_key_2);
+        aws_string_destroy(sig);
     }
 
     return 0;
@@ -195,7 +195,7 @@ static int t_key_mismatch() {
 
 static int t_corrupt_key() {
     FOREACH_ALGORITHM(props) {
-        const struct aws_string *pub_key, *sig;
+        struct aws_string *pub_key, *sig;
 
         TEST_ASSERT_SUCCESS(sign_message(props, &pub_key, &sig, &test_cursor));
 
@@ -236,8 +236,8 @@ static int t_corrupt_key() {
             buffer[i / 8] ^= 1 << (i % 8);
         }
 
-        aws_string_destroy((struct aws_string *)pub_key);
-        aws_string_destroy((struct aws_string *)sig);
+        aws_string_destroy(pub_key);
+        aws_string_destroy(sig);
     }
 
     return 0;
@@ -245,15 +245,15 @@ static int t_corrupt_key() {
 
 static int t_wrong_data() {
     FOREACH_ALGORITHM(props) {
-        const struct aws_string *pub_key, *sig;
+        struct aws_string *pub_key, *sig;
         struct aws_byte_buf bad_data = aws_byte_buf_from_c_str("Hello, world?");
         struct aws_byte_cursor bad_cursor = aws_byte_cursor_from_buf(&bad_data);
 
         TEST_ASSERT_SUCCESS(sign_message(props, &pub_key, &sig, &test_cursor));
         TEST_ASSERT_SUCCESS(check_signature(props, false, pub_key, sig, &bad_cursor));
 
-        aws_string_destroy((struct aws_string *)pub_key);
-        aws_string_destroy((struct aws_string *)sig);
+        aws_string_destroy(pub_key);
+        aws_string_destroy(sig);
     }
 
     return 0;
@@ -261,7 +261,7 @@ static int t_wrong_data() {
 
 static int t_partial_update() {
     FOREACH_ALGORITHM(props) {
-        const struct aws_string *pub_key, *sig;
+        struct aws_string *pub_key, *sig;
         struct aws_byte_cursor d_empty = cursor_from_c_string("");
         struct aws_byte_cursor d_1_1 = cursor_from_c_string("Hello,");
         struct aws_byte_cursor d_1_2 = cursor_from_c_string(" world!");
@@ -283,8 +283,8 @@ static int t_partial_update() {
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, d_empty));
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_finish(ctx, sig));
 
-        aws_string_destroy((struct aws_string *)pub_key);
-        aws_string_destroy((struct aws_string *)sig);
+        aws_string_destroy(pub_key);
+        aws_string_destroy(sig);
     }
 
     return 0;
@@ -292,7 +292,7 @@ static int t_partial_update() {
 
 static int t_serialize_privkey() {
     FOREACH_ALGORITHM(props) {
-        const struct aws_string *pub_key, *pub_key_2, *priv_key, *sig;
+        struct aws_string *pub_key, *pub_key_2, *priv_key, *sig;
         struct aws_cryptosdk_signctx *ctx;
 
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_start_keygen(&ctx, aws_default_allocator(), &pub_key, props));
@@ -306,10 +306,10 @@ static int t_serialize_privkey() {
 
         TEST_ASSERT_SUCCESS(check_signature(props, true, pub_key, sig, &test_cursor));
 
-        aws_string_destroy((struct aws_string *)pub_key);
-        aws_string_destroy((struct aws_string *)pub_key_2);
-        aws_string_destroy((struct aws_string *)sig);
-        aws_string_destroy_secure((struct aws_string *)priv_key);
+        aws_string_destroy(pub_key);
+        aws_string_destroy(pub_key_2);
+        aws_string_destroy(sig);
+        aws_string_destroy_secure(priv_key);
     }
 
     return 0;
@@ -317,7 +317,7 @@ static int t_serialize_privkey() {
 
 static int t_empty_signature() {
     FOREACH_ALGORITHM(props) {
-        const struct aws_string *pub_key, *sig;
+        struct aws_string *pub_key, *sig;
         struct aws_byte_cursor d_empty = aws_byte_cursor_from_array("", 0);
 
         struct aws_cryptosdk_signctx *ctx;
@@ -329,16 +329,16 @@ static int t_empty_signature() {
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, d_empty));
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_finish(ctx, sig));
 
-        aws_string_destroy((struct aws_string *)pub_key);
-        aws_string_destroy((struct aws_string *)sig);
+        aws_string_destroy(pub_key);
+        aws_string_destroy(sig);
     }
 
     return 0;
 }
 
 static int testVector(const char *algName, enum aws_cryptosdk_alg_id alg_id, const char *pubkey_s, const char *sig_s) {
-    const struct aws_string *pubkey = aws_string_new_from_c_str(aws_default_allocator(), pubkey_s);
-    const struct aws_string *sig = aws_string_new_from_c_str(aws_default_allocator(), sig_s);
+    struct aws_string *pubkey = aws_string_new_from_c_str(aws_default_allocator(), pubkey_s);
+    struct aws_string *sig = aws_string_new_from_c_str(aws_default_allocator(), sig_s);
 
     if (check_signature(
         aws_cryptosdk_alg_props(alg_id),
@@ -351,8 +351,8 @@ static int testVector(const char *algName, enum aws_cryptosdk_alg_id alg_id, con
         return 1;
     }
 
-    aws_string_destroy((struct aws_string *)pubkey);
-    aws_string_destroy((struct aws_string *)sig);
+    aws_string_destroy(pubkey);
+    aws_string_destroy(sig);
 
     return 0;
 }

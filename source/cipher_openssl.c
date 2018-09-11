@@ -165,7 +165,7 @@ rethrow:
     return NULL;
 }
 
-static int serialize_pubkey(struct aws_allocator *alloc, EC_KEY *keypair, const struct aws_string **pub_key) {
+static int serialize_pubkey(struct aws_allocator *alloc, EC_KEY *keypair, struct aws_string **pub_key) {
     unsigned char *buf = NULL;
     int length;
     size_t b64_len;
@@ -219,7 +219,7 @@ err:
 int aws_cryptosdk_sig_get_privkey(
     struct aws_cryptosdk_signctx *ctx,
     struct aws_allocator *alloc,
-    const struct aws_string **priv_key
+    struct aws_string **priv_key
 ) {
     unsigned char *buf = NULL;
     int length;
@@ -260,7 +260,7 @@ err:
 int aws_cryptosdk_sig_sign_start_keygen(
     struct aws_cryptosdk_signctx **pctx,
     struct aws_allocator *alloc,
-    const struct aws_string **pub_key,
+    struct aws_string **pub_key,
     const struct aws_cryptosdk_alg_properties *props
 ) {
     EC_GROUP *group = NULL;
@@ -333,7 +333,7 @@ void aws_cryptosdk_sig_abort(
 int aws_cryptosdk_sig_sign_start(
     struct aws_cryptosdk_signctx **ctx,
     struct aws_allocator *alloc,
-    const struct aws_string **pub_key,
+    struct aws_string **pub_key,
     const struct aws_cryptosdk_alg_properties *props,
     const struct aws_string *priv_key
 ) {
@@ -375,7 +375,7 @@ int aws_cryptosdk_sig_sign_start(
 
     *ctx = sign_start(alloc, keypair, props);
     if (!*ctx && pub_key) {
-        aws_string_destroy((struct aws_string *)*pub_key);
+        aws_string_destroy(*pub_key);
         *pub_key = NULL;
     }
 
@@ -535,7 +535,7 @@ int aws_cryptosdk_sig_verify_finish(
 int aws_cryptosdk_sig_sign_finish(
     struct aws_cryptosdk_signctx *ctx,
     struct aws_allocator *alloc,
-    const struct aws_string **signature
+    struct aws_string **signature
 ) {
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     /* This needs to be big enough for all digest algorithms in use */

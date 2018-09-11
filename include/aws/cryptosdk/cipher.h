@@ -57,7 +57,7 @@ struct aws_cryptosdk_signctx;
 int aws_cryptosdk_sig_get_privkey(
     struct aws_cryptosdk_signctx *ctx,
     struct aws_allocator *alloc,
-    const struct aws_string **priv_key_buf
+    struct aws_string **priv_key_buf
 );
 
 /**
@@ -74,7 +74,7 @@ int aws_cryptosdk_sig_get_privkey(
 int aws_cryptosdk_sig_sign_start_keygen(
     struct aws_cryptosdk_signctx **pctx,
     struct aws_allocator *alloc,
-    const struct aws_string **pub_key_buf,
+    struct aws_string **pub_key_buf,
     const struct aws_cryptosdk_alg_properties *props
 );
 
@@ -93,7 +93,7 @@ int aws_cryptosdk_sig_sign_start_keygen(
 int aws_cryptosdk_sig_sign_start(
     struct aws_cryptosdk_signctx **ctx,
     struct aws_allocator *alloc,
-    const struct aws_string **pub_key_buf,
+    struct aws_string **pub_key_buf,
     const struct aws_cryptosdk_alg_properties *props,
     const struct aws_string *priv_key
 );
@@ -149,7 +149,7 @@ int aws_cryptosdk_sig_verify_finish(
 int aws_cryptosdk_sig_sign_finish(
     struct aws_cryptosdk_signctx *ctx,
     struct aws_allocator *alloc,
-    const struct aws_string **signature
+    struct aws_string **signature
 );
 
 /**
