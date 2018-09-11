@@ -30,6 +30,21 @@
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/private/cipher.h>
 
+#include <stdio.h>
+#include <ctype.h>
+
+/* This is large enough to hold an encoded public key for all currently supported curves */
+#define MAX_PUBKEY_SIZE 64
+#define MAX_PUBKEY_SIZE_B64 (((MAX_PUBKEY_SIZE + 2) * 4) / 3)
+
+/* 
+ * This is larger than the sizes defined in cipher.c to account for certain versions of the Encryption SDK
+ * for other languages which generated signatures of nondeterministic size.
+ */
+
+#define MAX_SIGNATURE_SIZE 128
+#define MAX_SIGNATURE_SIZE_B64 (((MAX_SIGNATURE_SIZE + 2) * 4) / 3)
+
 // Compatibility hacks for openssl API changes between major versions
 #if OPENSSL_VERSION_NUMBER < 0x10100000
 #define OSSL_100
@@ -150,11 +165,12 @@ rethrow:
     return NULL;
 }
 
-static int serialize_pubkey(struct aws_allocator *alloc, EC_KEY *keypair, struct aws_byte_buf *pub_key) {
+static int serialize_pubkey(struct aws_allocator *alloc, EC_KEY *keypair, const struct aws_string **pub_key) {
     unsigned char *buf = NULL;
     int length;
     size_t b64_len;
-    struct aws_byte_buf binary;
+    struct aws_byte_buf binary, b64;
+    uint8_t tmp[MAX_PUBKEY_SIZE_B64];
 
     // TODO: We currently _only_ accept compressed points. Should we accept uncompressed points as well?
     EC_KEY_set_conv_form(keypair, POINT_CONVERSION_COMPRESSED);
@@ -166,32 +182,36 @@ static int serialize_pubkey(struct aws_allocator *alloc, EC_KEY *keypair, struct
     }
 
     binary = aws_byte_buf_from_array(buf, length);
+    b64 = aws_byte_buf_from_array(tmp, sizeof(tmp));
 
     if (aws_base64_compute_encoded_len(length, &b64_len)) {
         goto err;
     }
 
-    if (aws_byte_buf_init(alloc, pub_key, b64_len)) {
-        goto err;
-    }
-
-    if (aws_base64_encode(&binary, pub_key)) {
+    /* This performs an implicit bounds check on MAX_PUBKEY_SIZE */
+    if (aws_base64_encode(&binary, &b64)) {
         goto err;
     }
 
     // base64_encode adds a NUL terminator; strip it off
     // TODO: When aws-c-common removes the NUL terminator fix this
-    if (pub_key->len && pub_key->buffer[pub_key->len - 1] == 0) {
-        pub_key->len--;
+    if (b64.len && b64.buffer[b64.len - 1] == 0) {
+        b64.len--;
+    }
+
+    *pub_key = aws_string_new_from_array(alloc, b64.buffer, b64.len);
+    if (!*pub_key) {
+        goto err;
     }
 
     free(buf);
     return AWS_OP_SUCCESS;
 
 err:
-    // buf holds a public key, so we don't need to zeroize it.
+    // buf (and tmp) hold a public key, so we don't need to zeroize them.
     free(buf);
-    aws_byte_buf_secure_zero(pub_key);
+
+    *pub_key = NULL;
 
     return AWS_OP_ERR;
 }
@@ -199,14 +219,13 @@ err:
 int aws_cryptosdk_sig_get_privkey(
     struct aws_cryptosdk_signctx *ctx,
     struct aws_allocator *alloc,
-    struct aws_byte_buf *priv_key_buf
+    const struct aws_string **priv_key
 ) {
     unsigned char *buf = NULL;
     int length;
-    struct aws_byte_buf binary;
     int rv = AWS_OP_ERR;
 
-    memset(priv_key_buf, 0, sizeof(*priv_key_buf));
+    *priv_key = NULL;
 
     /* buf is allocated on the C heap */
     length = i2d_ECPrivateKey(ctx->keypair, &buf);
@@ -216,10 +235,12 @@ int aws_cryptosdk_sig_get_privkey(
     }
 
     // Since this is an internal-only value, we don't bother with base64-encoding.
-    // However, we do want to move it from the C allocator to the provided allocator
+    // However, we do want to move it from the C allocator to the provided allocator,
+    // and turn it into an aws_string for easier handling.
 
-    binary = aws_byte_buf_from_array(buf, length);
-    if (aws_byte_buf_init_copy(alloc, priv_key_buf, &binary)) {
+    *priv_key = aws_string_new_from_array(alloc, (const uint8_t *)buf, length);
+    if (!*priv_key) {
+        // OOM
         goto err;
     }
 
@@ -230,9 +251,8 @@ err:
         free(buf);
     }
 
-    if (rv != AWS_OP_SUCCESS) {
-        aws_byte_buf_clean_up_secure(priv_key_buf);
-    }
+    // There is no error path that results in a non-NULL priv_key, so we don't need to
+    // clean that up.
 
     return rv;
 }
@@ -240,14 +260,14 @@ err:
 int aws_cryptosdk_sig_sign_start_keygen(
     struct aws_cryptosdk_signctx **pctx,
     struct aws_allocator *alloc,
-    struct aws_byte_buf *pub_key_buf,
+    const struct aws_string **pub_key,
     const struct aws_cryptosdk_alg_properties *props
 ) {
     EC_GROUP *group = NULL;
     EC_KEY *keypair = NULL;
 
     *pctx = NULL;
-    memset(pub_key_buf, 0, sizeof(*pub_key_buf));
+    *pub_key = NULL;
 
     if (!props->impl->curve_name) {
         return AWS_OP_SUCCESS;
@@ -267,7 +287,7 @@ int aws_cryptosdk_sig_sign_start_keygen(
         goto err;
     }
 
-    if (serialize_pubkey(alloc, keypair, pub_key_buf)) {
+    if (serialize_pubkey(alloc, keypair, pub_key)) {
         goto rethrow;
     }
 
@@ -287,7 +307,9 @@ rethrow:
     aws_cryptosdk_sig_abort(*pctx);
     *pctx = NULL;
 
-    aws_byte_buf_secure_zero(pub_key_buf);
+    aws_string_destroy(pub_key);
+    *pub_key = NULL;
+
     EC_KEY_free(keypair);
     EC_GROUP_free(group);
 
@@ -311,24 +333,27 @@ void aws_cryptosdk_sig_abort(
 int aws_cryptosdk_sig_sign_start(
     struct aws_cryptosdk_signctx **ctx,
     struct aws_allocator *alloc,
-    struct aws_byte_buf *pub_key_buf,
+    const struct aws_string **pub_key,
     const struct aws_cryptosdk_alg_properties *props,
-    const struct aws_byte_buf *priv_key
+    const struct aws_string *priv_key
 ) {
     *ctx = NULL;
-    memset(pub_key_buf, 0, sizeof(*pub_key_buf));
+    if (pub_key) {
+        *pub_key = NULL;
+    }
 
     if (!props->impl->curve_name) {
         return AWS_OP_SUCCESS;
     }
 
     EC_KEY *keypair = NULL;
-    const unsigned char *bufp = priv_key->buffer;
+    const unsigned char *buf_start = (const unsigned char *)aws_string_bytes(priv_key);
+    const unsigned char *bufp = buf_start;
     if (!(keypair = d2i_ECPrivateKey(NULL, &bufp, priv_key->len))) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
-    if (bufp != priv_key->buffer + priv_key->len) {
+    if (bufp != buf_start + priv_key->len) {
         // Trailing garbage in the serialized private key
         // This should never happen, as this is an internal (trusted) datapath, but
         // check anyway
@@ -343,14 +368,15 @@ int aws_cryptosdk_sig_sign_start(
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
-    if (pub_key_buf && serialize_pubkey(alloc, keypair, pub_key_buf)) {
+    if (pub_key && serialize_pubkey(alloc, keypair, pub_key)) {
         EC_KEY_free(keypair);
         return AWS_OP_ERR;
     }
 
     *ctx = sign_start(alloc, keypair, props);
-    if (!*ctx) {
-        aws_byte_buf_secure_zero(pub_key_buf);
+    if (!*ctx && pub_key) {
+        aws_string_destroy((struct aws_string *)*pub_key);
+        *pub_key = NULL;
     }
 
     // EC_KEYs are reference counted
@@ -358,16 +384,16 @@ int aws_cryptosdk_sig_sign_start(
     return *ctx ? AWS_OP_SUCCESS : AWS_OP_ERR;
 }
 
-static int load_pubkey(EC_KEY **key, const struct aws_cryptosdk_alg_properties *props, const struct aws_byte_buf *pub_key) {
+static int load_pubkey(EC_KEY **key, const struct aws_cryptosdk_alg_properties *props, const struct aws_string *pub_key_s) {
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     EC_GROUP *group = NULL;
-    /* This buffer is large enough to hold compressed points for all currently supported curves */
-    uint8_t b64_decode_arr[64];
+    uint8_t b64_decode_arr[MAX_PUBKEY_SIZE];
     struct aws_byte_buf b64_decode_buf = aws_byte_buf_from_array(b64_decode_arr, sizeof(b64_decode_arr));
+    struct aws_byte_buf pub_key = aws_byte_buf_from_array(aws_string_bytes(pub_key_s), pub_key_s->len);
 
     *key = NULL;
 
-    if (aws_base64_decode(pub_key, &b64_decode_buf)) {
+    if (aws_base64_decode(&pub_key, &b64_decode_buf)) {
         /*
          * This'll happen if e.g. the public key is too large (aws_base64_decode checks the output buffer capacity),
          * or if it's just bad base64.
@@ -415,7 +441,7 @@ out:
 int aws_cryptosdk_sig_verify_start(
     struct aws_cryptosdk_signctx **pctx,
     struct aws_allocator *alloc,
-    const struct aws_byte_buf *pub_key,
+    const struct aws_string *pub_key,
     const struct aws_cryptosdk_alg_properties *props
 ) {
     EC_KEY *key = NULL;
@@ -477,9 +503,9 @@ rethrow:
 
 int aws_cryptosdk_sig_update(
     struct aws_cryptosdk_signctx *ctx,
-    const struct aws_byte_buf *buf
+    const struct aws_byte_cursor cursor
 ) {
-    if (EVP_DigestUpdate(ctx->ctx, buf->buffer, buf->len) != 1) {
+    if (EVP_DigestUpdate(ctx->ctx, cursor.ptr, cursor.len) != 1) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
@@ -488,10 +514,18 @@ int aws_cryptosdk_sig_update(
 
 int aws_cryptosdk_sig_verify_finish(
     struct aws_cryptosdk_signctx *ctx,
-    const struct aws_byte_buf *signature
+    const struct aws_string *signature
 ) {
+    uint8_t sig_decoded[MAX_SIGNATURE_SIZE];
+    struct aws_byte_buf decode_buf = aws_byte_buf_from_array(sig_decoded, sizeof(sig_decoded));
+    struct aws_byte_buf sig_buf = aws_byte_buf_from_array(aws_string_bytes(signature), signature->len);
+
+    if (aws_base64_decode(&sig_buf, &decode_buf)) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
+    }
+
     assert(!ctx->is_sign);
-    bool ok = EVP_DigestVerifyFinal(ctx->ctx, signature->buffer, signature->len) == 1;
+    bool ok = EVP_DigestVerifyFinal(ctx->ctx, decode_buf.buffer, decode_buf.len) == 1;
 
     aws_cryptosdk_sig_abort(ctx);
 
@@ -501,13 +535,17 @@ int aws_cryptosdk_sig_verify_finish(
 int aws_cryptosdk_sig_sign_finish(
     struct aws_cryptosdk_signctx *ctx,
     struct aws_allocator *alloc,
-    struct aws_byte_buf *signature
+    const struct aws_string **signature
 ) {
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     /* This needs to be big enough for all digest algorithms in use */
     uint8_t digestbuf[64];
+    uint8_t sig_b64[MAX_SIGNATURE_SIZE_B64];
+
     EVP_PKEY_CTX *sign_ctx = NULL;
     ECDSA_SIG *sig = NULL;
+    struct aws_byte_buf sigtmp = {0};
+    struct aws_byte_buf sigb64 = aws_byte_buf_from_array(sig_b64, sizeof(sig_b64));
 
     size_t digestlen, siglen;
     assert(ctx->is_sign);
@@ -560,17 +598,17 @@ int aws_cryptosdk_sig_sign_finish(
      * e.g. set the S3 content-length on a PutObject, or otherwise preallocate
      * the destination space.
      */
-    if (aws_byte_buf_init(alloc, signature, siglen)) {
+    if (aws_byte_buf_init(alloc, &sigtmp, siglen)) {
         goto rethrow;
     }
 
-    while (signature->len != ctx->props->signature_len) {
-        signature->len = signature->capacity;
-        if (1 != EVP_PKEY_sign(sign_ctx, signature->buffer, &signature->len, digestbuf, digestlen)) {
+    while (sigtmp.len != ctx->props->signature_len) {
+        sigtmp.len = sigtmp.capacity;
+        if (1 != EVP_PKEY_sign(sign_ctx, sigtmp.buffer, &sigtmp.len, digestbuf, digestlen)) {
             goto out;
         }
 
-        if (signature->len == ctx->props->signature_len) {
+        if (sigtmp.len == ctx->props->signature_len) {
             break;
         }
 
@@ -587,8 +625,8 @@ int aws_cryptosdk_sig_sign_finish(
          * get us to the desired size directly, or at least make it so the negation
          * trick works.
          */
-        const unsigned char *psig = signature->buffer;
-        if (d2i_ECDSA_SIG(&sig, &psig, signature->len)) {
+        const unsigned char *psig = sigtmp.buffer;
+        if (d2i_ECDSA_SIG(&sig, &psig, sigtmp.len)) {
             const BIGNUM *orig_r, *orig_s;
             ECDSA_SIG_get0(sig, (const BIGNUM **)&orig_r, (const BIGNUM **)&orig_s);
 
@@ -613,16 +651,31 @@ int aws_cryptosdk_sig_sign_finish(
              */
             ECDSA_SIG_set0(sig, r, s);
 
-            unsigned char *poutsig = signature->buffer;
+            unsigned char *poutsig = sigtmp.buffer;
             if (!i2d_ECDSA_SIG(sig, &poutsig)) {
                 goto out;
             }
 
-            signature->len = poutsig - signature->buffer;
+            sigtmp.len = poutsig - sigtmp.buffer;
         }
 
         ECDSA_SIG_free(sig);
         sig = NULL;
+    }
+
+    if (aws_base64_encode(&sigtmp, &sigb64)) {
+        /* This should never fail */
+        goto out;
+    }
+
+    /* aws-c-common currently appends a NUL to the base64 output, strip it off */
+    if (sigb64.len && sigb64.buffer[sigb64.len - 1] == 0) {
+        sigb64.len--;
+    }
+
+    *signature = aws_string_new_from_array(alloc, sigb64.buffer, sigb64.len);
+    if (!*signature) {
+        goto rethrow;
     }
 
     result = AWS_OP_SUCCESS;
@@ -635,7 +688,13 @@ rethrow:
     EVP_PKEY_CTX_free(sign_ctx);
     aws_cryptosdk_sig_abort(ctx);
     aws_secure_zero(digestbuf, sizeof(digestbuf));
+    aws_byte_buf_clean_up(&sigtmp);
     ECDSA_SIG_free(sig);
+
+    if (result) {
+        // We shouldn't have actually allocated signature, so just make sure it's NULL on an error path
+        *signature = NULL;
+    }
 
     return result ? AWS_OP_ERR : AWS_OP_SUCCESS;
 }

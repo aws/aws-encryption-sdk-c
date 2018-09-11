@@ -19,9 +19,19 @@
 #include "testing.h"
 #include "testutil.h"
 
+#include <aws/common/encoding.h>
+
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/private/cipher.h>
+
+static struct aws_byte_cursor cursor_from_c_string(const char *str) {
+    struct aws_byte_buf buf = aws_byte_buf_from_c_str(str);
+    return aws_byte_cursor_from_buf(&buf);
+}
+
+static const char test_data[] = "Hello, world!";
+static const struct aws_byte_cursor test_cursor = { .ptr = (uint8_t *)test_data, .len = sizeof(test_data) - 1 };
 
 static const enum aws_cryptosdk_alg_id SIG_ALGORITHMS[] = {
     AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
@@ -38,9 +48,9 @@ static const enum aws_cryptosdk_alg_id SIG_ALGORITHMS[] = {
 
 static int sign_message(
     const struct aws_cryptosdk_alg_properties *props,
-    struct aws_byte_buf *pubkey,
-    struct aws_byte_buf *sig,
-    const struct aws_byte_buf *data
+    const struct aws_string **pubkey,
+    const struct aws_string **sig,
+    const struct aws_byte_cursor *data
 ) {
     struct aws_cryptosdk_signctx *ctx;
 
@@ -51,7 +61,7 @@ static int sign_message(
     TEST_ASSERT_ADDR_NOT_NULL(ctx);
 
     TEST_ASSERT_SUCCESS(
-        aws_cryptosdk_sig_update(ctx, data)
+        aws_cryptosdk_sig_update(ctx, *data)
     );
 
     TEST_ASSERT_SUCCESS(
@@ -64,9 +74,9 @@ static int sign_message(
 static int check_signature(
     const struct aws_cryptosdk_alg_properties *props,
     bool expect_valid,
-    struct aws_byte_buf *pubkey,
-    struct aws_byte_buf *sig,
-    const struct aws_byte_buf *data
+    const struct aws_string *pubkey,
+    const struct aws_string *sig,
+    const struct aws_byte_cursor *data
 ) {
     struct aws_cryptosdk_signctx *ctx;
 
@@ -83,7 +93,7 @@ static int check_signature(
         }
     }
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, data));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, *data));
 
     if (expect_valid) {
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_finish(ctx, sig));
@@ -98,14 +108,13 @@ static int check_signature(
 
 static int t_basic_signature_sign_verify() {
     FOREACH_ALGORITHM(props) {
-        struct aws_byte_buf pub_key_buf, sig_buf;
-        struct aws_byte_buf data = aws_byte_buf_from_c_str("Hello, world!");
+        const struct aws_string *pub_key, *sig;
 
-        TEST_ASSERT_SUCCESS(sign_message(props, &pub_key_buf, &sig_buf, &data));
-        TEST_ASSERT_SUCCESS(check_signature(props, true, &pub_key_buf, &sig_buf, &data));
+        TEST_ASSERT_SUCCESS(sign_message(props, &pub_key, &sig, &test_cursor));
+        TEST_ASSERT_SUCCESS(check_signature(props, true, pub_key, sig, &test_cursor));
 
-        aws_byte_buf_clean_up(&pub_key_buf);
-        aws_byte_buf_clean_up(&sig_buf);
+        aws_string_destroy((struct aws_string *)pub_key);
+        aws_string_destroy((struct aws_string *)sig);
     }
 
     return 0;
@@ -114,20 +123,21 @@ static int t_basic_signature_sign_verify() {
 static int t_signature_length() {
     FOREACH_ALGORITHM(props) {
         size_t len = props->signature_len;
-        struct aws_byte_buf pub_key_buf, sig_buf;
-        struct aws_byte_buf data = aws_byte_buf_from_c_str("Hello, world!");
+        const struct aws_string *pub_key, *sig;
 
         /*
          * Normally, EC signatures have slightly non-deterministic length in DER encoding, make sure that
          * we've successfully made them deterministic
          */
         for (int i = 0; i < 256; i++) {
-            TEST_ASSERT_SUCCESS(sign_message(props, &pub_key_buf, &sig_buf, &data));
-            TEST_ASSERT_INT_EQ(sig_buf.len, len);
-            TEST_ASSERT_SUCCESS(check_signature(props, true, &pub_key_buf, &sig_buf, &data));
+            size_t decoded_len;
+            TEST_ASSERT_SUCCESS(sign_message(props, &pub_key, &sig, &test_cursor));
+            TEST_ASSERT_SUCCESS(aws_base64_compute_decoded_len((const char *)aws_string_bytes(sig), sig->len, &decoded_len));
+            TEST_ASSERT_INT_EQ(decoded_len, len);
+            TEST_ASSERT_SUCCESS(check_signature(props, true, pub_key, sig, &test_cursor));
 
-            aws_byte_buf_clean_up(&pub_key_buf);
-            aws_byte_buf_clean_up(&sig_buf);
+            aws_string_destroy((struct aws_string *)pub_key);
+            aws_string_destroy((struct aws_string *)sig);
         }
     }
 
@@ -136,26 +146,30 @@ static int t_signature_length() {
 
 static int t_bad_signatures() {
     FOREACH_ALGORITHM(props) {
-        struct aws_byte_buf pub_key_buf, sig_buf;
-        struct aws_byte_buf data = aws_byte_buf_from_c_str("Hello, world!");
+        const struct aws_string *pub_key, *sig;
 
-        TEST_ASSERT_SUCCESS(sign_message(props, &pub_key_buf, &sig_buf, &data));
+        TEST_ASSERT_SUCCESS(sign_message(props, &pub_key, &sig, &test_cursor));
+        uint8_t *buffer = (uint8_t *)aws_string_bytes(sig);
 
-        for (size_t i = 0; i < sig_buf.len * 8; i++) {
-            sig_buf.buffer[i/8] ^= (1 << (i % 8));
-            if (check_signature(props, false, &pub_key_buf, &sig_buf, &data)) {
-                sig_buf.buffer[i/8] ^= (1 << (i % 8));
+        for (size_t i = 0; i < sig->len * 8; i++) {
+            if (i < (sig->len - 1) * 8 && buffer[i/8 + 1] == '=') {
+                /* The last few bits before the "=" padding don't affect the base64-decoded signature. */
+                break;
+            }
+            buffer[i/8] ^= (1 << (i % 8));
+            if (check_signature(props, false, pub_key, sig, &test_cursor)) {
+                buffer[i/8] ^= (1 << (i % 8));
                 fprintf(stderr, "Unexpected success for cipher suite %s at corrupted bit index %zu (byte 0x%04zx mask %02x)\n",
                     props->alg_name, i, i / 8, 1 << (1 % 8)
                 );
-                hexdump(stderr, sig_buf.buffer, sig_buf.len);
+                hexdump(stderr, buffer, sig->len);
                 return 1;
             }
-            sig_buf.buffer[i/8] ^= (1 << (i % 8));
+            buffer[i/8] ^= (1 << (i % 8));
         }
 
-        aws_byte_buf_clean_up(&pub_key_buf);
-        aws_byte_buf_clean_up(&sig_buf);
+        aws_string_destroy((struct aws_string *)pub_key);
+        aws_string_destroy((struct aws_string *)sig);
     }
 
     return 0;
@@ -163,18 +177,17 @@ static int t_bad_signatures() {
 
 static int t_key_mismatch() {
     FOREACH_ALGORITHM(props) {
-        struct aws_byte_buf pub_key_1, pub_key_2, sig_buf;
-        struct aws_byte_buf data = aws_byte_buf_from_c_str("Hello, world!");
+        const struct aws_string *pub_key_1, *pub_key_2, *sig;
 
-        TEST_ASSERT_SUCCESS(sign_message(props, &pub_key_1, &sig_buf, &data));
-        aws_byte_buf_clean_up(&sig_buf);
+        TEST_ASSERT_SUCCESS(sign_message(props, &pub_key_1, &sig, &test_cursor));
+        aws_string_destroy((struct aws_string *)sig);
 
-        TEST_ASSERT_SUCCESS(sign_message(props, &pub_key_2, &sig_buf, &data));
-        TEST_ASSERT_SUCCESS(check_signature(props, false, &pub_key_1, &sig_buf, &data));
+        TEST_ASSERT_SUCCESS(sign_message(props, &pub_key_2, &sig, &test_cursor));
+        TEST_ASSERT_SUCCESS(check_signature(props, false, pub_key_1, sig, &test_cursor));
 
-        aws_byte_buf_clean_up(&pub_key_1);
-        aws_byte_buf_clean_up(&pub_key_2);
-        aws_byte_buf_clean_up(&sig_buf);
+        aws_string_destroy((struct aws_string *)pub_key_1);
+        aws_string_destroy((struct aws_string *)pub_key_2);
+        aws_string_destroy((struct aws_string *)sig);
     }
 
     return 0;
@@ -182,43 +195,49 @@ static int t_key_mismatch() {
 
 static int t_corrupt_key() {
     FOREACH_ALGORITHM(props) {
-        struct aws_byte_buf pub_key_buf, sig_buf;
-        struct aws_byte_buf data = aws_byte_buf_from_c_str("Hello, world!");
+        const struct aws_string *pub_key, *sig;
 
-        TEST_ASSERT_SUCCESS(sign_message(props, &pub_key_buf, &sig_buf, &data));
+        TEST_ASSERT_SUCCESS(sign_message(props, &pub_key, &sig, &test_cursor));
 
-        for (size_t i = 0; i < pub_key_buf.len * 8; i++) {
+        uint8_t *buffer = (uint8_t *)aws_string_bytes(pub_key);
+
+        for (size_t i = 0; i < pub_key->len * 8; i++) {
             /* The base64 decoding logic ignores nonzero padding bits, so skip the last byte before an = */
-            if (i < (pub_key_buf.len - 1) * 8 && pub_key_buf.buffer[i / 8 + 1] == '=') {
+            if (i < (pub_key->len - 1) * 8 && buffer[i / 8 + 1] == '=') {
                 continue;
             }
 
-            pub_key_buf.buffer[i / 8] ^= 1 << (i % 8);
+            buffer[i / 8] ^= 1 << (i % 8);
 
-            if (check_signature(props, false, &pub_key_buf, &sig_buf, &data)) {
-                pub_key_buf.buffer[i / 8] ^= 1 << (i % 8);
+            if (check_signature(props, false, pub_key, sig, &test_cursor)) {
+                buffer[i / 8] ^= 1 << (i % 8);
                 fprintf(stderr, "Unexpected success for cipher suite %s at corrupted key bit index %zu (byte 0x%04zx mask %02x)\n",
                     props->alg_name, i, i/8, 1 << (i % 8)
                 );
 
+                buffer[i / 8] ^= 1 << (i % 8);
+                check_signature(props, false, pub_key, sig, &test_cursor);
+                buffer[i / 8] ^= 1 << (i % 8);
+                check_signature(props, true, pub_key, sig, &test_cursor);
+
                 fprintf(stderr, "Key:\n");
-                hexdump(stderr, pub_key_buf.buffer, pub_key_buf.len);
+                hexdump(stderr, aws_string_bytes(pub_key), pub_key->len);
 
                 fprintf(stderr, "Corrupt key:\n");
-                pub_key_buf.buffer[i / 8] ^= 1 << (i % 8);
-                hexdump(stderr, pub_key_buf.buffer, pub_key_buf.len);
+                buffer[i / 8] ^= 1 << (i % 8);
+                hexdump(stderr, aws_string_bytes(pub_key), pub_key->len);
 
                 fprintf(stderr, "Signature:\n");
-                hexdump(stderr, sig_buf.buffer, sig_buf.len);
+                hexdump(stderr, aws_string_bytes(sig), sig->len);
 
                 return 1;
             }
 
-            pub_key_buf.buffer[i / 8] ^= 1 << (i % 8);
+            buffer[i / 8] ^= 1 << (i % 8);
         }
 
-        aws_byte_buf_clean_up(&pub_key_buf);
-        aws_byte_buf_clean_up(&sig_buf);
+        aws_string_destroy((struct aws_string *)pub_key);
+        aws_string_destroy((struct aws_string *)sig);
     }
 
     return 0;
@@ -226,15 +245,15 @@ static int t_corrupt_key() {
 
 static int t_wrong_data() {
     FOREACH_ALGORITHM(props) {
-        struct aws_byte_buf pub_key_buf, sig_buf;
-        struct aws_byte_buf data = aws_byte_buf_from_c_str("Hello, world!");
+        const struct aws_string *pub_key, *sig;
         struct aws_byte_buf bad_data = aws_byte_buf_from_c_str("Hello, world?");
+        struct aws_byte_cursor bad_cursor = aws_byte_cursor_from_buf(&bad_data);
 
-        TEST_ASSERT_SUCCESS(sign_message(props, &pub_key_buf, &sig_buf, &data));
-        TEST_ASSERT_SUCCESS(check_signature(props, false, &pub_key_buf, &sig_buf, &bad_data));
+        TEST_ASSERT_SUCCESS(sign_message(props, &pub_key, &sig, &test_cursor));
+        TEST_ASSERT_SUCCESS(check_signature(props, false, pub_key, sig, &bad_cursor));
 
-        aws_byte_buf_clean_up(&pub_key_buf);
-        aws_byte_buf_clean_up(&sig_buf);
+        aws_string_destroy((struct aws_string *)pub_key);
+        aws_string_destroy((struct aws_string *)sig);
     }
 
     return 0;
@@ -242,30 +261,30 @@ static int t_wrong_data() {
 
 static int t_partial_update() {
     FOREACH_ALGORITHM(props) {
-        struct aws_byte_buf pub_key_buf, sig_buf;
-        struct aws_byte_buf d_empty = aws_byte_buf_from_c_str("");
-        struct aws_byte_buf d_1_1 = aws_byte_buf_from_c_str("Hello,");
-        struct aws_byte_buf d_1_2 = aws_byte_buf_from_c_str(" world!");
-        struct aws_byte_buf d_2_1 = aws_byte_buf_from_c_str("Hello, world");
-        struct aws_byte_buf d_2_2 = aws_byte_buf_from_c_str("!");
+        const struct aws_string *pub_key, *sig;
+        struct aws_byte_cursor d_empty = cursor_from_c_string("");
+        struct aws_byte_cursor d_1_1 = cursor_from_c_string("Hello,");
+        struct aws_byte_cursor d_1_2 = cursor_from_c_string(" world!");
+        struct aws_byte_cursor d_2_1 = cursor_from_c_string("Hello, world");
+        struct aws_byte_cursor d_2_2 = cursor_from_c_string("!");
 
         struct aws_cryptosdk_signctx *ctx;
 
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_start_keygen(&ctx, aws_default_allocator(), &pub_key_buf, props));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, &d_1_1));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, &d_empty));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, &d_1_2));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_finish(ctx, aws_default_allocator(), &sig_buf));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_start_keygen(&ctx, aws_default_allocator(), &pub_key, props));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, d_1_1));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, d_empty));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, d_1_2));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_finish(ctx, aws_default_allocator(), &sig));
 
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_start(&ctx, aws_default_allocator(), &pub_key_buf, props));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, &d_empty));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, &d_2_1));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, &d_2_2));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, &d_empty));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_finish(ctx, &sig_buf));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_start(&ctx, aws_default_allocator(), pub_key, props));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, d_empty));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, d_2_1));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, d_2_2));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, d_empty));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_finish(ctx, sig));
 
-        aws_byte_buf_clean_up(&pub_key_buf);
-        aws_byte_buf_clean_up(&sig_buf);
+        aws_string_destroy((struct aws_string *)pub_key);
+        aws_string_destroy((struct aws_string *)sig);
     }
 
     return 0;
@@ -273,25 +292,24 @@ static int t_partial_update() {
 
 static int t_serialize_privkey() {
     FOREACH_ALGORITHM(props) {
-        struct aws_byte_buf pub_key_buf, pub_key_buf_2, priv_key_buf, sig_buf;
+        const struct aws_string *pub_key, *pub_key_2, *priv_key, *sig;
         struct aws_cryptosdk_signctx *ctx;
-        struct aws_byte_buf data = aws_byte_buf_from_c_str("Hello, world!");
 
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_start_keygen(&ctx, aws_default_allocator(), &pub_key_buf, props));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_get_privkey(ctx, aws_default_allocator(), &priv_key_buf));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_start_keygen(&ctx, aws_default_allocator(), &pub_key, props));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_get_privkey(ctx, aws_default_allocator(), &priv_key));
         aws_cryptosdk_sig_abort(ctx);
 
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_start(&ctx, aws_default_allocator(), &pub_key_buf_2, props, &priv_key_buf));
-        TEST_ASSERT(aws_byte_buf_eq(&pub_key_buf, &pub_key_buf_2));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, &data));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_finish(ctx, aws_default_allocator(), &sig_buf));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_start(&ctx, aws_default_allocator(), &pub_key_2, props, priv_key));
+        TEST_ASSERT(aws_string_compare(pub_key, pub_key_2) == 0);
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, test_cursor));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_finish(ctx, aws_default_allocator(), &sig));
 
-        TEST_ASSERT_SUCCESS(check_signature(props, true, &pub_key_buf, &sig_buf, &data));
+        TEST_ASSERT_SUCCESS(check_signature(props, true, pub_key, sig, &test_cursor));
 
-        aws_byte_buf_clean_up(&pub_key_buf);
-        aws_byte_buf_clean_up(&pub_key_buf_2);
-        aws_byte_buf_clean_up_secure(&priv_key_buf);
-        aws_byte_buf_clean_up(&sig_buf);
+        aws_string_destroy((struct aws_string *)pub_key);
+        aws_string_destroy((struct aws_string *)pub_key_2);
+        aws_string_destroy((struct aws_string *)sig);
+        aws_string_destroy_secure((struct aws_string *)priv_key);
     }
 
     return 0;
@@ -299,37 +317,42 @@ static int t_serialize_privkey() {
 
 static int t_empty_signature() {
     FOREACH_ALGORITHM(props) {
-        struct aws_byte_buf pub_key_buf, sig_buf;
-        struct aws_byte_buf d_empty = aws_byte_buf_from_c_str("");
+        const struct aws_string *pub_key, *sig;
+        struct aws_byte_cursor d_empty = aws_byte_cursor_from_array("", 0);
 
         struct aws_cryptosdk_signctx *ctx;
 
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_start_keygen(&ctx, aws_default_allocator(), &pub_key_buf, props));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_finish(ctx, aws_default_allocator(), &sig_buf));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_start_keygen(&ctx, aws_default_allocator(), &pub_key, props));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_finish(ctx, aws_default_allocator(), &sig));
 
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_start(&ctx, aws_default_allocator(), &pub_key_buf, props));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, &d_empty));
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_finish(ctx, &sig_buf));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_start(&ctx, aws_default_allocator(), pub_key, props));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, d_empty));
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_finish(ctx, sig));
 
-        aws_byte_buf_clean_up(&pub_key_buf);
-        aws_byte_buf_clean_up(&sig_buf);
+        aws_string_destroy((struct aws_string *)pub_key);
+        aws_string_destroy((struct aws_string *)sig);
     }
 
     return 0;
 }
 
-static int testVector(const char *algName, enum aws_cryptosdk_alg_id alg_id, const char *pubkey, const char *sig) {
-    struct aws_byte_buf tbs = aws_byte_buf_from_c_str("Hello, world!");
-    struct aws_byte_buf pubkey_buf = aws_byte_buf_from_c_str(pubkey);
-    struct aws_byte_buf sig_buf = aws_byte_buf_from_c_str(sig);
+static int testVector(const char *algName, enum aws_cryptosdk_alg_id alg_id, const char *pubkey_s, const char *sig_s) {
+    const struct aws_string *pubkey = aws_string_new_from_c_str(aws_default_allocator(), pubkey_s);
+    const struct aws_string *sig = aws_string_new_from_c_str(aws_default_allocator(), sig_s);
 
-    TEST_ASSERT_SUCCESS(check_signature(
+    if (check_signature(
         aws_cryptosdk_alg_props(alg_id),
         true,
-        &pubkey_buf,
-        &sig_buf,
-        &tbs
-    ));
+        pubkey, 
+        sig,
+        &test_cursor
+    )) {
+        fprintf(stderr, "\nSignature check failed for test vector %s\n", algName);
+        return 1;
+    }
+
+    aws_string_destroy((struct aws_string *)pubkey);
+    aws_string_destroy((struct aws_string *)sig);
 
     return 0;
 }
@@ -358,14 +381,13 @@ static int t_test_vectors() {
 }
 
 static int t_trailing_garbage() {
-    struct aws_byte_buf tbs = aws_byte_buf_from_c_str("Hello, world!");
     // There is an extra 0 byte appended to this public key (prior to base64 encoding)
-    struct aws_byte_buf pubkey_buf = aws_byte_buf_from_c_str("A7dANHB8VOVfkdxBqZhXmD5xnRCbN8+tYjmq7L4MMa0yAA==");
-    struct aws_byte_buf sig_buf = aws_byte_buf_from_c_str("MEYCIQDIRrHUpsJDWsguDyT/CY0+IGL7f0W8LdGz2kqXvgfSJwIhAKoy0JFwexw2aqRaI4+TSrC+CKBGHEgSvP/vcQaQDyDR");
+    AWS_STATIC_STRING_FROM_LITERAL(pubkey, "A7dANHB8VOVfkdxBqZhXmD5xnRCbN8+tYjmq7L4MMa0yAA==");
+    AWS_STATIC_STRING_FROM_LITERAL(sig, "MEYCIQDIRrHUpsJDWsguDyT/CY0+IGL7f0W8LdGz2kqXvgfSJwIhAKoy0JFwexw2aqRaI4+TSrC+CKBGHEgSvP/vcQaQDyDR");
 
     TEST_ASSERT_SUCCESS(check_signature(
         aws_cryptosdk_alg_props(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256),
-        false, &pubkey_buf, &sig_buf, &tbs
+        false, pubkey, sig, &test_cursor
     ));
 
     return 0;
