@@ -65,7 +65,7 @@ static void ECDSA_SIG_set0(ECDSA_SIG *sig, BIGNUM *r, BIGNUM *s) {
     if (sig->s) BN_free(sig->s);
 
     sig->r = r;
-    sig->s = r;
+    sig->s = s;
 }
 
 #endif
@@ -601,6 +601,8 @@ int aws_cryptosdk_sig_sign_finish(
     if (aws_byte_buf_init(alloc, &sigtmp, siglen)) {
         goto rethrow;
     }
+
+    sigtmp.len = 0;
 
     while (sigtmp.len != ctx->props->signature_len) {
         sigtmp.len = sigtmp.capacity;
