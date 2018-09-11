@@ -58,9 +58,9 @@ static int transfer_edk_list(struct aws_array_list *dest, struct aws_array_list 
 }
 
 static int multi_keyring_generate_or_encrypt_data_key(struct aws_cryptosdk_keyring *multi,
-                                                      struct aws_byte_buf * unencrypted_data_key,
-                                                      struct aws_array_list * edks,
-                                                      const struct aws_hash_table * enc_context,
+                                                      struct aws_byte_buf *unencrypted_data_key,
+                                                      struct aws_array_list *edks,
+                                                      const struct aws_hash_table *enc_context,
                                                       enum aws_cryptosdk_alg_id alg) {
     struct multi_keyring *self = (struct multi_keyring *)multi;
 
