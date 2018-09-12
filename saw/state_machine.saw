@@ -17,7 +17,7 @@ import "proofs.cry";
 
 let runProof string_to_print property_to_check = do { 
     print string_to_print; 
-    sat_print yices property_to_check;
+    sat_print z3 property_to_check;
     print "\n";
     };
 
