@@ -560,7 +560,7 @@ decrypt_err:
 int aws_cryptosdk_rsa_decrypt(
     struct aws_byte_buf *plain,
     const struct aws_byte_cursor cipher,
-    const struct aws_string *rsa_private_key,
+    const struct aws_string *rsa_private_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
     if (!plain->buffer) return aws_raise_error(AWS_ERROR_INVALID_BUFFER_SIZE);
     int padding = -1;
@@ -575,7 +575,7 @@ int aws_cryptosdk_rsa_decrypt(
     int err_code = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     EVP_PKEY *pkey = EVP_PKEY_new();
     if (!pkey) goto err;
-    bio = BIO_new_mem_buf(aws_string_bytes(rsa_private_key), -1);
+    bio = BIO_new_mem_buf(aws_string_bytes(rsa_private_key_pem), -1);
     if (!bio) goto err;
     pkey = PEM_read_bio_PrivateKey(bio, &pkey, NULL, NULL);
     if (!pkey) goto err;

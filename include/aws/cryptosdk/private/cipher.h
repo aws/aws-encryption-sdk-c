@@ -168,9 +168,9 @@ int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
  *
  * Assumes plain is an already allocated byte buffer. Does NOT assume that length of plain
  * buffer is already set, and will set it to the length of plain on a successful decrypt.
- * Here, 'plain' refers to the unencrypted AES data key obtained as a result of the RSA decryption,
- * 'rsa_private_key' is a string that stores the RSA private key in PEM format and
- * 'cipher' is the encrypted data key.
+ * Here, 'plain' refers to the unencrypted AES data key obtained as a result of the RSA 
+ * decryption, 'rsa_private_key_pem' is a string that contains the RSA private key in PEM 
+ * format and 'cipher' is the encrypted AES data key.
  *
  * Returns AWS_OP_SUCCESS on a successful decrypt. On failure, returns AWS_OP_ERR and sets
  * one of the following error codes:
@@ -186,7 +186,7 @@ int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
 int aws_cryptosdk_rsa_decrypt(
     struct aws_byte_buf *plain,
     const struct aws_byte_cursor cipher,
-    const struct aws_string *rsa_private_key,
+    const struct aws_string *rsa_private_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);
 
 #endif // AWS_CRYPTOSDK_PRIVATE_CIPHER_H
