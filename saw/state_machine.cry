@@ -71,7 +71,7 @@ property isProgressMadeProperty x = ( isStateChanged (processState x) x == True 
 
 
 //Function to generate new input/output buffers based on the input and output size estimates 
-getNewBufferSize : SIZE_T_BITS -> SIZE_T_BITS -> SIZE_T_BITS
+getNewBufferSize : size_bits_t -> size_bits_t -> size_bits_t
 getNewBufferSize old_size estimate_size = 
     if estimate_size > old_size then estimate_size
     else old_size

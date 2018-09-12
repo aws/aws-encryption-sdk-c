@@ -31,8 +31,8 @@ arePreconditionsMet state =
     if state.sess.data_so_far > state.sess.precise_size then False //SANITY CHECK
     else if state.sess.frame_size >= MAX_FRAME_SIZE then False             //SANITY CHECK
     else if state.sess.state >=ST_DONE then False                          //SANITY CHECK
-    else if state.sess.alg_prop.iv_len != 96 then False                    //ACCORDING TO DOC
-    else if state.sess.alg_prop.tag_len != 128 then False                  //ACCORDING TO DOC
+    else if state.sess.alg_prop.iv_len != ( 96 * 8 ) then False                    //ACCORDING TO DOC
+    else if state.sess.alg_prop.tag_len != ( 128 * 8 ) then False                  //ACCORDING TO DOC
     else True 
 
 

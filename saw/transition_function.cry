@@ -65,7 +65,7 @@ tryWriteHeaderModel state_old =
 
 // Failure case : input size estimate is increased by 128 
 //                if this increase results in overflow: set to size_t - 1 
-getHeaderSize : state_t -> SIZE_T_BITS
+getHeaderSize : state_t -> size_bits_t
 getHeaderSize state_old = 
     if ( state_old.sess.header.aad_len_total > 0 ) then 
         ( HEADER_FIELD_OVERHEAD_WITH_AAD + MESSAGE_ID_LEN 
@@ -73,7 +73,7 @@ getHeaderSize state_old =
     else ( HEADER_FIELD_OVERHEAD + MESSAGE_ID_LEN 
             + state_old.sess.header.aad_len_total + state_old.sess.header.edk_len_total )
 
-updateInputBuffer : state_t -> SIZE_T_BITS
+updateInputBuffer : state_t -> size_bits_t
 updateInputBuffer state_old = 
     if ( state_old.sess.input_size_estimate < state_old.input_buffer.len ) then 
         if ( (state_old.input_buffer.len + DEFAULT_SIZE_INCREMENT) < state_old.input_buffer.len ) then 
@@ -127,7 +127,7 @@ tryParseHeaderModel state_old =
 
 // Failure case : (if unframed and precise size unknown) : input size estimate is 0
 //                                                      output size estimate is 0
-encryptHelper : state_t -> SIZE_T_BITS -> SIZE_T_BITS -> STATE_SIZE -> state_t 
+encryptHelper : state_t -> size_bits_t -> size_bits_t -> state_size_t -> state_t 
 encryptHelper state_old size_in size_out new_state = 
     if ( state_old.input_buffer.len < size_in ) || ( state_old.output_buffer.len < size_out ) then 
         { 
@@ -186,7 +186,7 @@ tryEncryptBodyModel state_old =
         
 
 // Partial Cryptol translation of function try_decrypt_body in session_decrypt.c (line 193 - 252)
-decryptHelper : state_t -> SIZE_T_BITS -> SIZE_T_BITS -> STATE_SIZE -> state_t
+decryptHelper : state_t -> size_bits_t -> size_bits_t -> state_size_t -> state_t
 decryptHelper state_old size_in size_out new_state = 
     if ( state_old.input_buffer.len < size_in ) || ( state_old.output_buffer.len < size_out ) then 
         { 

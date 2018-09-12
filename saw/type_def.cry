@@ -20,52 +20,54 @@ module type_def where
 // Compound type that stores all the variables that determine if the loop in the aws_cryptosdk_session_process 
 // function of session.c has made progress (line 242)
 type state_t = {
-                    sess : session_t_c, 
-                    output_buffer : aws_byte_cursor_t_c, 
-                    input_buffer : aws_byte_cursor_t_c
+                    sess : session_c_t, 
+                    output_buffer : aws_byte_cursor_c_t, 
+                    input_buffer : aws_byte_cursor_c_t
                     }
 
 
 // See <aws/cryptosdk/private/session.h>: 50 - 82 
 // NOTE: Incomplete implementation - only has the fields necessary for current proofs. 
-type session_t_c = {
-    output_size_estimate : SIZE_T_BITS, 
-    input_size_estimate : SIZE_T_BITS,
-    header_size : SIZE_T_BITS,
-    state : STATE_SIZE,
+type session_c_t = {
+    output_size_estimate : size_bits_t, 
+    input_size_estimate : size_bits_t,
+    header_size : size_bits_t,
+    state : state_size_t,
     mode : [1], //boolean flag: encrypt (0) or decrypt (1) 
-    precise_size : [64],
-    data_so_far : [64],
-    frame_size : [64], // if frame size is zero, the message is unframed
+    precise_size : [64 * 8],
+    data_so_far : [64 * 8],
+    frame_size : [64 * 8], // if frame size is zero, the message is unframed
     precise_size_known : [1],
-    alg_prop : alg_properties_t_c,
-    header : hdr_t_c
+    alg_prop : alg_properties_c_t,
+    header : hdr_c_t
     }
 
 // See <aws/common/byte_buf.h>: 43 - 46 
-type aws_byte_cursor_t_c = {
-    ptr : SIZE_T_BITS, //TODO: actual size in the c code is [8]. Figure out casting
-    len : SIZE_T_BITS
+type aws_byte_cursor_c_t = {
+    ptr : size_bits_t, //TODO: actual size in the c code is [8]. Figure out casting
+    len : size_bits_t
     }
 
 // <aws/cryptosdk/cipher.h>> : 28 - 41
 // NOTE: Incomplete implementation - only has the fields necessary for current proofs. 
-type alg_properties_t_c = {
-    iv_len : SIZE_T_BITS,
-    tag_len : SIZE_T_BITS
+type alg_properties_c_t = {
+    iv_len : size_bits_t,
+    tag_len : size_bits_t
 }
 
 // <aws/cryptosdk/private/header.h>: 32 - 49
 // Over-simplified. 
 // Multiple fields missing or concatenated. 
-type hdr_t_c = {
-    aad_len_total : SIZE_T_BITS, // Length of the total amount of aad : sum of the key and value across all aad. 
-    edk_len_total : SIZE_T_BITS  // Length of the total edk : sum of provider_id, provider_info and enc_data_key for   
+type hdr_c_t = {
+    aad_len_total : size_bits_t, // Length of the total amount of aad : sum of the key and value across all aad. 
+    edk_len_total : size_bits_t  // Length of the total edk : sum of provider_id, provider_info and enc_data_key for   
                                     // all edk
 }
 
+BYTE_TO_BIT_CONVERSION = 8 
+
 // <aws/cryptosdk/private/header.h>: 16
-MESSAGE_ID_LEN = 16 
+MESSAGE_ID_LEN = 16 * BYTE_TO_BIT_CONVERSION
 
 // enum of states in the session.c state machine 
 // See <aws/cryptosdk/private/session.h>: 26 - 48 
@@ -92,14 +94,14 @@ ST_ERROR = 10
 
 
 // <aws/cryptosdk/private/session.h>: 23- 24
-DEFAULT_FRAME_SIZE = 256 * 1024
-MAX_FRAME_SIZE = 4294967295
+DEFAULT_FRAME_SIZE = 256 * 1024 * BYTE_TO_BIT_CONVERSION
+MAX_FRAME_SIZE = 4294967295 * BYTE_TO_BIT_CONVERSION 
 
-type SIZE_T_BITS = [64]
-type STATE_SIZE = [32]
+type size_bits_t = [64 * 8]
+type state_size_t = [32 * 8]
 
-SIZE_T_MAX = 2^64-1 //because I used 64 bit integers. Can be updated. 
+SIZE_T_MAX = ( 2^64 ) * BYTE_TO_BIT_CONVERSION //because I used 64 bit integers. Can be updated. 
 
-HEADER_FIELD_OVERHEAD = 18 
-HEADER_FIELD_OVERHEAD_WITH_AAD = 20 
-DEFAULT_SIZE_INCREMENT = 128 
+HEADER_FIELD_OVERHEAD = 18 * BYTE_TO_BIT_CONVERSION
+HEADER_FIELD_OVERHEAD_WITH_AAD = 20 * BYTE_TO_BIT_CONVERSION
+DEFAULT_SIZE_INCREMENT = 128 * BYTE_TO_BIT_CONVERSION
