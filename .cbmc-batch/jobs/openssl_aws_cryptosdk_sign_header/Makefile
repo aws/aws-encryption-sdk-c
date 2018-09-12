@@ -21,5 +21,5 @@ proofs.goto: aws-c-common config openssl openssl-replace
     goto-cc .cbmc-batch/openssl_cipher_proofs.c .cbmc/cipher_ctx_stubs.c source/cipher.c \ 
     aws-c-common/source/common.c  \
     -Iinclude -Iaws-c-common/include -I.cbmc-batch -Iopenssl/crypto/include -Iopenssl/include \
-    -o .cbmc-batch/jobs/openssl_aws_cryptosdk_verify_header_verify/proofs.goto \
+    -o .cbmc-batch/jobs/openssl_aws_cryptosdk_sign_header_verify/proofs.goto \
     --function aws_cryptosdk_sign_header_verify
