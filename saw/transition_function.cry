@@ -155,13 +155,13 @@ encryptBodyFramed state_old =
             encryptHelper 
                 state_old 
                 (state_old.sess.precise_size - state_old.sess.data_so_far) 
-                (8 + state_old.sess.alg_prop.iv_len + 4 + state_old.sess.precise_size 
-                    - state_old.sess.data_so_far + state_old.sess.alg_prop.tag_len)
+                (FRAME_FIELD_OVERHEAD_FINAL_FRAME + state_old.sess.alg_prop.iv_len + 4 + state_old.sess.precise_size 
+                    - state_old.sess.data_so_far + state_old.sess.alg_prop.tag_len) 
                 ST_WRITE_TRAILER
     else encryptHelper 
             state_old 
             state_old.sess.frame_size 
-            (4 + state_old.sess.alg_prop.iv_len + state_old.sess.frame_size + state_old.sess.alg_prop.tag_len) 
+            (FRAME_FIELD_OVERHEAD + state_old.sess.alg_prop.iv_len + state_old.sess.frame_size + state_old.sess.alg_prop.tag_len) 
             ST_ENCRYPT_BODY
 
 encryptBodyUnframed : state_t -> state_t
@@ -170,7 +170,7 @@ encryptBodyUnframed state_old =
         encryptHelper 
             state_old 
             state_old.sess.precise_size 
-            (state_old.sess.alg_prop.iv_len + 8 + state_old.sess.precise_size + state_old.sess.alg_prop.tag_len) 
+            (state_old.sess.alg_prop.iv_len + FRAME_FIELD_OVERHEAD_UNFRAMED + state_old.sess.precise_size + state_old.sess.alg_prop.tag_len) 
             ST_WRITE_TRAILER
     else { 
         sess = updateOutputInputEstimates state_old.sess 0 0,

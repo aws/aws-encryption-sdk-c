@@ -102,6 +102,15 @@ type state_size_t = [32 * 8]
 
 SIZE_T_MAX = ( 2^64 ) * BYTE_TO_BIT_CONVERSION //because I used 64 bit integers. Can be updated. 
 
+
+//Magic numbers correspond to the 18 and 20 in the aws_cryptosdk_hdr_size function of header.c (line 243)
 HEADER_FIELD_OVERHEAD = 18 * BYTE_TO_BIT_CONVERSION
 HEADER_FIELD_OVERHEAD_WITH_AAD = 20 * BYTE_TO_BIT_CONVERSION
+
+//Magic number corresponds to the 128 in the try_parse_header function of session_decrypt.c (line 165)
 DEFAULT_SIZE_INCREMENT = 128 * BYTE_TO_BIT_CONVERSION
+
+//Magic numbers from the overhead of reading in the frame fields
+FRAME_FIELD_OVERHEAD = 4 * BYTE_TO_BIT_CONVERSION
+FRAME_FIELD_OVERHEAD_FINAL_FRAME = 8 * BYTE_TO_BIT_CONVERSION
+FRAME_FIELD_OVERHEAD_UNFRAMED = 8 * BYTE_TO_BIT_CONVERSION
