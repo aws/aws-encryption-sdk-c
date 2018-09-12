@@ -105,8 +105,10 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     if (!kr->rsa_key_pem) goto err;
 
     kr->rsa_padding_mode = rsa_padding_mode;
-    kr->vt = &raw_rsa_keyring_vt;
     kr->alloc = alloc;
+
+    aws_cryptosdk_keyring_base_init(&kr->base, &raw_rsa_keyring_vt);
+
     return (struct aws_cryptosdk_keyring *)kr;
 
 err:
