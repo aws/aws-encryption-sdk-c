@@ -29,6 +29,13 @@ openssl:
 	make test; \
 	make install
 
+#Assumes that openssl has already been cloned
+openssl-replace:
+	cd ../../..; \
+	cp .cbmc-batch/modified_openssl/evp_int.h openssl/crypto/include/internal/evp_int.h; \
+	cp .cbmc-batch/modified_openssl/ossl_typ.h openssl/include/openssl/ossl_typ.h
+
 clean:
 	rm proofs.goto; \
-	rm -rf ../../../aws-c-common
+	rm -rf ../../../aws-c-common 
+
