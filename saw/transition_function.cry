@@ -28,7 +28,9 @@ import helper_functions
 //                output buffer ptr has increased by header size 
 
 // Failure case : output size estimate is the size of the header 
-tryWriteHeaderModel : current_state -> current_state
+
+
+tryWriteHeaderModel : state_t -> state_t
 tryWriteHeaderModel state_old = 
     if state_old.output_buffer.len >= state_old.sess.header_size then 
         {
@@ -63,7 +65,7 @@ tryWriteHeaderModel state_old =
 
 // Failure case : input size estimate is increased by 128 
 //                if this increase results in overflow: set to size_t - 1 
-getHeaderSize : current_state -> SIZE_T_BITS
+getHeaderSize : state_t -> SIZE_T_BITS
 getHeaderSize state_old = 
     if ( state_old.sess.header.aad_len_total > 0 ) then 
         ( HEADER_FIELD_OVERHEAD_WITH_AAD + MESSAGE_ID_LEN 
@@ -71,7 +73,7 @@ getHeaderSize state_old =
     else ( HEADER_FIELD_OVERHEAD + MESSAGE_ID_LEN 
             + state_old.sess.header.aad_len_total + state_old.sess.header.edk_len_total )
 
-updateInputBuffer : current_state -> SIZE_T_BITS
+updateInputBuffer : state_t -> SIZE_T_BITS
 updateInputBuffer state_old = 
     if ( state_old.sess.input_size_estimate < state_old.input_buffer.len ) then 
         if ( (state_old.input_buffer.len + DEFAULT_SIZE_INCREMENT) < state_old.input_buffer.len ) then 
@@ -79,7 +81,7 @@ updateInputBuffer state_old =
         else  (state_old.input_buffer.len + DEFAULT_SIZE_INCREMENT)
     else state_old.sess.input_size_estimate
 
-tryParseHeaderModel : current_state -> current_state 
+tryParseHeaderModel : state_t -> state_t 
 tryParseHeaderModel state_old = 
     if (state_old.input_buffer.len < ( getHeaderSize state_old ) ) then 
         {
@@ -125,7 +127,7 @@ tryParseHeaderModel state_old =
 
 // Failure case : (if unframed and precise size unknown) : input size estimate is 0
 //                                                      output size estimate is 0
-encryptHelper : current_state -> SIZE_T_BITS -> SIZE_T_BITS -> [4] -> current_state 
+encryptHelper : state_t -> SIZE_T_BITS -> SIZE_T_BITS -> STATE_SIZE -> state_t 
 encryptHelper state_old size_in size_out new_state = 
     if ( state_old.input_buffer.len < size_in ) || ( state_old.output_buffer.len < size_out ) then 
         { 
@@ -146,7 +148,7 @@ encryptHelper state_old size_in size_out new_state =
                                 }       
         }
 
-encryptBodyFramed : current_state -> current_state
+encryptBodyFramed : state_t -> state_t
 encryptBodyFramed state_old = 
     if ( state_old.sess.precise_size_known == 1 ) 
         && (state_old.sess.precise_size - state_old.sess.data_so_far < state_old.sess.frame_size) then 
@@ -162,7 +164,7 @@ encryptBodyFramed state_old =
             (4 + state_old.sess.alg_prop.iv_len + state_old.sess.frame_size + state_old.sess.alg_prop.tag_len) 
             ST_ENCRYPT_BODY
 
-encryptBodyUnframed : current_state -> current_state
+encryptBodyUnframed : state_t -> state_t
 encryptBodyUnframed state_old = 
     if ( state_old.sess.precise_size_known == 1 ) then 
         encryptHelper 
@@ -177,14 +179,14 @@ encryptBodyUnframed state_old =
         }
 
 
-tryEncryptBodyModel : current_state -> current_state
+tryEncryptBodyModel : state_t -> state_t
 tryEncryptBodyModel state_old = 
     if state_old.sess.frame_size > 0 then encryptBodyFramed state_old
     else encryptBodyUnframed state_old
         
 
 // Partial Cryptol translation of function try_decrypt_body in session_decrypt.c (line 193 - 252)
-decryptHelper : current_state -> SIZE_T_BITS -> SIZE_T_BITS -> [4] -> current_state
+decryptHelper : state_t -> SIZE_T_BITS -> SIZE_T_BITS -> STATE_SIZE -> state_t
 decryptHelper state_old size_in size_out new_state = 
     if ( state_old.input_buffer.len < size_in ) || ( state_old.output_buffer.len < size_out ) then 
         { 
@@ -207,15 +209,15 @@ decryptHelper state_old size_in size_out new_state =
 
 //TODO: Size of the unframed data is stored in the ciphertext (input_buffer). What is the best way to model this?
 //TODO: Should not be using state_old.sess.precise_size. This is only temporary. 
-decryptBodyUnframed : current_state -> current_state 
+decryptBodyUnframed : state_t -> state_t 
 decryptBodyUnframed state_old = decryptHelper state_old ( state_old.sess.alg_prop.iv_len + 8 + 
 state_old.sess.precise_size + state_old.sess.alg_prop.tag_len)   state_old.sess.precise_size ST_CHECK_TRAILER
 
 //TODO: Whether the frame is final as well as the size of the final frame is stored in the ciphertext (input_buffer). 
-decryptBodyFramed : current_state -> current_state 
+decryptBodyFramed : state_t -> state_t 
 decryptBodyFramed state_old = state_old 
 
-tryDecryptBodyModel : current_state -> current_state 
+tryDecryptBodyModel : state_t -> state_t 
 tryDecryptBodyModel state_old = 
     if ( state_old.sess.frame_size > 0 ) then decryptBodyUnframed state_old
     else decryptBodyUnframed state_old

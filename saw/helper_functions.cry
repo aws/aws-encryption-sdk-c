@@ -19,7 +19,7 @@ import type_def
 
 
 //Helper function to update the state of the session only. 
-advanceStateOnly : session_c -> [4] -> session_c
+advanceStateOnly : session_t_c -> STATE_SIZE -> session_t_c
 advanceStateOnly session_old new_state = {
                                         output_size_estimate = session_old.output_size_estimate,
                                         input_size_estimate = session_old.input_size_estimate,
@@ -35,7 +35,7 @@ advanceStateOnly session_old new_state = {
                                         }
 
 //Helper function to update the input and output size estimates only. 
-updateOutputInputEstimates : session_c -> SIZE_T_BITS -> SIZE_T_BITS -> session_c
+updateOutputInputEstimates : session_t_c -> SIZE_T_BITS -> SIZE_T_BITS -> session_t_c
 updateOutputInputEstimates session_old output_est input_est = {
                                                                 output_size_estimate = output_est,
                                                                 input_size_estimate = input_est,
@@ -50,8 +50,8 @@ updateOutputInputEstimates session_old output_est input_est = {
                                                                 header = session_old.header
                                                                 }
 
-//Helper function to changed only the session of the current_state to a new state.        
-advanceSessionByStateOnly : current_state -> [4] -> current_state
+//Helper function to changed only the session of the state_t to a new state.        
+advanceSessionByStateOnly : state_t -> STATE_SIZE -> state_t
 advanceSessionByStateOnly state_old new_state = {
                                                 sess = advanceStateOnly state_old.sess new_state,
                                                 output_buffer = state_old.output_buffer, 

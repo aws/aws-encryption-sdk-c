@@ -19,38 +19,38 @@ module type_def where
 
 // Compound type that stores all the variables that determine if the loop in the aws_cryptosdk_session_process 
 // function of session.c has made progress (line 242)
-type current_state = {
-                    sess : session_c, 
-                    output_buffer : aws_byte_cursor_c, 
-                    input_buffer : aws_byte_cursor_c
+type state_t = {
+                    sess : session_t_c, 
+                    output_buffer : aws_byte_cursor_t_c, 
+                    input_buffer : aws_byte_cursor_t_c
                     }
 
 
 // See <aws/cryptosdk/private/session.h>: 50 - 82 
 // NOTE: Incomplete implementation - only has the fields necessary for current proofs. 
-type session_c = {
+type session_t_c = {
     output_size_estimate : SIZE_T_BITS, 
     input_size_estimate : SIZE_T_BITS,
     header_size : SIZE_T_BITS,
-    state : [4],
+    state : STATE_SIZE,
     mode : [1], //boolean flag: encrypt (0) or decrypt (1) 
     precise_size : [64],
     data_so_far : [64],
     frame_size : [64], // if frame size is zero, the message is unframed
     precise_size_known : [1],
-    alg_prop : alg_properties_c,
-    header : hdr_c
+    alg_prop : alg_properties_t_c,
+    header : hdr_t_c
     }
 
 // See <aws/common/byte_buf.h>: 43 - 46 
-type aws_byte_cursor_c = {
+type aws_byte_cursor_t_c = {
     ptr : SIZE_T_BITS, //TODO: actual size in the c code is [8]. Figure out casting
     len : SIZE_T_BITS
     }
 
 // <aws/cryptosdk/cipher.h>> : 28 - 41
 // NOTE: Incomplete implementation - only has the fields necessary for current proofs. 
-type alg_properties_c = {
+type alg_properties_t_c = {
     iv_len : SIZE_T_BITS,
     tag_len : SIZE_T_BITS
 }
@@ -58,7 +58,7 @@ type alg_properties_c = {
 // <aws/cryptosdk/private/header.h>: 32 - 49
 // Over-simplified. 
 // Multiple fields missing or concatenated. 
-type hdr_c = {
+type hdr_t_c = {
     aad_len_total : SIZE_T_BITS, // Length of the total amount of aad : sum of the key and value across all aad. 
     edk_len_total : SIZE_T_BITS  // Length of the total edk : sum of provider_id, provider_info and enc_data_key for   
                                     // all edk
@@ -96,6 +96,8 @@ DEFAULT_FRAME_SIZE = 256 * 1024
 MAX_FRAME_SIZE = 4294967295
 
 type SIZE_T_BITS = [64]
+type STATE_SIZE = [32]
+
 SIZE_T_MAX = 2^64-1 //because I used 64 bit integers. Can be updated. 
 
 HEADER_FIELD_OVERHEAD = 18 

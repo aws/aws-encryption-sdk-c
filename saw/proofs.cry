@@ -26,32 +26,32 @@ In all properties, progress is considered from any non-error and non-done state.
 
 
 // Are known preconditons about the fields of the state are met. 
-arePreconditionsMet : current_state -> Bit
-arePreconditionsMet current_state = 
-    if current_state.sess.data_so_far > current_state.sess.precise_size then False //SANITY CHECK
-    else if current_state.sess.frame_size >= MAX_FRAME_SIZE then False             //SANITY CHECK
-    else if current_state.sess.state >=ST_DONE then False                          //SANITY CHECK
-    else if current_state.sess.alg_prop.iv_len != 96 then False                    //ACCORDING TO DOC
-    else if current_state.sess.alg_prop.tag_len != 128 then False                  //ACCORDING TO DOC
+arePreconditionsMet : state_t -> Bit
+arePreconditionsMet state = 
+    if state.sess.data_so_far > state.sess.precise_size then False //SANITY CHECK
+    else if state.sess.frame_size >= MAX_FRAME_SIZE then False             //SANITY CHECK
+    else if state.sess.state >=ST_DONE then False                          //SANITY CHECK
+    else if state.sess.alg_prop.iv_len != 96 then False                    //ACCORDING TO DOC
+    else if state.sess.alg_prop.tag_len != 128 then False                  //ACCORDING TO DOC
     else True 
 
 
 // Is progress made for any arbitrary state.
-isProgressMade : current_state -> Bit
+isProgressMade : state_t -> Bit
 isProgressMade state = 
     if ~arePreconditionsMet state then False
     else ~isProgressMadeProperty state
 
 
 // Does the loop continues for any arbitrary state.
-doesLoopContinue : current_state -> Bit
+doesLoopContinue : state_t -> Bit
 doesLoopContinue state = 
     if ~arePreconditionsMet state then False
     else ~doesLoopContinueProperty state
 
 
 // Is progress made for any arbitrary state when the precise size is known.
-isProgressMadeSizeKnown : current_state -> Bit
+isProgressMadeSizeKnown : state_t -> Bit
 isProgressMadeSizeKnown state = 
     if ~arePreconditionsMet state then False
     else if state.sess.precise_size_known == 0 then False
@@ -59,7 +59,7 @@ isProgressMadeSizeKnown state =
 
 
 // Does the loop continues for any arbitrary state when the precise size is known. 
-doesLoopContinueSizeKnown : current_state -> Bit
+doesLoopContinueSizeKnown : state_t -> Bit
 doesLoopContinueSizeKnown state = 
     if ~arePreconditionsMet state then False
     else if state.sess.precise_size_known == 0 then False
@@ -68,7 +68,7 @@ doesLoopContinueSizeKnown state =
 
 // Does the loop continues after 1 update of the input/output buffers for the ST_WRITE_HEADER state?
 // Here an update means the size of the buffers has been increased to the input/output size estimates. 
-doesWriteHeaderContinueAfterUpdate : current_state -> Bit
+doesWriteHeaderContinueAfterUpdate : state_t -> Bit
 doesWriteHeaderContinueAfterUpdate state = 
     if ~arePreconditionsMet state then False
     else if state.sess.state != ST_WRITE_HEADER then False 
@@ -77,7 +77,7 @@ doesWriteHeaderContinueAfterUpdate state =
 // Does loop continues after 1 update of the input/output buffers for the ST_ENCRYPT_BODY state.  
 // Here an update means the size of the buffers has been increased to the input/output size estimates. 
 // We do not assume the precise size is known 
-doesEncryptBodyContinueAfterUpdate : current_state -> Bit
+doesEncryptBodyContinueAfterUpdate : state_t -> Bit
 doesEncryptBodyContinueAfterUpdate state = 
     if ~arePreconditionsMet state then False
     else if state.sess.state != ST_ENCRYPT_BODY then False 
@@ -87,7 +87,7 @@ doesEncryptBodyContinueAfterUpdate state =
 // Does loop continues after 1 update of the input/output buffers for the ST_ENCRYPT_BODY state.  
 // Here an update means the size of the buffers has been increased to the input/output size estimates. 
 // We assume the precise size is known 
-doesEncryptBodyContinueAfterUpdateSizeKnown : current_state -> Bit
+doesEncryptBodyContinueAfterUpdateSizeKnown : state_t -> Bit
 doesEncryptBodyContinueAfterUpdateSizeKnown state = 
     if ~arePreconditionsMet state then False
     else if state.sess.precise_size_known == 0 then False 
