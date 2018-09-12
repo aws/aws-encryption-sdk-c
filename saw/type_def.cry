@@ -34,9 +34,9 @@ type session_c_t = {
     header_size : size_bits_t,
     state : state_size_t,
     mode : [1], //boolean flag: encrypt (0) or decrypt (1) 
-    precise_size : [64 * 8],
-    data_so_far : [64 * 8],
-    frame_size : [64 * 8], // if frame size is zero, the message is unframed
+    precise_size : [64 ],
+    data_so_far : [64 ],
+    frame_size : [64], // if frame size is zero, the message is unframed
     precise_size_known : [1],
     alg_prop : alg_properties_c_t,
     header : hdr_c_t
@@ -97,10 +97,10 @@ ST_ERROR = 10
 DEFAULT_FRAME_SIZE = 256 * 1024 * BYTE_TO_BIT_CONVERSION
 MAX_FRAME_SIZE = 4294967295 * BYTE_TO_BIT_CONVERSION 
 
-type size_bits_t = [64 * 8]
-type state_size_t = [32 * 8]
+type size_bits_t = [64]
+type state_size_t = [32]
 
-SIZE_T_MAX = ( 2^64 ) * BYTE_TO_BIT_CONVERSION //because I used 64 bit integers. Can be updated. 
+SIZE_T_MAX = ( 2^64 )  //because I used 64 bit integers. Can be updated. 
 
 
 //Magic numbers correspond to the 18 and 20 in the aws_cryptosdk_hdr_size function of header.c (line 243)
