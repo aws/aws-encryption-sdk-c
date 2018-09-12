@@ -43,7 +43,7 @@ isProgressMade state =
     else ~isProgressMadeProperty state
 
 
-// Does the loop continues for any arbitrary state.
+// Does the loop continue for any arbitrary state.
 doesLoopContinue : state_t -> Bit
 doesLoopContinue state = 
     if ~arePreconditionsMet state then False
@@ -58,7 +58,7 @@ isProgressMadeSizeKnown state =
     else ~isProgressMadeProperty state
 
 
-// Does the loop continues for any arbitrary state when the precise size is known. 
+// Does the loop continue for any arbitrary state when the precise size is known. 
 doesLoopContinueSizeKnown : state_t -> Bit
 doesLoopContinueSizeKnown state = 
     if ~arePreconditionsMet state then False
@@ -66,7 +66,7 @@ doesLoopContinueSizeKnown state =
     else ~doesLoopContinueProperty state
 
 
-// Does the loop continues after 1 update of the input/output buffers for the ST_WRITE_HEADER state?
+// Does the loop continue after 1 update of the input/output buffers for the ST_WRITE_HEADER state?
 // Here an update means the size of the buffers has been increased to the input/output size estimates. 
 doesWriteHeaderContinueAfterUpdate : state_t -> Bit
 doesWriteHeaderContinueAfterUpdate state = 
@@ -74,7 +74,7 @@ doesWriteHeaderContinueAfterUpdate state =
     else if state.sess.state != ST_WRITE_HEADER then False 
     else  ~doesLoopContinueProperty ( updateBuffers (processState state) ) && (~doesLoopContinueProperty state)
 
-// Does loop continues after 1 update of the input/output buffers for the ST_ENCRYPT_BODY state.  
+// Does loop continue after 1 update of the input/output buffers for the ST_ENCRYPT_BODY state.  
 // Here an update means the size of the buffers has been increased to the input/output size estimates. 
 // We do not assume the precise size is known 
 doesEncryptBodyContinueAfterUpdate : state_t -> Bit
@@ -84,7 +84,7 @@ doesEncryptBodyContinueAfterUpdate state =
     else  ~doesLoopContinueProperty ( updateBuffers (processState state) ) && (~doesLoopContinueProperty state)
 
 
-// Does loop continues after 1 update of the input/output buffers for the ST_ENCRYPT_BODY state.  
+// Does loop continue after 1 update of the input/output buffers for the ST_ENCRYPT_BODY state.  
 // Here an update means the size of the buffers has been increased to the input/output size estimates. 
 // We assume the precise size is known 
 doesEncryptBodyContinueAfterUpdateSizeKnown : state_t -> Bit
