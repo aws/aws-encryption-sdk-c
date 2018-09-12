@@ -73,7 +73,7 @@ static int set_up_encrypt_decrypt(enum aws_cryptosdk_aes_key_len raw_key_len,
 static void tear_down_encrypt() {
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
     aws_hash_table_clean_up(&enc_context);
-    aws_cryptosdk_keyring_destroy(kr);
+    aws_cryptosdk_keyring_release(kr);
 }
 
 static void tear_down_encrypt_decrypt() {

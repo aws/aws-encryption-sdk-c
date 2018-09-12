@@ -268,6 +268,8 @@ struct aws_cryptosdk_keyring * aws_cryptosdk_raw_aes_keyring_new(struct aws_allo
     if (!kr) return NULL;
     memset(kr, 0, sizeof(struct raw_aes_keyring));
 
+    aws_cryptosdk_keyring_base_init(&kr->base, &raw_aes_keyring_vt);
+
     kr->master_key_id = aws_string_new_from_array(alloc, master_key_id, master_key_id_len);
     if (!kr->master_key_id) goto oom_err;
 
@@ -277,7 +279,6 @@ struct aws_cryptosdk_keyring * aws_cryptosdk_raw_aes_keyring_new(struct aws_allo
     kr->raw_key = aws_string_new_from_array(alloc, raw_key_bytes, key_len);
     if (!kr->raw_key) goto oom_err;
 
-    kr->vt = &raw_aes_keyring_vt;
     kr->alloc = alloc;
     return (struct aws_cryptosdk_keyring *)kr;
 

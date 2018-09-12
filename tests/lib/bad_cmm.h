@@ -19,25 +19,28 @@
 #include <aws/cryptosdk/materials.h>
 
 /**
- * Returns a pointer to the singleton zero size CMM. This is a CMM with virtual
- * functions implemented but which has its size set to zero, which should prevent
- * the virtual functions from ever being called.
+ * Returns a zero size CMM. This is a CMM with virtual functions implemented but which
+ * has its size set to zero, which should prevent the virtual functions from ever being called.
+ * Because the destroy function does not work, we return this by-value and rely on stack cleanup
+ * to free the memory associated with this CMM.
  */
-struct aws_cryptosdk_cmm * aws_cryptosdk_zero_size_cmm_new();
+struct aws_cryptosdk_cmm aws_cryptosdk_zero_size_cmm();
 
 /**
- * Returns a pointer to the singleton null CMM. This is a CMM with size field set
- * correctly, but with all null pointers in place of its virtual function pointers.
- * It is for testing that the VF calling code never attempts to call function
- * pointers set to null.
+ * Returns a zero size CMM. This is a CMM with virtual functions implemented but which
+ * has all NULL vtable pointers, to verify that the VF code does not call function pointers
+ * set to null.
+ *
+ * Because the destroy function does not work, we return this by-value and rely on stack cleanup
+ * to free the memory associated with this CMM.
  */
-struct aws_cryptosdk_cmm * aws_cryptosdk_null_cmm_new();
+struct aws_cryptosdk_cmm aws_cryptosdk_null_cmm();
 
 /**
  * Convenience function for tests. Equivalent to calling aws_cryptosdk_cmm_destroy(cmm)
  * and also provides a return value of AWS_OP_ERR just because our TEST_ASSERT_ERROR
  * macro looks for that when checking the error code.
  */
-int aws_cryptosdk_cmm_destroy_with_failed_return_value(struct aws_cryptosdk_cmm * cmm);
+int aws_cryptosdk_cmm_release_with_failed_return_value(struct aws_cryptosdk_cmm * cmm);
 
 #endif // AWS_CRYPTOSDK_TESTS_LIB_BAD_CMM_H

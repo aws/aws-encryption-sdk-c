@@ -240,9 +240,9 @@ void KmsKeyring::InitAwsCryptosdkKeyring(struct aws_allocator *allocator) {
         &KmsKeyring::EncryptDataKey,  // encrypt callback
         &KmsKeyring::DecryptDataKey   // decrypt callback
     };
-    vtable = &kms_keyring_vt;
     alloc = allocator;
     keyring_data = this;
+    aws_cryptosdk_keyring_base_init(this, &kms_keyring_vt);
 }
 
 Aws::Cryptosdk::KmsKeyring::KmsKeyring(struct aws_allocator *alloc,

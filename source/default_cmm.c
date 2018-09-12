@@ -15,7 +15,7 @@
 #include <aws/cryptosdk/default_cmm.h>
 
 struct default_cmm {
-    const struct aws_cryptosdk_cmm_vt * vt;
+    struct aws_cryptosdk_cmm base;
     struct aws_allocator * alloc;
     struct aws_cryptosdk_keyring * kr;
 };
@@ -73,6 +73,7 @@ err:
 
 static void default_cmm_destroy(struct aws_cryptosdk_cmm * cmm) {
     struct default_cmm * self = (struct default_cmm *) cmm;
+    aws_cryptosdk_keyring_release(self->kr);
     aws_mem_release(self->alloc, self);
 }
 
@@ -89,9 +90,10 @@ struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * 
     cmm = aws_mem_acquire(alloc, sizeof(struct default_cmm));
     if (!cmm) return NULL;
 
-    cmm->vt = &default_cmm_vt;
+    aws_cryptosdk_cmm_base_init(&cmm->base, &default_cmm_vt);
+
     cmm->alloc = alloc;
-    cmm->kr = kr;
+    cmm->kr = aws_cryptosdk_keyring_retain(kr);
 
     return (struct aws_cryptosdk_cmm *) cmm;
 }
