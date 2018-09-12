@@ -13,6 +13,12 @@
  * limitations under the License.
  */
 
+ /* 
+ * File contains type declarations and constants. 
+ * CONSTANTS appear in ALL CAPS. 
+ * Types end in the suffix _t. Types that corresponds to structs in the c code end in _c_t. 
+ */
+
 
 module type_def where
 

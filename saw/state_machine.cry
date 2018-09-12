@@ -13,6 +13,11 @@
  * limitations under the License.
  */
 
+ /* 
+* File that models the state machine according to aws_cryptosdk_session_process in session.c (lines 180 - 243). 
+*/
+
+
 
 module state_machine where
 
@@ -21,16 +26,15 @@ import transition_function
 import helper_functions
     
 
-// Translation of the the work inside the switch statement of the aws_cryptosdk_session_process function of session.c 
-// (lines 185 - 240)
-// Currently, transitions from ST_CONFIG, ST_WRITE_HEADER and ST_ENCRYPT_BODY are modeled. 
-// All other states are assumed to just transition to the next state, though this is not necessarily accurate.
+// Translation of the switch statement of the aws_cryptosdk_session_process function of session.c (lines 185 - 240)
+// Currently, transitions functions are called from ST_WRITE_HEADER and ST_ENCRYPT_BODY. 
+// NOTE: transition functions from ST_READ_HEADER and ST_DECRYPT_BODY from transition_function.cry should be added.
 processState : state_t -> state_t
 processState state_old = 
     if (state_old.sess.state == ST_CONFIG) && (state_old.sess.mode == 0) then 
         advanceSessionByStateOnly state_old ST_GEN_KEY
     else if state_old.sess.state == ST_CONFIG then advanceSessionByStateOnly state_old ST_READ_HEADER
-    else if state_old.sess.state == ST_READ_HEADER then advanceSessionByStateOnly state_old ST_UNWRAP_KEY
+    else if state_old.sess.state == ST_READ_HEADER then advanceSessionByStateOnly state_old ST_UNWRAP_KEY 
     else if state_old.sess.state == ST_UNWRAP_KEY then advanceSessionByStateOnly state_old ST_DECRYPT_BODY
     else if state_old.sess.state == ST_DECRYPT_BODY then advanceSessionByStateOnly state_old ST_CHECK_TRAILER
     else if state_old.sess.state == ST_CHECK_TRAILER then advanceSessionByStateOnly state_old ST_DONE

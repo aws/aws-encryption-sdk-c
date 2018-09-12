@@ -13,6 +13,12 @@
  * limitations under the License.
  */
 
+/* 
+* File containing transition functions. 
+* Functions that directly map to functions in the AWS Encryption C SDK end with Model. 
+* These are functions called in the loop of aws_cryptosdk_session_process in session.c (lines 180 - 243)
+*/
+
 module transition_function where
 
 import type_def

@@ -13,6 +13,10 @@
  * limitations under the License.
  */
 
+ /* 
+ * File contains helper function to reduce code bloat due to common subroutines. 
+ */
+
 module helper_functions where 
 
 import type_def
