@@ -14,6 +14,6 @@
 # Can update --unwind:20 to unwinding-assertions but this will be time consuming
 
 jobos: ubuntu16
-cbmcflags: "--function;aws_cryptosdk_verify_header_verify;--trace;--unwind;20"
+cbmcflags: "--function;aws_cryptosdk_sign_header_verify;--trace;--unwind;20"
 goto: proofs.goto
 expected: "SUCCESSFUL"
