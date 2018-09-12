@@ -14,10 +14,10 @@
 include ../Makefile
 
 goto: proofs.goto
-	goto-instrument proofs.goto proofs.goto
+    goto-instrument proofs.goto proofs.goto
 
 proofs.goto: aws-c-common config openssl openssl-replace
-	cd ../../..; \
+    cd ../../..; \
     goto-cc .cbmc-batch/openssl_cipher_proofs.c .cbmc/cipher_ctx_stubs.c source/cipher.c \ 
     aws-c-common/source/common.c  \
     -Iinclude -Iaws-c-common/include -I.cbmc-batch -Iopenssl/crypto/include -Iopenssl/include \
