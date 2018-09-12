@@ -127,6 +127,9 @@ int aws_cryptosdk_decrypt_body_verify(
     aws_cryptosdk_decrypt_body(props, outp, inp, message_id, seqno, iv, key, tag, body_frame_type);
 }
 
+
+// NOTE: internal assert(plain->len == cipher.len) fails
+
 int aws_cryptosdk_aes_gcm_encrypt_verify(struct aws_byte_buf * cipher,
                                   struct aws_byte_buf * tag,
                                   const struct aws_byte_cursor plain,
@@ -137,6 +140,8 @@ int aws_cryptosdk_aes_gcm_encrypt_verify(struct aws_byte_buf * cipher,
     aws_cryptosdk_aes_gcm_encrypt(cipher, tag, plain, iv, aad, key);
 
 }
+
+// NOTE: internal assert(plain->len == cipher.len) fails
 
 int aws_cryptosdk_aes_gcm_decrypt_verify(struct aws_byte_buf * plain,
                                   const struct aws_byte_cursor cipher,
