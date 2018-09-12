@@ -99,21 +99,6 @@ static EC_GROUP *group_for_props(const struct aws_cryptosdk_alg_properties *prop
 }
 
 /**
- * Verify that 'group' is the correct ECDSA group to use for the algorithm suite in props.
- * This is used when deserializing a private key; public keys don't carry group info, so
- * in that case we can just decompress the point using the correct group.
- */
-static bool is_group_correct(const EC_GROUP *group, const struct aws_cryptosdk_alg_properties *props) {
-    EC_GROUP *check_group = group_for_props(props);
-
-    bool ok = (check_group == group || !EC_GROUP_cmp(group, check_group, NULL));
-
-    EC_GROUP_free(check_group);
-
-    return ok;
-}
-
-/**
  * Set up a signing context using a previously prepared EC_KEY. This will take a reference on keypair, so the caller
  * should dispose of its own reference on keypair.
  */
@@ -221,24 +206,79 @@ int aws_cryptosdk_sig_get_privkey(
     struct aws_allocator *alloc,
     struct aws_string **priv_key
 ) {
-    unsigned char *buf = NULL;
-    int length;
+    /*
+     * When serializing private keys we use this ad-hoc format:
+     * 
+     * 1. CryptoSDK algorithm ID (16-bit, big endian)
+     * 2. Public key length (8-bit)
+     * 3. Private key length (8-bit)
+     * 4. Public key (DER, compressed point format)
+     * 5. Private key (as an ASN.1 integer)
+     * 
+     * We avoid the use of the d2i_ECPrivateKey format because it serializes the group,
+     * and we have no reliable way of checking whether the deserialized group was correct.
+     * In particular, EC_GROUP_cmp returns a non-equal result if the "method" of the group
+     * differs (i.e. if one uses a generic EC backend, and the other uses an optimized backend
+     * for the specific group). This can happen if i2d_ECPrivateKey chose an explicit curve
+     * representation, which got loaded as a generic curve, while internally we choose a named
+     * curve for the curve to compare against.
+     */
+    unsigned char *privkey_buf = NULL, *pubkey_buf = NULL;
+    /* Should be long enough to encode the private + compressed public key + alg id */
+    ASN1_INTEGER *privkey_int = NULL;
+    unsigned char tmparr[MAX_PUBKEY_SIZE * 2 + 2];
+
+    int privkey_len = 0, pubkey_len = 0;
     int rv = AWS_OP_ERR;
+    struct aws_byte_buf tmpbuf = aws_byte_buf_from_array(tmparr, sizeof(tmparr));
+    struct aws_byte_cursor input = {0};
+
+    const uint16_t alg_id = aws_hton16(ctx->props->alg_id);
 
     *priv_key = NULL;
 
-    /* buf is allocated on the C heap */
-    length = i2d_ECPrivateKey(ctx->keypair, &buf);
-    if (length < 0) {
+    privkey_int = BN_to_ASN1_INTEGER(EC_KEY_get0_private_key(ctx->keypair), NULL);
+    if (!privkey_int) {
+        aws_raise_error(AWS_ERROR_OOM);
+        goto err;
+    }
+
+    privkey_len = i2d_ASN1_INTEGER(privkey_int, &privkey_buf);
+
+    EC_KEY_set_conv_form(ctx->keypair, POINT_CONVERSION_COMPRESSED);
+    pubkey_len = i2o_ECPublicKey(ctx->keypair, &pubkey_buf);
+
+    if (!privkey_buf || !pubkey_buf) {
+        aws_raise_error(AWS_ERROR_OOM);
+        goto err;
+    }
+
+    if (privkey_len > 0xFF || pubkey_len > 0xFF) {
         aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
         goto err;
     }
 
-    // Since this is an internal-only value, we don't bother with base64-encoding.
-    // However, we do want to move it from the C allocator to the provided allocator,
-    // and turn it into an aws_string for easier handling.
+    tmpbuf.len = 0;
+    /* TODO: Refactor once writing routines are moved to aws_byte_bufs */
+    input = aws_byte_cursor_from_array((const uint8_t *)&alg_id, sizeof(alg_id));
+    if (aws_byte_buf_append(&tmpbuf, &input)) {
+        goto err;
+    }
+    tmpbuf.buffer[tmpbuf.len++] = pubkey_len;
+    tmpbuf.buffer[tmpbuf.len++] = privkey_len;
 
-    *priv_key = aws_string_new_from_array(alloc, (const uint8_t *)buf, length);
+    input = aws_byte_cursor_from_array(pubkey_buf, pubkey_len);
+    if (aws_byte_buf_append(&tmpbuf, &input)) {
+        goto err;
+    }
+
+    input = aws_byte_cursor_from_array(privkey_buf, privkey_len);
+    if (aws_byte_buf_append(&tmpbuf, &input)) {
+        goto err;
+    }
+
+    // Since this is an internal-only value, we don't bother with base64-encoding.
+    *priv_key = aws_string_new_from_array(alloc, tmpbuf.buffer, tmpbuf.len);
     if (!*priv_key) {
         // OOM
         goto err;
@@ -246,9 +286,12 @@ int aws_cryptosdk_sig_get_privkey(
 
     rv = AWS_OP_SUCCESS;
 err:
-    if (buf) {
-        aws_secure_zero(buf, length);
-        free(buf);
+    aws_secure_zero(tmparr, sizeof(tmparr));
+    if (privkey_buf) {
+        OPENSSL_clear_free(privkey_buf, privkey_len);
+    }
+    if (pubkey_buf) {
+        OPENSSL_free(pubkey_buf);
     }
 
     // There is no error path that results in a non-NULL priv_key, so we don't need to
@@ -333,52 +376,119 @@ void aws_cryptosdk_sig_abort(
 int aws_cryptosdk_sig_sign_start(
     struct aws_cryptosdk_signctx **ctx,
     struct aws_allocator *alloc,
-    struct aws_string **pub_key,
+    struct aws_string **pub_key_str,
     const struct aws_cryptosdk_alg_properties *props,
     const struct aws_string *priv_key
 ) {
+    /* See comments in aws_cryptosdk_sig_get_privkey re the serialized format */
+
     *ctx = NULL;
-    if (pub_key) {
-        *pub_key = NULL;
+    if (pub_key_str) {
+        *pub_key_str = NULL;
     }
 
     if (!props->impl->curve_name) {
         return AWS_OP_SUCCESS;
     }
 
-    EC_KEY *keypair = NULL;
-    const unsigned char *buf_start = (const unsigned char *)aws_string_bytes(priv_key);
-    const unsigned char *bufp = buf_start;
-    if (!(keypair = d2i_ECPrivateKey(NULL, &bufp, priv_key->len))) {
+    if (priv_key->len < 5) {
+        // We don't have room for the algorithm ID plus the serialized private key.
+        // Someone has apparently handed us a truncated private key?
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
-    if (bufp != buf_start + priv_key->len) {
+    EC_KEY *keypair = NULL;
+    EC_GROUP *group = NULL;
+    ASN1_INTEGER *priv_key_asn1 = NULL;
+    BIGNUM *priv_key_bn = NULL;
+
+    struct aws_byte_cursor cursor = aws_byte_cursor_from_string(priv_key);
+    struct aws_byte_cursor field;
+    uint16_t serialized_alg_id;
+    uint8_t privkey_len, pubkey_len;
+    const uint8_t *bufp;
+    int rv;
+
+    if (!aws_byte_cursor_read_be16(&cursor, &serialized_alg_id)
+        || !aws_byte_cursor_read_u8(&cursor, &pubkey_len)
+        || !aws_byte_cursor_read_u8(&cursor, &privkey_len)) {
+        aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+        goto out;
+    }
+
+    if (serialized_alg_id != props->alg_id) {
+        // Algorithm mismatch
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+    }
+
+    if (!(keypair = EC_KEY_new())) {
+        aws_raise_error(AWS_ERROR_OOM);
+        goto out;
+    }
+
+    if (!(group = group_for_props(props))) {
+        aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+        goto out;
+    }
+
+    EC_KEY_set_group(keypair, group);
+    EC_GROUP_free(group);
+    EC_KEY_set_conv_form(keypair, POINT_CONVERSION_COMPRESSED);
+
+    field = aws_byte_cursor_advance(&cursor, pubkey_len);
+    bufp = field.ptr;
+
+    if (!field.ptr || !o2i_ECPublicKey(&keypair, &bufp, field.len) || bufp != field.ptr + field.len) {
+        ERR_print_errors_fp(stderr);
+        aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+        goto out;
+    }
+
+    field = aws_byte_cursor_advance(&cursor, privkey_len);
+    bufp = field.ptr;
+
+    if (!d2i_ASN1_INTEGER(&priv_key_asn1, &bufp, field.len) || bufp != field.ptr + field.len) {
+        ASN1_STRING_clear_free(priv_key_asn1);
+        aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+        goto out;
+    }
+
+    priv_key_bn = ASN1_INTEGER_to_BN(priv_key_asn1, NULL);
+    // ASN1_INTEGERS are really ASN1_STRINGS; since there's no ASN1_INTEGER_clear_free, we'll use
+    // ASN1_STRING_clear_free instead.
+    ASN1_STRING_clear_free(priv_key_asn1);
+    if (!priv_key) {
+        aws_raise_error(AWS_ERROR_OOM);
+        goto out;
+    }
+
+    rv = EC_KEY_set_private_key(keypair, priv_key_bn);
+    BN_clear_free(priv_key_bn);
+    if (!rv) {
+        aws_raise_error(AWS_ERROR_OOM);
+        goto out;
+    }
+
+    if (cursor.len) {
         // Trailing garbage in the serialized private key
         // This should never happen, as this is an internal (trusted) datapath, but
         // check anyway
-        EC_KEY_free(keypair);
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+        aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+        goto out;
     }
 
-    if (!is_group_correct(EC_KEY_get0_group(keypair), props)) {
-        EC_KEY_free(keypair);
-
-        // This key didn't come from ciphertext, so don't report bad ciphertext
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
-    }
-
-    if (pub_key && serialize_pubkey(alloc, keypair, pub_key)) {
+    if (pub_key_str && serialize_pubkey(alloc, keypair, pub_key_str)) {
         EC_KEY_free(keypair);
         return AWS_OP_ERR;
     }
 
     *ctx = sign_start(alloc, keypair, props);
-    if (!*ctx && pub_key) {
-        aws_string_destroy(*pub_key);
-        *pub_key = NULL;
+    if (!*ctx && pub_key_str) {
+        aws_string_destroy(*pub_key_str);
+        *pub_key_str = NULL;
     }
 
+out:
     // EC_KEYs are reference counted
     EC_KEY_free(keypair);
     return *ctx ? AWS_OP_SUCCESS : AWS_OP_ERR;
