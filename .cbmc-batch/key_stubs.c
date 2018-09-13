@@ -22,10 +22,12 @@
 
 int EVP_PKEY_CTX_add1_hkdf_info(EVP_PKEY_CTX *pctx, unsigned char *info, int infolen){
 
-    __CPROVER_assert(pctx->initialized==1, "EVP_PKEY_CTX_add1_hkdf_info Assertion to confirm if the public key algorithm context has been initialized before setting info.");
+    __CPROVER_assert(pctx->initialized==1, "EVP_PKEY_CTX_add1_hkdf_info Assertion to confirm if the public key"
+        "algorithm context has been initialized before setting info.");
 
     int len = pctx->infolen;
-    __CPROVER_assert(len +infolen < 1024, "EVP_PKEY_CTX_add1_hkdf_info: Assert to ensure that the infolen value is never more than 1024");
+    __CPROVER_assert(len +infolen < 1024, "EVP_PKEY_CTX_add1_hkdf_info: Assert to ensure that the infolen value"
+        "is never more than 1024");
     pctx->infolen=len+infolen;
     len = pctx->infolen;
 
@@ -35,7 +37,8 @@ int EVP_PKEY_CTX_add1_hkdf_info(EVP_PKEY_CTX *pctx, unsigned char *info, int inf
 }
 
 int EVP_PKEY_CTX_set1_hkdf_salt(EVP_PKEY_CTX *pctx, unsigned char *salt, int saltlen){
-     __CPROVER_assert(pctx->initialized==1, "EVP_PKEY_CTX_set1_hkdf_salt SALT: Assertion to confirm if the public key algorithm context has been initialized before setting salt.");
+     __CPROVER_assert(pctx->initialized==1, "EVP_PKEY_CTX_set1_hkdf_salt SALT: Assertion to confirm if the public key"
+        "algorithm context has been initialized before setting salt.");
 
     pctx->salt = 1;
 
@@ -44,7 +47,8 @@ int EVP_PKEY_CTX_set1_hkdf_salt(EVP_PKEY_CTX *pctx, unsigned char *salt, int sal
 }
 
 int EVP_PKEY_CTX_set_hkdf_md(EVP_PKEY_CTX *pctx, const EVP_MD *md){
-     __CPROVER_assert(pctx->initialized==1, "EVP_PKEY_CTX_set_hkdf_md: Assertion to confirm if the public key algorithm context has been initialized before setting message digest.");
+     __CPROVER_assert(pctx->initialized==1, "EVP_PKEY_CTX_set_hkdf_md: Assertion to confirm if the public key" 
+        "algorithm context has been initialized before setting message digest.");
 
     pctx->md=1;    
 
@@ -55,7 +59,8 @@ int EVP_PKEY_CTX_set_hkdf_md(EVP_PKEY_CTX *pctx, const EVP_MD *md){
 
 int EVP_PKEY_CTX_set1_hkdf_key(EVP_PKEY_CTX *pctx, unsigned char *key,
                                 int keylen){
-     __CPROVER_assert(pctx->initialized==1, "PARAMETER KEY: Assertion to confirm if the public key algorithm context has been initialized before setting the key.");
+     __CPROVER_assert(pctx->initialized==1, "PARAMETER KEY: Assertion to confirm if the public key algorithm context" 
+        "has been initialized before setting the key.");
      pctx->key=1;
 
     return EVP_PKEY_CTX_ctrl(pctx, -1, EVP_PKEY_OP_DERIVE, \
@@ -68,7 +73,8 @@ int EVP_PKEY_derive(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *pkeylen)
     if (ctx->hkdf) {
         // If the mode uses an expand operation, passing a NULL buffer is not meaningful.
         if (ctx->hkdf_mode==0 || ctx->hkdf_mode== 2){
-            __CPROVER_assert(key!=NULL, "KEY DERIVATION: Assertion to confirm that key buffer is not NULL in an HKDF mode that uses extract");
+            __CPROVER_assert(key!=NULL, "KEY DERIVATION: Assertion to confirm that key buffer is not NULL" 
+                "in an HKDF mode that uses extract");
         }
         // In this mode the digest, key, salt and info values must be set before a key is derived or an error occurs.
         __CPROVER_assert(ctx->md==1, "KEY DERIVATION: Assertion to confirm that the digest is set");

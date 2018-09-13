@@ -63,10 +63,12 @@ int EVP_CipherInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *cipher,
 int EVP_CIPHER_CTX_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg, void *ptr)
 {
     if (type == EVP_CTRL_GCM_SET_IVLEN){
-        __CPROVER_assert(ctx->iv_set==0, "EVP_CIPHER_CTX_ctrl: Assertion to confirm that the iv has not been set before its length is specified.");
+        __CPROVER_assert(ctx->iv_set==0, "EVP_CIPHER_CTX_ctrl: Assertion to confirm that the iv has not been set"
+            "before its length is specified.");
     }
     if (type == EVP_CTRL_AEAD_GET_TAG){
-        __CPROVER_assert(ctx->all_processed==1, "EVP_CIPHER_CTX_ctrl: Assertion to confirm that all data has been processed before getting the tag.");
+        __CPROVER_assert(ctx->all_processed==1, "EVP_CIPHER_CTX_ctrl: Assertion to confirm that all data has been"
+            "processed before getting the tag.");
     }    return 1; 
 }
 
@@ -74,20 +76,23 @@ int EVP_CIPHER_CTX_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg, void *ptr)
 int EVP_CipherUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl,
                      const unsigned char *in, int inl)
 {
-    __CPROVER_assert(ctx->all_processed==0, "EVP_CipherUpdate: Assertion to confirm that encrypt/decrypt final has not already been called before trying to process more data");
+    __CPROVER_assert(ctx->all_processed==0, "EVP_CipherUpdate: Assertion to confirm that encrypt/decrypt final" 
+        "has not already been called before trying to process more data");
     return 1; 
 }
 
 int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl,
                       const unsigned char *in, int inl){
-    __CPROVER_assert(ctx->all_processed==0, "EVP_DecryptUpdate: Assertion to confirm that decrypt final has not already been called before trying to process more data");
+    __CPROVER_assert(ctx->all_processed==0, "EVP_DecryptUpdate: Assertion to confirm that decrypt final has not" 
+        "already been called before trying to process more data");
     return 1;
 }
 
 int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl,
                       const unsigned char *in, int inl)
 {
-    __CPROVER_assert(ctx->all_processed==0, "EVP_EncryptUpdate: Assertion to confirm that encrypt final has not already been called before trying to process more data");
+    __CPROVER_assert(ctx->all_processed==0, "EVP_EncryptUpdate: Assertion to confirm that encrypt final has not"
+        "already been called before trying to process more data");
     return 1;
 }
 
@@ -96,7 +101,8 @@ int EVP_CIPHER_CTX_set_padding(EVP_CIPHER_CTX *ctx, int pad)
     if (pad == 0){
         ctx->padding=0;
     }
-    __CPROVER_assert(ctx->enc_set==1, "EVP_CIPHER_CTX_set_padding: Assertion to confirm if the enc value has been set before padding is enabled or disabled.");
+    __CPROVER_assert(ctx->enc_set==1, "EVP_CIPHER_CTX_set_padding: Assertion to confirm if the enc value has been"
+        "set before padding is enabled or disabled.");
     return 1;
 }
 
