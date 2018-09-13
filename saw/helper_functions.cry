@@ -14,7 +14,7 @@
  */
 
  /* 
- * File contains helper function to reduce code bloat due to common subroutines. 
+ * File contains helper functions to reduce code bloat due to common subroutines. 
  */
 
 module helper_functions where 
