@@ -1,0 +1,70 @@
+diff --git a/crypto/include/internal/evp_int.h b/crypto/include/internal/evp_int.h
+index f34699bfa8..ddfccd3a1d 100644
+--- a/crypto/include/internal/evp_int.h
++++ b/crypto/include/internal/evp_int.h
+@@ -7,6 +7,7 @@
+  * https://www.openssl.org/source/license.html
+  */
+ 
++
+ struct evp_pkey_ctx_st {
+     /* Method associated with this operation */
+     const EVP_PKEY_METHOD *pmeth;
+@@ -27,8 +28,57 @@ struct evp_pkey_ctx_st {
+     /* implementation specific keygen data */
+     int *keygen_info;
+     int keygen_info_count;
++
++
++
++    /* All fields below have been added for purposes of proving properties with CBMC */
++    int hkdf; 
++    /* field added to check if hdkf key derivation fucnction is used. */
++    int hkdf_mode;
++    /* field added to store which hkdf mode is currently being used */
++    int initialized;
++    /* fieled added to check is initialization has been performed. Must happend before parameters can be set */ 
++    int infolen; 
++    /* Stores the length of the info_buffer. */
++    int salt;
++    /* Stores whether a salt has been set or not */
++    int md;
++    /* Stores whether a message digest has been set or not */
++    int key;
++    /* Stored whether the key has been set */
++
++
+ } /* EVP_PKEY_CTX */ ;
+ 
++struct evp_cipher_ctx_st_duo {
++    const EVP_CIPHER *cipher;
++    ENGINE *engine;             /* functional reference if 'cipher' is
++                                 * ENGINE-provided */
++    int encrypt;                /* encrypt or decrypt */
++    int buf_len;                /* number we have left */
++    unsigned char oiv[EVP_MAX_IV_LENGTH]; /* original iv */
++    unsigned char iv[EVP_MAX_IV_LENGTH]; /* working iv */
++    unsigned char buf[EVP_MAX_BLOCK_LENGTH]; /* saved partial block */
++    int num;                    /* used by cfb/ofb/ctr mode */
++    /* FIXME: Should this even exist? It appears unused */
++    void *app_data;             /* application stuff */
++    int key_len;                /* May change for variable length cipher */
++    unsigned long flags;        /* Various flags */
++    void *cipher_data;          /* per EVP data */
++    int final_used;
++    int block_mask;
++    unsigned char final[EVP_MAX_BLOCK_LENGTH]; /* possible final block */
++
++    /* The following fields are all used for CBMC proofs */
++    int iv_set; //has the initialization vector been set? (0-false, 1-true)
++    int iv_length; //if the length of the iv is given, what should it be?
++    int enc_set; //if whether the path is an encrypt of decrpt path has been set. 
++    //int encrypt; //whether encrypt (1) or decrypt (0) is happening. 
++    int freed; //if the ctx has been freed.
++    int padding; //check to determine if padding has been set. By default, operations are padded. 
++    int all_processed; //if all the data has been processed. 
++} /* EVP_CIPHER_CTX */ ;
++
+ #define EVP_PKEY_FLAG_DYNAMIC   1
+ 
+ struct evp_pkey_method_st {

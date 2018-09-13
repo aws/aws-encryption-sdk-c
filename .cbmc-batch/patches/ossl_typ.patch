@@ -1,0 +1,22 @@
+diff --git a/include/openssl/ossl_typ.h b/include/openssl/ossl_typ.h
+index 129a67f057..bf4dba4dbe 100644
+--- a/include/openssl/ossl_typ.h
++++ b/include/openssl/ossl_typ.h
+@@ -7,6 +7,8 @@
+  * https://www.openssl.org/source/license.html
+  */
+ 
++/* This is a modified ossl_type.h file to refer to our updated evp_cipher_ctx_st struct */
++
+ #ifndef HEADER_OPENSSL_TYPES_H
+ # define HEADER_OPENSSL_TYPES_H
+ 
+@@ -87,7 +89,7 @@ typedef struct bn_gencb_st BN_GENCB;
+ typedef struct buf_mem_st BUF_MEM;
+ 
+ typedef struct evp_cipher_st EVP_CIPHER;
+-typedef struct evp_cipher_ctx_st EVP_CIPHER_CTX;
++typedef struct evp_cipher_ctx_st_duo EVP_CIPHER_CTX; //MODIFIED
+ typedef struct evp_md_st EVP_MD;
+ typedef struct evp_md_ctx_st EVP_MD_CTX;
+ typedef struct evp_pkey_st EVP_PKEY;
