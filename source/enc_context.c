@@ -16,44 +16,68 @@
 #include <aws/cryptosdk/private/utils.h>
 #include <aws/cryptosdk/error.h>
 
+#include <aws/common/byte_buf.h>
 
-int aws_cryptosdk_serialize_enc_context_init(struct aws_allocator * alloc,
-                                             struct aws_byte_buf * output,
-                                             const struct aws_hash_table * enc_context) {
-    size_t num_elems = aws_hash_table_get_entry_count(enc_context);
-    if (!num_elems) {
-        *output = aws_byte_buf_from_c_str("");
+int aws_cryptosdk_context_size(size_t *size, const struct aws_hash_table *enc_context) {
+    size_t serialized_len = 2; // First two bytes are the number of k-v pairs
+    size_t entry_count = 0;
+
+    for (struct aws_hash_iter iter = aws_hash_iter_begin(enc_context);
+         !aws_hash_iter_done(&iter); aws_hash_iter_next(&iter))
+    {
+        entry_count++;
+
+        if (entry_count > UINT16_MAX) {
+            return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
+        }
+
+        const struct aws_string *key = iter.element.key;
+        const struct aws_string *value = iter.element.value;
+        serialized_len += 2 /* key length */ + key->len +
+            2 /* value length */ + value->len;
+
+        if (serialized_len > UINT16_MAX) {
+            return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
+        }
+    }
+
+    if (entry_count == 0) {
+        // Empty context.
+        *size = 0;
         return AWS_OP_SUCCESS;
     }
 
-    if (num_elems > UINT16_MAX) return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
+    *size = serialized_len;
+
+    return AWS_OP_SUCCESS;
+}
+
+int aws_cryptosdk_context_serialize(struct aws_allocator *alloc,
+                                    struct aws_byte_buf *output,
+                                    const struct aws_hash_table *enc_context) {
+    size_t length;
+    if (aws_cryptosdk_context_size(&length, enc_context)) {
+        return AWS_OP_ERR;
+    }
+
+    if (output->capacity < length) {
+        return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
+    }
+
+    if (length == 0) {
+        // Empty encryption context
+        output->len = 0;
+        return AWS_OP_SUCCESS;
+    }
+
+    size_t num_elems = aws_hash_table_get_entry_count(enc_context);
 
     struct aws_array_list elems;
-    if (aws_cryptosdk_hash_elems_array_init(alloc, & elems, enc_context)) return AWS_OP_ERR;
+    if (aws_cryptosdk_hash_elems_array_init(alloc, &elems, enc_context)) return AWS_OP_ERR;
 
     aws_array_list_sort(&elems, aws_cryptosdk_compare_hash_elems_by_key_string);
 
-    size_t serialized_len = 2; // First two bytes are the number of key-value pairs.
-    for (size_t idx = 0; idx < num_elems; ++idx) {
-        struct aws_hash_element elem;
-        if (aws_array_list_get_at(&elems, (void *)&elem, idx)) {
-            aws_array_list_clean_up(&elems);
-            return AWS_OP_ERR;
-        }
-        serialized_len += 4; // Two bytes each for key length and value length fields.
-        size_t key_len = ((const struct aws_string *)elem.key)->len;
-        size_t value_len = ((const struct aws_string *)elem.value)->len;
-        if (key_len > UINT16_MAX || value_len > UINT16_MAX) goto SER_ERR;
-        serialized_len += key_len + value_len;
-    }
-    // This limit is not strictly necessary, but other Encryption SDK implementations use it.
-    if (serialized_len > UINT16_MAX) goto SER_ERR;
-
-    if (aws_byte_buf_init(alloc, output, serialized_len)) {
-        aws_array_list_clean_up(&elems);
-        return AWS_OP_ERR;
-    }
-    output->len = serialized_len;
+    output->len = length;
     struct aws_byte_cursor cur = aws_byte_cursor_from_buf(output);
 
     if (!aws_byte_cursor_write_be16(&cur, num_elems)) goto WRITE_ERR;
@@ -74,13 +98,49 @@ int aws_cryptosdk_serialize_enc_context_init(struct aws_allocator * alloc,
     aws_array_list_clean_up(&elems);
     return AWS_OP_SUCCESS;
 
-SER_ERR:
-    aws_array_list_clean_up(&elems);
-    return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
-
 WRITE_ERR:
-    // We should never get here, because buffer was allocated locally to be long enough.
     aws_array_list_clean_up(&elems);
     aws_byte_buf_clean_up(output);
     return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
+}
+
+int aws_cryptosdk_context_deserialize(struct aws_allocator *alloc, struct aws_hash_table *enc_context, struct aws_byte_cursor *cursor) {
+    aws_hash_table_clear(enc_context);
+
+    if (cursor->len == 0) {
+        return AWS_OP_SUCCESS;
+    }
+
+    uint16_t elem_count;
+    if (!aws_byte_cursor_read_be16(cursor, &elem_count)) goto SHORT_BUF;
+    if (!elem_count) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
+
+    for (uint16_t i = 0; i < elem_count; i++) {
+        uint16_t len;
+
+        if (!aws_byte_cursor_read_be16(cursor, &len)) goto SHORT_BUF;
+        struct aws_byte_cursor k_cursor = aws_byte_cursor_advance_nospec(cursor, len);
+        if (!k_cursor.ptr) goto SHORT_BUF;
+
+        if (!aws_byte_cursor_read_be16(cursor, &len)) goto SHORT_BUF;
+        struct aws_byte_cursor v_cursor = aws_byte_cursor_advance_nospec(cursor, len);
+        if (!v_cursor.ptr) goto SHORT_BUF;
+
+        const struct aws_string *k = aws_string_new_from_array(alloc, k_cursor.ptr, k_cursor.len);
+        const struct aws_string *v = aws_string_new_from_array(alloc, v_cursor.ptr, v_cursor.len);
+
+        if (!k || !v || aws_hash_table_put(enc_context, k, (void *)v, NULL)) {
+            aws_string_destroy((void *)k);
+            aws_string_destroy((void *)v);
+            goto RETHROW;
+        }
+    }
+
+    return AWS_OP_SUCCESS;
+
+SHORT_BUF:
+    aws_raise_error(AWS_ERROR_SHORT_BUFFER);
+RETHROW:
+    aws_hash_table_clear(enc_context);
+    return AWS_OP_ERR;
 }
