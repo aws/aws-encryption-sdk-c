@@ -22,6 +22,8 @@
 
 int EVP_PKEY_CTX_add1_hkdf_info(EVP_PKEY_CTX *pctx, unsigned char *info, int infolen){
 
+    pctx->infoset = 1; 
+
     __CPROVER_assert(pctx->initialized==1, "EVP_PKEY_CTX_add1_hkdf_info Assertion to confirm if the public key"
         "algorithm context has been initialized before setting info.");
 
@@ -76,14 +78,16 @@ int EVP_PKEY_derive(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *pkeylen)
             __CPROVER_assert(key!=NULL, "KEY DERIVATION: Assertion to confirm that key buffer is not NULL" 
                 "in an HKDF mode that uses extract");
         }
-        // In this mode the digest, key, salt and info values must be set before a key is derived or an error occurs.
+        // The digest and key must always be set. 
         __CPROVER_assert(ctx->md==1, "KEY DERIVATION: Assertion to confirm that the digest is set");
         __CPROVER_assert(ctx->key==1, "KEY DERIVATION: Assertion to confirm that the key is set");
+        // If extraction takes place, the salt value must be set
         if (ctx->hkdf_mode==0||ctx->hkdf_mode==1){
             __CPROVER_assert(ctx->salt==1, "KEY DERIVATION: Assertion to confirm that the salt is set");
         }
+        // If expansion takes place, the info value must be set
         if (ctx->hkdf_mode==0||ctx->hkdf_mode==2){
-            __CPROVER_assert(ctx->infolen>0, "KEY DERIVATION: Assertion to confirm that the info is set");
+            __CPROVER_assert(ctx->infoset==1, "KEY DERIVATION: Assertion to confirm that the info is set");
         }
 
     }
@@ -99,6 +103,7 @@ EVP_PKEY_CTX *EVP_PKEY_CTX_new_id(int id, ENGINE *e)
     pctx->md=0;
     pctx->key=0;
     pctx->infolen=0;
+    pctx->infoset=0;
     pctx->salt=0;
     pctx->hkdf=0;
 

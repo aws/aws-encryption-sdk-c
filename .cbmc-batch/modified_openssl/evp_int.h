@@ -40,6 +40,8 @@ struct evp_pkey_ctx_st {
     /* fieled added to check is initialization has been performed. Must happend before parameters can be set */ 
     int infolen; 
     /* Stores the length of the info_buffer. */
+    int infoset; 
+    /* Stores whether the info buffer has been set */
     int salt;
     /* Stores whether a salt has been set or not */
     int md;
