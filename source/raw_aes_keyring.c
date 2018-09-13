@@ -19,6 +19,22 @@
 #include <aws/cryptosdk/private/materials.h>
 #include <assert.h>
 
+static int serialize_aad(struct aws_byte_buf *aad, struct aws_allocator *alloc, const struct aws_hash_table *enc_context) {
+    size_t aad_len;
+
+    memset(aad, 0, sizeof(*aad));
+
+    if (aws_cryptosdk_context_size(&aad_len, enc_context)
+        || aws_byte_buf_init(alloc, aad, aad_len)
+        || aws_cryptosdk_context_serialize(alloc, aad, enc_context)) {
+        aws_byte_buf_clean_up(aad);
+
+        return AWS_OP_ERR;
+    }
+
+    return AWS_OP_SUCCESS;
+}
+
 int aws_cryptosdk_serialize_provider_info_init(struct aws_allocator * alloc,
                                                struct aws_byte_buf * output,
                                                const struct aws_string * master_key_id,
@@ -87,13 +103,9 @@ int aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(struct aws_cryptosdk_
      */
     assert(data_key_len == data_key->len);
 
-    size_t aad_len;
-    struct aws_byte_buf aad = {0};
-    if (aws_cryptosdk_context_size(&aad_len, enc_mat->enc_context)
-        || aws_byte_buf_init(enc_mat->alloc, &aad, aad_len)
-        || aws_cryptosdk_context_serialize(enc_mat->alloc, &aad, enc_mat->enc_context)) {
-        aws_byte_buf_clean_up(&aad);
+    struct aws_byte_buf aad;
 
+    if (serialize_aad(&aad, enc_mat->alloc, enc_mat->enc_context)) {
         return AWS_OP_ERR;
     }
 
@@ -166,13 +178,9 @@ static int raw_aes_keyring_decrypt_data_key(struct aws_cryptosdk_keyring * kr,
                                        const struct aws_cryptosdk_decryption_request * request) {
     struct raw_aes_keyring * self = (struct raw_aes_keyring *)kr;
 
-    size_t aad_len;
-    struct aws_byte_buf aad = {0};
-    if (aws_cryptosdk_context_size(&aad_len, request->enc_context)
-        || aws_byte_buf_init(request->alloc, &aad, aad_len)
-        || aws_cryptosdk_context_serialize(dec_mat->alloc, &aad, request->enc_context)) {
-        aws_byte_buf_clean_up(&aad);
+    struct aws_byte_buf aad;
 
+    if (serialize_aad(&aad, request->alloc, request->enc_context)) {
         return AWS_OP_ERR;
     }
 

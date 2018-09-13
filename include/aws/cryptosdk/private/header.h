@@ -113,11 +113,6 @@ int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr,
                             size_t outlen);
 
 /**
- * Returns 1 if alg_id is a known value, 0 if not.
- */
-int aws_cryptosdk_algorithm_is_known(uint16_t alg_id);
-
-/**
  * Returns number of bytes in auth tag for known algorithms, -1 for unknown algorithms.
  */
 int aws_cryptosdk_algorithm_taglen(uint16_t alg_id);

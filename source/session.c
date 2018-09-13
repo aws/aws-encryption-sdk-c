@@ -26,6 +26,16 @@
 
 /** Public APIs and common code **/
 int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_cryptosdk_mode mode) {
+    /* session->alloc is preserved */
+    session->error = 0;
+    session->mode = mode;
+    session->state = ST_CONFIG;
+    /* session->cmm is preserved */
+    session->precise_size = 0;
+    session->size_bound = UINT64_MAX;
+    session->data_so_far = 0;
+    session->precise_size_known = false;
+
     if (session->header_copy) {
         aws_secure_zero(session->header_copy, session->header_size);
         aws_mem_release(session->alloc, session->header_copy);
@@ -33,34 +43,17 @@ int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_
 
     session->header_copy = NULL;
     session->header_size = 0;
-
     aws_cryptosdk_hdr_clear(&session->header);
-
-    /* Stash the state we want to keep and zero the rest */
-    struct aws_cryptosdk_session new_session;
-    aws_secure_zero(&new_session, sizeof(new_session));
-    new_session.alloc = session->alloc;
-    new_session.cmm = session->cmm;
-    new_session.frame_size = session->frame_size;
-    new_session.mode = mode;
-    // Preserve the allocated structures in the header.
-    //
-    // It's not necessarily safe to move hash tables around, but we're moving it back into its original memory location,
-    // so as long as nobody is observing it from another thread (which is a violation of our API contract), nobody
-    // should notice.
-    new_session.header = session->header;
-
-    // Make sure we scrub any sensitive data from the old session before overwriting it (we don't know how the compiler
-    // might optimize the following copy).
-    aws_secure_zero(session, sizeof(*session));
-    *session = new_session;
-
-    // Finally set an initial estimate of one byte - this just ensures we get far enough in to process that we can
-    // figure out the true estimate
-    session->input_size_estimate = session->output_size_estimate = 1;
-    session->size_bound = UINT64_MAX;
+    /* session->frame_size is preserved */
+    session->input_size_estimate = 1;
+    session->output_size_estimate = 1;
+    session->frame_seqno = 0;
+    session->alg_props = NULL;
+    aws_secure_zero(&session->content_key, sizeof(session->content_key));
 
     if (mode != AWS_CRYPTOSDK_ENCRYPT && mode != AWS_CRYPTOSDK_DECRYPT) {
+        // We do this only after clearing all internal state, to ensure that we don't
+        // accidentally leak some secret data
         return fail_session(session, AWS_ERROR_UNIMPLEMENTED);
     }
 

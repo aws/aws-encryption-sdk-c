@@ -15,15 +15,16 @@
 #include <string.h> // memcpy
 #include <aws/cryptosdk/private/header.h>
 #include <aws/cryptosdk/private/compiler.h>
-#include <aws/cryptosdk/cipher.h> // aws_cryptosdk_secure_zero
-#include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/private/enc_context.h>
 #include <aws/cryptosdk/private/materials.h>
+#include <aws/cryptosdk/cipher.h>
+#include <aws/cryptosdk/error.h>
 #include <aws/common/byte_buf.h>
+#include <aws/common/string.h>
 
 #define INITIAL_CONTEXT_SIZE 4
 
-int aws_cryptosdk_algorithm_is_known(uint16_t alg_id) {
+static int aws_cryptosdk_algorithm_is_known(uint16_t alg_id) {
     switch (alg_id) {
         case AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384:
         case AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384:
@@ -87,18 +88,19 @@ int aws_cryptosdk_hdr_init(struct aws_cryptosdk_hdr *hdr, struct aws_allocator *
 }
 
 void aws_cryptosdk_hdr_clear(struct aws_cryptosdk_hdr *hdr) {
-    struct aws_cryptosdk_hdr new_header;
-    aws_secure_zero(&new_header, sizeof(new_header));
+    /* hdr->alloc is preserved */
+    hdr->alg_id = 0;
+    hdr->frame_len = 0;
 
-    // Clear all fields except for the ones with allocated memory associated with them
-    new_header.alloc = hdr->alloc;
-    new_header.enc_context = hdr->enc_context;
-    new_header.edk_list = hdr->edk_list;
+    aws_byte_buf_clean_up(&hdr->iv);
+    aws_byte_buf_clean_up(&hdr->auth_tag);
 
-    memcpy(hdr, &new_header, sizeof(new_header));
+    memset(&hdr->message_id, 0, sizeof(hdr->message_id));
 
     aws_hash_table_clear(&hdr->enc_context);
     aws_cryptosdk_edk_list_clear(&hdr->edk_list);
+
+    hdr->auth_len = 0;
 }
 
 void aws_cryptosdk_hdr_clean_up(struct aws_cryptosdk_hdr *hdr) {
@@ -108,8 +110,6 @@ void aws_cryptosdk_hdr_clean_up(struct aws_cryptosdk_hdr *hdr) {
     }
 
     aws_cryptosdk_edk_list_clean_up(&hdr->edk_list);
-
-    aws_array_list_clean_up(&hdr->edk_list);
     aws_hash_table_clean_up(&hdr->enc_context);
 
     aws_secure_zero(hdr, sizeof(*hdr));
@@ -117,6 +117,8 @@ void aws_cryptosdk_hdr_clean_up(struct aws_cryptosdk_hdr *hdr) {
 
 static inline int parse_edk(struct aws_allocator *allocator, struct aws_cryptosdk_edk *edk, struct aws_byte_cursor *cur) {
     uint16_t field_len;
+
+    memset(edk, 0, sizeof(*edk));
 
     if (!aws_byte_cursor_read_be16(cur, &field_len)) goto SHORT_BUF;
     if (aws_byte_buf_init(allocator, &edk->provider_id, field_len)) goto MEM_ERR;
@@ -133,9 +135,11 @@ static inline int parse_edk(struct aws_allocator *allocator, struct aws_cryptosd
     return AWS_OP_SUCCESS;
 
 SHORT_BUF:
+    aws_cryptosdk_edk_clean_up(edk);
     return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 MEM_ERR:
-    // The _init function should have already raised this error
+    aws_cryptosdk_edk_clean_up(edk);
+    // The _init function should have already raised an AWS_ERROR_OOM
     return AWS_OP_ERR;
 }
 
@@ -177,12 +181,10 @@ int aws_cryptosdk_hdr_parse(struct aws_cryptosdk_hdr *hdr, struct aws_byte_curso
     if (!aws_byte_cursor_read_be16(&cur, &edk_count)) goto SHORT_BUF;
     if (!edk_count) goto PARSE_ERR;
 
-    // i must be more than 16 bits wide to avoid an infinite loop if edk_count == UINT16_MAX
-    for (uint32_t i = 0; i < edk_count; ++i) {
-        struct aws_cryptosdk_edk edk = {{0}};
+    for (uint16_t i = 0; i < edk_count; ++i) {
+        struct aws_cryptosdk_edk edk;
 
         if (parse_edk(hdr->alloc, &edk, &cur)) {
-            aws_cryptosdk_edk_clean_up(&edk);
             goto RETHROW;
         }
 
@@ -253,6 +255,7 @@ int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr) {
 
     size_t idx;
     size_t edk_count = aws_array_list_length(&hdr->edk_list);
+    // 18 is the total size of the non-variable-size fields in the header
     size_t bytes = 18 + MESSAGE_ID_LEN + hdr->iv.len + hdr->auth_tag.len;
     size_t aad_len;
 
@@ -270,6 +273,7 @@ int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr) {
         edk = vp_edk;
         bytes += 6 + edk->provider_id.len + edk->provider_info.len + edk->enc_data_key.len;
     }
+
     return bytes;
 }
 
