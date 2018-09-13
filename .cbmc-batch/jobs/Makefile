@@ -37,5 +37,5 @@ openssl-replace:
 
 clean:
 	rm proofs.goto; \
-	rm -rf ../../../aws-c-common 
+	rm -rf ../../../aws-c-common
 
