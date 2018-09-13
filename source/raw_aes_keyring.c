@@ -19,7 +19,7 @@
 #include <aws/cryptosdk/private/materials.h>
 #include <assert.h>
 
-static int serialize_aad(struct aws_byte_buf *aad, struct aws_allocator *alloc, const struct aws_hash_table *enc_context) {
+static int serialize_aad_init(struct aws_byte_buf *aad, struct aws_allocator *alloc, const struct aws_hash_table *enc_context) {
     size_t aad_len;
 
     memset(aad, 0, sizeof(*aad));
@@ -105,7 +105,7 @@ int aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(struct aws_cryptosdk_
 
     struct aws_byte_buf aad;
 
-    if (serialize_aad(&aad, enc_mat->alloc, enc_mat->enc_context)) {
+    if (serialize_aad_init(&aad, enc_mat->alloc, enc_mat->enc_context)) {
         return AWS_OP_ERR;
     }
 
@@ -180,7 +180,7 @@ static int raw_aes_keyring_decrypt_data_key(struct aws_cryptosdk_keyring * kr,
 
     struct aws_byte_buf aad;
 
-    if (serialize_aad(&aad, request->alloc, request->enc_context)) {
+    if (serialize_aad_init(&aad, request->alloc, request->enc_context)) {
         return AWS_OP_ERR;
     }
 
