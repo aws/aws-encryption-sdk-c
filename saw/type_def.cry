@@ -40,10 +40,11 @@ type session_c_t = {
     header_size : size_bits_t,
     state : state_size_t,
     mode : [1], //boolean flag: encrypt (0) or decrypt (1) 
-    precise_size : [64 ],
-    data_so_far : [64 ],
+    precise_size : [64],
+    data_so_far : [64],
     frame_size : [64], // if frame size is zero, the message is unframed
     precise_size_known : [1],
+    frame_seqno : [64],
     alg_prop : alg_properties_c_t,
     header : hdr_c_t
     }
@@ -96,8 +97,6 @@ ST_GEN_KEY = 7
 ST_WRITE_HEADER = 8
 ST_ENCRYPT_BODY = 9
 ST_WRITE_TRAILER = 10
-
-
 
 
 // <aws/cryptosdk/private/session.h>: 23- 24

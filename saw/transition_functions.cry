@@ -143,7 +143,7 @@ encryptHelper state_old size_in size_out new_state =
         }
     else 
         { 
-        sess = updateOutputInputEstimates (advanceStateOnly state_old.sess new_state) size_out size_in,
+        sess = updateOutputInputEstimates (advanceStateOnly (incrementFrameSeqno state_old.sess) new_state) size_out size_in,
                 output_buffer = { 
                                 ptr = state_old.output_buffer.ptr + size_out,
                                 len = state_old.output_buffer.len - size_out
