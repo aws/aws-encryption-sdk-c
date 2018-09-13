@@ -288,10 +288,12 @@ int aws_cryptosdk_sig_get_privkey(
 err:
     aws_secure_zero(tmparr, sizeof(tmparr));
     if (privkey_buf) {
-        OPENSSL_clear_free(privkey_buf, privkey_len);
+        aws_secure_zero(privkey_buf, privkey_len);
+        free(privkey_buf);
     }
     if (pubkey_buf) {
-        OPENSSL_free(pubkey_buf);
+        aws_secure_zero(pubkey_buf, pubkey_len);
+        free(pubkey_buf);
     }
 
     // There is no error path that results in a non-NULL priv_key, so we don't need to
