@@ -22,7 +22,7 @@
 module state_machine where
 
 import type_def
-import transition_function
+import transition_functions
 import helper_functions
     
 

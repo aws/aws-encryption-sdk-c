@@ -13,26 +13,29 @@
  * limitations under the License.
  */
 
+
+/* 
+* File contains a set state machine properties are specified. 
+* All properties return a Bit value. 
+* These properties can be proven using SAW configured with some satisfiability solver. 
+* All properties currently consider only non-error and non-done states. 
+*/
+
 module proofs where 
 
 import type_def
 import state_machine
-
-/* In this file, a set of state machine properties are specified. 
-These properties can be proven using SAW configured with some satisfiability solver. 
-In all properties, progress is considered from any non-error and non-done state.
-*/
 
 
 
 // Are known preconditons about the fields of the state are met. 
 arePreconditionsMet : state_t -> Bit
 arePreconditionsMet state = 
-    if state.sess.data_so_far > state.sess.precise_size then False //SANITY CHECK
+    if state.sess.data_so_far > state.sess.precise_size then False         //SANITY CHECK
     else if state.sess.frame_size >= MAX_FRAME_SIZE then False             //SANITY CHECK
     else if state.sess.state >=ST_DONE then False                          //SANITY CHECK
-    else if state.sess.alg_prop.iv_len != ( 96 * 8 ) then False                    //ACCORDING TO DOC
-    else if state.sess.alg_prop.tag_len != ( 128 * 8 ) then False                  //ACCORDING TO DOC
+    else if state.sess.alg_prop.iv_len != ( 96 * 8 ) then False            //ACCORDING TO DOC
+    else if state.sess.alg_prop.tag_len != ( 128 * 8 ) then False          //ACCORDING TO DOC
     else True 
 
 

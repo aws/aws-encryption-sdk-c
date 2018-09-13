@@ -19,7 +19,7 @@
 * These are functions called in the loop of aws_cryptosdk_session_process in session.c (lines 180 - 243)
 */
 
-module transition_function where
+module transition_functions where
 
 import type_def
 import helper_functions
