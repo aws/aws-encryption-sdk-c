@@ -39,7 +39,7 @@ type session_c_t = {
     input_size_estimate : size_bits_t,
     header_size : size_bits_t,
     state : state_size_t,
-    mode : [1], //boolean flag: encrypt (0) or decrypt (1) 
+    mode : [32], //boolean flag: encrypt (0) or decrypt (1) 
     precise_size : [64],
     data_so_far : [64],
     frame_size : [64], // if frame size is zero, the message is unframed

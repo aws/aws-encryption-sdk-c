@@ -34,6 +34,7 @@ arePreconditionsMet state =
     if state.sess.data_so_far > state.sess.precise_size then False         //SANITY CHECK
     else if state.sess.frame_size >= MAX_FRAME_SIZE then False             //SANITY CHECK
     else if state.sess.precise_size_known > 1 then False                   //SANITY CHECK
+    else if state.sess.mode > 1 then False                                 //SANITY CHECK
     else if state.sess.state > ST_WRITE_TRAILER then False                 //SANITY CHECK
     else if state.sess.state == ST_DONE then False                         //THERE IS NO PROGRESS FROM ST_DONE
     else if state.sess.state == ST_ERROR then False                        //THERE IS NO PROGRESS FROM ST_ERROR
