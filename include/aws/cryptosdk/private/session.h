@@ -79,6 +79,9 @@ struct aws_cryptosdk_session {
 
     /* Decrypted, derived (if applicable) content key */
     struct content_key content_key;
+
+    /* In-progress trailing signature context (if applicable) */
+    struct aws_cryptosdk_signctx *signctx;
 };
 
 
@@ -98,6 +101,7 @@ int try_decrypt_body(
     struct aws_byte_cursor * AWS_RESTRICT poutput,
     struct aws_byte_cursor * AWS_RESTRICT pinput
 );
+int check_trailer(struct aws_cryptosdk_session * AWS_RESTRICT session, struct aws_byte_cursor * AWS_RESTRICT pinput);
 
 /* Encrypt path */
 void encrypt_compute_body_estimate(struct aws_cryptosdk_session *session);

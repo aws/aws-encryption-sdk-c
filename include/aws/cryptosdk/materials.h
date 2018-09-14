@@ -76,7 +76,7 @@ struct aws_cryptosdk_encryption_materials {
     struct aws_byte_buf unencrypted_data_key;
     struct aws_array_list encrypted_data_keys; // list of struct aws_cryptosdk_edk objects
     struct aws_hash_table * enc_context;
-    struct aws_cryptosdk_key_pair trailing_signature_key_pair;
+    struct aws_cryptosdk_signctx *signctx;
     enum aws_cryptosdk_alg_id alg;
 };
 
@@ -90,7 +90,7 @@ struct aws_cryptosdk_decryption_request {
 struct aws_cryptosdk_decryption_materials {
     struct aws_allocator * alloc;
     struct aws_byte_buf unencrypted_data_key;
-    struct aws_cryptosdk_public_key trailing_signature_key;
+    struct aws_cryptosdk_signctx *signctx;
     enum aws_cryptosdk_alg_id alg;
 };
 

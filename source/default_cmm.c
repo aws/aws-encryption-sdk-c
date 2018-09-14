@@ -14,10 +14,13 @@
  */
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/cipher.h>
+#include <aws/common/string.h>
 
 #include <assert.h>
 
 #define DEFAULT_ALG AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE
+
+AWS_STATIC_STRING_FROM_LITERAL(EC_PUBLIC_KEY_FIELD, "aws-crypto-public-key");
 
 struct default_cmm {
     const struct aws_cryptosdk_cmm_vt * vt;
@@ -72,7 +75,21 @@ static int default_cmm_decrypt_materials(struct aws_cryptosdk_cmm * cmm,
         goto err;
     }
 
-// TODO: implement trailing signatures
+    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(request->alg);
+    if (props->signature_len) {
+        struct aws_hash_element *pElement = NULL;
+
+        if (aws_hash_table_find(request->enc_context, EC_PUBLIC_KEY_FIELD, &pElement)
+            || !pElement || !pElement->key
+        ) {
+            aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
+            goto err;
+        }
+
+        if (aws_cryptosdk_sig_verify_start(&dec_mat->signctx, request->alloc, pElement->value, props)) {
+            goto err;
+        }
+    }
 
     *output = dec_mat;
     return AWS_OP_SUCCESS;
