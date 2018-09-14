@@ -43,7 +43,7 @@ type session_c_t = {
     precise_size : [64],
     data_so_far : [64],
     frame_size : [64], // if frame size is zero, the message is unframed
-    precise_size_known : [1],
+    precise_size_known : [8],
     frame_seqno : [64],
     alg_prop : alg_properties_c_t,
     header : hdr_c_t
