@@ -26,7 +26,7 @@
 #include <aws/common/error.h>
 
 #include "testutil.h"
-#include "zero_kr.h"
+#include "zero_keyring.h"
 
 /* Braindead option parser for now */
 const char *ciphertext_filename, *plaintext_filename;
@@ -54,7 +54,7 @@ int test_decrypt() {
     struct aws_cryptosdk_session *session = NULL;
     struct aws_cryptosdk_cmm *cmm = NULL;
 
-    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), aws_cryptosdk_zero_kr_new()))) unexpected_error();
+    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), aws_cryptosdk_zero_keyring_new()))) unexpected_error();
 
     if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
 

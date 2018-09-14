@@ -20,7 +20,7 @@
 /**
  * Instantiate the raw AES KR that was used to generate the test vectors.
  */
-struct aws_cryptosdk_kr * raw_aes_kr_tv_new(
+struct aws_cryptosdk_keyring * raw_aes_keyring_tv_new(
     struct aws_allocator * alloc,
     enum aws_cryptosdk_aes_key_len raw_key_len);
 
@@ -28,7 +28,7 @@ struct aws_cryptosdk_kr * raw_aes_kr_tv_new(
  * Holds the data for one unencrypted/encrypted data key pair produced by the
  * raw AES KR with the settings above.
  */
-struct raw_aes_kr_test_vector {
+struct raw_aes_keyring_test_vector {
     enum aws_cryptosdk_aes_key_len raw_key_len;
     enum aws_cryptosdk_alg_id alg;
     const uint8_t * data_key;
@@ -41,7 +41,7 @@ struct raw_aes_kr_test_vector {
     size_t num_ec_kv_pairs;
 };
 
-extern struct raw_aes_kr_test_vector raw_aes_kr_test_vectors[];
+extern struct raw_aes_keyring_test_vector raw_aes_keyring_test_vectors[];
 
 /**
  * Add all of the key-value pairs for this test vector to the encryption context.
@@ -54,7 +54,7 @@ extern struct raw_aes_kr_test_vector raw_aes_kr_test_vectors[];
  */
 int set_test_vector_encryption_context(struct aws_allocator * alloc,
                                        struct aws_hash_table * enc_context,
-                                       const struct raw_aes_kr_test_vector * tv);
+                                       const struct raw_aes_keyring_test_vector * tv);
 
 /**
  * Construct EDK that would be made by the raw AES KR that generated the test
@@ -80,16 +80,7 @@ struct aws_cryptosdk_edk build_test_edk_init(const uint8_t * edk_bytes, size_t e
 /**
  * Convenience wrappers around build_test_edk_init that give the EDK of any test vector.
  */
-struct aws_cryptosdk_edk edk_init_from_test_vector(struct raw_aes_kr_test_vector * tv);
+struct aws_cryptosdk_edk edk_init_from_test_vector(struct raw_aes_keyring_test_vector * tv);
 struct aws_cryptosdk_edk edk_init_from_test_vector_idx(int idx);
-
-/**
- * Returns true if the contents of all EDK byte buffers are identical, false otherwise.
- */
-static inline bool aws_cryptosdk_edk_eq(const struct aws_cryptosdk_edk * a, const struct aws_cryptosdk_edk * b) {
-    return aws_byte_buf_eq(&a->enc_data_key, &b->enc_data_key) &&
-        aws_byte_buf_eq(&a->provider_info, &b->provider_info) &&
-        aws_byte_buf_eq(&a->provider_id, &b->provider_id);
-}
 
 #endif // AWS_CRYPTOSDK_TESTS_LIB_RAW_AES_KR_TEST_VECTORS_H

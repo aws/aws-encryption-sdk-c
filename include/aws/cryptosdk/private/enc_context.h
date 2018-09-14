@@ -19,12 +19,26 @@
 #include <aws/common/hash_table.h>
 
 /**
- * Allocates byte buffer and puts serialized encryption context into buffer.
+ * Computes the size of a serialized encryption context.
  *
- * On failure, nothing is allocated and all fields of byte buffer are zeroized.
+ * If the context is too large, raises AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED.
  */
-int aws_cryptosdk_serialize_enc_context_init(struct aws_allocator * alloc,
-                                             struct aws_byte_buf * output,
-                                             const struct aws_hash_table * enc_context);
+int aws_cryptosdk_context_size(size_t *size, const struct aws_hash_table *enc_context);
+
+/**
+ * Serializes an encryption context into the given buffer, which must be preallocated.
+ * The passed allocator is used for temporary working memory only.
+ */
+int aws_cryptosdk_context_serialize(struct aws_allocator *alloc,
+                                    struct aws_byte_buf * output,
+                                    const struct aws_hash_table *enc_context);
+
+/**
+ * Deserializes an encryption context from the given cursor, which will be advanced accordingly.
+ */
+int aws_cryptosdk_context_deserialize(struct aws_allocator *alloc,
+                                      struct aws_hash_table *enc_context,
+                                      struct aws_byte_cursor *cursor);
+
 
 #endif // AWS_CRYPTOSDK_PRIVATE_ENC_CONTEXT_H

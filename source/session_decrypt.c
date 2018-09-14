@@ -29,57 +29,47 @@
 /** Session decrypt path routines **/
 
 static int fill_request(
-    struct aws_hash_table *enc_context,
     struct aws_cryptosdk_decryption_request *request,
     struct aws_cryptosdk_session *session
 ) {
     request->alloc = session->alloc;
     request->alg = session->alg_props->alg_id;
 
+    size_t n_keys = aws_array_list_length(&session->header.edk_list);
+
+    // TODO: Make encrypted_data_keys a pointer?
     if (aws_array_list_init_dynamic(
         &request->encrypted_data_keys,
         session->alloc,
-        session->header.edk_count,
+        n_keys,
         sizeof(struct aws_cryptosdk_edk)
     )) {
         return AWS_OP_ERR;
     }
 
-    if (aws_hash_table_init(enc_context, session->alloc, session->header.aad_count,
-        aws_hash_string, aws_string_eq,
-        aws_string_destroy, aws_string_destroy
-    )) {
-        aws_array_list_clean_up(&request->encrypted_data_keys);
-        return AWS_OP_ERR;
-    }
+    request->enc_context = &session->header.enc_context;
 
-    request->enc_context = enc_context;
+    for (size_t i = 0; i < n_keys; i++) {
+        struct aws_cryptosdk_edk edk;
 
-    for (size_t i = 0; i < session->header.edk_count; i++) {
-        if (aws_array_list_push_back(&request->encrypted_data_keys, &session->header.edk_tbl[i])) return AWS_OP_ERR;
-    }
-
-    for (size_t i = 0; i < session->header.aad_count; i++) {
-        const struct aws_string *key = NULL, *value = NULL;
-        const struct aws_cryptosdk_hdr_aad *aad = &session->header.aad_tbl[i];
-
-
-        key = aws_string_new_from_array(session->alloc, aad->key.buffer, aad->key.len);
-        value = aws_string_new_from_array(session->alloc, aad->value.buffer, aad->value.len);
-
-        struct aws_hash_element *pElem;
-
-        if (!key || !value || aws_hash_table_create(enc_context, (void *)key, &pElem, NULL)) {
-            aws_string_destroy((struct aws_string *)key);
-            aws_string_destroy((struct aws_string *)value);
-
-            return aws_raise_error(AWS_ERROR_OOM);
+        if (aws_array_list_get_at(&session->header.edk_list, &edk, i)) {
+            goto UNEXPECTED_ERROR;
         }
+        // Because the session header owns the EDKs, clear the allocators to avoid any unfortunate double frees
+        edk.provider_id.allocator = NULL;
+        edk.provider_info.allocator = NULL;
+        edk.enc_data_key.allocator = NULL;
 
-        pElem->value = (void *)value;
+        if (aws_array_list_push_back(&request->encrypted_data_keys, &edk)) {
+            goto UNEXPECTED_ERROR;
+        }
     }
 
     return AWS_OP_SUCCESS;
+
+UNEXPECTED_ERROR:
+    aws_array_list_clean_up(&request->encrypted_data_keys);
+    return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
 }
 
 static int derive_data_key(
@@ -122,7 +112,6 @@ static int validate_header(struct aws_cryptosdk_session *session) {
 int unwrap_keys(
     struct aws_cryptosdk_session * AWS_RESTRICT session
 ) {
-    struct aws_hash_table enc_context;
     struct aws_cryptosdk_decryption_request request;
     struct aws_cryptosdk_decryption_materials *materials = NULL;
 
@@ -133,7 +122,7 @@ int unwrap_keys(
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
     }
 
-    if (fill_request(&enc_context, &request, session)) return AWS_OP_ERR;
+    if (fill_request(&request, session)) return AWS_OP_ERR;
     int rv = AWS_OP_ERR;
 
     if (aws_cryptosdk_cmm_decrypt_materials(session->cmm, &materials, &request)) goto out;
@@ -148,7 +137,6 @@ int unwrap_keys(
 out:
     if (materials) aws_cryptosdk_decryption_materials_destroy(materials);
     aws_array_list_clean_up(&request.encrypted_data_keys);
-    aws_hash_table_clean_up(&enc_context);
 
     return rv;
 }
@@ -157,7 +145,8 @@ int try_parse_header(
     struct aws_cryptosdk_session * AWS_RESTRICT session,
     struct aws_byte_cursor * AWS_RESTRICT input
 ) {
-    int rv = aws_cryptosdk_hdr_parse_init(session->alloc, &session->header, input->ptr, input->len);
+    const uint8_t *header_start = input->ptr;
+    int rv = aws_cryptosdk_hdr_parse(&session->header, input);
 
     if (rv != AWS_OP_SUCCESS) {
         if (aws_last_error() == AWS_ERROR_SHORT_BUFFER) {
@@ -175,15 +164,18 @@ int try_parse_header(
     }
 
     session->header_size = aws_cryptosdk_hdr_size(&session->header);
+
+    if (session->header_size != input->ptr - header_start) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+    }
+
     session->header_copy = aws_mem_acquire(session->alloc, session->header_size);
 
     if (!session->header_copy) {
         return aws_raise_error(AWS_ERROR_OOM);
     }
 
-    memcpy(session->header_copy, input->ptr, session->header_size);
-
-    aws_byte_cursor_advance(input, session->header_size);
+    memcpy(session->header_copy, header_start, session->header_size);
 
     session_change_state(session, ST_UNWRAP_KEY);
 

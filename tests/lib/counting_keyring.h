@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef AWS_CRYPTOSDK_TESTS_LIB_COUNTING_KR_H
-#define AWS_CRYPTOSDK_TESTS_LIB_COUNTING_KR_H
+#ifndef AWS_CRYPTOSDK_TESTS_LIB_COUNTING_KEYRING_H
+#define AWS_CRYPTOSDK_TESTS_LIB_COUNTING_KEYRING_H
 
 #include <aws/cryptosdk/materials.h>
 
@@ -29,6 +29,6 @@
  * provider info, and 0x4041424344 as the encrypted data key field; EDKs not
  * conforming to this will not be considered decryptable using this Keyring.
  */
-struct aws_cryptosdk_kr *aws_cryptosdk_counting_kr();
+struct aws_cryptosdk_keyring *aws_cryptosdk_counting_keyring();
 
-#endif /* AWS_CRYPTOSDK_TESTS_LIB_COUNTING_KR_H */
+#endif /* AWS_CRYPTOSDK_TESTS_LIB_COUNTING_KEYRING_H */

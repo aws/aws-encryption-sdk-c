@@ -17,7 +17,7 @@
 struct default_cmm {
     const struct aws_cryptosdk_cmm_vt * vt;
     struct aws_allocator * alloc;
-    struct aws_cryptosdk_kr * kr;
+    struct aws_cryptosdk_keyring * kr;
 };
 
 static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * cmm,
@@ -31,7 +31,7 @@ static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * 
 
     enc_mat->enc_context = request->enc_context;
 
-    if (aws_cryptosdk_kr_generate_data_key(self->kr, enc_mat)) goto err;
+    if (aws_cryptosdk_keyring_generate_data_key(self->kr, enc_mat)) goto err;
 
 // TODO: implement trailing signatures
 
@@ -53,7 +53,7 @@ static int default_cmm_decrypt_materials(struct aws_cryptosdk_cmm * cmm,
     dec_mat = aws_cryptosdk_decryption_materials_new(request->alloc, request->alg);
     if (!dec_mat) goto err;
 
-    if (aws_cryptosdk_kr_decrypt_data_key(self->kr, dec_mat, request)) goto err;
+    if (aws_cryptosdk_keyring_decrypt_data_key(self->kr, dec_mat, request)) goto err;
 
     if (!dec_mat->unencrypted_data_key.buffer) {
         aws_raise_error(AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT);
@@ -84,7 +84,7 @@ static const struct aws_cryptosdk_cmm_vt default_cmm_vt = {
     .decrypt_materials = default_cmm_decrypt_materials
 };
 
-struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * alloc, struct aws_cryptosdk_kr * kr) {
+struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * alloc, struct aws_cryptosdk_keyring * kr) {
     struct default_cmm * cmm;
     cmm = aws_mem_acquire(alloc, sizeof(struct default_cmm));
     if (!cmm) return NULL;
