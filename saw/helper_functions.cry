@@ -1,0 +1,87 @@
+/*
+ * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+ * this file except in compliance with the License. A copy of the License is
+ * located at
+ *
+ *     http://aws.amazon.com/apache2.0/
+ *
+ * or in the "license" file accompanying this file. This file is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+ /* 
+ * File contains helper functions to reduce code bloat due to common subroutines. 
+ */
+
+module helper_functions where 
+
+import type_def
+
+
+//Helper function to update the state of the session only. 
+advanceStateOnly : session_c_t -> state_size_t -> session_c_t
+advanceStateOnly session_old new_state = {
+                                        output_size_estimate = session_old.output_size_estimate,
+                                        input_size_estimate = session_old.input_size_estimate,
+                                        header_size = session_old.header_size,
+                                        state = new_state,
+                                        mode = session_old.mode,
+                                        precise_size = session_old.precise_size,
+                                        data_so_far = session_old.data_so_far,
+                                        frame_size = session_old.frame_size,
+                                        precise_size_known = session_old.precise_size_known,
+                                        frame_seqno = session_old.frame_seqno, 
+                                        alg_prop = session_old.alg_prop,
+                                        header = session_old.header
+                                        }
+
+//Helper function to update the input and output size estimates only. 
+updateOutputInputEstimates : session_c_t -> size_bits_t -> size_bits_t -> session_c_t
+updateOutputInputEstimates session_old output_est input_est = {
+                                                                output_size_estimate = output_est,
+                                                                input_size_estimate = input_est,
+                                                                header_size = session_old.header_size,
+                                                                state = session_old.state,
+                                                                mode = session_old.mode,
+                                                                precise_size = session_old.precise_size,
+                                                                data_so_far = session_old.data_so_far,
+                                                                frame_size = session_old.frame_size,
+                                                                precise_size_known = session_old.precise_size_known,
+                                                                frame_seqno = session_old.frame_seqno, 
+                                                                alg_prop = session_old.alg_prop,
+                                                                header = session_old.header
+                                                                }
+
+
+//Helper function to update the frame_seqno of the session only. 
+incrementFrameSeqno : session_c_t -> session_c_t
+incrementFrameSeqno session_old = {
+                                output_size_estimate = session_old.output_size_estimate,
+                                input_size_estimate = session_old.input_size_estimate,
+                                header_size = session_old.header_size,
+                                state = session_old.state,
+                                mode = session_old.mode,
+                                precise_size = session_old.precise_size,
+                                data_so_far = session_old.data_so_far,
+                                frame_size = session_old.frame_size,
+                                precise_size_known = session_old.precise_size_known,
+                                frame_seqno = session_old.frame_seqno + 1, 
+                                alg_prop = session_old.alg_prop,
+                                header = session_old.header
+                                  }
+
+
+//Helper function to changed only the session of the state_t to a new state.        
+advanceSessionByStateOnly : state_t -> state_size_t -> state_t
+advanceSessionByStateOnly state_old new_state = {
+                                                sess = advanceStateOnly state_old.sess new_state,
+                                                output_buffer = state_old.output_buffer, 
+                                                input_buffer = state_old.input_buffer
+                                                }
+
+
+                                                    
