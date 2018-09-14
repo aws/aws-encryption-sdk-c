@@ -14,10 +14,16 @@
  */
 
 #include <aws/common/array_list.h>
+#include <aws/common/string.h>
 #include <aws/cryptosdk/default_cmm.h>
+#include <aws/cryptosdk/cipher.h>
 #include "testing.h"
 #include "zero_keyring.h"
 #include "bad_cmm.h"
+
+static void init_context(struct aws_hash_table *enc_context, struct aws_allocator *alloc) {
+    aws_hash_table_init(enc_context, alloc, 4, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy);
+}
 
 int default_cmm_zero_keyring_enc_mat() {
     struct aws_hash_table enc_context;
@@ -25,17 +31,23 @@ int default_cmm_zero_keyring_enc_mat() {
     struct aws_cryptosdk_keyring * kr = aws_cryptosdk_zero_keyring_new();
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(alloc, kr);
 
+    init_context(&enc_context, alloc);
+
     struct aws_cryptosdk_encryption_request req;
-    req.enc_context = &enc_context; // this is uninitialized; we just want to see if it gets passed along
-    req.requested_alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE;
+    req.enc_context = &enc_context;
+    req.requested_alg = 0;
     req.alloc = aws_default_allocator();
+
+    aws_cryptosdk_default_cmm_set_alg_id(cmm, AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE);
 
     struct aws_cryptosdk_encryption_materials * enc_mat;
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
                        aws_cryptosdk_cmm_generate_encryption_materials(cmm, &enc_mat, &req));
+    TEST_ASSERT(req.requested_alg != 0);
 
     TEST_ASSERT_ADDR_EQ(enc_mat->enc_context, &enc_context);
     TEST_ASSERT_INT_EQ(enc_mat->alg, AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE);
+    TEST_ASSERT_INT_EQ(enc_mat->alg, req.requested_alg);
 
     TEST_ASSERT_BUF_EQ(enc_mat->unencrypted_data_key,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -53,6 +65,7 @@ int default_cmm_zero_keyring_enc_mat() {
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
     aws_cryptosdk_cmm_destroy(cmm);
     aws_cryptosdk_keyring_destroy(kr);
+    aws_hash_table_clean_up(&enc_context);
 
     return 0;
 }
@@ -83,6 +96,61 @@ int default_cmm_zero_keyring_dec_mat() {
     aws_cryptosdk_cmm_destroy(cmm);
     aws_cryptosdk_keyring_destroy(kr);
     aws_array_list_clean_up(&req.encrypted_data_keys);
+    return 0;
+}
+
+int default_cmm_alg_mismatch() {
+    struct aws_hash_table enc_context;
+    struct aws_allocator * alloc = aws_default_allocator();
+    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_zero_keyring_new();
+    struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(alloc, kr);
+
+    init_context(&enc_context, alloc);
+
+    struct aws_cryptosdk_encryption_request req;
+    req.enc_context = &enc_context;
+    req.requested_alg = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE;
+    req.alloc = aws_default_allocator();
+
+    aws_cryptosdk_default_cmm_set_alg_id(cmm, AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE);
+
+    struct aws_cryptosdk_encryption_materials * enc_mat;
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT,
+                       aws_cryptosdk_cmm_generate_encryption_materials(cmm, &enc_mat, &req));
+
+    aws_cryptosdk_encryption_materials_destroy(enc_mat);
+    aws_cryptosdk_cmm_destroy(cmm);
+    aws_cryptosdk_keyring_destroy(kr);
+    aws_hash_table_clean_up(&enc_context);
+
+    return 0;
+}
+
+int default_cmm_alg_match() {
+    struct aws_hash_table enc_context;
+    struct aws_allocator * alloc = aws_default_allocator();
+    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_zero_keyring_new();
+    struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(alloc, kr);
+
+    init_context(&enc_context, alloc);
+
+    struct aws_cryptosdk_encryption_request req;
+    req.enc_context = &enc_context;
+    req.requested_alg = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE;
+    req.alloc = aws_default_allocator();
+
+    aws_cryptosdk_default_cmm_set_alg_id(cmm, AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE);
+
+    struct aws_cryptosdk_encryption_materials * enc_mat;
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_encryption_materials(cmm, &enc_mat, &req));
+    TEST_ASSERT_INT_EQ(req.requested_alg, AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE);
+    TEST_ASSERT_INT_EQ(enc_mat->alg, req.requested_alg);
+
+    aws_cryptosdk_encryption_materials_destroy(enc_mat);
+    aws_cryptosdk_cmm_destroy(cmm);
+    aws_cryptosdk_keyring_destroy(kr);
+    aws_hash_table_clean_up(&enc_context);
+
     return 0;
 }
 
@@ -123,6 +191,8 @@ int null_materials_destroy_is_noop() {
 struct test_case materials_test_cases[] = {
     { "materials", "default_cmm_zero_keyring_enc_mat", default_cmm_zero_keyring_enc_mat },
     { "materials", "default_cmm_zero_keyring_dec_mat", default_cmm_zero_keyring_dec_mat },
+    { "materials", "default_cmm_alg_mismatch", default_cmm_alg_mismatch },
+    { "materials", "default_cmm_alg_match", default_cmm_alg_match },
     { "materials", "zero_size_cmm_does_not_run_vfs", zero_size_cmm_does_not_run_vfs },
     { "materials", "null_cmm_fails_vf_calls_cleanly", null_cmm_fails_vf_calls_cleanly },
     { "materials", "null_materials_destroy_is_noop", null_materials_destroy_is_noop },

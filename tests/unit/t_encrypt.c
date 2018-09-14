@@ -288,11 +288,53 @@ int test_changed_keyring_can_decrypt() {
     return 0;
 }
 
+static int test_algorithm_override_once(enum aws_cryptosdk_alg_id alg_id) {
+    init_bufs(1);
+
+    size_t ct_consumed, pt_consumed;
+    enum aws_cryptosdk_alg_id reported_alg_id;
+    create_session(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_counting_keyring());
+    aws_cryptosdk_default_cmm_set_alg_id(cmm, alg_id);
+    aws_cryptosdk_session_set_message_size(session, pt_size);
+    precise_size_set = true;
+
+    if (pump_ciphertext(2048, &ct_consumed, pt_size, &pt_consumed)) return 1;
+    TEST_ASSERT(aws_cryptosdk_session_is_done(session));
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_get_algorithm(session, &reported_alg_id));
+    TEST_ASSERT_INT_EQ(alg_id, reported_alg_id);
+
+    if (check_ciphertext()) return 1;
+
+    // Session is now configured for decrypt and should report decryption-side ID
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_get_algorithm(session, &reported_alg_id));
+    TEST_ASSERT_INT_EQ(alg_id, reported_alg_id);
+
+    free_bufs();
+
+    return 0;
+}
+
+int test_algorithm_override() {
+    return test_algorithm_override_once(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE)
+        || test_algorithm_override_once(AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE)
+        || test_algorithm_override_once(AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE)
+#if 0
+        || test_algorithm_override_once(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256)
+        || test_algorithm_override_once(AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384)
+        || test_algorithm_override_once(AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384)
+#endif
+        || test_algorithm_override_once(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE)
+        || test_algorithm_override_once(AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE)
+        || test_algorithm_override_once(AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE);
+}
+
 
 struct test_case encrypt_test_cases[] = {
     { "encrypt", "test_simple_roundtrip", test_simple_roundtrip },
     { "encrypt", "test_small_buffers", test_small_buffers },
     { "encrypt", "test_different_keyring_cant_decrypt", &test_different_keyring_cant_decrypt },
     { "encrypt", "test_changed_keyring_can_decrypt", &test_changed_keyring_can_decrypt },
+    { "encrypt", "test_algorithm_override", &test_algorithm_override },
     { NULL }
 };

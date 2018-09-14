@@ -31,6 +31,12 @@
  * On each attempt to decrypt materials, it passes the full list of EDKs to the KR
  * and asks it to find one to decrypt.
  *
+ * The default CMM will always encrypt using the same algorithm suite. By default,
+ * this is AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE, but can be overridden using
+ * aws_cryptosdk_default_cmm_set_alg_id. If the default CMM is wrapped by another CMM,
+ * the outer CMM must either not set the requested algorithm ID, or it must set the
+ * same requested algorithm ID as the default CMM.
+ *
  * TODO: Trailing signature keys are not implemented yet in this CMM.
  *
  * On success allocates a CMM and returns its address. Be sure to deallocate it later
@@ -40,5 +46,12 @@
  */
 struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * alloc,
                                                          struct aws_cryptosdk_keyring * kr);
+
+/**
+ * Selects the algorithm suite ID to use for encryption. If not called, a reasonable
+ * default will be selected.
+ * Raises AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT if the algorithm suite ID is unknown.
+ */
+int aws_cryptosdk_default_cmm_set_alg_id(struct aws_cryptosdk_cmm *cmm, enum aws_cryptosdk_alg_id alg_id);
 
 #endif // AWS_CRYPTOSDK_DEFAULT_CMM_H

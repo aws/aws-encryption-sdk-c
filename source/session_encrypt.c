@@ -54,8 +54,8 @@ int try_gen_key(struct aws_cryptosdk_session *session) {
 
     request.alloc = session->alloc;
     request.enc_context = &session->header.enc_context;
-    // TODO - the CMM should specify this
-    request.requested_alg = AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE;
+    // The default CMM will fill this in.
+    request.requested_alg = 0;
     request.plaintext_size = session->precise_size_known ? session->precise_size : UINT64_MAX;
 
     if (aws_cryptosdk_cmm_generate_encryption_materials(

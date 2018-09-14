@@ -13,11 +13,17 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/default_cmm.h>
+#include <aws/cryptosdk/cipher.h>
+
+#include <assert.h>
+
+#define DEFAULT_ALG AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE
 
 struct default_cmm {
     const struct aws_cryptosdk_cmm_vt * vt;
     struct aws_allocator * alloc;
     struct aws_cryptosdk_keyring * kr;
+    enum aws_cryptosdk_alg_id alg_id;
 };
 
 static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * cmm,
@@ -25,6 +31,13 @@ static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * 
                                                      struct aws_cryptosdk_encryption_request * request) {
     struct aws_cryptosdk_encryption_materials * enc_mat = NULL;
     struct default_cmm * self = (struct default_cmm *) cmm;
+
+    *output = NULL;
+    if (request->requested_alg && request->requested_alg != self->alg_id) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
+    }
+
+    request->requested_alg = self->alg_id;
 
     enc_mat = aws_cryptosdk_encryption_materials_new(request->alloc, request->requested_alg);
     if (!enc_mat) goto err;
@@ -39,7 +52,6 @@ static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * 
     return AWS_OP_SUCCESS;
 
 err:
-    *output = NULL;
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
     return AWS_OP_ERR;
 }
@@ -92,6 +104,21 @@ struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * 
     cmm->vt = &default_cmm_vt;
     cmm->alloc = alloc;
     cmm->kr = kr;
+    cmm->alg_id = DEFAULT_ALG;
 
     return (struct aws_cryptosdk_cmm *) cmm;
+}
+
+int aws_cryptosdk_default_cmm_set_alg_id(struct aws_cryptosdk_cmm *cmm, enum aws_cryptosdk_alg_id alg_id) {
+    struct default_cmm * self = (struct default_cmm *) cmm;
+
+    assert(self->vt == &default_cmm_vt);
+
+    if (!aws_cryptosdk_alg_props(alg_id)) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
+    }
+
+    self->alg_id = alg_id;
+
+    return AWS_OP_SUCCESS;
 }
