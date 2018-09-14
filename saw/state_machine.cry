@@ -46,8 +46,8 @@ processState state_old =
 
 
 // Has the state changed after a call of processState (line 242 of session.c)
-isStateChanged : state_t -> state_t -> Bit
-isStateChanged state_new state_old = 
+hasStateorPtrsChanged : state_t -> state_t -> Bit
+hasStateorPtrsChanged state_new state_old = 
     if state_new.sess.state != state_old.sess.state then True
     else if state_new.output_buffer.ptr != state_old.output_buffer.ptr then True 
     else if state_new.input_buffer.ptr != state_old.input_buffer.ptr then True
@@ -65,11 +65,11 @@ isBufferUpdateNeeded state_new =
 
 // Function that determines if the loop can continue (line 243 of session.c)
 // Assumption is that AWS_OP_SUCCESS has been returned. 
-property doesLoopContinueProperty x = ( isStateChanged (processState x) x == True )
+property doesLoopContinueProperty x = ( hasStateorPtrsChanged (processState x) x == True )
 
 
 // Function that determines if either the loop continues or if a need for larger buffers has been detected. 
-property isProgressMadeProperty x = ( isStateChanged (processState x) x == True ) 
+property isProgressMadeProperty x = ( hasStateorPtrsChanged (processState x) x == True ) 
                                         || ( isBufferUpdateNeeded  (processState x) == True )
 
 
