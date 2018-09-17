@@ -1,3 +1,4 @@
+
 # Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You may not use
@@ -12,24 +13,15 @@
 # limitations under the License.
 #
 
-# for KMS MK
-find_package(aws-cpp-sdk-kms)
-if (aws-cpp-sdk-kms_FOUND)
-    set(AWS_CPP_SDK_LIBS ${AWS_CPP_SDK_LIBS} "aws-cpp-sdk-kms")
-    set(AWS_CPP_SDK_CORE_REQUIRED "REQUIRED")
-
-    include_directories(${aws-cpp-sdk-kms_INCLUDE_DIRS})
+# for KMS Keyring
+find_package(AWSSDK COMPONENTS core kms)
+if (AWSSDK_FOUND)
     option(BUILD_AWS_ENC_SDK_CPP "Build AWS ENC SDK C++ components" ON)
+    include_directories(${AWSSDK_INCLUDE_DIR})
+    link_directories(${AWSSDK_LIB_DIR})
+    message(STATUS "AWSSDK having components core, kms found.")
 else()
-    message(WARNING "aws-cpp-sdk-kms could not been found. KMS Master Key will not be available")
-endif()
-
-find_package(aws-cpp-sdk-core ${AWS_CPP_SDK_CORE_REQUIRED})
-if (aws-cpp-sdk-core_FOUND)
-    set(AWS_CPP_SDK_LIBS ${AWS_CPP_SDK_LIBS} "aws-cpp-sdk-core")
-    include_directories(${aws-cpp-sdk-core_INCLUDE_DIRS})
-else()
-    message(WARNING "aws-cpp-sdk-core could not been found. AWS SDKs functions disabled")
+    message(WARNING "AWSSDK having components core, kms not found. KMS Keyring will not be available")
 endif()
 
 
@@ -60,7 +52,7 @@ if (BUILD_AWS_ENC_SDK_CPP)
             $<INSTALL_INTERFACE:include>
             )
     set_target_properties(aws-encryption-sdk-cpp PROPERTIES LINKER_LANGUAGE CXX)
-    target_link_libraries(aws-encryption-sdk-cpp ${AWS_CPP_SDK_LIBS} ${PROJECT_NAME})
+    target_link_libraries(aws-encryption-sdk-cpp aws-c-common aws-cpp-sdk-kms aws-cpp-sdk-core aws-encryption-sdk)
     install(
             TARGETS aws-encryption-sdk-cpp EXPORT aws-encryption-sdk-cpp
             ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
@@ -69,7 +61,6 @@ if (BUILD_AWS_ENC_SDK_CPP)
     )
     install(EXPORT aws-encryption-sdk-cpp DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/aws-encryption-sdk/cmake/")
 
-
     include(CTest)
     enable_testing()
 
@@ -77,31 +68,39 @@ if (BUILD_AWS_ENC_SDK_CPP)
     file(GLOB TEST_LIB_HEADERS "tests/lib/*.h")
 
     add_library(testlibcpp EXCLUDE_FROM_ALL ${TEST_LIB_HEADERS} ${TEST_LIB})
-    target_link_libraries(testlibcpp ${PROJECT_NAME} ${AWS_ENC_SDK_CPP})
+    target_link_libraries(testlibcpp aws-encryption-sdk-cpp)
     set_target_properties(testlibcpp PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
-    target_include_directories(testlibcpp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib ${PROJECT_SOURCE_DIR}/tests/lib)
-
+    target_include_directories(testlibcpp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib
+            ${PROJECT_SOURCE_DIR}/tests/lib $<INSTALL_INTERFACE:include>)
 
     # TODO enable Integration tests only for those who have access to encrypt decrypt KMS key used in tests
     add_executable(t_integration_kms_keyring tests/integration/t_integration_kms_keyring.cpp ${TEST_LIB})
-    target_link_libraries(t_integration_kms_keyring ${PROJECT_NAME} ${AWS_ENC_SDK_CPP} testlibcpp)
+    target_link_libraries(t_integration_kms_keyring testlibcpp)
     target_include_directories(t_integration_kms_keyring PUBLIC ${PROJECT_SOURCE_DIR}/tests/lib
             ${PROJECT_SOURCE_DIR}/tests/unit
-            ${PROJECT_SOURCE_DIR}/tests/integration)
+            ${PROJECT_SOURCE_DIR}/tests/integration
+            $<INSTALL_INTERFACE:include>
+            )
     set_target_properties(t_integration_kms_keyring PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
     add_test(integration_kms_mk t_integration_kms_keyring)
+    # path env variable requierd by Windows
+    set_tests_properties(integration_kms_mk PROPERTIES ENVIRONMENT "PATH=${AWSSDK_LIB_DIR};$ENV{PATH}" )
 
     file(GLOB test_sources FOLLOW_SYMLINKS tests/unit/*.cpp)
     foreach(test_cpp ${test_sources})
         get_filename_component(TEST_NAME ${test_cpp} NAME_WE)
         add_executable(${TEST_NAME} ${test_cpp} ${TEST_LIB})
-        target_link_libraries(${TEST_NAME} ${PROJECT_NAME} ${AWS_ENC_SDK_CPP} testlibcpp)
-
+        target_link_libraries(${TEST_NAME} testlibcpp)
         target_include_directories(${TEST_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib
                 ${PROJECT_SOURCE_DIR}/tests/unit
-                ${PROJECT_SOURCE_DIR}/tests/integration)
+                ${PROJECT_SOURCE_DIR}/tests/integration
+                $<INSTALL_INTERFACE:include>
+                )
         set_target_properties(${TEST_NAME} PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
+
         add_test(${TEST_NAME}.test ${TEST_NAME})
+        # path env variable requierd by Windows
+        set_tests_properties(${TEST_NAME}.test PROPERTIES ENVIRONMENT "PATH=${AWSSDK_LIB_DIR};$ENV{PATH}" )
     endforeach()
 
 endif(BUILD_AWS_ENC_SDK_CPP)

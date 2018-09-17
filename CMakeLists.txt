@@ -42,7 +42,6 @@ else()
 endif()
 
 find_package(aws-c-common CONFIG REQUIRED)
-set(AWS_CPP_SDK_LIBS ${AWS_CPP_SDK_LIBS} "aws-c-common")
 
 if(USE_ASM)
     CHECK_CXX_SOURCE_COMPILES("
