@@ -26,7 +26,7 @@ struct default_cmm {
     const struct aws_cryptosdk_cmm_vt * vt;
     struct aws_allocator * alloc;
     struct aws_cryptosdk_keyring * kr;
-    enum aws_cryptosdk_alg_id alg_id;
+    const struct aws_cryptosdk_alg_properties *alg_props;
 };
 
 static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * cmm,
@@ -34,22 +34,33 @@ static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * 
                                                      struct aws_cryptosdk_encryption_request * request) {
     struct aws_cryptosdk_encryption_materials * enc_mat = NULL;
     struct default_cmm * self = (struct default_cmm *) cmm;
+    const struct aws_cryptosdk_alg_properties *props = self->alg_props;
 
     *output = NULL;
-    if (request->requested_alg && request->requested_alg != self->alg_id) {
+    if (request->requested_alg && request->requested_alg != props->alg_id) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     }
 
-    request->requested_alg = self->alg_id;
+    request->requested_alg = props->alg_id;
 
     enc_mat = aws_cryptosdk_encryption_materials_new(request->alloc, request->requested_alg);
     if (!enc_mat) goto err;
 
     enc_mat->enc_context = request->enc_context;
 
-    if (aws_cryptosdk_keyring_generate_data_key(self->kr, enc_mat)) goto err;
+    if (props->signature_len) {
+        struct aws_string *pubkey = NULL;
+        if (aws_cryptosdk_sig_sign_start_keygen(&enc_mat->signctx, request->alloc, &pubkey, props)) {
+            goto err;
+        }
 
-// TODO: implement trailing signatures
+        if (aws_hash_table_put(enc_mat->enc_context, EC_PUBLIC_KEY_FIELD, pubkey, NULL)) {
+            aws_string_destroy(pubkey);
+            goto err;
+        }
+    }
+
+    if (aws_cryptosdk_keyring_generate_data_key(self->kr, enc_mat)) goto err;
 
     *output = enc_mat;
     return AWS_OP_SUCCESS;
@@ -121,21 +132,23 @@ struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * 
     cmm->vt = &default_cmm_vt;
     cmm->alloc = alloc;
     cmm->kr = kr;
-    cmm->alg_id = DEFAULT_ALG;
+
+    aws_cryptosdk_default_cmm_set_alg_id((struct aws_cryptosdk_cmm *)cmm, DEFAULT_ALG);
 
     return (struct aws_cryptosdk_cmm *) cmm;
 }
 
 int aws_cryptosdk_default_cmm_set_alg_id(struct aws_cryptosdk_cmm *cmm, enum aws_cryptosdk_alg_id alg_id) {
     struct default_cmm * self = (struct default_cmm *) cmm;
+    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
 
     assert(self->vt == &default_cmm_vt);
 
-    if (!aws_cryptosdk_alg_props(alg_id)) {
+    if (!props) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     }
 
-    self->alg_id = alg_id;
+    self->alg_props = props;
 
     return AWS_OP_SUCCESS;
 }

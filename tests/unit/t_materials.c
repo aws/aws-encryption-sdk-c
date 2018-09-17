@@ -154,6 +154,66 @@ int default_cmm_alg_match() {
     return 0;
 }
 
+static enum aws_cryptosdk_alg_id known_algorithms[] = {
+    AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
+    AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
+    AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
+    AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE ,
+    AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE ,
+    AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE ,
+    AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+    AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+    AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE
+};
+
+int default_cmm_context_presence() {
+    AWS_STATIC_STRING_FROM_LITERAL(EC_PUBLIC_KEY_FIELD, "aws-crypto-public-key");
+
+    struct aws_hash_table enc_context;
+    struct aws_allocator * alloc = aws_default_allocator();
+    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_zero_keyring_new();
+    struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(alloc, kr);
+
+    init_context(&enc_context, alloc);
+
+    for (size_t i = 0; i < sizeof(known_algorithms)/sizeof(*known_algorithms); i++) {
+        enum aws_cryptosdk_alg_id alg_id = known_algorithms[i];
+        const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
+
+        aws_hash_table_clear(&enc_context);
+
+        struct aws_cryptosdk_encryption_request req;
+        req.enc_context = &enc_context;
+        req.requested_alg = 0;
+        req.alloc = aws_default_allocator();
+
+        aws_cryptosdk_default_cmm_set_alg_id(cmm, alg_id);
+
+        struct aws_cryptosdk_encryption_materials * enc_mat;
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_encryption_materials(cmm, &enc_mat, &req));
+        TEST_ASSERT_INT_EQ(alg_id, req.requested_alg);
+
+        struct aws_hash_element *pElem = NULL;
+
+        aws_hash_table_find(&enc_context, EC_PUBLIC_KEY_FIELD, &pElem);
+        if (props->signature_len) {
+            TEST_ASSERT_ADDR_NOT_NULL(pElem);
+            TEST_ASSERT_ADDR_NOT_NULL(enc_mat->signctx);
+        } else {
+            TEST_ASSERT_ADDR_NULL(pElem);
+            TEST_ASSERT_ADDR_NULL(enc_mat->signctx);
+        }
+
+        aws_cryptosdk_encryption_materials_destroy(enc_mat);
+    }
+
+    aws_cryptosdk_cmm_destroy(cmm);
+    aws_cryptosdk_keyring_destroy(kr);
+    aws_hash_table_clean_up(&enc_context);
+
+    return 0;
+}
+
 int zero_size_cmm_does_not_run_vfs() {
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_zero_size_cmm_new();
     TEST_ASSERT_ERROR(AWS_ERROR_UNIMPLEMENTED,
@@ -193,6 +253,7 @@ struct test_case materials_test_cases[] = {
     { "materials", "default_cmm_zero_keyring_dec_mat", default_cmm_zero_keyring_dec_mat },
     { "materials", "default_cmm_alg_mismatch", default_cmm_alg_mismatch },
     { "materials", "default_cmm_alg_match", default_cmm_alg_match },
+    { "materials", "default_cmm_context_presence", default_cmm_context_presence },
     { "materials", "zero_size_cmm_does_not_run_vfs", zero_size_cmm_does_not_run_vfs },
     { "materials", "null_cmm_fails_vf_calls_cleanly", null_cmm_fails_vf_calls_cleanly },
     { "materials", "null_materials_destroy_is_noop", null_materials_destroy_is_noop },

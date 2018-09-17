@@ -248,9 +248,7 @@ int aws_cryptosdk_session_process(
                 result = try_encrypt_body(session, &output, &input);
                 break;
             case ST_WRITE_TRAILER:
-                // TODO: no-op for now, go to ST_DONE
-                session_change_state(session, ST_DONE);
-                result = AWS_OP_SUCCESS;
+                result = write_trailer(session, &output);
                 break;
 
             case ST_DONE:

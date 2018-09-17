@@ -319,16 +319,13 @@ int test_algorithm_override() {
     return test_algorithm_override_once(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE)
         || test_algorithm_override_once(AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE)
         || test_algorithm_override_once(AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE)
-#if 0
         || test_algorithm_override_once(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256)
         || test_algorithm_override_once(AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384)
         || test_algorithm_override_once(AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384)
-#endif
         || test_algorithm_override_once(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE)
         || test_algorithm_override_once(AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE)
         || test_algorithm_override_once(AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE);
 }
-
 
 struct test_case encrypt_test_cases[] = {
     { "encrypt", "test_simple_roundtrip", test_simple_roundtrip },

@@ -113,6 +113,7 @@ int try_encrypt_body(
     struct aws_byte_cursor * AWS_RESTRICT poutput,
     struct aws_byte_cursor * AWS_RESTRICT pinput
 );
+int write_trailer(struct aws_cryptosdk_session * AWS_RESTRICT session, struct aws_byte_cursor * AWS_RESTRICT poutput);
 
 
 
