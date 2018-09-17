@@ -19,9 +19,9 @@
 #include <aws/common/byte_buf.h>
 
 enum aws_cryptosdk_sha_version { 
-    NOSHA,
-    SHA256, 
-    SHA384, 
+    AWS_CRYPTOSDK_NOSHA,
+    AWS_CRYPTOSDK_SHA256, 
+    AWS_CRYPTOSDK_SHA384, 
 };
 
 /**
