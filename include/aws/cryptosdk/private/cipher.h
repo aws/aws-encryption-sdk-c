@@ -17,6 +17,16 @@
 #define AWS_CRYPTOSDK_PRIVATE_CIPHER_H
 
 #include <aws/cryptosdk/cipher.h>
+#include <openssl/evp.h>
+
+/*
+ * TODO - Finish splitting cipher.c into common code and backend, and move this into the backends.
+ */
+struct aws_cryptosdk_alg_impl {
+    const EVP_MD *(*md_ctor)(void);
+    const EVP_CIPHER *(*cipher_ctor)(void);
+    const char *curve_name;
+};
 
 /**
  * Internal cryptographic helpers.

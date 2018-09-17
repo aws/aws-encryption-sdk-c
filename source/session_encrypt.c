@@ -48,19 +48,12 @@ void encrypt_compute_body_estimate(struct aws_cryptosdk_session *session) {
 
 int try_gen_key(struct aws_cryptosdk_session *session) {
     struct aws_cryptosdk_encryption_request request;
-    struct aws_hash_table enc_context;
     struct aws_cryptosdk_encryption_materials *materials = NULL;
     struct data_key data_key;
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
 
-    if (aws_hash_table_init(&enc_context, session->alloc, 10,
-        aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy
-    )) {
-        return AWS_OP_ERR;
-    }
-
     request.alloc = session->alloc;
-    request.enc_context = &enc_context;
+    request.enc_context = &session->header.enc_context;
     // TODO - the CMM should specify this
     request.requested_alg = AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE;
     request.plaintext_size = session->precise_size_known ? session->precise_size : UINT64_MAX;
@@ -117,47 +110,24 @@ cleanup:
     }
 
     aws_secure_zero(&data_key, sizeof(data_key));
-    aws_hash_table_clean_up(&enc_context);
 
     return result;
 }
 
 static int build_header(struct aws_cryptosdk_session *session, struct aws_cryptosdk_encryption_materials *materials) {
     session->header.alg_id = session->alg_props->alg_id;
-    // TODO: aad
-    session->header.aad_count = 0;
-    session->header.edk_count = aws_array_list_length(&materials->encrypted_data_keys);
     session->header.frame_len = session->frame_size;
 
-    size_t edk_tbl_size, aad_tbl_size;
-    if (!aws_mul_size_checked(session->header.aad_count, sizeof(*session->header.aad_tbl), &aad_tbl_size)
-        || !aws_mul_size_checked(session->header.edk_count, sizeof(*session->header.edk_tbl), &edk_tbl_size)) {
-        // Unlikely to happen on modern platforms (the count fields are uint16_ts) but just in case...
-        return aws_raise_error(AWS_ERROR_OOM);
-    }
+    // Swap the materials' EDK list for the header's. Note that these both use the session allocator
+    // (aws_array_list_swap_contents requires that both lists use the same allocator).
+    // When we clean up the materials structure we'll destroy the old EDK list.
 
-    session->header.edk_tbl = aws_mem_acquire(session->alloc, edk_tbl_size);
-    if (!session->header.edk_tbl) return AWS_OP_ERR; // already raised OOM
-    session->header.aad_tbl = aws_mem_acquire(session->alloc, aad_tbl_size);
-    if (!session->header.aad_tbl) return AWS_OP_ERR;
+    aws_array_list_swap_contents(&session->header.edk_list, &materials->encrypted_data_keys);
 
-    // Transfer EDKs. We need them to survide the destruction of the materials, so we'll clear the list in materials
-    // when we're done.
-    for (uint32_t i = 0; i < session->header.edk_count; i++) {
-        if (aws_array_list_get_at(&materials->encrypted_data_keys, &session->header.edk_tbl[i], i)) {
-            // impossible condition; but just in case, we check
+    // The header should have been cleared earlier, so the materials structure should have
+    // zero EDKs (otherwise we'd need to destroy the old EDKs as well).
+    assert(aws_array_list_length(&materials->encrypted_data_keys) == 0);
 
-            // Avoid double-free - materials->encrypted_data_keys still references the inner buffers
-            aws_secure_zero(session->header.edk_tbl, edk_tbl_size);
-            return AWS_OP_ERR;
-        }
-    }
-
-    // Now that the header owns the EDKs, we need to clear them out of the source materials -
-    // otherwise, we'll end up double freeing them later
-    aws_array_list_clear(&materials->encrypted_data_keys);
-
-    // TODO verify that the zero IV is correct for the header IV
     aws_byte_buf_init(session->alloc, &session->header.iv, session->alg_props->iv_len);
     aws_secure_zero(session->header.iv.buffer, session->alg_props->iv_len);
     session->header.iv.len = session->header.iv.capacity;
