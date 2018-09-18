@@ -18,7 +18,7 @@
 static const uint8_t raw_rsa_keyring_tv_master_key_id[] = "asdfhasiufhiasuhviawurhgiuawrhefiuawhf";
 static const uint8_t raw_rsa_keyring_tv_provider_id[] = "asoghis";
 
-static const uint8_t raw_rsa_keyring_tv_wrapping_key[] =
+static const char raw_rsa_keyring_tv_private_key[] =
     "-----BEGIN PRIVATE KEY-----\n"
     "MIIJQQIBADANBgkqhkiG9w0BAQEFAASCCSswggknAgEAAoICAQCmTHvqwuxxq4FJ\n"
     "eUoyDaLGNqlZUYldsetFaq8/VtNqGU+JR005oB0G/Jx9bo8IJaO5bfTMZO6FlaNl\n"
@@ -72,20 +72,39 @@ static const uint8_t raw_rsa_keyring_tv_wrapping_key[] =
     "r1kmH86LkDARuxu2Vm1EoHP9L/wk\n"
     "-----END PRIVATE KEY-----";
 
+static const char wrong_raw_rsa_keyring_tv_private_key[] =
+    "-----BEGIN PRIVATE KEY-----\n"
+    "MIIJQQIBADANBgkqhkiG9w0BAQEFAASCCSswggknAgEAAoICAQCmTHvqwuxxq4FJ\n"
+    "eUoyDaLGNqlZUYldsetFaq8/VtNqGU+JR005oB0G/Jx9bo8IJaO5bfTMZO6FlaNl\n"
+    "g1DRri85cbPG1q4FoLlDGGbpJDFb8MepYbJVO4KFA0qeHWKyNFWNG6Yon1OKo/UP\n"
+    "1nOZ9I6qhjdlRJYjiINkvFG3Hb2xo9wNoQx7H5la2VJME9wWrKmXyo9CI2VGUfyd\n"
+    "Hb7poXy1405or0z4DZagW53RwbzrQj4gNam54Dy+rtjgG/iECFeJhhpzZ2z5Nctt\n"
+    "r1kmH86LkDARuxu2Vm1EoHP9L/wk\n"
+    "-----END PRIVATE KEY-----";
+
 struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new(
     struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
     return aws_cryptosdk_raw_rsa_keyring_new(
-        alloc, raw_rsa_keyring_tv_master_key_id, sizeof(raw_rsa_keyring_tv_master_key_id),
-        raw_rsa_keyring_tv_provider_id, sizeof(raw_rsa_keyring_tv_provider_id), raw_rsa_keyring_tv_wrapping_key,
-        rsa_padding_mode);
+        alloc, raw_rsa_keyring_tv_master_key_id, strlen((const char *)raw_rsa_keyring_tv_master_key_id),
+        raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id),
+        raw_rsa_keyring_tv_private_key, rsa_padding_mode);
+}
+
+struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new_with_wrong_key(
+    struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
+    return aws_cryptosdk_raw_rsa_keyring_new(
+        alloc, raw_rsa_keyring_tv_master_key_id, strlen((const char *)raw_rsa_keyring_tv_master_key_id),
+        raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id),
+        wrong_raw_rsa_keyring_tv_private_key, rsa_padding_mode);
 }
 
 struct aws_cryptosdk_edk edk_init(const uint8_t *edk_bytes, size_t edk_len) {
     struct aws_cryptosdk_edk edk;
     edk.enc_data_key = aws_byte_buf_from_array(edk_bytes, edk_len);
-    edk.provider_id = aws_byte_buf_from_array(raw_rsa_keyring_tv_provider_id, sizeof(raw_rsa_keyring_tv_provider_id));
-    edk.provider_info =
-        aws_byte_buf_from_array(raw_rsa_keyring_tv_master_key_id, sizeof(raw_rsa_keyring_tv_master_key_id));
+    edk.provider_id =
+        aws_byte_buf_from_array(raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id));
+    edk.provider_info = aws_byte_buf_from_array(
+        raw_rsa_keyring_tv_master_key_id, strlen((const char *)raw_rsa_keyring_tv_master_key_id));
     return edk;
 }
 
