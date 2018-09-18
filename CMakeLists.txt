@@ -36,7 +36,7 @@ option(VALGRIND_TEST_SUITE "Run the test suite under valgrind")
 set(VALGRIND_OPTIONS "" CACHE STRING "Additional options to pass to valgrind")
 
 if (VALGRIND_TEST_SUITE)
-    set(VALGRIND valgrind --error-exitcode=42 ${VALGRIND_OPTIONS})
+    set(VALGRIND valgrind --error-exitcode=42 --errors-for-leak-kinds=definite,possible --leak-check=full ${VALGRIND_OPTIONS})
 else()
     set(VALGRIND)
 endif()
