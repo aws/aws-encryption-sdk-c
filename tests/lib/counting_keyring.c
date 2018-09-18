@@ -60,7 +60,7 @@ static inline bool is_counting_edk(const struct aws_cryptosdk_edk *edk) {
 }
 
 // FIXME: don't dynamically allocate the buffers
-static int counting_keyring_generate_or_encrypt_data_key(struct aws_cryptosdk_keyring *kr,
+static int counting_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
                                                          struct aws_byte_buf *unencrypted_data_key,
                                                          struct aws_array_list *edks,
                                                          const struct aws_hash_table *enc_context,
@@ -100,7 +100,7 @@ static int counting_keyring_generate_or_encrypt_data_key(struct aws_cryptosdk_ke
     return aws_array_list_push_back(edks, &edk);
 }
 
-static int counting_keyring_decrypt_data_key(struct aws_cryptosdk_keyring *kr,
+static int counting_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
                                              struct aws_byte_buf *unencrypted_data_key,
                                              const struct aws_array_list *edks,
                                              const struct aws_hash_table *enc_context,
@@ -143,8 +143,8 @@ static const struct aws_cryptosdk_keyring_vt counting_keyring_vt = {
     .vt_size = sizeof(struct aws_cryptosdk_keyring_vt),
     .name = "TEST: counting keyring",
     .destroy = counting_keyring_destroy,
-    .generate_or_encrypt_data_key = counting_keyring_generate_or_encrypt_data_key,
-    .decrypt_data_key = counting_keyring_decrypt_data_key
+    .on_encrypt = counting_keyring_on_encrypt,
+    .on_decrypt = counting_keyring_on_decrypt
 };
 
 struct aws_cryptosdk_keyring *aws_cryptosdk_counting_keyring_new(struct aws_allocator *alloc) {

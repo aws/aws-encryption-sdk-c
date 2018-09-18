@@ -86,14 +86,14 @@ int encrypt_decrypt_data_key() {
                 memset(unencrypted_data_key.buffer, 0x77, props->data_key_len);
                 unencrypted_data_key.len = unencrypted_data_key.capacity;
 
-                TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_generate_or_encrypt_data_key(kr,
+                TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(kr,
                                                                                        &unencrypted_data_key,
                                                                                        &edks,
                                                                                        &enc_context,
                                                                                        algs[alg_idx]));
                 TEST_ASSERT_INT_EQ(aws_array_list_length(&edks), 1);
 
-                TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_decrypt_data_key(kr,
+                TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kr,
                                                                            &decrypted_data_key,
                                                                            &edks,
                                                                            &enc_context,
@@ -114,7 +114,7 @@ int generate_decrypt_data_key() {
             for (int alg_idx = 0; alg_idx < sizeof(algs)/sizeof(enum aws_cryptosdk_alg_id); ++alg_idx) {
                 TEST_ASSERT_SUCCESS(set_up_all_the_things(raw_key_lens[key_len_idx], fill_enc_context));
 
-                TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_generate_or_encrypt_data_key(kr,
+                TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(kr,
                                                                                        &unencrypted_data_key,
                                                                                        &edks,
                                                                                        &enc_context,
@@ -125,7 +125,7 @@ int generate_decrypt_data_key() {
                 TEST_ASSERT_INT_EQ(unencrypted_data_key.len, props->data_key_len);
                 TEST_ASSERT_INT_EQ(aws_array_list_length(&edks), 1);
 
-                TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_decrypt_data_key(kr,
+                TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kr,
                                                                            &decrypted_data_key,
                                                                            &edks,
                                                                            &enc_context,

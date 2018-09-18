@@ -239,7 +239,7 @@ struct aws_cryptosdk_keyring_vt {
      * output only: edks
      * input only: enc_context, alg
      */
-    int (*generate_or_encrypt_data_key)(struct aws_cryptosdk_keyring * keyring,
+    int (*on_encrypt)(struct aws_cryptosdk_keyring * keyring,
                                         struct aws_byte_buf * unencrypted_data_key,
                                         struct aws_array_list * edks,
                                         const struct aws_hash_table * enc_context,
@@ -255,7 +255,7 @@ struct aws_cryptosdk_keyring_vt {
      * output: unencrypted_data_key
      * input: edks, enc_context, alg
      */
-    int (*decrypt_data_key)(struct aws_cryptosdk_keyring * keyring,
+    int (*on_decrypt)(struct aws_cryptosdk_keyring * keyring,
                             struct aws_byte_buf * unencrypted_data_key,
                             const struct aws_array_list * edks,
                             const struct aws_hash_table * enc_context,
@@ -271,9 +271,9 @@ static inline void aws_cryptosdk_keyring_destroy(struct aws_cryptosdk_keyring * 
  * encrypted data keys which decrypt to that data key and pushes them onto the EDK list.
  *
  * If byte buffer for unencrypted_data_key is not already allocated, this makes a new
- * random data key, allocates the buffer, and puts the data key into that buffer. Then
- * it also makes zero or more encrypted data keys which decrypt to that data key and
- * pushes them onto the EDK list.
+ * data key, allocates the buffer, and puts the data key into that buffer. It also makes
+ * zero or more encrypted data keys which decrypt to that data key and pushes them onto
+ * the EDK list.
  *
  * On success (1) AWS_OP_SUCCESS is returned, (2) if the unencrypted_data_key buffer was
  * previously allocated, it will be unchanged, (3) if the unencrypted_data_key buffer was
@@ -283,7 +283,7 @@ static inline void aws_cryptosdk_keyring_destroy(struct aws_cryptosdk_keyring * 
  * On failure AWS_OP_ERR is returned, an internal AWS error code is set, and no memory is
  * allocated.
  */
-static inline int aws_cryptosdk_keyring_generate_or_encrypt_data_key(
+static inline int aws_cryptosdk_keyring_on_encrypt(
     struct aws_cryptosdk_keyring * keyring,
     struct aws_byte_buf * unencrypted_data_key,
     struct aws_array_list * edks,
@@ -297,7 +297,7 @@ static inline int aws_cryptosdk_keyring_generate_or_encrypt_data_key(
          */
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     }
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL(generate_or_encrypt_data_key,
+    AWS_CRYPTOSDK_PRIVATE_VF_CALL(on_encrypt,
                                   keyring,
                                   unencrypted_data_key,
                                   edks,
@@ -319,14 +319,14 @@ static inline int aws_cryptosdk_keyring_generate_or_encrypt_data_key(
  *
  * On internal failure, AWS_OP_ERR will be returned and an error code will be set.
  */
-static inline int aws_cryptosdk_keyring_decrypt_data_key(
+static inline int aws_cryptosdk_keyring_on_decrypt(
     struct aws_cryptosdk_keyring * keyring,
     struct aws_byte_buf * unencrypted_data_key,
     const struct aws_array_list * edks,
     const struct aws_hash_table * enc_context,
     enum aws_cryptosdk_alg_id alg) {
     if (unencrypted_data_key->buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_data_key,
+    AWS_CRYPTOSDK_PRIVATE_VF_CALL(on_decrypt,
                                   keyring,
                                   unencrypted_data_key,
                                   edks,

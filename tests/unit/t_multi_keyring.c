@@ -27,7 +27,7 @@ struct test_keyring {
 static void test_keyring_destroy(struct aws_cryptosdk_keyring * kr) {(void)kr;}
 
 static char test_data_key[] = "data key";
-static int test_keyring_generate_or_encrypt_data_key(
+static int test_keyring_on_encrypt(
     struct aws_cryptosdk_keyring * kr,
     struct aws_byte_buf * unencrypted_data_key,
     struct aws_array_list * edks,
@@ -53,7 +53,7 @@ static int test_keyring_generate_or_encrypt_data_key(
     return self->ret;
 }
 
-static int test_keyring_decrypt_data_key(struct aws_cryptosdk_keyring * kr,
+static int test_keyring_on_decrypt(struct aws_cryptosdk_keyring * kr,
                                          struct aws_byte_buf * unencrypted_data_key,
                                          const struct aws_array_list * edks,
                                          const struct aws_hash_table * enc_context,
@@ -71,8 +71,8 @@ const static struct aws_cryptosdk_keyring_vt test_keyring_vt = {
     .vt_size = sizeof(test_keyring_vt),
     .name = "test keyring",
     .destroy = test_keyring_destroy,
-    .generate_or_encrypt_data_key = test_keyring_generate_or_encrypt_data_key,
-    .decrypt_data_key = test_keyring_decrypt_data_key
+    .on_encrypt = test_keyring_on_encrypt,
+    .on_decrypt = test_keyring_on_decrypt
 };
 
 static struct aws_allocator * alloc;
@@ -127,7 +127,7 @@ int delegates_generate_or_encrypt_calls() {
 
         struct aws_byte_buf * unencrypted_data_key = use_generator ? &empty_buf : &test_data_key_buf;
 
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_generate_or_encrypt_data_key(
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(
                                 multi,
                                 unencrypted_data_key,
                                 &edks,
@@ -152,7 +152,7 @@ int generator_set_but_not_called_when_data_key_present() {
     TEST_ASSERT_SUCCESS(set_up_all_the_things(true));
     struct aws_byte_buf unencrypted_data_key = aws_byte_buf_from_c_str(test_data_key);
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_generate_or_encrypt_data_key(
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(
                             multi,
                             &unencrypted_data_key,
                             &edks,
@@ -174,7 +174,7 @@ int generate_or_encrypt_fails_when_generator_not_set_and_no_data_key() {
     struct aws_byte_buf unencrypted_data_key = {0};
 
     TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_STATE,
-                      aws_cryptosdk_keyring_generate_or_encrypt_data_key(multi,
+                      aws_cryptosdk_keyring_on_encrypt(multi,
                                                                          &unencrypted_data_key,
                                                                          &edks,
                                                                          NULL,
@@ -196,7 +196,7 @@ int fail_on_failed_encrypt_and_stop() {
     const size_t bad_keyring_idx = 2;
     test_keyrings[bad_keyring_idx].ret = AWS_OP_ERR;
 
-    TEST_ASSERT_INT_EQ(AWS_OP_ERR, aws_cryptosdk_keyring_generate_or_encrypt_data_key(
+    TEST_ASSERT_INT_EQ(AWS_OP_ERR, aws_cryptosdk_keyring_on_encrypt(
                            multi,
                            &unencrypted_data_key,
                            &edks,
@@ -250,7 +250,7 @@ int failed_encrypt_keeps_edk_list_intact() {
     const size_t bad_keyring_idx = 4;
     test_keyrings[bad_keyring_idx].ret = AWS_OP_ERR;
 
-    TEST_ASSERT_INT_EQ(AWS_OP_ERR, aws_cryptosdk_keyring_generate_or_encrypt_data_key(
+    TEST_ASSERT_INT_EQ(AWS_OP_ERR, aws_cryptosdk_keyring_on_encrypt(
                            multi,
                            &unencrypted_data_key,
                            &edks,
@@ -270,7 +270,7 @@ int fail_on_failed_generate_and_stop() {
 
     test_keyrings[0].ret = AWS_OP_ERR;
 
-    TEST_ASSERT_INT_EQ(AWS_OP_ERR, aws_cryptosdk_keyring_generate_or_encrypt_data_key(
+    TEST_ASSERT_INT_EQ(AWS_OP_ERR, aws_cryptosdk_keyring_on_encrypt(
                            multi,
                            &unencrypted_data_key,
                            &edks,
@@ -303,7 +303,7 @@ int delegates_decrypt_calls() {
 
         struct aws_byte_buf unencrypted_data_key = {0};
 
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_decrypt_data_key(multi, 
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(multi, 
                                                                    &unencrypted_data_key,
                                                                    &edks,
                                                                    NULL,
@@ -328,7 +328,7 @@ int succeed_when_no_error_and_no_decrypt() {
     TEST_ASSERT_SUCCESS(set_up_all_the_things(true));
     struct aws_byte_buf unencrypted_data_key = {0};
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_decrypt_data_key(multi,
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(multi,
                                                                &unencrypted_data_key,
                                                                &edks,
                                                                NULL,
@@ -349,7 +349,7 @@ int fail_when_error_and_no_decrypt() {
 
     test_keyrings[2].ret = AWS_OP_ERR;
 
-    TEST_ASSERT_INT_EQ(AWS_OP_ERR, aws_cryptosdk_keyring_decrypt_data_key(multi,
+    TEST_ASSERT_INT_EQ(AWS_OP_ERR, aws_cryptosdk_keyring_on_decrypt(multi,
                                                                           &unencrypted_data_key,
                                                                           &edks,
                                                                           NULL,

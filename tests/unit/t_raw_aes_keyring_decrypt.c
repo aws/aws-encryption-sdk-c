@@ -170,7 +170,7 @@ int decrypt_data_key_test_vectors() {
             struct aws_cryptosdk_edk edk = edk_init_from_test_vector(tv);
             aws_array_list_push_back(&edks, (void *)&edk);
 
-            TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_decrypt_data_key(kr,
+            TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kr,
                                                                        &unencrypted_data_key,
                                                                        &edks,
                                                                        &enc_context,
@@ -218,7 +218,7 @@ int decrypt_data_key_multiple_edks() {
         aws_array_list_push_back(&edks, (void *)&edk);
     }
 
-    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_decrypt_data_key(kr,
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_on_decrypt(kr,
                                                                               &unencrypted_data_key,
                                                                               &edks,
                                                                               &enc_context,
@@ -244,7 +244,7 @@ int decrypt_data_key_no_good_edk() {
         aws_array_list_push_back(&edks, (void *)&edk);
     }
 
-    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_decrypt_data_key(kr,
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_on_decrypt(kr,
                                                                               &unencrypted_data_key,
                                                                               &edks,
                                                                               &enc_context,
@@ -277,7 +277,7 @@ int decrypt_data_key_with_sig() {
     struct aws_cryptosdk_edk edk = build_test_edk_init(edk_bytes, sizeof(edk_bytes), iv);
     aws_array_list_push_back(&edks, (void *)&edk);
     
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_decrypt_data_key(kr,
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kr,
                                                                &unencrypted_data_key,
                                                                &edks,
                                                                &enc_context,
@@ -330,7 +330,7 @@ int decrypt_data_key_with_sig_and_enc_context() {
     struct aws_cryptosdk_edk edk = build_test_edk_init(edk_bytes, sizeof(edk_bytes), iv);
     aws_array_list_push_back(&edks, (void *)&edk);
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_decrypt_data_key(kr,
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kr,
                                                                &unencrypted_data_key,
                                                                &edks,
                                                                &enc_context,

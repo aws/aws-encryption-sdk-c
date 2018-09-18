@@ -50,7 +50,7 @@ static inline bool is_literally_null_edk(const struct aws_cryptosdk_edk *edk) {
     return false;
 }
 
-static int zero_keyring_generate_or_encrypt_data_key(struct aws_cryptosdk_keyring *kr,
+static int zero_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
                                                      struct aws_byte_buf *unencrypted_data_key,
                                                      struct aws_array_list *edks,
                                                      const struct aws_hash_table *enc_context,
@@ -84,7 +84,7 @@ static int zero_keyring_generate_or_encrypt_data_key(struct aws_cryptosdk_keyrin
     return aws_array_list_push_back(edks, &edk);
 }
 
-static int zero_keyring_decrypt_data_key(struct aws_cryptosdk_keyring *kr,
+static int zero_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
                                          struct aws_byte_buf *unencrypted_data_key,
                                          const struct aws_array_list *edks,
                                          const struct aws_hash_table *enc_context,
@@ -122,8 +122,8 @@ static const struct aws_cryptosdk_keyring_vt zero_keyring_vt = {
     .vt_size = sizeof(struct aws_cryptosdk_keyring_vt),
     .name = "zero keyring",
     .destroy = zero_keyring_destroy,
-    .generate_or_encrypt_data_key = zero_keyring_generate_or_encrypt_data_key,
-    .decrypt_data_key = zero_keyring_decrypt_data_key
+    .on_encrypt = zero_keyring_on_encrypt,
+    .on_decrypt = zero_keyring_on_decrypt
 };
 
 struct aws_cryptosdk_keyring *aws_cryptosdk_zero_keyring_new(struct aws_allocator *alloc) {

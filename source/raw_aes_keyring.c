@@ -164,7 +164,7 @@ static int raw_aes_keyring_encrypt_data_key(struct aws_cryptosdk_keyring * kr,
                                                                   iv);
 }
 
-static int raw_aes_keyring_generate_or_encrypt_data_key(struct aws_cryptosdk_keyring * kr,
+static int raw_aes_keyring_on_encrypt(struct aws_cryptosdk_keyring * kr,
                                                         struct aws_byte_buf * unencrypted_data_key,
                                                         struct aws_array_list * edks,
                                                         const struct aws_hash_table * enc_context,
@@ -194,7 +194,7 @@ static int raw_aes_keyring_generate_or_encrypt_data_key(struct aws_cryptosdk_key
 }
 
 
-static int raw_aes_keyring_decrypt_data_key(struct aws_cryptosdk_keyring * kr,
+static int raw_aes_keyring_on_decrypt(struct aws_cryptosdk_keyring * kr,
                                             struct aws_byte_buf * unencrypted_data_key,
                                             const struct aws_array_list * edks,
                                             const struct aws_hash_table * enc_context,
@@ -273,8 +273,8 @@ static const struct aws_cryptosdk_keyring_vt raw_aes_keyring_vt = {
     .vt_size = sizeof(struct aws_cryptosdk_keyring_vt),
     .name = "raw AES keyring",
     .destroy = raw_aes_keyring_destroy,
-    .generate_or_encrypt_data_key = raw_aes_keyring_generate_or_encrypt_data_key,
-    .decrypt_data_key = raw_aes_keyring_decrypt_data_key
+    .on_encrypt = raw_aes_keyring_on_encrypt,
+    .on_decrypt = raw_aes_keyring_on_decrypt
 };
 
 struct aws_cryptosdk_keyring * aws_cryptosdk_raw_aes_keyring_new(struct aws_allocator * alloc,

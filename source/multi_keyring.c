@@ -32,7 +32,7 @@ static int call_encrypt_dk_on_list(const struct aws_array_list *keyrings,
     for (size_t list_idx = 0; list_idx < num_keyrings; ++list_idx) {
         struct aws_cryptosdk_keyring *child;
         if (aws_array_list_get_at(keyrings, (void *)&child, list_idx)) return AWS_OP_ERR;
-        if (aws_cryptosdk_keyring_generate_or_encrypt_data_key(child,
+        if (aws_cryptosdk_keyring_on_encrypt(child,
                                                                unencrypted_data_key,
                                                                edks,
                                                                enc_context,
@@ -57,7 +57,7 @@ static int transfer_edk_list(struct aws_array_list *dest, struct aws_array_list 
     return AWS_OP_SUCCESS;
 }
 
-static int multi_keyring_generate_or_encrypt_data_key(struct aws_cryptosdk_keyring *multi,
+static int multi_keyring_on_encrypt(struct aws_cryptosdk_keyring *multi,
                                                       struct aws_byte_buf *unencrypted_data_key,
                                                       struct aws_array_list *edks,
                                                       const struct aws_hash_table *enc_context,
@@ -76,7 +76,7 @@ static int multi_keyring_generate_or_encrypt_data_key(struct aws_cryptosdk_keyri
             ret = aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
             goto out;
         }
-        if (aws_cryptosdk_keyring_generate_or_encrypt_data_key(self->generator,
+        if (aws_cryptosdk_keyring_on_encrypt(self->generator,
                                                                unencrypted_data_key,
                                                                &my_edks,
                                                                enc_context,
@@ -101,7 +101,7 @@ out:
     return ret;
 }
 
-static int multi_keyring_decrypt_data_key(struct aws_cryptosdk_keyring *multi,
+static int multi_keyring_on_decrypt(struct aws_cryptosdk_keyring *multi,
                                           struct aws_byte_buf * unencrypted_data_key,
                                           const struct aws_array_list * edks,
                                           const struct aws_hash_table * enc_context,
@@ -116,7 +116,7 @@ static int multi_keyring_decrypt_data_key(struct aws_cryptosdk_keyring *multi,
     struct multi_keyring *self = (struct multi_keyring *)multi;
 
     if (self->generator) {
-        int decrypt_err = aws_cryptosdk_keyring_decrypt_data_key(self->generator,
+        int decrypt_err = aws_cryptosdk_keyring_on_decrypt(self->generator,
                                                                  unencrypted_data_key,
                                                                  edks,
                                                                  enc_context,
@@ -131,7 +131,7 @@ static int multi_keyring_decrypt_data_key(struct aws_cryptosdk_keyring *multi,
         if (aws_array_list_get_at(&self->children, (void *)&child, child_idx)) return AWS_OP_ERR;
 
         // if decrypt data key fails, keep trying with other keyrings
-        int decrypt_err = aws_cryptosdk_keyring_decrypt_data_key(child,
+        int decrypt_err = aws_cryptosdk_keyring_on_decrypt(child,
                                                                  unencrypted_data_key,
                                                                  edks,
                                                                  enc_context,
@@ -152,8 +152,8 @@ static const struct aws_cryptosdk_keyring_vt vt = {
     .vt_size = sizeof(struct aws_cryptosdk_keyring_vt),
     .name = "multi keyring",
     .destroy = multi_keyring_destroy,
-    .generate_or_encrypt_data_key = multi_keyring_generate_or_encrypt_data_key,
-    .decrypt_data_key = multi_keyring_decrypt_data_key
+    .on_encrypt = multi_keyring_on_encrypt,
+    .on_decrypt = multi_keyring_on_decrypt
 };
 
 struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(
