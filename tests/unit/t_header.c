@@ -310,6 +310,8 @@ struct aws_cryptosdk_hdr test_header_2_hdr() {
         .auth_len = sizeof(test_header_2) - 29 // not used by aws_cryptosdk_hdr_size/write
     };
 
+    hdr.alloc = aws_default_allocator();
+
     set_aad_tbl(&hdr, NULL, 0);
     SET_EDK_TBL(&hdr, test_header_1_edk_tbl);
 
@@ -568,6 +570,7 @@ int simple_header_write() {
     TEST_ASSERT(!memcmp(test_header_1, outbuf, outlen));
 
     aws_cryptosdk_hdr_clean_up(&hdr);
+
     hdr = test_header_2_hdr();
 
     size_t outlen2 = sizeof(test_header_2) - 1;

@@ -245,6 +245,13 @@ int aws_cryptosdk_sig_get_privkey(
 
     privkey_len = i2d_ASN1_INTEGER(privkey_int, &privkey_buf);
 
+    /*
+     * Clear and free the private key ASN1 string immediately, regardless of the success
+     * or failure of serialization, to simplify error handling.
+     */
+    ASN1_STRING_clear_free(privkey_int);
+    privkey_int = NULL;
+
     EC_KEY_set_conv_form(ctx->keypair, POINT_CONVERSION_COMPRESSED);
     pubkey_len = i2o_ECPublicKey(ctx->keypair, &pubkey_buf);
 
@@ -633,6 +640,7 @@ int aws_cryptosdk_sig_verify_finish(
     struct aws_byte_buf sig_buf = aws_byte_buf_from_array(aws_string_bytes(signature), signature->len);
 
     if (aws_base64_decode(&sig_buf, &decode_buf)) {
+        aws_cryptosdk_sig_abort(ctx);
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
     }
 
