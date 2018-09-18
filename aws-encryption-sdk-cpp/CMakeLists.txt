@@ -14,16 +14,22 @@
 #
 
 # for KMS Keyring
-find_package(AWSSDK COMPONENTS core kms)
+find_package(AWSSDK QUIET COMPONENTS core kms)
 if (AWSSDK_FOUND)
     option(BUILD_AWS_ENC_SDK_CPP "Build AWS ENC SDK C++ components" ON)
     include_directories(${AWSSDK_INCLUDE_DIR})
     link_directories(${AWSSDK_LIB_DIR})
     message(STATUS "AWSSDK having components core, kms found.")
 else()
-    message(WARNING "AWSSDK having components core, kms not found. KMS Keyring will not be available")
+    find_package(aws-cpp-sdk-core)
+    find_package(aws-cpp-sdk-kms)
+    if (aws-cpp-sdk-core_FOUND AND aws-cpp-sdk-kms_FOUND)
+        option(BUILD_AWS_ENC_SDK_CPP "Build AWS ENC SDK C++ components" ON)
+        message(STATUS "aws-cpp-sdk-core and aws-cpp-sdk-kms found.")
+    else()
+        message(WARNING "AWSSDK having components core, kms not found. KMS Keyring will not be available")
+    endif()
 endif()
-
 
 file(GLOB AWS_CRYPTOSDK_CPP_HEADERS
         # Headers subject to API/ABI stability guarantees
@@ -84,7 +90,9 @@ if (BUILD_AWS_ENC_SDK_CPP)
     set_target_properties(t_integration_kms_keyring PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
     add_test(integration_kms_mk t_integration_kms_keyring)
     # path env variable requierd by Windows
-    set_tests_properties(integration_kms_mk PROPERTIES ENVIRONMENT "PATH=${AWSSDK_LIB_DIR};$ENV{PATH}" )
+    if (WIN32 AND DEFINED ${AWSSDK_LIB_DIR})
+        set_tests_properties(integration_kms_mk PROPERTIES ENVIRONMENT "PATH=${AWSSDK_LIB_DIR};$ENV{PATH}" )
+    endif()
 
     file(GLOB test_sources FOLLOW_SYMLINKS tests/unit/*.cpp)
     foreach(test_cpp ${test_sources})
@@ -100,7 +108,9 @@ if (BUILD_AWS_ENC_SDK_CPP)
 
         add_test(${TEST_NAME}.test ${TEST_NAME})
         # path env variable requierd by Windows
-        set_tests_properties(${TEST_NAME}.test PROPERTIES ENVIRONMENT "PATH=${AWSSDK_LIB_DIR};$ENV{PATH}" )
+        if (WIN32 AND DEFINED ${AWSSDK_LIB_DIR})
+            set_tests_properties(${TEST_NAME}.test PROPERTIES ENVIRONMENT "PATH=${AWSSDK_LIB_DIR};$ENV{PATH}" )
+        endif()
     endforeach()
 
 endif(BUILD_AWS_ENC_SDK_CPP)
