@@ -554,54 +554,57 @@ decrypt_err:
     return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
 }
 
+static int aws_cryptosdk_get_rsa_padding_mode(enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
+    switch (rsa_padding_mode) {
+        case AWS_CRYPTOSDK_RSA_PKCS1: return RSA_PKCS1_PADDING; break;
+        case AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1: return RSA_PKCS1_OAEP_PADDING; break;
+        case AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1: return RSA_PKCS1_OAEP_PADDING; break;
+        default: return -1;
+    }
+}
+
 int aws_cryptosdk_rsa_decrypt(
     struct aws_byte_buf *plain,
     const struct aws_byte_cursor cipher,
     const struct aws_string *rsa_private_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
     if (!plain->buffer) return aws_raise_error(AWS_ERROR_INVALID_BUFFER_SIZE);
-    int padding = -1;
-    switch (rsa_padding_mode) {
-        case AWS_CRYPTOSDK_RSA_PKCS1: padding = RSA_PKCS1_PADDING; break;
-        case AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1: padding = RSA_PKCS1_OAEP_PADDING; break;
-        case AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1: padding = RSA_PKCS1_OAEP_PADDING; break;
-        default: return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
-    }
+    int padding = aws_cryptosdk_get_rsa_padding_mode(rsa_padding_mode);
+    if (padding < 0) return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     BIO *bio = NULL;
     EVP_PKEY_CTX *ctx = NULL;
+    bool error = true;
     int err_code = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     EVP_PKEY *pkey = EVP_PKEY_new();
-    if (!pkey) goto err;
+    if (!pkey) goto cleanup;
     bio = BIO_new_mem_buf(aws_string_bytes(rsa_private_key_pem), -1);
-    if (!bio) goto err;
+    if (!bio) goto cleanup;
     pkey = PEM_read_bio_PrivateKey(bio, &pkey, NULL, NULL);
-    if (!pkey) goto err;
+    if (!pkey) goto cleanup;
     ctx = EVP_PKEY_CTX_new(pkey, NULL);
-    if (!ctx) goto err;
-    if (EVP_PKEY_decrypt_init(ctx) <= 0) goto err;
-    if (EVP_PKEY_CTX_set_rsa_padding(ctx, padding) <= 0) goto err;
+    if (!ctx) goto cleanup;
+    if (EVP_PKEY_decrypt_init(ctx) <= 0) goto cleanup;
+    if (EVP_PKEY_CTX_set_rsa_padding(ctx, padding) <= 0) goto cleanup;
     if (rsa_padding_mode == AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1) {
-        if (EVP_PKEY_CTX_set_rsa_oaep_md(ctx, EVP_sha256()) <= 0) goto err;
-        if (EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, EVP_sha256()) <= 0) goto err;
+        if (EVP_PKEY_CTX_set_rsa_oaep_md(ctx, EVP_sha256()) <= 0) goto cleanup;
+        if (EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, EVP_sha256()) <= 0) goto cleanup;
     }
-    size_t outlen = 0;
-    if (EVP_PKEY_decrypt(ctx, NULL, &outlen, cipher.ptr, cipher.len) <= 0) goto err;
-    if (outlen <= 0) goto err;
-    if (EVP_PKEY_decrypt(ctx, plain->buffer, &outlen, cipher.ptr, cipher.len) <= 0) {
+    if (EVP_PKEY_decrypt(ctx, NULL, &plain->len, cipher.ptr, cipher.len) <= 0) goto cleanup;
+    if (plain->len <= 0 || plain->len > plain->capacity) goto cleanup;
+    if (EVP_PKEY_decrypt(ctx, plain->buffer, &plain->len, cipher.ptr, cipher.len) <= 0) {
         err_code = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
-        goto err;
+    } else {
+        error = false;
     }
-    EVP_PKEY_CTX_free(ctx);
-    EVP_PKEY_free(pkey);
-    BIO_free_all(bio);
-    plain->len = outlen;
-    return AWS_OP_SUCCESS;
 
-err:
-    aws_byte_buf_secure_zero(plain);
+cleanup:
     EVP_PKEY_CTX_free(ctx);
     EVP_PKEY_free(pkey);
     BIO_free_all(bio);
     flush_openssl_errors();
-    return aws_raise_error(err_code);
+    if (error) {
+        return aws_raise_error(err_code);
+    } else {
+        return AWS_OP_SUCCESS;
+    }
 }
