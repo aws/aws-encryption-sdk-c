@@ -779,9 +779,13 @@ static const size_t test_sizes[] = {
     65535,
     65536,
     65537,
+#ifndef REDUCE_TEST_ITERATIONS
     1024*1024*64 - 1,
     1024*1024*64,
-    1024*1024*64 + 1
+    1024*1024*64 + 1,
+#endif
+    // Make sure we don't end the list with a conditonal entry, to avoid problems with trailing commas
+    42
 };
 
 static int test_encrypt_body() {
