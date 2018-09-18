@@ -269,6 +269,9 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
     aws_cryptosdk_cmm_destroy(cmm);
     aws_cryptosdk_keyring_destroy(kr);
 
+    free(plaintext);
+    free(ciphertext);
+
     return 0;
 }
 

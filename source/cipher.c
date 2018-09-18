@@ -26,54 +26,51 @@
 
 #define MSG_ID_LEN 16
 
-struct aws_cryptosdk_alg_impl {
-    const EVP_MD *(*md_ctor)(void);
-    const EVP_CIPHER *(*cipher_ctor)(void);
-};
-
 const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryptosdk_alg_id alg_id) {
 #define EVP_NULL NULL
-#define STATIC_ALG_PROPS(alg_id_v, md, cipher, dk_len_v, iv_len_v, tag_len_v) \
+#define STATIC_ALG_PROPS(alg_id_v, md, cipher, dk_len_v, iv_len_v, tag_len_v, signature_len_v, curve_name_v) \
     case alg_id_v: { \
         static const struct aws_cryptosdk_alg_impl impl = { \
             .md_ctor = (EVP_##md), \
             .cipher_ctor = (EVP_##cipher), \
+            .curve_name = (curve_name_v), \
         }; \
         static const struct aws_cryptosdk_alg_properties props = { \
             .md_name = #md, \
             .cipher_name = #cipher, \
+            .alg_name = #alg_id_v, \
             .impl = &impl, \
             .data_key_len = (dk_len_v)/8, \
     /* Currently we don't support any algorithms where DK and CK lengths differ */ \
             .content_key_len = (dk_len_v)/8, \
             .iv_len = (iv_len_v), \
             .tag_len = (tag_len_v), \
-            .alg_id = (alg_id_v) \
+            .alg_id = (alg_id_v), \
+            .signature_len = (signature_len_v) \
         }; \
         return &props; \
     }
     switch (alg_id) {
         STATIC_ALG_PROPS(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-            NULL, aes_128_gcm, 128, 12, 16);
+            NULL, aes_128_gcm, 128, 12, 16, 0, NULL);
         STATIC_ALG_PROPS(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-            sha256, aes_128_gcm, 128, 12, 16);
+            sha256, aes_128_gcm, 128, 12, 16, 0, NULL);
         STATIC_ALG_PROPS(AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-            NULL, aes_192_gcm, 192, 12, 16);
+            NULL, aes_192_gcm, 192, 12, 16, 0, NULL);
         STATIC_ALG_PROPS(AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-            sha256, aes_192_gcm, 192, 12, 16);
+            sha256, aes_192_gcm, 192, 12, 16, 0, NULL);
         STATIC_ALG_PROPS(AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-            NULL, aes_256_gcm, 256, 12, 16);
+            NULL, aes_256_gcm, 256, 12, 16, 0, NULL);
         STATIC_ALG_PROPS(AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-            sha256, aes_256_gcm, 256, 12, 16);
-#if 0
-        // Not yet supported
+            sha256, aes_256_gcm, 256, 12, 16, 0, NULL);
+        // secp256r1 aka prime256v1 aka P-256
+        // openssl does not define the 'secp256r1' alias however
         STATIC_ALG_PROPS(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
-            sha256, aes_128_gcm, 128, 12, 16);
+            sha256, aes_128_gcm, 128, 12, 16, 71, "prime256v1");
         STATIC_ALG_PROPS(AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
-            sha384, aes_192_gcm, 192, 12, 16);
+            sha384, aes_192_gcm, 192, 12, 16, 103, "secp384r1");
         STATIC_ALG_PROPS(AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
-            sha384, aes_256_gcm, 256, 12, 16);
-#endif
+            sha384, aes_256_gcm, 256, 12, 16, 103, "secp384r1");
         default:
             return NULL;
     }
@@ -84,15 +81,15 @@ const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryp
 static enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id alg_id) {
     switch (alg_id) {
         case AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384:
-        case AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384: return SHA384;
+        case AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384: return AWS_CRYPTOSDK_SHA384;
         case AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256:
         case AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE:
         case AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE:
-        case AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE: return SHA256;
+        case AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE: return AWS_CRYPTOSDK_SHA256;
         case AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE:
         case AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE:
         case AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE:
-        default: return NOSHA;
+        default: return  AWS_CRYPTOSDK_NOSHA;
     }
 }
 
@@ -108,7 +105,7 @@ int aws_cryptosdk_derive_key(
     info[1] = alg_id & 0xFF;
     memcpy(&info[2], message_id, sizeof(info) - 2);
     enum aws_cryptosdk_sha_version which_sha = aws_cryptosdk_which_sha(props->alg_id);
-    if (which_sha == NOSHA) {
+    if (which_sha ==  AWS_CRYPTOSDK_NOSHA) {
         memcpy(content_key->keybuf, data_key->keybuf, props->data_key_len);
         return AWS_OP_SUCCESS;
     }

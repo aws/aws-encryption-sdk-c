@@ -19,6 +19,24 @@
 #include <aws/cryptosdk/private/materials.h>
 #include <assert.h>
 
+static int serialize_aad_init(struct aws_allocator *alloc,
+                              struct aws_byte_buf *aad,
+                              const struct aws_hash_table *enc_context) {
+    size_t aad_len;
+
+    memset(aad, 0, sizeof(*aad));
+
+    if (aws_cryptosdk_context_size(&aad_len, enc_context)
+        || aws_byte_buf_init(alloc, aad, aad_len)
+        || aws_cryptosdk_context_serialize(alloc, aad, enc_context)) {
+        aws_byte_buf_clean_up(aad);
+
+        return AWS_OP_ERR;
+    }
+
+    return AWS_OP_SUCCESS;
+}
+
 int aws_cryptosdk_serialize_provider_info_init(struct aws_allocator * alloc,
                                                struct aws_byte_buf * output,
                                                const struct aws_string * master_key_id,
@@ -89,7 +107,7 @@ int aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(struct aws_cryptosdk_
     assert(data_key_len == unencrypted_data_key->len);
 
     struct aws_byte_buf aad;
-    if (aws_cryptosdk_serialize_enc_context_init(self->alloc, &aad, enc_context)) {
+    if (serialize_aad_init(self->alloc, &aad, enc_context)) {
         return AWS_OP_ERR;
     }
 
@@ -184,7 +202,7 @@ static int raw_aes_keyring_decrypt_data_key(struct aws_cryptosdk_keyring * kr,
     struct raw_aes_keyring * self = (struct raw_aes_keyring *)kr;
 
     struct aws_byte_buf aad;
-    if (aws_cryptosdk_serialize_enc_context_init(self->alloc, &aad, enc_context)) {
+    if (serialize_aad_init(self->alloc, &aad, enc_context)) {
         return AWS_OP_ERR;
     }
 

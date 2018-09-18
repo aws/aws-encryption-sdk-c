@@ -1,0 +1,104 @@
+/*
+ * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+ * this file except in compliance with the License. A copy of the License is
+ * located at
+ *
+ *     http://aws.amazon.com/apache2.0/
+ *
+ * or in the "license" file accompanying this file. This file is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+/* 
+* File contains a set state machine properties are specified. 
+* All properties return a Bit value. 
+* These properties can be proven using SAW configured with some satisfiability solver. 
+* All properties currently consider only non-error and non-done states. 
+*/
+
+module proofs where 
+
+import type_def
+import state_machine
+
+
+
+// Are known preconditons about the fields of the state are met. 
+arePreconditionsMet : state_t -> Bit
+arePreconditionsMet state = 
+    if state.sess.data_so_far > state.sess.precise_size then False         //SANITY CHECK
+    else if state.sess.frame_size >= MAX_FRAME_SIZE then False             //SANITY CHECK
+    else if state.sess.precise_size_known > 1 then False                   //SANITY CHECK
+    else if state.sess.mode > 1 then False                                 //SANITY CHECK
+    else if state.sess.state > ST_WRITE_TRAILER then False                 //SANITY CHECK
+    else if state.sess.state == ST_DONE then False                         //THERE IS NO PROGRESS FROM ST_DONE
+    else if state.sess.state == ST_ERROR then False                        //THERE IS NO PROGRESS FROM ST_ERROR
+    else if state.sess.alg_prop.iv_len != ( 96 * 8 ) then False            //ACCORDING TO DOC
+    else if state.sess.alg_prop.tag_len != ( 128 * 8 ) then False          //ACCORDING TO DOC
+    else True 
+
+
+// Is progress made for any arbitrary state.
+isProgressMade : state_t -> Bit
+isProgressMade state = 
+    if ~arePreconditionsMet state then False
+    else ~isProgressMadeProperty state
+
+
+// Does the loop continue for any arbitrary state.
+doesLoopContinue : state_t -> Bit
+doesLoopContinue state = 
+    if ~arePreconditionsMet state then False
+    else ~doesLoopContinueProperty state
+
+
+// Is progress made for any arbitrary state when the precise size is known.
+isProgressMadeSizeKnown : state_t -> Bit
+isProgressMadeSizeKnown state = 
+    if ~arePreconditionsMet state then False
+    else if state.sess.precise_size_known == 0 then False
+    else ~isProgressMadeProperty state
+
+
+// Does the loop continue for any arbitrary state when the precise size is known. 
+doesLoopContinueSizeKnown : state_t -> Bit
+doesLoopContinueSizeKnown state = 
+    if ~arePreconditionsMet state then False
+    else if state.sess.precise_size_known == 0 then False
+    else ~doesLoopContinueProperty state
+
+
+// Does the loop continue after 1 update of the input/output buffers for the ST_WRITE_HEADER state?
+// Here an update means the size of the buffers has been increased to the input/output size estimates. 
+doesWriteHeaderContinueAfterUpdate : state_t -> Bit
+doesWriteHeaderContinueAfterUpdate state = 
+    if ~arePreconditionsMet state then False
+    else if state.sess.state != ST_WRITE_HEADER then False 
+    else  ~doesLoopContinueProperty ( updateBuffers (processState state) ) && (~doesLoopContinueProperty state)
+
+// Does loop continue after 1 update of the input/output buffers for the ST_ENCRYPT_BODY state.  
+// Here an update means the size of the buffers has been increased to the input/output size estimates. 
+// We do not assume the precise size is known 
+doesEncryptBodyContinueAfterUpdate : state_t -> Bit
+doesEncryptBodyContinueAfterUpdate state = 
+    if ~arePreconditionsMet state then False
+    else if state.sess.state != ST_ENCRYPT_BODY then False 
+    else  ~doesLoopContinueProperty ( updateBuffers (processState state) ) && (~doesLoopContinueProperty state)
+
+
+// Does loop continue after 1 update of the input/output buffers for the ST_ENCRYPT_BODY state.  
+// Here an update means the size of the buffers has been increased to the input/output size estimates. 
+// We assume the precise size is known 
+doesEncryptBodyContinueAfterUpdateSizeKnown : state_t -> Bit
+doesEncryptBodyContinueAfterUpdateSizeKnown state = 
+    if ~arePreconditionsMet state then False
+    else if state.sess.precise_size_known == 0 then False 
+    else if state.sess.state != ST_ENCRYPT_BODY then False 
+    else  ~doesLoopContinueProperty ( updateBuffers (processState state) ) && (~doesLoopContinueProperty state)
+
+
