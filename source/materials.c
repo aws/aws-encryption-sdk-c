@@ -15,26 +15,28 @@
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/cipher.h>
 
+int aws_cryptosdk_edk_list_init(struct aws_allocator *alloc, struct aws_array_list *edk_list) {
+    const int initial_size = 4; // just a guess, this will resize as necessary
+    return aws_array_list_init_dynamic(edk_list,
+                                       alloc,
+                                       initial_size,
+                                       sizeof(struct aws_cryptosdk_edk));
+}
+
 struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_new(struct aws_allocator * alloc,
                                                                                    enum aws_cryptosdk_alg_id alg) {
-    const int initial_edk_list_size = 4; // just a guess, this will resize as necessary
-    int ret;
     struct aws_cryptosdk_encryption_materials * enc_mat;
     enc_mat = aws_mem_acquire(alloc, sizeof(struct aws_cryptosdk_encryption_materials));
     if (!enc_mat) return NULL;
-    enc_mat->alloc = alloc;
-    enc_mat->alg = alg;
-    enc_mat->unencrypted_data_key.allocator = NULL;
-    enc_mat->unencrypted_data_key.buffer = NULL;
 
-    ret = aws_array_list_init_dynamic(&enc_mat->encrypted_data_keys,
-                                      alloc,
-                                      initial_edk_list_size,
-                                      sizeof(struct aws_cryptosdk_edk));
-    if (ret) {
+    if (aws_cryptosdk_edk_list_init(alloc, &enc_mat->encrypted_data_keys)) {
         aws_mem_release(alloc, enc_mat);
         return NULL;
     }
+
+    enc_mat->alloc = alloc;
+    enc_mat->alg = alg;
+    memset(&enc_mat->unencrypted_data_key, 0, sizeof(struct aws_byte_buf));
 
     return enc_mat;
 }

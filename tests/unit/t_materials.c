@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include <aws/common/array_list.h>
+#include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/default_cmm.h>
 #include "testing.h"
 #include "zero_keyring.h"
@@ -66,11 +66,11 @@ int default_cmm_zero_keyring_dec_mat() {
     req.alg = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE;
     req.alloc = aws_default_allocator();
 
-    aws_array_list_init_dynamic(&req.encrypted_data_keys, alloc, 1, sizeof(struct aws_cryptosdk_edk));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &req.encrypted_data_keys));
     struct aws_cryptosdk_edk edk;
     aws_cryptosdk_literally_null_edk(&edk);
 
-    aws_array_list_push_back(&req.encrypted_data_keys, (void *) &edk);
+    TEST_ASSERT_SUCCESS(aws_array_list_push_back(&req.encrypted_data_keys, (void *) &edk));
 
     struct aws_cryptosdk_decryption_materials * dec_mat;
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_cmm_decrypt_materials(cmm, &dec_mat, &req));

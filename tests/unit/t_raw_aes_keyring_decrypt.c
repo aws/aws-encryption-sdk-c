@@ -14,7 +14,7 @@
  */
 #include <stdlib.h>
 #include <aws/cryptosdk/private/raw_aes_keyring.h>
-#include <aws/cryptosdk/private/materials.h>
+#include <aws/cryptosdk/materials.h>
 #include "raw_aes_keyring_test_vectors.h"
 #include "testing.h"
 
@@ -134,8 +134,7 @@ static int set_up_all_the_things(const struct aws_string ** keys,
         TEST_ASSERT_SUCCESS(aws_hash_table_create(&enc_context, (void *)keys[key_idx], &elem, NULL));
         elem->value = (void *)vals[key_idx];
     }
-
-    TEST_ASSERT_SUCCESS(aws_array_list_init_dynamic(&edks, alloc, 10, sizeof(struct aws_cryptosdk_edk)));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &edks));
 
     return 0;
 }
@@ -219,10 +218,10 @@ int decrypt_data_key_multiple_edks() {
     }
 
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_on_decrypt(kr,
-                                                                              &unencrypted_data_key,
-                                                                              &edks,
-                                                                              &enc_context,
-                                                                              tv.alg));
+                                                                        &unencrypted_data_key,
+                                                                        &edks,
+                                                                        &enc_context,
+                                                                        tv.alg));
     TEST_ASSERT_ADDR_NOT_NULL(unencrypted_data_key.buffer);
 
     struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv.data_key, tv.data_key_len);

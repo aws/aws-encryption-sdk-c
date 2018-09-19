@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/multi_keyring.h>
-#include <aws/cryptosdk/private/materials.h>
+#include <aws/cryptosdk/materials.h>
 #include <assert.h>
 
 struct multi_keyring {
@@ -65,10 +65,7 @@ static int multi_keyring_on_encrypt(struct aws_cryptosdk_keyring *multi,
     struct multi_keyring *self = (struct multi_keyring *)multi;
 
     struct aws_array_list my_edks;
-    if (aws_array_list_init_dynamic(&my_edks,
-                                    self->alloc,
-                                    aws_array_list_length(&self->children) + 1,
-                                    sizeof(struct aws_cryptosdk_edk))) return AWS_OP_ERR;
+    if (aws_cryptosdk_edk_list_init(self->alloc, &my_edks)) return AWS_OP_ERR;
 
     int ret = AWS_OP_SUCCESS;
     if (!unencrypted_data_key->buffer) {
@@ -77,10 +74,10 @@ static int multi_keyring_on_encrypt(struct aws_cryptosdk_keyring *multi,
             goto out;
         }
         if (aws_cryptosdk_keyring_on_encrypt(self->generator,
-                                                               unencrypted_data_key,
-                                                               &my_edks,
-                                                               enc_context,
-                                                               alg)) {
+                                             unencrypted_data_key,
+                                             &my_edks,
+                                             enc_context,
+                                             alg)) {
             ret = AWS_OP_ERR;
             goto out;
         }

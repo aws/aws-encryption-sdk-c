@@ -20,6 +20,7 @@
 #include <aws/common/array_list.h>
 #include <aws/common/byte_buf.h>
 #include <aws/common/hash_table.h>
+#include <aws/cryptosdk/edk.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/header.h>
 
@@ -30,12 +31,6 @@
  */
 struct aws_cryptosdk_cmm;
 struct aws_cryptosdk_keyring;
-
-struct aws_cryptosdk_edk {
-    struct aws_byte_buf provider_id;
-    struct aws_byte_buf provider_info;
-    struct aws_byte_buf enc_data_key;
-};
 
 /*
  * TODO: Private key stuff is needed for trailing signature.

@@ -19,6 +19,7 @@
 #include <assert.h>
 
 #include <aws/cryptosdk/session.h>
+#include <aws/cryptosdk/edk.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/private/header.h>
 #include <aws/cryptosdk/private/session.h>
@@ -38,12 +39,9 @@ static int fill_request(
     size_t n_keys = aws_array_list_length(&session->header.edk_list);
 
     // TODO: Make encrypted_data_keys a pointer?
-    if (aws_array_list_init_dynamic(
-        &request->encrypted_data_keys,
-        session->alloc,
-        n_keys,
-        sizeof(struct aws_cryptosdk_edk)
-    )) {
+    if (aws_cryptosdk_edk_list_init(
+            session->alloc,
+            &request->encrypted_data_keys)) {
         return AWS_OP_ERR;
     }
 

@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/multi_keyring.h>
-#include <aws/cryptosdk/private/materials.h>
+#include <aws/cryptosdk/materials.h>
 #include "testing.h"
 
 struct test_keyring {
@@ -87,7 +87,7 @@ static enum aws_cryptosdk_alg_id alg = AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384
 static int set_up_all_the_things(bool include_generator) {
     alloc = aws_default_allocator();
 
-    TEST_ASSERT_SUCCESS(aws_array_list_init_dynamic(&edks, alloc, 8, sizeof(struct aws_cryptosdk_edk)));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &edks));
 
     memset(test_keyrings, 0, sizeof(test_keyrings));
     multi = aws_cryptosdk_multi_keyring_new(alloc, NULL);

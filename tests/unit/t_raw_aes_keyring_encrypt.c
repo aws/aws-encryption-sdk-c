@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/private/raw_aes_keyring.h>
-#include <aws/cryptosdk/private/materials.h>
+#include <aws/cryptosdk/materials.h>
 #include "raw_aes_keyring_test_vectors.h"
 #include "testing.h"
 
@@ -52,7 +52,7 @@ static int set_up_all_the_things(enum aws_cryptosdk_aes_key_len raw_key_len, boo
                                             aws_string_destroy,
                                             aws_string_destroy));
 
-    TEST_ASSERT_SUCCESS(aws_array_list_init_dynamic(&edks, alloc, 1, sizeof(struct aws_cryptosdk_edk)));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &edks));
 
     if (fill_enc_context) TEST_ASSERT_SUCCESS(put_stuff_in_encryption_context());
 

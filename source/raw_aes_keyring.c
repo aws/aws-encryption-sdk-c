@@ -16,7 +16,7 @@
 #include <aws/cryptosdk/private/enc_context.h>
 #include <aws/cryptosdk/private/utils.h>
 #include <aws/cryptosdk/private/cipher.h>
-#include <aws/cryptosdk/private/materials.h>
+#include <aws/cryptosdk/materials.h>
 #include <assert.h>
 
 static int serialize_aad_init(struct aws_allocator *alloc,
