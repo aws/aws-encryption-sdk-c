@@ -573,14 +573,14 @@ int aws_cryptosdk_rsa_decrypt(
     if (padding < 0) return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     BIO *bio = NULL;
     EVP_PKEY_CTX *ctx = NULL;
+    EVP_PKEY *pkey = NULL;
     bool error = true;
     int err_code = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
-    EVP_PKEY *pkey = EVP_PKEY_new();
+    pkey = EVP_PKEY_new();
     if (!pkey) goto cleanup;
     bio = BIO_new_mem_buf(aws_string_bytes(rsa_private_key_pem), -1);
     if (!bio) goto cleanup;
-    pkey = PEM_read_bio_PrivateKey(bio, &pkey, NULL, NULL);
-    if (!pkey) goto cleanup;
+    if (!PEM_read_bio_PrivateKey(bio, &pkey, NULL, NULL)) goto cleanup;
     ctx = EVP_PKEY_CTX_new(pkey, NULL);
     if (!ctx) goto cleanup;
     if (EVP_PKEY_decrypt_init(ctx) <= 0) goto cleanup;
@@ -600,7 +600,7 @@ int aws_cryptosdk_rsa_decrypt(
 cleanup:
     EVP_PKEY_CTX_free(ctx);
     EVP_PKEY_free(pkey);
-    BIO_free_all(bio);
+    BIO_free(bio);
     flush_openssl_errors();
     if (error) {
         return aws_raise_error(err_code);
