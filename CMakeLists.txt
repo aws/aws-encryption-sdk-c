@@ -46,11 +46,6 @@ endif()
 
 find_package(aws-c-common CONFIG REQUIRED)
 
-# C++ SDK
-
-find_package(aws-cpp-sdk-core CONFIG)
-find_package(aws-cpp-sdk-kms CONFIG)
-
 if(USE_ASM)
     CHECK_CXX_SOURCE_COMPILES("
     int main() {
@@ -185,6 +180,8 @@ file(GLOB UNIT_TEST_SRC "tests/unit/*.c")
 file(GLOB UNIT_TEST_HDRS "tests/*.h")
 file(GLOB UNIT_TESTS ${TEST_HDRS} ${TEST_SRC})
 file(GLOB TEST_LIB "tests/lib/*.c")
+
+add_subdirectory(aws-encryption-sdk-cpp)
 
 include(CTest)
 enable_testing()
