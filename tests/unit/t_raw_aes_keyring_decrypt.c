@@ -18,6 +18,8 @@
 #include "raw_aes_keyring_test_vectors.h"
 #include "testing.h"
 
+#if 0
+
 static struct aws_cryptosdk_edk good_edk() {
     return edk_init_from_test_vector_idx(0);
 }
@@ -352,12 +354,16 @@ int decrypt_data_key_with_sig_and_enc_context() {
     return 0;
 }
 
+#endif
+
 struct test_case raw_aes_keyring_decrypt_test_cases[] = {
+#if 0
     { "raw_aes_keyring", "decrypt_data_key_test_vectors", decrypt_data_key_test_vectors },
     { "raw_aes_keyring", "decrypt_data_key_multiple_edks", decrypt_data_key_multiple_edks },
     { "raw_aes_keyring", "decrypt_data_key_no_good_edk", decrypt_data_key_no_good_edk },
     { "raw_aes_keyring", "decrypt_data_key_with_sig", decrypt_data_key_with_sig },
     { "raw_aes_keyring", "decrypt_data_key_with_sig_and_enc_context",
       decrypt_data_key_with_sig_and_enc_context },
+#endif
     { NULL }
 };
