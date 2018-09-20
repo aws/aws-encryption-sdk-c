@@ -188,7 +188,7 @@ int try_parse_header(
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
     }
 
-    if (session->header_size != input->ptr - header_start) {
+    if ((ptrdiff_t)session->header_size != input->ptr - header_start) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
@@ -248,7 +248,7 @@ int try_decrypt_body(
 
     // We have everything we need, try to decrypt
     int rv = aws_cryptosdk_decrypt_body(
-        session->alg_props, &output, &frame.ciphertext, session->header.message_id, session->frame_seqno,
+        session->alg_props, &output, &frame.ciphertext, session->header.message_id, frame.sequence_number,
         frame.iv.ptr, &session->content_key, frame.authtag.ptr, frame.type
     );
 

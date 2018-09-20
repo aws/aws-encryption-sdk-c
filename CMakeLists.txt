@@ -14,6 +14,10 @@
 
 cmake_minimum_required (VERSION 3.1)
 project (aws-encryption-sdk)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(AwsCFlags)
+
 include(CheckLibraryExists)
 include(CheckCXXSourceCompiles)
 include(CheckCXXCompilerFlag)
@@ -34,6 +38,9 @@ set(SPECTRE_MITIGATIONS TRUE
 
 set(REDUCE_TEST_ITERATIONS FALSE
     CACHE BOOL "Reduce the number of iterations done on some exhaustive tests. This is particularly helpful when running under valgrind")
+
+set(BUILD_SHARED_LIBS FALSE
+    CACHE BOOL "Build aws-encryption-sdk-c as a shared library")
 
 option(VALGRIND_TEST_SUITE "Run the test suite under valgrind")
 set(VALGRIND_OPTIONS "" CACHE STRING "Additional options to pass to valgrind")
@@ -59,56 +66,6 @@ endif()
 CHECK_CXX_SOURCE_COMPILES("
     int main() { return __builtin_expect(0, 0); }
 " HAVE_BUILTIN_EXPECT)
-
-CHECK_CXX_COMPILER_FLAG("-Wall" HAS_FLAG_WALL)
-CHECK_CXX_COMPILER_FLAG("-pedantic" HAS_FLAG_PEDANTIC)
-CHECK_CXX_COMPILER_FLAG("-Werror" HAS_FLAG_WERROR)
-CHECK_CXX_COMPILER_FLAG("-Wno-missing-field-initializers" HAS_FLAG_NO_MISSING_FIELD_INITIALIZERS)
-
-if (MSVC)
-    add_compile_options(/W3 /WX)
-
-# MSVC complains if we use C99-standard functions like strerror() instead of their
-# proprietary "secure" versions such as strerror_s. Since we need to be portable, disable
-# those warnings.
-    add_definitions("-D_CRT_SECURE_NO_WARNINGS")
-
-# Suppress various warnings
-# TODO: Fix these?
-	add_compile_options(/wd4820) # Warns for struct padding
-	add_compile_options(/wd4255) # Warns for missing (void) in function definitions
-	add_compile_options(/wd4388) # Signed/unsigned comparisons
-	add_compile_options(/wd4267 /wd4242 /wd4244) # Narrowing implicit conversions of int types
-	add_compile_options(/wd4245) # Implicit sign extension, unsigned to signed conversion
-	add_compile_options(/wd4221) # obj = { .foo = nonconstant() }
-
-# MSVC warnings about C99 standard stuff
-	add_compile_options(/wd4204) # arr = { 0, 1, 2 } initializers
-
-# MSVC warnings that we don't want
-	add_compile_options(/wd4706) # assignment within conditional
-	add_compile_options(/wd5045) # "Compiler will insert spectre mitigations if /Qspectre specified"
-
-	if (SPECTRE_MITIGATIONS)
-		add_compile_options(/Qspectre)
-	endif()
-
-endif()
-
-if (HAS_FLAG_WALL AND NOT MSVC)
-    add_compile_options(-Wall)
-endif()
-if (HAS_FLAG_PEDANTIC AND NOT MSVC)
-    add_compile_options(-pedantic)
-endif()
-if (HAS_FLAG_WERROR)
-    add_compile_options(-Werror)
-endif()
-if (HAS_FLAG_NO_MISSING_FIELD_INITIALIZERS)
-# TODO - this is to avoid warning on the missing 'enabled' field in test case definitions.
-# We should find a cleaner way to work around this.
-    add_compile_options(-Wno-missing-field-initializers)
-endif()
 
 file(GLOB AWS_CRYPTOSDK_HEADERS
 # Headers subject to API/ABI stability guarantees
@@ -158,6 +115,7 @@ endif()
 
 add_library(aws-encryption-sdk ${LIBTYPE} ${CORE_HEADERS} ${CORE_SRC})
 set_target_properties(aws-encryption-sdk PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
+aws_set_common_properties(aws-encryption-sdk)
 
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 

@@ -19,6 +19,12 @@
 
 #define LAST_FRAME_MARK 0xFFFFFFFFu
 
+#ifdef _MSC_VER
+// The macros in this file depend on implicit integer conversions,
+// so suppress the corresponding MSVC warning
+#pragma warning(disable: 4244)
+#endif
+
 struct aws_cryptosdk_framestate {
     uint64_t max_frame_size;
     uint64_t plaintext_size;
@@ -96,7 +102,7 @@ struct aws_cryptosdk_framestate {
  */
 #define field_sized(state, cursorptr, size) do { \
     (state)->ciphertext_size += (size); \
-    *(cursorptr) = aws_byte_cursor_advance(&(state)->cursor, (size)); \
+    *(cursorptr) = aws_byte_cursor_advance(&(state)->cursor, (size_t)(size)); \
     (state)->too_small = (state)->too_small || !(cursorptr)->ptr; \
 } while (0)
 
