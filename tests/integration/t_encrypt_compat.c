@@ -260,6 +260,9 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
     aws_cryptosdk_session_destroy(session);
     aws_cryptosdk_cmm_destroy(cmm);
 
+    free(plaintext);
+    free(ciphertext);
+
     return 0;
 }
 

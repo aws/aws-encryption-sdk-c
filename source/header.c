@@ -109,6 +109,9 @@ void aws_cryptosdk_hdr_clean_up(struct aws_cryptosdk_hdr *hdr) {
         return;
     }
 
+    aws_byte_buf_clean_up(&hdr->iv);
+    aws_byte_buf_clean_up(&hdr->auth_tag);
+
     aws_cryptosdk_edk_list_clean_up(&hdr->edk_list);
     aws_hash_table_clean_up(&hdr->enc_context);
 

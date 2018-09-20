@@ -195,7 +195,7 @@ struct hkdf_test_vectors tv[] = {
       .okm_desired = tv_5_okm_desired,
       .okm_len     = 42 },
 
-    { .which_sha   =  AWS_CRYPTOSDK_NOSHA,
+    { .which_sha   = AWS_CRYPTOSDK_NOSHA,
       .ikm         = tv_6_ikm,
       .ikm_len     = 10 },
 };
