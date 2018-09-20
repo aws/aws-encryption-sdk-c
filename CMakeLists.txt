@@ -42,6 +42,8 @@ set(REDUCE_TEST_ITERATIONS FALSE
 set(BUILD_SHARED_LIBS FALSE
     CACHE BOOL "Build aws-encryption-sdk-c as a shared library")
 
+option(PERFORM_HEADER_CHECK "Performs compile-time checks that each header can be included independently. Requires a C++ compiler.")
+
 option(VALGRIND_TEST_SUITE "Run the test suite under valgrind")
 set(VALGRIND_OPTIONS "" CACHE STRING "Additional options to pass to valgrind")
 
@@ -70,19 +72,21 @@ CHECK_CXX_SOURCE_COMPILES("
 file(GLOB AWS_CRYPTOSDK_HEADERS
 # Headers subject to API/ABI stability guarantees
      "include/aws/cryptosdk/*.h"
-# Headers not subject to API stability (but subject to ABI stability)
-# These typically include internal macros and helpers used in static inline functions
-     "include/aws/cryptosdk/private/*.h"
 )
 
 file(GLOB AWS_CRYPTOSDK_PRIV_HEADERS
 # Headers not installed with the library
-     "noninst_include/aws/cryptosdk/private/*.h"
+     "include/aws/cryptosdk/private/*.h"
 )
 
 file(GLOB AWS_CRYPTOSDK_SRC
     "source/*.c"
 )
+
+if (PERFORM_HEADER_CHECK)
+    set(HEADERS_TO_CHECK ${AWS_CRYPTOSDK_HEADERS})
+    add_subdirectory(cmake/header-tester)
+endif()
 
 # Generate an includable header file exposing build-time configuration
 set(GENERATED_CONFIG_HEADER "${CMAKE_CURRENT_BINARY_DIR}/generated/include/aws/cryptosdk/private/config.h")
