@@ -507,7 +507,7 @@ static void overread_once(const uint8_t *inbuf, size_t inlen, ssize_t flip_bit_i
         abort();
     }
 
-    size_t byte_offset = flip_bit_index >> 3;
+    size_t byte_offset = (size_t)flip_bit_index >> 3;
     if (flip_bit_index >= 0 && byte_offset < inlen) {
         int bit_offset = flip_bit_index & 7;
         phdr[byte_offset] ^= (1 << bit_offset);

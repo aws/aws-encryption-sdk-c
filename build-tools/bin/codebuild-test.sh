@@ -19,6 +19,11 @@ set -x # Echo commands as they're executed
 
 PATH=$PWD/build-tools/bin:$PATH
 
+if ! bash -x ./cppcheck.sh; then
+    echo cppcheck failed, see messages above for details
+    exit 1
+fi
+
 build-tools/bin/codebuild-build-dependency https://github.com/awslabs/aws-c-common.git
 build-tools/bin/codebuild-build-dependency https://github.com/awslabs/aws-sdk-cpp.git --git-tag 1.5.20 -DBUILD_ONLY="kms;lambda"
 mkdir build

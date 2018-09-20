@@ -223,7 +223,11 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
         size_t ct_available = ct_need;
         if (ct_offset + ct_need > ciphertext_buf_sz) {
             ciphertext_buf_sz = ct_offset + ct_need;
-            ciphertext = realloc(ciphertext, ciphertext_buf_sz);
+            void *newp = realloc(ciphertext, ciphertext_buf_sz);
+            if (!newp) {
+                abort();
+            }
+            ciphertext = newp;
         }
         uint8_t *ct_ptr = &ciphertext[ct_offset];
 

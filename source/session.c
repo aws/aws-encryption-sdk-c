@@ -196,10 +196,11 @@ int aws_cryptosdk_session_process(
     int result;
 
     enum session_state prior_state;
-    const uint8_t *old_outp, *old_inp;
     bool made_progress;
 
     do {
+        const uint8_t *old_outp, *old_inp;
+
         prior_state = session->state;
         old_outp = output.ptr;
         old_inp = input.ptr;

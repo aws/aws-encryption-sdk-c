@@ -23,8 +23,8 @@ struct default_cmm {
 static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * cmm,
                                                      struct aws_cryptosdk_encryption_materials ** output,
                                                      struct aws_cryptosdk_encryption_request * request) {
-    struct aws_cryptosdk_encryption_materials * enc_mat = NULL;
-    struct default_cmm * self = (struct default_cmm *) cmm;
+    struct aws_cryptosdk_encryption_materials *enc_mat;
+    struct default_cmm *self = (struct default_cmm *) cmm;
 
     enc_mat = aws_cryptosdk_encryption_materials_new(request->alloc, request->requested_alg);
     if (!enc_mat) goto err;

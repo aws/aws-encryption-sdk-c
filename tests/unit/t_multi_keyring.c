@@ -311,7 +311,7 @@ int delegates_decrypt_calls() {
         char my_data_key[] = "Eureka!";
         test_keyrings[successful_keyring].decrypted_key_to_return = aws_byte_buf_from_c_str(my_data_key);
 
-        struct aws_cryptosdk_decryption_request req;
+        struct aws_cryptosdk_decryption_request req = {0};
         req.alloc = alloc;
 
         TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_decrypt_data_key(multi, dec_mat, &req));
