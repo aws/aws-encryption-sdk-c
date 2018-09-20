@@ -18,6 +18,10 @@
 
 #include <aws/common/byte_buf.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum aws_cryptosdk_sha_version { 
     AWS_CRYPTOSDK_NOSHA,
     AWS_CRYPTOSDK_SHA256, 
@@ -35,5 +39,9 @@ int aws_cryptosdk_hkdf(
     const struct aws_byte_buf *salt,
     const struct aws_byte_buf *ikm,
     const struct aws_byte_buf *info);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
