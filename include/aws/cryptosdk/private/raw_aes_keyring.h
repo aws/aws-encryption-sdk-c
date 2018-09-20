@@ -72,10 +72,9 @@ bool aws_cryptosdk_parse_provider_info(struct aws_cryptosdk_keyring * kr,
  */
 int aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(
     struct aws_cryptosdk_keyring * kr,
-    const struct aws_byte_buf * unencrypted_data_key,
-    struct aws_array_list * edks,
-    const struct aws_hash_table * enc_context,
-    enum aws_cryptosdk_alg_id alg,
+    struct aws_cryptosdk_keyring_on_encrypt_outputs *outputs,
+    struct aws_byte_buf *unencrypted_data_key,
+    const struct aws_cryptosdk_keyring_on_encrypt_inputs *inputs,
     const uint8_t * iv);
 
 #endif // AWS_CRYPTOSDK_PRIVATE_RAW_AES_KEYRING_H

@@ -50,34 +50,84 @@ struct aws_cryptosdk_key_pair {
     struct aws_cryptosdk_public_key public_key;
 };
 
+/**
+ * Input parameters of aws_cryptosdk_cmm_generate_encryption_materials.
+ */
 struct aws_cryptosdk_encryption_request {
-    struct aws_allocator * alloc;
-    struct aws_hash_table * enc_context;
+    struct aws_allocator *alloc;
+    struct aws_hash_table *enc_context;
     enum aws_cryptosdk_alg_id requested_alg;
     uint64_t plaintext_size;
 };
 
+/**
+ * Output parameters of aws_cryptosdk_cmm_generate_encryption_materials.
+ */
 struct aws_cryptosdk_encryption_materials {
-    struct aws_allocator * alloc;
+    struct aws_allocator *alloc;
     struct aws_byte_buf unencrypted_data_key;
     struct aws_array_list encrypted_data_keys; // list of struct aws_cryptosdk_edk objects
-    struct aws_hash_table * enc_context;
+    struct aws_hash_table *enc_context;
     struct aws_cryptosdk_key_pair trailing_signature_key_pair;
     enum aws_cryptosdk_alg_id alg;
 };
 
+/**
+ * Input parameters of aws_cryptosdk_cmm_decrypt_materials.
+ */
 struct aws_cryptosdk_decryption_request {
-    struct aws_allocator * alloc;
-    struct aws_hash_table * enc_context;
+    struct aws_allocator *alloc;
+    struct aws_hash_table *enc_context;
     struct aws_array_list encrypted_data_keys;
     enum aws_cryptosdk_alg_id alg;
 };
 
+/**
+ * Output parameters of aws_cryptosdk_cmm_decrypt_materials.
+ */
 struct aws_cryptosdk_decryption_materials {
-    struct aws_allocator * alloc;
+    struct aws_allocator *alloc;
     struct aws_byte_buf unencrypted_data_key;
     struct aws_cryptosdk_public_key trailing_signature_key;
     enum aws_cryptosdk_alg_id alg;
+};
+
+/**
+ * Input-only parameters of aws_cryptosdk_keyring_on_encrypt.
+ */
+struct aws_cryptosdk_keyring_on_encrypt_inputs {
+    const struct aws_hash_table *enc_context;
+    enum aws_cryptosdk_alg_id alg;
+    uint64_t plaintext_size;
+};
+
+/**
+ * Output-only parameters of aws_cryptosdk_keyring_on_encrypt.
+ *
+ * Caller is expected to set edks to point to an already allocated (possibly empty) list.
+ * Callee may push new EDKs onto the list, but must not modify EDKs already in the list.
+ */
+struct aws_cryptosdk_keyring_on_encrypt_outputs {
+    struct aws_array_list *edks; // pointer to list of struct aws_cryptosdk_edk objects
+    // TODO: add list of metadata strings for which KMS ARNs were used to do encrypt?
+};
+
+/**
+ * Input-only parameters of aws_cryptosdk_keyring_on_decrypt.
+ */
+struct aws_cryptosdk_keyring_on_decrypt_inputs {
+    const struct aws_hash_table *enc_context;
+    const struct aws_array_list *edks; // pointer to list of struct aws_cryptosdk_edk objects
+    enum aws_cryptosdk_alg_id alg;
+};
+
+/**
+ * Output-only parameters of aws_cryptosdk_keyring_on_decrypt. Always initialize to zero
+ * when declaring an object of this type so that the byte buffer is in a proper state.
+ */
+struct aws_cryptosdk_keyring_on_decrypt_outputs {
+    struct aws_byte_buf unencrypted_data_key;
+    // TODO: add metadata string for which KMS ARN was used to do decrypt?
 };
 
 /*
@@ -222,23 +272,20 @@ struct aws_cryptosdk_keyring_vt {
     void (*destroy)(struct aws_cryptosdk_keyring * keyring);
 
     /**
-     * VIRTUAL FUNCTION: must implement if used for encrypt.
+     * VIRTUAL FUNCTION: must implement if used for encryption.
      *
-     * Implementations must properly initialize the byte buffers of the unencrypted data key
-     * and the EDK(s) which it appends onto the list. The buffer for the unencrypted data key
-     * MUST be used. Buffers for the EDK(s) may or may not be used, but any buffers which are
-     * not used must have their allocators set to NULL and lengths set to zero. This assures
-     * that both clean up and serialization will function correctly.
-     *
-     * input and output: unencrypted_data_key
-     * output only: edks
-     * input only: enc_context, alg
+     * When the buffer for the unencrypted data key in the result object is not NULL at the
+     * time of the call, it must not be changed by callee. When the buffer of the unencrypted
+     * data key is NULL at the time of the call and the call returns successfully, the callee
+     * must have set the buffer. All buffers for any EDKs pushed onto the list must be in a
+     * valid state, which means either that they are set to all zeroes or that they have been
+     * initialized using one of the byte buffer initialization functions. This assures proper
+     * clean up and serialization.
      */
-    int (*on_encrypt)(struct aws_cryptosdk_keyring * keyring,
-                                        struct aws_byte_buf * unencrypted_data_key,
-                                        struct aws_array_list * edks,
-                                        const struct aws_hash_table * enc_context,
-                                        enum aws_cryptosdk_alg_id alg);
+    int (*on_encrypt)(struct aws_cryptosdk_keyring *keyring,
+                      struct aws_cryptosdk_keyring_on_encrypt_outputs *outputs,
+                      struct aws_byte_buf *unencrypted_data_key,
+                      const struct aws_cryptosdk_keyring_on_encrypt_inputs *inputs);
 
     /**
      * VIRTUAL FUNCTION: must implement if used for decryption.
@@ -246,18 +293,13 @@ struct aws_cryptosdk_keyring_vt {
      * Implementations must properly initialize the unencrypted data key buffer when an
      * EDK is decrypted and leave the unencrypted data key buffer pointer set to NULL
      * when no EDK is decrypted.
-     *
-     * output: unencrypted_data_key
-     * input: edks, enc_context, alg
      */
-    int (*on_decrypt)(struct aws_cryptosdk_keyring * keyring,
-                            struct aws_byte_buf * unencrypted_data_key,
-                            const struct aws_array_list * edks,
-                            const struct aws_hash_table * enc_context,
-                            enum aws_cryptosdk_alg_id alg);
+    int (*on_decrypt)(struct aws_cryptosdk_keyring *keyring,
+                      struct aws_cryptosdk_keyring_on_decrypt_outputs *outputs,
+                      const struct aws_cryptosdk_keyring_on_decrypt_inputs *inputs);
 };
 
-static inline void aws_cryptosdk_keyring_destroy(struct aws_cryptosdk_keyring * keyring) {
+static inline void aws_cryptosdk_keyring_destroy(struct aws_cryptosdk_keyring *keyring) {
     if (keyring) AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, keyring);
 }
 
@@ -275,16 +317,14 @@ static inline void aws_cryptosdk_keyring_destroy(struct aws_cryptosdk_keyring * 
  * not previously allocated, it will now be allocated, (4) zero or more EDKS will be
  * appended to the list of EDKS.
  *
- * On failure AWS_OP_ERR is returned, an internal AWS error code is set, and no memory is
- * allocated.
+ * On failure AWS_OP_ERR is returned, an error code is set, and no memory is allocated.
  */
 static inline int aws_cryptosdk_keyring_on_encrypt(
-    struct aws_cryptosdk_keyring * keyring,
-    struct aws_byte_buf * unencrypted_data_key,
-    struct aws_array_list * edks,
-    const struct aws_hash_table * enc_context,
-    enum aws_cryptosdk_alg_id alg) {
-    if (!unencrypted_data_key->buffer && aws_array_list_length(edks)) {
+    struct aws_cryptosdk_keyring *keyring,
+    struct aws_cryptosdk_keyring_on_encrypt_outputs *outputs,
+    struct aws_byte_buf *unencrypted_data_key,
+    const struct aws_cryptosdk_keyring_on_encrypt_inputs *inputs) {
+    if (!unencrypted_data_key->buffer && aws_array_list_length(outputs->edks)) {
         /* If a data key has not already been generated, there should be no EDKs.
          * Generating a new one and then pushing new EDKs on the list would cause the
          * list of EDKs to be inconsistent. (i.e., they would decrypt to different data
@@ -294,39 +334,32 @@ static inline int aws_cryptosdk_keyring_on_encrypt(
     }
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(on_encrypt,
                                   keyring,
+                                  outputs,
                                   unencrypted_data_key,
-                                  edks,
-                                  enc_context,
-                                  alg);
+                                  inputs);
 }
 
 /**
- * The KR attempts to find one of the EDKs to decrypt. edks must be a list of struct
- * aws_cryptosdk_edk instances, not a list of pointers. Decryption materials should
- * already have been initialized.
+ * The keyring attempts to find one of the EDKs to decrypt. The unencrypted data key
+ * buffer object should be zeroed when this is called.
  *
  * On success AWS_OP_SUCCESS will be returned. This does not necessarily mean that the
- * data key will be decrypted, as it is normal behavior that a particular KR may not
+ * data key will be decrypted, as it is normal behavior that a keyring may not
  * find an EDK that it can decrypt. To determine whether the data key was decrypted,
- * check dec_mat->unencrypted_data_key.buffer. If the data key was not decrypted, that
+ * check result->unencrypted_data_key.buffer. If the data key was not decrypted, that
  * pointer will be set to NULL. If the data key was decrypted, that pointer will point
  * to the raw bytes of the key.
  *
- * On internal failure, AWS_OP_ERR will be returned and an error code will be set.
+ * On failure, AWS_OP_ERR is returned, an error code is set, and no memory is allocated.
+ * Failure here refers to an unexpected error in the operation of the keyring, rather
+ * than an inability to decrypt any of the EDKs.
  */
 static inline int aws_cryptosdk_keyring_on_decrypt(
-    struct aws_cryptosdk_keyring * keyring,
-    struct aws_byte_buf * unencrypted_data_key,
-    const struct aws_array_list * edks,
-    const struct aws_hash_table * enc_context,
-    enum aws_cryptosdk_alg_id alg) {
-    if (unencrypted_data_key->buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL(on_decrypt,
-                                  keyring,
-                                  unencrypted_data_key,
-                                  edks,
-                                  enc_context,
-                                  alg);
+    struct aws_cryptosdk_keyring *keyring,
+    struct aws_cryptosdk_keyring_on_decrypt_outputs *outputs,
+    const struct aws_cryptosdk_keyring_on_decrypt_inputs *inputs) {
+    if (outputs->unencrypted_data_key.buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    AWS_CRYPTOSDK_PRIVATE_VF_CALL(on_decrypt, keyring, outputs, inputs);
 }
 
 /**
