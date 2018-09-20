@@ -19,6 +19,7 @@
 #include <stdbool.h>
 
 #include <aws/common/common.h>
+#include <aws/cryptosdk/exports.h>
 #include <aws/cryptosdk/header.h>
 #include <aws/cryptosdk/materials.h>
 
@@ -45,12 +46,14 @@ enum aws_cryptosdk_mode {
  *   - cmm: The crypto material manager which will provide key material for this
  *          session.
  */
+AWS_CRYPTOSDK_API
 struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm(
     struct aws_allocator *allocator,
     enum aws_cryptosdk_mode mode,
     struct aws_cryptosdk_cmm *cmm
 );
 
+AWS_CRYPTOSDK_API
 void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);
 
 /**
@@ -58,6 +61,7 @@ void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);
  * a session from encrypt to decrypt, or vice versa. After reset, the currently
  * configured allocator, CMM, and frame size to use for encryption are preserved.
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_session_reset(
     struct aws_cryptosdk_session *session,
     enum aws_cryptosdk_mode mode
@@ -67,6 +71,7 @@ int aws_cryptosdk_session_reset(
  * Sets the frame size to use for encryption. If zero is specified, the message
  * will be processed in an unframed mode.
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_session_set_frame_size(
     struct aws_cryptosdk_session *session,
     uint32_t frame_size
@@ -88,6 +93,7 @@ int aws_cryptosdk_session_set_frame_size(
  * Note that if the frame size is set to zero (i.e. this is a one-shot encrypt),
  * a message size must be set before any input data can be processed.
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_session_set_message_size(
     struct aws_cryptosdk_session *session,
     uint64_t message_size
@@ -109,27 +115,11 @@ int aws_cryptosdk_session_set_message_size(
  * It is recommended that the bound be set before invoking aws_cryptosdk_session_process;
  * failing to do so will result in the CMM being passed an unbounded message size.
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_session_set_message_bound(
     struct aws_cryptosdk_session *session,
     uint64_t max_message_size
 );
-
-#if 0
-/**
- * Retrieves a reference to the header associated with a session.
- * This function will fail with an AWS_CRYPTOSDK_ERR_BAD_STATE error
- * if the header is not yet available. This will happen if, for encrypt,
- * process has not yet been called, or if on decrypt not enough data has
- * been supplied to deserialize the header.
- *
- * The header returned is owned by the session and must not be modified.
- * It will be destroyed when the session is reinitialized or destroyed.
- */
-int aws_cryptosdk_session_get_header(
-    const struct aws_cryptosdk_session *session,
-    const struct aws_cryptosdk_header **header
-);
-#endif
 
 /**
  * Attempts to process some data through the cryptosdk session.
@@ -155,6 +145,7 @@ int aws_cryptosdk_session_get_header(
  * an error state. Use aws_cryptosdk_session_is_done to determine if the
  * entire message has been processed.
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_session_process(
     struct aws_cryptosdk_session *session,
     uint8_t *outp, size_t outlen, size_t *out_bytes_written,
@@ -164,6 +155,7 @@ int aws_cryptosdk_session_process(
 /**
  * Returns true if the session has finished processing the entire message.
  */
+AWS_CRYPTOSDK_API
 bool aws_cryptosdk_session_is_done(const struct aws_cryptosdk_session *session);
 
 /**
@@ -173,6 +165,7 @@ bool aws_cryptosdk_session_is_done(const struct aws_cryptosdk_session *session);
  * enter an error state). Guaranteed to succeed if aws_cryptosdk_session_is_done
  * returns true, but may succeed earlier in the message as well.
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_session_get_algorithm(
     const struct aws_cryptosdk_session *session,
     enum aws_cryptosdk_alg_id *alg_id
@@ -188,6 +181,7 @@ int aws_cryptosdk_session_get_algorithm(
  * This method never fails, but if the session is in an error state or is
  * only partially initialized, the returned sizes will be 1.
  */
+AWS_CRYPTOSDK_API
 void aws_cryptosdk_session_estimate_buf(
     const struct aws_cryptosdk_session * AWS_RESTRICT session,
     size_t * AWS_RESTRICT outbuf_needed,

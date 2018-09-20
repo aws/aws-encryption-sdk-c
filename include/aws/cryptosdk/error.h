@@ -18,6 +18,7 @@
 
 #include <aws/common/error.h>
 #include <aws/common/common.h>
+#include <aws/cryptosdk/exports.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,6 +47,7 @@ enum aws_cryptosdk_err {
 /**
  * Register error strings with the core error reporting APIs.
  */
+AWS_CRYPTOSDK_API
 void aws_cryptosdk_err_init_strings();
 
 #ifdef __cplusplus
