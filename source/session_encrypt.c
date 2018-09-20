@@ -143,6 +143,11 @@ static int build_header(struct aws_cryptosdk_session *session, struct aws_crypto
 static int sign_header(struct aws_cryptosdk_session *session, struct aws_cryptosdk_encryption_materials *materials) {
     session->header_size = aws_cryptosdk_hdr_size(&session->header);
 
+    if (session->header_size == 0) {
+        // EDK field lengths resulted in size_t overflow
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
+    }
+
     if (!(session->header_copy = aws_mem_acquire(session->alloc, session->header_size))) {
         return aws_raise_error(AWS_ERROR_OOM);
     }

@@ -97,6 +97,10 @@ static int validate_header(struct aws_cryptosdk_session *session) {
     int header_size = aws_cryptosdk_hdr_size(&session->header);
     size_t authtag_len = session->alg_props->tag_len + session->alg_props->iv_len;
 
+    if (header_size == 0) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
+    }
+
     if (header_size - session->header.auth_len != authtag_len) {
         // The authenticated length field is wrong.
         // XXX: This is a computed field, can this actually fail in practice?
@@ -164,6 +168,10 @@ int try_parse_header(
     }
 
     session->header_size = aws_cryptosdk_hdr_size(&session->header);
+
+    if (session->header_size == 0) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
+    }
 
     if (session->header_size != input->ptr - header_start) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);

@@ -553,6 +553,20 @@ int header_size() {
 
     TEST_ASSERT_INT_EQ(aws_cryptosdk_hdr_size(&hdr), sizeof(test_header_1) - 1);
 
+    // Now test that hdr_size detects integer overflow
+    for (size_t i = 0; i < aws_array_list_length(&hdr.edk_list); i++) {
+        struct aws_cryptosdk_edk edk;
+        TEST_ASSERT_SUCCESS(aws_array_list_get_at(&hdr.edk_list, &edk, i));
+
+        edk.enc_data_key.len = SIZE_MAX >> 1;
+        edk.provider_id.len = SIZE_MAX >> 1;
+        edk.provider_info.len = SIZE_MAX >> 1;
+
+        TEST_ASSERT_SUCCESS(aws_array_list_set_at(&hdr.edk_list, &edk, i));
+    }
+
+    TEST_ASSERT_INT_EQ(aws_cryptosdk_hdr_size(&hdr), 0);
+
     aws_cryptosdk_hdr_clean_up(&hdr);
 
     return 0;

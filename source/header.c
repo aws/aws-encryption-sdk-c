@@ -21,6 +21,7 @@
 #include <aws/cryptosdk/error.h>
 #include <aws/common/byte_buf.h>
 #include <aws/common/string.h>
+#include <aws/common/math.h>
 
 #define INITIAL_CONTEXT_SIZE 4
 
@@ -253,6 +254,14 @@ static const union {
     struct aws_cryptosdk_hdr hdr;
 } zero = {{0}};
 
+static size_t saturating_add(size_t a, size_t b) {
+    size_t c = a + b;
+    if (c < a) {
+        c = SIZE_MAX;
+    }
+    return c;
+}
+
 int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr) {
     if (!memcmp(hdr, &zero.hdr, sizeof(struct aws_cryptosdk_hdr))) return 0;
 
@@ -274,10 +283,14 @@ int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr) {
         aws_array_list_get_at_ptr(&hdr->edk_list, &vp_edk, idx);
 
         edk = vp_edk;
-        bytes += 6 + edk->provider_id.len + edk->provider_info.len + edk->enc_data_key.len;
+        // 2 bytes for each field's length header * 3 fields
+        bytes = saturating_add(bytes, 6);
+        bytes = saturating_add(bytes, edk->provider_id.len);
+        bytes = saturating_add(bytes, edk->provider_info.len);
+        bytes = saturating_add(bytes, edk->enc_data_key.len);
     }
 
-    return bytes;
+    return bytes == SIZE_MAX ? 0 : bytes;
 }
 
 int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_written, uint8_t *outbuf, size_t outlen) {
