@@ -17,6 +17,10 @@
 
 #include <aws/cryptosdk/materials.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Creates a new multi-keyring. This keyring allows you to combine keyrings into
  * a single keyring. When used for encryption, the resulting document can be 
@@ -98,5 +102,9 @@ int aws_cryptosdk_multi_keyring_set_generator(
  */
 int aws_cryptosdk_multi_keyring_add(struct aws_cryptosdk_keyring *multi,
                                     struct aws_cryptosdk_keyring *child);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // AWS_CRYPTOSDK_MULTI_KEYRING_H
