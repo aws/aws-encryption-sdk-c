@@ -172,5 +172,31 @@ int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
                                   const struct aws_byte_cursor aad,
                                   const struct aws_string * key);
 
+/**
+ * Does RSA decryption of an encrypted data key to an unecrypted data key.
+ * RSA with PKCS1, OAEP_SHA1_MGF1 and OAEP_SHA256_MGF1 padding modes is supported.
+ * 
+ * Here, 'plain' refers to the unencrypted AES data key obtained as a result of the RSA 
+ * decryption, 'rsa_private_key_pem' is a string that contains the RSA private key in PEM 
+ * format and 'cipher' is the encrypted AES data key.
+ * 
+ * Assumes plain is an already allocated byte buffer with a maximum size capacity.
+ * Does NOT assume that length of plain buffer is already set, and will set it to the length 
+ * of plain on a successful decrypt.
+ *
+ * Returns AWS_OP_SUCCESS on a successful decrypt. On failure, returns AWS_OP_ERR and sets
+ * one of the following error codes:
+ * 
+ * AWS_ERROR_INVALID_BUFFER_SIZE : not enough capacity in plain
+ * AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT: unsupported padding mode for RSA wrapping algorithm
+ * AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT : unable to decrypt or authenticate cipher text
+ * AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN : OpenSSL error
+ */
+int aws_cryptosdk_rsa_decrypt(
+    struct aws_byte_buf *plain,
+    struct aws_allocator *alloc,
+    const struct aws_byte_cursor cipher,
+    const struct aws_string *rsa_private_key_pem,
+    enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);
 
 #endif // AWS_CRYPTOSDK_PRIVATE_CIPHER_H
