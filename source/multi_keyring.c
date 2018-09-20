@@ -13,6 +13,8 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/multi_keyring.h>
+#include <aws/cryptosdk/materials.h>
+#include <assert.h>
 
 struct multi_keyring {
     const struct aws_cryptosdk_keyring_vt *vt;
@@ -21,37 +23,18 @@ struct multi_keyring {
     struct aws_array_list children; // list of (struct aws_cryptosdk_keyring *)
 };
 
-/* There may already be EDKs in the encryption materials object if, for example,
- * this multi-keyring was a child keyring of a different multi-keyring. In order
- * not to tamper with the existing EDK list in the encryption materials object,
- * this keyring creates a temporary copy of the encryption materials object
- * with an empty EDK list. This allows it to destroy its entire list in
- * case of any errors by child keyrings.
- */
-static struct aws_cryptosdk_encryption_materials *copy_relevant_parts_of_enc_mat_init(
-    struct aws_cryptosdk_encryption_materials *enc_mat) {
-    struct aws_cryptosdk_encryption_materials *enc_mat_copy =
-        aws_cryptosdk_encryption_materials_new(enc_mat->alloc, enc_mat->alg);
-    if (!enc_mat_copy) return NULL;
-
-    enc_mat_copy->enc_context = enc_mat->enc_context;
-
-    if (aws_byte_buf_init_copy(enc_mat->alloc,
-                               &enc_mat_copy->unencrypted_data_key,
-                               &enc_mat->unencrypted_data_key)) {
-        aws_cryptosdk_encryption_materials_destroy(enc_mat_copy);
-        return NULL;
-    }
-    return enc_mat_copy;
-}
-
-static int call_encrypt_dk_on_list(struct aws_cryptosdk_encryption_materials *enc_mat,
-                                   const struct aws_array_list *keyrings) {
+static int call_encrypt_dk_on_list(const struct aws_array_list *keyrings,
+                                   struct aws_cryptosdk_keyring_on_encrypt_outputs *outputs,
+                                   struct aws_byte_buf *unencrypted_data_key,
+                                   const struct aws_cryptosdk_keyring_on_encrypt_inputs *inputs) {
     size_t num_keyrings = aws_array_list_length(keyrings);
     for (size_t list_idx = 0; list_idx < num_keyrings; ++list_idx) {
         struct aws_cryptosdk_keyring *child;
         if (aws_array_list_get_at(keyrings, (void *)&child, list_idx)) return AWS_OP_ERR;
-        if (aws_cryptosdk_keyring_encrypt_data_key(child, enc_mat)) return AWS_OP_ERR;
+        if (aws_cryptosdk_keyring_on_encrypt(child,
+                                             outputs,
+                                             unencrypted_data_key,
+                                             inputs)) return AWS_OP_ERR;
     }
     return AWS_OP_SUCCESS;
 }
@@ -72,72 +55,49 @@ static int transfer_edk_list(struct aws_array_list *dest, struct aws_array_list 
     return AWS_OP_SUCCESS;
 }
 
-static int multi_keyring_encrypt_data_key(struct aws_cryptosdk_keyring *multi,
-                                          struct aws_cryptosdk_encryption_materials *enc_mat) {
+static int multi_keyring_on_encrypt(struct aws_cryptosdk_keyring *multi,
+                                    struct aws_cryptosdk_keyring_on_encrypt_outputs *outputs,
+                                    struct aws_byte_buf *unencrypted_data_key,
+                                    const struct aws_cryptosdk_keyring_on_encrypt_inputs *inputs) {
     struct multi_keyring *self = (struct multi_keyring *)multi;
 
-    // FIXME: this check should be moved to materials.h before virtual function call
-    // if we keep separate generate and encrypt calls
-    if (!enc_mat->unencrypted_data_key.buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-
-    struct aws_cryptosdk_encryption_materials *enc_mat_copy =
-        copy_relevant_parts_of_enc_mat_init(enc_mat);
-    if (!enc_mat_copy) return AWS_OP_ERR;
+    struct aws_array_list my_edks;
+    if (aws_cryptosdk_edk_list_init(self->alloc, &my_edks)) return AWS_OP_ERR;
+    struct aws_cryptosdk_keyring_on_encrypt_outputs my_result;
+    my_result.edks = &my_edks;
 
     int ret = AWS_OP_SUCCESS;
-    if (self->generator) {
-        if (aws_cryptosdk_keyring_encrypt_data_key(self->generator, enc_mat_copy)) {
+    if (!unencrypted_data_key->buffer) {
+        if (!self->generator) {
+            ret = aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+            goto out;
+        }
+        if (aws_cryptosdk_keyring_on_encrypt(self->generator,
+                                             &my_result,
+                                             unencrypted_data_key,
+                                             inputs)) {
             ret = AWS_OP_ERR;
             goto out;
         }
     }
+    assert(unencrypted_data_key->buffer);
 
-    if (call_encrypt_dk_on_list(enc_mat_copy, &self->children) ||
-        transfer_edk_list(&enc_mat->encrypted_data_keys, &enc_mat_copy->encrypted_data_keys)) {
+    if (call_encrypt_dk_on_list(&self->children,
+                                &my_result,
+                                unencrypted_data_key,
+                                inputs) ||
+        transfer_edk_list(outputs->edks, &my_edks)) {
         ret = AWS_OP_ERR;
     }
 
 out:
-    aws_cryptosdk_encryption_materials_destroy(enc_mat_copy);
+    aws_cryptosdk_edk_list_clean_up(&my_edks);
     return ret;
 }
 
-static int multi_keyring_generate_data_key(struct aws_cryptosdk_keyring *multi,
-                                           struct aws_cryptosdk_encryption_materials *enc_mat) {
-    struct multi_keyring *self = (struct multi_keyring *)multi;
-
-    // FIXME: this check should be moved to materials.h before virtual function call
-    // if we keep separate generate and encrypt calls
-    if (enc_mat->unencrypted_data_key.buffer || aws_array_list_length(&enc_mat->encrypted_data_keys))
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-
-    if (!self->generator) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-
-    struct aws_cryptosdk_encryption_materials *enc_mat_copy =
-        copy_relevant_parts_of_enc_mat_init(enc_mat);
-    if (!enc_mat_copy) return AWS_OP_ERR;
-
-    int ret = AWS_OP_SUCCESS;
-    if (aws_cryptosdk_keyring_generate_data_key(self->generator, enc_mat_copy) ||
-        !enc_mat_copy->unencrypted_data_key.buffer ||
-        call_encrypt_dk_on_list(enc_mat_copy, &self->children) ||
-        aws_byte_buf_init_copy(enc_mat->alloc,
-                               &enc_mat->unencrypted_data_key,
-                               &enc_mat_copy->unencrypted_data_key) ||
-        transfer_edk_list(&enc_mat->encrypted_data_keys, &enc_mat_copy->encrypted_data_keys)) {
-        aws_byte_buf_clean_up_secure(&enc_mat->unencrypted_data_key);
-        ret = AWS_OP_ERR;
-    }
-
-    aws_cryptosdk_encryption_materials_destroy(enc_mat_copy);
-    return ret;
-}
-
-static int multi_keyring_decrypt_data_key(struct aws_cryptosdk_keyring *multi,
-                                          struct aws_cryptosdk_decryption_materials *dec_mat,
-                                          const struct aws_cryptosdk_decryption_request *request) {
-    // FIXME: this check should be moved to materials.h before virtual function call
-    if (dec_mat->unencrypted_data_key.buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+static int multi_keyring_on_decrypt(struct aws_cryptosdk_keyring *multi,
+                                    struct aws_cryptosdk_keyring_on_decrypt_outputs *outputs,
+                                    const struct aws_cryptosdk_keyring_on_decrypt_inputs *inputs) {
 
     /* If one of the contained keyrings succeeds at decrypting the data key, return success,
      * but if we fail to decrypt the data key, only return success if there were no
@@ -148,8 +108,8 @@ static int multi_keyring_decrypt_data_key(struct aws_cryptosdk_keyring *multi,
     struct multi_keyring *self = (struct multi_keyring *)multi;
 
     if (self->generator) {
-        int decrypt_err = aws_cryptosdk_keyring_decrypt_data_key(self->generator, dec_mat, request);
-        if (dec_mat->unencrypted_data_key.buffer) return AWS_OP_SUCCESS;
+        int decrypt_err = aws_cryptosdk_keyring_on_decrypt(self->generator, outputs, inputs);
+        if (outputs->unencrypted_data_key.buffer) return AWS_OP_SUCCESS;
         if (decrypt_err) ret_if_no_decrypt = AWS_OP_ERR;
     }
 
@@ -159,8 +119,8 @@ static int multi_keyring_decrypt_data_key(struct aws_cryptosdk_keyring *multi,
         if (aws_array_list_get_at(&self->children, (void *)&child, child_idx)) return AWS_OP_ERR;
 
         // if decrypt data key fails, keep trying with other keyrings
-        int decrypt_err = aws_cryptosdk_keyring_decrypt_data_key(child, dec_mat, request);
-        if (dec_mat->unencrypted_data_key.buffer) return AWS_OP_SUCCESS;
+        int decrypt_err = aws_cryptosdk_keyring_on_decrypt(child, outputs, inputs);
+        if (outputs->unencrypted_data_key.buffer) return AWS_OP_SUCCESS;
         if (decrypt_err) ret_if_no_decrypt = AWS_OP_ERR;
     }
     return ret_if_no_decrypt;
@@ -176,9 +136,8 @@ static const struct aws_cryptosdk_keyring_vt vt = {
     .vt_size = sizeof(struct aws_cryptosdk_keyring_vt),
     .name = "multi keyring",
     .destroy = multi_keyring_destroy,
-    .generate_data_key = multi_keyring_generate_data_key,
-    .encrypt_data_key = multi_keyring_encrypt_data_key,
-    .decrypt_data_key = multi_keyring_decrypt_data_key
+    .on_encrypt = multi_keyring_on_encrypt,
+    .on_decrypt = multi_keyring_on_decrypt
 };
 
 struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(

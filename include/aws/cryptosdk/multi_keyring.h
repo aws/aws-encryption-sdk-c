@@ -23,28 +23,41 @@
  * decrypted by any of the included keyrings. When used for decryption, the multi-
  * keyring will attempt to decrypt using each of the included keyrings.
  *
- * A generator keyring is needed for calls to generate data key, but not for calls
- * to encrypt data key and decrypt data key. It can be set as the second argument
- * of this function, or caller may make that argument NULL to not set a generator.
- * It can later be set by calling aws_cryptosdk_multi_keyring_set_generator.
- * Attempting to call generate data key on a multi-keyring without a generator
- * will result in it failing with a AWS_CRYPTOSDK_ERR_BAD_STATE error code. For
- * calls to encrypt data key and decrypt data key, the generator keyring is treated
- * as just another child keyring.
+ * A generator keyring is needed for generating a data key, but not for calls
+ * to decrypt a data key. It can be set as the second argument of this function,
+ * or caller may make that argument NULL to not set a generator. It can later be
+ * set by calling aws_cryptosdk_multi_keyring_set_generator.
  *
- * Initially the multi keyring has no included child keyrings. If it also has no
- * generator keyring, encrypt and decrypt calls will trivially succeed without
- * actually encrypting or decrypting data keys.
+ * In the most common use case, Generate or Encrypt Data Key is called on the
+ * multi-keyring with a generator already set and with the unencrypted_data_key
+ * buffer not allocated. Then the multi-keyring will call the generator keyring's
+ * Generate or Encrypt Data Key function FIRST, which will usually have the
+ * effect of both generating the data key and pushing the first EDK onto the list.
+ * Then the multi-keyring will call Generate or Encrypt Data Key on each of the
+ * child keyrings, causing additional EDKs to be added to the list.
  *
- * On generate data key calls, this will generate the data key with the generator
- * keyring, which generally also puts an EDK on the list. It will then attempt to
- * encrypt the data key with each child keyring that was added. On an error from
- * the generator or any child keyring, AWS_OP_ERR will be returned, and no data key
- * or EDKs will be added to the encryption materials. The generator or child keyring
- * that had the error is expected to set the error code.
+ * Attempting to call Generate or Encrypt Data Key on a multi-keyring without a
+ * generator when the unencrypted data key buffer is unallocated (i.e., when
+ * generation should happen) will result in it failing with the error code
+ * AWS_CRYPTOSDK_ERR_BAD_STATE.
  *
- * Encrypt data key calls are similar, except that encrypt is called on every child
- * keyring, and the generator, if one is set.
+ * For calls to Generate or Encrypt Data Key when the unencrypted data key buffer
+ * is already set, the generator will be ignored, and the data key will only
+ * be re-encrypted by the child keyrings.
+ *
+ * For calls to Decrypt Data Key, the generator keyring is treated as just another
+ * child keyring.
+ *
+ * Initially the multi keyring has no included child keyrings. Calls to Generate or
+ * Encrypt Data Key with an unencrypted data key already provided will trivially
+ * succeed without creating any more EDKs. Calls to Decrypt Data Key will trivially
+ * succeed without actually decrypting data keys.
+ *
+ * On Generate or Encrypt Data Key calls, if the generator or any child keyring
+ * experiences an error, the multi-keyring will return AWS_OP_ERR but not set an
+ * error code, so as not to overwrite the error code from the erring keyring.
+ * In these cases, the unencrypted data key buffer and the EDK list provided by the
+ * caller will always be unchanged.
  *
  * Decrypt data key will attempt to decrypt one of the EDKs with each child keyring,
  * and the generator (if one is set) until it succeeds. Errors from child keyrings
@@ -63,9 +76,10 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(
     struct aws_cryptosdk_keyring *generator);
 
 /**
- * Sets the generator keyring of this multi-keyring. This will be the keyring
- * that will be called to generate data keys, which the child keyrings will then
- * encrypt. See above for more details.
+ * Sets the generator keyring of this multi-keyring. This will always be the first
+ * keyring on which Generate or Encrypt Data Key is called, before the child keyrings.
+ * The generator keyring will be used in the same way as the child keyrings on calls
+ * to Decrypt Data Key. See above for more details.
  *
  * This operation is not threadsafe. If this is called at the same time as the
  * multi-keyring is used for encrypt or decrypt, it results in undefined behavior.
