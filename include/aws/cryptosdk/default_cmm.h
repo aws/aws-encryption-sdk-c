@@ -16,6 +16,7 @@
 #ifndef AWS_CRYPTOSDK_DEFAULT_CMM_H
 #define AWS_CRYPTOSDK_DEFAULT_CMM_H
 
+#include <aws/cryptosdk/exports.h>
 #include <aws/cryptosdk/materials.h>
 
 #ifdef __cplusplus
@@ -45,6 +46,7 @@ extern "C" {
  *
  * On failure returns NULL and sets an internal AWS error code.
  */
+AWS_CRYPTOSDK_API
 struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * alloc,
                                                          struct aws_cryptosdk_keyring * kr);
 
@@ -53,6 +55,7 @@ struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * 
  * default will be selected.
  * Raises AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT if the algorithm suite ID is unknown.
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_default_cmm_set_alg_id(struct aws_cryptosdk_cmm *cmm, enum aws_cryptosdk_alg_id alg_id);
 
 #ifdef __cplusplus

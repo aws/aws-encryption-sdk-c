@@ -69,9 +69,6 @@ function(aws_set_common_properties target)
         # Warning disables always go last to avoid future flags re-enabling them
         list(APPEND AWS_C_FLAGS -Wno-long-long)
         list(APPEND AWS_C_FLAGS -Wno-missing-field-initializers)
-
-        # Avoid exporting symbols we don't intend to export
-#        list(APPEND AWS_C_FLAGS -fvisibility=hidden)
     endif(MSVC)
 
     if(NOT SET_PROPERTIES_NO_WGNU)
@@ -93,10 +90,16 @@ function(aws_set_common_properties target)
         string(REPLACE "-" "_" target_name_tmp ${target_name_tmp})
 
         # This define configures the headers to export symbols on both windows and linux
-        target_compile_options(${target} PRIVATE -D${target_name_tmp}_EXPORTS)
+        list(APPEND AWS_C_DEFINES -D${target_name_tmp}_EXPORTS)
         # This define, conversely, configures the headers to import symbols from the DLL
         # on windows. On Linux it has no effect.
-        target_compile_options(${target} PUBLIC -D${target_name_tmp}_SHARED)
+        target_compile_definitions(${target} PUBLIC -D${target_name_tmp}_SHARED)
+
+        if(NOT MSVC)
+            # Avoid exporting symbols we don't mark as exported
+            # Note that this behavior is the default on windows.
+            list(APPEND AWS_C_FLAGS -fvisibility=hidden)
+        endif()
     endif()
 
     target_compile_options(${target} PRIVATE ${AWS_C_FLAGS})

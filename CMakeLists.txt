@@ -113,15 +113,9 @@ else()
     set(LIBTYPE STATIC)
 endif()
 
-add_library(aws-encryption-sdk ${LIBTYPE} ${CORE_HEADERS} ${CORE_SRC})
-set_target_properties(aws-encryption-sdk PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
-aws_set_common_properties(aws-encryption-sdk)
-
-set(CMAKE_C_FLAGS_DEBUGOPT "")
-
-if(CMAKE_BUILD_TYPE STREQUAL "" OR CMAKE_BUILD_TYPE MATCHES DEBUG)
-    target_compile_definitions(aws-encryption-sdk PRIVATE "-DDEBUG_BUILD")
-endif()
+add_library(${PROJECT_NAME} ${LIBTYPE} ${CORE_HEADERS} ${CORE_SRC})
+set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
+aws_set_common_properties(${PROJECT_NAME})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -131,8 +125,27 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${OPENSSL_INCLUDE_DIR}
 )
 
-target_link_libraries(aws-encryption-sdk PRIVATE ${PLATFORM_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
-target_link_libraries(aws-encryption-sdk PUBLIC aws-c-common)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PLATFORM_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
+target_link_libraries(${PROJECT_NAME} PUBLIC aws-c-common)
+
+# Some of our unit tests need to access private symbols. Build a static library for their use.
+# We'll use the shared lib for integration tests.
+add_library(aws-encryption-sdk-test EXCLUDE_FROM_ALL STATIC ${CORE_HEADERS} ${CORE_SRC})
+set_target_properties(aws-encryption-sdk-test PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
+aws_set_common_properties(aws-encryption-sdk-test)
+
+target_include_directories(aws-encryption-sdk-test PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/noninst_include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated/include>
+    $<INSTALL_INTERFACE:include>
+    ${OPENSSL_INCLUDE_DIR}
+)
+
+target_link_libraries(aws-encryption-sdk-test PRIVATE ${PLATFORM_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
+target_link_libraries(aws-encryption-sdk-test PUBLIC aws-c-common)
+
+
 
 file(GLOB UNIT_TEST_SRC "tests/unit/*.c")
 file(GLOB UNIT_TEST_HDRS "tests/*.h")
@@ -150,7 +163,7 @@ set_target_properties(testlib PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 target_include_directories(testlib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
 
 add_executable(unit-test-suite ${UNIT_TEST_SRC})
-target_link_libraries(unit-test-suite ${PROJECT_NAME} ${OPENSSL_LDFLAGS} testlib)
+target_link_libraries(unit-test-suite aws-encryption-sdk-test ${OPENSSL_LDFLAGS} testlib)
 set_target_properties(unit-test-suite PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 target_include_directories(unit-test-suite PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
 
@@ -163,7 +176,7 @@ target_link_libraries(test_decrypt ${PROJECT_NAME} ${OPENSSL_LDFLAGS} testlib)
 set_target_properties(test_decrypt PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 
 add_executable(test_decryption_vectors "tests/decryption_vectors.c" ${TEST_LIB})
-target_link_libraries(test_decryption_vectors ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
+target_link_libraries(test_decryption_vectors ${PROJECT_NAME})
 set_target_properties(test_decryption_vectors PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 target_include_directories(test_decryption_vectors PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
 
@@ -172,7 +185,7 @@ if(CURL_FOUND)
     set_target_properties(t_encrypt_compat PROPERTIES
         C_STANDARD 99
     )
-    target_link_libraries(t_encrypt_compat aws-encryption-sdk ${CURL_LIBRARIES})
+    target_link_libraries(t_encrypt_compat PRIVATE aws-encryption-sdk ${CURL_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY})
     target_include_directories(t_encrypt_compat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit ${CURL_INCLUDE_DIRS})
     target_sources(t_encrypt_compat PRIVATE ${UNIT_TEST_SRC_CPP})
     target_include_directories(t_encrypt_compat PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
