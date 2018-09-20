@@ -13,6 +13,17 @@
 # limitations under the License.
 #
 
+# This is useful for CodeBuild tests since we want to avoid cases where KMS dependencies are missing and
+# we are not building aws-encryption-sdk-cpp.
+option(FORCE_KMS_KEYRING_BUILD, "Fail build if KMS Keyring dependencies are not satisfied")
+
+
+# By default we will try to build KMS Keyring only if we find AwsSdk
+if (FORCE_KMS_KEYRING_BUILD)
+    message(STATUS "KMS Keyring is required")
+    set(KMS_REQUIRED "REQUIRED")
+endif()
+
 # for KMS Keyring
 find_package(AWSSDK QUIET COMPONENTS core kms)
 if (AWSSDK_FOUND)
@@ -21,15 +32,16 @@ if (AWSSDK_FOUND)
     link_directories(${AWSSDK_LIB_DIR})
     message(STATUS "AWSSDK having components core, kms found.")
 else()
-    find_package(aws-cpp-sdk-core)
-    find_package(aws-cpp-sdk-kms)
+    find_package(aws-cpp-sdk-core ${KMS_REQUIRED})
+    find_package(aws-cpp-sdk-kms ${KMS_REQUIRED})
     if (aws-cpp-sdk-core_FOUND AND aws-cpp-sdk-kms_FOUND)
         option(BUILD_AWS_ENC_SDK_CPP "Build AWS ENC SDK C++ components" ON)
         message(STATUS "aws-cpp-sdk-core and aws-cpp-sdk-kms found.")
     else()
-        message(WARNING "AWSSDK having components core, kms not found. KMS Keyring will not be available")
+        message(WARNING "AWSSDK having components core and kms not found. KMS Keyring will not be available")
     endif()
 endif()
+
 
 file(GLOB AWS_CRYPTOSDK_CPP_HEADERS
         # Headers subject to API/ABI stability guarantees
