@@ -36,12 +36,6 @@ static int raw_rsa_keyring_decrypt_data_key(
     const struct aws_array_list *edks = &request->encrypted_data_keys;
     size_t num_edks = aws_array_list_length(edks);
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(dec_mat->alg);
-    /* maximum capacity for the unencrypted data key buffer is approximated
-     * to be two-thirds the size of the RSA key in PEM format
-     */
-    if (aws_byte_buf_init(request->alloc, &dec_mat->unencrypted_data_key, self->rsa_key_pem->len * 2 / 3)) {
-        return AWS_OP_ERR;
-    }
 
     for (size_t edk_idx = 0; edk_idx < num_edks; ++edk_idx) {
         const struct aws_cryptosdk_edk *edk;
@@ -53,8 +47,9 @@ static int raw_rsa_keyring_decrypt_data_key(
         const struct aws_byte_buf *edk_bytes = &edk->enc_data_key;
 
         if (aws_cryptosdk_rsa_decrypt(
-                &dec_mat->unencrypted_data_key, aws_byte_cursor_from_array(edk_bytes->buffer, edk_bytes->len),
-                self->rsa_key_pem, self->rsa_padding_mode)) {
+                &dec_mat->unencrypted_data_key, request->alloc,
+                aws_byte_cursor_from_array(edk_bytes->buffer, edk_bytes->len), self->rsa_key_pem,
+                self->rsa_padding_mode)) {
             /* We are here either because of a ciphertext mismatch
              * or because of an OpenSSL error. In either case, nothing
              *  better to do than just moving on to next EDK, so clear the error code.

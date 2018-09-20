@@ -194,6 +194,7 @@ int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
  */
 int aws_cryptosdk_rsa_decrypt(
     struct aws_byte_buf *plain,
+    struct allocator *alloc,
     const struct aws_byte_cursor cipher,
     const struct aws_string *rsa_private_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);

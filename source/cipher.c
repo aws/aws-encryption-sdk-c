@@ -565,10 +565,10 @@ static int aws_cryptosdk_get_rsa_padding_mode(enum aws_cryptosdk_rsa_padding_mod
 
 int aws_cryptosdk_rsa_decrypt(
     struct aws_byte_buf *plain,
+    struct allocator *alloc,
     const struct aws_byte_cursor cipher,
     const struct aws_string *rsa_private_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
-    if (!plain->buffer) return aws_raise_error(AWS_ERROR_INVALID_BUFFER_SIZE);
     int padding = aws_cryptosdk_get_rsa_padding_mode(rsa_padding_mode);
     if (padding < 0) return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     BIO *bio = NULL;
@@ -578,7 +578,7 @@ int aws_cryptosdk_rsa_decrypt(
     int err_code = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     pkey = EVP_PKEY_new();
     if (!pkey) goto cleanup;
-    bio = BIO_new_mem_buf(aws_string_bytes(rsa_private_key_pem), -1);
+    bio = BIO_new_mem_buf(aws_string_bytes(rsa_private_key_pem), rsa_private_key_pem->len);
     if (!bio) goto cleanup;
     if (!PEM_read_bio_PrivateKey(bio, &pkey, NULL, NULL)) goto cleanup;
     ctx = EVP_PKEY_CTX_new(pkey, NULL);
@@ -589,11 +589,14 @@ int aws_cryptosdk_rsa_decrypt(
         if (EVP_PKEY_CTX_set_rsa_oaep_md(ctx, EVP_sha256()) <= 0) goto cleanup;
         if (EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, EVP_sha256()) <= 0) goto cleanup;
     }
-    if (EVP_PKEY_decrypt(ctx, NULL, &plain->len, cipher.ptr, cipher.len) <= 0) goto cleanup;
-    if (plain->len <= 0 || plain->len > plain->capacity) goto cleanup;
-    if (EVP_PKEY_decrypt(ctx, plain->buffer, &plain->len, cipher.ptr, cipher.len) <= 0) {
+    size_t outlen;
+    if (EVP_PKEY_decrypt(ctx, NULL, &outlen, cipher.ptr, cipher.len) <= 0) goto cleanup;
+    if (aws_byte_buf_init(alloc, plain, outlen)) goto cleanup;
+    if (EVP_PKEY_decrypt(ctx, plain->buffer, &outlen, cipher.ptr, cipher.len) <= 0) {
         err_code = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
+        aws_byte_buf_clean_up(plain);
     } else {
+        plain->len = outlen;
         error = false;
     }
 
