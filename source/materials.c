@@ -45,7 +45,7 @@ void aws_cryptosdk_edk_clean_up(struct aws_cryptosdk_edk * edk) {
     aws_byte_buf_clean_up(&edk->enc_data_key);
 }
 
-void aws_cryptosdk_edk_list_clean_up(struct aws_array_list * edk_list) {
+void aws_cryptosdk_edk_list_clear(struct aws_array_list * edk_list) {
     size_t num_keys = edk_list->length;
     for (size_t key_idx = 0 ; key_idx < num_keys ; ++key_idx) {
         struct aws_cryptosdk_edk * edk;
@@ -53,6 +53,11 @@ void aws_cryptosdk_edk_list_clean_up(struct aws_array_list * edk_list) {
             aws_cryptosdk_edk_clean_up(edk);
         }
     }
+    aws_array_list_clear(edk_list);
+}
+
+void aws_cryptosdk_edk_list_clean_up(struct aws_array_list * edk_list) {
+    aws_cryptosdk_edk_list_clear(edk_list);
     aws_array_list_clean_up(edk_list);
 }
 

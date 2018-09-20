@@ -34,6 +34,12 @@ void aws_cryptosdk_edk_clean_up(struct aws_cryptosdk_edk * edk);
 void aws_cryptosdk_edk_list_clean_up(struct aws_array_list * edk_list);
 
 /**
+ * Deallocates all memory associated with all EDKs in the list and then clears the list.
+ * The array list itself remains allocated but empty.
+ */
+void aws_cryptosdk_edk_list_clear(struct aws_array_list * edk_list);
+
+/**
  * Returns true if the contents of all EDK byte buffers are identical, false otherwise.
  */
 static inline bool aws_cryptosdk_edk_eq(const struct aws_cryptosdk_edk * a, const struct aws_cryptosdk_edk * b) {

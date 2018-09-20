@@ -1,0 +1,98 @@
+/*
+ * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+ * this file except in compliance with the License. A copy of the License is
+ * located at
+ *
+ *     http://aws.amazon.com/apache2.0/
+ *
+ * or in the "license" file accompanying this file. This file is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+ /* 
+* File that models the state machine according to aws_cryptosdk_session_process in session.c (lines 180 - 243). 
+*/
+
+
+
+module state_machine where
+
+import type_def
+import transition_functions
+import helper_functions
+    
+
+// Translation of the switch statement of the aws_cryptosdk_session_process function of session.c (lines 185 - 240)
+// Currently, transitions functions are called from ST_WRITE_HEADER and ST_ENCRYPT_BODY. 
+// NOTE: transition functions from ST_READ_HEADER and ST_DECRYPT_BODY from transition_function.cry should be added.
+processState : state_t -> state_t
+processState state_old = 
+    if (state_old.sess.state == ST_CONFIG) && (state_old.sess.mode == 0) then 
+        advanceSessionByStateOnly state_old ST_GEN_KEY
+    else if state_old.sess.state == ST_CONFIG then advanceSessionByStateOnly state_old ST_READ_HEADER
+    else if state_old.sess.state == ST_READ_HEADER then advanceSessionByStateOnly state_old ST_UNWRAP_KEY 
+    else if state_old.sess.state == ST_UNWRAP_KEY then advanceSessionByStateOnly state_old ST_DECRYPT_BODY
+    else if state_old.sess.state == ST_DECRYPT_BODY then advanceSessionByStateOnly state_old ST_CHECK_TRAILER
+    else if state_old.sess.state == ST_CHECK_TRAILER then advanceSessionByStateOnly state_old ST_DONE
+    else if state_old.sess.state == ST_GEN_KEY then advanceSessionByStateOnly state_old ST_WRITE_HEADER
+    else if state_old.sess.state == ST_WRITE_HEADER then tryWriteHeaderModel state_old
+    else if state_old.sess.state == ST_ENCRYPT_BODY then tryEncryptBodyModel state_old
+    else if state_old.sess.state == ST_WRITE_TRAILER then advanceSessionByStateOnly state_old ST_DONE
+    else state_old //ST_DONE and ST_ERROR remain in the same state
+
+
+// Has the state changed after a call of processState (line 242 of session.c)
+hasStateorPtrsChanged : state_t -> state_t -> Bit
+hasStateorPtrsChanged state_new state_old = 
+    if state_new.sess.state != state_old.sess.state then True
+    else if state_new.output_buffer.ptr != state_old.output_buffer.ptr then True 
+    else if state_new.input_buffer.ptr != state_old.input_buffer.ptr then True
+    else False 
+
+
+
+// Are larger output or input buffers needed. 
+isBufferUpdateNeeded : state_t -> Bit 
+isBufferUpdateNeeded state_new = 
+    if state_new.sess.output_size_estimate > state_new.output_buffer.len then True 
+    else if state_new.sess.input_size_estimate > state_new.input_buffer.len then True 
+    else False
+
+
+// Function that determines if the loop can continue (line 243 of session.c)
+// Assumption is that AWS_OP_SUCCESS has been returned. 
+property doesLoopContinueProperty x = ( hasStateorPtrsChanged (processState x) x == True )
+
+
+// Function that determines if either the loop continues or if a need for larger buffers has been detected. 
+property isProgressMadeProperty x = ( hasStateorPtrsChanged (processState x) x == True ) 
+                                        || ( isBufferUpdateNeeded  (processState x) == True )
+
+
+
+//Function to generate new input/output buffers based on the input and output size estimates 
+getNewBufferSize : size_bits_t -> size_bits_t -> size_bits_t
+getNewBufferSize old_size estimate_size = 
+    if estimate_size > old_size then estimate_size
+    else old_size
+
+updateBuffers : state_t -> state_t
+updateBuffers old_state = {
+                            sess = old_state.sess,
+                            output_buffer = { 
+                                            ptr = old_state.output_buffer.ptr, 
+                                            len = getNewBufferSize 
+                                                old_state.output_buffer.len 
+                                                old_state.sess.output_size_estimate
+                                              },
+                           input_buffer = {
+                                            ptr = old_state.input_buffer.ptr,
+                                            len = getNewBufferSize 
+                                                old_state.input_buffer.len 
+                                                old_state.sess.input_size_estimate 
+                                            }
+                           }
