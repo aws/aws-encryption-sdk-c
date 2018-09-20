@@ -18,6 +18,10 @@
 
 #include <aws/cryptosdk/materials.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Instantiate the default (non-caching) implementation of the Crypto Materials
  * Manager (CMM). A Keyring (KR) must have already been instantiated
@@ -40,5 +44,9 @@
  */
 struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * alloc,
                                                          struct aws_cryptosdk_keyring * kr);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // AWS_CRYPTOSDK_DEFAULT_CMM_H

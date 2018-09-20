@@ -106,6 +106,17 @@ extern struct test_case raw_rsa_keyring_decrypt_test_cases[];
         } \
     } while (0)
 
+#define TEST_ASSERT_ADDR_NE(x, y) \
+    do { \
+        const void * t_x = (x); \
+        const void * t_y = (y); \
+        if (t_x == t_y) { \
+            fprintf(stderr, "Failed: %s (%p) != %s (%p) at %s:%d\n", \
+                    #x, t_x, #y, t_y, __FILE__, __LINE__); \
+            return 1; \
+        } \
+    } while (0)
+
 #define TEST_ASSERT_ADDR_NULL(x) \
     do { \
         const void * t_x = (x); \

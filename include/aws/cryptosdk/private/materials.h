@@ -18,6 +18,10 @@
 
 #include <aws/cryptosdk/materials.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Deallocates all memory associated with an EDK. Setting all bytes of EDK to
  * zero upon creation will make this safe to call even if some buffers are unused.
@@ -43,5 +47,11 @@ static inline bool aws_cryptosdk_edk_eq(const struct aws_cryptosdk_edk * a, cons
         aws_byte_buf_eq(&a->provider_info, &b->provider_info) &&
         aws_byte_buf_eq(&a->provider_id, &b->provider_id);
 }
+
+int aws_cryptosdk_transfer_edk_list(struct aws_array_list *dest, struct aws_array_list *src);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // AWS_CRYPTOSDK_PRIVATE_MATERIALS_H
