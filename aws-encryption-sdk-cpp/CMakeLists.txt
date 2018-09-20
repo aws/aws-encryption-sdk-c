@@ -17,6 +17,9 @@
 # we are not building aws-encryption-sdk-cpp.
 option(FORCE_KMS_KEYRING_BUILD, "Fail build if KMS Keyring dependencies are not satisfied")
 
+# End-to-End tests might require special permissions
+option(AWS_ENC_SDK_END_TO_END_TESTS, "Enable End-to-End tests")
+
 
 # By default we will try to build KMS Keyring only if we find AwsSdk
 if (FORCE_KMS_KEYRING_BUILD)
@@ -91,19 +94,23 @@ if (BUILD_AWS_ENC_SDK_CPP)
     target_include_directories(testlibcpp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib
             ${PROJECT_SOURCE_DIR}/tests/lib $<INSTALL_INTERFACE:include>)
 
-    # TODO enable Integration tests only for those who have access to encrypt decrypt KMS key used in tests
-    add_executable(t_integration_kms_keyring tests/integration/t_integration_kms_keyring.cpp ${TEST_LIB})
-    target_link_libraries(t_integration_kms_keyring testlibcpp)
-    target_include_directories(t_integration_kms_keyring PUBLIC ${PROJECT_SOURCE_DIR}/tests/lib
-            ${PROJECT_SOURCE_DIR}/tests/unit
-            ${PROJECT_SOURCE_DIR}/tests/integration
-            $<INSTALL_INTERFACE:include>
-            )
-    set_target_properties(t_integration_kms_keyring PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
-    add_test(integration_kms_mk t_integration_kms_keyring)
-    # path env variable requierd by Windows
-    if (WIN32 AND DEFINED ${AWSSDK_LIB_DIR})
-        set_tests_properties(integration_kms_mk PROPERTIES ENVIRONMENT "PATH=${AWSSDK_LIB_DIR};$ENV{PATH}" )
+    if (AWS_ENC_SDK_END_TO_END_TESTS)
+        message(STATUS "End to end tests on")
+        add_executable(t_integration_kms_keyring tests/integration/t_integration_kms_keyring.cpp ${TEST_LIB})
+        target_link_libraries(t_integration_kms_keyring testlibcpp)
+        target_include_directories(t_integration_kms_keyring PUBLIC ${PROJECT_SOURCE_DIR}/tests/lib
+                ${PROJECT_SOURCE_DIR}/tests/unit
+                ${PROJECT_SOURCE_DIR}/tests/integration
+                $<INSTALL_INTERFACE:include>
+                )
+        set_target_properties(t_integration_kms_keyring PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
+        add_test(integration_kms_mk t_integration_kms_keyring)
+        # path env variable requierd by Windows
+        if (WIN32 AND DEFINED ${AWSSDK_LIB_DIR})
+            set_tests_properties(integration_kms_mk PROPERTIES ENVIRONMENT "PATH=${AWSSDK_LIB_DIR};$ENV{PATH}" )
+        endif()
+    else()
+        message(STATUS "End to end tests off")
     endif()
 
     file(GLOB test_sources FOLLOW_SYMLINKS tests/unit/*.cpp)
