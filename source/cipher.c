@@ -565,7 +565,7 @@ static int aws_cryptosdk_get_rsa_padding_mode(enum aws_cryptosdk_rsa_padding_mod
 
 int aws_cryptosdk_rsa_decrypt(
     struct aws_byte_buf *plain,
-    struct allocator *alloc,
+    struct aws_allocator *alloc,
     const struct aws_byte_cursor cipher,
     const struct aws_string *rsa_private_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
