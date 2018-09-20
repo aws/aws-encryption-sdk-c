@@ -71,7 +71,10 @@ static const char raw_rsa_keyring_tv_private_key[] =
     "Hb7poXy1405or0z4DZagW53RwbzrQj4gNam54Dy+rtjgG/iECFeJhhpzZ2z5Nctt\n"
     "r1kmH86LkDARuxu2Vm1EoHP9L/wk\n"
     "-----END PRIVATE KEY-----";
-
+/**
+ * An incorrect rsa private key used to test for decryption failure.
+ * It contains only partial key bytes from the above correct key.  
+ */
 static const char wrong_raw_rsa_keyring_tv_private_key[] =
     "-----BEGIN PRIVATE KEY-----\n"
     "MIIJQQIBADANBgkqhkiG9w0BAQEFAASCCSswggknAgEAAoICAQCmTHvqwuxxq4FJ\n"
