@@ -342,7 +342,7 @@ int fail_when_error_and_no_decrypt() {
     TEST_ASSERT_INT_EQ(AWS_OP_ERR, aws_cryptosdk_keyring_on_decrypt(multi,
                                                                     &on_decrypt_outputs,
                                                                     &on_decrypt_inputs));
-    TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
+    TEST_ASSERT_ADDR_NULL(on_decrypt_outputs.unencrypted_data_key.buffer);
 
     for (size_t kr_idx = 0; kr_idx < num_test_keyrings; ++kr_idx) {
         TEST_ASSERT(test_keyrings[kr_idx].decrypt_called);

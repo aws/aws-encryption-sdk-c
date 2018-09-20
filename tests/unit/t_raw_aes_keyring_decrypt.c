@@ -108,16 +108,20 @@ static struct aws_cryptosdk_edk wrong_iv_bytes() {
     return build_test_edk_init(edk_bytes, sizeof(edk_bytes), iv);
 }
 
+#endif
+
 static struct aws_allocator * alloc;
 static struct aws_cryptosdk_keyring * kr;
-static struct aws_hash_table enc_context;
-static struct aws_array_list edks;
-static struct aws_byte_buf unencrypted_data_key = {0};
-
+static struct aws_cryptosdk_keyring_on_decrypt_inputs on_decrypt_inputs;
+static struct aws_cryptosdk_keyring_on_decrypt_outputs on_decrypt_outputs = {{0}};
 static int set_up_all_the_things(const struct aws_string ** keys,
                                  const struct aws_string ** vals,
                                  size_t num_kv_pairs,
-                                 enum aws_cryptosdk_aes_key_len raw_key_len) {
+                                 enum aws_cryptosdk_aes_key_len raw_key_len,
+                                 enum aws_cryptosdk_alg_id alg) {
+    static struct aws_hash_table enc_context;
+    static struct aws_array_list edks;
+
     alloc = aws_default_allocator();
     kr = raw_aes_keyring_tv_new(alloc, raw_key_len);
     TEST_ASSERT_ADDR_NOT_NULL(kr);
@@ -137,15 +141,18 @@ static int set_up_all_the_things(const struct aws_string ** keys,
         elem->value = (void *)vals[key_idx];
     }
     TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &edks));
-
+    on_decrypt_inputs.edks = &edks;
+    on_decrypt_inputs.enc_context = &enc_context;
+    on_decrypt_inputs.alg = alg;
     return 0;
 }
 
 static void tear_down_all_the_things() {
-    aws_cryptosdk_edk_list_clean_up(&edks);
-    aws_hash_table_clean_up(&enc_context);
+// FIXME make destructor for on_decrypt_inputs to override const-ness
+    aws_cryptosdk_edk_list_clean_up((struct aws_array_list *)on_decrypt_inputs.edks);
+    aws_hash_table_clean_up((struct aws_hash_table *)on_decrypt_inputs.enc_context);
     aws_cryptosdk_keyring_destroy(kr);
-    aws_byte_buf_clean_up(&unencrypted_data_key);
+    aws_byte_buf_clean_up(&on_decrypt_outputs.unencrypted_data_key);
 }
 
 /**
@@ -157,34 +164,32 @@ static void tear_down_all_the_things() {
 int decrypt_data_key_test_vectors() {
     for (int corrupt_enc_context = 0; corrupt_enc_context < 2; ++corrupt_enc_context) {
         for (struct raw_aes_keyring_test_vector * tv = raw_aes_keyring_test_vectors; tv->data_key; ++tv) {
-            TEST_ASSERT_SUCCESS(set_up_all_the_things(NULL, NULL, 0, tv->raw_key_len));
-            TEST_ASSERT_SUCCESS(set_test_vector_encryption_context(alloc, &enc_context, tv));
+            TEST_ASSERT_SUCCESS(set_up_all_the_things(NULL, NULL, 0, tv->raw_key_len, tv->alg));
+            TEST_ASSERT_SUCCESS(set_test_vector_encryption_context(alloc, (struct aws_hash_table *)on_decrypt_inputs.enc_context, tv));
 
             if (corrupt_enc_context) {
                 AWS_STATIC_STRING_FROM_LITERAL(key, "RFC 3514");
                 AWS_STATIC_STRING_FROM_LITERAL(val, "setting the evil bit to 1");
                 struct aws_hash_element * elem;
-                TEST_ASSERT_SUCCESS(aws_hash_table_create(&enc_context, (void *)key, &elem, NULL));
+                TEST_ASSERT_SUCCESS(aws_hash_table_create((struct aws_hash_table *)on_decrypt_inputs.enc_context, (void *)key, &elem, NULL));
                 elem->value = (void *)val;
             }
 
             struct aws_cryptosdk_edk edk = edk_init_from_test_vector(tv);
-            aws_array_list_push_back(&edks, (void *)&edk);
+            aws_array_list_push_back((struct aws_array_list *)on_decrypt_inputs.edks, (void *)&edk);
 
             TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kr,
-                                                                       &unencrypted_data_key,
-                                                                       &edks,
-                                                                       &enc_context,
-                                                                       tv->alg));
+                                                                 &on_decrypt_outputs,
+                                                                 &on_decrypt_inputs));
 
             if (corrupt_enc_context) {
-                TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
+                TEST_ASSERT_ADDR_NULL(on_decrypt_outputs.unencrypted_data_key.buffer);
             } else {
-                TEST_ASSERT_ADDR_NOT_NULL(unencrypted_data_key.buffer);
+                TEST_ASSERT_ADDR_NOT_NULL(on_decrypt_outputs.unencrypted_data_key.buffer);
 
                 struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv->data_key,
                                                                            tv->data_key_len);
-                TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &known_answer));
+                TEST_ASSERT(aws_byte_buf_eq(&on_decrypt_outputs.unencrypted_data_key, &known_answer));
             }
 
             tear_down_all_the_things();
@@ -192,6 +197,8 @@ int decrypt_data_key_test_vectors() {
     }
     return 0;
 }
+
+#if 0
 
 typedef struct aws_cryptosdk_edk (*edk_generator)();
 
@@ -212,7 +219,7 @@ edk_generator edk_gens[] = {empty_edk,
  */
 int decrypt_data_key_multiple_edks() {
     struct raw_aes_keyring_test_vector tv = raw_aes_keyring_test_vectors[0];
-    TEST_ASSERT_SUCCESS(set_up_all_the_things(NULL, NULL, 0, tv.raw_key_len));
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(NULL, NULL, 0, tv.raw_key_len, tv.alg));
 
     for (int idx = 0; idx < sizeof(edk_gens)/sizeof(edk_generator); ++idx) {
         struct aws_cryptosdk_edk edk = edk_gens[idx]();
@@ -357,8 +364,8 @@ int decrypt_data_key_with_sig_and_enc_context() {
 #endif
 
 struct test_case raw_aes_keyring_decrypt_test_cases[] = {
-#if 0
     { "raw_aes_keyring", "decrypt_data_key_test_vectors", decrypt_data_key_test_vectors },
+#if 0
     { "raw_aes_keyring", "decrypt_data_key_multiple_edks", decrypt_data_key_multiple_edks },
     { "raw_aes_keyring", "decrypt_data_key_no_good_edk", decrypt_data_key_no_good_edk },
     { "raw_aes_keyring", "decrypt_data_key_with_sig", decrypt_data_key_with_sig },
