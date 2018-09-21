@@ -282,17 +282,6 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
     return 0;
 }
 
-#define RUN_TEST(expr) \
-    do { \
-        const char *test_desc = #expr; \
-        fprintf(stderr, "[RUNNING] %s ...\r", test_desc); \
-        int result = (expr); \
-        fprintf(stderr, "%s %s    \n", result ? "\n[ FAILED]" : "[ PASSED]", test_desc); \
-        if (result) return 1; \
-        final_result = final_result || result; \
-    } while (0)
-
-
 int main() {
     aws_load_error_strings();
     aws_cryptosdk_err_init_strings();

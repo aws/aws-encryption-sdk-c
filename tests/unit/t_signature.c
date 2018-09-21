@@ -124,12 +124,17 @@ static int t_signature_length() {
     FOREACH_ALGORITHM(props) {
         size_t len = props->signature_len;
         struct aws_string *pub_key, *sig;
+#ifndef REDUCE_TEST_ITERATIONS
+        const int iterations = 256;
+#else
+        const int iterations = 8;
+#endif
 
         /*
          * Normally, EC signatures have slightly non-deterministic length in DER encoding, make sure that
          * we've successfully made them deterministic
          */
-        for (int i = 0; i < 256; i++) {
+        for (int i = 0; i < iterations; i++) {
             TEST_ASSERT_SUCCESS(sign_message(props, &pub_key, &sig, &test_cursor));
             TEST_ASSERT_INT_EQ(sig->len, len);
             TEST_ASSERT_SUCCESS(check_signature(props, true, pub_key, sig, &test_cursor));
@@ -149,7 +154,13 @@ static int t_bad_signatures() {
         TEST_ASSERT_SUCCESS(sign_message(props, &pub_key, &sig, &test_cursor));
         uint8_t *buffer = (uint8_t *)aws_string_bytes(sig);
 
-        for (size_t i = 0; i < sig->len * 8; i++) {
+#ifndef REDUCE_TEST_ITERATIONS
+        const size_t increment = 1;
+#else
+        const size_t increment = 8;
+#endif
+
+        for (size_t i = 0; i < sig->len * 8; i += increment) {
             if (i < (sig->len - 1) * 8 && buffer[i/8 + 1] == '=') {
                 /* The last few bits before the "=" padding don't affect the base64-decoded signature. */
                 break;
@@ -199,7 +210,13 @@ static int t_corrupt_key() {
 
         uint8_t *buffer = (uint8_t *)aws_string_bytes(pub_key);
 
-        for (size_t i = 0; i < pub_key->len * 8; i++) {
+#ifndef REDUCE_TEST_ITERATIONS
+        const size_t increment = 1;
+#else
+        const size_t increment = 8;
+#endif
+
+        for (size_t i = 0; i < pub_key->len * 8; i += increment) {
             /* The base64 decoding logic ignores nonzero padding bits, so skip the last byte before an = */
             if (i < (pub_key->len - 1) * 8 && buffer[i / 8 + 1] == '=') {
                 continue;

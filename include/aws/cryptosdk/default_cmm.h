@@ -18,6 +18,10 @@
 
 #include <aws/cryptosdk/materials.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Instantiate the default (non-caching) implementation of the Crypto Materials
  * Manager (CMM). A Keyring (KR) must have already been instantiated
@@ -53,5 +57,9 @@ struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * 
  * Raises AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT if the algorithm suite ID is unknown.
  */
 int aws_cryptosdk_default_cmm_set_alg_id(struct aws_cryptosdk_cmm *cmm, enum aws_cryptosdk_alg_id alg_id);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // AWS_CRYPTOSDK_DEFAULT_CMM_H

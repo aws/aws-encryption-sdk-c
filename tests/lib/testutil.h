@@ -30,4 +30,13 @@ int test_loadfile(const char *filename, uint8_t **buf, size_t *datasize);
  */
 void hexdump(FILE *fd, const uint8_t *buf, size_t size);
 
+#define RUN_TEST(expr) \
+    do { \
+        const char *test_desc = #expr; \
+        fprintf(stderr, "[RUNNING] %s ...\r", test_desc); \
+        int result = (expr); \
+        fprintf(stderr, "%s %s    \n", result ? "\n[ FAILED]" : "[ PASSED]", test_desc); \
+        if (result) return 1; \
+    } while (0)
+
 #endif

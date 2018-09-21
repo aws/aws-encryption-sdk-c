@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/multi_keyring.h>
+#include <aws/cryptosdk/private/materials.h>
 
 struct multi_keyring {
     const struct aws_cryptosdk_keyring_vt *vt;
@@ -56,22 +57,6 @@ static int call_encrypt_dk_on_list(struct aws_cryptosdk_encryption_materials *en
     return AWS_OP_SUCCESS;
 }
 
-static int transfer_edk_list(struct aws_array_list *dest, struct aws_array_list *src) {
-    size_t src_len = aws_array_list_length(src);
-    for (size_t src_idx = 0; src_idx < src_len; ++src_idx) {
-        void *item_ptr;
-        if (aws_array_list_get_at_ptr(src, &item_ptr, src_idx)) return AWS_OP_ERR;
-        if (aws_array_list_push_back(dest, item_ptr)) return AWS_OP_ERR;
-    }
-    /* This clear is important. It does not free any memory, but it resets the length of the
-     * source list to zero, so that the EDK buffers in its list will NOT get freed when the
-     * EDK list gets destroyed. We do not want to free those buffers, because we made a shallow
-     * copy of the EDK list to the destination array list, so it still uses all the same buffers.
-     */
-    aws_array_list_clear(src);
-    return AWS_OP_SUCCESS;
-}
-
 static int multi_keyring_encrypt_data_key(struct aws_cryptosdk_keyring *multi,
                                           struct aws_cryptosdk_encryption_materials *enc_mat) {
     struct multi_keyring *self = (struct multi_keyring *)multi;
@@ -93,7 +78,7 @@ static int multi_keyring_encrypt_data_key(struct aws_cryptosdk_keyring *multi,
     }
 
     if (call_encrypt_dk_on_list(enc_mat_copy, &self->children) ||
-        transfer_edk_list(&enc_mat->encrypted_data_keys, &enc_mat_copy->encrypted_data_keys)) {
+        aws_cryptosdk_transfer_edk_list(&enc_mat->encrypted_data_keys, &enc_mat_copy->encrypted_data_keys)) {
         ret = AWS_OP_ERR;
     }
 
@@ -124,7 +109,7 @@ static int multi_keyring_generate_data_key(struct aws_cryptosdk_keyring *multi,
         aws_byte_buf_init_copy(enc_mat->alloc,
                                &enc_mat->unencrypted_data_key,
                                &enc_mat_copy->unencrypted_data_key) ||
-        transfer_edk_list(&enc_mat->encrypted_data_keys, &enc_mat_copy->encrypted_data_keys)) {
+        aws_cryptosdk_transfer_edk_list(&enc_mat->encrypted_data_keys, &enc_mat_copy->encrypted_data_keys)) {
         aws_byte_buf_clean_up_secure(&enc_mat->unencrypted_data_key);
         ret = AWS_OP_ERR;
     }
