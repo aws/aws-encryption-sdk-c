@@ -205,6 +205,7 @@ static int test_small_buffers() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_message_size(session, pt_size));
     precise_size_set = true;
     if (probe_buffer_size_estimates()) return 1; // should emit final frame
+    if (probe_buffer_size_estimates()) return 1; // should emit trailer
 
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
 
