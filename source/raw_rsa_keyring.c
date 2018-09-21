@@ -57,6 +57,8 @@ static int raw_rsa_keyring_decrypt_data_key(
             aws_reset_error();
         } else {
             assert(dec_mat->unencrypted_data_key.len == props->data_key_len);
+            // Suppress unused variable warning with -DNDEBUG
+            (void)props;
             return AWS_OP_SUCCESS;
         }
     }
