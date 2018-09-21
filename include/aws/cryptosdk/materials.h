@@ -96,7 +96,7 @@ struct aws_cryptosdk_decryption_materials {
  * Input-only parameters of aws_cryptosdk_keyring_on_encrypt.
  */
 struct aws_cryptosdk_keyring_on_encrypt_inputs {
-    const struct aws_hash_table *enc_context;
+    struct aws_hash_table *enc_context;
     enum aws_cryptosdk_alg_id alg;
     uint64_t plaintext_size;
 };
@@ -116,8 +116,8 @@ struct aws_cryptosdk_keyring_on_encrypt_outputs {
  * Input-only parameters of aws_cryptosdk_keyring_on_decrypt.
  */
 struct aws_cryptosdk_keyring_on_decrypt_inputs {
-    const struct aws_hash_table *enc_context;
-    const struct aws_array_list *edks; // pointer to list of struct aws_cryptosdk_edk objects
+    struct aws_hash_table *enc_context;
+    struct aws_array_list *edks; // pointer to list of struct aws_cryptosdk_edk objects
     enum aws_cryptosdk_alg_id alg;
 };
 
