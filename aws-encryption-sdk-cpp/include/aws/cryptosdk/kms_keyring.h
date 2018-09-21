@@ -256,7 +256,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
          * but are instead bare key IDs or aliases.
          * If KMS Client is set then the RegionalClientSupplier and default_region parameters are ignored
          */
-        Builder &SetDefaultRegion(const String &default_region);
+        Builder &SetDefaultRegion(const Aws::String &default_region);
 
         /**
          * Appends KMS keys to the already configured keys.

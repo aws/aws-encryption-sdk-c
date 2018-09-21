@@ -107,9 +107,10 @@ struct TestValues {
 
     }
 
-
+    /**
+     * Inserts inside the encryption_context member values from in_encryption_context
+     */
     int SetEncryptionContext(Aws::Map<Aws::String, Aws::String> in_encryption_context) {
-
         struct aws_hash_element *p_elem;
         int was_created;
 
@@ -747,7 +748,7 @@ int testBuilder_buildClientSupplier_buildsClient() {
     return 0;
 }
 
-int testBuilder_invalidInputs_isValidReturnFalse() {
+int testBuilder_invalidInputs_returnFalse() {
     KmsKeyringBuilderExposer a;
 
     // no keys
@@ -815,7 +816,7 @@ int main() {
     RUN_TEST(createEncryptRequest_validInputes_returnRequest());
     RUN_TEST(testBuilder_buildDefaultRegion_buildsRegion());
     RUN_TEST(testBuilder_buildClientSupplier_buildsClient());
-    RUN_TEST(testBuilder_invalidInputs_isValidReturnFalse());
+    RUN_TEST(testBuilder_invalidInputs_returnFalse());
     RUN_TEST(testBuilder_allocator_returnAlloc());
 
     Aws::ShutdownAPI(*options);

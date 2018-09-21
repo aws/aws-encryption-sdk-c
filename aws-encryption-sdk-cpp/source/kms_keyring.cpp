@@ -382,6 +382,7 @@ KmsKeyring::SingleClientSupplier::SingleClientSupplier(const std::shared_ptr<KMS
 Aws::String KmsKeyring::Builder::BuildDefaultRegion() const {
     auto built_default_region = default_region;
 
+    // If is a single key configured we try to extract default region from it
     if (built_default_region == "" && key_ids.size() == 1) {
         built_default_region = Private::parse_region_from_kms_key_arn(key_ids.front());
     }
