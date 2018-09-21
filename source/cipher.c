@@ -563,6 +563,55 @@ static int aws_cryptosdk_get_rsa_padding_mode(enum aws_cryptosdk_rsa_padding_mod
     }
 }
 
+int aws_cryptosdk_rsa_encrypt(
+    struct aws_byte_buf *cipher,
+    struct aws_allocator *alloc,
+    const struct aws_byte_cursor plain,
+    const struct aws_string *rsa_public_key_pem,
+    enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
+    int padding = aws_cryptosdk_get_rsa_padding_mode(rsa_padding_mode);
+    if (padding < 0) return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
+    BIO *bio = NULL;
+    EVP_PKEY_CTX *ctx = NULL;
+    EVP_PKEY *pkey = NULL;
+    bool error = true;
+    int err_code = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
+    pkey = EVP_PKEY_new();
+    if (!pkey) goto cleanup;
+    bio = BIO_new_mem_buf(aws_string_bytes(rsa_public_key_pem), rsa_public_key_pem->len);
+    if (!bio) goto cleanup;
+    if (!PEM_read_bio_PUBKEY(bio, &pkey, NULL, NULL)) goto cleanup;
+    ctx = EVP_PKEY_CTX_new(pkey, NULL);
+    if (!ctx) goto cleanup;
+    if (EVP_PKEY_encrypt_init(ctx) <= 0) goto cleanup;
+    if (EVP_PKEY_CTX_set_rsa_padding(ctx, padding) <= 0) goto cleanup;
+    if (rsa_padding_mode == AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1) {
+        if (EVP_PKEY_CTX_set_rsa_oaep_md(ctx, EVP_sha256()) <= 0) goto cleanup;
+        if (EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, EVP_sha256()) <= 0) goto cleanup;
+    }
+    size_t outlen;
+    if (EVP_PKEY_encrypt(ctx, NULL, &outlen, plain.ptr, plain.len) <= 0) goto cleanup;
+    if (aws_byte_buf_init(alloc, cipher, outlen)) goto cleanup;
+    if (EVP_PKEY_encrypt(ctx, cipher->buffer, &outlen, plain.ptr, plain.len) <= 0){
+        err_code = AWS_CRYPTOSDK_ERR_BAD_STATE;
+        aws_byte_buf_clean_up(cipher);
+    } else {
+        cipher->len = outlen;
+        error = false;
+    }
+    
+cleanup:
+    EVP_PKEY_CTX_free(ctx);
+    EVP_PKEY_free(pkey);
+    BIO_free(bio);
+    flush_openssl_errors();
+    if (error) {
+        return aws_raise_error(err_code);
+    } else {
+        return AWS_OP_SUCCESS;
+    }
+}
+
 int aws_cryptosdk_rsa_decrypt(
     struct aws_byte_buf *plain,
     struct aws_allocator *alloc,
