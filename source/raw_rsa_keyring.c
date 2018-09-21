@@ -35,8 +35,6 @@ static int raw_rsa_keyring_decrypt_data_key(
     struct raw_rsa_keyring *self = (struct raw_rsa_keyring *)kr;
     const struct aws_array_list *edks = &request->encrypted_data_keys;
     size_t num_edks = aws_array_list_length(edks);
-    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(dec_mat->alg);
-
     for (size_t edk_idx = 0; edk_idx < num_edks; ++edk_idx) {
         const struct aws_cryptosdk_edk *edk;
 
