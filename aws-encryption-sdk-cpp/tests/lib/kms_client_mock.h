@@ -38,6 +38,7 @@ namespace Model = Aws::KMS::Model;
 class KmsClientMock : public Aws::KMS::KMSClient {
   public:
     KmsClientMock();
+    ~KmsClientMock();
 
     Model::EncryptOutcome Encrypt(const Model::EncryptRequest &request) const;
     void ExpectEncryptAccumulator(const Model::EncryptRequest &request, Model::EncryptOutcome encrypt_return);
@@ -51,7 +52,6 @@ class KmsClientMock : public Aws::KMS::KMSClient {
 
     void ExpectGrantTokens(const Aws::Vector<Aws::String> &grant_tokens);
 
-    //TODO automatically crash if ExpectingOtherCalls is true in destructor
     bool ExpectingOtherCalls();
   private:
     struct ExpectedEncryptValues {

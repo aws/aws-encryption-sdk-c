@@ -24,6 +24,13 @@ using std::logic_error;
 KmsClientMock::KmsClientMock()
     : Aws::KMS::KMSClient(), expect_generate_dk(false) {}
 
+KmsClientMock::~KmsClientMock() {
+    // there shouldn't be any other expecting calls
+    if (ExpectingOtherCalls() == true) {
+        abort();
+    }
+}
+
 Model::EncryptOutcome KmsClientMock::Encrypt(const Model::EncryptRequest &request) const {
     if (expected_encrypt_values.size() == 0) {
         throw logic_error("Unexpected call to encrypt");

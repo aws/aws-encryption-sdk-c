@@ -789,8 +789,6 @@ int testBuilder_allocator_returnAlloc() {
     return 0;
 }
 
-//TODO add test for multiple keys decryption
-
 int main() {
     Aws::SDKOptions *options = Aws::New<Aws::SDKOptions>(CLASS_TAG);
     Aws::InitAPI(*options);
