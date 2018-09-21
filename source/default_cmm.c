@@ -29,6 +29,8 @@ static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *c
     my_enc_mat = aws_cryptosdk_encryption_materials_new(request->alloc, request->requested_alg);
     if (!my_enc_mat) goto err;
 
+    my_enc_mat->enc_context = request->enc_context;
+
     struct aws_cryptosdk_keyring_on_encrypt_inputs inputs;
     inputs.enc_context = request->enc_context;
     inputs.alg = request->requested_alg;
@@ -46,7 +48,8 @@ static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm *c
 
 // TODO: implement trailing signatures
 
-    my_enc_mat->unencrypted_data_key = unencrypted_data_key; // shallow copy, does NOT duplicate key bytes
+    // shallow copy, does NOT duplicate key bytes
+    my_enc_mat->unencrypted_data_key = unencrypted_data_key;
     *enc_mat = my_enc_mat;
     return AWS_OP_SUCCESS;
 
@@ -75,6 +78,9 @@ static int default_cmm_decrypt_materials(struct aws_cryptosdk_cmm *cmm,
     if (aws_cryptosdk_keyring_on_decrypt(self->kr,
                                          &outputs,
                                          &inputs)) goto err;
+
+    // shallow copy, does NOT duplicate key bytes
+    my_dec_mat->unencrypted_data_key = outputs.unencrypted_data_key;
 
     if (!my_dec_mat->unencrypted_data_key.buffer) {
         aws_raise_error(AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT);
