@@ -36,6 +36,7 @@ struct test_case *test_groups[] = {
     multi_keyring_test_cases,
     signature_test_cases,
     raw_rsa_keyring_decrypt_test_cases,
+    raw_rsa_keyring_encrypt_test_cases,
     NULL
 };
 

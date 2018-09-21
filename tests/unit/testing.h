@@ -34,6 +34,7 @@ extern struct test_case multi_keyring_test_cases[];
 extern struct test_case signature_test_cases[];
 extern struct test_case raw_rsa_keyring_decrypt_test_cases[];
 
+extern struct test_case raw_rsa_keyring_encrypt_test_cases[];
 #define TEST_ASSERT(cond) \
     do { \
         if (!(cond)) {\
