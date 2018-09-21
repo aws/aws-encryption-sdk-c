@@ -36,7 +36,11 @@ struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_n
 
     enc_mat->alloc = alloc;
     enc_mat->alg = alg;
-    memset(&enc_mat->unencrypted_data_key, 0, sizeof(struct aws_byte_buf));
+
+    /* Not the same as aws_byte_buf_secure_zero, which zeros the data bytes of an
+     * allocated buffer. This sets the initial state for an unallocated buffer.
+     */
+    aws_secure_zero(&enc_mat->unencrypted_data_key, sizeof(struct aws_byte_buf));
 
     return enc_mat;
 }
@@ -78,17 +82,19 @@ struct aws_cryptosdk_decryption_materials * aws_cryptosdk_decryption_materials_n
     dec_mat = aws_mem_acquire(alloc, sizeof(struct aws_cryptosdk_decryption_materials));
     if (!dec_mat) return NULL;
     dec_mat->alloc = alloc;
-    dec_mat->unencrypted_data_key.buffer = NULL;
-    dec_mat->unencrypted_data_key.allocator = NULL;
     dec_mat->alg = alg;
+
+    /* Not the same as aws_byte_buf_secure_zero, which zeros the data bytes of an
+     * allocated buffer. This sets the initial state for an unallocated buffer.
+     */
+    aws_secure_zero(&dec_mat->unencrypted_data_key, sizeof(struct aws_byte_buf));
 
     return dec_mat;
 }
 
 void aws_cryptosdk_decryption_materials_destroy(struct aws_cryptosdk_decryption_materials * dec_mat) {
     if (dec_mat) {
-        aws_byte_buf_secure_zero(&dec_mat->unencrypted_data_key);
-        aws_byte_buf_clean_up(&dec_mat->unencrypted_data_key);
+        aws_byte_buf_clean_up_secure(&dec_mat->unencrypted_data_key);
         aws_mem_release(dec_mat->alloc, dec_mat);
     }
 }

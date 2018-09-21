@@ -312,10 +312,14 @@ static inline void aws_cryptosdk_keyring_destroy(struct aws_cryptosdk_keyring *k
  * zero or more encrypted data keys which decrypt to that data key and pushes them onto
  * the EDK list.
  *
+ * Inputs object must already have all fields set. Encryption context pointer in inputs
+ * object must point to an already allocated (possibly empty) hash table. All pointers
+ * to array lists in outputs object must point to array lists that are already allocated.
+ *
  * On success (1) AWS_OP_SUCCESS is returned, (2) if the unencrypted_data_key buffer was
  * previously allocated, it will be unchanged, (3) if the unencrypted_data_key buffer was
  * not previously allocated, it will now be allocated, (4) zero or more EDKS will be
- * appended to the list of EDKS.
+ * appended to the list of EDKs in the outputs object.
  *
  * On failure AWS_OP_ERR is returned, an error code is set, and no memory is allocated.
  */
@@ -340,15 +344,23 @@ static inline int aws_cryptosdk_keyring_on_encrypt(
 }
 
 /**
- * The keyring attempts to find one of the EDKs to decrypt. The unencrypted data key
- * buffer object should be zeroed when this is called.
+ * The keyring attempts to find one of the EDKs to decrypt.
+ *
+ * Inputs object must already have all fields set. Encryption context pointer in inputs
+ * object must point to an already allocated (possibly empty) hash table. EDKs pointer
+ * in inputs object must point to an already allocated EDK list. All byte buffers in the
+ * outputs object must be zeroed when this is called.
  *
  * On success AWS_OP_SUCCESS will be returned. This does not necessarily mean that the
  * data key will be decrypted, as it is normal behavior that a keyring may not
  * find an EDK that it can decrypt. To determine whether the data key was decrypted,
- * check result->unencrypted_data_key.buffer. If the data key was not decrypted, that
+ * check outputs->unencrypted_data_key.buffer. If the data key was not decrypted, that
  * pointer will be set to NULL. If the data key was decrypted, that pointer will point
  * to the raw bytes of the key.
+ *
+ * Note that successful decrypt of an EDK means that buffer(s) was/were allocated in the
+ * outputs object. Caller must either clean up the buffer(s) or transfer ownership of the
+ * memory by making a shallow copy of the buffer(s) to avoid a memory leak.
  *
  * On failure, AWS_OP_ERR is returned, an error code is set, and no memory is allocated.
  * Failure here refers to an unexpected error in the operation of the keyring, rather
