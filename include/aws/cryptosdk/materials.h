@@ -112,9 +112,9 @@ struct aws_cryptosdk_decryption_materials {
 #define AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_2(args) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_3 args
 #define AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_3(struct_type, ...) struct_type
 
-#define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(...) AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_2((__VA_ARGS__, throwaway))
-#define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_2(args) AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_3 args
-#define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_3(struct_type, ...) const struct aws_cryptosdk_ ## struct_type
+#define AWS_CRYPTOSDK_PRIVATE_BASE_TYPE(...) AWS_CRYPTOSDK_PRIVATE_BASE_TYPE_2((__VA_ARGS__, throwaway))
+#define AWS_CRYPTOSDK_PRIVATE_BASE_TYPE_2(args) AWS_CRYPTOSDK_PRIVATE_BASE_TYPE_3 args
+#define AWS_CRYPTOSDK_PRIVATE_BASE_TYPE_3(struct_type, ...) const struct aws_cryptosdk_ ## struct_type
 
 /**
  * Macro for virtual function calls that return an integer error code. Checks that vt_size is large enough and that pointer is
@@ -126,8 +126,8 @@ struct aws_cryptosdk_decryption_materials {
  */
 #define AWS_CRYPTOSDK_PRIVATE_VF_CALL(fn_name, ...) \
     do { \
-        AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(__VA_ARGS__) *pbase = \
-            (AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(__VA_ARGS__) *) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME(__VA_ARGS__); \
+        AWS_CRYPTOSDK_PRIVATE_BASE_TYPE(__VA_ARGS__) *pbase = \
+            (AWS_CRYPTOSDK_PRIVATE_BASE_TYPE(__VA_ARGS__) *) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME(__VA_ARGS__); \
         ptrdiff_t memb_offset = (const uint8_t *)&(pbase->vtable)->fn_name - (const uint8_t *)pbase->vtable; \
         if (memb_offset + sizeof((pbase->vtable)->fn_name) > (pbase->vtable)->vt_size || !(pbase->vtable)->fn_name) { \
             return aws_raise_error(AWS_ERROR_UNIMPLEMENTED); \
@@ -142,8 +142,8 @@ struct aws_cryptosdk_decryption_materials {
  */
 #define AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(fn_name, ...) \
     do { \
-        AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(__VA_ARGS__) *pbase = \
-            (AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(__VA_ARGS__) *) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME(__VA_ARGS__); \
+        AWS_CRYPTOSDK_PRIVATE_BASE_TYPE(__VA_ARGS__) *pbase = \
+            (AWS_CRYPTOSDK_PRIVATE_BASE_TYPE(__VA_ARGS__) *) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME(__VA_ARGS__); \
         ptrdiff_t memb_offset = (const uint8_t *)&(pbase->vtable)->fn_name - (const uint8_t *)pbase->vtable; \
         if (memb_offset + sizeof((pbase->vtable)->fn_name) > (pbase->vtable)->vt_size || !(pbase->vtable)->fn_name) { \
             aws_raise_error(AWS_ERROR_UNIMPLEMENTED); \
