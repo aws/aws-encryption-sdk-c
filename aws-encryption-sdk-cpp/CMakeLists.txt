@@ -15,10 +15,10 @@
 
 # This is useful for CodeBuild tests since we want to avoid cases where KMS dependencies are missing and
 # we are not building aws-encryption-sdk-cpp.
-option(FORCE_KMS_KEYRING_BUILD, "Fail build if KMS Keyring dependencies are not satisfied")
+option(FORCE_KMS_KEYRING_BUILD "Fail build if KMS Keyring dependencies are not satisfied")
 
 # End-to-End tests might require special permissions
-option(AWS_ENC_SDK_END_TO_END_TESTS, "Enable End-to-End tests")
+option(AWS_ENC_SDK_END_TO_END_TESTS "Enable End-to-End tests")
 
 
 # By default we will try to build KMS Keyring only if we find AwsSdk
