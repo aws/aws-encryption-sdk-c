@@ -45,15 +45,13 @@ static const char raw_rsa_keyring_tv_private_key[] =
     "-----END PRIVATE KEY-----\n";
 
 /**
- * An incorrect rsa public key used to test for decryption failure.
- * It contains only partial key bytes from the above correct public key.
+ * An incorrect rsa public key used to test for encryption failure.
+ * This key is incorrect as it is not in pem format.
  */
 static const char wrong_raw_rsa_keyring_tv_public_key[] =
-    "-----BEGIN PUBLIC KEY-----\n"
     "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC78fCDSGwNcJFXtP6XQ/48kDzU\n"
     "coCVtVdA+APPNpaOiGOOBMdZA9vubMHBqq+vPwRAtksbWb7H+EyStManM2SalZCz\n"
-    "CRBKg64VmYdZng/XZwIDAQAB\n"
-    "-----END PUBLIC KEY-----\n";
+    "CRBKg64VmYdZng/XZwIDAQAB\n";
 
 /**
  * An incorrect rsa private key used to test for decryption failure.
@@ -73,31 +71,19 @@ static const char wrong_raw_rsa_keyring_tv_private_key[] =
     "-----END PRIVATE KEY-----\n";
 
 struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new(
-    struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode, enum rsa_function rsa_fn) {
-    const char *rsa_key_pem;
-    switch (rsa_fn) {
-        case AWS_CRYPTOSDK_RSA_ENCRYPT: rsa_key_pem = raw_rsa_keyring_tv_public_key; break;
-        case AWS_CRYPTOSDK_RSA_DECRYPT: rsa_key_pem = raw_rsa_keyring_tv_private_key; break;
-        default: return NULL;
-    }
+    struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
     return aws_cryptosdk_raw_rsa_keyring_new(
         alloc, raw_rsa_keyring_tv_master_key_id, strlen((const char *)raw_rsa_keyring_tv_master_key_id),
-        raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id), rsa_key_pem,
-        rsa_padding_mode);
+        raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id),
+        raw_rsa_keyring_tv_private_key, raw_rsa_keyring_tv_public_key, rsa_padding_mode);
 }
 
 struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new_with_wrong_key(
-    struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode, enum rsa_function rsa_fn) {
-    const char *rsa_key_pem;
-    switch (rsa_fn) {
-        case AWS_CRYPTOSDK_RSA_ENCRYPT: rsa_key_pem = wrong_raw_rsa_keyring_tv_public_key; break;
-        case AWS_CRYPTOSDK_RSA_DECRYPT: rsa_key_pem = wrong_raw_rsa_keyring_tv_private_key; break;
-        default: return NULL;
-    }
+    struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
     return aws_cryptosdk_raw_rsa_keyring_new(
         alloc, raw_rsa_keyring_tv_master_key_id, strlen((const char *)raw_rsa_keyring_tv_master_key_id),
-        raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id), rsa_key_pem,
-        rsa_padding_mode);
+        raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id),
+        wrong_raw_rsa_keyring_tv_private_key, wrong_raw_rsa_keyring_tv_public_key, rsa_padding_mode);
 }
 
 struct aws_cryptosdk_edk edk_init(const uint8_t *edk_bytes, size_t edk_len) {

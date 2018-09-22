@@ -23,10 +23,10 @@ enum rsa_function {
     AWS_CRYPTOSDK_RSA_DECRYPT
 };
 struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new(
-    struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode, enum rsa_function rsa_fn);
+    struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);
 
 struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new_with_wrong_key(
-    struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode, enum rsa_function rsa_fn);
+    struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);
 
 struct raw_rsa_keyring_test_vector {
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode;

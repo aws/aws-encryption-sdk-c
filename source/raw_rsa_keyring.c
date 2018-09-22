@@ -32,9 +32,10 @@ static int raw_rsa_keyring_encrypt_data_key(
     struct aws_cryptosdk_edk edk = { { 0 } };
 
     if (aws_cryptosdk_rsa_encrypt(
-            &edk.enc_data_key, self->alloc, aws_byte_cursor_from_buf(data_key), self->rsa_key_pem,
-            self->rsa_padding_mode))
+            &edk.enc_data_key, self->alloc, aws_byte_cursor_from_buf(data_key), self->rsa_key_public_pem,
+            self->rsa_padding_mode)) {
         goto err;
+    }
 
     if (aws_byte_buf_init(self->alloc, &edk.provider_id, self->provider_id->len)) goto err;
     edk.provider_id.len = edk.provider_id.capacity;
@@ -90,10 +91,10 @@ static int raw_rsa_keyring_decrypt_data_key(
         if (!aws_string_eq_byte_buf(self->provider_id, &edk->provider_id)) continue;
         if (!aws_string_eq_byte_buf(self->master_key_id, &edk->provider_info)) continue;
         const struct aws_byte_buf *edk_bytes = &edk->enc_data_key;
-
+        
         if (aws_cryptosdk_rsa_decrypt(
                 &dec_mat->unencrypted_data_key, request->alloc,
-                aws_byte_cursor_from_array(edk_bytes->buffer, edk_bytes->len), self->rsa_key_pem,
+                aws_byte_cursor_from_array(edk_bytes->buffer, edk_bytes->len), self->rsa_key_private_pem,
                 self->rsa_padding_mode)) {
             /* We are here either because of a ciphertext mismatch
              * or because of an OpenSSL error. In either case, nothing
@@ -115,7 +116,8 @@ static void raw_rsa_keyring_destroy(struct aws_cryptosdk_keyring *kr) {
     struct raw_rsa_keyring *self = (struct raw_rsa_keyring *)kr;
     aws_string_destroy((void *)self->master_key_id);
     aws_string_destroy((void *)self->provider_id);
-    aws_string_destroy_secure((void *)self->rsa_key_pem);
+    aws_string_destroy_secure((void *)self->rsa_key_private_pem);
+    aws_string_destroy_secure((void *)self->rsa_key_public_pem);
     aws_mem_release(self->alloc, self);
 }
 
@@ -134,7 +136,8 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     size_t master_key_id_len,
     const uint8_t *provider_id,
     size_t provider_id_len,
-    const char *rsa_key_pem,
+    const char *rsa_key_private_pem,
+    const char *rsa_key_public_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
     struct raw_rsa_keyring *kr = aws_mem_acquire(alloc, sizeof(struct raw_rsa_keyring));
     if (!kr) return NULL;
@@ -146,8 +149,11 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     kr->provider_id = aws_string_new_from_array(alloc, provider_id, provider_id_len);
     if (!kr->provider_id) goto err;
 
-    kr->rsa_key_pem = aws_string_new_from_c_str(alloc, rsa_key_pem);
-    if (!kr->rsa_key_pem) goto err;
+    kr->rsa_key_private_pem = aws_string_new_from_c_str(alloc, rsa_key_private_pem);
+    if (!kr->rsa_key_private_pem) goto err;
+
+    kr->rsa_key_public_pem = aws_string_new_from_c_str(alloc, rsa_key_public_pem); 
+    if (!kr->rsa_key_public_pem) goto err;
 
     kr->rsa_padding_mode = rsa_padding_mode;
     kr->vt = &raw_rsa_keyring_vt;

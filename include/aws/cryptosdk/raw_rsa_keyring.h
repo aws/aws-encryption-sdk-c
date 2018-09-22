@@ -20,22 +20,17 @@
 
 /**
  * A Keyring (KR) which does local RSA encryption and decryption of data keys using
- * the RSA key provided as a string in PEM format. 
+ * the RSA key provided as a string in PEM format.
+ *
+ * Here, 'rsa_key_public_pem' is a string containing the public key in PEM format and
+ * 'rsa_key_private_pem' is a string containing the private key in PEM format.
+ * Note both these arguments are expected to be a null terminated C-string for determining
+ * its length. 
  * 
- * In the case of encryption 'rsa_key_pem' is a string containing the private key 
- * in PEM format and in the case of decryption 'rsa_key_pem' is a string containing 
- * the public key in PEM format. Note that rsa_key_pem is expected to be a null
- * terminated C-string for determining its length.  
- *
- * Master key ID, provider ID and the RSA key provided by the caller are copied into
- * the state of the KR, so those arrays do not need to be maintained while using the KR.
- * For maximum security, the caller should zero out the array of rsa_key_pem after 
- * creating this object.
- *
- * The master key ID and provider ID are solely used to determine which master
- * key to use, so if they do not match, this KR will not find the encrypted data key 
- * to decrypt. In other words, a raw RSA KR which attempts to decrypt data previously
- * encrypted by another raw RSA KR must have the same master key ID and provider ID.
+ * Master key ID, provider ID, RSA private key and RSA public key provided by the
+ * caller are copied into the state of the KR, so those arrays do not need to be
+ * maintained while using the KR. For maximum security, the caller should zero out the
+ * arrays of 'rsa_key_private_pem' and 'rsa_key_public_pem' after creating this object.
  *
  * On failure returns NULL and sets an internal AWS error code.
  */
@@ -45,7 +40,8 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     size_t master_key_id_len,
     const uint8_t *provider_id,
     size_t provider_id_len,
-    const char *rsa_key_pem,
+    const char *rsa_key_private_pem,
+    const char *rsa_key_public_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);
 
 #endif  // AWS_CRYPTOSDK_RAW_RSA_KEYRING_H

@@ -18,8 +18,8 @@
 #include "testing.h"
 
 static struct aws_allocator *alloc;
-static struct aws_cryptosdk_keyring *kr_public_key;
-static struct aws_cryptosdk_keyring *kr_private_key;
+static struct aws_cryptosdk_keyring *kr1;
+static struct aws_cryptosdk_keyring *kr2;
 static struct aws_cryptosdk_encryption_materials *enc_mat;
 static struct aws_cryptosdk_decryption_materials *dec_mat;
 static struct aws_cryptosdk_decryption_request req;
@@ -45,7 +45,7 @@ static int copy_edks_from_enc_mat_to_dec_req() {
 }
 
 static int decrypt_data_key_and_verify_same_as_one_in_enc_mat() {
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_decrypt_data_key(kr_private_key, dec_mat, &req));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_decrypt_data_key(kr2, dec_mat, &req));
     TEST_ASSERT_ADDR_NOT_NULL(dec_mat->unencrypted_data_key.buffer);
     TEST_ASSERT_INT_EQ(dec_mat->unencrypted_data_key.len, enc_mat->unencrypted_data_key.len);
     TEST_ASSERT(!memcmp(
@@ -56,20 +56,22 @@ static int decrypt_data_key_and_verify_same_as_one_in_enc_mat() {
 
 static int set_up_encrypt(enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode, enum aws_cryptosdk_alg_id alg) {
     alloc = aws_default_allocator();
-    kr_public_key = raw_rsa_keyring_tv_new(alloc, rsa_padding_mode, AWS_CRYPTOSDK_RSA_ENCRYPT);
-    TEST_ASSERT_ADDR_NOT_NULL(kr_public_key);
+    kr1 = raw_rsa_keyring_tv_new(alloc, rsa_padding_mode);
+    TEST_ASSERT_ADDR_NOT_NULL(kr1);
     enc_mat = aws_cryptosdk_encryption_materials_new(alloc, alg);
     TEST_ASSERT_ADDR_NOT_NULL(enc_mat);
 
     return 0;
 }
 
-static int set_up_decrypt(enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode, enum aws_cryptosdk_alg_id alg) {
+static int set_up_encrypt_decrypt(enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode, enum aws_cryptosdk_alg_id alg) {
     alloc = aws_default_allocator();
-    kr_private_key = raw_rsa_keyring_tv_new(alloc, rsa_padding_mode, AWS_CRYPTOSDK_RSA_DECRYPT);
-    TEST_ASSERT_ADDR_NOT_NULL(kr_private_key);
+    kr2 = raw_rsa_keyring_tv_new(alloc, rsa_padding_mode);
+    TEST_ASSERT_ADDR_NOT_NULL(kr2);
     req.alloc = alloc;
     req.alg = alg;
+    enc_mat = aws_cryptosdk_encryption_materials_new(alloc, alg);
+    TEST_ASSERT_ADDR_NOT_NULL(enc_mat);
     dec_mat = aws_cryptosdk_decryption_materials_new(alloc, alg);
     TEST_ASSERT_ADDR_NOT_NULL(dec_mat);
 
@@ -78,11 +80,12 @@ static int set_up_decrypt(enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode, 
 
 static void tear_down_encrypt() {
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
-    aws_cryptosdk_keyring_destroy(kr_public_key);
+    aws_cryptosdk_keyring_destroy(kr1);
 }
 
-static void tear_down_decrypt() {
-    aws_cryptosdk_keyring_destroy(kr_private_key);
+static void tear_down_encrypt_decrypt() {
+    aws_cryptosdk_keyring_destroy(kr2);
+    aws_cryptosdk_encryption_materials_destroy(enc_mat);
     aws_cryptosdk_decryption_materials_destroy(dec_mat);
     aws_array_list_clean_up(&req.encrypted_data_keys);
 }
@@ -95,7 +98,7 @@ int generate_encrypt_data_key() {
          ++wrap_idx) {
         for (int alg_idx = 0; alg_idx < sizeof(alg_ids) / sizeof(enum aws_cryptosdk_alg_id); ++alg_idx) {
             TEST_ASSERT_SUCCESS(set_up_encrypt(rsa_padding_mode[wrap_idx], alg_ids[alg_idx]));
-            TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_generate_data_key(kr_public_key, enc_mat));
+            TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_generate_data_key(kr1, enc_mat));
             TEST_ASSERT_ADDR_NOT_NULL(enc_mat->unencrypted_data_key.buffer);
             TEST_ASSERT_INT_EQ(enc_mat->unencrypted_data_key.len, data_key_len[alg_idx]);
 
@@ -109,29 +112,72 @@ int generate_encrypt_data_key() {
     return 0;
 }
 
+/**
+ * Testing generate->encrypt->decrypt functions for all of the supported RSA padding modes.
+ */
 int generate_encrypt_decrypt_data_key() {
     for (int wrap_idx = 0; wrap_idx < sizeof(rsa_padding_mode) / sizeof(enum aws_cryptosdk_rsa_padding_mode);
          ++wrap_idx) {
         for (int alg_idx = 0; alg_idx < sizeof(alg_ids) / sizeof(enum aws_cryptosdk_alg_id); ++alg_idx) {
-            TEST_ASSERT_SUCCESS(set_up_encrypt(rsa_padding_mode[wrap_idx], alg_ids[alg_idx]));
-            TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_generate_data_key(kr_public_key, enc_mat));
+            TEST_ASSERT_SUCCESS(set_up_encrypt_decrypt(rsa_padding_mode[wrap_idx], alg_ids[alg_idx]));
+            TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_generate_data_key(kr2, enc_mat));
             TEST_ASSERT_ADDR_NOT_NULL(enc_mat->unencrypted_data_key.buffer);
 
             const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_ids[alg_idx]);
             TEST_ASSERT_INT_EQ(enc_mat->unencrypted_data_key.len, props->data_key_len);
             TEST_ASSERT_INT_EQ(aws_array_list_length(&enc_mat->encrypted_data_keys), 1);
 
-            TEST_ASSERT_SUCCESS(set_up_decrypt(rsa_padding_mode[wrap_idx], alg_ids[alg_idx]));
             TEST_ASSERT_SUCCESS(copy_edks_from_enc_mat_to_dec_req());
             TEST_ASSERT_SUCCESS(decrypt_data_key_and_verify_same_as_one_in_enc_mat());
-            tear_down_encrypt();
-            tear_down_decrypt();
+            tear_down_encrypt_decrypt();
         }
     }
+    return 0;
+}
+
+/**
+ * RSA Data key encryption and decryption with set of known test vectors.
+ */
+int encrypt_decrypt_data_key_from_test_vectors() {
+    uint8_t data_key_dup[32];
+    for (struct raw_rsa_keyring_test_vector *tv = raw_rsa_keyring_test_vectors; tv->data_key; ++tv) {
+        TEST_ASSERT_SUCCESS(set_up_encrypt_decrypt(tv->rsa_padding_mode, tv->alg));
+        // copy from constant memory because cleanup needs to zero it out
+        memcpy(data_key_dup, tv->data_key, tv->data_key_len);
+        enc_mat->unencrypted_data_key = aws_byte_buf_from_array(data_key_dup, tv->data_key_len);
+
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_encrypt_data_key(kr2, enc_mat));
+        TEST_ASSERT_INT_EQ(aws_array_list_length(&enc_mat->encrypted_data_keys), 1);
+
+        TEST_ASSERT_SUCCESS(copy_edks_from_enc_mat_to_dec_req());
+        TEST_ASSERT_SUCCESS(decrypt_data_key_and_verify_same_as_one_in_enc_mat());
+        tear_down_encrypt_decrypt();
+    }
+    return 0;
+}
+
+/**
+ * Test to check for encryption failure of an unencrypted data key with an incorrect rsa private key.
+ */
+int encrypt_data_key_from_bad_rsa_private_key() {
+    uint8_t data_key_dup[32];
+    struct raw_rsa_keyring_test_vector tv = raw_rsa_keyring_test_vectors[0];
+    alloc = aws_default_allocator();
+    kr1 = raw_rsa_keyring_tv_new_with_wrong_key(alloc, tv.rsa_padding_mode);
+    TEST_ASSERT_ADDR_NOT_NULL(kr1);
+    enc_mat = aws_cryptosdk_encryption_materials_new(alloc, tv.alg);
+    TEST_ASSERT_ADDR_NOT_NULL(enc_mat);
+    memcpy(data_key_dup, tv.data_key, tv.data_key_len);
+    enc_mat->unencrypted_data_key = aws_byte_buf_from_array(data_key_dup, tv.data_key_len);
+    TEST_ASSERT_SUCCESS(!aws_cryptosdk_keyring_encrypt_data_key(kr1, enc_mat));
+    tear_down_encrypt();
+
     return 0;
 }
 struct test_case raw_rsa_keyring_encrypt_test_cases[] = {
     { "raw_rsa_keyring", "generate_encrypt_data_key", generate_encrypt_data_key },
     { "raw_rsa_keyring", "generate_encrypt_decrypt_data_key", generate_encrypt_decrypt_data_key },
+    { "raw_rsa_keyring", "encrypt_decrypt_data_key_from_test_vectors", encrypt_decrypt_data_key_from_test_vectors },
+    { "raw_rsa_keyring", "encrypt_data_key_from_bad_rsa_private_key", encrypt_data_key_from_bad_rsa_private_key },
     { NULL }
 };

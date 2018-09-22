@@ -22,7 +22,8 @@ struct raw_rsa_keyring {
     struct aws_allocator *alloc;
     const struct aws_string *master_key_id;
     const struct aws_string *provider_id;
-    const struct aws_string * rsa_key_pem;
+    const struct aws_string * rsa_key_private_pem;
+    const struct aws_string * rsa_key_public_pem;
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode;
 };
 
