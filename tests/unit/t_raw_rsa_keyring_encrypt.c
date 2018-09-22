@@ -80,14 +80,14 @@ static int set_up_encrypt_decrypt(enum aws_cryptosdk_rsa_padding_mode rsa_paddin
 
 static void tear_down_encrypt() {
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
-    aws_cryptosdk_keyring_destroy(kr1);
+    aws_cryptosdk_keyring_release(kr1);
 }
 
 static void tear_down_encrypt_decrypt() {
-    aws_cryptosdk_keyring_destroy(kr2);
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
     aws_cryptosdk_decryption_materials_destroy(dec_mat);
     aws_array_list_clean_up(&req.encrypted_data_keys);
+    aws_cryptosdk_keyring_release(kr2);
 }
 
 /**
