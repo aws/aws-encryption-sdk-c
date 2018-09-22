@@ -18,10 +18,6 @@
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/materials.h>
 
-enum rsa_function { 
-    AWS_CRYPTOSDK_RSA_ENCRYPT,
-    AWS_CRYPTOSDK_RSA_DECRYPT
-};
 struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new(
     struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);
 
