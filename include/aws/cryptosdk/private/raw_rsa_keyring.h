@@ -18,7 +18,7 @@
 #include <aws/cryptosdk/raw_rsa_keyring.h>
 
 struct raw_rsa_keyring {
-    const struct aws_cryptosdk_keyring_vt *vt;
+    struct aws_cryptosdk_keyring base;
     struct aws_allocator *alloc;
     const struct aws_string *master_key_id;
     const struct aws_string *provider_id;

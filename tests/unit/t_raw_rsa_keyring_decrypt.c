@@ -102,7 +102,7 @@ static int set_up_all_the_things(enum aws_cryptosdk_rsa_padding_mode rsa_padding
 static void tear_down_all_the_things() {
     aws_cryptosdk_decryption_materials_destroy(dec_mat);
     aws_cryptosdk_edk_list_clean_up(&req.encrypted_data_keys);
-    aws_cryptosdk_keyring_destroy(kr);
+    aws_cryptosdk_keyring_release(kr);
 }
 /**
  * RSA Data key decryption with set of known test vectors.

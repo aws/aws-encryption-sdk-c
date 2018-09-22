@@ -16,7 +16,7 @@
 #include "zero_keyring.h"
 #include <aws/cryptosdk/cipher.h>
 
-struct zero_keyring {const struct aws_cryptosdk_keyring_vt * vt;};
+struct zero_keyring {const struct aws_cryptosdk_keyring base;};
 
 static const char * literally_null = "null";
 
@@ -107,6 +107,7 @@ static int zero_keyring_decrypt_data_key(struct aws_cryptosdk_keyring * kr,
 
 static void zero_keyring_destroy(struct aws_cryptosdk_keyring * kr) {
     (void)kr;
+    abort(); // should be unreachable unless we have a double-free somewhere
 }
 
 static const struct aws_cryptosdk_keyring_vt zero_keyring_vt = {
@@ -118,7 +119,7 @@ static const struct aws_cryptosdk_keyring_vt zero_keyring_vt = {
     .decrypt_data_key = zero_keyring_decrypt_data_key
 };
 
-static struct zero_keyring zero_keyring_singleton = {.vt = &zero_keyring_vt};
+static struct zero_keyring zero_keyring_singleton = {.base = {.vtable = &zero_keyring_vt, .refcount = AWS_ATOMIC_INIT_INT(1)}};
 static struct aws_cryptosdk_keyring * kr = (struct aws_cryptosdk_keyring *) &zero_keyring_singleton;
 
-struct aws_cryptosdk_keyring * aws_cryptosdk_zero_keyring_new() {return kr;}
+struct aws_cryptosdk_keyring * aws_cryptosdk_zero_keyring_new() {return aws_cryptosdk_keyring_retain(kr);}

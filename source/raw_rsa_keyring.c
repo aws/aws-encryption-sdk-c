@@ -103,6 +103,8 @@ static int raw_rsa_keyring_decrypt_data_key(
             aws_reset_error();
         } else {
             assert(dec_mat->unencrypted_data_key.len == props->data_key_len);
+            // Suppress unused variable warning with -DNDEBUG
+            (void)props;
             return AWS_OP_SUCCESS;
         }
     }
@@ -156,8 +158,10 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     if (!kr->rsa_key_public_pem) goto err;
 
     kr->rsa_padding_mode = rsa_padding_mode;
-    kr->vt = &raw_rsa_keyring_vt;
     kr->alloc = alloc;
+
+    aws_cryptosdk_keyring_base_init(&kr->base, &raw_rsa_keyring_vt);
+
     return (struct aws_cryptosdk_keyring *)kr;
 
 err:

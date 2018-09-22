@@ -47,7 +47,7 @@ struct t_aws_cryptosdk_session_cmm_struct t_aws_cryptosdk_all_init(enum aws_cryp
  */
 void t_aws_cryptosdk_destroy(struct t_aws_cryptosdk_session_cmm_struct result) {
     aws_cryptosdk_session_destroy(result.session);
-    aws_cryptosdk_cmm_destroy(result.cmm);
+    aws_cryptosdk_cmm_release(result.cmm);
 }
 
 /**
