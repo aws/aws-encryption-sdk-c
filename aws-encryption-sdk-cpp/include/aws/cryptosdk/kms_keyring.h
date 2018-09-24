@@ -318,7 +318,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
         /**
          * Creates a new KmsKeyring object or return NULL if parameters are invalid
          */
-        KmsKeyring *Build() const;
+        aws_cryptosdk_keyring *Build() const;
 
         /**
          * Returns true if parameters are valid

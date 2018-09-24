@@ -436,7 +436,7 @@ struct aws_allocator *KmsKeyring::Builder::BuildAllocator() const {
     return (alloc == NULL)? aws_default_allocator() : alloc;
 }
 
-KmsKeyring *KmsKeyring::Builder::Build() const {
+aws_cryptosdk_keyring *KmsKeyring::Builder::Build() const {
     if (!ValidParameters()) {
         aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
         return NULL;
