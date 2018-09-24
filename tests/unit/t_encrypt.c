@@ -289,6 +289,9 @@ int test_changed_keyring_can_decrypt() {
     return 0;
 }
 
+// This helper sub-test sets the CMM to use a particular algorithm ID, verifies
+// that we can encrypt and decrypt using that algorithm, and checks that that
+// algorithm was in fact used (as reported by both encrypt and decrypt sessions).
 static int test_algorithm_override_once(enum aws_cryptosdk_alg_id alg_id) {
     init_bufs(1);
 

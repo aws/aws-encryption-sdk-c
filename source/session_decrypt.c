@@ -269,9 +269,9 @@ int try_decrypt_body(
 
 int check_trailer(
     struct aws_cryptosdk_session * AWS_RESTRICT session,
-    struct aws_byte_cursor * AWS_RESTRICT pinput
+    struct aws_byte_cursor * AWS_RESTRICT input
 ) {
-    struct aws_byte_cursor initial_input = *pinput;
+    struct aws_byte_cursor initial_input = *input;
     if (session->signctx == NULL) {
         session_change_state(session, ST_DONE);
         return AWS_OP_SUCCESS;
@@ -279,11 +279,11 @@ int check_trailer(
 
     uint16_t sig_len = 0;
     struct aws_byte_cursor signature;
-    if (!aws_byte_cursor_read_be16(pinput, &sig_len)
-        || !(signature = aws_byte_cursor_advance_nospec(pinput, sig_len)).ptr) {
+    if (!aws_byte_cursor_read_be16(input, &sig_len)
+        || !(signature = aws_byte_cursor_advance_nospec(input, sig_len)).ptr) {
         // Not enough data to read the signature yet
         session->input_size_estimate = 2 + sig_len;
-        *pinput = initial_input;
+        *input = initial_input;
         return AWS_OP_SUCCESS;
     }
 
