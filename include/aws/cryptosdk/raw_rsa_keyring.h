@@ -20,19 +20,18 @@
 
 /**
  * A Keyring (KR) which does local RSA encryption and decryption of data keys using
- * the RSA keys provided as a string in PEM format.
+ * the RSA keys provided as a null terminated C-string in PEM format.
  *
- * Here, 'rsa_key_public_pem' is a string containing the public key in PEM format and
- * 'rsa_key_private_pem' is a string containing the private key in PEM format.
- * Note that it is possible to set up only one of the pem strings in the case that only
- * one of the encryption/decryption operations is required, 'rsa_key_public_pem' for 
- * encryption and 'rsa_key_private_pem' for decryption, during this case the key that 
- * is unused should be set to NULL. 
+ * Here, 'rsa_public_key_pem' is a null terminated C-string containing the public key 
+ * in PEM format and 'rsa_private_key_pem' is a null terminated C-string containing the
+ * private key in PEM format. Note that either argument may be set to NULL. Encryption 
+ * is possible only when a public key is provided, and decryption is possible only when 
+ * a private key is provided. 
  * 
  * Master key ID, provider ID, RSA private key and RSA public key provided by the
  * caller are copied into the state of the KR, so those arrays do not need to be
  * maintained while using the KR. For maximum security, the caller should zero out the
- * arrays of 'rsa_key_private_pem' and 'rsa_key_public_pem' after creating this object.
+ * arrays of 'rsa_private_key_pem' after creating this object.
  *
  * On failure returns NULL and sets an internal AWS error code.
  */
@@ -42,8 +41,8 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     size_t master_key_id_len,
     const uint8_t *provider_id,
     size_t provider_id_len,
-    const char *rsa_key_private_pem,
-    const char *rsa_key_public_pem,
+    const char *rsa_private_key_pem,
+    const char *rsa_public_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);
 
 #endif  // AWS_CRYPTOSDK_RAW_RSA_KEYRING_H

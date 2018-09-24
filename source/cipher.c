@@ -554,7 +554,7 @@ decrypt_err:
     return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
 }
 
-static int aws_cryptosdk_get_rsa_padding_mode(enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
+static int get_openssl_rsa_padding_mode(enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
     switch (rsa_padding_mode) {
         case AWS_CRYPTOSDK_RSA_PKCS1: return RSA_PKCS1_PADDING; break;
         case AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1: return RSA_PKCS1_OAEP_PADDING; break;
@@ -567,9 +567,9 @@ int aws_cryptosdk_rsa_encrypt(
     struct aws_byte_buf *cipher,
     struct aws_allocator *alloc,
     const struct aws_byte_cursor plain,
-    const struct aws_string *rsa_key_public_pem,
+    const struct aws_string *rsa_public_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
-    int padding = aws_cryptosdk_get_rsa_padding_mode(rsa_padding_mode);
+    int padding = get_openssl_rsa_padding_mode(rsa_padding_mode);
     if (padding < 0) return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     BIO *bio = NULL;
     EVP_PKEY_CTX *ctx = NULL;
@@ -578,7 +578,7 @@ int aws_cryptosdk_rsa_encrypt(
     int err_code = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     pkey = EVP_PKEY_new();
     if (!pkey) goto cleanup;
-    bio = BIO_new_mem_buf(aws_string_bytes(rsa_key_public_pem), rsa_key_public_pem->len);
+    bio = BIO_new_mem_buf(aws_string_bytes(rsa_public_key_pem), rsa_public_key_pem->len);
     if (!bio) goto cleanup;
     if (!PEM_read_bio_PUBKEY(bio, &pkey, NULL, NULL)) goto cleanup;
     ctx = EVP_PKEY_CTX_new(pkey, NULL);
@@ -618,7 +618,7 @@ int aws_cryptosdk_rsa_decrypt(
     const struct aws_byte_cursor cipher,
     const struct aws_string *rsa_private_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
-    int padding = aws_cryptosdk_get_rsa_padding_mode(rsa_padding_mode);
+    int padding = get_openssl_rsa_padding_mode(rsa_padding_mode);
     if (padding < 0) return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     BIO *bio = NULL;
     EVP_PKEY_CTX *ctx = NULL;

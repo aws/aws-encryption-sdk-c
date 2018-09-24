@@ -20,7 +20,7 @@
 static int raw_rsa_keyring_encrypt_data_key(
     struct aws_cryptosdk_keyring *kr, struct aws_cryptosdk_encryption_materials *enc_mat) {
     struct raw_rsa_keyring *self = (struct raw_rsa_keyring *)kr;
-    if (!self->rsa_key_public_pem) return AWS_CRYPTOSDK_ERR_BAD_STATE;
+    if (!self->rsa_public_key_pem) return AWS_CRYPTOSDK_ERR_BAD_STATE;
     struct aws_byte_buf *data_key = &enc_mat->unencrypted_data_key;
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(enc_mat->alg);
     size_t data_key_len = props->data_key_len;
@@ -28,12 +28,12 @@ static int raw_rsa_keyring_encrypt_data_key(
     /* Failing this assert would mean that the length of the already generated data key was
      * different than the data key length prescribed by the algorithm suite
      */
-    assert(data_key_len == data_key->len);
+    if (data_key_len != data_key->len) return AWS_OP_ERR;
 
     struct aws_cryptosdk_edk edk = { { 0 } };
 
     if (aws_cryptosdk_rsa_encrypt(
-            &edk.enc_data_key, self->alloc, aws_byte_cursor_from_buf(data_key), self->rsa_key_public_pem,
+            &edk.enc_data_key, self->alloc, aws_byte_cursor_from_buf(data_key), self->rsa_public_key_pem,
             self->rsa_padding_mode)) {
         goto err;
     }
@@ -80,7 +80,7 @@ static int raw_rsa_keyring_decrypt_data_key(
     struct aws_cryptosdk_decryption_materials *dec_mat,
     const struct aws_cryptosdk_decryption_request *request) {
     struct raw_rsa_keyring *self = (struct raw_rsa_keyring *)kr;
-    if (!self->rsa_key_private_pem) return AWS_CRYPTOSDK_ERR_BAD_STATE;
+    if (!self->rsa_private_key_pem) return AWS_CRYPTOSDK_ERR_BAD_STATE;
     const struct aws_array_list *edks = &request->encrypted_data_keys;
     size_t num_edks = aws_array_list_length(edks);
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(dec_mat->alg);
@@ -95,7 +95,7 @@ static int raw_rsa_keyring_decrypt_data_key(
         const struct aws_byte_buf *edk_bytes = &edk->enc_data_key;
         if (aws_cryptosdk_rsa_decrypt(
                 &dec_mat->unencrypted_data_key, request->alloc,
-                aws_byte_cursor_from_array(edk_bytes->buffer, edk_bytes->len), self->rsa_key_private_pem,
+                aws_byte_cursor_from_array(edk_bytes->buffer, edk_bytes->len), self->rsa_private_key_pem,
                 self->rsa_padding_mode)) {
             /* We are here either because of a ciphertext mismatch
              * or because of an OpenSSL error. In either case, nothing
@@ -119,8 +119,8 @@ static void raw_rsa_keyring_destroy(struct aws_cryptosdk_keyring *kr) {
     struct raw_rsa_keyring *self = (struct raw_rsa_keyring *)kr;
     aws_string_destroy((void *)self->master_key_id);
     aws_string_destroy((void *)self->provider_id);
-    aws_string_destroy_secure((void *)self->rsa_key_private_pem);
-    aws_string_destroy_secure((void *)self->rsa_key_public_pem);
+    aws_string_destroy_secure((void *)self->rsa_private_key_pem);
+    aws_string_destroy_secure((void *)self->rsa_public_key_pem);
     aws_mem_release(self->alloc, self);
 }
 
@@ -139,8 +139,8 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     size_t master_key_id_len,
     const uint8_t *provider_id,
     size_t provider_id_len,
-    const char *rsa_key_private_pem,
-    const char *rsa_key_public_pem,
+    const char *rsa_private_key_pem,
+    const char *rsa_public_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
     struct raw_rsa_keyring *kr = aws_mem_acquire(alloc, sizeof(struct raw_rsa_keyring));
     if (!kr) return NULL;
@@ -152,10 +152,10 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     kr->provider_id = aws_string_new_from_array(alloc, provider_id, provider_id_len);
     if (!kr->provider_id) goto err;
 
-    kr->rsa_key_private_pem = aws_string_new_from_c_str(alloc, rsa_key_private_pem);
+    kr->rsa_private_key_pem = aws_string_new_from_c_str(alloc, rsa_private_key_pem);
 
-    kr->rsa_key_public_pem = aws_string_new_from_c_str(alloc, rsa_key_public_pem);
-    if (!kr->rsa_key_public_pem && !kr->rsa_key_private_pem) goto err;
+    kr->rsa_public_key_pem = aws_string_new_from_c_str(alloc, rsa_public_key_pem);
+    if (!kr->rsa_public_key_pem && !kr->rsa_private_key_pem) goto err;
 
     kr->rsa_padding_mode = rsa_padding_mode;
     kr->alloc = alloc;
