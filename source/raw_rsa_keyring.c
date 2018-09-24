@@ -20,6 +20,7 @@
 static int raw_rsa_keyring_encrypt_data_key(
     struct aws_cryptosdk_keyring *kr, struct aws_cryptosdk_encryption_materials *enc_mat) {
     struct raw_rsa_keyring *self = (struct raw_rsa_keyring *)kr;
+    if (!self->rsa_key_public_pem) return AWS_CRYPTOSDK_ERR_BAD_STATE;
     struct aws_byte_buf *data_key = &enc_mat->unencrypted_data_key;
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(enc_mat->alg);
     size_t data_key_len = props->data_key_len;
@@ -79,6 +80,7 @@ static int raw_rsa_keyring_decrypt_data_key(
     struct aws_cryptosdk_decryption_materials *dec_mat,
     const struct aws_cryptosdk_decryption_request *request) {
     struct raw_rsa_keyring *self = (struct raw_rsa_keyring *)kr;
+    if (!self->rsa_key_private_pem) return AWS_CRYPTOSDK_ERR_BAD_STATE;
     const struct aws_array_list *edks = &request->encrypted_data_keys;
     size_t num_edks = aws_array_list_length(edks);
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(dec_mat->alg);
@@ -91,7 +93,6 @@ static int raw_rsa_keyring_decrypt_data_key(
         if (!aws_string_eq_byte_buf(self->provider_id, &edk->provider_id)) continue;
         if (!aws_string_eq_byte_buf(self->master_key_id, &edk->provider_info)) continue;
         const struct aws_byte_buf *edk_bytes = &edk->enc_data_key;
-        
         if (aws_cryptosdk_rsa_decrypt(
                 &dec_mat->unencrypted_data_key, request->alloc,
                 aws_byte_cursor_from_array(edk_bytes->buffer, edk_bytes->len), self->rsa_key_private_pem,
@@ -152,10 +153,9 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     if (!kr->provider_id) goto err;
 
     kr->rsa_key_private_pem = aws_string_new_from_c_str(alloc, rsa_key_private_pem);
-    if (!kr->rsa_key_private_pem) goto err;
 
-    kr->rsa_key_public_pem = aws_string_new_from_c_str(alloc, rsa_key_public_pem); 
-    if (!kr->rsa_key_public_pem) goto err;
+    kr->rsa_key_public_pem = aws_string_new_from_c_str(alloc, rsa_key_public_pem);
+    if (!kr->rsa_key_public_pem && !kr->rsa_key_private_pem) goto err;
 
     kr->rsa_padding_mode = rsa_padding_mode;
     kr->alloc = alloc;
