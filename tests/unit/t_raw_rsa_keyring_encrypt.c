@@ -83,7 +83,7 @@ static void tear_down_encrypt() {
 static void tear_down_encrypt_decrypt() {
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
     aws_cryptosdk_decryption_materials_destroy(dec_mat);
-    aws_array_list_clean_up(&req.encrypted_data_keys);
+    aws_cryptosdk_edk_list_clean_up(&req.encrypted_data_keys);
     aws_cryptosdk_keyring_release(kr2);
 }
 

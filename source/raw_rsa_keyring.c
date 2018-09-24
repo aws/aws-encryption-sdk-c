@@ -20,7 +20,7 @@
 static int raw_rsa_keyring_encrypt_data_key(
     struct aws_cryptosdk_keyring *kr, struct aws_cryptosdk_encryption_materials *enc_mat) {
     struct raw_rsa_keyring *self = (struct raw_rsa_keyring *)kr;
-    if (!self->rsa_public_key_pem) return AWS_CRYPTOSDK_ERR_BAD_STATE;
+    if (!self->rsa_public_key_pem) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     struct aws_byte_buf *data_key = &enc_mat->unencrypted_data_key;
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(enc_mat->alg);
     size_t data_key_len = props->data_key_len;
@@ -80,7 +80,7 @@ static int raw_rsa_keyring_decrypt_data_key(
     struct aws_cryptosdk_decryption_materials *dec_mat,
     const struct aws_cryptosdk_decryption_request *request) {
     struct raw_rsa_keyring *self = (struct raw_rsa_keyring *)kr;
-    if (!self->rsa_private_key_pem) return AWS_CRYPTOSDK_ERR_BAD_STATE;
+    if (!self->rsa_private_key_pem) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     const struct aws_array_list *edks = &request->encrypted_data_keys;
     size_t num_edks = aws_array_list_length(edks);
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(dec_mat->alg);
