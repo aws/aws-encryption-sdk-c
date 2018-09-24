@@ -22,20 +22,18 @@
 #include "zero_keyring.h"
 #include "counting_keyring.h"
 
+static struct aws_cryptosdk_cmm *cmm;
 static uint8_t *pt_buf;
 static size_t pt_size, pt_offset;
 static uint8_t *ct_buf;
 static size_t ct_buf_size, ct_size;
 static struct aws_cryptosdk_session *session;
-static struct aws_cryptosdk_cmm *cmm = NULL;
 static int precise_size_set = 0;
 
 static int create_session(enum aws_cryptosdk_mode mode, struct aws_cryptosdk_keyring *kr) {
     if (session) aws_cryptosdk_session_destroy(session);
-    if (cmm) aws_cryptosdk_cmm_destroy(cmm);
 
     session = NULL;
-    cmm = NULL;
 
     cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
     if (!cmm) abort();
@@ -61,9 +59,9 @@ static void init_bufs(size_t pt_len) {
 
 static void free_bufs() {
     aws_cryptosdk_session_destroy(session);
-    aws_cryptosdk_cmm_destroy(cmm);
-    cmm = NULL;
+    aws_cryptosdk_cmm_release(cmm);
     session = NULL;
+    cmm = NULL;
 
     aws_mem_release(aws_default_allocator(), pt_buf);
     aws_mem_release(aws_default_allocator(), ct_buf);

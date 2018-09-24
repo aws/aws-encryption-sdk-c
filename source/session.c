@@ -104,6 +104,7 @@ struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm(
 
     if (session) {
         session->cmm = cmm;
+        aws_cryptosdk_cmm_retain(cmm);
     }
 
     return session;
@@ -115,9 +116,9 @@ void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session) {
     aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT); // frees dynamically allocated stuff (except for the header itself)
 
     aws_cryptosdk_hdr_clean_up(&session->header);
+    aws_cryptosdk_cmm_release(session->cmm);
 
     aws_secure_zero(session, sizeof(*session));
-
     aws_mem_release(alloc, session);
 }
 

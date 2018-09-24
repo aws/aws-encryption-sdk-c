@@ -23,7 +23,7 @@
 AWS_STATIC_STRING_FROM_LITERAL(EC_PUBLIC_KEY_FIELD, "aws-crypto-public-key");
 
 struct default_cmm {
-    const struct aws_cryptosdk_cmm_vt * vt;
+    struct aws_cryptosdk_cmm base;
     struct aws_allocator * alloc;
     struct aws_cryptosdk_keyring * kr;
     const struct aws_cryptosdk_alg_properties *alg_props;
@@ -113,6 +113,7 @@ err:
 
 static void default_cmm_destroy(struct aws_cryptosdk_cmm * cmm) {
     struct default_cmm * self = (struct default_cmm *) cmm;
+    aws_cryptosdk_keyring_release(self->kr);
     aws_mem_release(self->alloc, self);
 }
 
@@ -129,9 +130,10 @@ struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * 
     cmm = aws_mem_acquire(alloc, sizeof(struct default_cmm));
     if (!cmm) return NULL;
 
-    cmm->vt = &default_cmm_vt;
+    aws_cryptosdk_cmm_base_init(&cmm->base, &default_cmm_vt);
+
     cmm->alloc = alloc;
-    cmm->kr = kr;
+    cmm->kr = aws_cryptosdk_keyring_retain(kr);
 
     aws_cryptosdk_default_cmm_set_alg_id((struct aws_cryptosdk_cmm *)cmm, DEFAULT_ALG);
 
@@ -142,7 +144,7 @@ int aws_cryptosdk_default_cmm_set_alg_id(struct aws_cryptosdk_cmm *cmm, enum aws
     struct default_cmm * self = (struct default_cmm *) cmm;
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
 
-    assert(self->vt == &default_cmm_vt);
+    assert(self->base.vtable == &default_cmm_vt);
 
     if (!props) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);

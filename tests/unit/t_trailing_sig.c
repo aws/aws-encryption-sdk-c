@@ -89,7 +89,7 @@ static int trailing_sig_no_key() {
     );
 
     aws_cryptosdk_session_destroy(session);
-    aws_cryptosdk_cmm_destroy(cmm);
+    aws_cryptosdk_cmm_release(cmm);
     aws_byte_buf_clean_up(&buf);
 
     return 0;
@@ -130,7 +130,7 @@ static int trailing_sig_no_sig() {
     TEST_ASSERT(!aws_cryptosdk_session_is_done(session));
 
     aws_cryptosdk_session_destroy(session);
-    aws_cryptosdk_cmm_destroy(cmm);
+    aws_cryptosdk_cmm_release(cmm);
     aws_byte_buf_clean_up(&buf);
 
     return 0;
@@ -170,7 +170,7 @@ static int trailing_sig_bad_sig() {
     TEST_ASSERT(!aws_cryptosdk_session_is_done(session));
 
     aws_cryptosdk_session_destroy(session);
-    aws_cryptosdk_cmm_destroy(cmm);
+    aws_cryptosdk_cmm_release(cmm);
     aws_byte_buf_clean_up(&buf);
 
     return 0;

@@ -16,10 +16,15 @@
 #ifndef AWS_CRYPTOSDK_MATERIALS_H
 #define AWS_CRYPTOSDK_MATERIALS_H
 
+#include <assert.h>
+#include <stdint.h>
+#include <limits.h>
+
 #include <aws/common/common.h>
 #include <aws/common/array_list.h>
 #include <aws/common/byte_buf.h>
 #include <aws/common/hash_table.h>
+#include <aws/common/atomics.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/header.h>
 
@@ -28,13 +33,17 @@ extern "C" {
 #endif
 
 /**
- * Abstract types for CMM and KR: Concrete implementations will create their own structs, which
- * must have the virtual table pointer as the first member, and cast pointers accordingly. See
+ * Base types for CMM and KR: Concrete implementations will create their own structs, which
+ * must have this structure as the first member, and cast pointers accordingly. See
  * default_cmm.[ch] for an example of this.
  */
-struct aws_cryptosdk_cmm;
+struct aws_cryptosdk_cmm {
+    struct aws_atomic_var refcount;
+    const struct aws_cryptosdk_cmm_vt *vtable;
+};
 
 struct aws_cryptosdk_keyring {
+    struct aws_atomic_var refcount;
     const struct aws_cryptosdk_keyring_vt *vtable;
 };
 
@@ -112,9 +121,9 @@ struct aws_cryptosdk_decryption_materials {
 #define AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_2(args) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_3 args
 #define AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME_3(struct_type, ...) struct_type
 
-#define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(...) AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_2((__VA_ARGS__, throwaway))
-#define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_2(args) AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_3 args
-#define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_3(struct_type, ...) const struct aws_cryptosdk_ ## struct_type ## _vt **
+#define AWS_CRYPTOSDK_PRIVATE_BASE_TYPE(...) AWS_CRYPTOSDK_PRIVATE_BASE_TYPE_2((__VA_ARGS__, throwaway))
+#define AWS_CRYPTOSDK_PRIVATE_BASE_TYPE_2(args) AWS_CRYPTOSDK_PRIVATE_BASE_TYPE_3 args
+#define AWS_CRYPTOSDK_PRIVATE_BASE_TYPE_3(struct_type, ...) const struct aws_cryptosdk_ ## struct_type
 
 /**
  * Macro for virtual function calls that return an integer error code. Checks that vt_size is large enough and that pointer is
@@ -126,13 +135,13 @@ struct aws_cryptosdk_decryption_materials {
  */
 #define AWS_CRYPTOSDK_PRIVATE_VF_CALL(fn_name, ...) \
     do { \
-        AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(__VA_ARGS__) vtp = \
-            (AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(__VA_ARGS__)) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME(__VA_ARGS__); \
-        ptrdiff_t memb_offset = (const uint8_t *)&(*vtp)->fn_name - (const uint8_t *)*vtp; \
-        if (memb_offset + sizeof((*vtp)->fn_name) > (*vtp)->vt_size || !(*vtp)->fn_name) { \
+        AWS_CRYPTOSDK_PRIVATE_BASE_TYPE(__VA_ARGS__) *pbase = \
+            (AWS_CRYPTOSDK_PRIVATE_BASE_TYPE(__VA_ARGS__) *) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME(__VA_ARGS__); \
+        ptrdiff_t memb_offset = (const uint8_t *)&(pbase->vtable)->fn_name - (const uint8_t *)pbase->vtable; \
+        if (memb_offset + sizeof((pbase->vtable)->fn_name) > (pbase->vtable)->vt_size || !(pbase->vtable)->fn_name) { \
             return aws_raise_error(AWS_ERROR_UNIMPLEMENTED); \
         } \
-        return (*vtp)->fn_name(__VA_ARGS__); \
+        return (pbase->vtable)->fn_name(__VA_ARGS__); \
     } while (0)
 
 /**
@@ -142,15 +151,38 @@ struct aws_cryptosdk_decryption_materials {
  */
 #define AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(fn_name, ...) \
     do { \
-        AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(__VA_ARGS__) vtp = \
-            (AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(__VA_ARGS__)) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME(__VA_ARGS__); \
-        ptrdiff_t memb_offset = (const uint8_t *)&(*vtp)->fn_name - (const uint8_t *)*vtp; \
-        if (memb_offset + sizeof((*vtp)->fn_name) > (*vtp)->vt_size || !(*vtp)->fn_name) { \
+        AWS_CRYPTOSDK_PRIVATE_BASE_TYPE(__VA_ARGS__) *pbase = \
+            (AWS_CRYPTOSDK_PRIVATE_BASE_TYPE(__VA_ARGS__) *) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME(__VA_ARGS__); \
+        ptrdiff_t memb_offset = (const uint8_t *)&(pbase->vtable)->fn_name - (const uint8_t *)pbase->vtable; \
+        if (memb_offset + sizeof((pbase->vtable)->fn_name) > (pbase->vtable)->vt_size || !(pbase->vtable)->fn_name) { \
             aws_raise_error(AWS_ERROR_UNIMPLEMENTED); \
         } else { \
-            (*vtp)->fn_name(__VA_ARGS__); \
+            (pbase->vtable)->fn_name(__VA_ARGS__); \
         } \
     } while (0)
+
+/**
+ * Internal function: Decrement a refcount; return true if the object should be destroyed.
+ */
+static inline bool aws_cryptosdk_private_refcount_down(struct aws_atomic_var *refcount) {
+    size_t old_count = aws_atomic_fetch_sub_explicit(refcount, 1, aws_memory_order_relaxed);
+
+    assert(old_count != 0);
+
+    return old_count == 1;
+}
+
+/**
+ * Internal function: Increment a refcount.
+ */
+static inline void aws_cryptosdk_private_refcount_up(struct aws_atomic_var *refcount) {
+    size_t old_count = aws_atomic_fetch_add_explicit(refcount, 1, aws_memory_order_relaxed);
+
+    assert(old_count != 0 && old_count != SIZE_MAX);
+
+    // Suppress unused variable warning when NDEBUG is set
+    (void)old_count;
+}
 
 /**
  * Virtual tables for CMM and keyring. Any implementation should declare a static instance of this,
@@ -185,8 +217,30 @@ struct aws_cryptosdk_cmm_vt {
                              struct aws_cryptosdk_decryption_request * request);
 };
 
-static inline void aws_cryptosdk_cmm_destroy(struct aws_cryptosdk_cmm * cmm) {
-    if (cmm) AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, cmm);
+/**
+ * Initialize the base structure for a CMM. This should be called by the /implementation/ of a CMM, to set up the
+ * vtable and reference count.
+ */
+static inline void aws_cryptosdk_cmm_base_init(struct aws_cryptosdk_cmm * cmm, const struct aws_cryptosdk_cmm_vt *vtable) {
+    cmm->vtable = vtable;
+    aws_atomic_init_int(&cmm->refcount, 1);
+}
+
+/**
+ * Decrements the reference count on the CMM; if the new reference count is zero, the CMM is destroyed.
+ */
+static inline void aws_cryptosdk_cmm_release(struct aws_cryptosdk_cmm * cmm) {
+    if (cmm && aws_cryptosdk_private_refcount_down(&cmm->refcount)) {
+        AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, cmm);
+    }
+}
+
+/**
+ * Increments the reference count on the cmm.
+ */
+static inline struct aws_cryptosdk_cmm *aws_cryptosdk_cmm_retain(struct aws_cryptosdk_cmm * cmm) {
+    aws_cryptosdk_private_refcount_up(&cmm->refcount);
+    return cmm;
 }
 
 /**
@@ -274,8 +328,30 @@ struct aws_cryptosdk_keyring_vt {
                             const struct aws_cryptosdk_decryption_request * request);
 };
 
-static inline void aws_cryptosdk_keyring_destroy(struct aws_cryptosdk_keyring * keyring) {
-    if (keyring) AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, keyring);
+/**
+ * Initialize the base structure for a keyring. This should be called by the /implementation/ of a keyring, to set up the
+ * vtable and reference count.
+ */
+static inline void aws_cryptosdk_keyring_base_init(struct aws_cryptosdk_keyring * keyring, const struct aws_cryptosdk_keyring_vt *vtable) {
+    keyring->vtable = vtable;
+    aws_atomic_init_int(&keyring->refcount, 1);
+}
+
+/**
+ * Decrements the reference count on the keyring; if the new reference count is zero, the keyring is destroyed.
+ */
+static inline void aws_cryptosdk_keyring_release(struct aws_cryptosdk_keyring * keyring) {
+    if (keyring && aws_cryptosdk_private_refcount_down(&keyring->refcount)) {
+        AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, keyring);
+    }
+}
+
+/**
+ * Increments the reference count on the keyring.
+ */
+static inline struct aws_cryptosdk_keyring *aws_cryptosdk_keyring_retain(struct aws_cryptosdk_keyring * keyring) {
+    aws_cryptosdk_private_refcount_up(&keyring->refcount);
+    return keyring;
 }
 
 /**
