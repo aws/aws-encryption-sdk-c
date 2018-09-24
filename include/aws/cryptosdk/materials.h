@@ -235,10 +235,10 @@ struct aws_cryptosdk_keyring_vt {
      * input only: enc_context, alg
      */
     int (*on_encrypt)(struct aws_cryptosdk_keyring * keyring,
-                                        struct aws_byte_buf * unencrypted_data_key,
-                                        struct aws_array_list * edks,
-                                        const struct aws_hash_table * enc_context,
-                                        enum aws_cryptosdk_alg_id alg);
+                      struct aws_byte_buf * unencrypted_data_key,
+                      struct aws_array_list * edks,
+                      const struct aws_hash_table * enc_context,
+                      enum aws_cryptosdk_alg_id alg);
 
     /**
      * VIRTUAL FUNCTION: must implement if used for decryption.
@@ -251,10 +251,10 @@ struct aws_cryptosdk_keyring_vt {
      * input: edks, enc_context, alg
      */
     int (*on_decrypt)(struct aws_cryptosdk_keyring * keyring,
-                            struct aws_byte_buf * unencrypted_data_key,
-                            const struct aws_array_list * edks,
-                            const struct aws_hash_table * enc_context,
-                            enum aws_cryptosdk_alg_id alg);
+                      struct aws_byte_buf * unencrypted_data_key,
+                      const struct aws_array_list * edks,
+                      const struct aws_hash_table * enc_context,
+                      enum aws_cryptosdk_alg_id alg);
 };
 
 static inline void aws_cryptosdk_keyring_destroy(struct aws_cryptosdk_keyring * keyring) {

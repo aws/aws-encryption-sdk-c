@@ -58,10 +58,10 @@ static int transfer_edk_list(struct aws_array_list *dest, struct aws_array_list 
 }
 
 static int multi_keyring_on_encrypt(struct aws_cryptosdk_keyring *multi,
-                                                      struct aws_byte_buf *unencrypted_data_key,
-                                                      struct aws_array_list *edks,
-                                                      const struct aws_hash_table *enc_context,
-                                                      enum aws_cryptosdk_alg_id alg) {
+                                    struct aws_byte_buf *unencrypted_data_key,
+                                    struct aws_array_list *edks,
+                                    const struct aws_hash_table *enc_context,
+                                    enum aws_cryptosdk_alg_id alg) {
     struct multi_keyring *self = (struct multi_keyring *)multi;
 
     struct aws_array_list my_edks;
@@ -81,8 +81,14 @@ static int multi_keyring_on_encrypt(struct aws_cryptosdk_keyring *multi,
             ret = AWS_OP_ERR;
             goto out;
         }
+        if (!unencrypted_data_key->buffer) {
+            /* Keyrings are not required to generate a data key when it is not
+             * provided, but generator keyrings are.
+             */
+            ret = aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+            goto out;
+        }
     }
-    assert(unencrypted_data_key->buffer);
 
     if (call_encrypt_dk_on_list(&self->children,
                                 unencrypted_data_key,
@@ -99,10 +105,10 @@ out:
 }
 
 static int multi_keyring_on_decrypt(struct aws_cryptosdk_keyring *multi,
-                                          struct aws_byte_buf * unencrypted_data_key,
-                                          const struct aws_array_list * edks,
-                                          const struct aws_hash_table * enc_context,
-                                          enum aws_cryptosdk_alg_id alg) {
+                                    struct aws_byte_buf * unencrypted_data_key,
+                                    const struct aws_array_list * edks,
+                                    const struct aws_hash_table * enc_context,
+                                    enum aws_cryptosdk_alg_id alg) {
 
     /* If one of the contained keyrings succeeds at decrypting the data key, return success,
      * but if we fail to decrypt the data key, only return success if there were no

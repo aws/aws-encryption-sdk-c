@@ -20,8 +20,9 @@ struct test_keyring {
     const struct aws_cryptosdk_keyring_vt *vt;
     struct aws_byte_buf decrypted_key_to_return;
     int ret;
-    bool generate_or_encrypt_called;
-    bool decrypt_called;
+    bool skip_output;
+    bool on_encrypt_called;
+    bool on_decrypt_called;
 };
 
 static void test_keyring_destroy(struct aws_cryptosdk_keyring * kr) {(void)kr;}
@@ -37,7 +38,7 @@ static int test_keyring_on_encrypt(
     (void)enc_context;
     struct test_keyring *self = (struct test_keyring *)kr;
 
-    if (!self->ret) {
+    if (!self->ret && !self->skip_output) {
         if (!unencrypted_data_key->buffer) {
             *unencrypted_data_key = aws_byte_buf_from_c_str(test_data_key);
         }
@@ -49,7 +50,7 @@ static int test_keyring_on_encrypt(
         aws_array_list_push_back(edks, &edk);
     }
 
-    self->generate_or_encrypt_called = true;
+    self->on_encrypt_called = true;
     return self->ret;
 }
 
@@ -62,8 +63,8 @@ static int test_keyring_on_decrypt(struct aws_cryptosdk_keyring * kr,
     (void)enc_context;
     (void)alg;
     struct test_keyring *self = (struct test_keyring *)kr;
-    *unencrypted_data_key = self->decrypted_key_to_return;
-    self->decrypt_called = true;
+    if (!self->skip_output) *unencrypted_data_key = self->decrypted_key_to_return;
+    self->on_decrypt_called = true;
     return self->ret;
 }
 
@@ -106,8 +107,8 @@ static int set_up_all_the_things(bool include_generator) {
         }
 
         // all flags have been reset
-        TEST_ASSERT(!test_keyrings[kr_idx].generate_or_encrypt_called);
-        TEST_ASSERT(!test_keyrings[kr_idx].decrypt_called);
+        TEST_ASSERT(!test_keyrings[kr_idx].on_encrypt_called);
+        TEST_ASSERT(!test_keyrings[kr_idx].on_decrypt_called);
     }
 
     return 0;
@@ -137,7 +138,7 @@ int delegates_generate_or_encrypt_calls() {
 
         int starting_idx = use_generator ^ 1;
         for (size_t kr_idx = starting_idx; kr_idx < num_test_keyrings; ++kr_idx) {
-            TEST_ASSERT(test_keyrings[kr_idx].generate_or_encrypt_called);
+            TEST_ASSERT(test_keyrings[kr_idx].on_encrypt_called);
         }
 
         TEST_ASSERT_INT_EQ(aws_array_list_length(&edks),
@@ -159,9 +160,9 @@ int generator_set_but_not_called_when_data_key_present() {
                             NULL,
                             alg));
 
-    TEST_ASSERT(!test_keyrings[0].generate_or_encrypt_called);
+    TEST_ASSERT(!test_keyrings[0].on_encrypt_called);
     for (size_t kr_idx = 1; kr_idx < num_test_keyrings; ++kr_idx) {
-        TEST_ASSERT(test_keyrings[kr_idx].generate_or_encrypt_called);
+        TEST_ASSERT(test_keyrings[kr_idx].on_encrypt_called);
     }
     TEST_ASSERT_INT_EQ(aws_array_list_length(&edks), num_test_keyrings - 1);
 
@@ -175,19 +176,35 @@ int generate_or_encrypt_fails_when_generator_not_set_and_no_data_key() {
 
     TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_STATE,
                       aws_cryptosdk_keyring_on_encrypt(multi,
-                                                                         &unencrypted_data_key,
-                                                                         &edks,
-                                                                         NULL,
-                                                                         alg));
+                                                       &unencrypted_data_key,
+                                                       &edks,
+                                                       NULL,
+                                                       alg));
 
     for (size_t kr_idx = 1; kr_idx < num_test_keyrings; ++kr_idx) {
-        TEST_ASSERT(!test_keyrings[kr_idx].generate_or_encrypt_called);
+        TEST_ASSERT(!test_keyrings[kr_idx].on_encrypt_called);
     }
 
     tear_down_all_the_things();
     return 0;
 }
 
+int on_encrypt_fails_when_generator_does_not_generate() {
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(true));
+    struct aws_byte_buf unencrypted_data_key = {0};
+
+    test_keyrings[0].skip_output = true;
+
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_STATE,
+                      aws_cryptosdk_keyring_on_encrypt(multi,
+                                                       &unencrypted_data_key,
+                                                       &edks,
+                                                       NULL,
+                                                       alg));
+
+    tear_down_all_the_things();
+    return 0;
+}
 
 int fail_on_failed_encrypt_and_stop() {
     TEST_ASSERT_SUCCESS(set_up_all_the_things(true));
@@ -205,10 +222,10 @@ int fail_on_failed_encrypt_and_stop() {
 
     size_t kr_idx = 0;
     for (; kr_idx <= bad_keyring_idx; ++kr_idx) {
-        TEST_ASSERT(test_keyrings[kr_idx].generate_or_encrypt_called);
+        TEST_ASSERT(test_keyrings[kr_idx].on_encrypt_called);
     }
     for (; kr_idx < num_test_keyrings; ++kr_idx) {
-        TEST_ASSERT(!test_keyrings[kr_idx].generate_or_encrypt_called);
+        TEST_ASSERT(!test_keyrings[kr_idx].on_encrypt_called);
     }
 
     TEST_ASSERT_INT_EQ(aws_array_list_length(&edks), 0);
@@ -277,9 +294,9 @@ int fail_on_failed_generate_and_stop() {
                            NULL,
                            alg));
 
-    TEST_ASSERT(test_keyrings[0].generate_or_encrypt_called);
+    TEST_ASSERT(test_keyrings[0].on_encrypt_called);
     for (size_t kr_idx = 1; kr_idx < num_test_keyrings; ++kr_idx) {
-        TEST_ASSERT(!test_keyrings[kr_idx].generate_or_encrypt_called);
+        TEST_ASSERT(!test_keyrings[kr_idx].on_encrypt_called);
     }
 
     TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
@@ -312,10 +329,10 @@ int delegates_decrypt_calls() {
 
         size_t kr_idx = use_generator ^ 1;
         for (; kr_idx <= successful_keyring; ++kr_idx) {
-            TEST_ASSERT(test_keyrings[kr_idx].decrypt_called);
+            TEST_ASSERT(test_keyrings[kr_idx].on_decrypt_called);
         }
         for (; kr_idx < num_test_keyrings; ++kr_idx) {
-            TEST_ASSERT(!test_keyrings[kr_idx].decrypt_called);
+            TEST_ASSERT(!test_keyrings[kr_idx].on_decrypt_called);
         } 
 
         tear_down_all_the_things();
@@ -336,7 +353,7 @@ int succeed_when_no_error_and_no_decrypt() {
     TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
 
     for (size_t kr_idx = 0; kr_idx < num_test_keyrings; ++kr_idx) {
-        TEST_ASSERT(test_keyrings[kr_idx].decrypt_called);
+        TEST_ASSERT(test_keyrings[kr_idx].on_decrypt_called);
     }
 
     tear_down_all_the_things();
@@ -357,7 +374,7 @@ int fail_when_error_and_no_decrypt() {
     TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
 
     for (size_t kr_idx = 0; kr_idx < num_test_keyrings; ++kr_idx) {
-        TEST_ASSERT(test_keyrings[kr_idx].decrypt_called);
+        TEST_ASSERT(test_keyrings[kr_idx].on_decrypt_called);
     }
 
     tear_down_all_the_things();
@@ -370,6 +387,8 @@ struct test_case multi_keyring_test_cases[] = {
       generator_set_but_not_called_when_data_key_present },
     { "multi_keyring", "generate_or_encrypt_fails_when_generator_not_set_and_no_data_key",
       generate_or_encrypt_fails_when_generator_not_set_and_no_data_key },
+    { "multi_keyring", "on_encrypt_fails_when_generator_does_not_generate",
+      on_encrypt_fails_when_generator_does_not_generate },
     { "multi_keyring", "delegates_decrypt_calls", delegates_decrypt_calls },
     { "multi_keyring", "fail_on_failed_encrypt_and_stop", fail_on_failed_encrypt_and_stop },
     { "multi_keyring", "failed_encrypt_keeps_edk_list_intact", failed_encrypt_keeps_edk_list_intact },
