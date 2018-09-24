@@ -36,7 +36,7 @@ static enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode[] = { AWS_CRYPTOSDK_
 static int copy_edks_from_enc_mat_to_dec_req() {
     TEST_ASSERT_SUCCESS(
         aws_array_list_init_dynamic(&req.encrypted_data_keys, alloc, 1, sizeof(struct aws_cryptosdk_edk)));
-    TEST_ASSERT_SUCCESS(aws_array_list_copy(&enc_mat->encrypted_data_keys, &req.encrypted_data_keys));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_transfer_edk_list(&req.encrypted_data_keys, &enc_mat->encrypted_data_keys));
 
     return 0;
 }
@@ -88,9 +88,9 @@ static void tear_down_encrypt_decrypt() {
 }
 
 /**
- * Testing generate->encrypt->decrypt functions for all of the supported RSA padding modes.
+ * Testing generate and decrypt functions for all of the supported RSA padding modes.
  */
-int generate_encrypt_decrypt_data_key() {
+int generate_decrypt_from_data_key() {
     for (int wrap_idx = 0; wrap_idx < sizeof(rsa_padding_mode) / sizeof(*rsa_padding_mode); ++wrap_idx) {
         for (int alg_idx = 0; alg_idx < sizeof(alg_ids) / sizeof(enum aws_cryptosdk_alg_id); ++alg_idx) {
             TEST_ASSERT_SUCCESS(set_up_encrypt_decrypt(rsa_padding_mode[wrap_idx], alg_ids[alg_idx]));
@@ -145,7 +145,7 @@ int encrypt_data_key_from_bad_rsa_private_key() {
     return 0;
 }
 struct test_case raw_rsa_keyring_encrypt_test_cases[] = {
-    { "raw_rsa_keyring", "generate_encrypt_decrypt_data_key", generate_encrypt_decrypt_data_key },
+    { "raw_rsa_keyring", "generate_decrypt_from_data_key", generate_decrypt_from_data_key },
     { "raw_rsa_keyring", "encrypt_decrypt_data_key_from_test_vectors", encrypt_decrypt_data_key_from_test_vectors },
     { "raw_rsa_keyring", "encrypt_data_key_from_bad_rsa_private_key", encrypt_data_key_from_bad_rsa_private_key },
     { NULL }

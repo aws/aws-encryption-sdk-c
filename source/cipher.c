@@ -556,9 +556,9 @@ decrypt_err:
 
 static int get_openssl_rsa_padding_mode(enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
     switch (rsa_padding_mode) {
-        case AWS_CRYPTOSDK_RSA_PKCS1: return RSA_PKCS1_PADDING; break;
-        case AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1: return RSA_PKCS1_OAEP_PADDING; break;
-        case AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1: return RSA_PKCS1_OAEP_PADDING; break;
+        case AWS_CRYPTOSDK_RSA_PKCS1: return RSA_PKCS1_PADDING;
+        case AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1: return RSA_PKCS1_OAEP_PADDING;
+        case AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1: return RSA_PKCS1_OAEP_PADDING;
         default: return -1;
     }
 }
@@ -569,6 +569,7 @@ int aws_cryptosdk_rsa_encrypt(
     const struct aws_byte_cursor plain,
     const struct aws_string *rsa_public_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
+    if (cipher->buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     int padding = get_openssl_rsa_padding_mode(rsa_padding_mode);
     if (padding < 0) return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     BIO *bio = NULL;
@@ -593,7 +594,6 @@ int aws_cryptosdk_rsa_encrypt(
     if (EVP_PKEY_encrypt(ctx, NULL, &outlen, plain.ptr, plain.len) <= 0) goto cleanup;
     if (aws_byte_buf_init(alloc, cipher, outlen)) goto cleanup;
     if (EVP_PKEY_encrypt(ctx, cipher->buffer, &outlen, plain.ptr, plain.len) <= 0) {
-        err_code = AWS_CRYPTOSDK_ERR_BAD_STATE;
         aws_byte_buf_clean_up(cipher);
     } else {
         cipher->len = outlen;
@@ -618,6 +618,7 @@ int aws_cryptosdk_rsa_decrypt(
     const struct aws_byte_cursor cipher,
     const struct aws_string *rsa_private_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
+    if (plain->buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     int padding = get_openssl_rsa_padding_mode(rsa_padding_mode);
     if (padding < 0) return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     BIO *bio = NULL;

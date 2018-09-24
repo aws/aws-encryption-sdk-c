@@ -28,7 +28,7 @@ static int raw_rsa_keyring_encrypt_data_key(
     /* Failing this assert would mean that the length of the already generated data key was
      * different than the data key length prescribed by the algorithm suite
      */
-    if (data_key_len != data_key->len) return AWS_OP_ERR;
+    assert(data_key_len == data_key->len);
 
     struct aws_cryptosdk_edk edk = { { 0 } };
 

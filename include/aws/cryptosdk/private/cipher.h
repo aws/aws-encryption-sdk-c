@@ -180,14 +180,13 @@ int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
  * decryption, 'rsa_private_key_pem' is a string that contains the RSA private key in PEM 
  * format and 'cipher' is the encrypted AES data key.
  * 
- * Assumes plain is an already allocated byte buffer with a maximum size capacity.
- * Does NOT assume that length of plain buffer is already set, and will set it to the length 
- * of plain on a successful decrypt.
+ * This function assumes that plain has no memory allocated to it already, and allocates
+ * it newly. The length of the buffer will be set to the length of plain on a successful decrypt.
  *
  * Returns AWS_OP_SUCCESS on a successful decrypt. On failure, returns AWS_OP_ERR and sets
  * one of the following error codes:
  * 
- * AWS_ERROR_INVALID_BUFFER_SIZE : not enough capacity in plain
+ * AWS_CRYPTOSDK_ERR_BAD_STATE : the output buffer was not in the proper (unallocated) state
  * AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT: unsupported padding mode for RSA wrapping algorithm
  * AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT : unable to decrypt or authenticate cipher text
  * AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN : OpenSSL error
@@ -207,15 +206,14 @@ int aws_cryptosdk_rsa_decrypt(
  *'rsa_public_key_pem' is a string that contains the RSA public key in PEM format and 'plain' 
  * refers to the unencrypted AES data key.
  *
- * Doesn't assume that cipher is an already allocated byte buffer and initializes it, 
- * and will set it to the length of cipher on a successful encrypt.
+ * This function assumes that cipher has no memory allocated to it already, and allocates
+ * it newly. The length of the buffer will be set to the length of cipher on a successful encrypt.
  *
  * Returns AWS_OP_SUCCESS on a successful encrypt. On failure, returns AWS_OP_ERR and sets
  * one of the following error codes:
  *
- * AWS_ERROR_INVALID_BUFFER_SIZE : not enough capacity in cipher
+ * AWS_CRYPTOSDK_ERR_BAD_STATE : the output buffer was not in the proper (unallocated) state
  * AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT: unsupported padding mode for RSA wrapping algorithm
- * AWS_CRYPTOSDK_ERR_BAD_STATE : error in encryption of the data key
  * AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN : OpenSSL error or other unknown errors 
  */
 int aws_cryptosdk_rsa_encrypt(
