@@ -44,13 +44,15 @@ struct KmsMasterKeyExposer : Aws::Cryptosdk::KmsKeyring {
     KmsMasterKeyExposer(struct aws_allocator *allocator,
                         std::shared_ptr<Aws::KMS::KMSClient> kms,
                         const Aws::List<Aws::String> &key_ids,
-                        const Aws::Vector<Aws::String> &grant_tokens = { })
+                        const Aws::Vector<Aws::String> &grant_tokens = { },
+                        std::shared_ptr<KmsClientCache> kms_client_cache = NULL
+                        )
         : KmsKeyring(allocator,
                      key_ids,
                      "default_region",
                      grant_tokens,
                      Aws::MakeShared<SingleClientSupplier>("KMS_EXPOSER", kms),
-                     {}) {
+                     kms_client_cache) {
     }
   public:
     using KmsKeyring::EncryptDataKey;
@@ -789,6 +791,84 @@ int testBuilder_allocator_returnAlloc() {
     return 0;
 }
 
+int t_assert_encrypt_with_default_values(KmsMasterKeyExposer *kms_keyring, EncryptTestValues &ev) {
+    TEST_ASSERT(kms_keyring != NULL);
+    TEST_ASSERT_SUCCESS(kms_keyring->EncryptDataKey(kms_keyring, ev.enc_mat));
+    TEST_ASSERT_SUCCESS(t_assert_edks_with_single_element_contains_expected_values(&ev.enc_mat->encrypted_data_keys,
+                                                                                   ev.ct,
+                                                                                   ev.key_id,
+                                                                                   ev.provider_id,
+                                                                                   ev.allocator));
+    return 0;
+}
+
+int testKmsClientCache_cacheAlreadyContainValues_sameInitializedClientIsUsed() {
+    EncryptTestValues ev1;
+    EncryptTestValues ev2;
+    std::shared_ptr<KmsKeyring::KmsClientCache> client_cache = Aws::MakeShared<KmsKeyring::KmsClientCache>("test");
+    auto kms_cached_client_mock(Aws::MakeShared<KmsClientMock>(CLASS_TAG));
+    client_cache->SaveInCache("default_region", kms_cached_client_mock);
+
+    KmsMasterKeyExposer *kms_keyring1 = Aws::New<KmsMasterKeyExposer>("TEST_CTOR",
+                                                                      aws_default_allocator(),
+                                                                      ev1.kms_client_mock,
+                                                                      Aws::List<Aws::String>{ev1.key_id},
+                                                                      Aws::Vector<Aws::String>{},
+                                                                      client_cache);
+    KmsMasterKeyExposer *kms_keyring2 = Aws::New<KmsMasterKeyExposer>("TEST_CTOR",
+                                                                      aws_default_allocator(),
+                                                                      ev2.kms_client_mock,
+                                                                      Aws::List<Aws::String>{ev2.key_id},
+                                                                      Aws::Vector<Aws::String>{},
+                                                                      client_cache);
+
+    // Kms_keyring should use kms_cached_client_mock because is already in cache and should not try to use the
+    // ev1.kms_client_mock or ev2.kms_client_mock
+    kms_cached_client_mock->ExpectEncryptAccumulator(ev1.GetRequest(), ev1.GetResult());
+    kms_cached_client_mock->ExpectEncryptAccumulator(ev2.GetRequest(), ev2.GetResult());
+
+    TEST_ASSERT_SUCCESS(t_assert_encrypt_with_default_values(kms_keyring1, ev1));
+    TEST_ASSERT_SUCCESS(t_assert_encrypt_with_default_values(kms_keyring2, ev2));
+    Aws::Delete(kms_keyring1);
+    Aws::Delete(kms_keyring2);
+
+    return 0;
+}
+
+int testKmsClientCache_cacheDoesNotContainValues_cacheWillBePopulatedWithValues() {
+    EncryptTestValues ev1;
+    EncryptTestValues ev2;
+
+    std::shared_ptr<KmsKeyring::KmsClientCache> client_cache = Aws::MakeShared<KmsKeyring::KmsClientCache>("test");
+    auto kms_cached_client_mock(Aws::MakeShared<KmsClientMock>(CLASS_TAG));
+
+    KmsMasterKeyExposer *kms_keyring1 = Aws::New<KmsMasterKeyExposer>("TEST_CTOR",
+                                                                      aws_default_allocator(),
+                                                                      ev1.kms_client_mock,
+                                                                      Aws::List<Aws::String>{ev1.key_id},
+                                                                      Aws::Vector<Aws::String>{},
+                                                                      client_cache);
+    KmsMasterKeyExposer *kms_keyring2 = Aws::New<KmsMasterKeyExposer>("TEST_CTOR",
+                                                                      aws_default_allocator(),
+                                                                      ev2.kms_client_mock,
+                                                                      Aws::List<Aws::String>{ev2.key_id},
+                                                                      Aws::Vector<Aws::String>{},
+                                                                      client_cache);
+
+    // Kms_keyring1 should use ev1.kms_client_mock and then to store it in client_cache. The call of kms_keyring2
+    // should pick kms_client from the cache (ev1.kms_client_mock) instead of using its own
+    ev1.kms_client_mock->ExpectEncryptAccumulator(ev1.GetRequest(), ev1.GetResult());
+    ev1.kms_client_mock->ExpectEncryptAccumulator(ev2.GetRequest(), ev2.GetResult());
+
+    TEST_ASSERT_SUCCESS(t_assert_encrypt_with_default_values(kms_keyring1, ev1));
+    TEST_ASSERT_SUCCESS(t_assert_encrypt_with_default_values(kms_keyring2, ev2));
+
+    Aws::Delete(kms_keyring1);
+    Aws::Delete(kms_keyring2);
+
+    return 0;
+}
+
 int main() {
     Aws::SDKOptions *options = Aws::New<Aws::SDKOptions>(CLASS_TAG);
     Aws::InitAPI(*options);
@@ -816,6 +896,8 @@ int main() {
     RUN_TEST(testBuilder_buildClientSupplier_buildsClient());
     RUN_TEST(testBuilder_invalidInputs_returnFalse());
     RUN_TEST(testBuilder_allocator_returnAlloc());
+    RUN_TEST(testKmsClientCache_cacheAlreadyContainValues_sameInitializedClientIsUsed());
+    RUN_TEST(testKmsClientCache_cacheDoesNotContainValues_cacheWillBePopulatedWithValues());
 
     Aws::ShutdownAPI(*options);
     Aws::Delete(options);

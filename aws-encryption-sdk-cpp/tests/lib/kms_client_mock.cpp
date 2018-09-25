@@ -27,6 +27,7 @@ KmsClientMock::KmsClientMock()
 KmsClientMock::~KmsClientMock() {
     // there shouldn't be any other expecting calls
     if (ExpectingOtherCalls() == true) {
+        std::cerr << "KmsClientMock destroyed but other calls were expected" << std::endl;
         abort();
     }
 }

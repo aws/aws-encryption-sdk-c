@@ -52,11 +52,6 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
     KmsKeyring(const KmsKeyring &) = delete;
     KmsKeyring &operator=(const KmsKeyring &) = delete;
 
-    /**
-     * Returns cached clients from this object
-     */
-    std::shared_ptr<KmsClientCache> GetKmsCachedClients() const;
-
   protected:
     /**
      * Initializes KmsKeyring using a list of KeyIds
@@ -191,10 +186,12 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
     std::shared_ptr<KmsClientCache> kms_client_cache;
 
   public:
+    /**
+     * Class used to cache KmsClients among multiple KmsKeyring objects.
+     * Note that this class should be thread-safe
+     */
     class KmsClientCache {
       public:
-        KmsClientCache() { };
-
         /* Returns the KMS Client for a specific region or null if the client is not cached */
         std::shared_ptr<KMS::KMSClient> GetCachedClient(const Aws::String &region) const;
 
@@ -203,7 +200,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
          * Note: a KMS Client can be saved in cache only after a successful call was made to it
          * (to guarantee that the region exists)
         */
-        void SaveInCache(const Aws::String &region, std::shared_ptr<KMS::KMSClient> &kms_client);
+        void SaveInCache(const Aws::String &region, std::shared_ptr<KMS::KMSClient> kms_client);
 
       private:
         mutable std::mutex keyring_cache_mutex;
@@ -313,6 +310,9 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
          * Sets a cache object for the kms clients. This allows re-usability of Kms clients among
          * multiple instances of KmsKeyring. Can be used in applications that frequently create new
          * keyrings and are sensitive to performance.
+         * If you want a KmsClientCache to be shared among multiple KmsKeyring instances make sure you create it using
+         * auto kms_client_cache = Aws::MakeShared<KmsClientCache>("your_class_tag");
+         * and then you pass it to the builder.
          */
         Builder &SetKmsClientCache(std::shared_ptr<KmsClientCache> kms_client_cache);
 
@@ -336,7 +336,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
         std::shared_ptr<RegionalClientSupplier> BuildClientSupplier() const;
         struct aws_allocator * BuildAllocator() const;
       private:
-        struct aws_allocator *alloc;
+        struct aws_allocator *alloc = NULL;
         Aws::List<Aws::String> key_ids;
         Aws::String default_region;
         std::shared_ptr<KMS::KMSClient> kms_client;

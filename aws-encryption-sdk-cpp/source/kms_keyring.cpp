@@ -88,7 +88,7 @@ int KmsKeyring::EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
     }
 
     for (auto key : self->key_ids) {
-        auto kms_region = self->GetRegionForConfiguredKmsKeys(key.second);
+        auto kms_region = self->GetRegionForConfiguredKmsKeys(key.first);
         auto kms_client = self->GetKmsClient(kms_region);
         auto kms_client_request = self->CreateEncryptRequest(
             key.first,
@@ -356,11 +356,6 @@ std::shared_ptr<KMS::KMSClient> KmsKeyring::GetKmsClient(const Aws::String &regi
     return kms_client_supplier->GetClient(region);
 }
 
-
-std::shared_ptr<KmsKeyring::KmsClientCache> KmsKeyring::GetKmsCachedClients() const {
-    return kms_client_cache;
-}
-
 std::shared_ptr<KMS::KMSClient> KmsKeyring::DefaultRegionalClientSupplier::GetClient(
     const Aws::String &region_name) const {
     Aws::Client::ClientConfiguration client_configuration;
@@ -536,9 +531,9 @@ std::shared_ptr<KMS::KMSClient> KmsKeyring::KmsClientCache::GetCachedClient(cons
     return NULL;
 }
 
-void KmsKeyring::KmsClientCache::SaveInCache(const Aws::String &region, std::shared_ptr<KMS::KMSClient> &kms_client) {
+void KmsKeyring::KmsClientCache::SaveInCache(const Aws::String &region, std::shared_ptr<KMS::KMSClient> kms_client) {
     std::unique_lock<std::mutex> lock(keyring_cache_mutex);
-    if (kms_cached_clients.find(region) != kms_cached_clients.end()) {
+    if (kms_cached_clients.find(region) == kms_cached_clients.end()) {
         kms_cached_clients[region] = kms_client;
     }
 }
