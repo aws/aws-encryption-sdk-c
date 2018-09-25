@@ -91,7 +91,7 @@ int generatedkAndDecrypt_sameKeyring_returnSuccess(const char *key, const char *
 
     TEST_ASSERT(aws_byte_buf_eq(&td.pt_in, &td_out.pt_out) == true);
 
-    Aws::Delete(kms_keyring);
+    aws_cryptosdk_keyring_destroy(kms_keyring);
 
     return 0;
 }
@@ -114,7 +114,7 @@ int t_kms_keyring_generate_dk(TestDataOut &td_out, TestData &td, const Aws::Stri
                                                 AWS_CRYPTOSDK_ENCRYPT,
                                                 &td.pt_in,
                                                 &td_out.ct_out));
-    Aws::Delete(kms_keyring_generate_dk);
+    aws_cryptosdk_keyring_destroy(kms_keyring_generate_dk);
     return 0;
 }
 
@@ -127,7 +127,7 @@ int t_kms_keyring_decrypt(TestDataOut &td_out, TestData &td, const Aws::String &
                                                 AWS_CRYPTOSDK_DECRYPT,
                                                 &td_out.ct_out,
                                                 &td_out.pt_out));
-    Aws::Delete(kms_keyring_decrypt);
+    aws_cryptosdk_keyring_destroy(kms_keyring_decrypt);
     return 0;
 }
 
@@ -162,7 +162,7 @@ int generatedkAndDecrypt_oneKeyEncryptsTwoKeysForDecryptionConfigured_returnSucc
                                                 AWS_CRYPTOSDK_DECRYPT,
                                                 &td_out.ct_out,
                                                 &td_out.pt_out));
-    Aws::Delete(kms_keyring_decrypt);
+    aws_cryptosdk_keyring_destroy(kms_keyring_decrypt);
 
     TEST_ASSERT(aws_byte_buf_eq(&td.pt_in, &td_out.pt_out) == true);
 
@@ -192,7 +192,7 @@ int generatedkAndDecrypt_twoKeysEncryptsTwoKeyDecrypts_returnSuccess() {
                                                 AWS_CRYPTOSDK_DECRYPT,
                                                 &td_out2.ct_out,
                                                 &td_out2.pt_out));
-    Aws::Delete(kms_keyring_decrypt);
+    aws_cryptosdk_keyring_destroy(kms_keyring_decrypt);
 
     TEST_ASSERT(aws_byte_buf_eq(&td1.pt_in, &td_out1.pt_out) == true);
     TEST_ASSERT(aws_byte_buf_eq(&td2.pt_in, &td_out2.pt_out) == true);
@@ -213,7 +213,7 @@ int generatedkAndDecrypt_keyForDecryptionMismatch_returnErr() {
                                                 AWS_CRYPTOSDK_DECRYPT,
                                                 &td_out.ct_out,
                                                 &td_out.pt_out, AWS_OP_ERR));
-    Aws::Delete(kms_keyring_decrypt);
+    aws_cryptosdk_keyring_destroy(kms_keyring_decrypt);
 
     return 0;
 }

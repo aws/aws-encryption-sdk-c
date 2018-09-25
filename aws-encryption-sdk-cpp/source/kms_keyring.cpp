@@ -45,8 +45,9 @@ static const char *KEY_PROVIDER_STR = "aws-kms";
 void KmsKeyring::DestroyAwsCryptoKeyring(struct aws_cryptosdk_keyring *keyring) {
     struct aws_cryptosdk_kms_keyring *kms_keyring = static_cast<aws_cryptosdk_kms_keyring *>(keyring);
     if (kms_keyring->keyring_data != NULL){
-        Aws::Delete(kms_keyring->keyring_data);
+        auto keyring_data_ptr = kms_keyring->keyring_data;
         kms_keyring->keyring_data = NULL;
+        Aws::Delete(keyring_data_ptr);
     }
 }
 
