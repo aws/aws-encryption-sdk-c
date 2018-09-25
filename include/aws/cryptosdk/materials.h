@@ -20,6 +20,7 @@
 #include <aws/common/array_list.h>
 #include <aws/common/byte_buf.h>
 #include <aws/common/hash_table.h>
+#include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/edk.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/header.h>
@@ -97,16 +98,17 @@ struct aws_cryptosdk_decryption_materials {
 #define AWS_CRYPTOSDK_PRIVATE_VTP_TYPE_3(struct_type, ...) const struct aws_cryptosdk_ ## struct_type ## _vt **
 
 /**
- * Macro for virtual function calls that return an integer status value. Checks that vt_size
+ * Macro for virtual function calls that captures an integer return value. Checks that vt_size
  * is large enough and that pointer is non-null before attempting call. If checks fail, sets
- * AWS internal error to AWS_ERROR_UNIMPLEMENTED and returns the return value of
- * aws_raise_error(), i.e., AWS_OP_ERR.
+ * AWS internal error to AWS_ERROR_UNIMPLEMENTED and returns the value of aws_raise_error(),
+ * i.e., AWS_OP_ERR. Otherwise ret is set to return value of the virtual function call.
  *
  * Note that this depends on a naming convention of always using "cmm" or "keyring" as the
  * name of the pointer variable as the first argument of the virtual function in the inline
  * functions below which call this macro.
  */
 #define AWS_CRYPTOSDK_PRIVATE_VF_CALL(fn_name, ...) \
+    int ret; \
     do { \
         AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(__VA_ARGS__) vtp = \
             (AWS_CRYPTOSDK_PRIVATE_VTP_TYPE(__VA_ARGS__)) AWS_CRYPTOSDK_PRIVATE_STRUCT_NAME(__VA_ARGS__); \
@@ -114,7 +116,7 @@ struct aws_cryptosdk_decryption_materials {
         if (memb_offset + sizeof((*vtp)->fn_name) > (*vtp)->vt_size || !(*vtp)->fn_name) { \
             return aws_raise_error(AWS_ERROR_UNIMPLEMENTED); \
         } \
-        return (*vtp)->fn_name(__VA_ARGS__); \
+        ret = (*vtp)->fn_name(__VA_ARGS__); \
     } while (0)
 
 /**
@@ -187,6 +189,7 @@ static inline int aws_cryptosdk_cmm_generate_encryption_materials(
     struct aws_cryptosdk_encryption_materials ** output,
     struct aws_cryptosdk_encryption_request * request) {
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(generate_encryption_materials, cmm, output, request);
+    return ret;
 }
 
 /**
@@ -204,6 +207,7 @@ static inline int aws_cryptosdk_cmm_decrypt_materials(
     struct aws_cryptosdk_decryption_materials ** output,
     struct aws_cryptosdk_decryption_request * request) {
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_materials, cmm, output, request);
+    return ret;
 }
 
 struct aws_cryptosdk_keyring_vt {
@@ -278,26 +282,45 @@ static inline void aws_cryptosdk_keyring_destroy(struct aws_cryptosdk_keyring * 
  * On failure AWS_OP_ERR is returned, an internal AWS error code is set, and no memory is
  * allocated.
  */
-static inline int aws_cryptosdk_keyring_on_encrypt(
-    struct aws_cryptosdk_keyring * keyring,
-    struct aws_byte_buf * unencrypted_data_key,
-    struct aws_array_list * edks,
-    const struct aws_hash_table * enc_context,
-    enum aws_cryptosdk_alg_id alg) {
-    if (!unencrypted_data_key->buffer && aws_array_list_length(edks)) {
-        /* If a data key has not already been generated, there should be no EDKs.
-         * Generating a new one and then pushing new EDKs on the list would cause the
-         * list of EDKs to be inconsistent. (i.e., they would decrypt to different data
-         * keys.) We should never get into this state, so exit with an error.
-         */
+static inline int aws_cryptosdk_keyring_on_encrypt(struct aws_cryptosdk_keyring *keyring,
+                                                   struct aws_byte_buf *unencrypted_data_key,
+                                                   struct aws_array_list *edks,
+                                                   const struct aws_hash_table *enc_context,
+                                                   enum aws_cryptosdk_alg_id alg) {
+    /* Shallow copy of byte buffer: does NOT duplicate key bytes */
+    const struct aws_byte_buf precall_data_key_buf = *unencrypted_data_key;
+
+    /* Precondition: If a data key has not already been generated, there must be no EDKs.
+     * Generating a new one and then pushing new EDKs on the list would cause the list of
+     * EDKs to be inconsistent. (i.e., they would decrypt to different data keys.)
+     */
+    if (!precall_data_key_buf.buffer && aws_array_list_length(edks))
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-    }
+
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(on_encrypt,
                                   keyring,
                                   unencrypted_data_key,
                                   edks,
                                   enc_context,
                                   alg);
+
+    /* Postcondition: If this keyring generated data key, it must be the right length. */
+    if (!precall_data_key_buf.buffer && unencrypted_data_key->buffer) {
+        const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(alg);
+        if (unencrypted_data_key->len != props->data_key_len)
+            return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    }
+
+    /* Postcondition: If data key was generated before call, byte buffer must not have been
+     * modified. Note that this only checks the metadata in the byte buffer and not the key
+     * bytes themselves. Verifying the key bytes were unchanged would require making an extra
+     * copy of the key bytes, which is probably not worth the risk.
+     */
+    if (precall_data_key_buf.buffer) {
+        if (memcmp(&precall_data_key_buf, unencrypted_data_key, sizeof(precall_data_key_buf)))
+            return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    }
+    return ret;
 }
 
 /**
@@ -320,6 +343,7 @@ static inline int aws_cryptosdk_keyring_on_decrypt(
     const struct aws_array_list * edks,
     const struct aws_hash_table * enc_context,
     enum aws_cryptosdk_alg_id alg) {
+    /* Precondition: data key buffer must be unallocated. */
     if (unencrypted_data_key->buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(on_decrypt,
                                   keyring,
@@ -327,6 +351,17 @@ static inline int aws_cryptosdk_keyring_on_decrypt(
                                   edks,
                                   enc_context,
                                   alg);
+
+    /* Postcondition: if data key was decrypted, its length must agree with algorithm
+     * specification. If this is not the case, it either means ciphertext was tampered
+     * with or that the keyring implementation is not setting the length properly.
+     */
+    if (unencrypted_data_key->buffer) {
+        const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(alg);
+        if (unencrypted_data_key->len != props->data_key_len)
+            return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
+    }
+    return ret;
 }
 
 /**

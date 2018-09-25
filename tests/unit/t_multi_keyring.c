@@ -27,7 +27,7 @@ struct test_keyring {
 
 static void test_keyring_destroy(struct aws_cryptosdk_keyring * kr) {(void)kr;}
 
-static char test_data_key[] = "data key";
+static char test_data_key[] = "datakey|datakey|datakey|datakey|";
 static int test_keyring_on_encrypt(
     struct aws_cryptosdk_keyring * kr,
     struct aws_byte_buf * unencrypted_data_key,
@@ -315,7 +315,7 @@ int delegates_decrypt_calls() {
 
         const size_t successful_keyring = 3;
 
-        char my_data_key[] = "Eureka!";
+        char my_data_key[] = "Eureka!!Eureka!!Eureka!!Eureka!!";
         test_keyrings[successful_keyring].decrypted_key_to_return = aws_byte_buf_from_c_str(my_data_key);
 
         struct aws_byte_buf unencrypted_data_key = {0};

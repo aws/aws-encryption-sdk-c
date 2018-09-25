@@ -23,7 +23,7 @@ struct multi_keyring {
     struct aws_array_list children; // list of (struct aws_cryptosdk_keyring *)
 };
 
-static int call_encrypt_dk_on_list(const struct aws_array_list *keyrings,
+static int call_on_encrypt_on_list(const struct aws_array_list *keyrings,
                                    struct aws_byte_buf * unencrypted_data_key,
                                    struct aws_array_list * edks,
                                    const struct aws_hash_table * enc_context,
@@ -33,10 +33,10 @@ static int call_encrypt_dk_on_list(const struct aws_array_list *keyrings,
         struct aws_cryptosdk_keyring *child;
         if (aws_array_list_get_at(keyrings, (void *)&child, list_idx)) return AWS_OP_ERR;
         if (aws_cryptosdk_keyring_on_encrypt(child,
-                                                               unencrypted_data_key,
-                                                               edks,
-                                                               enc_context,
-                                                               alg)) return AWS_OP_ERR;
+					     unencrypted_data_key,
+					     edks,
+					     enc_context,
+					     alg)) return AWS_OP_ERR;
     }
     return AWS_OP_SUCCESS;
 }
@@ -90,7 +90,7 @@ static int multi_keyring_on_encrypt(struct aws_cryptosdk_keyring *multi,
         }
     }
 
-    if (call_encrypt_dk_on_list(&self->children,
+    if (call_on_encrypt_on_list(&self->children,
                                 unencrypted_data_key,
                                 &my_edks,
                                 enc_context,
