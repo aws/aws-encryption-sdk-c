@@ -180,7 +180,7 @@ int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
  * decryption, 'rsa_private_key_pem' is a string that contains the RSA private key in PEM 
  * format and 'cipher' is the encrypted AES data key.
  * 
- * This function assumes that plain has no memory allocated to it already, and allocates
+ * This function requires that plain has no memory allocated to it already, and allocates
  * it newly. The length of the buffer will be set to the length of plain on a successful decrypt.
  *
  * Returns AWS_OP_SUCCESS on a successful decrypt. On failure, returns AWS_OP_ERR and sets
@@ -206,7 +206,7 @@ int aws_cryptosdk_rsa_decrypt(
  *'rsa_public_key_pem' is a string that contains the RSA public key in PEM format and 'plain' 
  * refers to the unencrypted AES data key.
  *
- * This function assumes that cipher has no memory allocated to it already, and allocates
+ * This function requires that cipher has no memory allocated to it already, and allocates
  * it newly. The length of the buffer will be set to the length of cipher on a successful encrypt.
  *
  * Returns AWS_OP_SUCCESS on a successful encrypt. On failure, returns AWS_OP_ERR and sets
