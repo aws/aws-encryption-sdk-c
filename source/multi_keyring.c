@@ -16,7 +16,7 @@
 #include <aws/cryptosdk/private/materials.h>
 
 struct multi_keyring {
-    const struct aws_cryptosdk_keyring_vt *vt;
+    struct aws_cryptosdk_keyring base;
     struct aws_allocator *alloc;
     struct aws_cryptosdk_keyring *generator;
     struct aws_array_list children; // list of (struct aws_cryptosdk_keyring *)
@@ -153,6 +153,17 @@ static int multi_keyring_decrypt_data_key(struct aws_cryptosdk_keyring *multi,
 
 static void multi_keyring_destroy(struct aws_cryptosdk_keyring *multi) {
     struct multi_keyring *self = (struct multi_keyring *)multi;
+    size_t n_keys = aws_array_list_length(&self->children);
+
+    for (size_t i = 0; i < n_keys; i++) {
+        struct aws_cryptosdk_keyring *child;
+        if (!aws_array_list_get_at(&self->children, (void *)&child, i)) {
+            aws_cryptosdk_keyring_release(child);
+        }
+    }
+
+    aws_cryptosdk_keyring_release(self->generator);
+
     aws_array_list_clean_up(&self->children);
     aws_mem_release(self->alloc, self);
 }
@@ -177,8 +188,10 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(
         aws_mem_release(alloc, multi);
         return NULL;
     }
+
+    aws_cryptosdk_keyring_base_init(&multi->base, &vt);
+
     multi->alloc = alloc;
-    multi->vt = &vt;
     multi->generator = generator;
     return (struct aws_cryptosdk_keyring *)multi;
 }
@@ -187,13 +200,17 @@ int aws_cryptosdk_multi_keyring_set_generator(struct aws_cryptosdk_keyring *mult
                                               struct aws_cryptosdk_keyring *generator) {
     struct multi_keyring *self = (struct multi_keyring *)multi;
 
-    if (self->generator) return aws_raise_error(AWS_ERROR_UNIMPLEMENTED);
-    self->generator = generator;
+    if (self->generator) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    self->generator = aws_cryptosdk_keyring_retain(generator);
+
     return AWS_OP_SUCCESS;
 }
 
 int aws_cryptosdk_multi_keyring_add(struct aws_cryptosdk_keyring *multi,
                                     struct aws_cryptosdk_keyring *child) {
     struct multi_keyring *self = (struct multi_keyring *)multi;
+
+    aws_cryptosdk_keyring_retain(child);
+
     return aws_array_list_push_back(&self->children, (void *)&child);
 }

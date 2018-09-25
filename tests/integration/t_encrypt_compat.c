@@ -172,6 +172,7 @@ static int test_basic() {
 
     if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), aws_cryptosdk_zero_keyring_new()))) abort();
     if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm))) abort();
+    aws_cryptosdk_cmm_release(cmm);
 
     aws_cryptosdk_session_set_message_size(session, sizeof(plaintext));
     
@@ -184,7 +185,6 @@ static int test_basic() {
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
 
     aws_cryptosdk_session_destroy(session);
-    aws_cryptosdk_cmm_destroy(cmm);
 
     hexdump(stderr, ciphertext, ct_consumed);
 
@@ -205,6 +205,9 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
 
     if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), aws_cryptosdk_zero_keyring_new()))) abort();
     if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm))) abort();
+
+    aws_cryptosdk_cmm_release(cmm);
+    cmm = NULL;
 
     if (early_size) aws_cryptosdk_session_set_message_size(session, plaintext_sz);
     aws_cryptosdk_session_set_frame_size(session, framesize);
@@ -258,7 +261,6 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
     TRY_DECRYPT(plaintext, plaintext_sz, ciphertext, ct_offset);
 
     aws_cryptosdk_session_destroy(session);
-    aws_cryptosdk_cmm_destroy(cmm);
 
     free(plaintext);
     free(ciphertext);

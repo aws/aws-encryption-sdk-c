@@ -102,7 +102,7 @@ static int set_up_all_the_things(enum aws_cryptosdk_rsa_padding_mode rsa_padding
 static void tear_down_all_the_things() {
     aws_cryptosdk_decryption_materials_destroy(dec_mat);
     aws_cryptosdk_edk_list_clean_up(&req.encrypted_data_keys);
-    aws_cryptosdk_keyring_destroy(kr);
+    aws_cryptosdk_keyring_release(kr);
 }
 /**
  * RSA Data key decryption with set of known test vectors.
@@ -192,8 +192,9 @@ int decrypt_data_key_from_bad_rsa_padding_mode() {
     struct raw_rsa_keyring_test_vector tv = raw_rsa_keyring_test_vectors[0];
     alloc = aws_default_allocator();
     kr = raw_rsa_keyring_tv_new(
-        alloc, AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1);  // The correct RSA padding mode for raw_rsa_keyring_test_vectors[0]
-                                                   // is AWS_CRYPTOSDK_RSA_PKCS1
+        alloc, AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1);  /* The correct RSA padding mode for raw_rsa_keyring_test_vectors[0]
+                                                    * is AWS_CRYPTOSDK_RSA_PKCS1
+                                                    */
     TEST_ASSERT_ADDR_NOT_NULL(kr);
     req.alloc = alloc;
     req.alg = tv.alg;

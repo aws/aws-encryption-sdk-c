@@ -18,11 +18,12 @@
 #include <aws/cryptosdk/raw_rsa_keyring.h>
 
 struct raw_rsa_keyring {
-    const struct aws_cryptosdk_keyring_vt *vt;
+    struct aws_cryptosdk_keyring base;
     struct aws_allocator *alloc;
     const struct aws_string *master_key_id;
     const struct aws_string *provider_id;
-    const struct aws_string * rsa_key_pem;
+    const struct aws_string * rsa_private_key_pem;
+    const struct aws_string * rsa_public_key_pem;
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode;
 };
 
