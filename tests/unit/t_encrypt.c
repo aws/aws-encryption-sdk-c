@@ -32,6 +32,7 @@ static int precise_size_set = 0;
 
 static int create_session(enum aws_cryptosdk_mode mode, struct aws_cryptosdk_keyring *kr) {
     if (session) aws_cryptosdk_session_destroy(session);
+    if (cmm) aws_cryptosdk_cmm_release(cmm);
 
     session = NULL;
 

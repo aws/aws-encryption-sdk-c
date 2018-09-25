@@ -25,7 +25,7 @@
 AWS_STATIC_STRING_FROM_LITERAL(EC_PUBLIC_KEY_FIELD, "aws-crypto-public-key");
 
 struct strip_key_cmm {
-    const struct aws_cryptosdk_cmm_vt *vt;
+    struct aws_cryptosdk_cmm base;
     struct aws_cryptosdk_cmm *cmm;
 };
 
@@ -56,6 +56,8 @@ static const struct aws_cryptosdk_cmm_vt strip_key_cmm_vt = {
     .decrypt_materials = NULL
 };
 
+// Test that the trailing signature logic rejects ciphertexts that claim to have a trailing-signature algorithm suite
+// but where no public key is in the encryption context.
 static int trailing_sig_no_key() {
     struct aws_byte_buf buf = {0};
     struct aws_cryptosdk_session *session = NULL;
@@ -66,8 +68,9 @@ static int trailing_sig_no_key() {
 
     TEST_ASSERT_SUCCESS(aws_byte_buf_init(aws_default_allocator(), &buf, 1024));
 
-    struct strip_key_cmm strip_key_cmm_s = {.vt = &strip_key_cmm_vt, .cmm = cmm};
+    struct strip_key_cmm strip_key_cmm_s = {.cmm = cmm};
     struct aws_cryptosdk_cmm *enc_cmm = (struct aws_cryptosdk_cmm *)&strip_key_cmm_s;
+    aws_cryptosdk_cmm_base_init(&strip_key_cmm_s.base, &strip_key_cmm_vt);
 
     session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, enc_cmm);
     TEST_ASSERT_ADDR_NOT_NULL(session);
