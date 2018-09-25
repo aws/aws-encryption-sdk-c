@@ -116,8 +116,11 @@ int default_cmm_alg_mismatch() {
     aws_cryptosdk_default_cmm_set_alg_id(cmm, AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE);
 
     struct aws_cryptosdk_encryption_materials * enc_mat;
-    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT,
-                       aws_cryptosdk_cmm_generate_encryption_materials(cmm, &enc_mat, &req));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_encryption_materials(cmm, &enc_mat, &req));
+    // The algorithm requested by the higher level CMM should control
+    TEST_ASSERT_INT_EQ(req.requested_alg, AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE);
+    // ... and should be reflected in the result
+    TEST_ASSERT_INT_EQ(enc_mat->alg, req.requested_alg);
 
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
     aws_cryptosdk_cmm_release(cmm);

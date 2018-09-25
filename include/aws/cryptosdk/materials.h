@@ -77,8 +77,8 @@ struct aws_cryptosdk_encryption_request {
     // The session will initially call generate_encryption_materials on the CMM
     // with a zero requested_alg; it's up to one of the CMMs in the chain to fill
     // this in before the keyring is invoked. In particular, the default CMM will
-    // fill in the algorithm ID it has been configured with, and if a CMM before
-    // the default CMM filled in a different algorithm ID, it will fail the request.
+    // fill in the algorithm ID it has been configured with, unless a CMM before
+    // the default CMM filled in a different algorithm ID.
 
     // TODO: This is a bit of a hack; depending on what happens with PR#84 we can either
     // move this into the output structure, or create a combined in/out structure to hold

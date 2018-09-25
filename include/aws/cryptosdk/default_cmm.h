@@ -35,13 +35,10 @@ extern "C" {
  * On each attempt to decrypt materials, it passes the full list of EDKs to the KR
  * and asks it to find one to decrypt.
  *
- * The default CMM will always encrypt using the same algorithm suite. By default,
- * this is AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE, but can be overridden using
- * aws_cryptosdk_default_cmm_set_alg_id. If the default CMM is wrapped by another CMM,
- * the outer CMM must either not set the requested algorithm ID, or it must set the
- * same requested algorithm ID as the default CMM.
- *
- * TODO: Trailing signature keys are not implemented yet in this CMM.
+ * If a CMM that delegates to the default CMM selects an algorithm suite, that algorithm
+ * suite will be used. Otherwise, the default CMM will select a default algorithm suite.
+ * This is initially AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE, but can be overridden using
+ * aws_cryptosdk_default_cmm_set_alg_id.
  *
  * On success allocates a CMM and returns its address. Be sure to deallocate it later
  * by calling aws_cryptosdk_cmm_destroy on the CMM pointer returned by this function.

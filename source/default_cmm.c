@@ -37,11 +37,9 @@ static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * 
     const struct aws_cryptosdk_alg_properties *props = self->alg_props;
 
     *output = NULL;
-    if (request->requested_alg && request->requested_alg != props->alg_id) {
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
+    if (!request->requested_alg) {
+        request->requested_alg = props->alg_id;
     }
-
-    request->requested_alg = props->alg_id;
 
     enc_mat = aws_cryptosdk_encryption_materials_new(request->alloc, request->requested_alg);
     if (!enc_mat) goto err;
