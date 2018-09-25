@@ -120,10 +120,10 @@ static int multi_keyring_on_decrypt(struct aws_cryptosdk_keyring *multi,
 
     if (self->generator) {
         int decrypt_err = aws_cryptosdk_keyring_on_decrypt(self->generator,
-                                                                 unencrypted_data_key,
-                                                                 edks,
-                                                                 enc_context,
-                                                                 alg);
+                                                           unencrypted_data_key,
+                                                           edks,
+                                                           enc_context,
+                                                           alg);
         if (unencrypted_data_key->buffer) return AWS_OP_SUCCESS;
         if (decrypt_err) ret_if_no_decrypt = AWS_OP_ERR;
     }
@@ -135,10 +135,10 @@ static int multi_keyring_on_decrypt(struct aws_cryptosdk_keyring *multi,
 
         // if decrypt data key fails, keep trying with other keyrings
         int decrypt_err = aws_cryptosdk_keyring_on_decrypt(child,
-                                                                 unencrypted_data_key,
-                                                                 edks,
-                                                                 enc_context,
-                                                                 alg);
+                                                           unencrypted_data_key,
+                                                           edks,
+                                                           enc_context,
+                                                           alg);
         if (unencrypted_data_key->buffer) return AWS_OP_SUCCESS;
         if (decrypt_err) ret_if_no_decrypt = AWS_OP_ERR;
     }

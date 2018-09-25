@@ -314,7 +314,7 @@ static inline int aws_cryptosdk_keyring_on_encrypt(struct aws_cryptosdk_keyring 
     /* Postcondition: If data key was generated before call, byte buffer must not have been
      * modified. Note that this only checks the metadata in the byte buffer and not the key
      * bytes themselves. Verifying the key bytes were unchanged would require making an extra
-     * copy of the key bytes, which is probably not worth the risk.
+     * copy of the key bytes, a case of the cure being worse than the disease.
      */
     if (precall_data_key_buf.buffer) {
         if (memcmp(&precall_data_key_buf, unencrypted_data_key, sizeof(precall_data_key_buf)))
@@ -343,7 +343,7 @@ static inline int aws_cryptosdk_keyring_on_decrypt(
     const struct aws_array_list * edks,
     const struct aws_hash_table * enc_context,
     enum aws_cryptosdk_alg_id alg) {
-    /* Precondition: data key buffer must be unallocated. */
+    /* Precondition: data key buffer must be unset. */
     if (unencrypted_data_key->buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(on_decrypt,
                                   keyring,
@@ -354,7 +354,7 @@ static inline int aws_cryptosdk_keyring_on_decrypt(
 
     /* Postcondition: if data key was decrypted, its length must agree with algorithm
      * specification. If this is not the case, it either means ciphertext was tampered
-     * with or that the keyring implementation is not setting the length properly.
+     * with or the keyring implementation is not setting the length properly.
      */
     if (unencrypted_data_key->buffer) {
         const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(alg);

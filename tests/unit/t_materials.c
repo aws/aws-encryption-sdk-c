@@ -18,6 +18,7 @@
 #include "testing.h"
 #include "zero_keyring.h"
 #include "bad_cmm.h"
+#include "test_keyring.h"
 
 int default_cmm_zero_keyring_enc_mat() {
     struct aws_hash_table enc_context;
@@ -120,11 +121,92 @@ int null_materials_destroy_is_noop() {
     return 0;
 }
 
+static struct test_keyring test_kr;
+static struct aws_cryptosdk_keyring *kr;
+
+static void reset_test_keyring() {
+    memset(&test_kr, 0, sizeof(test_kr));
+    test_kr.vt = &test_keyring_vt;
+    kr = (struct aws_cryptosdk_keyring *)&test_kr;
+}
+
+int on_encrypt_precondition_violation() {
+    /* No data key but at least one EDK -> raise error and do not make virtual call */
+    reset_test_keyring();
+
+    struct aws_byte_buf unencrypted_data_key = {0};
+    struct aws_array_list edks;
+    struct aws_cryptosdk_edk edk = {0};
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(aws_default_allocator(), &edks));
+    TEST_ASSERT_SUCCESS(aws_array_list_push_back(&edks, &edk));
+
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_STATE,
+                      aws_cryptosdk_keyring_on_encrypt(kr, &unencrypted_data_key, &edks, NULL, 0));
+
+    TEST_ASSERT(!test_kr.on_encrypt_called);
+
+    aws_cryptosdk_edk_list_clean_up(&edks);
+    return 0;
+}
+
+int on_encrypt_postcondition_violation() {
+    /* Generate data key of wrong length -> raise error after virtual call */
+    reset_test_keyring();
+    test_kr.generated_data_key_to_return = aws_byte_buf_from_c_str("wrong data key length");
+
+    struct aws_byte_buf unencrypted_data_key = {0};
+    struct aws_array_list edks;
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(aws_default_allocator(), &edks));
+
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_STATE,
+                      aws_cryptosdk_keyring_on_encrypt(kr, &unencrypted_data_key, &edks, NULL,
+                                                       AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
+
+    TEST_ASSERT(test_kr.on_encrypt_called);
+
+    aws_cryptosdk_edk_list_clean_up(&edks);
+    return 0;
+}
+
+int on_decrypt_precondition_violation() {
+    /* Unencrypted data key buffer already set -> raise error and do not make virtual call */
+    reset_test_keyring();
+
+    struct aws_byte_buf unencrypted_data_key = aws_byte_buf_from_c_str("Oops, already set!");
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_STATE,
+                      aws_cryptosdk_keyring_on_decrypt(kr, &unencrypted_data_key, NULL, NULL, 0));
+
+    TEST_ASSERT(!test_kr.on_decrypt_called);
+    return 0;
+}
+
+int on_decrypt_postcondition_violation() {
+    /* Decrypt data key of wrong length -> raise error after virtual call */
+    reset_test_keyring();
+
+    struct aws_byte_buf unencrypted_data_key = {0};
+    struct aws_array_list edks;
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(aws_default_allocator(), &edks));
+
+    test_kr.decrypted_data_key_to_return = aws_byte_buf_from_c_str("wrong data key length");
+
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT,
+                      aws_cryptosdk_keyring_on_decrypt(kr, &unencrypted_data_key, &edks, NULL,
+                                                       AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
+
+    aws_cryptosdk_edk_list_clean_up(&edks);
+    return 0;
+}
+
 struct test_case materials_test_cases[] = {
     { "materials", "default_cmm_zero_keyring_enc_mat", default_cmm_zero_keyring_enc_mat },
     { "materials", "default_cmm_zero_keyring_dec_mat", default_cmm_zero_keyring_dec_mat },
     { "materials", "zero_size_cmm_does_not_run_vfs", zero_size_cmm_does_not_run_vfs },
     { "materials", "null_cmm_fails_vf_calls_cleanly", null_cmm_fails_vf_calls_cleanly },
     { "materials", "null_materials_destroy_is_noop", null_materials_destroy_is_noop },
+    { "materials", "on_encrypt_precondition_violation", on_encrypt_precondition_violation },
+    { "materials", "on_encrypt_postcondition_violation", on_encrypt_postcondition_violation },
+    { "materials", "on_decrypt_precondition_violation", on_decrypt_precondition_violation },
+    { "materials", "on_decrypt_postcondition_violation", on_decrypt_postcondition_violation },
     { NULL }
 };

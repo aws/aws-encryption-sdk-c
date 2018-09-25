@@ -13,68 +13,8 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/multi_keyring.h>
-#include <aws/cryptosdk/materials.h>
+#include "test_keyring.h"
 #include "testing.h"
-
-struct test_keyring {
-    const struct aws_cryptosdk_keyring_vt *vt;
-    struct aws_byte_buf decrypted_key_to_return;
-    int ret;
-    bool skip_output;
-    bool on_encrypt_called;
-    bool on_decrypt_called;
-};
-
-static void test_keyring_destroy(struct aws_cryptosdk_keyring * kr) {(void)kr;}
-
-static char test_data_key[] = "datakey|datakey|datakey|datakey|";
-static int test_keyring_on_encrypt(
-    struct aws_cryptosdk_keyring * kr,
-    struct aws_byte_buf * unencrypted_data_key,
-    struct aws_array_list * edks,
-    const struct aws_hash_table * enc_context,
-    enum aws_cryptosdk_alg_id alg)
-{
-    (void)enc_context;
-    struct test_keyring *self = (struct test_keyring *)kr;
-
-    if (!self->ret && !self->skip_output) {
-        if (!unencrypted_data_key->buffer) {
-            *unencrypted_data_key = aws_byte_buf_from_c_str(test_data_key);
-        }
-
-        static struct aws_cryptosdk_edk edk;
-        edk.enc_data_key = aws_byte_buf_from_c_str("test keyring generate edk");
-        edk.provider_id = aws_byte_buf_from_c_str("test keyring generate provider id");
-        edk.provider_info = aws_byte_buf_from_c_str("test keyring generate provider info");
-        aws_array_list_push_back(edks, &edk);
-    }
-
-    self->on_encrypt_called = true;
-    return self->ret;
-}
-
-static int test_keyring_on_decrypt(struct aws_cryptosdk_keyring * kr,
-                                         struct aws_byte_buf * unencrypted_data_key,
-                                         const struct aws_array_list * edks,
-                                         const struct aws_hash_table * enc_context,
-                                         enum aws_cryptosdk_alg_id alg) {
-    (void)edks;
-    (void)enc_context;
-    (void)alg;
-    struct test_keyring *self = (struct test_keyring *)kr;
-    if (!self->skip_output) *unencrypted_data_key = self->decrypted_key_to_return;
-    self->on_decrypt_called = true;
-    return self->ret;
-}
-
-const static struct aws_cryptosdk_keyring_vt test_keyring_vt = {
-    .vt_size = sizeof(test_keyring_vt),
-    .name = "test keyring",
-    .destroy = test_keyring_destroy,
-    .on_encrypt = test_keyring_on_encrypt,
-    .on_decrypt = test_keyring_on_decrypt
-};
 
 static struct aws_allocator * alloc;
 // test_keyring[0] used as generator, rest used as children
@@ -84,6 +24,8 @@ static struct aws_cryptosdk_keyring * multi;
 static struct aws_array_list edks;
 // doesn't matter here, just picking one
 static enum aws_cryptosdk_alg_id alg = AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384;
+
+static char test_data_key[] = "datakey|datakey|datakey|datakey|";
 
 static int set_up_all_the_things(bool include_generator) {
     alloc = aws_default_allocator();
@@ -111,6 +53,8 @@ static int set_up_all_the_things(bool include_generator) {
         TEST_ASSERT(!test_keyrings[kr_idx].on_decrypt_called);
     }
 
+    test_keyrings[0].generated_data_key_to_return = aws_byte_buf_from_c_str(test_data_key);
+    
     return 0;
 }
 
@@ -315,17 +259,16 @@ int delegates_decrypt_calls() {
 
         const size_t successful_keyring = 3;
 
-        char my_data_key[] = "Eureka!!Eureka!!Eureka!!Eureka!!";
-        test_keyrings[successful_keyring].decrypted_key_to_return = aws_byte_buf_from_c_str(my_data_key);
+        test_keyrings[successful_keyring].decrypted_data_key_to_return = aws_byte_buf_from_c_str(test_data_key);
 
         struct aws_byte_buf unencrypted_data_key = {0};
 
         TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(multi, 
-                                                                   &unencrypted_data_key,
-                                                                   &edks,
-                                                                   NULL,
-                                                                   alg));
-        TEST_ASSERT_ADDR_EQ(unencrypted_data_key.buffer, my_data_key);
+                                                             &unencrypted_data_key,
+                                                             &edks,
+                                                             NULL,
+                                                             alg));
+        TEST_ASSERT_ADDR_EQ(unencrypted_data_key.buffer, test_data_key);
 
         size_t kr_idx = use_generator ^ 1;
         for (; kr_idx <= successful_keyring; ++kr_idx) {
@@ -346,10 +289,10 @@ int succeed_when_no_error_and_no_decrypt() {
     struct aws_byte_buf unencrypted_data_key = {0};
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(multi,
-                                                               &unencrypted_data_key,
-                                                               &edks,
-                                                               NULL,
-                                                               alg));
+                                                         &unencrypted_data_key,
+                                                         &edks,
+                                                         NULL,
+                                                         alg));
     TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
 
     for (size_t kr_idx = 0; kr_idx < num_test_keyrings; ++kr_idx) {
@@ -367,10 +310,10 @@ int fail_when_error_and_no_decrypt() {
     test_keyrings[2].ret = AWS_OP_ERR;
 
     TEST_ASSERT_INT_EQ(AWS_OP_ERR, aws_cryptosdk_keyring_on_decrypt(multi,
-                                                                          &unencrypted_data_key,
-                                                                          &edks,
-                                                                          NULL,
-                                                                          alg));
+                                                                    &unencrypted_data_key,
+                                                                    &edks,
+                                                                    NULL,
+                                                                    alg));
     TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
 
     for (size_t kr_idx = 0; kr_idx < num_test_keyrings; ++kr_idx) {
