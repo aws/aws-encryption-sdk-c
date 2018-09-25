@@ -17,14 +17,15 @@
 
 static void test_keyring_destroy(struct aws_cryptosdk_keyring * kr) {(void)kr;}
 
-static int test_keyring_on_encrypt(
-    struct aws_cryptosdk_keyring * kr,
-    struct aws_byte_buf * unencrypted_data_key,
-    struct aws_array_list * edks,
-    const struct aws_hash_table * enc_context,
-    enum aws_cryptosdk_alg_id alg)
+static int test_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
+                                   struct aws_allocator *request_alloc,
+                                   struct aws_byte_buf *unencrypted_data_key,
+                                   struct aws_array_list *edks,
+                                   const struct aws_hash_table *enc_context,
+                                   enum aws_cryptosdk_alg_id alg)
 {
     (void)enc_context;
+    (void)request_alloc;
     struct test_keyring *self = (struct test_keyring *)kr;
 
     if (!self->ret && !self->skip_output) {
@@ -43,14 +44,16 @@ static int test_keyring_on_encrypt(
     return self->ret;
 }
 
-static int test_keyring_on_decrypt(struct aws_cryptosdk_keyring * kr,
-                                   struct aws_byte_buf * unencrypted_data_key,
-                                   const struct aws_array_list * edks,
-                                   const struct aws_hash_table * enc_context,
+static int test_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
+                                   struct aws_allocator *request_alloc,
+                                   struct aws_byte_buf *unencrypted_data_key,
+                                   const struct aws_array_list *edks,
+                                   const struct aws_hash_table *enc_context,
                                    enum aws_cryptosdk_alg_id alg) {
     (void)edks;
     (void)enc_context;
     (void)alg;
+    (void)request_alloc;
     struct test_keyring *self = (struct test_keyring *)kr;
     if (!self->ret && !self->skip_output) {
         *unencrypted_data_key = self->decrypted_data_key_to_return;

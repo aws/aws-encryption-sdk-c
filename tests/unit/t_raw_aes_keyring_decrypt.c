@@ -170,10 +170,11 @@ int decrypt_data_key_test_vectors() {
             aws_array_list_push_back(&edks, (void *)&edk);
 
             TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kr,
-                                                                       &unencrypted_data_key,
-                                                                       &edks,
-                                                                       &enc_context,
-                                                                       tv->alg));
+                                                                 alloc,
+                                                                 &unencrypted_data_key,
+                                                                 &edks,
+                                                                 &enc_context,
+                                                                 tv->alg));
 
             if (corrupt_enc_context) {
                 TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
@@ -218,6 +219,7 @@ int decrypt_data_key_multiple_edks() {
     }
 
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_on_decrypt(kr,
+                                                                        alloc,
                                                                         &unencrypted_data_key,
                                                                         &edks,
                                                                         &enc_context,
@@ -244,10 +246,11 @@ int decrypt_data_key_no_good_edk() {
     }
 
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_on_decrypt(kr,
-                                                                              &unencrypted_data_key,
-                                                                              &edks,
-                                                                              &enc_context,
-                                                                              tv.alg));
+                                                                        alloc,
+                                                                        &unencrypted_data_key,
+                                                                        &edks,
+                                                                        &enc_context,
+                                                                        tv.alg));
     TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
 
     tear_down_all_the_things();
@@ -277,17 +280,11 @@ int decrypt_data_key_with_sig() {
     aws_array_list_push_back(&edks, (void *)&edk);
     
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kr,
-                                                               &unencrypted_data_key,
-                                                               &edks,
-                                                               &enc_context,
-    // FIXME: change to correct algorithm after it is implemented.
-    // This test data was made in mode AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384, so it includes the public
-    // key in the encryption context. The only thing this test is using the algorithm for is getting the
-    // length of the data key, so as long as we specify another AES-256 suite the test passes, but it
-    // communicates the wrong thing to the reader. We cannot specify the correct algorithm at the moment,
-    // because it is currently commented out of alg_props implementation. Once we are done implementing
-    // the algorithm with signature in alg_props, remove this comment and switch alg to correct value.
-                                                               AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
+                                                         alloc,
+                                                         &unencrypted_data_key,
+                                                         &edks,
+                                                         &enc_context,
+                                                         AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
 
     TEST_ASSERT_ADDR_NOT_NULL(unencrypted_data_key.buffer);
     TEST_ASSERT_BUF_EQ(
@@ -330,17 +327,11 @@ int decrypt_data_key_with_sig_and_enc_context() {
     aws_array_list_push_back(&edks, (void *)&edk);
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kr,
-                                                               &unencrypted_data_key,
-                                                               &edks,
-                                                               &enc_context,
-    // FIXME: change to correct algorithm after it is implemented.
-    // This test data was made in mode AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384, so it includes the public
-    // key in the encryption context. The only thing this test is using the algorithm for is getting the
-    // length of the data key, so as long as we specify another AES-256 suite the test passes, but it
-    // communicates the wrong thing to the reader. We cannot specify the correct algorithm at the moment,
-    // because it is currently commented out of alg_props implementation. Once we are done implementing
-    // the algorithm with signature in alg_props, remove this comment and switch alg to correct value.
-                                                               AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE));
+                                                         alloc,
+                                                         &unencrypted_data_key,
+                                                         &edks,
+                                                         &enc_context,
+                                                         AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
 
     TEST_ASSERT_ADDR_NOT_NULL(unencrypted_data_key.buffer);
     TEST_ASSERT_BUF_EQ(

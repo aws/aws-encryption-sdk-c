@@ -59,15 +59,15 @@ static inline bool is_counting_edk(const struct aws_cryptosdk_edk *edk) {
     );
 }
 
-// FIXME: don't dynamically allocate the buffers
 static int counting_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
-                                                         struct aws_byte_buf *unencrypted_data_key,
-                                                         struct aws_array_list *edks,
-                                                         const struct aws_hash_table *enc_context,
-                                                         enum aws_cryptosdk_alg_id alg) {
+                                       struct aws_allocator *request_alloc,
+                                       struct aws_byte_buf *unencrypted_data_key,
+                                       struct aws_array_list *edks,
+                                       const struct aws_hash_table *enc_context,
+                                       enum aws_cryptosdk_alg_id alg) {
     (void)enc_context;
+    (void)kr;
 
-    struct counting_keyring *self = (struct counting_keyring *)kr;
     const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(alg);
 
     if (unencrypted_data_key->buffer) {
@@ -82,7 +82,7 @@ static int counting_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
             }
         }
     } else {
-        if (aws_byte_buf_init(self->alloc, unencrypted_data_key, props->data_key_len)) {
+        if (aws_byte_buf_init(request_alloc, unencrypted_data_key, props->data_key_len)) {
             return AWS_OP_ERR;
         }
         unencrypted_data_key->len = props->data_key_len;
@@ -93,7 +93,7 @@ static int counting_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
     }
 
     struct aws_cryptosdk_edk edk;
-    if (set_edk(aws_default_allocator(), &edk)) {
+    if (set_edk(request_alloc, &edk)) {
         return AWS_OP_ERR;
     }
 
@@ -101,13 +101,14 @@ static int counting_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
 }
 
 static int counting_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
-                                             struct aws_byte_buf *unencrypted_data_key,
-                                             const struct aws_array_list *edks,
-                                             const struct aws_hash_table *enc_context,
-                                             enum aws_cryptosdk_alg_id alg) {
+                                       struct aws_allocator *request_alloc,
+                                       struct aws_byte_buf *unencrypted_data_key,
+                                       const struct aws_array_list *edks,
+                                       const struct aws_hash_table *enc_context,
+                                       enum aws_cryptosdk_alg_id alg) {
     (void)enc_context;
-
-    struct counting_keyring *self = (struct counting_keyring *)kr;
+    (void)kr;
+    
     // verify there is at least one EDK with the right signature present
     size_t num_keys = aws_array_list_length(edks);
     for (size_t key_idx = 0 ; key_idx < num_keys ; ++key_idx) {
@@ -116,7 +117,7 @@ static int counting_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
         if (is_counting_edk(edk)) {
             const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
 
-            if (aws_byte_buf_init(self->alloc, unencrypted_data_key, props->data_key_len)) {
+            if (aws_byte_buf_init(request_alloc, unencrypted_data_key, props->data_key_len)) {
                 return AWS_OP_ERR;
             }
 

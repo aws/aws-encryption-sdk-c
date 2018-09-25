@@ -123,11 +123,14 @@ int null_materials_destroy_is_noop() {
 
 static struct test_keyring test_kr;
 static struct aws_cryptosdk_keyring *kr;
+static struct aws_allocator *alloc;
 
 static void reset_test_keyring() {
     memset(&test_kr, 0, sizeof(test_kr));
     test_kr.vt = &test_keyring_vt;
     kr = (struct aws_cryptosdk_keyring *)&test_kr;
+
+    alloc = aws_default_allocator();
 }
 
 int on_encrypt_precondition_violation() {
@@ -137,11 +140,16 @@ int on_encrypt_precondition_violation() {
     struct aws_byte_buf unencrypted_data_key = {0};
     struct aws_array_list edks;
     struct aws_cryptosdk_edk edk = {0};
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(aws_default_allocator(), &edks));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &edks));
     TEST_ASSERT_SUCCESS(aws_array_list_push_back(&edks, &edk));
 
     TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_STATE,
-                      aws_cryptosdk_keyring_on_encrypt(kr, &unencrypted_data_key, &edks, NULL, 0));
+                      aws_cryptosdk_keyring_on_encrypt(kr,
+                                                       alloc,
+                                                       &unencrypted_data_key,
+                                                       &edks,
+                                                       NULL,
+                                                       0));
 
     TEST_ASSERT(!test_kr.on_encrypt_called);
 
@@ -156,10 +164,14 @@ int on_encrypt_postcondition_violation() {
 
     struct aws_byte_buf unencrypted_data_key = {0};
     struct aws_array_list edks;
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(aws_default_allocator(), &edks));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &edks));
 
     TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_STATE,
-                      aws_cryptosdk_keyring_on_encrypt(kr, &unencrypted_data_key, &edks, NULL,
+                      aws_cryptosdk_keyring_on_encrypt(kr,
+                                                       alloc,
+                                                       &unencrypted_data_key,
+                                                       &edks,
+                                                       NULL,
                                                        AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
 
     TEST_ASSERT(test_kr.on_encrypt_called);
@@ -174,7 +186,12 @@ int on_decrypt_precondition_violation() {
 
     struct aws_byte_buf unencrypted_data_key = aws_byte_buf_from_c_str("Oops, already set!");
     TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_STATE,
-                      aws_cryptosdk_keyring_on_decrypt(kr, &unencrypted_data_key, NULL, NULL, 0));
+                      aws_cryptosdk_keyring_on_decrypt(kr,
+                                                       alloc,
+                                                       &unencrypted_data_key,
+                                                       NULL,
+                                                       NULL,
+                                                       0));
 
     TEST_ASSERT(!test_kr.on_decrypt_called);
     return 0;
@@ -191,7 +208,11 @@ int on_decrypt_postcondition_violation() {
     test_kr.decrypted_data_key_to_return = aws_byte_buf_from_c_str("wrong data key length");
 
     TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT,
-                      aws_cryptosdk_keyring_on_decrypt(kr, &unencrypted_data_key, &edks, NULL,
+                      aws_cryptosdk_keyring_on_decrypt(kr,
+                                                       alloc,
+                                                       &unencrypted_data_key,
+                                                       &edks,
+                                                       NULL,
                                                        AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
 
     aws_cryptosdk_edk_list_clean_up(&edks);

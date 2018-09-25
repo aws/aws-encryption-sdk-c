@@ -238,10 +238,11 @@ struct aws_cryptosdk_keyring_vt {
      * output only: edks
      * input only: enc_context, alg
      */
-    int (*on_encrypt)(struct aws_cryptosdk_keyring * keyring,
-                      struct aws_byte_buf * unencrypted_data_key,
-                      struct aws_array_list * edks,
-                      const struct aws_hash_table * enc_context,
+    int (*on_encrypt)(struct aws_cryptosdk_keyring *keyring,
+                      struct aws_allocator *request_alloc,
+                      struct aws_byte_buf *unencrypted_data_key,
+                      struct aws_array_list *edks,
+                      const struct aws_hash_table *enc_context,
                       enum aws_cryptosdk_alg_id alg);
 
     /**
@@ -254,10 +255,11 @@ struct aws_cryptosdk_keyring_vt {
      * output: unencrypted_data_key
      * input: edks, enc_context, alg
      */
-    int (*on_decrypt)(struct aws_cryptosdk_keyring * keyring,
-                      struct aws_byte_buf * unencrypted_data_key,
-                      const struct aws_array_list * edks,
-                      const struct aws_hash_table * enc_context,
+    int (*on_decrypt)(struct aws_cryptosdk_keyring *keyring,
+                      struct aws_allocator *request_alloc,
+                      struct aws_byte_buf *unencrypted_data_key,
+                      const struct aws_array_list *edks,
+                      const struct aws_hash_table *enc_context,
                       enum aws_cryptosdk_alg_id alg);
 };
 
@@ -283,6 +285,7 @@ static inline void aws_cryptosdk_keyring_destroy(struct aws_cryptosdk_keyring * 
  * allocated.
  */
 static inline int aws_cryptosdk_keyring_on_encrypt(struct aws_cryptosdk_keyring *keyring,
+                                                   struct aws_allocator *request_alloc,
                                                    struct aws_byte_buf *unencrypted_data_key,
                                                    struct aws_array_list *edks,
                                                    const struct aws_hash_table *enc_context,
@@ -299,6 +302,7 @@ static inline int aws_cryptosdk_keyring_on_encrypt(struct aws_cryptosdk_keyring 
 
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(on_encrypt,
                                   keyring,
+                                  request_alloc,
                                   unencrypted_data_key,
                                   edks,
                                   enc_context,
@@ -337,16 +341,17 @@ static inline int aws_cryptosdk_keyring_on_encrypt(struct aws_cryptosdk_keyring 
  *
  * On internal failure, AWS_OP_ERR will be returned and an error code will be set.
  */
-static inline int aws_cryptosdk_keyring_on_decrypt(
-    struct aws_cryptosdk_keyring * keyring,
-    struct aws_byte_buf * unencrypted_data_key,
-    const struct aws_array_list * edks,
-    const struct aws_hash_table * enc_context,
-    enum aws_cryptosdk_alg_id alg) {
+static inline int aws_cryptosdk_keyring_on_decrypt(struct aws_cryptosdk_keyring * keyring,
+                                                   struct aws_allocator * request_alloc,
+                                                   struct aws_byte_buf * unencrypted_data_key,
+                                                   const struct aws_array_list * edks,
+                                                   const struct aws_hash_table * enc_context,
+                                                   enum aws_cryptosdk_alg_id alg) {
     /* Precondition: data key buffer must be unset. */
     if (unencrypted_data_key->buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(on_decrypt,
                                   keyring,
+                                  request_alloc,
                                   unencrypted_data_key,
                                   edks,
                                   enc_context,
