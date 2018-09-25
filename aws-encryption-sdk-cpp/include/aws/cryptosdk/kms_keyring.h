@@ -44,10 +44,8 @@ struct aws_cryptosdk_kms_keyring : aws_cryptosdk_keyring {
 class KmsKeyring : public aws_cryptosdk_kms_keyring {
   public:
     class RegionalClientSupplier;
-    /**
-     *
-     * @param constructor_key Parameter used to enforce calling of this constructor only from friend classes
-     */
+    class KmsClientCache;
+
     ~KmsKeyring();
 
     // non-copyable
@@ -57,7 +55,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
     /**
      * Returns cached clients from this object
      */
-    const Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> GetKmsCachedClients() const;
+    std::shared_ptr<KmsClientCache> GetKmsCachedClients() const;
 
   protected:
     /**
@@ -84,7 +82,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
         const String &default_region,
         const Aws::Vector<Aws::String> &grant_tokens,
         std::shared_ptr<RegionalClientSupplier> supplier,
-        const Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &kms_client_cache);
+        std::shared_ptr<KmsClientCache> kms_client_cache);
 
     /**
      * It attempts to find one of the EDKs to decrypt
@@ -176,13 +174,6 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
      */
     std::shared_ptr<KMS::KMSClient> GetKmsClient(const Aws::String &region) const;
 
-    /**
-     * Saves a KMS Client for a specific region in the cache.
-     * Note: a KMS Client can be saved in cache only after a succesful call was made to it
-     * (to guarantee that the region exists)
-     */
-    void SaveKmsClientInCache(const Aws::String &region, std::shared_ptr<KMS::KMSClient> &kms_client);
-
   private:
     void Init(struct aws_allocator *alloc, const Aws::List<Aws::String> &in_key_ids);
     void InitAwsCryptosdkKeyring(struct aws_allocator *allocator);
@@ -195,17 +186,33 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
     Aws::Vector<Aws::String> grant_tokens;
 
     //TODO use Aws::UnorderedMap
-    // A map of <region, kms-client>. A single Kms client is cached for each region. Note that in order to be cached a
-    // client needs to have at least one successful request to KMS.
-    Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> kms_cached_clients;
-
-    //TODO use Aws::UnorderedMap
     // A map of <key-id, region>
     Aws::Map<Aws::String, Aws::String> key_ids;
-
-    mutable std::mutex keyring_cache_mutex;
+    std::shared_ptr<KmsClientCache> kms_client_cache;
 
   public:
+    class KmsClientCache {
+      public:
+        KmsClientCache() { };
+
+        /* Returns the KMS Client for a specific region or null if the client is not cached */
+        std::shared_ptr<KMS::KMSClient> GetCachedClient(const Aws::String &region) const;
+
+        /**
+         * Saves a KMS Client for a specific region in the cache.
+         * Note: a KMS Client can be saved in cache only after a successful call was made to it
+         * (to guarantee that the region exists)
+        */
+        void SaveInCache(const Aws::String &region, std::shared_ptr<KMS::KMSClient> &kms_client);
+
+      private:
+        mutable std::mutex keyring_cache_mutex;
+
+        //TODO use Aws::UnorderedMap
+        // A map of <region, kms-client>. A single Kms client is cached for each region. Note that in order to be cached a
+        // client needs to have at least one successful request to KMS.
+        Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> kms_cached_clients;
+    };
     /**
      * Interface that supplies KmsKeyring with a new KMSClient in a specific region
      */
@@ -307,7 +314,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
          * multiple instances of KmsKeyring. Can be used in applications that frequently create new
          * keyrings and are sensitive to performance.
          */
-        Builder &SetKmsClientCache(const Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> &kms_key_cache);
+        Builder &SetKmsClientCache(std::shared_ptr<KmsClientCache> kms_client_cache);
 
         /**
          * KmsKeyring will use only this KMS Client regardless of the configured region.
@@ -335,7 +342,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
         std::shared_ptr<KMS::KMSClient> kms_client;
         Aws::Vector<Aws::String> grant_tokens;
         std::shared_ptr<RegionalClientSupplier> client_supplier;
-        Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> kms_key_cache;
+        std::shared_ptr<KmsClientCache> kms_client_cache;
     };
 };
 
