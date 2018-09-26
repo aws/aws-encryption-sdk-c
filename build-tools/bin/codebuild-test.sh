@@ -23,7 +23,19 @@ build-tools/bin/codebuild-build-dependency https://github.com/awslabs/aws-c-comm
 build-tools/bin/codebuild-build-dependency https://github.com/awslabs/aws-sdk-cpp.git --git-tag 1.5.20 -DBUILD_ONLY="kms;lambda"
 mkdir build
 ls -l /deps/aws-c-common/install/lib/aws-c-common/cmake
+# Run a lightweight test suite with valgrind...
 (cd build;
-    cmake -DVALGRIND_TEST_SUITE=ON -DFORCE_KMS_KEYRING_BUILD=ON -DAWS_ENC_SDK_END_TO_END_TESTS=ON -DCMAKE_PREFIX_PATH='/deps/aws-c-common/install;/deps/aws-sdk-cpp/install/lib/cmake' .. &&
+    cmake -DREDUCE_TEST_ITERATIONS=TRUE -DVALGRIND_TEST_SUITE=ON -DFORCE_KMS_KEYRING_BUILD=ON -DAWS_ENC_SDK_END_TO_END_TESTS=ON -DCMAKE_PREFIX_PATH='/deps/aws-c-common/install;/deps/aws-sdk-cpp/install/lib/cmake' .. &&
     make VERBOSE=1 &&
     ctest --output-on-failure -j8)
+
+# then run the full suite without valgrind
+rm -rf build
+mkdir build
+ls -l /deps/aws-c-common/install/lib/aws-c-common/cmake
+(cd build;
+    cmake -DFORCE_KMS_KEYRING_BUILD=ON -DAWS_ENC_SDK_END_TO_END_TESTS=ON -DCMAKE_PREFIX_PATH='/deps/aws-c-common/install;/deps/aws-sdk-cpp/install/lib/cmake' .. &&
+    make VERBOSE=1 &&
+    ctest --output-on-failure -j8)
+
+
