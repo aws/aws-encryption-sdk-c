@@ -46,11 +46,6 @@ endif()
 
 find_package(aws-c-common CONFIG REQUIRED)
 
-# C++ SDK
-
-find_package(aws-cpp-sdk-core CONFIG)
-find_package(aws-cpp-sdk-kms CONFIG)
-
 if(USE_ASM)
     CHECK_CXX_SOURCE_COMPILES("
     int main() {
@@ -186,6 +181,8 @@ file(GLOB UNIT_TEST_HDRS "tests/*.h")
 file(GLOB UNIT_TESTS ${TEST_HDRS} ${TEST_SRC})
 file(GLOB TEST_LIB "tests/lib/*.c")
 
+add_subdirectory(aws-encryption-sdk-cpp)
+
 include(CTest)
 enable_testing()
 
@@ -231,6 +228,7 @@ add_test(enc_context ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite enc
 add_test(encrypt ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite encrypt)
 add_test(hkdf ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite hkdf)
 add_test(raw_aes_keyring ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite raw_aes_keyring)
+add_test(raw_rsa_keyring ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite raw_rsa_keyring)
 add_test(multi_keyring ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite multi_keyring)
 add_test(signature ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite signature)
 

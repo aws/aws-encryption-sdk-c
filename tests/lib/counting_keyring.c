@@ -18,7 +18,7 @@
 #include <aws/common/string.h>
 #include <aws/common/byte_buf.h>
 
-struct counting_keyring {const struct aws_cryptosdk_keyring_vt * vt;};
+struct counting_keyring {const struct aws_cryptosdk_keyring base;};
 
 static inline struct aws_byte_buf aws_string_to_buf(const struct aws_string *s) {
     return aws_byte_buf_from_array(aws_string_bytes(s), s->len);
@@ -130,7 +130,10 @@ static int counting_keyring_decrypt_data_key(struct aws_cryptosdk_keyring * kr,
     return AWS_OP_ERR;
 }
 
-static void counting_keyring_destroy(struct aws_cryptosdk_keyring * kr) {}
+static void counting_keyring_destroy(struct aws_cryptosdk_keyring * kr) {
+    (void)kr;
+    abort(); // should be unreachable
+}
 
 static const struct aws_cryptosdk_keyring_vt counting_keyring_vt = {
     .vt_size = sizeof(struct aws_cryptosdk_keyring_vt),
@@ -141,8 +144,8 @@ static const struct aws_cryptosdk_keyring_vt counting_keyring_vt = {
     .decrypt_data_key = counting_keyring_decrypt_data_key
 };
 
-static struct counting_keyring counting_keyring_singleton = {.vt = &counting_keyring_vt};
+static struct counting_keyring counting_keyring_singleton = {.base = {.vtable = &counting_keyring_vt, .refcount = AWS_ATOMIC_INIT_INT(1)}};
 
 struct aws_cryptosdk_keyring * aws_cryptosdk_counting_keyring() {
-    return (struct aws_cryptosdk_keyring *)&counting_keyring_singleton;
+    return aws_cryptosdk_keyring_retain((struct aws_cryptosdk_keyring *)&counting_keyring_singleton);
 }

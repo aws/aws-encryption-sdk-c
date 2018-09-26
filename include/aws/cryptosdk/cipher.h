@@ -26,6 +26,12 @@ enum aws_cryptosdk_aes_key_len {
     AWS_CRYPTOSDK_AES_256 = 256/8
 };
 
+enum aws_cryptosdk_rsa_padding_mode {
+    AWS_CRYPTOSDK_RSA_PKCS1,
+    AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1,
+    AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1,
+};
+
 struct aws_cryptosdk_alg_properties {
     const char *md_name, *cipher_name, *alg_name;
 
@@ -40,6 +46,10 @@ struct aws_cryptosdk_alg_properties {
 
     enum aws_cryptosdk_alg_id alg_id;
 };
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryptosdk_alg_id alg_id);
 
@@ -159,5 +169,9 @@ int aws_cryptosdk_sig_sign_finish(
 void aws_cryptosdk_sig_abort(
     struct aws_cryptosdk_signctx *ctx
 );
+
+#ifdef __cplusplus
+}
+#endif  
 
 #endif // AWS_CRYPTOSDK_CIPHER_H

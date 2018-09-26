@@ -14,10 +14,11 @@
  */
 #include <aws/cryptosdk/multi_keyring.h>
 #include <aws/cryptosdk/private/materials.h>
+#include <aws/common/atomics.h>
 #include "testing.h"
 
 struct test_keyring {
-    const struct aws_cryptosdk_keyring_vt *vt;
+    struct aws_cryptosdk_keyring base;
 
     struct aws_byte_buf decrypted_key_to_return;
 
@@ -26,9 +27,14 @@ struct test_keyring {
     bool generate_called;
     bool encrypt_called;
     bool decrypt_called;
+    bool destroy_called;
 };
 
-static void test_keyring_destroy(struct aws_cryptosdk_keyring * kr) {(void)kr;}
+static void test_keyring_destroy(struct aws_cryptosdk_keyring * kr) {
+    struct test_keyring *self = (struct test_keyring *)kr;
+
+    self->destroy_called = true;
+}
 
 static char data_key[] = "data key";
 static int test_keyring_generate_or_encrypt(struct aws_cryptosdk_keyring * kr,
@@ -107,7 +113,7 @@ static int set_up_all_the_things(bool include_generator) {
     multi = aws_cryptosdk_multi_keyring_new(alloc, NULL);
     TEST_ASSERT_ADDR_NOT_NULL(multi);
     for (size_t kr_idx = 0; kr_idx < num_test_keyrings; ++kr_idx) {
-        test_keyrings[kr_idx].vt = &test_keyring_vt;
+        aws_cryptosdk_keyring_base_init(&test_keyrings[kr_idx].base, &test_keyring_vt);
 
         if (kr_idx) {
             TEST_ASSERT_SUCCESS(aws_cryptosdk_multi_keyring_add(
@@ -131,7 +137,57 @@ static int set_up_all_the_things(bool include_generator) {
 static void tear_down_all_the_things() {
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
     aws_cryptosdk_decryption_materials_destroy(dec_mat);
-    aws_cryptosdk_keyring_destroy(multi);
+    aws_cryptosdk_keyring_release(multi);
+}
+
+int adds_and_removes_refs() {
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(false));
+
+    /* Test keyring 0 is used only if it is selected as the generator */
+    for (size_t i = 1; i < num_test_keyrings; i++) {
+        TEST_ASSERT_INT_EQ(2, aws_atomic_load_int(&test_keyrings[i].base.refcount));
+        TEST_ASSERT_INT_EQ(false, test_keyrings[i].destroy_called);
+    }
+
+    aws_cryptosdk_keyring_release((struct aws_cryptosdk_keyring *)&test_keyrings[1]);
+    TEST_ASSERT_INT_EQ(1, aws_atomic_load_int(&test_keyrings[1].base.refcount));
+    TEST_ASSERT_INT_EQ(false, test_keyrings[1].destroy_called);
+
+    aws_cryptosdk_keyring_release(multi);
+    multi = NULL;
+    TEST_ASSERT_INT_EQ(true, test_keyrings[1].destroy_called);
+
+    for (size_t i = 2; i < num_test_keyrings; i++) {
+        TEST_ASSERT_INT_EQ(1, aws_atomic_load_int(&test_keyrings[i].base.refcount));
+        TEST_ASSERT_INT_EQ(false, test_keyrings[i].destroy_called);
+    }
+
+    tear_down_all_the_things();
+
+    return 0;
+}
+
+int adds_and_removes_refs_for_generator() {
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(true));
+
+    TEST_ASSERT_INT_EQ(2, aws_atomic_load_int(&test_keyrings[0].base.refcount));
+    TEST_ASSERT_INT_EQ(false, test_keyrings[0].destroy_called);
+
+    tear_down_all_the_things();
+
+    TEST_ASSERT_INT_EQ(1, aws_atomic_load_int(&test_keyrings[0].base.refcount));
+    TEST_ASSERT_INT_EQ(false, test_keyrings[0].destroy_called);
+
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(true));
+    aws_cryptosdk_keyring_release((struct aws_cryptosdk_keyring *)&test_keyrings[0]);
+
+    TEST_ASSERT_INT_EQ(1, aws_atomic_load_int(&test_keyrings[0].base.refcount));
+    TEST_ASSERT_INT_EQ(false, test_keyrings[0].destroy_called);
+
+    tear_down_all_the_things();
+    TEST_ASSERT_INT_EQ(true, test_keyrings[0].destroy_called);
+
+    return 0;
 }
 
 int delegates_encrypt_calls() {
@@ -370,5 +426,7 @@ struct test_case multi_keyring_test_cases[] = {
     { "multi_keyring", "generate_fails_when_generator_not_set", generate_fails_when_generator_not_set },
     { "multi_keyring", "delegates_decrypt_calls", delegates_decrypt_calls },
     { "multi_keyring", "fail_when_error_and_no_decrypt", fail_when_error_and_no_decrypt },
+    { "multi_keyring", "adds_and_removes_refs", adds_and_removes_refs },
+    { "multi_keyring", "adds_and_removes_refs_for_generator", adds_and_removes_refs_for_generator },
     { NULL }
 };
