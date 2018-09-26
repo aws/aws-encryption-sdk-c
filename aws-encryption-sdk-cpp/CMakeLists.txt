@@ -104,7 +104,7 @@ if (BUILD_AWS_ENC_SDK_CPP)
                 $<INSTALL_INTERFACE:include>
                 )
         set_target_properties(t_integration_kms_keyring PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
-        add_test(integration_kms_mk t_integration_kms_keyring)
+        add_test(integration_kms_mk ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/t_integration_kms_keyring)
         # path env variable requierd by Windows
         if (WIN32 AND DEFINED ${AWSSDK_LIB_DIR})
             set_tests_properties(integration_kms_mk PROPERTIES ENVIRONMENT "PATH=${AWSSDK_LIB_DIR};$ENV{PATH}" )
@@ -125,7 +125,7 @@ if (BUILD_AWS_ENC_SDK_CPP)
                 )
         set_target_properties(${TEST_NAME} PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
 
-        add_test(${TEST_NAME}.test ${TEST_NAME})
+        add_test(${TEST_NAME}.test ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})
         # path env variable requierd by Windows
         if (WIN32 AND DEFINED ${AWSSDK_LIB_DIR})
             set_tests_properties(${TEST_NAME}.test PROPERTIES ENVIRONMENT "PATH=${AWSSDK_LIB_DIR};$ENV{PATH}" )
