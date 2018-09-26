@@ -244,7 +244,8 @@ int main() {
     SDKOptions options;
     Aws::InitAPI(options);
 
-    LoggingRAII loggingInit;
+    // Enabling AWS C++ SDK logging generates valgrind warnings from deep in the SDK client code
+    //LoggingRAII loggingInit;
 
     RUN_TEST(generatedkAndDecrypt_sameKeyringKey1_returnSuccess());
     RUN_TEST(generatedkAndDecrypt_sameKeyringKey2_returnSuccess());
