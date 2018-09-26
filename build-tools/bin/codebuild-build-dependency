@@ -52,7 +52,7 @@ if aws s3 cp $S3PATH "$ROOT/prebuilt.tar.xz"; then
     tar -C "$ROOT" -xvf "$ROOT/prebuilt.tar.xz"
 else
     mkdir -p "$ROOT/build"
-    (cd $ROOT/build; cmake "$ROOT/git" "$@" -DCMAKE_INSTALL_PREFIX="$ROOT/install" && make -j4 && make install)
+    (cd $ROOT/build; cmake "$ROOT/git" -GNinja "$@" -DCMAKE_INSTALL_PREFIX="$ROOT/install" && cmake --build . && cmake --build . --target install)
     tar -C "$ROOT" -cJvf prebuilt.tar.xz install
     aws s3 cp prebuilt.tar.xz "$S3PATH"
 fi
