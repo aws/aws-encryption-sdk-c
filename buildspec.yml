@@ -4,7 +4,7 @@ phases:
   pre_build:
     commands:
       - apt-get update
-      - env DEBIAN_FRONTEND=noninteractive apt-get -y install build-essential cmake git libssl-dev libcurl4-openssl-dev zlib1g-dev awscli valgrind
+      - env DEBIAN_FRONTEND=noninteractive apt-get -y install build-essential cmake git libssl-dev libcurl4-openssl-dev zlib1g-dev awscli valgrind ninja-build
   build:
     commands:
       - build-tools/bin/codebuild-test.sh
