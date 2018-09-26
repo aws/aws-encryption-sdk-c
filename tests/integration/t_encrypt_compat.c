@@ -176,6 +176,8 @@ static int test_basic() {
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) abort();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) abort();
     if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_ENCRYPT, cmm))) abort();
+    aws_cryptosdk_keyring_release(kr);
+    aws_cryptosdk_cmm_release(cmm);
 
     aws_cryptosdk_session_set_message_size(session, sizeof(plaintext));
     
@@ -188,8 +190,6 @@ static int test_basic() {
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
 
     aws_cryptosdk_session_destroy(session);
-    aws_cryptosdk_cmm_destroy(cmm);
-    aws_cryptosdk_keyring_destroy(kr);
 
     hexdump(stderr, ciphertext, ct_consumed);
 
@@ -213,6 +213,8 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) abort();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) abort();
     if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm))) abort();
+    aws_cryptosdk_kr_release(kr);
+    aws_cryptosdk_cmm_release(cmm);
 
     if (early_size) aws_cryptosdk_session_set_message_size(session, plaintext_sz);
     aws_cryptosdk_session_set_frame_size(session, framesize);
@@ -266,25 +268,12 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
     TRY_DECRYPT(plaintext, plaintext_sz, ciphertext, ct_offset);
 
     aws_cryptosdk_session_destroy(session);
-    aws_cryptosdk_cmm_destroy(cmm);
-    aws_cryptosdk_keyring_destroy(kr);
 
     free(plaintext);
     free(ciphertext);
 
     return 0;
 }
-
-#define RUN_TEST(expr) \
-    do { \
-        const char *test_desc = #expr; \
-        fprintf(stderr, "[RUNNING] %s ...\r", test_desc); \
-        int result = (expr); \
-        fprintf(stderr, "%s %s    \n", result ? "\n[ FAILED]" : "[ PASSED]", test_desc); \
-        if (result) return 1; \
-        final_result = final_result || result; \
-    } while (0)
-
 
 int main() {
     aws_load_error_strings();

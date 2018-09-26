@@ -172,5 +172,55 @@ int aws_cryptosdk_aes_gcm_decrypt(struct aws_byte_buf * plain,
                                   const struct aws_byte_cursor aad,
                                   const struct aws_string * key);
 
+/**
+ * Does RSA decryption of an encrypted data key to an unecrypted data key.
+ * RSA with PKCS1, OAEP_SHA1_MGF1 and OAEP_SHA256_MGF1 padding modes is supported.
+ * 
+ * Here, 'plain' refers to the unencrypted AES data key obtained as a result of the RSA 
+ * decryption, 'rsa_private_key_pem' is a string that contains the RSA private key in PEM 
+ * format and 'cipher' is the encrypted AES data key.
+ * 
+ * This function requires that plain has no memory allocated to it already, and allocates
+ * it newly. The length of the buffer will be set to the length of plain on a successful decrypt.
+ *
+ * Returns AWS_OP_SUCCESS on a successful decrypt. On failure, returns AWS_OP_ERR and sets
+ * one of the following error codes:
+ * 
+ * AWS_CRYPTOSDK_ERR_BAD_STATE : the output buffer was not in the proper (unallocated) state
+ * AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT: unsupported padding mode for RSA wrapping algorithm
+ * AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT : unable to decrypt or authenticate cipher text
+ * AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN : OpenSSL error
+ */
+int aws_cryptosdk_rsa_decrypt(
+    struct aws_byte_buf *plain,
+    struct aws_allocator *alloc,
+    const struct aws_byte_cursor cipher,
+    const struct aws_string *rsa_private_key_pem,
+    enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);
 
-#endif // AWS_CRYPTOSDK_PRIVATE_CIPHER_H
+/**
+ * Does RSA encryption of an unencrypted data key to an encrypted data key.
+ * RSA with PKCS1, OAEP_SHA1_MGF1 and OAEP_SHA256_MGF1 padding modes is supported.
+ *
+ * Here, 'cipher' is the encrypted AES data key obtained as a result of the RSA encryption,
+ *'rsa_public_key_pem' is a string that contains the RSA public key in PEM format and 'plain' 
+ * refers to the unencrypted AES data key.
+ *
+ * This function requires that cipher has no memory allocated to it already, and allocates
+ * it newly. The length of the buffer will be set to the length of cipher on a successful encrypt.
+ *
+ * Returns AWS_OP_SUCCESS on a successful encrypt. On failure, returns AWS_OP_ERR and sets
+ * one of the following error codes:
+ *
+ * AWS_CRYPTOSDK_ERR_BAD_STATE : the output buffer was not in the proper (unallocated) state
+ * AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT: unsupported padding mode for RSA wrapping algorithm
+ * AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN : OpenSSL error or other unknown errors 
+ */
+int aws_cryptosdk_rsa_encrypt(
+    struct aws_byte_buf *cipher,
+    struct aws_allocator *alloc,
+    const struct aws_byte_cursor plain,
+    const struct aws_string *rsa_public_key_pem,
+    enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);
+
+#endif  // AWS_CRYPTOSDK_PRIVATE_CIPHER_H

@@ -17,7 +17,7 @@
 #include <assert.h>
 
 struct multi_keyring {
-    const struct aws_cryptosdk_keyring_vt *vt;
+    struct aws_cryptosdk_keyring base;
     struct aws_allocator *alloc;
     struct aws_cryptosdk_keyring *generator;
     struct aws_array_list children; // list of (struct aws_cryptosdk_keyring *)
@@ -40,22 +40,6 @@ static int call_on_encrypt_on_list(const struct aws_array_list *keyrings,
 					     enc_context,
 					     alg)) return AWS_OP_ERR;
     }
-    return AWS_OP_SUCCESS;
-}
-
-static int transfer_edk_list(struct aws_array_list *dest, struct aws_array_list *src) {
-    size_t src_len = aws_array_list_length(src);
-    for (size_t src_idx = 0; src_idx < src_len; ++src_idx) {
-        void *item_ptr;
-        if (aws_array_list_get_at_ptr(src, &item_ptr, src_idx)) return AWS_OP_ERR;
-        if (aws_array_list_push_back(dest, item_ptr)) return AWS_OP_ERR;
-    }
-    /* This clear is important. It does not free any memory, but it resets the length of the
-     * source list to zero, so that the EDK buffers in its list will NOT get freed when the
-     * EDK list gets destroyed. We do not want to free those buffers, because we made a shallow
-     * copy of the EDK list to the destination array list, so it still uses all the same buffers.
-     */
-    aws_array_list_clear(src);
     return AWS_OP_SUCCESS;
 }
 
@@ -100,7 +84,7 @@ static int multi_keyring_on_encrypt(struct aws_cryptosdk_keyring *multi,
                                 &my_edks,
                                 enc_context,
                                 alg) ||
-        transfer_edk_list(edks, &my_edks)) {
+        aws_cryptosdk_transfer_edk_list(edks, &my_edks)) {
         ret = AWS_OP_ERR;
     }
 
@@ -155,6 +139,17 @@ static int multi_keyring_on_decrypt(struct aws_cryptosdk_keyring *multi,
 
 static void multi_keyring_destroy(struct aws_cryptosdk_keyring *multi) {
     struct multi_keyring *self = (struct multi_keyring *)multi;
+    size_t n_keys = aws_array_list_length(&self->children);
+
+    for (size_t i = 0; i < n_keys; i++) {
+        struct aws_cryptosdk_keyring *child;
+        if (!aws_array_list_get_at(&self->children, (void *)&child, i)) {
+            aws_cryptosdk_keyring_release(child);
+        }
+    }
+
+    aws_cryptosdk_keyring_release(self->generator);
+
     aws_array_list_clean_up(&self->children);
     aws_mem_release(self->alloc, self);
 }
@@ -178,8 +173,10 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(
         aws_mem_release(alloc, multi);
         return NULL;
     }
+
+    aws_cryptosdk_keyring_base_init(&multi->base, &vt);
+
     multi->alloc = alloc;
-    multi->vt = &vt;
     multi->generator = generator;
     return (struct aws_cryptosdk_keyring *)multi;
 }
@@ -188,13 +185,17 @@ int aws_cryptosdk_multi_keyring_set_generator(struct aws_cryptosdk_keyring *mult
                                               struct aws_cryptosdk_keyring *generator) {
     struct multi_keyring *self = (struct multi_keyring *)multi;
 
-    if (self->generator) return aws_raise_error(AWS_ERROR_UNIMPLEMENTED);
-    self->generator = generator;
+    if (self->generator) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    self->generator = aws_cryptosdk_keyring_retain(generator);
+
     return AWS_OP_SUCCESS;
 }
 
 int aws_cryptosdk_multi_keyring_add(struct aws_cryptosdk_keyring *multi,
                                     struct aws_cryptosdk_keyring *child) {
     struct multi_keyring *self = (struct multi_keyring *)multi;
+
+    aws_cryptosdk_keyring_retain(child);
+
     return aws_array_list_push_back(&self->children, (void *)&child);
 }

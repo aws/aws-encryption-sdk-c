@@ -26,7 +26,7 @@
 #define RAW_AES_KR_TAG_LEN 16
 
 struct raw_aes_keyring {
-    const struct aws_cryptosdk_keyring_vt * vt;
+    struct aws_cryptosdk_keyring base;
     struct aws_allocator * alloc;
     const struct aws_string * master_key_id;
     const struct aws_string * provider_id;

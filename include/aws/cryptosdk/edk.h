@@ -32,6 +32,10 @@ struct aws_cryptosdk_edk {
     struct aws_byte_buf enc_data_key;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Deallocates all memory associated with an EDK. Setting all bytes of EDK to
  * zero upon creation will make this safe to call even if some buffers are unused.
@@ -63,4 +67,16 @@ static inline bool aws_cryptosdk_edk_eq(const struct aws_cryptosdk_edk *a, const
         aws_byte_buf_eq(&a->provider_id, &b->provider_id);
 }
 
+/**
+ * Appends the contents of source EDK list to destination EDK list, and clears source list,
+ * but does not clean it up. This makes a shallow copy of all EDKs, so byte buffers are not
+ * duplicated. Their ownership is just transferred from the source list to the destination.
+ */
+int aws_cryptosdk_transfer_edk_list(struct aws_array_list *dest, struct aws_array_list *src);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif // AWS_CRYPTOSDK_EDK_H
+

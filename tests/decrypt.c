@@ -104,8 +104,7 @@ int test_decrypt() {
 
     free(output_buf);
     aws_cryptosdk_session_destroy(session);
-    aws_cryptosdk_cmm_destroy(cmm);
-    aws_cryptosdk_keyring_destroy(kr);
+    aws_cryptosdk_cmm_release(cmm);
 
     return 0;
 }

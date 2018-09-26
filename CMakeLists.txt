@@ -32,6 +32,9 @@ set(USE_ASM TRUE
 set(SPECTRE_MITIGATIONS TRUE
     CACHE BOOL "Attempt to mitigate SPECTRE attacks, at a potential performance cost")
 
+set(REDUCE_TEST_ITERATIONS FALSE
+    CACHE BOOL "Reduce the number of iterations done on some exhaustive tests. This is particularly helpful when running under valgrind")
+
 option(VALGRIND_TEST_SUITE "Run the test suite under valgrind")
 set(VALGRIND_OPTIONS "" CACHE STRING "Additional options to pass to valgrind")
 
@@ -42,11 +45,6 @@ else()
 endif()
 
 find_package(aws-c-common CONFIG REQUIRED)
-
-# C++ SDK
-
-find_package(aws-cpp-sdk-core CONFIG)
-find_package(aws-cpp-sdk-kms CONFIG)
 
 if(USE_ASM)
     CHECK_CXX_SOURCE_COMPILES("
@@ -183,6 +181,8 @@ file(GLOB UNIT_TEST_HDRS "tests/*.h")
 file(GLOB UNIT_TESTS ${TEST_HDRS} ${TEST_SRC})
 file(GLOB TEST_LIB "tests/lib/*.c")
 
+add_subdirectory(aws-encryption-sdk-cpp)
+
 include(CTest)
 enable_testing()
 
@@ -195,6 +195,10 @@ add_executable(unit-test-suite ${UNIT_TEST_SRC})
 target_link_libraries(unit-test-suite ${PROJECT_NAME} ${OPENSSL_LDFLAGS} testlib)
 set_target_properties(unit-test-suite PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 target_include_directories(unit-test-suite PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+
+if (REDUCE_TEST_ITERATIONS)
+    target_compile_definitions(unit-test-suite PRIVATE REDUCE_TEST_ITERATIONS)
+endif()
 
 add_executable(test_decrypt "tests/decrypt.c" ${TEST_LIB})
 target_link_libraries(test_decrypt ${PROJECT_NAME} ${OPENSSL_LDFLAGS} testlib)
@@ -224,6 +228,7 @@ add_test(enc_context ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite enc
 add_test(encrypt ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite encrypt)
 add_test(hkdf ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite hkdf)
 add_test(raw_aes_keyring ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite raw_aes_keyring)
+add_test(raw_rsa_keyring ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite raw_rsa_keyring)
 add_test(multi_keyring ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite multi_keyring)
 add_test(signature ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite signature)
 

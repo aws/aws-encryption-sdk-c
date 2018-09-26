@@ -15,6 +15,7 @@
 
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/default_cmm.h>
+#include <aws/cryptosdk/session.h>
 #include "testing.h"
 #include "zero_keyring.h"
 #include "bad_cmm.h"
@@ -52,8 +53,8 @@ int default_cmm_zero_keyring_enc_mat() {
     TEST_ASSERT_BUF_EQ(edk->provider_info, 'n', 'u', 'l', 'l');
 
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
-    aws_cryptosdk_cmm_destroy(cmm);
-    aws_cryptosdk_keyring_destroy(kr);
+    aws_cryptosdk_cmm_release(cmm);
+    aws_cryptosdk_keyring_release(kr);
 
     return 0;
 }
@@ -81,42 +82,141 @@ int default_cmm_zero_keyring_dec_mat() {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
     aws_cryptosdk_decryption_materials_destroy(dec_mat);
-    aws_cryptosdk_cmm_destroy(cmm);
-    aws_cryptosdk_keyring_destroy(kr);
+    aws_cryptosdk_cmm_release(cmm);
+    aws_cryptosdk_keyring_release(kr);
     aws_array_list_clean_up(&req.encrypted_data_keys);
     return 0;
 }
 
 int zero_size_cmm_does_not_run_vfs() {
-    struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_zero_size_cmm_new();
+    struct aws_cryptosdk_cmm cmm = aws_cryptosdk_zero_size_cmm();
     TEST_ASSERT_ERROR(AWS_ERROR_UNIMPLEMENTED,
-                      aws_cryptosdk_cmm_generate_encryption_materials(cmm, NULL, NULL));
+                      aws_cryptosdk_cmm_generate_encryption_materials(&cmm, NULL, NULL));
 
     TEST_ASSERT_ERROR(AWS_ERROR_UNIMPLEMENTED,
-                      aws_cryptosdk_cmm_decrypt_materials(cmm, NULL, NULL));
+                      aws_cryptosdk_cmm_decrypt_materials(&cmm, NULL, NULL));
 
     TEST_ASSERT_ERROR(AWS_ERROR_UNIMPLEMENTED,
-                      aws_cryptosdk_cmm_destroy_with_failed_return_value(cmm));
+                      aws_cryptosdk_cmm_release_with_failed_return_value(&cmm));
 
     return 0;
 }
 
 int null_cmm_fails_vf_calls_cleanly() {
-    struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_null_cmm_new();
+    struct aws_cryptosdk_cmm cmm = aws_cryptosdk_null_cmm();
     TEST_ASSERT_ERROR(AWS_ERROR_UNIMPLEMENTED,
-                      aws_cryptosdk_cmm_generate_encryption_materials(cmm, NULL, NULL));
+                      aws_cryptosdk_cmm_generate_encryption_materials(&cmm, NULL, NULL));
 
     TEST_ASSERT_ERROR(AWS_ERROR_UNIMPLEMENTED,
-                      aws_cryptosdk_cmm_decrypt_materials(cmm, NULL, NULL));
+                      aws_cryptosdk_cmm_decrypt_materials(&cmm, NULL, NULL));
 
     TEST_ASSERT_ERROR(AWS_ERROR_UNIMPLEMENTED,
-                      aws_cryptosdk_cmm_destroy_with_failed_return_value(cmm));
+                      aws_cryptosdk_cmm_release_with_failed_return_value(&cmm));
     return 0;
 }
 
-int null_materials_destroy_is_noop() {
-    aws_cryptosdk_cmm_destroy(NULL);
-    aws_cryptosdk_keyring_destroy(NULL);
+int null_materials_release_is_noop() {
+    aws_cryptosdk_cmm_release(NULL);
+    aws_cryptosdk_keyring_release(NULL);
+
+    return 0;
+}
+
+static bool destroy_called = false;
+static void track_destroy_cmm(struct aws_cryptosdk_cmm *cmm) {
+    (void)cmm;
+
+    destroy_called = true;
+}
+
+static void track_destroy_keyring(struct aws_cryptosdk_keyring *keyring) {
+    (void)keyring;
+
+    destroy_called = true;
+}
+
+static const struct aws_cryptosdk_cmm_vt track_destroy_cmm_vt = {
+    .vt_size = sizeof(track_destroy_cmm_vt),
+    .name = "track_destroy_cmm_vt",
+    .destroy = track_destroy_cmm
+};
+
+static const struct aws_cryptosdk_keyring_vt track_destroy_keyring_vt = {
+    .vt_size = sizeof(track_destroy_keyring_vt),
+    .name = "track_destroy_keyring_vt",
+    .destroy = track_destroy_keyring
+};
+
+static int refcount_keyring() {
+    struct aws_cryptosdk_keyring keyring;
+    aws_cryptosdk_keyring_base_init(&keyring, &track_destroy_keyring_vt);
+    destroy_called = false;
+
+    TEST_ASSERT_INT_EQ(aws_atomic_load_int(&keyring.refcount), 1);
+    TEST_ASSERT_ADDR_EQ(&keyring, aws_cryptosdk_keyring_retain(&keyring));
+    TEST_ASSERT_INT_EQ(aws_atomic_load_int(&keyring.refcount), 2);
+    TEST_ASSERT_INT_EQ(destroy_called, false);
+    TEST_ASSERT_ADDR_EQ(&keyring, aws_cryptosdk_keyring_retain(&keyring));
+    TEST_ASSERT_INT_EQ(aws_atomic_load_int(&keyring.refcount), 3);
+    TEST_ASSERT_INT_EQ(destroy_called, false);
+
+    aws_cryptosdk_keyring_release(&keyring);
+    TEST_ASSERT_INT_EQ(aws_atomic_load_int(&keyring.refcount), 2);
+    TEST_ASSERT_INT_EQ(destroy_called, false);
+
+    aws_cryptosdk_keyring_release(&keyring);
+    TEST_ASSERT_INT_EQ(aws_atomic_load_int(&keyring.refcount), 1);
+    TEST_ASSERT_INT_EQ(destroy_called, false);
+
+    aws_cryptosdk_keyring_release(&keyring);
+    TEST_ASSERT_INT_EQ(destroy_called, true);
+
+    return 0;
+}
+
+static int refcount_cmm() {
+    struct aws_cryptosdk_cmm cmm;
+    aws_cryptosdk_cmm_base_init(&cmm, &track_destroy_cmm_vt);
+    destroy_called = false;
+
+    TEST_ASSERT_INT_EQ(aws_atomic_load_int(&cmm.refcount), 1);
+    TEST_ASSERT_ADDR_EQ(&cmm, aws_cryptosdk_cmm_retain(&cmm));
+    TEST_ASSERT_INT_EQ(aws_atomic_load_int(&cmm.refcount), 2);
+    TEST_ASSERT_INT_EQ(destroy_called, false);
+    TEST_ASSERT_ADDR_EQ(&cmm, aws_cryptosdk_cmm_retain(&cmm));
+    TEST_ASSERT_INT_EQ(aws_atomic_load_int(&cmm.refcount), 3);
+    TEST_ASSERT_INT_EQ(destroy_called, false);
+
+    aws_cryptosdk_cmm_release(&cmm);
+    TEST_ASSERT_INT_EQ(aws_atomic_load_int(&cmm.refcount), 2);
+    TEST_ASSERT_INT_EQ(destroy_called, false);
+
+    aws_cryptosdk_cmm_release(&cmm);
+    TEST_ASSERT_INT_EQ(aws_atomic_load_int(&cmm.refcount), 1);
+    TEST_ASSERT_INT_EQ(destroy_called, false);
+
+    aws_cryptosdk_cmm_release(&cmm);
+    TEST_ASSERT_INT_EQ(destroy_called, true);
+
+    return 0;
+}
+
+static int session_updates_cmm_refcount() {
+    struct aws_cryptosdk_cmm cmm;
+    struct aws_cryptosdk_session *session;
+    aws_cryptosdk_cmm_base_init(&cmm, &track_destroy_cmm_vt);
+    destroy_called = false;
+
+    TEST_ASSERT_INT_EQ(aws_atomic_load_int(&cmm.refcount), 1);
+
+    session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, &cmm);
+    TEST_ASSERT_INT_EQ(aws_atomic_load_int(&cmm.refcount), 2);
+
+    aws_cryptosdk_cmm_release(&cmm);
+    TEST_ASSERT_INT_EQ(aws_atomic_load_int(&cmm.refcount), 1);
+
+    aws_cryptosdk_session_destroy(session);
+    TEST_ASSERT_INT_EQ(destroy_called, true);
 
     return 0;
 }
@@ -127,8 +227,8 @@ static struct aws_allocator *alloc;
 
 static void reset_test_keyring() {
     memset(&test_kr, 0, sizeof(test_kr));
-    test_kr.vt = &test_keyring_vt;
-    kr = (struct aws_cryptosdk_keyring *)&test_kr;
+    kr = &test_kr.base;
+    aws_cryptosdk_keyring_base_init(kr, &test_keyring_vt);
 
     alloc = aws_default_allocator();
 }
@@ -224,7 +324,10 @@ struct test_case materials_test_cases[] = {
     { "materials", "default_cmm_zero_keyring_dec_mat", default_cmm_zero_keyring_dec_mat },
     { "materials", "zero_size_cmm_does_not_run_vfs", zero_size_cmm_does_not_run_vfs },
     { "materials", "null_cmm_fails_vf_calls_cleanly", null_cmm_fails_vf_calls_cleanly },
-    { "materials", "null_materials_destroy_is_noop", null_materials_destroy_is_noop },
+    { "materials", "null_materials_release_is_noop", null_materials_release_is_noop },
+    { "materials", "refcount_cmm", refcount_cmm },
+    { "materials", "refcount_keyring", refcount_keyring },
+    { "materials", "session_updates_cmm_refcount", session_updates_cmm_refcount },
     { "materials", "on_encrypt_precondition_violation", on_encrypt_precondition_violation },
     { "materials", "on_encrypt_postcondition_violation", on_encrypt_postcondition_violation },
     { "materials", "on_decrypt_precondition_violation", on_decrypt_precondition_violation },

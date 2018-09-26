@@ -19,7 +19,7 @@
 #include <aws/common/byte_buf.h>
 
 struct counting_keyring {
-    const struct aws_cryptosdk_keyring_vt *vt;
+    struct aws_cryptosdk_keyring base;
     struct aws_allocator *alloc;
 };
 
@@ -148,10 +148,11 @@ static const struct aws_cryptosdk_keyring_vt counting_keyring_vt = {
     .on_decrypt = counting_keyring_on_decrypt
 };
 
+
 struct aws_cryptosdk_keyring *aws_cryptosdk_counting_keyring_new(struct aws_allocator *alloc) {
     struct counting_keyring *kr = aws_mem_acquire(alloc, sizeof(struct counting_keyring));
     if (!kr) return NULL;
-    kr->vt = &counting_keyring_vt;
+    aws_cryptosdk_keyring_base_init(&kr->base, &counting_keyring_vt);
     kr->alloc = alloc;
     return (struct aws_cryptosdk_keyring *)kr;
 }

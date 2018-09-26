@@ -62,6 +62,8 @@ static void decrypt_test_oneshot(
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) unexpected_error();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) unexpected_error();
     if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
+    aws_cryptosdk_keyring_release(kr); kr = NULL;
+    aws_cryptosdk_cmm_release(cmm); cmm = NULL;
 
     uint8_t *outp = outbuf;
     const uint8_t *inp = ct.buffer;
@@ -93,8 +95,8 @@ static void decrypt_test_oneshot(
 
 error:
     if (session) aws_cryptosdk_session_destroy(session);
-    if (cmm) aws_cryptosdk_cmm_destroy(cmm);
-    if (kr) aws_cryptosdk_keyring_destroy(kr);
+    if (cmm) aws_cryptosdk_cmm_release(cmm);
+    if (kr) aws_cryptosdk_keyring_release(kr);
 
     free(outbuf);
 
@@ -125,6 +127,8 @@ static void decrypt_test_incremental(
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) unexpected_error();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) unexpected_error();
     if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
+    aws_cryptosdk_keyring_release(kr); kr = NULL;
+    aws_cryptosdk_cmm_release(cmm); cmm = NULL;
 
     uint8_t *outp = outbuf;
     const uint8_t *inp = ct.buffer;
@@ -265,8 +269,8 @@ static void decrypt_test_incremental(
 
 error:
     if (session) aws_cryptosdk_session_destroy(session);
-    if (cmm) aws_cryptosdk_cmm_destroy(cmm);
-    if (kr) aws_cryptosdk_keyring_destroy(kr);
+    if (cmm) aws_cryptosdk_cmm_release(cmm);
+    if (kr) aws_cryptosdk_keyring_release(kr);
 
     free(outbuf);
 
@@ -298,7 +302,9 @@ static void decrypt_test_badciphertext(
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) unexpected_error();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) unexpected_error();
     if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
-
+    aws_cryptosdk_keyring_release(kr); kr = NULL;
+    aws_cryptosdk_cmm_release(cmm); cmm = NULL;
+    
     uint8_t *outp = outbuf;
     const uint8_t *inp = ct.buffer;
 
@@ -352,8 +358,8 @@ static void decrypt_test_badciphertext(
 
 error:
     if (session) aws_cryptosdk_session_destroy(session);
-    if (cmm) aws_cryptosdk_cmm_destroy(cmm);
-    if (kr) aws_cryptosdk_keyring_destroy(kr);
+    if (cmm) aws_cryptosdk_cmm_release(cmm);
+    if (kr) aws_cryptosdk_keyring_release(kr);
 
     free(outbuf);
     free(zerobuf);

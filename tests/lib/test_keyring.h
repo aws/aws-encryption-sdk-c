@@ -28,13 +28,14 @@
  */
 
 struct test_keyring {
-    const struct aws_cryptosdk_keyring_vt *vt;
+    struct aws_cryptosdk_keyring base;
     struct aws_byte_buf generated_data_key_to_return;
     struct aws_byte_buf decrypted_data_key_to_return;
     int ret;
     bool skip_output;
     bool on_encrypt_called;
     bool on_decrypt_called;
+    bool destroy_called;
 };
 
 extern const struct aws_cryptosdk_keyring_vt test_keyring_vt;

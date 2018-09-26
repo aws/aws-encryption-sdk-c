@@ -27,21 +27,19 @@ static size_t pt_size, pt_offset;
 static uint8_t *ct_buf;
 static size_t ct_buf_size, ct_size;
 static struct aws_cryptosdk_session *session;
-static struct aws_cryptosdk_cmm *cmm = NULL;
 static int precise_size_set = 0;
 
 static int create_session(enum aws_cryptosdk_mode mode, struct aws_cryptosdk_keyring *kr) {
     if (session) aws_cryptosdk_session_destroy(session);
-    if (cmm) aws_cryptosdk_cmm_destroy(cmm);
 
     session = NULL;
-    cmm = NULL;
 
-    cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
     if (!cmm) abort();
 
     session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), mode, cmm);
     if (!session) abort();
+    aws_cryptosdk_cmm_release(cmm);
 
     return AWS_OP_SUCCESS;
 }
@@ -61,8 +59,6 @@ static void init_bufs(size_t pt_len) {
 
 static void free_bufs() {
     aws_cryptosdk_session_destroy(session);
-    aws_cryptosdk_cmm_destroy(cmm);
-    cmm = NULL;
     session = NULL;
 
     aws_mem_release(aws_default_allocator(), pt_buf);
@@ -214,7 +210,6 @@ static int test_small_buffers() {
     if (check_ciphertext()) return 1;
 
     free_bufs();
-    aws_cryptosdk_keyring_destroy(kr);
     return 0;
 }
 
@@ -234,7 +229,6 @@ int test_simple_roundtrip() {
     if (check_ciphertext()) return 1;
 
     free_bufs();
-    aws_cryptosdk_keyring_destroy(kr);
     return 0;
 }
 
@@ -274,8 +268,7 @@ int test_different_keyring_cant_decrypt() {
 #endif
 
     free_bufs();
-    aws_cryptosdk_keyring_destroy(counting_kr);
-    aws_cryptosdk_keyring_destroy(zero_kr);
+
     return 0;
 }
 
@@ -296,7 +289,7 @@ int test_changed_keyring_can_decrypt() {
     if (check_ciphertext()) return 1;
 
     free_bufs();
-    aws_cryptosdk_keyring_destroy(counting_kr);
+
     return 0;
 }
 

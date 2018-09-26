@@ -17,7 +17,7 @@
 #include <aws/cryptosdk/cipher.h>
 
 struct zero_keyring {
-    const struct aws_cryptosdk_keyring_vt *vt;
+    struct aws_cryptosdk_keyring base;
     struct aws_allocator *alloc;
 };
 
@@ -127,10 +127,11 @@ static const struct aws_cryptosdk_keyring_vt zero_keyring_vt = {
     .on_decrypt = zero_keyring_on_decrypt
 };
 
+
 struct aws_cryptosdk_keyring *aws_cryptosdk_zero_keyring_new(struct aws_allocator *alloc) {
     struct zero_keyring *kr = aws_mem_acquire(alloc, sizeof(struct zero_keyring));
     if (!kr) return NULL;
-    kr->vt = &zero_keyring_vt;
+    aws_cryptosdk_keyring_base_init(&kr->base, &zero_keyring_vt);
     kr->alloc = alloc;
     return (struct aws_cryptosdk_keyring *)kr;
 }

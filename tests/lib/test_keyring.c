@@ -15,7 +15,10 @@
 
 #include "test_keyring.h"
 
-static void test_keyring_destroy(struct aws_cryptosdk_keyring * kr) {(void)kr;}
+static void test_keyring_destroy(struct aws_cryptosdk_keyring * kr) {
+    struct test_keyring *self = (struct test_keyring *)kr;
+    self->destroy_called = true;
+}
 
 static int test_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
                                    struct aws_allocator *request_alloc,

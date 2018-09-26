@@ -142,7 +142,7 @@ static int set_up_all_the_things(const struct aws_string ** keys,
 static void tear_down_all_the_things() {
     aws_cryptosdk_edk_list_clean_up(&edks);
     aws_hash_table_clean_up(&enc_context);
-    aws_cryptosdk_keyring_destroy(kr);
+    aws_cryptosdk_keyring_release(kr);
     aws_byte_buf_clean_up(&unencrypted_data_key);
 }
 
