@@ -28,48 +28,39 @@
  * or caller may make that argument NULL to not set a generator. It can later be
  * set by calling aws_cryptosdk_multi_keyring_set_generator.
  *
- * In the most common use case, Generate or Encrypt Data Key is called on the
- * multi-keyring with a generator already set and with the unencrypted_data_key
- * buffer not allocated. Then the multi-keyring will call the generator keyring's
- * Generate or Encrypt Data Key function FIRST, which will usually have the
- * effect of both generating the data key and pushing the first EDK onto the list.
- * Then the multi-keyring will call Generate or Encrypt Data Key on each of the
- * child keyrings, causing additional EDKs to be added to the list.
+ * Calling the multi-keyring's On Encrypt method without a provided unencrypted
+ * data key will cause it to do the following:
  *
- * Attempting to call Generate or Encrypt Data Key on a multi-keyring without a
- * generator when the unencrypted data key buffer is unallocated (i.e., when
- * generation should happen) will result in it failing with the error code
- * AWS_CRYPTOSDK_ERR_BAD_STATE.
+ * (1) Call the generator's On Encrypt method.
+ * (2) Verify that an unencrypted data key has been generated.
+ * (3) Call the child keyrings' On Encrypt methods.
+ * (4) If all previous calls have succeeded, return the unencrypted data key
+ *     and append all EDKs to the list provided by the caller.
  *
- * For calls to Generate or Encrypt Data Key when the unencrypted data key buffer
- * is already set, the generator will be ignored, and the data key will only
- * be re-encrypted by the child keyrings.
+ * If the generator is not set, or if it fails to generate an unencrypted
+ * data key, or if any of the delegated calls fail, the multi-keyring's On
+ * Encrypt call will fail without modifying its arguments. In the first two
+ * cases it will set the error code AWS_CRYPTOSDK_ERR_BAD_STATE. In the case of a
+ * delegated call failing, it will not set an error code, so as not to overwrite
+ * the error code of the failing keyring.
  *
- * For calls to Decrypt Data Key, the generator keyring is treated as just another
- * child keyring.
+ * If the multi-keyring's On Encrypt methods is called WITH a provided unencrypted
+ * data key, it will skip directly to step (3) above, meaning that the generator
+ * will never be called.
  *
- * Initially the multi keyring has no included child keyrings. Calls to Generate or
- * Encrypt Data Key with an unencrypted data key already provided will trivially
- * succeed without creating any more EDKs. Calls to Decrypt Data Key will trivially
- * succeed without actually decrypting data keys.
- *
- * On Generate or Encrypt Data Key calls, if the generator or any child keyring
- * experiences an error, the multi-keyring will return AWS_OP_ERR but not set an
- * error code, so as not to overwrite the error code from the erring keyring.
- * In these cases, the unencrypted data key buffer and the EDK list provided by the
- * caller will always be unchanged.
- *
- * Decrypt data key will attempt to decrypt one of the EDKs with each child keyring,
- * and the generator (if one is set) until it succeeds. Errors from child keyrings
- * will not stop it from proceeding to others. If it succeeds in decrypting an EDK,
- * it will return AWS_OP_SUCCESS, even if one or more of the child keyrings failed.
- * If it does not succeed in decrypting an EDK, it will return AWS_OP_SUCCESS if
- * there were no errors, and AWS_OP_ERR if there were errors. As with all decrypt
- * data key calls, check decryption materials unencrypted_data_key.buffer to see
+ * The multi-keyring's On Decrypt call will attempt to decrypt an EDK with each
+ * child keyring and the generator (if one is set) until it succeeds. Errors from
+ * any keyrings will not stop it from proceeding to the rest. If it succeeds in
+ * decrypting an EDK, it will return AWS_OP_SUCCESS, even if one or more of the
+ * keyrings failed. If it does not succeed in decrypting an EDK, it will return
+ * AWS_OP_SUCCESS if there were no errors, and AWS_OP_ERR if there were errors.
+ * As with all On Decrypt calls, check unencrypted_data_key.buffer to see
  * whether an EDK was decrypted.
  *
- * Destroying this keyring will NOT destroy the keyrings that were added to it. Be
- * sure to call the destructors on those keyrings too in order to avoid memory leaks.
+ * Initially the multi keyring has no included child keyrings. Calls to On Encrypt
+ * with an unencrypted data key provided will trivially succeed without creating
+ * any more EDKs. Calls to Decrypt Data Key will trivially succeed without actually
+ * decrypting data keys.
  */
 struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(
     struct aws_allocator *alloc,

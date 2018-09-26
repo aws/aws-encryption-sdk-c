@@ -176,7 +176,7 @@ static inline void aws_cryptosdk_cmm_destroy(struct aws_cryptosdk_cmm * cmm) {
 
 /**
  * Receives encryption request from user and attempts to generate encryption materials,
- * including an encrypted data key and a set of EDKs for doing an encryption.
+ * including an encrypted data key and a list of EDKs for doing encryption.
  *
  * On success returns AWS_OP_SUCCESS and allocates encryption materials object at address
  * pointed to by output.
@@ -193,8 +193,7 @@ static inline int aws_cryptosdk_cmm_generate_encryption_materials(
 }
 
 /**
- * Receives decryption request from user and attempts to get decryption materials by
- * decrypting an EDK.
+ * Receives decryption request from user and attempts to get decryption materials.
  *
  * On success returns AWS_OP_SUCCESS and allocates decryption materials object at address
  * pointed to by output.
@@ -226,17 +225,13 @@ struct aws_cryptosdk_keyring_vt {
     void (*destroy)(struct aws_cryptosdk_keyring * keyring);
 
     /**
-     * VIRTUAL FUNCTION: must implement if used for encrypt.
+     * VIRTUAL FUNCTION: must implement if used for encryption.
      *
-     * Implementations must properly initialize the byte buffers of the unencrypted data key
-     * and the EDK(s) which it appends onto the list. The buffer for the unencrypted data key
-     * MUST be used. Buffers for the EDK(s) may or may not be used, but any buffers which are
-     * not used must have their allocators set to NULL and lengths set to zero. This assures
-     * that both clean up and serialization will function correctly.
-     *
-     * input and output: unencrypted_data_key
-     * output only: edks
-     * input only: enc_context, alg
+     * When the buffer for the unencrypted data key is not NULL at the time of the call, it
+     * must not be changed by callee. All buffers for EDKs pushed onto the list must be in a
+     * valid state, which means either that they are set to all zeroes or that they have been
+     * initialized using one of the byte buffer initialization functions. This assures proper
+     * clean up and serialization.
      */
     int (*on_encrypt)(struct aws_cryptosdk_keyring *keyring,
                       struct aws_allocator *request_alloc,
@@ -250,10 +245,8 @@ struct aws_cryptosdk_keyring_vt {
      *
      * Implementations must properly initialize the unencrypted data key buffer when an
      * EDK is decrypted and leave the unencrypted data key buffer pointer set to NULL
-     * when no EDK is decrypted.
-     *
-     * output: unencrypted_data_key
-     * input: edks, enc_context, alg
+     * when no EDK is decrypted. Implementations should return AWS_OP_SUCCESS regardless
+     * of whether the unencrypted data key is recovered, except in cases of internal errors.
      */
     int (*on_decrypt)(struct aws_cryptosdk_keyring *keyring,
                       struct aws_allocator *request_alloc,
@@ -271,18 +264,17 @@ static inline void aws_cryptosdk_keyring_destroy(struct aws_cryptosdk_keyring * 
  * If byte buffer for unencrypted_data_key is already allocated, this makes zero or more
  * encrypted data keys which decrypt to that data key and pushes them onto the EDK list.
  *
- * If byte buffer for unencrypted_data_key is not already allocated, this makes a new
- * data key, allocates the buffer, and puts the data key into that buffer. It also makes
+ * If byte buffer for unencrypted_data_key is not already allocated, this may make a new
+ * data key, allocating the buffer and putting the data key into that buffer. It also makes
  * zero or more encrypted data keys which decrypt to that data key and pushes them onto
  * the EDK list.
  *
  * On success (1) AWS_OP_SUCCESS is returned, (2) if the unencrypted_data_key buffer was
  * previously allocated, it will be unchanged, (3) if the unencrypted_data_key buffer was
- * not previously allocated, it will now be allocated, (4) zero or more EDKS will be
+ * not previously allocated, it may now be allocated, (4) zero or more EDKS will be
  * appended to the list of EDKS.
  *
- * On failure AWS_OP_ERR is returned, an internal AWS error code is set, and no memory is
- * allocated.
+ * On failure AWS_OP_ERR is returned, an internal AWS error code is set.
  */
 static inline int aws_cryptosdk_keyring_on_encrypt(struct aws_cryptosdk_keyring *keyring,
                                                    struct aws_allocator *request_alloc,
@@ -328,16 +320,14 @@ static inline int aws_cryptosdk_keyring_on_encrypt(struct aws_cryptosdk_keyring 
 }
 
 /**
- * The KR attempts to find one of the EDKs to decrypt. edks must be a list of struct
- * aws_cryptosdk_edk instances, not a list of pointers. Decryption materials should
- * already have been initialized.
+ * The KR attempts to find one of the EDKs to decrypt.
  *
  * On success AWS_OP_SUCCESS will be returned. This does not necessarily mean that the
  * data key will be decrypted, as it is normal behavior that a particular KR may not
  * find an EDK that it can decrypt. To determine whether the data key was decrypted,
- * check dec_mat->unencrypted_data_key.buffer. If the data key was not decrypted, that
- * pointer will be set to NULL. If the data key was decrypted, that pointer will point
- * to the raw bytes of the key.
+ * check unencrypted_data_key.buffer. If the data key was not decrypted, that pointer
+ * will be set to NULL. If the data key was decrypted, that pointer will point to the
+ * bytes of the key.
  *
  * On internal failure, AWS_OP_ERR will be returned and an error code will be set.
  */
@@ -373,8 +363,6 @@ static inline int aws_cryptosdk_keyring_on_decrypt(struct aws_cryptosdk_keyring 
  * Allocates a new encryption materials object, including allocating memory to the list
  * of EDKs. The list of EDKs will be empty and no memory will be allocated to any byte
  * buffers in that list, nor will memory be allocated to the unencrypted data key buffer.
- * They will only be allocated when individual keys are generated or encrypted by other
- * calls to the KR.
  *
  * On failure, returns NULL and an error code will be set.
  */
