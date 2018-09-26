@@ -223,15 +223,28 @@ int generatedkAndDecrypt_keyForDecryptionMismatch_returnErr() {
 //todo add more tests for grantTokens
 //todo We'll need tests for the default region that encrypt with key IDs of the form [uuid] or alias/whatever.
 
-int main() {
-    SDKOptions *options = Aws::New<SDKOptions>(CLASS_CTAG);
-    Aws::InitAPI(*options);
+namespace {
+    class LoggingRAII {
+        public:
+        LoggingRAII() {
+            Aws::Utils::Logging::InitializeAWSLogging(
+                Aws::MakeShared<Aws::Utils::Logging::DefaultLogSystem>(
+                    "RunUnitTests", Aws::Utils::Logging::LogLevel::Trace, "aws_encryption_sdk_"));
+        }
+        ~LoggingRAII() {
+            Aws::Utils::Logging::ShutdownAWSLogging();
+        }
+    };
+}
 
-    /* TODO Valgrind complains about an uninitialized value inside BuildAWSError when we enable logging.
-     * We should check where is that coming from
-     * Aws::Utils::Logging::InitializeAWSLogging(
-        Aws::MakeShared<Aws::Utils::Logging::DefaultLogSystem>(
-            "RunUnitTests", Aws::Utils::Logging::LogLevel::Trace, "aws_encryption_sdk_"));*/
+int main() {
+    aws_load_error_strings();
+    aws_cryptosdk_err_init_strings();
+
+    SDKOptions options;
+    Aws::InitAPI(options);
+
+    LoggingRAII loggingInit;
 
     RUN_TEST(generatedkAndDecrypt_sameKeyringKey1_returnSuccess());
     RUN_TEST(generatedkAndDecrypt_sameKeyringKey2_returnSuccess());
@@ -240,9 +253,6 @@ int main() {
     RUN_TEST(generatedkAndDecrypt_twoKeysEncryptsTwoKeyDecrypts_returnSuccess());
     RUN_TEST(generatedkAndDecrypt_keyForDecryptionMismatch_returnErr());
 
-    //Aws::Utils::Logging::ShutdownAWSLogging();
-
-    Aws::ShutdownAPI(*options);
-    Aws::Delete(options);
+    Aws::ShutdownAPI(options);
 }
 
