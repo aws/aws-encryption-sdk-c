@@ -19,8 +19,8 @@ set -x # Echo commands as they're executed
 
 PATH=$PWD/build-tools/bin:$PATH
 
-build-tools/bin/codebuild-build-dependency https://github.com/awslabs/aws-c-common.git
-build-tools/bin/codebuild-build-dependency https://github.com/awslabs/aws-sdk-cpp.git --git-tag 1.5.20 -DBUILD_ONLY="kms;lambda"
+build-tools/bin/codebuild-build-dependency https://github.com/awslabs/aws-c-common.git -DCMAKE_BUILD_TYPE=RelWithDebInfo
+build-tools/bin/codebuild-build-dependency https://github.com/awslabs/aws-sdk-cpp.git --git-tag 1.6.18 -DBUILD_ONLY="kms;lambda" -DCMAKE_BUILD_TYPE=RelWithDebInfo
 mkdir build
 ls -l /deps/aws-c-common/install/lib/aws-c-common/cmake
 # Run a lightweight test suite with valgrind...
