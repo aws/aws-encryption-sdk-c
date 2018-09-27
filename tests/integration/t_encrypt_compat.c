@@ -29,6 +29,20 @@
 
 #include <curl/curl.h>
 
+static enum aws_cryptosdk_alg_id known_algorithms[] = {
+    AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
+    AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
+    AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
+    AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
+    AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
+    AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
+    AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+    AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+    AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE
+};
+
+static enum aws_cryptosdk_alg_id alg_to_use;
+
 // This endpoint attempts to decrypt a ciphertext encrypted with an all-zero
 // data key (or with one of our public resource CMKs).
 
@@ -175,6 +189,7 @@ static int test_basic() {
 
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) abort();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) abort();
+    if (aws_cryptosdk_default_cmm_set_alg_id(cmm, alg_to_use)) abort();
     if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_ENCRYPT, cmm))) abort();
     aws_cryptosdk_keyring_release(kr);
     aws_cryptosdk_cmm_release(cmm);
@@ -212,6 +227,7 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
 
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) abort();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) abort();
+    if (aws_cryptosdk_default_cmm_set_alg_id(cmm, alg_to_use)) abort();
     if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm))) abort();
     aws_cryptosdk_keyring_release(kr);
     aws_cryptosdk_cmm_release(cmm);
@@ -283,21 +299,27 @@ int main() {
 
     int final_result = 0;
 
-    RUN_TEST(test_basic());
-    RUN_TEST(test_framesize(0, 1024, true));
-    RUN_TEST(test_framesize(0, 1024, false));
-    RUN_TEST(test_framesize(1, 1, true));
-    RUN_TEST(test_framesize(1, 1, false));
-    RUN_TEST(test_framesize(1024, 1024, true));
-    RUN_TEST(test_framesize(1024, 1024, false));
-    RUN_TEST(test_framesize(1023, 1024, true));
-    RUN_TEST(test_framesize(1023, 1024, false));
-    RUN_TEST(test_framesize(1025, 1024, true));
-    RUN_TEST(test_framesize(1025, 1024, false));
-    RUN_TEST(test_framesize(0, 0, true));
-    RUN_TEST(test_framesize(1, 0, true));
-    RUN_TEST(test_framesize(1024, 0, true));
+    for (size_t i = 0; i < sizeof(known_algorithms)/sizeof(*known_algorithms); i++) {
+        alg_to_use = known_algorithms[i];
+        fprintf(stderr, "Testing algorithm %s...\n",
+            aws_cryptosdk_alg_props(alg_to_use)->alg_name
+        );
 
+        RUN_TEST(test_basic());
+        RUN_TEST(test_framesize(0, 1024, true));
+        RUN_TEST(test_framesize(0, 1024, false));
+        RUN_TEST(test_framesize(1, 1, true));
+        RUN_TEST(test_framesize(1, 1, false));
+        RUN_TEST(test_framesize(1024, 1024, true));
+        RUN_TEST(test_framesize(1024, 1024, false));
+        RUN_TEST(test_framesize(1023, 1024, true));
+        RUN_TEST(test_framesize(1023, 1024, false));
+        RUN_TEST(test_framesize(1025, 1024, true));
+        RUN_TEST(test_framesize(1025, 1024, false));
+        RUN_TEST(test_framesize(0, 0, true));
+        RUN_TEST(test_framesize(1, 0, true));
+        RUN_TEST(test_framesize(1024, 0, true));
+    }
     curl_clean_up();
 
     return final_result;

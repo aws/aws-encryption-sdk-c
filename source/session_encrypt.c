@@ -54,8 +54,8 @@ int try_gen_key(struct aws_cryptosdk_session *session) {
 
     request.alloc = session->alloc;
     request.enc_context = &session->header.enc_context;
-    // TODO - the CMM should specify this
-    request.requested_alg = AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE;
+    // The default CMM will fill this in.
+    request.requested_alg = 0;
     request.plaintext_size = session->precise_size_known ? session->precise_size : UINT64_MAX;
 
     if (aws_cryptosdk_cmm_generate_encryption_materials(
@@ -70,6 +70,12 @@ int try_gen_key(struct aws_cryptosdk_session *session) {
     if (!session->alg_props) goto out;
     if (materials->unencrypted_data_key.len != session->alg_props->data_key_len) goto out;
     if (!aws_array_list_length(&materials->encrypted_data_keys)) goto out;
+    // We should have a signature context iff this is a signed alg suite
+    if (!!session->alg_props->signature_len != !!materials->signctx) goto out;
+
+    // Move ownership of the signature context before we go any further.
+    session->signctx = materials->signctx;
+    materials->signctx = NULL;
 
     // TODO - eliminate the data_key type
     memcpy(&data_key, materials->unencrypted_data_key.buffer, materials->unencrypted_data_key.len);
@@ -143,6 +149,11 @@ static int build_header(struct aws_cryptosdk_session *session, struct aws_crypto
 static int sign_header(struct aws_cryptosdk_session *session, struct aws_cryptosdk_encryption_materials *materials) {
     session->header_size = aws_cryptosdk_hdr_size(&session->header);
 
+    if (session->header_size == 0) {
+        // EDK field lengths resulted in size_t overflow
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
+    }
+
     if (!(session->header_copy = aws_mem_acquire(session->alloc, session->header_size))) {
         return aws_raise_error(AWS_ERROR_OOM);
     }
@@ -176,6 +187,11 @@ static int sign_header(struct aws_cryptosdk_session *session, struct aws_cryptos
     if (rv) return AWS_OP_ERR;
     if (actual_size != session->header_size) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+    }
+
+    if (session->signctx && aws_cryptosdk_sig_update(session->signctx,
+            aws_byte_cursor_from_array(session->header_copy, session->header_size))) {
+        return AWS_OP_ERR;
     }
 
     session->frame_seqno = 1;
@@ -288,6 +304,18 @@ int try_encrypt_body(
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
+    if (session->signctx) {
+        struct aws_byte_cursor to_sign = aws_byte_cursor_from_array(
+            poutput->ptr, output.ptr - poutput->ptr
+        );
+
+        if (aws_cryptosdk_sig_update(session->signctx, to_sign)) {
+            // Something terrible happened. Clear the ciphertext buffer and error out.
+            aws_secure_zero(poutput->ptr, poutput->len);
+            return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+        }
+    }
+
     // Success! Write back our input/output cursors now, and update our state.
     *pinput = input;
     *poutput = output;
@@ -300,4 +328,49 @@ int try_encrypt_body(
     }
 
     return AWS_OP_SUCCESS;
+}
+
+int write_trailer(
+    struct aws_cryptosdk_session * AWS_RESTRICT session,
+    struct aws_byte_cursor * AWS_RESTRICT poutput
+) {
+    if (session->alg_props->signature_len == 0) {
+        session_change_state(session, ST_DONE);
+        return AWS_OP_SUCCESS;
+    }
+
+    // The trailer frame is a 16-bit length followed by the signature.
+    // Since we generate the signature with a deterministic size, we know how much space we need
+    // ahead of time.
+    size_t size_needed = 2 + session->alg_props->signature_len;
+    if (poutput->len < size_needed) {
+        session->output_size_estimate = size_needed;
+        session->input_size_estimate = 0;
+        return AWS_OP_SUCCESS;
+    }
+
+    struct aws_string *signature = NULL;
+
+    int rv = aws_cryptosdk_sig_sign_finish(session->signctx, session->alloc, &signature);
+
+    // The signature context is unconditionally destroyed, so avoid double-free
+    session->signctx = NULL;
+
+    if (rv) {
+        return AWS_OP_ERR;
+    }
+
+    if (!aws_byte_cursor_write_be16(poutput, signature->len)
+        || !aws_byte_cursor_write_from_whole_string(poutput, signature)) {
+        // Should never happen, but just in case
+        rv = aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+    }
+
+    aws_string_destroy(signature);
+
+    if (rv == AWS_OP_SUCCESS) {
+        session_change_state(session, ST_DONE);
+    }
+
+    return rv;
 }

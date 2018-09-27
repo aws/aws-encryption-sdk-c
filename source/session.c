@@ -51,6 +51,11 @@ int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_
     session->alg_props = NULL;
     aws_secure_zero(&session->content_key, sizeof(session->content_key));
 
+    if (session->signctx) {
+        aws_cryptosdk_sig_abort(session->signctx);
+    }
+    session->signctx = NULL;
+
     if (mode != AWS_CRYPTOSDK_ENCRYPT && mode != AWS_CRYPTOSDK_DECRYPT) {
         // We do this only after clearing all internal state, to ensure that we don't
         // accidentally leak some secret data
@@ -108,7 +113,7 @@ struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm(
 void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session) {
     struct aws_allocator *alloc = session->alloc;
 
-    aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT); // frees header arena and other dynamically allocated stuff
+    aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT); // frees dynamically allocated stuff (except for the header itself)
 
     aws_cryptosdk_hdr_clean_up(&session->header);
     aws_cryptosdk_cmm_release(session->cmm);
@@ -231,9 +236,7 @@ int aws_cryptosdk_session_process(
                 result = try_decrypt_body(session, &output, &input);
                 break;
             case ST_CHECK_TRAILER:
-                // TODO: no-op for now, go to ST_DONE
-                session_change_state(session, ST_DONE);
-                result = AWS_OP_SUCCESS;
+                result = check_trailer(session, &input);
                 break;
 
             case ST_GEN_KEY:
@@ -246,9 +249,7 @@ int aws_cryptosdk_session_process(
                 result = try_encrypt_body(session, &output, &input);
                 break;
             case ST_WRITE_TRAILER:
-                // TODO: no-op for now, go to ST_DONE
-                session_change_state(session, ST_DONE);
-                result = AWS_OP_SUCCESS;
+                result = write_trailer(session, &output);
                 break;
 
             case ST_DONE:
@@ -289,6 +290,19 @@ int aws_cryptosdk_session_process(
 
 bool aws_cryptosdk_session_is_done(const struct aws_cryptosdk_session *session) {
     return session->state == ST_DONE;
+}
+
+int aws_cryptosdk_session_get_algorithm(
+    const struct aws_cryptosdk_session *session,
+    enum aws_cryptosdk_alg_id *alg_id
+) {
+    if (!session->alg_props) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    }
+
+    *alg_id = session->alg_props->alg_id;
+
+    return AWS_OP_SUCCESS;
 }
 
 void aws_cryptosdk_session_estimate_buf(

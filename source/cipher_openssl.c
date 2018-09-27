@@ -506,7 +506,7 @@ out:
 static int load_pubkey(EC_KEY **key, const struct aws_cryptosdk_alg_properties *props, const struct aws_string *pub_key_s) {
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     EC_GROUP *group = NULL;
-    uint8_t b64_decode_arr[MAX_PUBKEY_SIZE];
+    uint8_t b64_decode_arr[MAX_PUBKEY_SIZE] = {0};
     struct aws_byte_buf b64_decode_buf = aws_byte_buf_from_array(b64_decode_arr, sizeof(b64_decode_arr));
     struct aws_byte_buf pub_key = aws_byte_buf_from_array(aws_string_bytes(pub_key_s), pub_key_s->len);
 
@@ -635,17 +635,8 @@ int aws_cryptosdk_sig_verify_finish(
     struct aws_cryptosdk_signctx *ctx,
     const struct aws_string *signature
 ) {
-    uint8_t sig_decoded[MAX_SIGNATURE_SIZE];
-    struct aws_byte_buf decode_buf = aws_byte_buf_from_array(sig_decoded, sizeof(sig_decoded));
-    struct aws_byte_buf sig_buf = aws_byte_buf_from_array(aws_string_bytes(signature), signature->len);
-
-    if (aws_base64_decode(&sig_buf, &decode_buf)) {
-        aws_cryptosdk_sig_abort(ctx);
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
-    }
-
     assert(!ctx->is_sign);
-    bool ok = EVP_DigestVerifyFinal(ctx->ctx, decode_buf.buffer, decode_buf.len) == 1;
+    bool ok = EVP_DigestVerifyFinal(ctx->ctx, aws_string_bytes(signature), signature->len) == 1;
 
     aws_cryptosdk_sig_abort(ctx);
 
@@ -660,12 +651,10 @@ int aws_cryptosdk_sig_sign_finish(
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     /* This needs to be big enough for all digest algorithms in use */
     uint8_t digestbuf[64];
-    uint8_t sig_b64[MAX_SIGNATURE_SIZE_B64];
 
     EVP_PKEY_CTX *sign_ctx = NULL;
     ECDSA_SIG *sig = NULL;
     struct aws_byte_buf sigtmp = {0};
-    struct aws_byte_buf sigb64 = aws_byte_buf_from_array(sig_b64, sizeof(sig_b64));
 
     size_t digestlen, siglen;
     assert(ctx->is_sign);
@@ -785,17 +774,7 @@ int aws_cryptosdk_sig_sign_finish(
         sig = NULL;
     }
 
-    if (aws_base64_encode(&sigtmp, &sigb64)) {
-        /* This should never fail */
-        goto out;
-    }
-
-    /* aws-c-common currently appends a NUL to the base64 output, strip it off */
-    if (sigb64.len && sigb64.buffer[sigb64.len - 1] == 0) {
-        sigb64.len--;
-    }
-
-    *signature = aws_string_new_from_array(alloc, sigb64.buffer, sigb64.len);
+    *signature = aws_string_new_from_array(alloc, sigtmp.buffer, sigtmp.len);
     if (!*signature) {
         goto rethrow;
     }
