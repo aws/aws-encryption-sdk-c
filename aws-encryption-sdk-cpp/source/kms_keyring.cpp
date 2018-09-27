@@ -133,9 +133,7 @@ int KmsKeyring::EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
                 initialized = false;
             }
         }
-        int Create(struct aws_allocator *alloc, size_t initial_item_allocation) {
-            // FIXME remove initial item allocation
-            (void)initial_item_allocation;
+        int Create(struct aws_allocator *alloc) {
             auto rv = aws_cryptosdk_edk_list_init(alloc, &aws_list);
             initialized = (rv == AWS_OP_SUCCESS)?true:false;
             return rv;
@@ -152,7 +150,7 @@ int KmsKeyring::EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
     auto self = kms_keyring->keyring_data;
 
     EdksRaii edks;
-    auto rv = edks.Create(request_alloc, self->key_ids.size());
+    auto rv = edks.Create(request_alloc);
     if (rv != AWS_OP_SUCCESS) {
         return AWS_OP_ERR;
     }
