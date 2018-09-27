@@ -12,8 +12,8 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <aws/cryptosdk/private/materials.h>
-#include <aws/cryptosdk/private/raw_rsa_keyring.h>
+#include <aws/cryptosdk/materials.h>
+#include <aws/cryptosdk/raw_rsa_keyring.h>
 #include "raw_rsa_keyring_test_vectors.h"
 #include "testing.h"
 
@@ -83,129 +83,146 @@ edk_generator rsa_edk_gens[] = { empty_edk,
                                  good_edk };
 static struct aws_allocator *alloc;
 static struct aws_cryptosdk_keyring *kr;
-static struct aws_cryptosdk_decryption_request req;
-static struct aws_cryptosdk_decryption_materials *dec_mat;
+static struct aws_array_list edks;
+static struct aws_byte_buf unencrypted_data_key = {0};
 
-static int set_up_all_the_things(enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode, enum aws_cryptosdk_alg_id alg) {
+
+static int set_up_all_the_things(enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode,
+                                 bool use_correct_private_key) {
     alloc = aws_default_allocator();
-    kr = raw_rsa_keyring_tv_new(alloc, rsa_padding_mode);
+    kr = (use_correct_private_key ?
+          raw_rsa_keyring_tv_new :
+          raw_rsa_keyring_tv_new_with_wrong_key)(alloc, rsa_padding_mode);
     TEST_ASSERT_ADDR_NOT_NULL(kr);
-    req.alloc = alloc;
-    req.alg = alg;
-    TEST_ASSERT_SUCCESS(
-        aws_array_list_init_dynamic(&req.encrypted_data_keys, alloc, 9, sizeof(struct aws_cryptosdk_edk)));
-    dec_mat = aws_cryptosdk_decryption_materials_new(alloc, alg);
-    TEST_ASSERT_ADDR_NOT_NULL(dec_mat);
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &edks));
     return 0;
 }
 
 static void tear_down_all_the_things() {
-    aws_cryptosdk_decryption_materials_destroy(dec_mat);
-    aws_cryptosdk_edk_list_clean_up(&req.encrypted_data_keys);
+    aws_cryptosdk_edk_list_clean_up(&edks);
     aws_cryptosdk_keyring_release(kr);
+    aws_byte_buf_clean_up(&unencrypted_data_key);
 }
+
 /**
  * RSA Data key decryption with set of known test vectors.
  */
 int decrypt_data_key_from_test_vectors() {
     for (struct raw_rsa_keyring_test_vector *tv = raw_rsa_keyring_test_vectors; tv->data_key; ++tv) {
-        TEST_ASSERT_SUCCESS(set_up_all_the_things(tv->rsa_padding_mode, tv->alg));
+        TEST_ASSERT_SUCCESS(set_up_all_the_things(tv->rsa_padding_mode, true));
 
         struct aws_cryptosdk_edk edk = edk_init_test_vector(tv);
-        aws_array_list_push_back(&req.encrypted_data_keys, (void *)&edk);
+        aws_array_list_push_back(&edks, (void *)&edk);
 
-        TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_decrypt_data_key(kr, dec_mat, &req));
-        TEST_ASSERT_ADDR_NOT_NULL(dec_mat->unencrypted_data_key.buffer);
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kr,
+                                                             alloc,
+                                                             &unencrypted_data_key,
+                                                             &edks,
+                                                             NULL,
+                                                             tv->alg));
+        TEST_ASSERT_ADDR_NOT_NULL(unencrypted_data_key.buffer);
 
         struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv->data_key, tv->data_key_len);
-        TEST_ASSERT(aws_byte_buf_eq(&dec_mat->unencrypted_data_key, &known_answer));
+        TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &known_answer));
 
         tear_down_all_the_things();
     }
     return 0;
 }
 /**
- * Same as the first test vector but EDK list has many wrong EDKs which fail for different reasons before getting to
- * good one.
+ * Same as the first test vector but EDK list has many wrong EDKs which fail for different reasons before
+ * getting to good one.
  */
 int decrypt_data_key_from_multiple_edks() {
     struct raw_rsa_keyring_test_vector tv = raw_rsa_keyring_test_vectors[0];
-    TEST_ASSERT_SUCCESS(set_up_all_the_things(tv.rsa_padding_mode, tv.alg));
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(tv.rsa_padding_mode, true));
 
     for (int idx = 0; idx < sizeof(rsa_edk_gens) / sizeof(edk_generator); ++idx) {
         struct aws_cryptosdk_edk edk = rsa_edk_gens[idx]();
-        aws_array_list_push_back(&req.encrypted_data_keys, (void *)&edk);
+        aws_array_list_push_back(&edks, (void *)&edk);
     }
 
-    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_decrypt_data_key(kr, dec_mat, &req));
-    TEST_ASSERT_ADDR_NOT_NULL(dec_mat->unencrypted_data_key.buffer);
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kr,
+                                                         alloc,
+                                                         &unencrypted_data_key,
+                                                         &edks,
+                                                         NULL,
+                                                         tv.alg));
+    TEST_ASSERT_ADDR_NOT_NULL(unencrypted_data_key.buffer);
 
     struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv.data_key, tv.data_key_len);
-    TEST_ASSERT(aws_byte_buf_eq(&dec_mat->unencrypted_data_key, &known_answer));
+    TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &known_answer));
 
     tear_down_all_the_things();
     return 0;
 }
+
 /**
  * Same as the last test but omits the final (good) EDK from the list, so decryption fails.
  */
 int decrypt_data_key_from_bad_edk() {
     struct raw_rsa_keyring_test_vector tv = raw_rsa_keyring_test_vectors[0];
-    TEST_ASSERT_SUCCESS(set_up_all_the_things(tv.rsa_padding_mode, tv.alg));
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(tv.rsa_padding_mode, true));
 
     for (int idx = 0; idx < sizeof(rsa_edk_gens) / sizeof(edk_generator) - 1; ++idx) {
         struct aws_cryptosdk_edk edk = rsa_edk_gens[idx]();
-        aws_array_list_push_back(&req.encrypted_data_keys, (void *)&edk);
+        aws_array_list_push_back(&edks, (void *)&edk);
     }
 
-    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_decrypt_data_key(kr, dec_mat, &req));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kr,
+                                                         alloc,
+                                                         &unencrypted_data_key,
+                                                         &edks,
+                                                         NULL,
+                                                         tv.alg));
+    TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
 
     tear_down_all_the_things();
     return 0;
 }
+
 /**
  * Test to check for decryption failure of an encrypted data key with an incorrect rsa private key.
  */
 int decrypt_data_key_from_bad_rsa_private_key() {
     struct raw_rsa_keyring_test_vector tv = raw_rsa_keyring_test_vectors[0];
-    alloc = aws_default_allocator();
-    kr = raw_rsa_keyring_tv_new_with_wrong_key(alloc, tv.rsa_padding_mode);
-    TEST_ASSERT_ADDR_NOT_NULL(kr);
-    req.alloc = alloc;
-    req.alg = tv.alg;
-    TEST_ASSERT_SUCCESS(
-        aws_array_list_init_dynamic(&req.encrypted_data_keys, alloc, 1, sizeof(struct aws_cryptosdk_edk)));
-    dec_mat = aws_cryptosdk_decryption_materials_new(alloc, tv.alg);
-    TEST_ASSERT_ADDR_NOT_NULL(dec_mat);
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(tv.rsa_padding_mode, false));
 
     struct aws_cryptosdk_edk edk = edk_init_test_vector(&tv);
-    aws_array_list_push_back(&req.encrypted_data_keys, (void *)&edk);
-    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_decrypt_data_key(kr, dec_mat, &req));
+    aws_array_list_push_back(&edks, (void *)&edk);
+
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_on_decrypt(kr,
+                                                                        alloc,
+                                                                        &unencrypted_data_key,
+                                                                        &edks,
+                                                                        NULL,
+                                                                        tv.alg));
+    TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
 
     tear_down_all_the_things();
     return 0;
 }
+
 /**
  * Test to check for decryption failure of an encrypted data key with a bad rsa padding mode.
  */
 int decrypt_data_key_from_bad_rsa_padding_mode() {
     struct raw_rsa_keyring_test_vector tv = raw_rsa_keyring_test_vectors[0];
-    alloc = aws_default_allocator();
-    kr = raw_rsa_keyring_tv_new(
-        alloc, AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1);  /* The correct RSA padding mode for raw_rsa_keyring_test_vectors[0]
-                                                    * is AWS_CRYPTOSDK_RSA_PKCS1
-                                                    */
-    TEST_ASSERT_ADDR_NOT_NULL(kr);
-    req.alloc = alloc;
-    req.alg = tv.alg;
-    TEST_ASSERT_SUCCESS(
-        aws_array_list_init_dynamic(&req.encrypted_data_keys, alloc, 1, sizeof(struct aws_cryptosdk_edk)));
-    dec_mat = aws_cryptosdk_decryption_materials_new(alloc, tv.alg);
-    TEST_ASSERT_ADDR_NOT_NULL(dec_mat);
+    /* The correct RSA padding mode for raw_rsa_keyring_test_vectors[0]
+     * is AWS_CRYPTOSDK_RSA_PKCS1
+     */
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1, true));
 
     struct aws_cryptosdk_edk edk = edk_init_test_vector(&tv);
-    aws_array_list_push_back(&req.encrypted_data_keys, (void *)&edk);
-    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_decrypt_data_key(kr, dec_mat, &req));
+    aws_array_list_push_back(&edks, (void *)&edk);
+    
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_on_decrypt(kr,
+                                                                        alloc,
+                                                                        &unencrypted_data_key,
+                                                                        &edks,
+                                                                        NULL,
+                                                                        tv.alg));
+    TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
 
     tear_down_all_the_things();
     return 0;

@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
+#include <aws/cryptosdk/edk.h>
 #include <aws/cryptosdk/private/header.h>
-#include <aws/common/array_list.h>
 #include <aws/common/hash_table.h>
 #include <aws/common/string.h>
 #include <stdio.h>
@@ -127,9 +127,7 @@ uint8_t test_header_1_auth_tag_arr[] =
 } while (0)
 
 void set_edk_tbl(struct aws_cryptosdk_hdr *hdr, struct aws_cryptosdk_edk *edks, size_t count) {
-    if (aws_array_list_init_dynamic(&hdr->edk_list, aws_default_allocator(), count, sizeof(*edks))) {
-        abort();
-    }
+    if (aws_cryptosdk_edk_list_init(aws_default_allocator(), &hdr->edk_list)) abort();
 
     for (size_t i = 0; i < count; i++) {
         aws_array_list_push_back(&hdr->edk_list, &edks[i]);
