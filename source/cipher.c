@@ -612,6 +612,9 @@ cleanup:
     }
 }
 
+//FIXME: this is inconsistently freeing plain buffer and calling code is freeing
+//it instead, which shouldn't be happening. Also, check whether BAD_CIPHERTEXT
+//error code is being used appropriately
 int aws_cryptosdk_rsa_decrypt(
     struct aws_byte_buf *plain,
     struct aws_allocator *alloc,

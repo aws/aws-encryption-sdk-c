@@ -51,12 +51,14 @@ int test_decrypt() {
         exit(1);
     }
 
+    struct aws_allocator *alloc = aws_default_allocator();
+    struct aws_cryptosdk_keyring *kr = NULL;
     struct aws_cryptosdk_session *session = NULL;
     struct aws_cryptosdk_cmm *cmm = NULL;
 
-    if (!(cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), aws_cryptosdk_zero_keyring_new()))) unexpected_error();
-
-    if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
+    if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) unexpected_error();
+    if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) unexpected_error();
+    if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
 
     uint8_t *outp = output_buf;
     const uint8_t *inp = ciphertext;
@@ -103,7 +105,7 @@ int test_decrypt() {
     free(output_buf);
     aws_cryptosdk_session_destroy(session);
     aws_cryptosdk_cmm_release(cmm);
-
+    aws_cryptosdk_keyring_release(kr);
     return 0;
 }
 

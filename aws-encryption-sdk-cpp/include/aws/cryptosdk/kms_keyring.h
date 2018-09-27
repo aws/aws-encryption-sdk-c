@@ -92,10 +92,14 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
      *         will point to the raw bytes of the key.
      *         On internal failure, AWS_OP_ERR will be returned and an internal error code will be set.
      */
-    static int DecryptDataKey(struct aws_cryptosdk_keyring *keyring,
-                              struct aws_cryptosdk_decryption_materials *dec_mat,
-                              const aws_cryptosdk_decryption_request *request);
+    static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
+                         struct aws_allocator *request_alloc,
+                         struct aws_byte_buf *unencrypted_data_key,
+                         const struct aws_array_list *edks,
+                         const struct aws_hash_table *enc_context,
+                         enum aws_cryptosdk_alg_id alg);
 
+  private:
     /**
      * The keyring attempts to encrypt the data key.
      * This function will be automatically called when a Data Key needs to be encrypted
@@ -104,9 +108,14 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
      * @return  On success AWS_OP_SUCCESS is returned, the new EDK will be appended onto the list of EDKs.
      *          On failure AWS_OP_ERR is returned, an internal AWS error code is set, and no memory is allocated.
      */
-    static int EncryptDataKey(aws_cryptosdk_keyring *keyring,
-                              struct aws_cryptosdk_encryption_materials *enc_mat);
+    static int EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
+                              struct aws_allocator *request_alloc,
+                              struct aws_byte_buf *unencrypted_data_key,
+                              struct aws_array_list *edk_list,
+                              const struct aws_hash_table *enc_context,
+                              enum aws_cryptosdk_alg_id alg);
 
+  protected:
     /**
      * The keyring attempts to generate a new data key, and returns it in both unencrypted and encrypted form.
      * This function will be automatically called when a Keyring needs to generate a new pair of encrypted,
@@ -117,8 +126,12 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
      *         bytes of the data key, and (3) an EDK will be appended onto the list of EDKs.
      *         On failure AWS_OP_ERR is returned, an internal AWS error code is set, and no memory is allocated.
      */
-    static int GenerateDataKey(struct aws_cryptosdk_keyring *keyring,
-                               struct aws_cryptosdk_encryption_materials *enc_mat);
+    static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
+                         struct aws_allocator *request_alloc,
+                         struct aws_byte_buf *unencrypted_data_key,
+                         struct aws_array_list *edks,
+                         const struct aws_hash_table *enc_context,
+                         enum aws_cryptosdk_alg_id alg);
 
     /**
      * Destroys all allocated structures
