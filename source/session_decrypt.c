@@ -127,6 +127,23 @@ int unwrap_keys(
     if (derive_data_key(session, materials)) goto out;
     if (validate_header(session)) goto out;
 
+    if (session->alg_props->signature_len) {
+        if (!materials->signctx) {
+            aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
+            goto out;
+        }
+
+        // Move ownership of the signature context out of the materials
+        session->signctx = materials->signctx;
+        materials->signctx = NULL;
+
+        // Backfill the context with the header
+        if (aws_cryptosdk_sig_update(session->signctx,
+                aws_byte_cursor_from_array(session->header_copy, session->header_size))) {
+            goto out;
+        }
+    }
+
     session->frame_seqno = 1;
     session->frame_size = session->header.frame_len;
     session_change_state(session, ST_DECRYPT_BODY);
@@ -230,6 +247,13 @@ int try_decrypt_body(
     if (rv == AWS_ERROR_SUCCESS) {
         session->frame_seqno++;
 
+        if (session->signctx) {
+            struct aws_byte_cursor frame = { .ptr = input_rollback.ptr, .len = pinput->ptr - input_rollback.ptr };
+            if (aws_cryptosdk_sig_update(session->signctx, frame)) {
+                return AWS_OP_ERR;
+            }
+        }
+
         if (frame.type != FRAME_TYPE_FRAME) {
             session_change_state(session, ST_CHECK_TRAILER);
         }
@@ -241,3 +265,33 @@ int try_decrypt_body(
     return rv;
 }
 
+int check_trailer(
+    struct aws_cryptosdk_session * AWS_RESTRICT session,
+    struct aws_byte_cursor * AWS_RESTRICT input
+) {
+    struct aws_byte_cursor initial_input = *input;
+    if (session->signctx == NULL) {
+        session_change_state(session, ST_DONE);
+        return AWS_OP_SUCCESS;
+    }
+
+    uint16_t sig_len = 0;
+    struct aws_byte_cursor signature;
+    if (!aws_byte_cursor_read_be16(input, &sig_len)
+        || !(signature = aws_byte_cursor_advance_nospec(input, sig_len)).ptr) {
+        // Not enough data to read the signature yet
+        session->input_size_estimate = 2 + sig_len;
+        *input = initial_input;
+        return AWS_OP_SUCCESS;
+    }
+
+    // TODO: should the signature be a cursor after all?
+    struct aws_string *signature_str = aws_string_new_from_array(session->alloc, signature.ptr, signature.len);
+    int rv = aws_cryptosdk_sig_verify_finish(session->signctx, signature_str);
+
+    // signctx is unconditionally freed, so avoid double free by nulling it out
+    session->signctx = NULL;
+    aws_string_destroy(signature_str);
+
+    return rv;
+}
