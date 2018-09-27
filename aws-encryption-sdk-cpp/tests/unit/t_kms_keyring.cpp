@@ -311,7 +311,7 @@ class DecryptValues : public TestValues {
     }
 
   private:
-    aws_cryptosdk_decryption_request cryptosdk_decryption_request;
+//    aws_cryptosdk_decryption_request cryptosdk_decryption_request;
 };
 
 int encrypt_validInputs_returnSuccess() {
@@ -421,7 +421,7 @@ int encrypt_emptyRegionNameInKeys_returnSuccess() {
 
     kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest(key.front().c_str(), ev.pt_bb),
                                               ev.GetResult(key.front().c_str()));
-    TEST_ASSERT_SUCCESS(kms_keyring->OnEncrypt(ev.kms_keyring,
+    TEST_ASSERT_SUCCESS(kms_keyring->OnEncrypt(kms_keyring,
                                                ev.request_alloc,
                                                &ev.unencrypted_data_key,
                                                &ev.edks,
@@ -434,7 +434,7 @@ int encrypt_emptyRegionNameInKeys_returnSuccess() {
                                                                                    ev.provider_id,
                                                                                    ev.allocator));
 
-    TEST_ASSERT(ev.kms_client_mock->ExpectingOtherCalls() == false);
+    TEST_ASSERT(kms_client_mock->ExpectingOtherCalls() == false);
 
     Aws::Delete(kms_keyring);
 
@@ -558,14 +558,14 @@ int decrypt_emptyRegionNameInKeys_returnSuccess() {
 
     kms_client_mock->ExpectDecryptAccumulator(dv.GetRequest(), dv.GetResult(key, dv.pt_bb));
 
-    TEST_ASSERT_SUCCESS(kms_keyring->OnDecrypt(dv.kms_keyring,
-                                                  dv.request_alloc,
-                                                  &dv.unencrypted_data_key,
-                                                  &dv.edks.encrypted_data_keys,
-                                                  &dv.encryption_context,
-                                                  dv.alg));
+    TEST_ASSERT_SUCCESS(kms_keyring->OnDecrypt(kms_keyring,
+                                               dv.request_alloc,
+                                               &dv.unencrypted_data_key,
+                                               &dv.edks.encrypted_data_keys,
+                                               &dv.encryption_context,
+                                               dv.alg));
     TEST_ASSERT(aws_byte_buf_eq(&dv.unencrypted_data_key, &dv.pt_aws_byte) == true);
-    TEST_ASSERT(dv.kms_client_mock->ExpectingOtherCalls() == false);
+    TEST_ASSERT(kms_client_mock->ExpectingOtherCalls() == false);
 
     Aws::Delete(kms_keyring);
 
@@ -894,7 +894,7 @@ int testBuilder_allocator_returnAlloc() {
 
 int t_assert_encrypt_with_default_values(KmsMasterKeyExposer *kms_keyring, EncryptTestValues &ev) {
     TEST_ASSERT(kms_keyring != NULL);
-    TEST_ASSERT_SUCCESS(kms_keyring->OnEncrypt(ev.kms_keyring,
+    TEST_ASSERT_SUCCESS(kms_keyring->OnEncrypt(kms_keyring,
                                                ev.request_alloc,
                                                &ev.unencrypted_data_key,
                                                &ev.edks,

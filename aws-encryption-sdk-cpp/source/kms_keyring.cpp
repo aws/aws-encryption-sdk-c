@@ -197,7 +197,7 @@ int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
                           enum aws_cryptosdk_alg_id alg) {
     if (!unencrypted_data_key->buffer) {
         struct aws_cryptosdk_kms_keyring *kms_keyring = static_cast<aws_cryptosdk_kms_keyring *>(keyring);
-        if (!kms_keyring || !kms_keyring->keyring_data || request_alloc || !unencrypted_data_key || !edks || !enc_context) {
+        if (!kms_keyring || !kms_keyring->keyring_data || !request_alloc || !unencrypted_data_key || !edks || !enc_context) {
             abort();
         }
 
