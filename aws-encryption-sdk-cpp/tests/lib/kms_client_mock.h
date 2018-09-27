@@ -38,6 +38,7 @@ namespace Model = Aws::KMS::Model;
 class KmsClientMock : public Aws::KMS::KMSClient {
   public:
     KmsClientMock();
+    ~KmsClientMock();
 
     Model::EncryptOutcome Encrypt(const Model::EncryptRequest &request) const;
     void ExpectEncryptAccumulator(const Model::EncryptRequest &request, Model::EncryptOutcome encrypt_return);
@@ -49,7 +50,8 @@ class KmsClientMock : public Aws::KMS::KMSClient {
     void ExpectGenerateDataKey(const Model::GenerateDataKeyRequest &request,
                                Model::GenerateDataKeyOutcome generate_dk_return);
 
-    //TODO automatically crash if ExpectingOtherCalls is true in destructor
+    void ExpectGrantTokens(const Aws::Vector<Aws::String> &grant_tokens);
+
     bool ExpectingOtherCalls();
   private:
     struct ExpectedEncryptValues {
@@ -67,6 +69,8 @@ class KmsClientMock : public Aws::KMS::KMSClient {
     mutable bool expect_generate_dk;
     Model::GenerateDataKeyRequest expected_generate_dk_request;
     Model::GenerateDataKeyOutcome generate_dk_return;
+
+    Aws::Vector<Aws::String> grant_tokens;
 
 };
 

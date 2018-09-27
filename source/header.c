@@ -16,8 +16,8 @@
 #include <aws/cryptosdk/private/header.h>
 #include <aws/cryptosdk/private/compiler.h>
 #include <aws/cryptosdk/private/enc_context.h>
-#include <aws/cryptosdk/private/materials.h>
 #include <aws/cryptosdk/cipher.h>
+#include <aws/cryptosdk/edk.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/common/byte_buf.h>
 #include <aws/common/string.h>
@@ -77,7 +77,7 @@ int aws_cryptosdk_hdr_init(struct aws_cryptosdk_hdr *hdr, struct aws_allocator *
         return AWS_OP_ERR;
     }
 
-    if (aws_array_list_init_dynamic(&hdr->edk_list, alloc, 1, sizeof(struct aws_cryptosdk_edk))) {
+    if (aws_cryptosdk_edk_list_init(alloc, &hdr->edk_list)) {
         aws_hash_table_clean_up(&hdr->enc_context);
         return AWS_OP_ERR;
     }

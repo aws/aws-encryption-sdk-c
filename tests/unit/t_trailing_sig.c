@@ -61,7 +61,11 @@ static const struct aws_cryptosdk_cmm_vt strip_key_cmm_vt = {
 static int trailing_sig_no_key() {
     struct aws_byte_buf buf = {0};
     struct aws_cryptosdk_session *session = NULL;
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), aws_cryptosdk_zero_keyring_new());
+
+    struct aws_cryptosdk_keyring *kr = aws_cryptosdk_zero_keyring_new(aws_default_allocator());
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
+    aws_cryptosdk_keyring_release(kr);
+
     TEST_ASSERT_ADDR_NOT_NULL(cmm);
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
@@ -101,7 +105,11 @@ static int trailing_sig_no_key() {
 static int trailing_sig_no_sig() {
     struct aws_byte_buf buf = {0};
     struct aws_cryptosdk_session *session = NULL;
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), aws_cryptosdk_zero_keyring_new());
+
+    struct aws_cryptosdk_keyring *kr = aws_cryptosdk_zero_keyring_new(aws_default_allocator());
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
+    aws_cryptosdk_keyring_release(kr);
+
     TEST_ASSERT_ADDR_NOT_NULL(cmm);
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
@@ -142,7 +150,11 @@ static int trailing_sig_no_sig() {
 static int trailing_sig_bad_sig() {
     struct aws_byte_buf buf = {0};
     struct aws_cryptosdk_session *session = NULL;
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), aws_cryptosdk_zero_keyring_new());
+
+    struct aws_cryptosdk_keyring *kr = aws_cryptosdk_zero_keyring_new(aws_default_allocator());
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
+    aws_cryptosdk_keyring_release(kr);
+
     TEST_ASSERT_ADDR_NOT_NULL(cmm);
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));

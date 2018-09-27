@@ -78,7 +78,7 @@ int generatedkAndDecrypt_sameKeyring_returnSuccess(const char *key, const char *
     TestData td(region);
     TestDataOut td_out;
 
-    auto kms_keyring = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, key, td.kms_client);
+    auto kms_keyring = KmsKeyring::Builder().SetAllocator(td.alloc).SetKmsClient(td.kms_client).SetKeyId(key).Build();
 
     // generate dk
     TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring, AWS_CRYPTOSDK_ENCRYPT, &td.pt_in, &td_out.ct_out));
@@ -91,7 +91,7 @@ int generatedkAndDecrypt_sameKeyring_returnSuccess(const char *key, const char *
 
     TEST_ASSERT(aws_byte_buf_eq(&td.pt_in, &td_out.pt_out) == true);
 
-    Aws::Delete(kms_keyring);
+    aws_cryptosdk_keyring_release(kms_keyring);
 
     return 0;
 }
@@ -109,12 +109,12 @@ int generatedkAndDecrypt_sameKeyringKey2_returnSuccess() {
  * Generates a new key that it saves to td_out using a temporary KmsKeyring object
  */
 int t_kms_keyring_generate_dk(TestDataOut &td_out, TestData &td, const Aws::String &key_arn) {
-    auto kms_keyring_generate_dk = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, key_arn);
+    auto kms_keyring_generate_dk = KmsKeyring::Builder().SetAllocator(td.alloc).SetKeyId(key_arn).Build();
     TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring_generate_dk,
                                                 AWS_CRYPTOSDK_ENCRYPT,
                                                 &td.pt_in,
                                                 &td_out.ct_out));
-    Aws::Delete(kms_keyring_generate_dk);
+    aws_cryptosdk_keyring_release(kms_keyring_generate_dk);
     return 0;
 }
 
@@ -122,12 +122,12 @@ int t_kms_keyring_generate_dk(TestDataOut &td_out, TestData &td, const Aws::Stri
  * Decrypts a key and saves result to td_out using a temporary KmsKeyring object
  */
 int t_kms_keyring_decrypt(TestDataOut &td_out, TestData &td, const Aws::String &key_arn) {
-    auto kms_keyring_decrypt = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, key_arn);
+    auto kms_keyring_decrypt = KmsKeyring::Builder().SetAllocator(td.alloc).SetKeyId(key_arn).Build();
     TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring_decrypt,
                                                 AWS_CRYPTOSDK_DECRYPT,
                                                 &td_out.ct_out,
                                                 &td_out.pt_out));
-    Aws::Delete(kms_keyring_decrypt);
+    aws_cryptosdk_keyring_release(kms_keyring_decrypt);
     return 0;
 }
 
@@ -156,12 +156,13 @@ int generatedkAndDecrypt_oneKeyEncryptsTwoKeysForDecryptionConfigured_returnSucc
     TEST_ASSERT_SUCCESS(t_kms_keyring_generate_dk(td_out, td, KEY_ARN_STR2));
 
     // decrypt
-    auto kms_keyring_decrypt = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, keys, Aws::Region::CN_NORTH_1);
+    auto kms_keyring_decrypt = KmsKeyring::Builder().SetAllocator(td.alloc)
+                                                    .SetKeyIds(keys).SetDefaultRegion(Aws::Region::CN_NORTH_1).Build();
     TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring_decrypt,
                                                 AWS_CRYPTOSDK_DECRYPT,
                                                 &td_out.ct_out,
                                                 &td_out.pt_out));
-    Aws::Delete(kms_keyring_decrypt);
+    aws_cryptosdk_keyring_release(kms_keyring_decrypt);
 
     TEST_ASSERT(aws_byte_buf_eq(&td.pt_in, &td_out.pt_out) == true);
 
@@ -181,7 +182,8 @@ int generatedkAndDecrypt_twoKeysEncryptsTwoKeyDecrypts_returnSuccess() {
     TEST_ASSERT_SUCCESS(t_kms_keyring_generate_dk(td_out2, td2, KEY_ARN_STR2));
 
     // decrypt
-    auto kms_keyring_decrypt = Aws::New<KmsKeyring>(CLASS_CTAG, td1.alloc, keys, Aws::Region::CN_NORTH_1);
+    auto kms_keyring_decrypt = KmsKeyring::Builder().SetAllocator(td1.alloc)
+                                                    .SetKeyIds(keys).SetDefaultRegion(Aws::Region::CN_NORTH_1).Build();
     TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring_decrypt,
                                                 AWS_CRYPTOSDK_DECRYPT,
                                                 &td_out1.ct_out,
@@ -190,7 +192,7 @@ int generatedkAndDecrypt_twoKeysEncryptsTwoKeyDecrypts_returnSuccess() {
                                                 AWS_CRYPTOSDK_DECRYPT,
                                                 &td_out2.ct_out,
                                                 &td_out2.pt_out));
-    Aws::Delete(kms_keyring_decrypt);
+    aws_cryptosdk_keyring_release(kms_keyring_decrypt);
 
     TEST_ASSERT(aws_byte_buf_eq(&td1.pt_in, &td_out1.pt_out) == true);
     TEST_ASSERT(aws_byte_buf_eq(&td2.pt_in, &td_out2.pt_out) == true);
@@ -206,12 +208,12 @@ int generatedkAndDecrypt_keyForDecryptionMismatch_returnErr() {
     TEST_ASSERT_SUCCESS(t_kms_keyring_generate_dk(td_out, td, KEY_ARN_STR2));
 
     // decrypt should fail
-    auto kms_keyring_decrypt = Aws::New<KmsKeyring>(CLASS_CTAG, td.alloc, KEY_ARN_STR1);
+    auto kms_keyring_decrypt = KmsKeyring::Builder().SetAllocator(td.alloc).SetKeyId(KEY_ARN_STR1).Build();
     TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring_decrypt,
                                                 AWS_CRYPTOSDK_DECRYPT,
                                                 &td_out.ct_out,
                                                 &td_out.pt_out, AWS_OP_ERR));
-    Aws::Delete(kms_keyring_decrypt);
+    aws_cryptosdk_keyring_release(kms_keyring_decrypt);
 
     return 0;
 }
@@ -221,15 +223,29 @@ int generatedkAndDecrypt_keyForDecryptionMismatch_returnErr() {
 //todo add more tests for grantTokens
 //todo We'll need tests for the default region that encrypt with key IDs of the form [uuid] or alias/whatever.
 
-int main() {
-    SDKOptions *options = Aws::New<SDKOptions>(CLASS_CTAG);
-    Aws::InitAPI(*options);
+namespace {
+    class LoggingRAII {
+        public:
+        LoggingRAII() {
+            Aws::Utils::Logging::InitializeAWSLogging(
+                Aws::MakeShared<Aws::Utils::Logging::DefaultLogSystem>(
+                    "RunUnitTests", Aws::Utils::Logging::LogLevel::Trace, "aws_encryption_sdk_"));
+        }
+        ~LoggingRAII() {
+            Aws::Utils::Logging::ShutdownAWSLogging();
+        }
+    };
+}
 
-    /* TODO Valgrind complains about an uninitialized value inside BuildAWSError when we enable logging.
-     * We should check where is that coming from
-     * Aws::Utils::Logging::InitializeAWSLogging(
-        Aws::MakeShared<Aws::Utils::Logging::DefaultLogSystem>(
-            "RunUnitTests", Aws::Utils::Logging::LogLevel::Trace, "aws_encryption_sdk_"));*/
+int main() {
+    aws_load_error_strings();
+    aws_cryptosdk_err_init_strings();
+
+    SDKOptions options;
+    Aws::InitAPI(options);
+
+    // Enabling AWS C++ SDK logging generates valgrind warnings from deep in the SDK client code
+    //LoggingRAII loggingInit;
 
     RUN_TEST(generatedkAndDecrypt_sameKeyringKey1_returnSuccess());
     RUN_TEST(generatedkAndDecrypt_sameKeyringKey2_returnSuccess());
@@ -238,9 +254,6 @@ int main() {
     RUN_TEST(generatedkAndDecrypt_twoKeysEncryptsTwoKeyDecrypts_returnSuccess());
     RUN_TEST(generatedkAndDecrypt_keyForDecryptionMismatch_returnErr());
 
-    //Aws::Utils::Logging::ShutdownAWSLogging();
-
-    Aws::ShutdownAPI(*options);
-    Aws::Delete(options);
+    Aws::ShutdownAPI(options);
 }
 

@@ -58,7 +58,12 @@ static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * 
         }
     }
 
-    if (aws_cryptosdk_keyring_generate_data_key(self->kr, enc_mat)) goto err;
+    if (aws_cryptosdk_keyring_on_encrypt(self->kr,
+                                         request->alloc,
+                                         &enc_mat->unencrypted_data_key,
+                                         &enc_mat->encrypted_data_keys,
+                                         request->enc_context,
+                                         request->requested_alg)) goto err;
 
     *output = enc_mat;
     return AWS_OP_SUCCESS;
@@ -69,15 +74,20 @@ err:
 }
 
 static int default_cmm_decrypt_materials(struct aws_cryptosdk_cmm * cmm,
-                                          struct aws_cryptosdk_decryption_materials ** output,
-                                          struct aws_cryptosdk_decryption_request * request) {
+                                         struct aws_cryptosdk_decryption_materials ** output,
+                                         struct aws_cryptosdk_decryption_request * request) {
     struct aws_cryptosdk_decryption_materials * dec_mat;
     struct default_cmm * self = (struct default_cmm *) cmm;
 
     dec_mat = aws_cryptosdk_decryption_materials_new(request->alloc, request->alg);
     if (!dec_mat) goto err;
 
-    if (aws_cryptosdk_keyring_decrypt_data_key(self->kr, dec_mat, request)) goto err;
+    if (aws_cryptosdk_keyring_on_decrypt(self->kr,
+                                         request->alloc,
+                                         &dec_mat->unencrypted_data_key,
+                                         &request->encrypted_data_keys,
+                                         request->enc_context,
+                                         request->alg)) goto err;
 
     if (!dec_mat->unencrypted_data_key.buffer) {
         aws_raise_error(AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT);

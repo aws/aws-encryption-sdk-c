@@ -15,12 +15,14 @@
 
 #include <aws/common/array_list.h>
 #include <aws/common/string.h>
+#include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/session.h>
 #include "testing.h"
 #include "zero_keyring.h"
 #include "bad_cmm.h"
+#include "test_keyring.h"
 
 static void init_context(struct aws_hash_table *enc_context, struct aws_allocator *alloc) {
     aws_hash_table_init(enc_context, alloc, 4, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy);
@@ -29,7 +31,7 @@ static void init_context(struct aws_hash_table *enc_context, struct aws_allocato
 int default_cmm_zero_keyring_enc_mat() {
     struct aws_hash_table enc_context;
     struct aws_allocator * alloc = aws_default_allocator();
-    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_zero_keyring_new();
+    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_zero_keyring_new(alloc);
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(alloc, kr);
 
     init_context(&enc_context, alloc);
@@ -73,18 +75,18 @@ int default_cmm_zero_keyring_enc_mat() {
 
 int default_cmm_zero_keyring_dec_mat() {
     struct aws_allocator * alloc = aws_default_allocator();
-    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_zero_keyring_new();
+    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_zero_keyring_new(alloc);
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(alloc, kr);
 
     struct aws_cryptosdk_decryption_request req;
     req.alg = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE;
     req.alloc = aws_default_allocator();
 
-    aws_array_list_init_dynamic(&req.encrypted_data_keys, alloc, 1, sizeof(struct aws_cryptosdk_edk));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &req.encrypted_data_keys));
     struct aws_cryptosdk_edk edk;
     aws_cryptosdk_literally_null_edk(&edk);
 
-    aws_array_list_push_back(&req.encrypted_data_keys, (void *) &edk);
+    TEST_ASSERT_SUCCESS(aws_array_list_push_back(&req.encrypted_data_keys, (void *) &edk));
 
     struct aws_cryptosdk_decryption_materials * dec_mat;
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_cmm_decrypt_materials(cmm, &dec_mat, &req));
@@ -103,7 +105,7 @@ int default_cmm_zero_keyring_dec_mat() {
 int default_cmm_alg_mismatch() {
     struct aws_hash_table enc_context;
     struct aws_allocator * alloc = aws_default_allocator();
-    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_zero_keyring_new();
+    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_zero_keyring_new(aws_default_allocator());
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(alloc, kr);
 
     init_context(&enc_context, alloc);
@@ -133,7 +135,7 @@ int default_cmm_alg_mismatch() {
 int default_cmm_alg_match() {
     struct aws_hash_table enc_context;
     struct aws_allocator * alloc = aws_default_allocator();
-    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_zero_keyring_new();
+    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_zero_keyring_new(aws_default_allocator());
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(alloc, kr);
 
     init_context(&enc_context, alloc);
@@ -175,7 +177,7 @@ int default_cmm_context_presence() {
 
     struct aws_hash_table enc_context;
     struct aws_allocator * alloc = aws_default_allocator();
-    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_zero_keyring_new();
+    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_zero_keyring_new(aws_default_allocator());
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(alloc, kr);
 
     init_context(&enc_context, alloc);
@@ -351,6 +353,104 @@ static int session_updates_cmm_refcount() {
     return 0;
 }
 
+static struct test_keyring test_kr;
+static struct aws_cryptosdk_keyring *kr;
+static struct aws_allocator *alloc;
+
+static void reset_test_keyring() {
+    memset(&test_kr, 0, sizeof(test_kr));
+    kr = &test_kr.base;
+    aws_cryptosdk_keyring_base_init(kr, &test_keyring_vt);
+
+    alloc = aws_default_allocator();
+}
+
+int on_encrypt_precondition_violation() {
+    /* No data key but at least one EDK -> raise error and do not make virtual call */
+    reset_test_keyring();
+
+    struct aws_byte_buf unencrypted_data_key = {0};
+    struct aws_array_list edks;
+    struct aws_cryptosdk_edk edk = {0};
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &edks));
+    TEST_ASSERT_SUCCESS(aws_array_list_push_back(&edks, &edk));
+
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_STATE,
+                      aws_cryptosdk_keyring_on_encrypt(kr,
+                                                       alloc,
+                                                       &unencrypted_data_key,
+                                                       &edks,
+                                                       NULL,
+                                                       0));
+
+    TEST_ASSERT(!test_kr.on_encrypt_called);
+
+    aws_cryptosdk_edk_list_clean_up(&edks);
+    return 0;
+}
+
+int on_encrypt_postcondition_violation() {
+    /* Generate data key of wrong length -> raise error after virtual call */
+    reset_test_keyring();
+    test_kr.generated_data_key_to_return = aws_byte_buf_from_c_str("wrong data key length");
+
+    struct aws_byte_buf unencrypted_data_key = {0};
+    struct aws_array_list edks;
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &edks));
+
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_STATE,
+                      aws_cryptosdk_keyring_on_encrypt(kr,
+                                                       alloc,
+                                                       &unencrypted_data_key,
+                                                       &edks,
+                                                       NULL,
+                                                       AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
+
+    TEST_ASSERT(test_kr.on_encrypt_called);
+
+    aws_cryptosdk_edk_list_clean_up(&edks);
+    return 0;
+}
+
+int on_decrypt_precondition_violation() {
+    /* Unencrypted data key buffer already set -> raise error and do not make virtual call */
+    reset_test_keyring();
+
+    struct aws_byte_buf unencrypted_data_key = aws_byte_buf_from_c_str("Oops, already set!");
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_STATE,
+                      aws_cryptosdk_keyring_on_decrypt(kr,
+                                                       alloc,
+                                                       &unencrypted_data_key,
+                                                       NULL,
+                                                       NULL,
+                                                       0));
+
+    TEST_ASSERT(!test_kr.on_decrypt_called);
+    return 0;
+}
+
+int on_decrypt_postcondition_violation() {
+    /* Decrypt data key of wrong length -> raise error after virtual call */
+    reset_test_keyring();
+
+    struct aws_byte_buf unencrypted_data_key = {0};
+    struct aws_array_list edks;
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(aws_default_allocator(), &edks));
+
+    test_kr.decrypted_data_key_to_return = aws_byte_buf_from_c_str("wrong data key length");
+
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT,
+                      aws_cryptosdk_keyring_on_decrypt(kr,
+                                                       alloc,
+                                                       &unencrypted_data_key,
+                                                       &edks,
+                                                       NULL,
+                                                       AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
+
+    aws_cryptosdk_edk_list_clean_up(&edks);
+    return 0;
+}
+
 struct test_case materials_test_cases[] = {
     { "materials", "default_cmm_zero_keyring_enc_mat", default_cmm_zero_keyring_enc_mat },
     { "materials", "default_cmm_zero_keyring_dec_mat", default_cmm_zero_keyring_dec_mat },
@@ -363,5 +463,9 @@ struct test_case materials_test_cases[] = {
     { "materials", "refcount_cmm", refcount_cmm },
     { "materials", "refcount_keyring", refcount_keyring },
     { "materials", "session_updates_cmm_refcount", session_updates_cmm_refcount },
+    { "materials", "on_encrypt_precondition_violation", on_encrypt_precondition_violation },
+    { "materials", "on_encrypt_postcondition_violation", on_encrypt_postcondition_violation },
+    { "materials", "on_decrypt_precondition_violation", on_decrypt_precondition_violation },
+    { "materials", "on_decrypt_postcondition_violation", on_decrypt_postcondition_violation },
     { NULL }
 };

@@ -24,6 +24,14 @@ using std::logic_error;
 KmsClientMock::KmsClientMock()
     : Aws::KMS::KMSClient(), expect_generate_dk(false) {}
 
+KmsClientMock::~KmsClientMock() {
+    // there shouldn't be any other expecting calls
+    if (ExpectingOtherCalls() == true) {
+        std::cerr << "KmsClientMock destroyed but other calls were expected" << std::endl;
+        abort();
+    }
+}
+
 Model::EncryptOutcome KmsClientMock::Encrypt(const Model::EncryptRequest &request) const {
     if (expected_encrypt_values.size() == 0) {
         throw logic_error("Unexpected call to encrypt");
@@ -43,6 +51,15 @@ Model::EncryptOutcome KmsClientMock::Encrypt(const Model::EncryptRequest &reques
                 + " expecting: "
                 + reinterpret_cast<const char *>(eev.expected_encrypt_request.GetPlaintext().GetUnderlyingData()));
     }
+
+    if (request.GetGrantTokens() != grant_tokens) {
+        throw logic_error("Got other grant tokens than expected");
+    }
+
+    if (request.GetEncryptionContext() != eev.expected_encrypt_request.GetEncryptionContext()) {
+        throw logic_error("Got other encryption context than expected");
+    }
+
     return eev.encrypt_return;
 }
 void KmsClientMock::ExpectEncryptAccumulator(const Model::EncryptRequest &request, Model::EncryptOutcome encrypt_return) {
@@ -59,6 +76,14 @@ Model::DecryptOutcome KmsClientMock::Decrypt(const Model::DecryptRequest &reques
 
     if (edv.expected_decrypt_request.GetCiphertextBlob() != request.GetCiphertextBlob()) {
         throw std::exception();
+    }
+
+    if (request.GetGrantTokens() != grant_tokens) {
+        throw logic_error("Got other grant tokens than expected");
+    }
+
+    if (request.GetEncryptionContext() != edv.expected_decrypt_request.GetEncryptionContext()) {
+        throw logic_error("Got other encryption context than expected");
     }
 
     return edv.return_decrypt;
@@ -83,6 +108,14 @@ Model::GenerateDataKeyOutcome KmsClientMock::GenerateDataKey(const Model::Genera
         throw std::exception();
     }
 
+    if (request.GetGrantTokens() != grant_tokens) {
+        throw logic_error("Got other grant tokens than expected");
+    }
+
+    if (request.GetEncryptionContext() != expected_generate_dk_request.GetEncryptionContext()) {
+        throw logic_error("Got other encryption context than expected");
+    }
+
     expect_generate_dk = false;
     return generate_dk_return;
 }
@@ -96,6 +129,11 @@ void KmsClientMock::ExpectGenerateDataKey(const Model::GenerateDataKeyRequest &r
 
 bool KmsClientMock::ExpectingOtherCalls() {
     return (expected_decrypt_values.size() != 0) || (expected_encrypt_values.size() != 0) || expect_generate_dk;
+}
+
+
+void KmsClientMock::ExpectGrantTokens(const Aws::Vector<Aws::String> &grant_tokens) {
+    this->grant_tokens = grant_tokens;
 }
 
 }  // namespace Testing
