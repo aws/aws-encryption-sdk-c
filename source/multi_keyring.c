@@ -35,10 +35,10 @@ static int call_on_encrypt_on_list(const struct aws_array_list *keyrings,
         if (aws_array_list_get_at(keyrings, (void *)&child, list_idx)) return AWS_OP_ERR;
         if (aws_cryptosdk_keyring_on_encrypt(child,
                                              request_alloc,
-					     unencrypted_data_key,
-					     edks,
-					     enc_context,
-					     alg)) return AWS_OP_ERR;
+                                             unencrypted_data_key,
+                                             edks,
+                                             enc_context,
+                                             alg)) return AWS_OP_ERR;
     }
     return AWS_OP_SUCCESS;
 }
