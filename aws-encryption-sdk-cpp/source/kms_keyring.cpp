@@ -50,72 +50,6 @@ void KmsKeyring::DestroyAwsCryptoKeyring(struct aws_cryptosdk_keyring *keyring) 
     }
 }
 
-int KmsKeyring::OnDecrypt(struct aws_cryptosdk_keyring *keyring,
-                          struct aws_allocator *request_alloc,
-                          struct aws_byte_buf *unencrypted_data_key,
-                          const struct aws_array_list *edks,
-                          const struct aws_hash_table *enc_context,
-                          enum aws_cryptosdk_alg_id alg) {
-    struct aws_cryptosdk_kms_keyring *kms_keyring = static_cast<aws_cryptosdk_kms_keyring *>(keyring);
-    if (!kms_keyring || !kms_keyring->keyring_data || !request_alloc || !unencrypted_data_key || !edks || !enc_context) {
-        abort();
-    }
-
-    auto self = kms_keyring->keyring_data;
-
-    Aws::StringStream error_buf;
-    size_t num_elems = aws_array_list_length(edks);
-
-    for (unsigned int idx = 0; idx < num_elems; idx++) {
-        struct aws_cryptosdk_edk *edk;
-        int rv = aws_array_list_get_at_ptr(edks, (void **) &edk, idx);
-        if (rv != AWS_OP_SUCCESS) {
-            continue;
-        }
-
-        if (!aws_byte_buf_eq(&edk->provider_id, &self->key_provider)) {
-            // FIXME: this is not an error, just means EDK belongs to a different keyring.
-            error_buf << "Error: Provider of current key is not " << KEY_PROVIDER_STR << " ";
-            continue;
-        }
-
-        const Aws::String key_arn = Private::aws_string_from_c_aws_byte_buf(&edk->provider_info);
-        auto kms_region = self->GetRegionForConfiguredKmsKeys(key_arn);
-        // If kms_region is empty this means that key_arn was never configured in KmsKeyring.
-        // Key saved in provider_info must match the key that has been configured in the KmsKeyring. At this point is
-        // not supported to use another key (like an alias)
-        if (kms_region == "") {
-            error_buf << "Error: KeyId for encrypted data_key is not configured in KmsKeyring";
-            continue;
-        }
-        auto kms_client = self->GetKmsClient(kms_region);
-        auto kms_request = self->CreateDecryptRequest(key_arn,
-                                                      self->grant_tokens,
-                                                      aws_utils_byte_buffer_from_c_aws_byte_buf(&edk->enc_data_key),
-                                                      aws_map_from_c_aws_hash_table(enc_context));
-
-        Aws::KMS::Model::DecryptOutcome outcome = kms_client->Decrypt(kms_request);
-        if (!outcome.IsSuccess()) {
-            error_buf << "Error: " << outcome.GetError().GetExceptionName() << " Message:"
-                      << outcome.GetError().GetMessage() << " ";
-            continue;
-        }
-
-        const Aws::String &outcome_key_id = outcome.GetResult().GetKeyId();
-        if (outcome_key_id == key_arn) {
-            self->kms_client_cache->SaveInCache(kms_region, kms_client);
-            return aws_byte_buf_dup_from_aws_utils(kms_keyring->alloc,
-                                                   unencrypted_data_key,
-                                                   outcome.GetResult().GetPlaintext());
-        }
-    }
-
-    AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG,
-                        "Could not find any data key that can be decrypted by KMS. Errors:" << error_buf.str());
-    // According to materials.h we should return success when no key was found
-    return AWS_OP_SUCCESS;
-}
-
 int KmsKeyring::EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
                                struct aws_allocator *request_alloc,
                                struct aws_byte_buf *unencrypted_data_key,
@@ -184,6 +118,72 @@ int KmsKeyring::EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
     }
 
     return aws_cryptosdk_transfer_edk_list(edk_list, &edks.aws_list);
+}
+
+int KmsKeyring::OnDecrypt(struct aws_cryptosdk_keyring *keyring,
+                          struct aws_allocator *request_alloc,
+                          struct aws_byte_buf *unencrypted_data_key,
+                          const struct aws_array_list *edks,
+                          const struct aws_hash_table *enc_context,
+                          enum aws_cryptosdk_alg_id alg) {
+    struct aws_cryptosdk_kms_keyring *kms_keyring = static_cast<aws_cryptosdk_kms_keyring *>(keyring);
+    if (!kms_keyring || !kms_keyring->keyring_data || !request_alloc || !unencrypted_data_key || !edks || !enc_context) {
+        abort();
+    }
+
+    auto self = kms_keyring->keyring_data;
+
+    Aws::StringStream error_buf;
+    size_t num_elems = aws_array_list_length(edks);
+
+    for (unsigned int idx = 0; idx < num_elems; idx++) {
+        struct aws_cryptosdk_edk *edk;
+        int rv = aws_array_list_get_at_ptr(edks, (void **) &edk, idx);
+        if (rv != AWS_OP_SUCCESS) {
+            continue;
+        }
+
+        if (!aws_byte_buf_eq(&edk->provider_id, &self->key_provider)) {
+            // FIXME: this is not an error, just means EDK belongs to a different keyring.
+            error_buf << "Error: Provider of current key is not " << KEY_PROVIDER_STR << " ";
+            continue;
+        }
+
+        const Aws::String key_arn = Private::aws_string_from_c_aws_byte_buf(&edk->provider_info);
+        auto kms_region = self->GetRegionForConfiguredKmsKeys(key_arn);
+        // If kms_region is empty this means that key_arn was never configured in KmsKeyring.
+        // Key saved in provider_info must match the key that has been configured in the KmsKeyring. At this point is
+        // not supported to use another key (like an alias)
+        if (kms_region == "") {
+            error_buf << "Error: KeyId for encrypted data_key is not configured in KmsKeyring";
+            continue;
+        }
+        auto kms_client = self->GetKmsClient(kms_region);
+        auto kms_request = self->CreateDecryptRequest(key_arn,
+                                                      self->grant_tokens,
+                                                      aws_utils_byte_buffer_from_c_aws_byte_buf(&edk->enc_data_key),
+                                                      aws_map_from_c_aws_hash_table(enc_context));
+
+        Aws::KMS::Model::DecryptOutcome outcome = kms_client->Decrypt(kms_request);
+        if (!outcome.IsSuccess()) {
+            error_buf << "Error: " << outcome.GetError().GetExceptionName() << " Message:"
+                      << outcome.GetError().GetMessage() << " ";
+            continue;
+        }
+
+        const Aws::String &outcome_key_id = outcome.GetResult().GetKeyId();
+        if (outcome_key_id == key_arn) {
+            self->kms_client_cache->SaveInCache(kms_region, kms_client);
+            return aws_byte_buf_dup_from_aws_utils(kms_keyring->alloc,
+                                                   unencrypted_data_key,
+                                                   outcome.GetResult().GetPlaintext());
+        }
+    }
+
+    AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG,
+                        "Could not find any data key that can be decrypted by KMS. Errors:" << error_buf.str());
+    // According to materials.h we should return success when no key was found
+    return AWS_OP_SUCCESS;
 }
 
 int KmsKeyring::GenerateDataKey(struct aws_cryptosdk_keyring *keyring,
