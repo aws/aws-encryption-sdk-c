@@ -70,6 +70,15 @@ struct aws_cryptosdk_key_pair {
 struct aws_cryptosdk_encryption_request {
     struct aws_allocator * alloc;
     struct aws_hash_table * enc_context;
+    // The session will initially call generate_encryption_materials on the CMM
+    // with a zero requested_alg; it's up to one of the CMMs in the chain to fill
+    // this in before the keyring is invoked. In particular, the default CMM will
+    // fill in the algorithm ID it has been configured with, unless a CMM before
+    // the default CMM filled in a different algorithm ID.
+
+    // TODO: This is a bit of a hack; depending on what happens with PR#84 we can either
+    // move this into the output structure, or create a combined in/out structure to hold
+    // this in/out field.
     enum aws_cryptosdk_alg_id requested_alg;
     uint64_t plaintext_size;
 };
@@ -79,7 +88,7 @@ struct aws_cryptosdk_encryption_materials {
     struct aws_byte_buf unencrypted_data_key;
     struct aws_array_list encrypted_data_keys; // list of struct aws_cryptosdk_edk objects
     struct aws_hash_table * enc_context;
-    struct aws_cryptosdk_key_pair trailing_signature_key_pair;
+    struct aws_cryptosdk_signctx *signctx;
     enum aws_cryptosdk_alg_id alg;
 };
 
@@ -93,7 +102,7 @@ struct aws_cryptosdk_decryption_request {
 struct aws_cryptosdk_decryption_materials {
     struct aws_allocator * alloc;
     struct aws_byte_buf unencrypted_data_key;
-    struct aws_cryptosdk_public_key trailing_signature_key;
+    struct aws_cryptosdk_signctx *signctx;
     enum aws_cryptosdk_alg_id alg;
 };
 

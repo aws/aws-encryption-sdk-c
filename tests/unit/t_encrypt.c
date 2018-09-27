@@ -22,6 +22,7 @@
 #include "zero_keyring.h"
 #include "counting_keyring.h"
 
+static struct aws_cryptosdk_cmm *cmm;
 static uint8_t *pt_buf;
 static size_t pt_size, pt_offset;
 static uint8_t *ct_buf;
@@ -31,15 +32,15 @@ static int precise_size_set = 0;
 
 static int create_session(enum aws_cryptosdk_mode mode, struct aws_cryptosdk_keyring *kr) {
     if (session) aws_cryptosdk_session_destroy(session);
+    if (cmm) aws_cryptosdk_cmm_release(cmm);
 
     session = NULL;
 
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
+    cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
     if (!cmm) abort();
     aws_cryptosdk_keyring_release(kr);
     session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), mode, cmm);
     if (!session) abort();
-    aws_cryptosdk_cmm_release(cmm);
 
     return AWS_OP_SUCCESS;
 }
@@ -59,7 +60,9 @@ static void init_bufs(size_t pt_len) {
 
 static void free_bufs() {
     aws_cryptosdk_session_destroy(session);
+    aws_cryptosdk_cmm_release(cmm);
     session = NULL;
+    cmm = NULL;
 
     aws_mem_release(aws_default_allocator(), pt_buf);
     aws_mem_release(aws_default_allocator(), ct_buf);
@@ -204,6 +207,7 @@ static int test_small_buffers() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_message_size(session, pt_size));
     precise_size_set = true;
     if (probe_buffer_size_estimates()) return 1; // should emit final frame
+    if (probe_buffer_size_estimates()) return 1; // should emit trailer
 
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
 
@@ -293,11 +297,53 @@ int test_changed_keyring_can_decrypt() {
     return 0;
 }
 
+// This helper sub-test sets the CMM to use a particular algorithm ID, verifies
+// that we can encrypt and decrypt using that algorithm, and checks that that
+// algorithm was in fact used (as reported by both encrypt and decrypt sessions).
+static int test_algorithm_override_once(enum aws_cryptosdk_alg_id alg_id) {
+    init_bufs(1);
+
+    size_t ct_consumed, pt_consumed;
+    enum aws_cryptosdk_alg_id reported_alg_id;
+    create_session(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_counting_keyring_new(aws_default_allocator()));
+    aws_cryptosdk_default_cmm_set_alg_id(cmm, alg_id);
+    aws_cryptosdk_session_set_message_size(session, pt_size);
+    precise_size_set = true;
+
+    if (pump_ciphertext(2048, &ct_consumed, pt_size, &pt_consumed)) return 1;
+    TEST_ASSERT(aws_cryptosdk_session_is_done(session));
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_get_algorithm(session, &reported_alg_id));
+    TEST_ASSERT_INT_EQ(alg_id, reported_alg_id);
+
+    if (check_ciphertext()) return 1;
+
+    // Session is now configured for decrypt and should report decryption-side ID
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_get_algorithm(session, &reported_alg_id));
+    TEST_ASSERT_INT_EQ(alg_id, reported_alg_id);
+
+    free_bufs();
+
+    return 0;
+}
+
+int test_algorithm_override() {
+    return test_algorithm_override_once(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE)
+        || test_algorithm_override_once(AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE)
+        || test_algorithm_override_once(AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE)
+        || test_algorithm_override_once(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256)
+        || test_algorithm_override_once(AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384)
+        || test_algorithm_override_once(AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384)
+        || test_algorithm_override_once(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE)
+        || test_algorithm_override_once(AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE)
+        || test_algorithm_override_once(AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE);
+}
 
 struct test_case encrypt_test_cases[] = {
     { "encrypt", "test_simple_roundtrip", test_simple_roundtrip },
     { "encrypt", "test_small_buffers", test_small_buffers },
     { "encrypt", "test_different_keyring_cant_decrypt", &test_different_keyring_cant_decrypt },
     { "encrypt", "test_changed_keyring_can_decrypt", &test_changed_keyring_can_decrypt },
+    { "encrypt", "test_algorithm_override", &test_algorithm_override },
     { NULL }
 };

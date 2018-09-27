@@ -167,6 +167,18 @@ int aws_cryptosdk_session_process(
 bool aws_cryptosdk_session_is_done(const struct aws_cryptosdk_session *session);
 
 /**
+ * Returns the algorithm ID in use for this message via *alg_id.
+ * Raises AWS_CRYPTOSDK_ERR_BAD_STATE if the algorithm ID has not yet
+ * been determined (in this case, the session remains usable and does not
+ * enter an error state). Guaranteed to succeed if aws_cryptosdk_session_is_done
+ * returns true, but may succeed earlier in the message as well.
+ */
+int aws_cryptosdk_session_get_algorithm(
+    const struct aws_cryptosdk_session *session,
+    enum aws_cryptosdk_alg_id *alg_id
+);
+
+/**
  * Estimates the amount of buffer space needed to make forward progress.
  * Supplying the amount of data indicated here to _process guarantees that
  * some kind of progress will be made (if only to enter an error state).

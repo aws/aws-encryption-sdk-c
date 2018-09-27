@@ -135,10 +135,8 @@ static int t_signature_length() {
          * we've successfully made them deterministic
          */
         for (int i = 0; i < iterations; i++) {
-            size_t decoded_len;
             TEST_ASSERT_SUCCESS(sign_message(props, &pub_key, &sig, &test_cursor));
-            TEST_ASSERT_SUCCESS(aws_base64_compute_decoded_len((const char *)aws_string_bytes(sig), sig->len, &decoded_len));
-            TEST_ASSERT_INT_EQ(decoded_len, len);
+            TEST_ASSERT_INT_EQ(sig->len, len);
             TEST_ASSERT_SUCCESS(check_signature(props, true, pub_key, sig, &test_cursor));
 
             aws_string_destroy(pub_key);
@@ -243,6 +241,8 @@ static int t_corrupt_key() {
                 fprintf(stderr, "Corrupt key:\n");
                 buffer[i / 8] ^= 1 << (i % 8);
                 hexdump(stderr, aws_string_bytes(pub_key), pub_key->len);
+
+                check_signature(props, false, pub_key, sig, &test_cursor) ;
 
                 fprintf(stderr, "Signature:\n");
                 hexdump(stderr, aws_string_bytes(sig), sig->len);
@@ -354,8 +354,14 @@ static int t_empty_signature() {
 }
 
 static int testVector(const char *algName, enum aws_cryptosdk_alg_id alg_id, const char *pubkey_s, const char *sig_s) {
+    uint8_t tmparr[512];
+    struct aws_byte_buf tmpbuf = aws_byte_buf_from_array(tmparr, sizeof(tmparr));
+    struct aws_byte_buf sigraw = aws_byte_buf_from_c_str(sig_s);
+
+    TEST_ASSERT_SUCCESS(aws_base64_decode(&sigraw, &tmpbuf));
+
     struct aws_string *pubkey = aws_string_new_from_c_str(aws_default_allocator(), pubkey_s);
-    struct aws_string *sig = aws_string_new_from_c_str(aws_default_allocator(), sig_s);
+    struct aws_string *sig = aws_string_new_from_array(aws_default_allocator(), tmpbuf.buffer, tmpbuf.len);
 
     if (check_signature(
         aws_cryptosdk_alg_props(alg_id),
@@ -400,12 +406,22 @@ static int t_test_vectors() {
 static int t_trailing_garbage() {
     // There is an extra 0 byte appended to this public key (prior to base64 encoding)
     AWS_STATIC_STRING_FROM_LITERAL(pubkey, "A7dANHB8VOVfkdxBqZhXmD5xnRCbN8+tYjmq7L4MMa0yAA==");
-    AWS_STATIC_STRING_FROM_LITERAL(sig, "MEYCIQDIRrHUpsJDWsguDyT/CY0+IGL7f0W8LdGz2kqXvgfSJwIhAKoy0JFwexw2aqRaI4+TSrC+CKBGHEgSvP/vcQaQDyDR");
+
+    const char *sig_s = "MEYCIQDIRrHUpsJDWsguDyT/CY0+IGL7f0W8LdGz2kqXvgfSJwIhAKoy0JFwexw2aqRaI4+TSrC+CKBGHEgSvP/vcQaQDyDR";
+    uint8_t tmparr[512];
+    struct aws_byte_buf tmpbuf = aws_byte_buf_from_array(tmparr, sizeof(tmparr));
+    struct aws_byte_buf sigraw = aws_byte_buf_from_c_str(sig_s);
+
+    TEST_ASSERT_SUCCESS(aws_base64_decode(&sigraw, &tmpbuf));
+
+    struct aws_string *sig = aws_string_new_from_array(aws_default_allocator(), sigraw.buffer, sigraw.len);
 
     TEST_ASSERT_SUCCESS(check_signature(
         aws_cryptosdk_alg_props(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256),
         false, pubkey, sig, &test_cursor
     ));
+
+    aws_string_destroy(sig);
 
     return 0;
 }
