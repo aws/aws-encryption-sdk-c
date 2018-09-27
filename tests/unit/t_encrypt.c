@@ -36,7 +36,7 @@ static int create_session(enum aws_cryptosdk_mode mode, struct aws_cryptosdk_key
 
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
     if (!cmm) abort();
-
+    aws_cryptosdk_keyring_release(kr);
     session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), mode, cmm);
     if (!session) abort();
     aws_cryptosdk_cmm_release(cmm);
