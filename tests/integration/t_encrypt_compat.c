@@ -213,7 +213,7 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) abort();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) abort();
     if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm))) abort();
-    aws_cryptosdk_kr_release(kr);
+    aws_cryptosdk_keyring_release(kr);
     aws_cryptosdk_cmm_release(cmm);
 
     if (early_size) aws_cryptosdk_session_set_message_size(session, plaintext_sz);

@@ -22,7 +22,7 @@
 #include <aws/common/array_list.h>
 #include <aws/core/Aws.h>
 #include <aws/cryptosdk/private/cpputils.h>
-#include <aws/cryptosdk/private/materials.h>
+#include <aws/cryptosdk/materials.h>
 
 #include "testing.h"
 
@@ -39,8 +39,10 @@ using Aws::Cryptosdk::Private::append_key_dup_to_edks;
  */
 class Edks {
   public:
+    // FIXME: default size is being set elsewhere, remove elements arg here
     Edks(struct aws_allocator *allocator, size_t elements = 5) {
-        aws_array_list_init_dynamic(&encrypted_data_keys, allocator, elements, sizeof(struct aws_cryptosdk_edk));
+        (void)elements;
+        aws_cryptosdk_edk_list_init(allocator, &encrypted_data_keys);
     }
     ~Edks() {
         aws_cryptosdk_edk_list_clean_up(&encrypted_data_keys);
