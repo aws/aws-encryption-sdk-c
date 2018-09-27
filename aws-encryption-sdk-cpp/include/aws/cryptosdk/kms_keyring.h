@@ -80,16 +80,20 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
         std::shared_ptr<KmsClientCache> kms_client_cache);
 
     /**
-     * It attempts to find one of the EDKs to decrypt
-     * This function will be automatically called when a Data Key needs to be decrypted
+     * Attempts to find a valid KMS-keyring-generated EDK to decrypt, and if found
+     * makes calls to KMS to decrypt it. Will attempt for any valid KMS-keyring-generated
+     * EDK in the list until it succeeds in decrypting one.
      * @param keyring Pointer to an aws_cryptosdk_keyring object
-     * @param dec_mat Decryption Materials
-     * @param request A structure that contains a list of EDKS and an encryption context.
+     * @param request_alloc Allocator passed from the request, used for all per-decryption allocations.
+     * @param unencrypted_data_key Pointer to byte buffer for output. Must be zeroed at call time.
+     * @param edks Pointer to list of EDKs to attempt to decrypt.
+     * @param enc_context Pointer to encryption context to be used as AAD in decryption.
+     * @param alg Algorithm suite that was used to produce the ciphertext.
      * @return On success AWS_OP_SUCCESS will be returned. This does not necessarily mean that the data key will be
      *         decrypted, as it is normal behavior that a particular keyring may not find an EDK that it can decrypt.
-     *         To determine whether the data key was decrypted, check dec_mat->unencrypted_data_key.buffer. If the
+     *         To determine whether the data key was decrypted, check unencrypted_data_key.buffer. If the
      *         data key was not decrypted, that pointer will be set to NULL. If the data key was decrypted, that pointer
-     *         will point to the raw bytes of the key.
+     *         will point to the bytes of the key.
      *         On internal failure, AWS_OP_ERR will be returned and an internal error code will be set.
      */
     static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
@@ -99,29 +103,15 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
                          const struct aws_hash_table *enc_context,
                          enum aws_cryptosdk_alg_id alg);
 
-  private:
     /**
-     * The keyring attempts to encrypt the data key.
-     * This function will be automatically called when a Data Key needs to be encrypted
+     * The keyring attempts to generate a new data key, if one is not provided in unencrypted data key buffer,
+     * and attempts to encrypt either the newly generated data key or the one previously in the buffer.
      * @param keyring Pointer to an aws_cryptosdk_keyring object
-     * @param enc_mat Encryption materials
-     * @return  On success AWS_OP_SUCCESS is returned, the new EDK will be appended onto the list of EDKs.
-     *          On failure AWS_OP_ERR is returned, an internal AWS error code is set, and no memory is allocated.
-     */
-    static int EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
-                              struct aws_allocator *request_alloc,
-                              struct aws_byte_buf *unencrypted_data_key,
-                              struct aws_array_list *edk_list,
-                              const struct aws_hash_table *enc_context,
-                              enum aws_cryptosdk_alg_id alg);
-
-  protected:
-    /**
-     * The keyring attempts to generate a new data key, and returns it in both unencrypted and encrypted form.
-     * This function will be automatically called when a Keyring needs to generate a new pair of encrypted,
-     * unencrypted data keys
-     * @param keyring Pointer to an aws_cryptosdk_keyring object
-     * @param enc_mat
+     * @param request_alloc Allocator passed from the request, used for all per-encryption allocations.
+     * @param unencrypted_data_key If zeroed, receives new data key as output, if not is input for data key encryption.
+     * @param edks Pointer to previously allocated EDK list. If data key is encrypted, the new EDK will be appended.
+     * @param enc_context Pointer to encryption context to be used as AAD in encryption.
+     * @param alg Algorithm suite to be used to encrypt plaintext.
      * @return On success (1) AWS_OP_SUCCESS is returned, (2) the unencrypted data key buffer will contain the raw
      *         bytes of the data key, and (3) an EDK will be appended onto the list of EDKs.
      *         On failure AWS_OP_ERR is returned, an internal AWS error code is set, and no memory is allocated.
@@ -197,6 +187,24 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
     // A map of <key-id, region>
     Aws::Map<Aws::String, Aws::String> key_ids;
     std::shared_ptr<KmsClientCache> kms_client_cache;
+
+    /* Helper functions that handle the two OnEncrypt functionalities.
+     * Each makes the KMS call matching its own name. Arguments identical
+     * to OnEncrypt.
+     */
+    static int EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
+                              struct aws_allocator *request_alloc,
+                              struct aws_byte_buf *unencrypted_data_key,
+                              struct aws_array_list *edk_list,
+                              const struct aws_hash_table *enc_context,
+                              enum aws_cryptosdk_alg_id alg);
+
+    static int GenerateDataKey(struct aws_cryptosdk_keyring *keyring,
+                               struct aws_allocator *request_alloc,
+                               struct aws_byte_buf *unencrypted_data_key,
+                               struct aws_array_list *edk_list,
+                               const struct aws_hash_table *enc_context,
+                               enum aws_cryptosdk_alg_id alg);
 
   public:
     /**

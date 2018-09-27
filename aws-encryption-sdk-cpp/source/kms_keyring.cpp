@@ -67,11 +67,8 @@ int KmsKeyring::EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
                 initialized = false;
             }
         }
-        int Create(struct aws_allocator *alloc, size_t initial_item_allocation) {
-            auto rv = aws_array_list_init_dynamic(&aws_list,
-                                                  alloc,
-                                                  initial_item_allocation,
-                                                  sizeof(struct aws_cryptosdk_edk));
+        int Create(struct aws_allocator *alloc) {
+            auto rv = aws_cryptosdk_edk_list_init(alloc, &aws_list);
             initialized = (rv == AWS_OP_SUCCESS)?true:false;
             return rv;
         }
@@ -87,7 +84,7 @@ int KmsKeyring::EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
     auto self = kms_keyring->keyring_data;
 
     EdksRaii edks;
-    auto rv = edks.Create(request_alloc, self->key_ids.size());
+    auto rv = edks.Create(request_alloc);
     if (rv != AWS_OP_SUCCESS) {
         return AWS_OP_ERR;
     }
@@ -189,17 +186,13 @@ int KmsKeyring::OnDecrypt(struct aws_cryptosdk_keyring *keyring,
     return AWS_OP_SUCCESS;
 }
 
-int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
-                          struct aws_allocator *request_alloc,
-                          struct aws_byte_buf *unencrypted_data_key,
-                          struct aws_array_list *edks,
-                          const struct aws_hash_table *enc_context,
-                          enum aws_cryptosdk_alg_id alg) {
-    if (!unencrypted_data_key->buffer) {
+int KmsKeyring::GenerateDataKey(struct aws_cryptosdk_keyring *keyring,
+                                struct aws_allocator *request_alloc,
+                                struct aws_byte_buf *unencrypted_data_key,
+                                struct aws_array_list *edks,
+                                const struct aws_hash_table *enc_context,
+                                enum aws_cryptosdk_alg_id alg) {
         struct aws_cryptosdk_kms_keyring *kms_keyring = static_cast<aws_cryptosdk_kms_keyring *>(keyring);
-        if (!kms_keyring || !kms_keyring->keyring_data || !request_alloc || !unencrypted_data_key || !edks || !enc_context) {
-            abort();
-        }
 
         auto self = kms_keyring->keyring_data;
         const struct aws_cryptosdk_alg_properties *alg_prop = aws_cryptosdk_alg_props(alg);
@@ -240,11 +233,21 @@ int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
         }
 
         return AWS_OP_SUCCESS;
-    } else {
-        return KmsKeyring::EncryptDataKey(keyring, request_alloc, unencrypted_data_key, edks, enc_context, alg);
-    }
 }
 
+int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
+                          struct aws_allocator *request_alloc,
+                          struct aws_byte_buf *unencrypted_data_key,
+                          struct aws_array_list *edks,
+                          const struct aws_hash_table *enc_context,
+                          enum aws_cryptosdk_alg_id alg) {
+    if (!keyring || !request_alloc || !unencrypted_data_key || !edks || !enc_context) {
+            abort();
+    }
+    return (unencrypted_data_key->buffer ? EncryptDataKey : GenerateDataKey)(
+        keyring, request_alloc, unencrypted_data_key, edks, enc_context, alg);
+
+}
 void KmsKeyring::InitAwsCryptosdkKeyring(struct aws_allocator *allocator) {
     static const aws_cryptosdk_keyring_vt kms_keyring_vt = {
         sizeof(struct aws_cryptosdk_keyring_vt),  // size
