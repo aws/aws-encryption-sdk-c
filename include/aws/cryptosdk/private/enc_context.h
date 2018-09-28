@@ -16,7 +16,7 @@
 #define AWS_CRYPTOSDK_PRIVATE_ENC_CONTEXT_H
 
 #include <aws/common/byte_buf.h>
-#include <aws/common/hash_table.h>
+#include <aws/cryptosdk/enc_context.h>
 
 /**
  * Computes the size of a serialized encryption context.

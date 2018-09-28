@@ -23,8 +23,6 @@
 #include <aws/common/string.h>
 #include <aws/common/math.h>
 
-#define INITIAL_CONTEXT_SIZE 4
-
 static int aws_cryptosdk_algorithm_is_known(uint16_t alg_id) {
     switch (alg_id) {
         case AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384:
@@ -74,12 +72,12 @@ static int is_known_type(uint8_t content_type) {
 int aws_cryptosdk_hdr_init(struct aws_cryptosdk_hdr *hdr, struct aws_allocator *alloc) {
     aws_secure_zero(hdr, sizeof(*hdr));
 
-    if (aws_hash_table_init(&hdr->enc_context, alloc, INITIAL_CONTEXT_SIZE, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy)) {
+    if (aws_cryptosdk_enc_context_init(alloc, &hdr->enc_context)) {
         return AWS_OP_ERR;
     }
 
     if (aws_cryptosdk_edk_list_init(alloc, &hdr->edk_list)) {
-        aws_hash_table_clean_up(&hdr->enc_context);
+        aws_cryptosdk_enc_context_clean_up(&hdr->enc_context);
         return AWS_OP_ERR;
     }
 
@@ -98,8 +96,8 @@ void aws_cryptosdk_hdr_clear(struct aws_cryptosdk_hdr *hdr) {
 
     memset(&hdr->message_id, 0, sizeof(hdr->message_id));
 
-    aws_hash_table_clear(&hdr->enc_context);
     aws_cryptosdk_edk_list_clear(&hdr->edk_list);
+    aws_cryptosdk_enc_context_clear(&hdr->enc_context);
 
     hdr->auth_len = 0;
 }
@@ -114,7 +112,7 @@ void aws_cryptosdk_hdr_clean_up(struct aws_cryptosdk_hdr *hdr) {
     aws_byte_buf_clean_up(&hdr->auth_tag);
 
     aws_cryptosdk_edk_list_clean_up(&hdr->edk_list);
-    aws_hash_table_clean_up(&hdr->enc_context);
+    aws_cryptosdk_enc_context_clean_up(&hdr->enc_context);
 
     aws_secure_zero(hdr, sizeof(*hdr));
 }

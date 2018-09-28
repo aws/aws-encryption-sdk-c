@@ -14,6 +14,7 @@
  */
 
 #include <aws/cryptosdk/edk.h>
+#include <aws/cryptosdk/enc_context.h>
 #include <aws/cryptosdk/private/header.h>
 #include <aws/common/hash_table.h>
 #include <aws/common/string.h>
@@ -135,15 +136,7 @@ void set_edk_tbl(struct aws_cryptosdk_hdr *hdr, struct aws_cryptosdk_edk *edks, 
 }
 
 void set_aad_tbl(struct aws_cryptosdk_hdr *hdr, struct aws_cryptosdk_hdr_aad *aads, size_t count) {
-    if (aws_hash_table_init(
-        &hdr->enc_context,
-        aws_default_allocator(),
-        count,
-        aws_hash_string,
-        aws_string_eq,
-        aws_string_destroy,
-        aws_string_destroy
-    )) {
+    if (aws_cryptosdk_enc_context_init(aws_default_allocator(), &hdr->enc_context)) {
         abort();
     }
 
