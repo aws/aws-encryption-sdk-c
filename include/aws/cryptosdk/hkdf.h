@@ -17,6 +17,11 @@
 #define AWS_CRYPTOSDK_HKDF_H
 
 #include <aws/common/byte_buf.h>
+#include <aws/cryptosdk/exports.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 enum aws_cryptosdk_sha_version { 
     AWS_CRYPTOSDK_NOSHA,
@@ -29,11 +34,16 @@ enum aws_cryptosdk_sha_version {
  * RFC-5869. The length of the okm (output keying material) is required to be
  * set by the user ahead of time and must be less than or equal to 255*HashLen.
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_hkdf(
     struct aws_byte_buf *okm,
     enum aws_cryptosdk_sha_version which_sha,
     const struct aws_byte_buf *salt,
     const struct aws_byte_buf *ikm,
     const struct aws_byte_buf *info);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

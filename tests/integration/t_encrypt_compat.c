@@ -28,6 +28,7 @@
 #include <aws/cryptosdk/default_cmm.h>
 
 #include <curl/curl.h>
+#include <openssl/rand.h>
 
 static enum aws_cryptosdk_alg_id known_algorithms[] = {
     AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
@@ -215,7 +216,7 @@ static int test_basic() {
 
 static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size) {
     uint8_t *plaintext = malloc(plaintext_sz);
-    aws_cryptosdk_genrandom(plaintext, plaintext_sz);
+    RAND_bytes(plaintext, plaintext_sz);
 
     uint8_t *ciphertext = malloc(plaintext_sz);
     size_t ciphertext_buf_sz = plaintext_sz;

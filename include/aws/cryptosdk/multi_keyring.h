@@ -15,7 +15,12 @@
 #ifndef AWS_CRYPTOSDK_MULTI_KEYRING_H
 #define AWS_CRYPTOSDK_MULTI_KEYRING_H
 
+#include <aws/cryptosdk/exports.h>
 #include <aws/cryptosdk/materials.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * Creates a new multi-keyring. This keyring allows you to combine keyrings into
@@ -61,6 +66,7 @@
  * calls to On Encrypt with an unencrypted data key provided and calls to
  * On Decrypt will trivially succeed without modifying any materials.
  */
+AWS_CRYPTOSDK_API
 struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(
     struct aws_allocator *alloc,
     struct aws_cryptosdk_keyring *generator);
@@ -81,6 +87,7 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(
  * function, or calling it after setting the generator upon construction, will
  * fail with a AWS_ERROR_UNIMPLEMENTED error code.
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_multi_keyring_set_generator(
     struct aws_cryptosdk_keyring *multi,
     struct aws_cryptosdk_keyring *generator);
@@ -96,7 +103,12 @@ int aws_cryptosdk_multi_keyring_set_generator(
  *
  * It is not possible to remove a keyring from the multi-keyring at this time.
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_multi_keyring_add(struct aws_cryptosdk_keyring *multi,
                                     struct aws_cryptosdk_keyring *child);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // AWS_CRYPTOSDK_MULTI_KEYRING_H

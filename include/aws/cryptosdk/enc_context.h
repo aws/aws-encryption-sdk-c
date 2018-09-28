@@ -15,6 +15,8 @@
 #ifndef AWS_CRYPTOSDK_ENC_CONTEXT_H
 #define AWS_CRYPTOSDK_ENC_CONTEXT_H
 
+#include <aws/cryptosdk/exports.h>
+
 #include <aws/common/hash_table.h>
 
 #ifdef __cplusplus
@@ -29,20 +31,21 @@ extern "C" {
  * and aws/common/string.h for the interface to AWS strings.
  *
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_enc_context_init(struct aws_allocator *alloc,
                                    struct aws_hash_table *enc_context);
 
 /**
  * Clear the elements of an encryption context without deallocating the hash table.
  */
-static inline void aws_cryptosdk_enc_context_clear(struct aws_hash_table *enc_context) {
+AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_enc_context_clear(struct aws_hash_table *enc_context) {
     aws_hash_table_clear(enc_context);
 }
 
 /**
  * Deallocate an encryption context.
  */
-static inline void aws_cryptosdk_enc_context_clean_up(struct aws_hash_table *enc_context) {
+AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_enc_context_clean_up(struct aws_hash_table *enc_context) {
     aws_hash_table_clean_up(enc_context);
 }
 

@@ -14,6 +14,10 @@
 
 cmake_minimum_required (VERSION 3.1)
 project (aws-encryption-sdk)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(AwsCFlags)
+
 include(CheckLibraryExists)
 include(CheckCXXSourceCompiles)
 include(CheckCXXCompilerFlag)
@@ -34,6 +38,11 @@ set(SPECTRE_MITIGATIONS TRUE
 
 set(REDUCE_TEST_ITERATIONS FALSE
     CACHE BOOL "Reduce the number of iterations done on some exhaustive tests. This is particularly helpful when running under valgrind")
+
+set(BUILD_SHARED_LIBS FALSE
+    CACHE BOOL "Build aws-encryption-sdk-c as a shared library")
+
+option(PERFORM_HEADER_CHECK "Performs compile-time checks that each header can be included independently. Requires a C++ compiler.")
 
 option(VALGRIND_TEST_SUITE "Run the test suite under valgrind")
 set(VALGRIND_OPTIONS "" CACHE STRING "Additional options to pass to valgrind")
@@ -60,72 +69,24 @@ CHECK_CXX_SOURCE_COMPILES("
     int main() { return __builtin_expect(0, 0); }
 " HAVE_BUILTIN_EXPECT)
 
-CHECK_CXX_COMPILER_FLAG("-Wall" HAS_FLAG_WALL)
-CHECK_CXX_COMPILER_FLAG("-pedantic" HAS_FLAG_PEDANTIC)
-CHECK_CXX_COMPILER_FLAG("-Werror" HAS_FLAG_WERROR)
-CHECK_CXX_COMPILER_FLAG("-Wno-missing-field-initializers" HAS_FLAG_NO_MISSING_FIELD_INITIALIZERS)
-
-if (MSVC)
-    add_compile_options(/W3 /WX)
-
-# MSVC complains if we use C99-standard functions like strerror() instead of their
-# proprietary "secure" versions such as strerror_s. Since we need to be portable, disable
-# those warnings.
-    add_definitions("-D_CRT_SECURE_NO_WARNINGS")
-
-# Suppress various warnings
-# TODO: Fix these?
-	add_compile_options(/wd4820) # Warns for struct padding
-	add_compile_options(/wd4255) # Warns for missing (void) in function definitions
-	add_compile_options(/wd4388) # Signed/unsigned comparisons
-	add_compile_options(/wd4267 /wd4242 /wd4244) # Narrowing implicit conversions of int types
-	add_compile_options(/wd4245) # Implicit sign extension, unsigned to signed conversion
-	add_compile_options(/wd4221) # obj = { .foo = nonconstant() }
-
-# MSVC warnings about C99 standard stuff
-	add_compile_options(/wd4204) # arr = { 0, 1, 2 } initializers
-
-# MSVC warnings that we don't want
-	add_compile_options(/wd4706) # assignment within conditional
-	add_compile_options(/wd5045) # "Compiler will insert spectre mitigations if /Qspectre specified"
-
-	if (SPECTRE_MITIGATIONS)
-		add_compile_options(/Qspectre)
-	endif()
-
-endif()
-
-if (HAS_FLAG_WALL AND NOT MSVC)
-    add_compile_options(-Wall)
-endif()
-if (HAS_FLAG_PEDANTIC AND NOT MSVC)
-    add_compile_options(-pedantic)
-endif()
-if (HAS_FLAG_WERROR)
-    add_compile_options(-Werror)
-endif()
-if (HAS_FLAG_NO_MISSING_FIELD_INITIALIZERS)
-# TODO - this is to avoid warning on the missing 'enabled' field in test case definitions.
-# We should find a cleaner way to work around this.
-    add_compile_options(-Wno-missing-field-initializers)
-endif()
-
 file(GLOB AWS_CRYPTOSDK_HEADERS
 # Headers subject to API/ABI stability guarantees
      "include/aws/cryptosdk/*.h"
-# Headers not subject to API stability (but subject to ABI stability)
-# These typically include internal macros and helpers used in static inline functions
-     "include/aws/cryptosdk/private/*.h"
 )
 
 file(GLOB AWS_CRYPTOSDK_PRIV_HEADERS
 # Headers not installed with the library
-     "noninst_include/aws/cryptosdk/private/*.h"
+     "include/aws/cryptosdk/private/*.h"
 )
 
 file(GLOB AWS_CRYPTOSDK_SRC
     "source/*.c"
 )
+
+if (PERFORM_HEADER_CHECK)
+    set(HEADERS_TO_CHECK ${AWS_CRYPTOSDK_HEADERS})
+    add_subdirectory(cmake/header-tester)
+endif()
 
 # Generate an includable header file exposing build-time configuration
 set(GENERATED_CONFIG_HEADER "${CMAKE_CURRENT_BINARY_DIR}/generated/include/aws/cryptosdk/private/config.h")
@@ -156,14 +117,9 @@ else()
     set(LIBTYPE STATIC)
 endif()
 
-add_library(aws-encryption-sdk ${LIBTYPE} ${CORE_HEADERS} ${CORE_SRC})
-set_target_properties(aws-encryption-sdk PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
-
-set(CMAKE_C_FLAGS_DEBUGOPT "")
-
-if(CMAKE_BUILD_TYPE STREQUAL "" OR CMAKE_BUILD_TYPE MATCHES DEBUG)
-    target_compile_definitions(aws-encryption-sdk PRIVATE "-DDEBUG_BUILD")
-endif()
+add_library(${PROJECT_NAME} ${LIBTYPE} ${CORE_HEADERS} ${CORE_SRC})
+set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
+aws_set_common_properties(${PROJECT_NAME})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -173,8 +129,27 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${OPENSSL_INCLUDE_DIR}
 )
 
-target_link_libraries(aws-encryption-sdk PRIVATE ${PLATFORM_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
-target_link_libraries(aws-encryption-sdk PUBLIC aws-c-common)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PLATFORM_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
+target_link_libraries(${PROJECT_NAME} PUBLIC aws-c-common)
+
+# Some of our unit tests need to access private symbols. Build a static library for their use.
+# We'll use the shared lib for integration tests.
+add_library(aws-encryption-sdk-test EXCLUDE_FROM_ALL STATIC ${CORE_HEADERS} ${CORE_SRC})
+set_target_properties(aws-encryption-sdk-test PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
+aws_set_common_properties(aws-encryption-sdk-test)
+
+target_include_directories(aws-encryption-sdk-test PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/noninst_include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated/include>
+    $<INSTALL_INTERFACE:include>
+    ${OPENSSL_INCLUDE_DIR}
+)
+
+target_link_libraries(aws-encryption-sdk-test PRIVATE ${PLATFORM_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
+target_link_libraries(aws-encryption-sdk-test PUBLIC aws-c-common)
+
+
 
 file(GLOB UNIT_TEST_SRC "tests/unit/*.c")
 file(GLOB UNIT_TEST_HDRS "tests/*.h")
@@ -192,7 +167,7 @@ set_target_properties(testlib PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 target_include_directories(testlib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
 
 add_executable(unit-test-suite ${UNIT_TEST_SRC})
-target_link_libraries(unit-test-suite ${PROJECT_NAME} ${OPENSSL_LDFLAGS} testlib)
+target_link_libraries(unit-test-suite aws-encryption-sdk-test ${OPENSSL_LDFLAGS} testlib)
 set_target_properties(unit-test-suite PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 target_include_directories(unit-test-suite PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
 
@@ -205,7 +180,7 @@ target_link_libraries(test_decrypt ${PROJECT_NAME} ${OPENSSL_LDFLAGS} testlib)
 set_target_properties(test_decrypt PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 
 add_executable(test_decryption_vectors "tests/decryption_vectors.c" ${TEST_LIB})
-target_link_libraries(test_decryption_vectors ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
+target_link_libraries(test_decryption_vectors ${PROJECT_NAME})
 set_target_properties(test_decryption_vectors PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 target_include_directories(test_decryption_vectors PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
 
@@ -214,7 +189,7 @@ if(CURL_FOUND)
     set_target_properties(t_encrypt_compat PROPERTIES
         C_STANDARD 99
     )
-    target_link_libraries(t_encrypt_compat aws-encryption-sdk ${CURL_LIBRARIES})
+    target_link_libraries(t_encrypt_compat PRIVATE aws-encryption-sdk ${CURL_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY})
     target_include_directories(t_encrypt_compat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit ${CURL_INCLUDE_DIRS})
     target_sources(t_encrypt_compat PRIVATE ${UNIT_TEST_SRC_CPP})
     target_include_directories(t_encrypt_compat PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)

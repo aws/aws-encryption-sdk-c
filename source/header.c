@@ -308,10 +308,10 @@ int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_
     output.ptr += aad_space.len;
     output.len -= aad_space.len;
 
-    aws_byte_cursor_write_be16(&aad_length_field, aad_space.len);
+    aws_byte_cursor_write_be16(&aad_length_field, (uint16_t)aad_space.len);
 
     size_t edk_count = aws_array_list_length(&hdr->edk_list);
-    if (!aws_byte_cursor_write_be16(&output, edk_count)) goto WRITE_ERR;
+    if (!aws_byte_cursor_write_be16(&output, (uint16_t)edk_count)) goto WRITE_ERR;
 
     for (size_t idx = 0 ; idx < edk_count ; ++idx) {
         void *vp_edk;
@@ -320,13 +320,13 @@ int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_
 
         const struct aws_cryptosdk_edk *edk = vp_edk;
 
-        if (!aws_byte_cursor_write_be16(&output, edk->provider_id.len)) goto WRITE_ERR;
+        if (!aws_byte_cursor_write_be16(&output, (uint16_t)edk->provider_id.len)) goto WRITE_ERR;
         if (!aws_byte_cursor_write_from_whole_buffer(&output, &edk->provider_id)) goto WRITE_ERR;
 
-        if (!aws_byte_cursor_write_be16(&output, edk->provider_info.len)) goto WRITE_ERR;
+        if (!aws_byte_cursor_write_be16(&output, (uint16_t)edk->provider_info.len)) goto WRITE_ERR;
         if (!aws_byte_cursor_write_from_whole_buffer(&output, &edk->provider_info)) goto WRITE_ERR;
 
-        if (!aws_byte_cursor_write_be16(&output, edk->enc_data_key.len)) goto WRITE_ERR;
+        if (!aws_byte_cursor_write_be16(&output, (uint16_t)edk->enc_data_key.len)) goto WRITE_ERR;
         if (!aws_byte_cursor_write_from_whole_buffer(&output, &edk->enc_data_key)) goto WRITE_ERR;
     }
 
@@ -336,7 +336,7 @@ int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_
 
     if (!aws_byte_cursor_write(&output, zero.bytes, 4)) goto WRITE_ERR;
 
-    if (!aws_byte_cursor_write_u8(&output, hdr->iv.len)) goto WRITE_ERR;
+    if (!aws_byte_cursor_write_u8(&output, (uint8_t)hdr->iv.len)) goto WRITE_ERR;
     if (!aws_byte_cursor_write_be32(&output, hdr->frame_len)) goto WRITE_ERR;
 
     if (!aws_byte_cursor_write_from_whole_buffer(&output, &hdr->iv)) goto WRITE_ERR;
