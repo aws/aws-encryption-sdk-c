@@ -66,3 +66,74 @@ void aws_cryptosdk_decryption_materials_destroy(struct aws_cryptosdk_decryption_
         aws_mem_release(dec_mat->alloc, dec_mat);
     }
 }
+
+int aws_cryptosdk_keyring_on_encrypt(struct aws_cryptosdk_keyring *keyring,
+                                     struct aws_allocator *request_alloc,
+                                     struct aws_byte_buf *unencrypted_data_key,
+                                     struct aws_array_list *edks,
+                                     const struct aws_hash_table *enc_context,
+                                     enum aws_cryptosdk_alg_id alg) {
+    /* Shallow copy of byte buffer: does NOT duplicate key bytes */
+    const struct aws_byte_buf precall_data_key_buf = *unencrypted_data_key;
+
+    /* Precondition: If a data key has not already been generated, there must be no EDKs.
+     * Generating a new one and then pushing new EDKs on the list would cause the list of
+     * EDKs to be inconsistent. (i.e., they would decrypt to different data keys.)
+     */
+    if (!precall_data_key_buf.buffer && aws_array_list_length(edks))
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+
+    AWS_CRYPTOSDK_PRIVATE_VF_CALL(on_encrypt,
+                                  keyring,
+                                  request_alloc,
+                                  unencrypted_data_key,
+                                  edks,
+                                  enc_context,
+                                  alg);
+
+    /* Postcondition: If this keyring generated data key, it must be the right length. */
+    if (!precall_data_key_buf.buffer && unencrypted_data_key->buffer) {
+        const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(alg);
+        if (unencrypted_data_key->len != props->data_key_len)
+            return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    }
+
+    /* Postcondition: If data key was generated before call, byte buffer must not have been
+     * modified. Note that this only checks the metadata in the byte buffer and not the key
+     * bytes themselves. Verifying the key bytes were unchanged would require making an extra
+     * copy of the key bytes, a case of the cure being worse than the disease.
+     */
+    if (precall_data_key_buf.buffer) {
+        if (memcmp(&precall_data_key_buf, unencrypted_data_key, sizeof(precall_data_key_buf)))
+            return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    }
+    return ret;
+}
+
+int aws_cryptosdk_keyring_on_decrypt(struct aws_cryptosdk_keyring * keyring,
+                                     struct aws_allocator * request_alloc,
+                                     struct aws_byte_buf * unencrypted_data_key,
+                                     const struct aws_array_list * edks,
+                                     const struct aws_hash_table * enc_context,
+                                     enum aws_cryptosdk_alg_id alg) {
+    /* Precondition: data key buffer must be unset. */
+    if (unencrypted_data_key->buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    AWS_CRYPTOSDK_PRIVATE_VF_CALL(on_decrypt,
+                                  keyring,
+                                  request_alloc,
+                                  unencrypted_data_key,
+                                  edks,
+                                  enc_context,
+                                  alg);
+
+    /* Postcondition: if data key was decrypted, its length must agree with algorithm
+     * specification. If this is not the case, it either means ciphertext was tampered
+     * with or the keyring implementation is not setting the length properly.
+     */
+    if (unencrypted_data_key->buffer) {
+        const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(alg);
+        if (unencrypted_data_key->len != props->data_key_len)
+            return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
+    }
+    return ret;
+}
