@@ -14,6 +14,7 @@
  */
 
 #include <aws/cryptosdk/private/cpputils.h>
+#include <aws/cryptosdk/enc_context.h>
 #include <aws/common/string.h>
 
 #include "edks_utils.h"
@@ -97,8 +98,7 @@ int awsMapFromCAwsHashHable_hashMap_returnAwsMap() {
     struct aws_hash_element *p_elem;
     int was_created;
 
-    TEST_ASSERT_SUCCESS(aws_hash_table_init(&hash_table, allocator, 10,
-                                            aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(allocator, &hash_table));
 
     TEST_ASSERT_SUCCESS(aws_hash_table_create(&hash_table, (void *) key1, &p_elem, &was_created));
     p_elem->value = (void *) value1;
@@ -107,7 +107,7 @@ int awsMapFromCAwsHashHable_hashMap_returnAwsMap() {
     p_elem->value = (void *) value2;
 
     Aws::Map<Aws::String, Aws::String> aws_map = aws_map_from_c_aws_hash_table(&hash_table);
-    aws_hash_table_clean_up(&hash_table);
+    aws_cryptosdk_enc_context_clean_up(&hash_table);
 
     TEST_ASSERT(aws_map[key1_c_chr] == value1_c_chr);
     TEST_ASSERT(aws_map[key2_c_chr] == value2_c_chr);

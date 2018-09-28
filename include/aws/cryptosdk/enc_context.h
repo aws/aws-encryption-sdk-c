@@ -17,6 +17,10 @@
 
 #include <aws/common/hash_table.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Initialize an encryption context, which is just an AWS hash table
  * that uses AWS strings as keys and values.
@@ -41,5 +45,9 @@ static inline void aws_cryptosdk_enc_context_clear(struct aws_hash_table *enc_co
 static inline void aws_cryptosdk_enc_context_clean_up(struct aws_hash_table *enc_context) {
     aws_hash_table_clean_up(enc_context);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // AWS_CRYPTOSDK_ENC_CONTEXT_H
