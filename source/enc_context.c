@@ -18,6 +18,18 @@
 
 #include <aws/common/byte_buf.h>
 
+int aws_cryptosdk_enc_context_init(struct aws_allocator *alloc,
+                                   struct aws_hash_table *enc_context) {
+    size_t initial_size = 10; //arbitrary starting point, will resize as necessary
+    return aws_hash_table_init(enc_context,
+                               alloc,
+                               initial_size,
+                               aws_hash_string,
+                               aws_string_eq,
+                               aws_string_destroy,
+                               aws_string_destroy);
+}
+
 int aws_cryptosdk_context_size(size_t *size, const struct aws_hash_table *enc_context) {
     size_t serialized_len = 2; // First two bytes are the number of k-v pairs
     size_t entry_count = 0;
@@ -105,7 +117,7 @@ WRITE_ERR:
 }
 
 int aws_cryptosdk_context_deserialize(struct aws_allocator *alloc, struct aws_hash_table *enc_context, struct aws_byte_cursor *cursor) {
-    aws_hash_table_clear(enc_context);
+    aws_cryptosdk_enc_context_clear(enc_context);
 
     if (cursor->len == 0) {
         return AWS_OP_SUCCESS;
@@ -141,6 +153,6 @@ int aws_cryptosdk_context_deserialize(struct aws_allocator *alloc, struct aws_ha
 SHORT_BUF:
     aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 RETHROW:
-    aws_hash_table_clear(enc_context);
+    aws_cryptosdk_enc_context_clear(enc_context);
     return AWS_OP_ERR;
 }

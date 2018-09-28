@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/private/raw_aes_keyring.h>
+#include <aws/cryptosdk/enc_context.h>
 #include <aws/cryptosdk/materials.h>
 #include "raw_aes_keyring_test_vectors.h"
 #include "testing.h"
@@ -44,14 +45,7 @@ static int set_up_all_the_things(enum aws_cryptosdk_aes_key_len raw_key_len, boo
     kr = raw_aes_keyring_tv_new(alloc, raw_key_len);
     TEST_ASSERT_ADDR_NOT_NULL(kr);
 
-    TEST_ASSERT_SUCCESS(aws_hash_table_init(&enc_context,
-                                            alloc,
-                                            5,
-                                            aws_hash_string,
-                                            aws_string_eq,
-                                            aws_string_destroy,
-                                            aws_string_destroy));
-
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, &enc_context));
     TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &edks));
 
     if (fill_enc_context) TEST_ASSERT_SUCCESS(put_stuff_in_encryption_context());
@@ -60,7 +54,7 @@ static int set_up_all_the_things(enum aws_cryptosdk_aes_key_len raw_key_len, boo
 }
 
 static void tear_down_all_the_things() {
-    aws_hash_table_clean_up(&enc_context);
+    aws_cryptosdk_enc_context_clean_up(&enc_context);
     aws_cryptosdk_keyring_release(kr);
     aws_cryptosdk_edk_list_clean_up(&edks);
     aws_byte_buf_clean_up(&unencrypted_data_key);
