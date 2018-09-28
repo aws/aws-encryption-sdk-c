@@ -18,6 +18,11 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <aws/common/hash_table.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* 
  * Loads a file from disk into a newly malloc'd buffer.
@@ -29,6 +34,18 @@ int test_loadfile(const char *filename, uint8_t **buf, size_t *datasize);
  * Performs a human-readable hexdump of the given buffer
  */
 void hexdump(FILE *fd, const uint8_t *buf, size_t size);
+
+/**
+ * Creates and initializes with default values an encryption context
+ * Note: enc_context needs to be cleaned using aws_hash_table_clean_up
+ * @param enc_context Output variable with an initialized hash_table
+ * @return
+ */
+int test_enc_context_create_and_fill(struct aws_hash_table *enc_context);
+
+#ifdef __cplusplus
+}
+#endif
 
 #define RUN_TEST(expr) \
     do { \

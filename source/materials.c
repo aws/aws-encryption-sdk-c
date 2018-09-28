@@ -33,6 +33,7 @@ struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_n
     enc_mat->alg = alg;
     memset(&enc_mat->unencrypted_data_key, 0, sizeof(struct aws_byte_buf));
     enc_mat->signctx = NULL;
+    enc_mat->enc_context = NULL;
 
     if (aws_cryptosdk_edk_list_init(alloc, &enc_mat->encrypted_data_keys)) {
         aws_mem_release(alloc, enc_mat);
