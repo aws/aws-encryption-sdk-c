@@ -89,7 +89,7 @@ if (BUILD_AWS_ENC_SDK_CPP)
     file(GLOB TEST_LIB_HEADERS "tests/lib/*.h")
 
     add_library(testlibcpp EXCLUDE_FROM_ALL ${TEST_LIB_HEADERS} ${TEST_LIB})
-    target_link_libraries(testlibcpp aws-encryption-sdk-cpp)
+    target_link_libraries(testlibcpp aws-encryption-sdk-cpp testlib)
     set_target_properties(testlibcpp PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
     target_include_directories(testlibcpp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib
             ${PROJECT_SOURCE_DIR}/tests/lib $<INSTALL_INTERFACE:include>)

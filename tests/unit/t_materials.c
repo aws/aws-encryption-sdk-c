@@ -368,7 +368,7 @@ int on_encrypt_precondition_violation() {
 
     struct aws_byte_buf unencrypted_data_key = {0};
     struct aws_array_list edks;
-    struct aws_cryptosdk_edk edk = {0};
+    struct aws_cryptosdk_edk edk = {{0}};
     TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &edks));
     TEST_ASSERT_SUCCESS(aws_array_list_push_back(&edks, &edk));
 
