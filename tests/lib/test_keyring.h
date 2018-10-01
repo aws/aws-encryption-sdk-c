@@ -40,53 +40,5 @@ struct test_keyring {
 
 extern const struct aws_cryptosdk_keyring_vt test_keyring_vt;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/**
- * Decrypts using a specific keyring and saves result in result_output
- * Note: result_output needs to be cleaned using aws_byte_buf_clean_up
-*/
-int test_keyring_datakey_decrypt(struct aws_byte_buf *result_output,
-                                 struct aws_cryptosdk_keyring *keyring,
-                                 struct aws_cryptosdk_edk *edk,
-                                 struct aws_hash_table *enc_context,
-                                 enum aws_cryptosdk_alg_id alg);
-
-/**
- * Encrypts using a specific keyring and saves result in result_output
- * Note: result_output needs to be cleaned using aws_cryptosdk_edk_list_clean_up
-*/
-int test_keyring_datakey_encrypt(struct aws_array_list *result_output,
-                                 struct aws_cryptosdk_keyring *keyring,
-                                 const char *plain_text,
-                                 struct aws_hash_table *enc_context,
-                                 enum aws_cryptosdk_alg_id alg);
-
-/**
- * Decrypts content of edk and then compares with expected_plain_text
- * @return 0 on success when content of decryption is equal with expected_plain_text
- */
-int test_keyring_datakey_decrypt_and_compare_with_pt(const struct aws_byte_buf *expected_plain_text,
-                                                     struct aws_cryptosdk_keyring *keyring,
-                                                     struct aws_cryptosdk_edk *edk,
-                                                     struct aws_hash_table *enc_context,
-                                                     enum aws_cryptosdk_alg_id alg);
-
-/**
- * Decrypts content of edk and then compares with expected_plain_text
- * @return 0 on success when content of decryption is equal with expected_plain_text
- */
-int test_keyring_datakey_decrypt_and_compare_with_c_str_pt(const char *expected_plain_text,
-                                                     struct aws_cryptosdk_keyring *keyring,
-                                                     struct aws_cryptosdk_edk *edk,
-                                                     struct aws_hash_table *enc_context,
-                                                     enum aws_cryptosdk_alg_id alg);
-
-#ifdef __cplusplus
-}
-#endif
-
 #endif // AWS_CRYPTOSDK_TESTS_LIB_TEST_KEYRING_H
 
