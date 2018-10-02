@@ -263,7 +263,7 @@ int encryptdkAndDecrypt_singleKey_returnSuccess() {
     Testing::Edks edks(alloc);
 
     struct aws_hash_table enc_context;
-    test_enc_context_create_and_fill(&enc_context);
+    test_enc_context_init_and_fill(&enc_context);
     auto kms_keyring = KmsKeyring::Builder().SetAllocator(alloc).SetKeyId(KEY_ARN_STR2).Build();
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(kms_keyring,
@@ -297,7 +297,7 @@ int encryptdkAndDecrypt_twoKeys_returnSuccess() {
     Testing::Edks edks(alloc);
 
     struct aws_hash_table enc_context;
-    test_enc_context_create_and_fill(&enc_context);
+    test_enc_context_init_and_fill(&enc_context);
     auto encrypting_keyring_with_two_keys = KmsKeyring::Builder().AppendKeyId(KEY_ARN_STR2)
         .AppendKeyId(KEY_ARN_STR1)
         .SetDefaultRegion(KEY_ARN_STR2_REGION).Build();

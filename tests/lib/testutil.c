@@ -20,6 +20,7 @@
 #include <aws/common/common.h>
 #include <aws/common/hash_table.h>
 #include <aws/common/string.h>
+#include <aws/cryptosdk/enc_context.h>
 #include "../unit/testing.h"
 #include "testutil.h"
 
@@ -121,25 +122,16 @@ failure:
 }
 
 
-int test_enc_context_create_and_fill(struct aws_hash_table *enc_context) {
-    TEST_ASSERT_SUCCESS(aws_hash_table_init(enc_context,
-                                            aws_default_allocator(),
-                                            2,
-                                            aws_hash_string,
-                                            aws_string_eq,
-                                            aws_string_destroy,
-                                            aws_string_destroy));
+int test_enc_context_init_and_fill(struct aws_hash_table *enc_context) {
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(aws_default_allocator(), enc_context));
 
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_1, "The night is dark");
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_1, "and full of terrors");
-    struct aws_hash_element *elem;
-    TEST_ASSERT_SUCCESS(aws_hash_table_create(enc_context, (void *) enc_context_key_1, &elem, NULL));
-    elem->value = (void *) enc_context_val_1;
+    aws_hash_table_put(enc_context, enc_context_key_1, (void *)enc_context_val_1, NULL);
 
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_2, "You Know Nothing");
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_2, "James Bond");
-    TEST_ASSERT_SUCCESS(aws_hash_table_create(enc_context, (void *) enc_context_key_2, &elem, NULL));
-    elem->value = (void *) enc_context_val_2;
+    aws_hash_table_put(enc_context, enc_context_key_2, (void *)enc_context_val_2, NULL);
 
     return 0;
 }
