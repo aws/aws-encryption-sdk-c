@@ -19,6 +19,11 @@
 #include <aws/common/string.h>
 #include <aws/common/byte_buf.h>
 #include <aws/cryptosdk/header.h>
+#include <aws/cryptosdk/exports.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 enum aws_cryptosdk_aes_key_len {
     AWS_CRYPTOSDK_AES_128 = 128/8,
@@ -47,10 +52,7 @@ struct aws_cryptosdk_alg_properties {
     enum aws_cryptosdk_alg_id alg_id;
 };
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
+AWS_CRYPTOSDK_API
 const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryptosdk_alg_id alg_id);
 
 /**
@@ -64,6 +66,7 @@ struct aws_cryptosdk_signctx;
  *
  * This method is intended to be used with caching mechanisms to clone the signing context.
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_get_privkey(
     struct aws_cryptosdk_signctx *ctx,
     struct aws_allocator *alloc,
@@ -81,6 +84,7 @@ int aws_cryptosdk_sig_get_privkey(
  * @param pub_key_buf - A buffer that will receive the public key (in base64 format).
  *   This buffer will be allocated as part of this call, and does not need to be pre-initialized.
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_sign_start_keygen(
     struct aws_cryptosdk_signctx **pctx,
     struct aws_allocator *alloc,
@@ -100,6 +104,7 @@ int aws_cryptosdk_sig_sign_start_keygen(
  *   props - algorithm properties for the algorithm suite in use
  *   priv_key - the previously serialized private key
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_sign_start(
     struct aws_cryptosdk_signctx **ctx,
     struct aws_allocator *alloc,
@@ -117,6 +122,7 @@ int aws_cryptosdk_sig_sign_start(
  * @param props - The algorithm properties for the algorithm to use
  * @param pub_key - A buffer containing the (base64) public key
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_verify_start(
     struct aws_cryptosdk_signctx **pctx,
     struct aws_allocator *alloc,
@@ -127,6 +133,7 @@ int aws_cryptosdk_sig_verify_start(
 /**
  * Supplies some data to an ongoing sign or verify operation.
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_update(
     struct aws_cryptosdk_signctx *ctx,
     const struct aws_byte_cursor buf
@@ -142,6 +149,7 @@ int aws_cryptosdk_sig_update(
  *
  * The context is always freed, regardless of success or failure.
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_verify_finish(
     struct aws_cryptosdk_signctx *ctx,
     const struct aws_string *signature
@@ -156,6 +164,7 @@ int aws_cryptosdk_sig_verify_finish(
  *
  * The context is always freed, regardless of success or failure.
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_sign_finish(
     struct aws_cryptosdk_signctx *ctx,
     struct aws_allocator *alloc,
@@ -166,12 +175,13 @@ int aws_cryptosdk_sig_sign_finish(
  * Aborts an ongoing sign or verify operation, and destroys the signature context.
  * If ctx is null, this operation is a no-op.
  */
+AWS_CRYPTOSDK_API
 void aws_cryptosdk_sig_abort(
     struct aws_cryptosdk_signctx *ctx
 );
 
 #ifdef __cplusplus
 }
-#endif  
+#endif
 
 #endif // AWS_CRYPTOSDK_CIPHER_H

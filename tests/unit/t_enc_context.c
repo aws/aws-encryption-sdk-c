@@ -17,6 +17,13 @@
 #include <aws/cryptosdk/error.h>
 #include "testing.h"
 
+/*
+ * Warning: this file uses aws_hash_table_init instead of aws_cryptosdk_enc_context_init
+ * in many places because it does a few tricky things, including disabling some of the
+ * destructors to avoid double frees and setting up a very large table to avoid
+ * reallocations.
+ */
+
 AWS_STATIC_STRING_FROM_LITERAL(empty, "");
 AWS_STATIC_STRING_FROM_LITERAL(foo, "foo");
 AWS_STATIC_STRING_FROM_LITERAL(bar, "bar");
@@ -67,7 +74,7 @@ int get_sorted_elems_array_test() {
         TEST_ASSERT(aws_string_eq((const struct aws_string *)elem.value, sorted_vals[idx]));
     }
     aws_array_list_clean_up(&elems);
-    aws_hash_table_clean_up(&map);
+    aws_cryptosdk_enc_context_clean_up(&map);
     return 0;
 }
 
@@ -87,7 +94,7 @@ int serialize_empty_enc_context() {
     TEST_ASSERT_INT_EQ(output.len, 0);
 
     aws_byte_buf_clean_up(&output);
-    aws_hash_table_clean_up(&enc_context);
+    aws_cryptosdk_enc_context_clean_up(&enc_context);
     return 0;
 }
 
@@ -129,7 +136,7 @@ int serialize_valid_enc_context() {
     TEST_ASSERT_INT_EQ(output.len, sizeof(serialized_ctx) - 1);
     TEST_ASSERT_INT_EQ(0, memcmp(output.buffer, serialized_ctx, output.len));
     aws_byte_buf_clean_up(&output);
-    aws_hash_table_clean_up(&enc_context);
+    aws_cryptosdk_enc_context_clean_up(&enc_context);
     return 0;
 }
 
@@ -168,7 +175,7 @@ int serialize_valid_enc_context_unsigned_comparison() {
     TEST_ASSERT_INT_EQ(0, memcmp(output.buffer, serialized_ctx, output.len));
 
     aws_byte_buf_clean_up(&output);
-    aws_hash_table_clean_up(&enc_context);
+    aws_cryptosdk_enc_context_clean_up(&enc_context);
     return 0;
 }
 
@@ -191,7 +198,7 @@ int serialize_error_when_element_too_long() {
     TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED,
                       serialize_init(alloc, &output, &enc_context));
 
-    aws_hash_table_clean_up(&enc_context);
+    aws_cryptosdk_enc_context_clean_up(&enc_context);
     return 0;
 }
 
@@ -215,15 +222,14 @@ int serialize_error_when_serialized_len_too_long() {
     TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED,
                       serialize_init(alloc, &output, &enc_context));
 
-    aws_hash_table_clean_up(&enc_context);
+    aws_cryptosdk_enc_context_clean_up(&enc_context);
     return 0;
 }
 
 int serialize_valid_enc_context_max_length() {
     struct aws_allocator * alloc = aws_default_allocator();
     struct aws_hash_table enc_context;
-    TEST_ASSERT_INT_EQ(aws_hash_table_init(&enc_context, alloc, 10, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy),
-                       AWS_OP_SUCCESS);
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, &enc_context));
 
     /* 2 bytes: key-value count
        2 bytes: key length (=UINT16_MAX - 6)
@@ -246,7 +252,7 @@ int serialize_valid_enc_context_max_length() {
     TEST_ASSERT_INT_EQ(serialize_init(alloc, &output, &enc_context), AWS_OP_SUCCESS);
     TEST_ASSERT_INT_EQ(output.len, UINT16_MAX);
     aws_byte_buf_clean_up(&output);
-    aws_hash_table_clean_up(&enc_context);
+    aws_cryptosdk_enc_context_clean_up(&enc_context);
     return 0;
 }
 
@@ -270,7 +276,7 @@ int serialize_error_when_too_many_elements() {
     struct aws_byte_buf output;
     TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED,
                       serialize_init(alloc, &output, &enc_context));
-    aws_hash_table_clean_up(&enc_context);
+    aws_cryptosdk_enc_context_clean_up(&enc_context);
     return 0;
 }
 

@@ -23,8 +23,6 @@
 #include <aws/common/string.h>
 #include <aws/common/math.h>
 
-#define INITIAL_CONTEXT_SIZE 4
-
 static int aws_cryptosdk_algorithm_is_known(uint16_t alg_id) {
     switch (alg_id) {
         case AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384:
@@ -74,12 +72,12 @@ static int is_known_type(uint8_t content_type) {
 int aws_cryptosdk_hdr_init(struct aws_cryptosdk_hdr *hdr, struct aws_allocator *alloc) {
     aws_secure_zero(hdr, sizeof(*hdr));
 
-    if (aws_hash_table_init(&hdr->enc_context, alloc, INITIAL_CONTEXT_SIZE, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy)) {
+    if (aws_cryptosdk_enc_context_init(alloc, &hdr->enc_context)) {
         return AWS_OP_ERR;
     }
 
     if (aws_cryptosdk_edk_list_init(alloc, &hdr->edk_list)) {
-        aws_hash_table_clean_up(&hdr->enc_context);
+        aws_cryptosdk_enc_context_clean_up(&hdr->enc_context);
         return AWS_OP_ERR;
     }
 
@@ -98,8 +96,8 @@ void aws_cryptosdk_hdr_clear(struct aws_cryptosdk_hdr *hdr) {
 
     memset(&hdr->message_id, 0, sizeof(hdr->message_id));
 
-    aws_hash_table_clear(&hdr->enc_context);
     aws_cryptosdk_edk_list_clear(&hdr->edk_list);
+    aws_cryptosdk_enc_context_clear(&hdr->enc_context);
 
     hdr->auth_len = 0;
 }
@@ -114,7 +112,7 @@ void aws_cryptosdk_hdr_clean_up(struct aws_cryptosdk_hdr *hdr) {
     aws_byte_buf_clean_up(&hdr->auth_tag);
 
     aws_cryptosdk_edk_list_clean_up(&hdr->edk_list);
-    aws_hash_table_clean_up(&hdr->enc_context);
+    aws_cryptosdk_enc_context_clean_up(&hdr->enc_context);
 
     aws_secure_zero(hdr, sizeof(*hdr));
 }
@@ -310,10 +308,10 @@ int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_
     output.ptr += aad_space.len;
     output.len -= aad_space.len;
 
-    aws_byte_cursor_write_be16(&aad_length_field, aad_space.len);
+    aws_byte_cursor_write_be16(&aad_length_field, (uint16_t)aad_space.len);
 
     size_t edk_count = aws_array_list_length(&hdr->edk_list);
-    if (!aws_byte_cursor_write_be16(&output, edk_count)) goto WRITE_ERR;
+    if (!aws_byte_cursor_write_be16(&output, (uint16_t)edk_count)) goto WRITE_ERR;
 
     for (size_t idx = 0 ; idx < edk_count ; ++idx) {
         void *vp_edk;
@@ -322,13 +320,13 @@ int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_
 
         const struct aws_cryptosdk_edk *edk = vp_edk;
 
-        if (!aws_byte_cursor_write_be16(&output, edk->provider_id.len)) goto WRITE_ERR;
+        if (!aws_byte_cursor_write_be16(&output, (uint16_t)edk->provider_id.len)) goto WRITE_ERR;
         if (!aws_byte_cursor_write_from_whole_buffer(&output, &edk->provider_id)) goto WRITE_ERR;
 
-        if (!aws_byte_cursor_write_be16(&output, edk->provider_info.len)) goto WRITE_ERR;
+        if (!aws_byte_cursor_write_be16(&output, (uint16_t)edk->provider_info.len)) goto WRITE_ERR;
         if (!aws_byte_cursor_write_from_whole_buffer(&output, &edk->provider_info)) goto WRITE_ERR;
 
-        if (!aws_byte_cursor_write_be16(&output, edk->enc_data_key.len)) goto WRITE_ERR;
+        if (!aws_byte_cursor_write_be16(&output, (uint16_t)edk->enc_data_key.len)) goto WRITE_ERR;
         if (!aws_byte_cursor_write_from_whole_buffer(&output, &edk->enc_data_key)) goto WRITE_ERR;
     }
 
@@ -338,7 +336,7 @@ int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_
 
     if (!aws_byte_cursor_write(&output, zero.bytes, 4)) goto WRITE_ERR;
 
-    if (!aws_byte_cursor_write_u8(&output, hdr->iv.len)) goto WRITE_ERR;
+    if (!aws_byte_cursor_write_u8(&output, (uint8_t)hdr->iv.len)) goto WRITE_ERR;
     if (!aws_byte_cursor_write_be32(&output, hdr->frame_len)) goto WRITE_ERR;
 
     if (!aws_byte_cursor_write_from_whole_buffer(&output, &hdr->iv)) goto WRITE_ERR;

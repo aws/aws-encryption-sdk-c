@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <aws/cryptosdk/enc_context.h>
 #include <aws/cryptosdk/kms_keyring.h>
 #include <aws/cryptosdk/private/cpputils.h>
 
@@ -102,10 +103,7 @@ struct TestValues {
                    ct_bb((unsigned char *) ct, strlen(ct)),
                    pt_aws_byte(aws_byte_buf_from_c_str(pt)),
                    grant_tokens(grant_tokens) {
-        aws_hash_table_init(&encryption_context, allocator, 100,
-                                                aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy);
-
-
+        aws_cryptosdk_enc_context_init(allocator, &encryption_context);
     }
 
     /**
@@ -132,7 +130,7 @@ struct TestValues {
 
     ~TestValues() {
         Aws::Delete(kms_keyring);
-        aws_hash_table_clean_up(&encryption_context);
+        aws_cryptosdk_enc_context_clean_up(&encryption_context);
     }
 };
 

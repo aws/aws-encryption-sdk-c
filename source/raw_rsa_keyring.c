@@ -26,12 +26,11 @@ struct raw_rsa_keyring {
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode;
 };
 
-static int raw_rsa_keyring_encrypt_data_key(struct aws_cryptosdk_keyring *kr,
-                                            struct aws_allocator *request_alloc,
-                                            struct aws_byte_buf *unencrypted_data_key,
-                                            struct aws_array_list *edks) {
+static int encrypt_data_key(struct aws_cryptosdk_keyring *kr,
+                            struct aws_allocator *request_alloc,
+                            struct aws_byte_buf *unencrypted_data_key,
+                            struct aws_array_list *edks) {
     struct raw_rsa_keyring *self = (struct raw_rsa_keyring *)kr;
-    if (!self->rsa_public_key_pem) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
 
     struct aws_cryptosdk_edk edk = { { 0 } };
 
@@ -69,6 +68,9 @@ static int raw_rsa_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
                                       const struct aws_hash_table *enc_context,
                                       enum aws_cryptosdk_alg_id alg) {
     (void)enc_context;
+    struct raw_rsa_keyring *self = (struct raw_rsa_keyring *)kr;
+    if (!self->rsa_public_key_pem) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+
     bool generated_new_data_key = false;
     if (!unencrypted_data_key->buffer) {
         const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
@@ -83,7 +85,7 @@ static int raw_rsa_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
         generated_new_data_key = true;
         unencrypted_data_key->len = unencrypted_data_key->capacity;
     }
-    int ret = raw_rsa_keyring_encrypt_data_key(kr, request_alloc, unencrypted_data_key, edks);
+    int ret = encrypt_data_key(kr, request_alloc, unencrypted_data_key, edks);
     if (ret && generated_new_data_key) {
         aws_byte_buf_clean_up(unencrypted_data_key);
     }
@@ -125,9 +127,7 @@ static int raw_rsa_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
             return AWS_OP_SUCCESS;
         }
     }
-    // None of the EDKs worked, clean up unencrypted data key buffer and return success per materials.h
-    aws_byte_buf_clean_up(unencrypted_data_key);
-
+    // None of the EDKs worked. Return success per materials.h
     return AWS_OP_SUCCESS;
 }
 

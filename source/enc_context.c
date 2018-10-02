@@ -18,6 +18,18 @@
 
 #include <aws/common/byte_buf.h>
 
+int aws_cryptosdk_enc_context_init(struct aws_allocator *alloc,
+                                   struct aws_hash_table *enc_context) {
+    size_t initial_size = 10; //arbitrary starting point, will resize as necessary
+    return aws_hash_table_init(enc_context,
+                               alloc,
+                               initial_size,
+                               aws_hash_string,
+                               aws_string_eq,
+                               aws_string_destroy,
+                               aws_string_destroy);
+}
+
 int aws_cryptosdk_context_size(size_t *size, const struct aws_hash_table *enc_context) {
     size_t serialized_len = 2; // First two bytes are the number of k-v pairs
     size_t entry_count = 0;
@@ -80,7 +92,7 @@ int aws_cryptosdk_context_serialize(struct aws_allocator *alloc,
     output->len = length;
     struct aws_byte_cursor cur = aws_byte_cursor_from_buf(output);
 
-    if (!aws_byte_cursor_write_be16(&cur, num_elems)) goto WRITE_ERR;
+    if (!aws_byte_cursor_write_be16(&cur, (uint16_t)num_elems)) goto WRITE_ERR;
 
     for (size_t idx = 0; idx < num_elems; ++idx) {
         struct aws_hash_element elem;
@@ -90,9 +102,9 @@ int aws_cryptosdk_context_serialize(struct aws_allocator *alloc,
         }
         const struct aws_string * key = (const struct aws_string *)elem.key;
         const struct aws_string * value = (const struct aws_string *)elem.value;
-        if (!aws_byte_cursor_write_be16(&cur, key->len)) goto WRITE_ERR;
+        if (!aws_byte_cursor_write_be16(&cur, (uint16_t)key->len)) goto WRITE_ERR;
         if (!aws_byte_cursor_write_from_whole_string(&cur, key)) goto WRITE_ERR;
-        if (!aws_byte_cursor_write_be16(&cur, value->len)) goto WRITE_ERR;
+        if (!aws_byte_cursor_write_be16(&cur, (uint16_t)value->len)) goto WRITE_ERR;
         if (!aws_byte_cursor_write_from_whole_string(&cur, value)) goto WRITE_ERR;
     }
     aws_array_list_clean_up(&elems);
@@ -105,7 +117,7 @@ WRITE_ERR:
 }
 
 int aws_cryptosdk_context_deserialize(struct aws_allocator *alloc, struct aws_hash_table *enc_context, struct aws_byte_cursor *cursor) {
-    aws_hash_table_clear(enc_context);
+    aws_cryptosdk_enc_context_clear(enc_context);
 
     if (cursor->len == 0) {
         return AWS_OP_SUCCESS;
@@ -141,6 +153,6 @@ int aws_cryptosdk_context_deserialize(struct aws_allocator *alloc, struct aws_ha
 SHORT_BUF:
     aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 RETHROW:
-    aws_hash_table_clear(enc_context);
+    aws_cryptosdk_enc_context_clear(enc_context);
     return AWS_OP_ERR;
 }

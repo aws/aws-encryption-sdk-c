@@ -27,7 +27,7 @@
 #include <aws/common/math.h>
 
 static int build_header(struct aws_cryptosdk_session *session, struct aws_cryptosdk_encryption_materials *materials);
-static int sign_header(struct aws_cryptosdk_session *session, struct aws_cryptosdk_encryption_materials *materials);
+static int sign_header(struct aws_cryptosdk_session *session);
 
 /* Session encrypt path routines */
 void encrypt_compute_body_estimate(struct aws_cryptosdk_session *session) {
@@ -98,7 +98,7 @@ int try_gen_key(struct aws_cryptosdk_session *session) {
         goto rethrow;
     }
 
-    if (sign_header(session, materials)) {
+    if (sign_header(session)) {
         goto rethrow;
     }
 
@@ -122,7 +122,10 @@ cleanup:
 
 static int build_header(struct aws_cryptosdk_session *session, struct aws_cryptosdk_encryption_materials *materials) {
     session->header.alg_id = session->alg_props->alg_id;
-    session->header.frame_len = session->frame_size;
+    if (session->frame_size > UINT32_MAX) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
+    }
+    session->header.frame_len = (uint32_t)session->frame_size;
 
     // Swap the materials' EDK list for the header's. Note that these both use the session allocator
     // (aws_array_list_swap_contents requires that both lists use the same allocator).
@@ -146,7 +149,7 @@ static int build_header(struct aws_cryptosdk_session *session, struct aws_crypto
     return AWS_OP_SUCCESS;
 }
 
-static int sign_header(struct aws_cryptosdk_session *session, struct aws_cryptosdk_encryption_materials *materials) {
+static int sign_header(struct aws_cryptosdk_session *session) {
     session->header_size = aws_cryptosdk_hdr_size(&session->header);
 
     if (session->header_size == 0) {
@@ -234,10 +237,10 @@ int try_encrypt_body(
         /* This is a framed message; is it the last frame? */
         if (session->precise_size_known
                 && session->precise_size - session->data_so_far < session->frame_size) {
-            plaintext_size = session->precise_size - session->data_so_far;
+            plaintext_size = (size_t)(session->precise_size - session->data_so_far);
             frame_type = FRAME_TYPE_FINAL;
         } else {
-            plaintext_size = session->frame_size;
+            plaintext_size = (size_t)session->frame_size;
             frame_type = FRAME_TYPE_FRAME;
         }
     } else {
@@ -248,7 +251,7 @@ int try_encrypt_body(
             return AWS_OP_SUCCESS;
         }
 
-        plaintext_size = session->precise_size;
+        plaintext_size = (size_t)session->precise_size;
         frame_type = FRAME_TYPE_SINGLE;
     }
 
@@ -263,6 +266,9 @@ int try_encrypt_body(
     size_t ciphertext_size;
 
     frame.type = frame_type;
+    if (session->frame_seqno > UINT32_MAX) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
+    }
     frame.sequence_number = session->frame_seqno;
 
     int rv = aws_cryptosdk_serialize_frame(&frame, &ciphertext_size, plaintext_size, &output, session->alg_props);

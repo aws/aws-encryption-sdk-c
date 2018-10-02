@@ -14,6 +14,7 @@
  */
 #include <stdlib.h>
 #include <aws/cryptosdk/private/raw_aes_keyring.h>
+#include <aws/cryptosdk/enc_context.h>
 #include <aws/cryptosdk/materials.h>
 #include "raw_aes_keyring_test_vectors.h"
 #include "testing.h"
@@ -120,14 +121,7 @@ static int set_up_all_the_things(const struct aws_string ** keys,
     kr = raw_aes_keyring_tv_new(alloc, raw_key_len);
     TEST_ASSERT_ADDR_NOT_NULL(kr);
 
-    TEST_ASSERT_INT_EQ(aws_hash_table_init(&enc_context,
-                                           alloc,
-                                           num_kv_pairs+1,
-                                           aws_hash_string,
-                                           aws_string_eq,
-                                           aws_string_destroy,
-                                           aws_string_destroy),
-                       AWS_OP_SUCCESS);
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, &enc_context));
 
     for (size_t key_idx = 0; key_idx < num_kv_pairs; ++key_idx) {
         struct aws_hash_element * elem;
@@ -141,7 +135,7 @@ static int set_up_all_the_things(const struct aws_string ** keys,
 
 static void tear_down_all_the_things() {
     aws_cryptosdk_edk_list_clean_up(&edks);
-    aws_hash_table_clean_up(&enc_context);
+    aws_cryptosdk_enc_context_clean_up(&enc_context);
     aws_cryptosdk_keyring_release(kr);
     aws_byte_buf_clean_up(&unencrypted_data_key);
 }

@@ -35,6 +35,7 @@
  *
  * On failure returns NULL and sets an internal AWS error code.
  */
+AWS_CRYPTOSDK_API
 struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     struct aws_allocator *alloc,
     const uint8_t *master_key_id,

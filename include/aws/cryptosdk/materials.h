@@ -24,9 +24,11 @@
 #include <aws/common/array_list.h>
 #include <aws/common/byte_buf.h>
 #include <aws/common/hash_table.h>
+#include <aws/common/atomics.h>
+
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/edk.h>
-#include <aws/common/atomics.h>
+#include <aws/cryptosdk/exports.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/header.h>
 
@@ -164,7 +166,7 @@ struct aws_cryptosdk_decryption_materials {
 /**
  * Internal function: Decrement a refcount; return true if the object should be destroyed.
  */
-static inline bool aws_cryptosdk_private_refcount_down(struct aws_atomic_var *refcount) {
+AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_private_refcount_down(struct aws_atomic_var *refcount) {
     size_t old_count = aws_atomic_fetch_sub_explicit(refcount, 1, aws_memory_order_relaxed);
 
     assert(old_count != 0);
@@ -175,7 +177,7 @@ static inline bool aws_cryptosdk_private_refcount_down(struct aws_atomic_var *re
 /**
  * Internal function: Increment a refcount.
  */
-static inline void aws_cryptosdk_private_refcount_up(struct aws_atomic_var *refcount) {
+AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_private_refcount_up(struct aws_atomic_var *refcount) {
     size_t old_count = aws_atomic_fetch_add_explicit(refcount, 1, aws_memory_order_relaxed);
 
     assert(old_count != 0 && old_count != SIZE_MAX);
@@ -222,7 +224,7 @@ struct aws_cryptosdk_cmm_vt {
  * Initialize the base structure for a CMM. This should be called by the /implementation/ of a CMM, to set up the
  * vtable and reference count.
  */
-static inline void aws_cryptosdk_cmm_base_init(struct aws_cryptosdk_cmm * cmm, const struct aws_cryptosdk_cmm_vt *vtable) {
+AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_base_init(struct aws_cryptosdk_cmm * cmm, const struct aws_cryptosdk_cmm_vt *vtable) {
     cmm->vtable = vtable;
     aws_atomic_init_int(&cmm->refcount, 1);
 }
@@ -230,7 +232,7 @@ static inline void aws_cryptosdk_cmm_base_init(struct aws_cryptosdk_cmm * cmm, c
 /**
  * Decrements the reference count on the CMM; if the new reference count is zero, the CMM is destroyed.
  */
-static inline void aws_cryptosdk_cmm_release(struct aws_cryptosdk_cmm * cmm) {
+AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_release(struct aws_cryptosdk_cmm * cmm) {
     if (cmm && aws_cryptosdk_private_refcount_down(&cmm->refcount)) {
         AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, cmm);
     }
@@ -239,7 +241,7 @@ static inline void aws_cryptosdk_cmm_release(struct aws_cryptosdk_cmm * cmm) {
 /**
  * Increments the reference count on the cmm.
  */
-static inline struct aws_cryptosdk_cmm *aws_cryptosdk_cmm_retain(struct aws_cryptosdk_cmm * cmm) {
+AWS_CRYPTOSDK_STATIC_INLINE struct aws_cryptosdk_cmm *aws_cryptosdk_cmm_retain(struct aws_cryptosdk_cmm * cmm) {
     aws_cryptosdk_private_refcount_up(&cmm->refcount);
     return cmm;
 }
@@ -254,7 +256,7 @@ static inline struct aws_cryptosdk_cmm *aws_cryptosdk_cmm_retain(struct aws_cryp
  * On failure returns AWS_OP_ERR, sets address pointed to by output to NULL, and sets
  * internal AWS error code.
  */
-static inline int aws_cryptosdk_cmm_generate_encryption_materials(
+AWS_CRYPTOSDK_STATIC_INLINE int aws_cryptosdk_cmm_generate_encryption_materials(
     struct aws_cryptosdk_cmm * cmm,
     struct aws_cryptosdk_encryption_materials ** output,
     struct aws_cryptosdk_encryption_request * request) {
@@ -271,7 +273,7 @@ static inline int aws_cryptosdk_cmm_generate_encryption_materials(
  * On failure returns AWS_OP_ERR, sets address pointed to by output to NULL, and sets
  * internal AWS error code.
  */
-static inline int aws_cryptosdk_cmm_decrypt_materials(
+AWS_CRYPTOSDK_STATIC_INLINE int aws_cryptosdk_cmm_decrypt_materials(
     struct aws_cryptosdk_cmm * cmm,
     struct aws_cryptosdk_decryption_materials ** output,
     struct aws_cryptosdk_decryption_request * request) {
@@ -330,7 +332,7 @@ struct aws_cryptosdk_keyring_vt {
  * Initialize the base structure for a keyring. This should be called by the /implementation/ of a keyring, to set up the
  * vtable and reference count.
  */
-static inline void aws_cryptosdk_keyring_base_init(struct aws_cryptosdk_keyring * keyring, const struct aws_cryptosdk_keyring_vt *vtable) {
+AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_keyring_base_init(struct aws_cryptosdk_keyring * keyring, const struct aws_cryptosdk_keyring_vt *vtable) {
     keyring->vtable = vtable;
     aws_atomic_init_int(&keyring->refcount, 1);
 }
@@ -338,7 +340,7 @@ static inline void aws_cryptosdk_keyring_base_init(struct aws_cryptosdk_keyring 
 /**
  * Decrements the reference count on the keyring; if the new reference count is zero, the keyring is destroyed.
  */
-static inline void aws_cryptosdk_keyring_release(struct aws_cryptosdk_keyring * keyring) {
+AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_keyring_release(struct aws_cryptosdk_keyring * keyring) {
     if (keyring && aws_cryptosdk_private_refcount_down(&keyring->refcount)) {
         AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, keyring);
     }
@@ -347,7 +349,7 @@ static inline void aws_cryptosdk_keyring_release(struct aws_cryptosdk_keyring * 
 /**
  * Increments the reference count on the keyring.
  */
-static inline struct aws_cryptosdk_keyring *aws_cryptosdk_keyring_retain(struct aws_cryptosdk_keyring * keyring) {
+AWS_CRYPTOSDK_STATIC_INLINE struct aws_cryptosdk_keyring *aws_cryptosdk_keyring_retain(struct aws_cryptosdk_keyring * keyring) {
     aws_cryptosdk_private_refcount_up(&keyring->refcount);
     return keyring;
 }
@@ -368,48 +370,13 @@ static inline struct aws_cryptosdk_keyring *aws_cryptosdk_keyring_retain(struct 
  *
  * On failure AWS_OP_ERR is returned, an internal AWS error code is set.
  */
-static inline int aws_cryptosdk_keyring_on_encrypt(struct aws_cryptosdk_keyring *keyring,
-                                                   struct aws_allocator *request_alloc,
-                                                   struct aws_byte_buf *unencrypted_data_key,
-                                                   struct aws_array_list *edks,
-                                                   const struct aws_hash_table *enc_context,
-                                                   enum aws_cryptosdk_alg_id alg) {
-    /* Shallow copy of byte buffer: does NOT duplicate key bytes */
-    const struct aws_byte_buf precall_data_key_buf = *unencrypted_data_key;
-
-    /* Precondition: If a data key has not already been generated, there must be no EDKs.
-     * Generating a new one and then pushing new EDKs on the list would cause the list of
-     * EDKs to be inconsistent. (i.e., they would decrypt to different data keys.)
-     */
-    if (!precall_data_key_buf.buffer && aws_array_list_length(edks))
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL(on_encrypt,
-                                  keyring,
-                                  request_alloc,
-                                  unencrypted_data_key,
-                                  edks,
-                                  enc_context,
-                                  alg);
-
-    /* Postcondition: If this keyring generated data key, it must be the right length. */
-    if (!precall_data_key_buf.buffer && unencrypted_data_key->buffer) {
-        const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(alg);
-        if (unencrypted_data_key->len != props->data_key_len)
-            return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-    }
-
-    /* Postcondition: If data key was generated before call, byte buffer must not have been
-     * modified. Note that this only checks the metadata in the byte buffer and not the key
-     * bytes themselves. Verifying the key bytes were unchanged would require making an extra
-     * copy of the key bytes, a case of the cure being worse than the disease.
-     */
-    if (precall_data_key_buf.buffer) {
-        if (memcmp(&precall_data_key_buf, unencrypted_data_key, sizeof(precall_data_key_buf)))
-            return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-    }
-    return ret;
-}
+AWS_CRYPTOSDK_API
+int aws_cryptosdk_keyring_on_encrypt(struct aws_cryptosdk_keyring *keyring,
+                                     struct aws_allocator *request_alloc,
+                                     struct aws_byte_buf *unencrypted_data_key,
+                                     struct aws_array_list *edks,
+                                     const struct aws_hash_table *enc_context,
+                                     enum aws_cryptosdk_alg_id alg);
 
 /**
  * The KR attempts to find one of the EDKs to decrypt.
@@ -423,33 +390,13 @@ static inline int aws_cryptosdk_keyring_on_encrypt(struct aws_cryptosdk_keyring 
  *
  * On internal failure, AWS_OP_ERR will be returned and an error code will be set.
  */
-static inline int aws_cryptosdk_keyring_on_decrypt(struct aws_cryptosdk_keyring * keyring,
-                                                   struct aws_allocator * request_alloc,
-                                                   struct aws_byte_buf * unencrypted_data_key,
-                                                   const struct aws_array_list * edks,
-                                                   const struct aws_hash_table * enc_context,
-                                                   enum aws_cryptosdk_alg_id alg) {
-    /* Precondition: data key buffer must be unset. */
-    if (unencrypted_data_key->buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL(on_decrypt,
-                                  keyring,
-                                  request_alloc,
-                                  unencrypted_data_key,
-                                  edks,
-                                  enc_context,
-                                  alg);
-
-    /* Postcondition: if data key was decrypted, its length must agree with algorithm
-     * specification. If this is not the case, it either means ciphertext was tampered
-     * with or the keyring implementation is not setting the length properly.
-     */
-    if (unencrypted_data_key->buffer) {
-        const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(alg);
-        if (unencrypted_data_key->len != props->data_key_len)
-            return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
-    }
-    return ret;
-}
+AWS_CRYPTOSDK_API
+int aws_cryptosdk_keyring_on_decrypt(struct aws_cryptosdk_keyring * keyring,
+                                     struct aws_allocator * request_alloc,
+                                     struct aws_byte_buf * unencrypted_data_key,
+                                     const struct aws_array_list * edks,
+                                     const struct aws_hash_table * enc_context,
+                                     enum aws_cryptosdk_alg_id alg);
 
 /**
  * Allocates a new encryption materials object, including allocating memory to the list
@@ -458,6 +405,7 @@ static inline int aws_cryptosdk_keyring_on_decrypt(struct aws_cryptosdk_keyring 
  *
  * On failure, returns NULL and an error code will be set.
  */
+AWS_CRYPTOSDK_API
 struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_new(
     struct aws_allocator * alloc,
     enum aws_cryptosdk_alg_id alg);
@@ -468,6 +416,7 @@ struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_n
  * deallocated, but make sure that they have been initialized properly per the comments
  * on aws_cryptosdk_keyring_generate_data_key.
  */
+AWS_CRYPTOSDK_API
 void aws_cryptosdk_encryption_materials_destroy(struct aws_cryptosdk_encryption_materials * enc_mat);
 
 /**
@@ -480,6 +429,7 @@ void aws_cryptosdk_encryption_materials_destroy(struct aws_cryptosdk_encryption_
  *
  * On failure, returns NULL and an internal AWS error code is set.
  */
+AWS_CRYPTOSDK_API
 struct aws_cryptosdk_decryption_materials * aws_cryptosdk_decryption_materials_new(
     struct aws_allocator * alloc,
     enum aws_cryptosdk_alg_id alg);
@@ -489,6 +439,7 @@ struct aws_cryptosdk_decryption_materials * aws_cryptosdk_decryption_materials_n
  * object itself and the unencrypted data key it is holding, if an EDK has been decrypted
  * successfully.
  */
+AWS_CRYPTOSDK_API
 void aws_cryptosdk_decryption_materials_destroy(struct aws_cryptosdk_decryption_materials * dec_mat);
 
 #ifdef __cplusplus

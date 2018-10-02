@@ -593,9 +593,7 @@ int aws_cryptosdk_rsa_encrypt(
     size_t outlen;
     if (EVP_PKEY_encrypt(ctx, NULL, &outlen, plain.ptr, plain.len) <= 0) goto cleanup;
     if (aws_byte_buf_init(alloc, cipher, outlen)) goto cleanup;
-    if (EVP_PKEY_encrypt(ctx, cipher->buffer, &outlen, plain.ptr, plain.len) <= 0) {
-        aws_byte_buf_clean_up(cipher);
-    } else {
+    if (1 == EVP_PKEY_encrypt(ctx, cipher->buffer, &outlen, plain.ptr, plain.len)) {
         cipher->len = outlen;
         error = false;
     }
@@ -606,15 +604,13 @@ cleanup:
     BIO_free(bio);
     flush_openssl_errors();
     if (error) {
+        aws_byte_buf_clean_up_secure(cipher);
         return aws_raise_error(err_code);
     } else {
         return AWS_OP_SUCCESS;
     }
 }
 
-//FIXME: this is inconsistently freeing plain buffer and calling code is freeing
-//it instead, which shouldn't be happening. Also, check whether BAD_CIPHERTEXT
-//error code is being used appropriately
 int aws_cryptosdk_rsa_decrypt(
     struct aws_byte_buf *plain,
     struct aws_allocator *alloc,
@@ -647,7 +643,6 @@ int aws_cryptosdk_rsa_decrypt(
     if (aws_byte_buf_init(alloc, plain, outlen)) goto cleanup;
     if (EVP_PKEY_decrypt(ctx, plain->buffer, &outlen, cipher.ptr, cipher.len) <= 0) {
         err_code = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
-        aws_byte_buf_clean_up(plain);
     } else {
         plain->len = outlen;
         error = false;
@@ -659,6 +654,7 @@ cleanup:
     BIO_free(bio);
     flush_openssl_errors();
     if (error) {
+        aws_byte_buf_clean_up_secure(plain);
         return aws_raise_error(err_code);
     } else {
         return AWS_OP_SUCCESS;
