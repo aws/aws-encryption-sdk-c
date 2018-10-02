@@ -1,0 +1,10 @@
+# Probably a glibc bug. See e.g.
+# https://svn.boost.org/trac10/ticket/12188
+# https://bugzilla.redhat.com/show_bug.cgi?id=754026
+{
+   libc_nss_freeres_bug
+   Memcheck:Free
+   fun:free
+   fun:__libc_freeres
+   fun:_vgnU_freeres
+}
