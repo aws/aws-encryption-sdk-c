@@ -36,12 +36,12 @@ int test_loadfile(const char *filename, uint8_t **buf, size_t *datasize);
 void hexdump(FILE *fd, const uint8_t *buf, size_t size);
 
 /**
- * Creates and initializes with default values an encryption context
+ * Creates and initializes with fixed strings an encryption context
  * Note: enc_context needs to be cleaned using aws_hash_table_clean_up
  * @param enc_context Output variable with an initialized hash_table
  * @return
  */
-int test_enc_context_create_and_fill(struct aws_hash_table *enc_context);
+int test_enc_context_init_and_fill(struct aws_hash_table *enc_context);
 
 #ifdef __cplusplus
 }
