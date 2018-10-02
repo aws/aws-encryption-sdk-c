@@ -184,6 +184,10 @@ target_link_libraries(test_decryption_vectors ${PROJECT_NAME})
 set_target_properties(test_decryption_vectors PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 target_include_directories(test_decryption_vectors PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
 
+if (REDUCE_TEST_ITERATIONS)
+    target_compile_definitions(test_decryption_vectors PRIVATE REDUCE_TEST_ITERATIONS)
+endif()
+
 if(CURL_FOUND)
     add_executable(t_encrypt_compat tests/integration/t_encrypt_compat.c ${TEST_LIB})
     set_target_properties(t_encrypt_compat PROPERTIES
