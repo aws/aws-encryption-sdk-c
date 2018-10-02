@@ -7,7 +7,7 @@ AWS Encryption SDK for C
 You'll first need to build the
 [aws-c-common](https://github.com/awslabs/aws-c-common) and (optionally)
 [aws-sdk-cpp](https://github.com/aws/aws-sdk-cpp) packages. You'll also need to
-build and install openssl 1.1.0 or higher.
+build and install openssl 1.0.2 or higher.
 
 Once you've built them, you have two ways of providing their paths to this
 package. First, you can `make install` the dependencies to some directory (you
@@ -35,7 +35,7 @@ directory referenced by `CMAKE_PREFIX_PATH` if you prefer.
 
 When building aws-sdk-cpp, you can save time by only building the subcomponents we need:
 
-    cmake -DBUILD_ONLY="lambda;kms" [path to aws-sdk-cpp source]
+    cmake -DBUILD_ONLY="kms" [path to aws-sdk-cpp source]
 
 To enable debug symbols, set `-DCMAKE_BUILD_TYPE=Debug` at initial cmake time,
 or use `ccmake .` to update the configuration after the fact.
