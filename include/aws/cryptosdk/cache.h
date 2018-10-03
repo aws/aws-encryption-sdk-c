@@ -15,6 +15,8 @@
 
 #ifndef AWS_CRYPTOSDK_CACHE_H
 
+#include <aws/common/clock.h>
+
 #include <aws/cryptosdk/materials.h>
 
 struct aws_cryptosdk_cache_usage_stats {
@@ -24,29 +26,55 @@ struct aws_cryptosdk_cache_usage_stats {
 /**
  * The backing materials cache that stores the cached materials for one or more caching CMMs.
  */
-struct aws_cryptosdk_matcache {
-    const struct aws_cryptosdk_matcache_vt *vt;
+struct aws_cryptosdk_mat_cache {
+    struct aws_atomic_var refcount;
+    const struct aws_cryptosdk_mat_cache_vt *vt;
 };
 
 /**
- * An encrypt cache entry; this entry has an internal reference count, to allow for it to be
- * invalidated while other threads are still working to copy data out of the entry.
+ * Represents an opaque handle to an entry in the materials cache. These handles are returned
+ * when putting or getting entries in the materials cache; the caller must release these handles
+ * once done with the entry to avoid memory leaks.
+ * 
+ * Entry handles are not necessarily reference counted; callers should assume that they are simply
+ * freeable datastructures.
  */
-struct aws_cryptosdk_cache_encrypt_entry {
-    const struct aws_cryptosdk_cache_encrypt_entry_vt *vt;
+struct aws_cryptosdk_mat_cache_entry {
+    const struct aws_cryptosdk_mat_cache_entry_vt *vt;
 };
 
-/**
- * A decrypt cache entry; this entry has an internal reference count, to allow for it to be
- * invalidated while other threads are still working to copy data out of the entry.
- */
-struct aws_cryptosdk_cache_decrypt_entry {
-    const struct aws_cryptosdk_cache_encrypt_entry_vt *vt;
-};
-
-struct aws_cryptosdk_matcache_vt {
+struct aws_cryptosdk_mat_cache_entry_vt {
     /**
-     * Must be set to sizeof(struct aws_cryptosdk_matcache_vt)
+     * Must be set to sizeof(struct aws_cryptosdk_mat_cache_entry_vt)
+     */
+    size_t vt_size;
+    
+    /**
+     * Identifier for debugging purposes
+     */
+    const char *name;
+
+    /**
+     * Releases this handle. If invalidate is true, _attempts_ to invalidate the cache entry.
+     */
+    void (*release)(struct aws_cryptosdk_mat_cache_entry *entry, bool invalidate);
+
+    /**
+     * Gets the creation timestamp for this entry, in nanoseconds since the unix epoch.
+     */
+    uint64_t (*get_creation_time)(struct aws_cryptosdk_mat_cache_entry *entry);
+
+    /**
+     * Advises the cache that this entry is not useful after the specified timestamp.
+     * The cache may (but is not required to) actively expire the entry after this timestamp,
+     * to free up space for other entries.
+     */
+    void (*set_expiration_hint)(struct aws_cryptosdk_mat_cache_entry *entry, uint64_t expiration_time);
+};
+
+struct aws_cryptosdk_mat_cache_vt {
+    /**
+     * Must be set to sizeof(struct aws_cryptosdk_mat_cache_vt)
      */
     size_t vt_size;
     
@@ -56,27 +84,28 @@ struct aws_cryptosdk_matcache_vt {
     const char *name;
 
     /** 
-     * Attempts to find an entry in the encrypt cache. If found, adds a
-     * reference to the entry's refcount and returns the entry in *entry;
-     * otherwise, sets *entry to NULL.
+     * Attempts to find an entry in the encrypt cache. If found, returns a
+     * handle to the cache entry in *entry and the actual materials in *materials.
      * 
-     * As part of finding the entry, this method will increment the entry's
-     * usage by usage_stats; if this would result in exceeding the usage limit,
-     * the entry is invalidated and not returned.
+     * As part of finding the entry, this method will atomically increment the entry's
+     * usage by *usage_stats; the updated usage stats are then returned in *usage_stats
      * 
      * Parameters:
      * 
      * @param cache - The cache to perform the lookup against
+     * @param entry - Out-parameter that receives a handle to the cache entry, if found
+     * @param materials - Out-parameter that receives the encryption materials, if found
      * @param cache_id - The cache identifier to look up.
-     * @param entry - Out-parameter that receives the encrypt entry, if found
-     * @param usage_stats - Amount to increment usage stats by
+     * @param usage_stats - Amount to increment usage stats by; receives final usage stats
+     *                      after addition.
      */
 
-    int get_entry_for_encrypt(
-        struct aws_cryptosdk_matcache *cache,
+    int (*get_entry_for_encrypt)(
+        struct aws_cryptosdk_mat_cache *cache,
+        struct aws_cryptosdk_mat_cache_entry **entry,
+        struct aws_cryptosdk_encryption_materials *materials,
         const struct aws_byte_buf *cache_id,
-        struct aws_cryptosdk_cache_encrypt_entry **entry,
-        struct aws_cryptosdk_cache_usage_stats usage_stats
+        struct aws_cryptosdk_cache_usage_stats *usage_stats
     );
 
     /**
@@ -87,37 +116,37 @@ struct aws_cryptosdk_matcache_vt {
      * 
      * Parameters:
      * @param cache - The cache to insert into
+     * @param entry - Out-parameter which receives a handle to the created cache entry.
+     *                On failure, *entry will be set to NULL.
      * @param cache_id - The cache identifier to insert into
      * @param materials - The encryption materials to insert; a copy will be
      * made using the cache's allocator
-     * @param expected_expiry - A hint that recommends to the cache that the entry be
-     * discarded shortly after the specified timestamp. The cache might still return
-     * it after this time.
      * @param initial_usage - The usage stats to initially record against this cache entry
      */ 
-    void put_entry_for_encrypt(
-        struct aws_cryptosdk_matcache *cache,
+    void (*put_entry_for_encrypt)(
+        struct aws_cryptosdk_mat_cache *cache,
+        struct aws_cryptosdk_mat_cache_entry **entry,
         const struct aws_byte_buf *cache_id,
         const struct aws_cryptosdk_encryption_materials *materials,
-        uint64_t expected_expiry,
         struct aws_cryptosdk_cache_usage_stats initial_usage
     );
 
     /** 
-     * Attempts to find an entry in the decrypt cache. If found, adds a
-     * reference to the entry's refcount and returns the entry in *entry;
-     * otherwise, sets *entry to NULL.
+     * Attempts to find an entry in the decrypt cache. If found, returns a handle to the
+     * cache entry in *entry, and the decryption materials in *materials.
      * 
      * Parameters:
      * 
      * @param cache - The cache to perform the lookup against
+     * @param entry - Out-parameter that receives the cache entry, if found
+     * @param materials - Out-parameter that receives the decryption materials, if found.
      * @param cache_id - The cache identifier to look up.
-     * @param entry - Out-parameter that receives the encrypt entry, if found
      */
-    int get_entry_for_decrypt(
-        struct aws_cryptosdk_matcache *cache,
-        const struct aws_byte_buf *cache_id,
-        struct aws_cryptosdk_cache_decrypt_entry **entry
+    int (*get_entry_for_decrypt)(
+        struct aws_cryptosdk_mat_cache *cache,
+        struct aws_cryptosdk_mat_cache_entry **entry,
+        struct aws_cryptosdk_decryption_materials *materials,
+        const struct aws_byte_buf *cache_id
     );
 
     /**
@@ -128,152 +157,63 @@ struct aws_cryptosdk_matcache_vt {
      * 
      * Parameters:
      * @param cache - The cache to insert into
+     * @param entry - Out-parameter that receives the cache entry, if found
      * @param cache_id - The cache identifier to insert into
      * @param materials - The encryption materials to insert; a copy will be
      * made using the cache's allocator
-     * @param expected_expiry - A hint that recommends to the cache that the entry be
-     * discarded shortly after the specified timestamp. The cache might still return
-     * it after this time.
      */ 
-    int put_entry_for_decrypt(
-        struct aws_cryptosdk_matcache *cache,
+    int (*put_entry_for_decrypt)(
+        struct aws_cryptosdk_mat_cache *cache,
+        struct aws_cryptosdk_mat_cache_entry **entry,
         const struct aws_byte_buf *cache_id,
-        const struct aws_cryptosdk_decryption_materials *materials,
-        uint64_t expected_expiry
+        const struct aws_cryptosdk_decryption_materials *materials
     );
 
     /**
-     * Destroys the cache. Note that any cache entry objects that have references outstanding
-     * will not be destroyed until those references are released.
-     */
-    void destroy(struct aws_cryptosdk_matcache *cache);
-    /**
-     * Returns an estimate of the number of entries in the cache.
-     */
-    size_t entry_count(struct aws_cryptosdk_matcache *cache);
-};
-
-struct aws_cryptosdk_cache_encrypt_entry_vt {
-    /**
-     * Must be set to sizeof(struct aws_cryptosdk_cache_encrypt_entry_vt)
-     */
-    size_t vt_size;
-    
-    /**
-     * Identifier for debugging purposes
-     */
-    const char *name;
-
-    /**
-     * Increments the reference count of this entry.
-     */
-    void (*addref)(struct aws_cryptosdk_cache_encrypt_entry *entry);
-
-    /**
-     * Decrements the reference count of this entry. This may result in the entry being freed.
-     */
-    void (*release)(struct aws_cryptosdk_cache_encrypt_entry *entry);
-
-    /**
-     * Signals to the cache that this entry should be invalidated and removed from the cache.
-     * The entry structure remains valid until any remaining references are released.
-     */
-    void (*invalidate)(struct aws_cryptosdk_cache_encrypt_entry *entry);
-
-    /**
-     * Returns a copy of the materials in this cache entry, allocated using the specified allocator.
+     * Invoked when the materials cache reference count reaches zero. 
      * 
-     * @returns AWS_OP_SUCCESS or raises an error and returns AWS_OP_ERR
+     * Implementation note: Implementations of this function must ensure that any outstanding
+     * cache entry handles remain valid (however, mutating operations may become no-ops) before
+     * the cache is destroyed. This may be accomplished by incrementing the reference count of the
+     * underlying mat_cache object for each outstanding cache entry, or it may otherwise be accomplished
+     * by ensuring that the cache entry objects remain usable in some other manner.
      */
-    int (*get_materials)(
-        struct aws_cryptosdk_cache_encrypt_entry *entry,
-        struct aws_allocator *allocator,
-        struct aws_cryptosdk_encryption_materials *out_materials
-    );
+    void (*destroy)(struct aws_cryptosdk_mat_cache *cache);
 
     /**
-     * Returns the usage stats recorded against this cache entry.
-     * 
-     * @returns AWS_OP_SUCCESS or raises an error and returns AWS_OP_ERR
+     * Returns an estimate of the number of entries in the cache. If a size estimate is not available,
+     * returns SIZE_MAX.
      */
-    int (*get_usage)(struct aws_cryptosdk_cache_encrypt_entry *entry, struct aws_cryptosdk_cache_usage_stats *stats);
-
-    /**
-     * Returns the creation timestamp for this cache entry.
-     */
-    uint64_t (*get_creation_time)(struct aws_cryptosdk_cache_encrypt_entry *entry);
-};
-
-struct aws_cryptosdk_cache_decrypt_entry_vt {
-    /**
-     * Must be set to sizeof(struct aws_cryptosdk_cache_encrypt_entry_vt)
-     */
-    size_t vt_size;
-    
-    /**
-     * Identifier for debugging purposes
-     */
-    const char *name;
-
-    /**
-     * Increments the reference count of this entry.
-     */
-    void (*addref)(struct aws_cryptosdk_cache_encrypt_entry *entry);
-
-    /**
-     * Decrements the reference count of this entry. This may result in the entry being freed.
-     */
-    void (*release)(struct aws_cryptosdk_cache_encrypt_entry *entry);
-
-    /**
-     * Signals to the cache that this entry should be invalidated and removed from the cache.
-     * The entry structure remains valid until any remaining references are released.
-     */
-    void (*invalidate)(struct aws_cryptosdk_cache_encrypt_entry *entry);
-
-    /**
-     * Returns a copy of the materials in this cache entry, allocated using the specified allocator.
-     * 
-     * @returns AWS_OP_SUCCESS or raises an error and returns AWS_OP_ERR
-     */
-    int (*get_materials)(
-        struct aws_cryptosdk_cache_encrypt_entry *entry,
-        struct aws_allocator *allocator,
-        struct aws_cryptosdk_encryption_materials *out_materials
-    );
-
-    /**
-     * Returns the creation timestamp for this cache entry.
-     */
-    uint64_t (*get_creation_time)(struct aws_cryptosdk_cache_encrypt_entry *entry);
+    size_t (*entry_count)(struct aws_cryptosdk_mat_cache *cache);
 };
 
 /**
  * Creates a new instance of the built-in local materials cache. This cache is thread safe, and uses a simple
  * LRU policy (with capacity shared between encrypt and decrypt) to evict entries.
  */
-struct aws_cryptosdk_matcache *aws_cryptosdk_matcache_local_new(
+struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_local_new(
     struct aws_allocator *alloc,
     size_t capacity
 );
 
 /**
- * Creates a new instance of the cachine crypto materials manager. This CMM will intercept requests for encrypt
+ * Creates a new instance of the caching crypto materials manager. This CMM will intercept requests for encrypt
  * and decrypt materials, and forward them to the provided materials cache.
  * 
- * If multiple caching CMMs are attached to the same matcache, they will share entries if and only if the partition_id
+ * If multiple caching CMMs are attached to the same mat_cache, they will share entries if and only if the partition_id
  * parameter is set to the same string. Unless you need to use this feature, we recommend passing NULL, in which case
  * the caching CMM will internally generate a random partition ID to ensure it does not collide with any other CMM.
  * 
  * Parameters:
  * @param alloc - The allocator to use for the caching CMM itself (not for cache entries, however)
- * @param matcache - The backing cache
+ * @param mat_cache - The backing cache
  * @param upstream - The upstream CMM to query on a cache miss
- * @param partition_id - The partition ID to use to avoid collisions with other CMMs.
+ * @param partition_id - The partition ID to use to avoid collisions with other CMMs. This string need not remain valid
+ *                       once this function returns. If NULL, a random partition ID will be generated and used.
  */
 struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
     struct aws_allocator *alloc,
-    struct aws_cryptosdk_matcache *matcache,
+    struct aws_cryptosdk_mat_cache *mat_cache,
     struct aws_cryptosdk_cmm *upstream,
     const struct aws_byte_buf *partition_id
 );
