@@ -20,7 +20,7 @@
 #include <aws/common/common.h>
 #include <aws/common/array_list.h>
 #include <aws/core/Aws.h>
-#include <aws/core/utils/logging/DefaultLogSystem.h>
+#include <aws/core/utils/logging/ConsoleLogSystem.h>
 #include <aws/core/utils/logging/AWSLogging.h>
 #include <aws/core/utils/memory/MemorySystemInterface.h>
 #include <aws/core/utils/memory/stl/AWSString.h>
@@ -342,8 +342,8 @@ namespace {
         public:
         LoggingRAII() {
             Aws::Utils::Logging::InitializeAWSLogging(
-                Aws::MakeShared<Aws::Utils::Logging::DefaultLogSystem>(
-                    "RunUnitTests", Aws::Utils::Logging::LogLevel::Trace, "aws_encryption_sdk_"));
+                Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>(
+                    "RunUnitTests", Aws::Utils::Logging::LogLevel::Trace));
         }
         ~LoggingRAII() {
             Aws::Utils::Logging::ShutdownAWSLogging();
@@ -359,7 +359,7 @@ int main() {
     Aws::InitAPI(options);
 
     // Enabling AWS C++ SDK logging generates valgrind warnings from deep in the SDK client code
-    //LoggingRAII loggingInit;
+    LoggingRAII loggingInit;
 
     RUN_TEST(generatedkAndDecrypt_sameKeyringKey1_returnSuccess());
     RUN_TEST(generatedkAndDecrypt_sameKeyringKey2_returnSuccess());

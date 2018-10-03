@@ -8,3 +8,25 @@
    fun:__libc_freeres
    fun:_vgnU_freeres
 }
+# Conditional jump or move depends on uninitialised value(s) warnings
+# from the AWS C++ SDK's logging system
+{
+    aws_cpp_sdk_log_uninit
+    Memcheck:Cond
+    ...
+# std::ostream& Aws::Client::operator<< <Aws::Client::CoreErrors>(std::ostream&, Aws::Client::AWSError<Aws::Client::CoreErrors> const&)
+    fun:_ZN3Aws6ClientlsINS0_10CoreErrorsEEERSoS3_RKNS0_8AWSErrorIT_EE
+# aws::Client::AWSJsonClient::BuildAWSError(std::shared_ptr<Aws::Http::HttpResponse> const&)
+    fun:_ZNK3Aws6Client13AWSJsonClient13BuildAWSErrorERKSt10shared_ptrINS_4Http12HttpResponseEE
+    ...
+}
+{
+    aws_cpp_sdk_log_uninit_2
+    Memcheck:Value4
+    ...
+# std::ostream& Aws::Client::operator<< <Aws::Client::CoreErrors>(std::ostream&, Aws::Client::AWSError<Aws::Client::CoreErrors> const&)
+    fun:_ZN3Aws6ClientlsINS0_10CoreErrorsEEERSoS3_RKNS0_8AWSErrorIT_EE
+# aws::Client::AWSJsonClient::BuildAWSError(std::shared_ptr<Aws::Http::HttpResponse> const&)
+    fun:_ZNK3Aws6Client13AWSJsonClient13BuildAWSErrorERKSt10shared_ptrINS_4Http12HttpResponseEE
+    ...
+}
