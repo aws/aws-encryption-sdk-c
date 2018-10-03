@@ -27,7 +27,7 @@ run_test() {
         -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
         -DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
         -DOPENSSL_ROOT_DIR=/deps/openssl \
-        -DVALGRIND_OPTIONS=--suppressions=$ROOT/valgrind.suppressions \
+        -DVALGRIND_OPTIONS="--gen-suppressions=all;--suppressions=$ROOT/valgrind.suppressions" \
         -GNinja \
         .. "$@" 2>&1|head -n 1000)
     cmake --build $ROOT/build -- -v
