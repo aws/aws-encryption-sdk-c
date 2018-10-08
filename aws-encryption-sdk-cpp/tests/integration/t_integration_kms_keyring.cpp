@@ -66,6 +66,12 @@ struct TestData {
     TestData(Aws::String region = Aws::Region::US_WEST_2) : alloc(aws_default_allocator()),
                  pt_in(aws_byte_buf_from_array(pt_str, sizeof(pt_str))) {
         client_configuration.region = region;
+
+        // When running under valgrind, we can run slowly enough that requests timeout.
+        // We'll bump these up to try to mitigate this.
+        client_configuration.requestTimeoutMs = 10000;
+        client_configuration.connectTimeoutMs = 10000;
+
         kms_client = Aws::MakeShared<Aws::KMS::KMSClient>(CLASS_CTAG, client_configuration);
     }
 };
@@ -404,10 +410,10 @@ int main() {
     aws_load_error_strings();
     aws_cryptosdk_err_init_strings();
 
+    LoggingRAII logging;
+
     SDKOptions options;
     Aws::InitAPI(options);
-
-    LoggingRAII logging;
 
     RUN_TEST(generatedkAndDecrypt_sameKeyringKey1_returnSuccess());
     logging.clear();
