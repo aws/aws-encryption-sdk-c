@@ -347,10 +347,8 @@ void KmsKeyring::Init(struct aws_allocator *alloc, const Aws::List<Aws::String> 
 }
 
 Aws::String KmsKeyring::GetRegionForConfiguredKmsKeys(const Aws::String &key_id) const {
-    if (key_ids.find(key_id) == key_ids.end()) {
-        return "";
-    }
-    return key_ids.at(key_id);
+    auto key_region_pair = key_ids.find(key_id);
+    return key_region_pair == key_ids.end() ? "" : key_region_pair->second;
 }
 
 std::shared_ptr<KMS::KMSClient> KmsKeyring::GetKmsClient(const Aws::String &region) const {
