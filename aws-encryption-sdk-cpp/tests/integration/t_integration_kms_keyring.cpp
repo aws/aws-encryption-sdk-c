@@ -343,7 +343,7 @@ int encryptdkAndDecrypt_twoKeys_returnSuccess() {
 
 /*
  * These RAII-style logging classes will buffer log entries until .clear() is called on the LoggingRAII object.
- * If a test fails, RUN_TEST will return from main without calling clear, and the dtor on LoggingRAII will dump
+ * If a test fails, RUN_TEST will return from main without calling clear, and the destructor on LoggingRAII will dump
  * the buffered log entries for the specific failed test to stderr before exiting.
  */
 namespace {
