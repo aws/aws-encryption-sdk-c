@@ -193,8 +193,8 @@ int KmsKeyring::GenerateDataKey(struct aws_cryptosdk_keyring *keyring,
                                 const struct aws_hash_table *enc_context,
                                 enum aws_cryptosdk_alg_id alg) {
         struct aws_cryptosdk_kms_keyring *kms_keyring = static_cast<aws_cryptosdk_kms_keyring *>(keyring);
-
         auto self = kms_keyring->keyring_data;
+
         const struct aws_cryptosdk_alg_properties *alg_prop = aws_cryptosdk_alg_props(alg);
         if (alg_prop == NULL) {
             AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "Invalid encryption materials algorithm properties");
@@ -215,14 +215,14 @@ int KmsKeyring::GenerateDataKey(struct aws_cryptosdk_keyring *keyring,
         }
         self->kms_client_cache->SaveInCache(kms_region, kms_client);
 
-        int rv = aws_byte_buf_dup_from_aws_utils(kms_keyring->alloc,
+        int rv = aws_byte_buf_dup_from_aws_utils(request_alloc,
                                                  unencrypted_data_key,
                                                  outcome.GetResult().GetPlaintext());
         if (rv != AWS_OP_SUCCESS) {
             return rv;
         }
 
-        rv = append_key_dup_to_edks(kms_keyring->alloc,
+        rv = append_key_dup_to_edks(request_alloc,
                                     edks,
                                     &outcome.GetResult().GetCiphertextBlob(),
                                     &outcome.GetResult().GetKeyId(),
@@ -337,16 +337,6 @@ Aws::Map<Aws::String, Aws::String> KmsKeyring::BuildKeyIds(const Aws::List<Aws::
 }
 
 void KmsKeyring::Init(struct aws_allocator *alloc, const Aws::List<Aws::String> &in_key_ids) {
-    if (in_key_ids.size() == 0) {
-        throw std::invalid_argument("Empty key id list");
-    }
-    if (in_key_ids.front().size() == 0) {
-        throw std::invalid_argument("Invalid default key id");
-    }
-    if (default_region == "") {
-        throw std::invalid_argument("Invalid default region");
-    }
-
     if (!kms_client_cache) {
         kms_client_cache = Aws::MakeShared<KmsClientCache>(AWS_CRYPTO_SDK_KMS_CLASS_TAG);
     }
@@ -391,7 +381,7 @@ KmsKeyring::SingleClientSupplier::SingleClientSupplier(const std::shared_ptr<KMS
 Aws::String KmsKeyring::Builder::BuildDefaultRegion() const {
     auto built_default_region = default_region;
 
-    // If is a single key configured we try to extract default region from it
+    // If a single key is configured, we try to extract default region from it.
     if (built_default_region == "" && key_ids.size() == 1) {
         built_default_region = Private::parse_region_from_kms_key_arn(key_ids.front());
     }
@@ -452,17 +442,15 @@ aws_cryptosdk_keyring *KmsKeyring::Builder::Build() const {
     }
 
     /**
-     * Class that allows Aws::New to allocate a new KmsKeyring object despite of the protected constructor.
-     * KmsKeyring should be constructed only through builder because during the DestroyAwsCryptoKeyring() phase we have
-     * to destroy "self" and we assume that it was allocated using Aws::New and because we are doing some parameter
-     * checks in builder rather than constructor (in the constructor we can't throw due to no-throw policy). Any other
-     * method of allocating memory should be forbidden.
-     * Aws::New accepts to allocate memory only for classes that have public constructors or friend classes. Since we
-     * want to allow construction of KmsKeyring only through the builder, a friendship with Aws::New doesn't help
-     * because would allow anyone to construct it without the builder. Instead the alternative was to declare a child
-     * class with public constructor just for initialization
+     * We want to allow construction of a KmsKeyring object only through the builder, which is why
+     * KmsKeyring has a protected constructor. Doing this allows us to guarantee that it is always
+     * allocated with Aws::New. However, Aws::New only allocates memory for classes that have public
+     * constructors or for which Aws::New is a friend function. Making Aws::New a friend function
+     * would allow creation of a KmsKeyring without the builder. The solution was to make a nested
+     * class in the builder which is just the KmsKeyring with a public constructor.
      */
-    struct KmsKeyringWithPublicConstructor : public KmsKeyring {
+    class KmsKeyringWithPublicConstructor : public KmsKeyring {
+    public:
         KmsKeyringWithPublicConstructor(struct aws_allocator *alloc,
                                         const Aws::List<Aws::String> &key_ids,
                                         const String &default_region,
