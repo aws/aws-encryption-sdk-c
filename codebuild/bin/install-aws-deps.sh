@@ -23,31 +23,31 @@
 set -euxo pipefail
 
 build_pkg() {
-    INSTALLDIR=$1
-    GITURL=$2
-    GITREF=$3
+    INSTALL_DIR=$1
+    GIT_URL=$2
+    GIT_REF=$3
 
     shift; shift; shift
 
-    SRCDIR=/tmp/$(basename $GITURL .git)
-    BUILDDIR=/tmp/build
+    SRC_DIR=/tmp/$(basename $GIT_URL .git)
+    BUILD_DIR=/tmp/build
 
-    if ! [ -e $SRCDIR ]; then
-        mkdir -p "$(dirname "$SRCDIR")"
-        git clone --depth 1 --branch $GITREF "$GITURL" "$SRCDIR"
+    if ! [ -e $SRC_DIR ]; then
+        mkdir -p "$(dirname "$SRC_DIR")"
+        git clone --depth 1 --branch $GIT_REF "$GIT_URL" "$SRC_DIR"
     fi
 
-    mkdir $BUILDDIR
-    (cd $BUILDDIR &&
+    mkdir $BUILD_DIR
+    (cd $BUILD_DIR &&
      export LD_LIBRARY_PATH=/deps/install &&
-     cmake $SRCDIR "$@" -DCMAKE_INSTALL_PREFIX=$root/install -DCMAKE_BUILD_TYPE=RelWithDebInfo -GNinja \
+     cmake $SRC_DIR "$@" -DCMAKE_INSTALL_PREFIX=$root/install -DCMAKE_BUILD_TYPE=RelWithDebInfo -GNinja \
         -DCMAKE_PREFIX_PATH=/deps/install \
         -DCMAKE_C_FLAGS="$CFLAGS" \
         -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
         -DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS")
-    cmake --build $BUILDDIR
-    cmake --build $BUILDDIR --target install
-    rm -rf $BUILDDIR
+    cmake --build $BUILD_DIR
+    cmake --build $BUILD_DIR --target install
+    rm -rf $BUILD_DIR
 }
 
 mkdir -p /deps
