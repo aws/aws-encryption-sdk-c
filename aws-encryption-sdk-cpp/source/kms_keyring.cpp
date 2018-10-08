@@ -116,13 +116,12 @@ int KmsKeyring::OnDecrypt(struct aws_cryptosdk_keyring *keyring,
     return AWS_OP_SUCCESS;
 }
 
-int KmsKeyring::EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
-                               struct aws_allocator *request_alloc,
-                               struct aws_byte_buf *unencrypted_data_key,
-                               struct aws_array_list *edk_list,
-                               const struct aws_hash_table *enc_context,
-                               enum aws_cryptosdk_alg_id alg) {
-
+int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
+                          struct aws_allocator *request_alloc,
+                          struct aws_byte_buf *unencrypted_data_key,
+                          struct aws_array_list *edk_list,
+                          const struct aws_hash_table *enc_context,
+                          enum aws_cryptosdk_alg_id alg) {
     // Class that prevents memory leak of aws_list (even if a function throws)
     // When the object will be destroyed it will call aws_cryptosdk_edk_list_clean_up
     class EdksRaii {
@@ -132,73 +131,33 @@ int KmsKeyring::EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
                 aws_cryptosdk_edk_list_clean_up(&aws_list);
                 initialized = false;
             }
-        }
+	}
         int Create(struct aws_allocator *alloc) {
             auto rv = aws_cryptosdk_edk_list_init(alloc, &aws_list);
-            initialized = (rv == AWS_OP_SUCCESS)?true:false;
+            initialized = (rv == AWS_OP_SUCCESS);
             return rv;
         }
         bool initialized = false;
         struct aws_array_list aws_list;
     };
-
-    struct aws_cryptosdk_kms_keyring *kms_keyring = static_cast<aws_cryptosdk_kms_keyring *>(keyring);
-    if (!kms_keyring || !kms_keyring->keyring_data || !request_alloc || !edk_list
-        || !unencrypted_data_key->buffer || !enc_context) {
-        abort();
+    
+    if (!keyring || !request_alloc || !unencrypted_data_key || !edk_list || !enc_context) {
+            abort();
     }
+    struct aws_cryptosdk_kms_keyring *kms_keyring = static_cast<aws_cryptosdk_kms_keyring *>(keyring);
     auto self = kms_keyring->keyring_data;
+    bool generated_new_data_key = false;
 
     EdksRaii edks;
-    auto rv = edks.Create(request_alloc);
-    if (rv != AWS_OP_SUCCESS) {
-        return AWS_OP_ERR;
-    }
+    int rv = edks.Create(request_alloc);
+    if (rv != AWS_OP_SUCCESS) goto out;
 
-    for (auto key : self->key_ids) {
-        auto kms_region = self->GetRegionForConfiguredKmsKeys(key.first);
-        auto kms_client = self->GetKmsClient(kms_region);
-        auto kms_client_request = self->CreateEncryptRequest(
-            key.first,
-            self->grant_tokens,
-            aws_utils_byte_buffer_from_c_aws_byte_buf(unencrypted_data_key),
-            aws_map_from_c_aws_hash_table(enc_context));
-
-        Aws::KMS::Model::EncryptOutcome outcome = kms_client->Encrypt(kms_client_request);
-        if (!outcome.IsSuccess()) {
-            AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG,
-                                "KMS encryption error : " << outcome.GetError().GetExceptionName() << " Message: "
-                                                          << outcome.GetError().GetMessage());
-            return aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
-        }
-        self->kms_client_cache->SaveInCache(kms_region, kms_client);
-        auto rv = append_key_dup_to_edks(
-            request_alloc,
-            &edks.aws_list,
-            &outcome.GetResult().GetCiphertextBlob(),
-            &outcome.GetResult().GetKeyId(),
-            &self->key_provider);
-        if (rv != AWS_OP_SUCCESS) {
-            return AWS_OP_ERR;
-        }
-    }
-
-    return aws_cryptosdk_transfer_edk_list(edk_list, &edks.aws_list);
-}
-
-int KmsKeyring::GenerateDataKey(struct aws_cryptosdk_keyring *keyring,
-                                struct aws_allocator *request_alloc,
-                                struct aws_byte_buf *unencrypted_data_key,
-                                struct aws_array_list *edks,
-                                const struct aws_hash_table *enc_context,
-                                enum aws_cryptosdk_alg_id alg) {
-        struct aws_cryptosdk_kms_keyring *kms_keyring = static_cast<aws_cryptosdk_kms_keyring *>(keyring);
-        auto self = kms_keyring->keyring_data;
-
+    if (!unencrypted_data_key->buffer) {
         const struct aws_cryptosdk_alg_properties *alg_prop = aws_cryptosdk_alg_props(alg);
         if (alg_prop == NULL) {
             AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "Invalid encryption materials algorithm properties");
-            return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+            rv = aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+            goto out;
         }
 
         auto kms_region = self->GetRegionForConfiguredKmsKeys(self->default_key_id);
@@ -211,43 +170,65 @@ int KmsKeyring::GenerateDataKey(struct aws_cryptosdk_keyring *keyring,
         Aws::KMS::Model::GenerateDataKeyOutcome outcome = kms_client->GenerateDataKey(kms_request);
         if (!outcome.IsSuccess()) {
             AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "Invalid encryption materials algorithm properties");
-            return aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
+            rv = aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
+            goto out;
         }
         self->kms_client_cache->SaveInCache(kms_region, kms_client);
 
-        int rv = aws_byte_buf_dup_from_aws_utils(request_alloc,
-                                                 unencrypted_data_key,
-                                                 outcome.GetResult().GetPlaintext());
-        if (rv != AWS_OP_SUCCESS) {
-            return rv;
-        }
+        rv = aws_byte_buf_dup_from_aws_utils(request_alloc,
+                                             unencrypted_data_key,
+                                             outcome.GetResult().GetPlaintext());
+        if (rv != AWS_OP_SUCCESS) goto out;
+        generated_new_data_key = true;
 
         rv = append_key_dup_to_edks(request_alloc,
-                                    edks,
+                                    &edks.aws_list,
                                     &outcome.GetResult().GetCiphertextBlob(),
                                     &outcome.GetResult().GetKeyId(),
                                     &self->key_provider);
-        if (rv != AWS_OP_SUCCESS) {
-            aws_byte_buf_clean_up(unencrypted_data_key);
-            return rv;
-        }
-
-        return AWS_OP_SUCCESS;
-}
-
-int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
-                          struct aws_allocator *request_alloc,
-                          struct aws_byte_buf *unencrypted_data_key,
-                          struct aws_array_list *edks,
-                          const struct aws_hash_table *enc_context,
-                          enum aws_cryptosdk_alg_id alg) {
-    if (!keyring || !request_alloc || !unencrypted_data_key || !edks || !enc_context) {
-            abort();
+        if (rv != AWS_OP_SUCCESS) goto out;
     }
-    return (unencrypted_data_key->buffer ? EncryptDataKey : GenerateDataKey)(
-        keyring, request_alloc, unencrypted_data_key, edks, enc_context, alg);
 
+    for (auto key : self->key_ids) {
+        /* Default CMK used to generate data key is also in the list of key IDs.
+         * Do not re-encrypt with that same one.
+         */
+        if (generated_new_data_key && key.first == self->default_key_id) continue;
+        auto kms_region = key.second;
+        auto kms_client = self->GetKmsClient(kms_region);
+        auto kms_client_request = self->CreateEncryptRequest(
+            key.first,
+            self->grant_tokens,
+            aws_utils_byte_buffer_from_c_aws_byte_buf(unencrypted_data_key),
+            aws_map_from_c_aws_hash_table(enc_context));
+
+        Aws::KMS::Model::EncryptOutcome outcome = kms_client->Encrypt(kms_client_request);
+        if (!outcome.IsSuccess()) {
+            AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG,
+                                "KMS encryption error : " << outcome.GetError().GetExceptionName() << " Message: "
+                                                          << outcome.GetError().GetMessage());
+            rv = aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
+            goto out;
+        }
+        self->kms_client_cache->SaveInCache(kms_region, kms_client);
+        rv = append_key_dup_to_edks(
+            request_alloc,
+            &edks.aws_list,
+            &outcome.GetResult().GetCiphertextBlob(),
+            &outcome.GetResult().GetKeyId(),
+            &self->key_provider);
+        if (rv != AWS_OP_SUCCESS) {
+            goto out;
+        }
+    }
+    rv = aws_cryptosdk_transfer_edk_list(edk_list, &edks.aws_list);
+out:
+    if (rv != AWS_OP_SUCCESS && generated_new_data_key) {
+        aws_byte_buf_clean_up(unencrypted_data_key);
+    }
+    return rv;
 }
+
 void KmsKeyring::InitAwsCryptosdkKeyring(struct aws_allocator *allocator) {
     static const aws_cryptosdk_keyring_vt kms_keyring_vt = {
         sizeof(struct aws_cryptosdk_keyring_vt),  // size

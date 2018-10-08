@@ -188,24 +188,6 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
     Aws::Map<Aws::String, Aws::String> key_ids;
     std::shared_ptr<KmsClientCache> kms_client_cache;
 
-    /* Helper functions that handle the two OnEncrypt functionalities.
-     * Each makes the KMS call matching its own name. Arguments identical
-     * to OnEncrypt.
-     */
-    static int EncryptDataKey(struct aws_cryptosdk_keyring *keyring,
-                              struct aws_allocator *request_alloc,
-                              struct aws_byte_buf *unencrypted_data_key,
-                              struct aws_array_list *edk_list,
-                              const struct aws_hash_table *enc_context,
-                              enum aws_cryptosdk_alg_id alg);
-
-    static int GenerateDataKey(struct aws_cryptosdk_keyring *keyring,
-                               struct aws_allocator *request_alloc,
-                               struct aws_byte_buf *unencrypted_data_key,
-                               struct aws_array_list *edk_list,
-                               const struct aws_hash_table *enc_context,
-                               enum aws_cryptosdk_alg_id alg);
-
   public:
     /**
      * Class used to cache KmsClients among multiple KmsKeyring objects.
