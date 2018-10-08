@@ -38,15 +38,15 @@ static int serialize_aad_init(struct aws_allocator *alloc,
 
 int aws_cryptosdk_serialize_provider_info_init(struct aws_allocator * alloc,
                                                struct aws_byte_buf * output,
-                                               const struct aws_string * master_key_id,
+                                               const struct aws_string * key_name,
                                                const uint8_t * iv) {
-    size_t serialized_len = master_key_id->len + RAW_AES_KR_IV_LEN + 8; // 4 for tag len, 4 for iv len
+    size_t serialized_len = key_name->len + RAW_AES_KR_IV_LEN + 8; // 4 for tag len, 4 for iv len
     if (aws_byte_buf_init(alloc, output, serialized_len)) {
         return AWS_OP_ERR;
     }
     output->len = output->capacity;
     struct aws_byte_cursor cur = aws_byte_cursor_from_buf(output);
-    if (!aws_byte_cursor_write_from_whole_string(&cur, master_key_id)) goto write_err;
+    if (!aws_byte_cursor_write_from_whole_string(&cur, key_name)) goto write_err;
     if (!aws_byte_cursor_write_be32(&cur, RAW_AES_KR_TAG_LEN * 8)) goto write_err;
     if (!aws_byte_cursor_write_be32(&cur, RAW_AES_KR_IV_LEN)) goto write_err;
     if (!aws_byte_cursor_write(&cur, iv, RAW_AES_KR_IV_LEN)) goto write_err;
@@ -63,7 +63,7 @@ bool aws_cryptosdk_parse_provider_info(struct aws_cryptosdk_keyring * kr,
                                        struct aws_byte_buf * iv,
                                        const struct aws_byte_buf * provider_info) {
     struct raw_aes_keyring * self = (struct raw_aes_keyring *)kr;
-    size_t mkid_len = self->master_key_id->len;
+    size_t mkid_len = self->key_name->len;
     size_t serialized_len = mkid_len + RAW_AES_KR_IV_LEN + 8;
     if (serialized_len != provider_info->len) return false;
 
@@ -71,7 +71,7 @@ bool aws_cryptosdk_parse_provider_info(struct aws_cryptosdk_keyring * kr,
 
     struct aws_byte_cursor mkid = aws_byte_cursor_advance_nospec(&cur, mkid_len);
     if (!mkid.ptr) goto READ_ERR;
-    if (!aws_string_eq_byte_cursor(self->master_key_id, &mkid)) return false;
+    if (!aws_string_eq_byte_cursor(self->key_name, &mkid)) return false;
 
     uint32_t tag_len, iv_len;
     if (!aws_byte_cursor_read_be32(&cur, &tag_len)) goto READ_ERR;
@@ -124,7 +124,7 @@ int aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(struct aws_cryptosdk_
                                       self->raw_key)) goto err;
     edk.enc_data_key.len = edk.enc_data_key.capacity;
 
-    if (aws_cryptosdk_serialize_provider_info_init(request_alloc, &edk.provider_info, self->master_key_id, iv))
+    if (aws_cryptosdk_serialize_provider_info_init(request_alloc, &edk.provider_info, self->key_name, iv))
         goto err;
 
     if (aws_byte_buf_init(request_alloc, &edk.provider_id, self->provider_id->len)) goto err;
@@ -250,7 +250,7 @@ success:
 
 static void raw_aes_keyring_destroy(struct aws_cryptosdk_keyring * kr) {
     struct raw_aes_keyring * self = (struct raw_aes_keyring *)kr;
-    aws_string_destroy((void *)self->master_key_id);
+    aws_string_destroy((void *)self->key_name);
     aws_string_destroy((void *)self->provider_id);
     aws_string_destroy_secure((void *)self->raw_key);
     aws_mem_release(self->alloc, self);
@@ -265,8 +265,8 @@ static const struct aws_cryptosdk_keyring_vt raw_aes_keyring_vt = {
 };
 
 struct aws_cryptosdk_keyring * aws_cryptosdk_raw_aes_keyring_new(struct aws_allocator * alloc,
-                                                                 const uint8_t * master_key_id,
-                                                                 size_t master_key_id_len,
+                                                                 const uint8_t * key_name,
+                                                                 size_t key_name_len,
                                                                  const uint8_t * provider_id,
                                                                  size_t provider_id_len,
                                                                  const uint8_t * raw_key_bytes,
@@ -277,8 +277,8 @@ struct aws_cryptosdk_keyring * aws_cryptosdk_raw_aes_keyring_new(struct aws_allo
 
     aws_cryptosdk_keyring_base_init(&kr->base, &raw_aes_keyring_vt);
 
-    kr->master_key_id = aws_string_new_from_array(alloc, master_key_id, master_key_id_len);
-    if (!kr->master_key_id) goto oom_err;
+    kr->key_name = aws_string_new_from_array(alloc, key_name, key_name_len);
+    if (!kr->key_name) goto oom_err;
 
     kr->provider_id = aws_string_new_from_array(alloc, provider_id, provider_id_len);
     if (!kr->provider_id) goto oom_err;
@@ -290,7 +290,7 @@ struct aws_cryptosdk_keyring * aws_cryptosdk_raw_aes_keyring_new(struct aws_allo
     return (struct aws_cryptosdk_keyring *)kr;
 
 oom_err:
-    aws_string_destroy((void *)kr->master_key_id);
+    aws_string_destroy((void *)kr->key_name);
     aws_string_destroy((void *)kr->provider_id);
     aws_mem_release(alloc, kr);
     return NULL;

@@ -19,7 +19,7 @@
 struct raw_rsa_keyring {
     struct aws_cryptosdk_keyring base;
     struct aws_allocator *alloc;
-    const struct aws_string *master_key_id;
+    const struct aws_string *key_name;
     const struct aws_string *provider_id;
     const struct aws_string * rsa_private_key_pem;
     const struct aws_string * rsa_public_key_pem;
@@ -43,14 +43,14 @@ static int encrypt_data_key(struct aws_cryptosdk_keyring *kr,
     if (aws_byte_buf_init(request_alloc, &edk.provider_id, self->provider_id->len)) goto err;
     edk.provider_id.len = edk.provider_id.capacity;
 
-    if (aws_byte_buf_init(request_alloc, &edk.provider_info, self->master_key_id->len)) goto err;
+    if (aws_byte_buf_init(request_alloc, &edk.provider_info, self->key_name->len)) goto err;
     edk.provider_info.len = edk.provider_info.capacity;
 
     struct aws_byte_cursor provider_id = aws_byte_cursor_from_buf(&edk.provider_id);
     if (!aws_byte_cursor_write_from_whole_string(&provider_id, self->provider_id)) goto err;
 
     struct aws_byte_cursor provider_info = aws_byte_cursor_from_buf(&edk.provider_info);
-    if (!aws_byte_cursor_write_from_whole_string(&provider_info, self->master_key_id)) goto err;
+    if (!aws_byte_cursor_write_from_whole_string(&provider_info, self->key_name)) goto err;
 
     if (aws_array_list_push_back(edks, &edk)) goto err;
 
@@ -111,7 +111,7 @@ static int raw_rsa_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
 
         if (!edk->provider_id.len || !edk->provider_info.len || !edk->enc_data_key.len) continue;
         if (!aws_string_eq_byte_buf(self->provider_id, &edk->provider_id)) continue;
-        if (!aws_string_eq_byte_buf(self->master_key_id, &edk->provider_info)) continue;
+        if (!aws_string_eq_byte_buf(self->key_name, &edk->provider_info)) continue;
 
         if (aws_cryptosdk_rsa_decrypt(unencrypted_data_key,
                                       request_alloc,
@@ -133,7 +133,7 @@ static int raw_rsa_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
 
 static void raw_rsa_keyring_destroy(struct aws_cryptosdk_keyring *kr) {
     struct raw_rsa_keyring *self = (struct raw_rsa_keyring *)kr;
-    aws_string_destroy((void *)self->master_key_id);
+    aws_string_destroy((void *)self->key_name);
     aws_string_destroy((void *)self->provider_id);
     aws_string_destroy_secure((void *)self->rsa_private_key_pem);
     aws_string_destroy_secure((void *)self->rsa_public_key_pem);
@@ -150,8 +150,8 @@ static const struct aws_cryptosdk_keyring_vt raw_rsa_keyring_vt = {
 
 struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     struct aws_allocator *alloc,
-    const uint8_t *master_key_id,
-    size_t master_key_id_len,
+    const uint8_t *key_name,
+    size_t key_name_len,
     const uint8_t *provider_id,
     size_t provider_id_len,
     const char *rsa_private_key_pem,
@@ -161,8 +161,8 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     if (!kr) return NULL;
     memset(kr, 0, sizeof(struct raw_rsa_keyring));
 
-    kr->master_key_id = aws_string_new_from_array(alloc, master_key_id, master_key_id_len);
-    if (!kr->master_key_id) goto err;
+    kr->key_name = aws_string_new_from_array(alloc, key_name, key_name_len);
+    if (!kr->key_name) goto err;
 
     kr->provider_id = aws_string_new_from_array(alloc, provider_id, provider_id_len);
     if (!kr->provider_id) goto err;
@@ -180,7 +180,7 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     return (struct aws_cryptosdk_keyring *)kr;
 
 err:
-    aws_string_destroy((void *)kr->master_key_id);
+    aws_string_destroy((void *)kr->key_name);
     aws_string_destroy((void *)kr->provider_id);
     aws_mem_release(alloc, kr);
     return NULL;

@@ -28,7 +28,7 @@
 struct raw_aes_keyring {
     struct aws_cryptosdk_keyring base;
     struct aws_allocator * alloc;
-    const struct aws_string * master_key_id;
+    const struct aws_string * key_name;
     const struct aws_string * provider_id;
     const struct aws_string * raw_key;
 };
@@ -37,20 +37,20 @@ struct raw_aes_keyring {
  * Allocates the output buffer and writes the provider info for an EDK encrypted
  * by this KR into it. The format is:
  *
- * Master Key ID (variable length)
+ * Key Name (variable length)
  * AES-GCM tag length *IN BITS* (4 bytes, big-endian)
  * IV length (4 bytes, big-endian)
  * IV bytes (length determined by previous field)
  */
 int aws_cryptosdk_serialize_provider_info_init(struct aws_allocator * alloc,
                                                struct aws_byte_buf * output,
-                                               const struct aws_string * master_key_id,
+                                               const struct aws_string * key_name,
                                                const uint8_t * iv);
 
 
 /**
  * Checks whether the provider info of a particular EDK is compatible with this KR
- * by seeing whether the known Master Key ID, tag length, and IV length are in the
+ * by seeing whether the known Key Name, tag length, and IV length are in the
  * provider info and whether the entire buffer has the proper length.
  *
  * If all of the above checks pass, the IV byte buffer is set up to look at the

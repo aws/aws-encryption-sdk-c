@@ -49,10 +49,10 @@ static struct aws_cryptosdk_edk wrong_provider_info_len_edk() {
     return edk;
 }
 
-static struct aws_cryptosdk_edk wrong_master_key_id_edk() {
+static struct aws_cryptosdk_edk wrong_key_name_edk() {
     struct aws_cryptosdk_edk edk = good_edk();
     static const uint8_t edk_provider_info[] =
-        "asdfhasiufhiasuhviawurhgiuawrhefiuOOPS" // wrong master key ID
+        "asdfhasiufhiasuhviawurhgiuawrhefiuOOPS" // wrong key name
         "\x00\x00\x00\x80" // GCM tag length in bits
         "\x00\x00\x00\x0c" // IV length in bytes
         "\xbe\xa0\xfb\xd0\x0e\xee\x0d\x94\xd9\xb1\xb3\x93"; // IV
@@ -64,7 +64,7 @@ static struct aws_cryptosdk_edk wrong_master_key_id_edk() {
 static struct aws_cryptosdk_edk wrong_iv_len_edk() {
     struct aws_cryptosdk_edk edk = good_edk();
     static const uint8_t edk_provider_info[] =
-        "asdfhasiufhiasuhviawurhgiuawrhefiuawhf" // master key ID
+        "asdfhasiufhiasuhviawurhgiuawrhefiuawhf" // key name
         "\x00\x00\x00\x80" // GCM tag length in bits
         "\x00\x00\x00\x0d" // wrong IV length in bytes
         "\xbe\xa0\xfb\xd0\x0e\xee\x0d\x94\xd9\xb1\xb3\x93"; // IV
@@ -76,7 +76,7 @@ static struct aws_cryptosdk_edk wrong_iv_len_edk() {
 static struct aws_cryptosdk_edk wrong_tag_len_edk() {
     struct aws_cryptosdk_edk edk = good_edk();
     static const uint8_t edk_provider_info[] =
-        "asdfhasiufhiasuhviawurhgiuawrhefiuawhf" // master key ID
+        "asdfhasiufhiasuhviawurhgiuawrhefiuawhf" // key name
         "\x00\x00\x00\x81" // wrong GCM tag length in bits
         "\x00\x00\x00\x0c" // IV length in bytes
         "\xbe\xa0\xfb\xd0\x0e\xee\x0d\x94\xd9\xb1\xb3\x93"; // IV
@@ -192,7 +192,7 @@ edk_generator edk_gens[] = {empty_edk,
                             wrong_provider_id_edk,
                             wrong_edk_bytes_len_edk,
                             wrong_provider_info_len_edk,
-                            wrong_master_key_id_edk,
+                            wrong_key_name_edk,
                             wrong_iv_len_edk,
                             wrong_tag_len_edk,
                             wrong_edk_bytes,

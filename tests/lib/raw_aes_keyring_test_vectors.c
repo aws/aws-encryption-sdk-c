@@ -17,7 +17,7 @@
 #include <aws/cryptosdk/private/raw_aes_keyring.h>
 #include "raw_aes_keyring_test_vectors.h"
 
-static const uint8_t raw_aes_keyring_tv_master_key_id[] = "asdfhasiufhiasuhviawurhgiuawrhefiuawhf";
+static const uint8_t raw_aes_keyring_tv_key_name[] = "asdfhasiufhiasuhviawurhgiuawrhefiuawhf";
 static const uint8_t raw_aes_keyring_tv_provider_id[] = "static-random";
 static const uint8_t raw_aes_keyring_tv_wrapping_key[] =
 {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
@@ -26,8 +26,8 @@ static const uint8_t raw_aes_keyring_tv_wrapping_key[] =
 struct aws_cryptosdk_keyring * raw_aes_keyring_tv_new(struct aws_allocator * alloc,
                                             enum aws_cryptosdk_aes_key_len raw_key_len) {
     return aws_cryptosdk_raw_aes_keyring_new(alloc,
-                                        raw_aes_keyring_tv_master_key_id,
-                                        sizeof(raw_aes_keyring_tv_master_key_id) - 1,
+                                        raw_aes_keyring_tv_key_name,
+                                        sizeof(raw_aes_keyring_tv_key_name) - 1,
                                         raw_aes_keyring_tv_provider_id,
                                         sizeof(raw_aes_keyring_tv_provider_id) - 1,
                                         raw_aes_keyring_tv_wrapping_key,
@@ -37,7 +37,7 @@ struct aws_cryptosdk_keyring * raw_aes_keyring_tv_new(struct aws_allocator * all
 
 struct aws_cryptosdk_edk build_test_edk_init(const uint8_t * edk_bytes, size_t edk_len, const uint8_t * iv) {
     static const uint8_t edk_provider_prefix[] =
-        "asdfhasiufhiasuhviawurhgiuawrhefiuawhf" // master key ID
+        "asdfhasiufhiasuhviawurhgiuawrhefiuawhf" // key name
         "\x00\x00\x00\x80" // GCM tag length in bits
         "\x00\x00\x00\x0c"; // IV length in bytes
 

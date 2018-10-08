@@ -28,7 +28,7 @@
  * is possible only when a public key is provided, and decryption is possible only when 
  * a private key is provided. 
  * 
- * Master key ID, provider ID, RSA private key and RSA public key provided by the
+ * Key name, provider ID, RSA private key and RSA public key provided by the
  * caller are copied into the state of the KR, so those arrays do not need to be
  * maintained while using the KR. For maximum security, the caller should zero out the
  * arrays of 'rsa_private_key_pem' after creating this object.
@@ -38,8 +38,8 @@
 AWS_CRYPTOSDK_API
 struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     struct aws_allocator *alloc,
-    const uint8_t *master_key_id,
-    size_t master_key_id_len,
+    const uint8_t *key_name,
+    size_t key_name_len,
     const uint8_t *provider_id,
     size_t provider_id_len,
     const char *rsa_private_key_pem,

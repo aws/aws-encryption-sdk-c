@@ -19,12 +19,12 @@
  * Provider info serialization/deserialization tests.
  */
 
-AWS_STATIC_STRING_FROM_LITERAL(ser_master_key_id, "Master key id");
+AWS_STATIC_STRING_FROM_LITERAL(ser_key_name, "Key name");
 static const uint8_t iv[RAW_AES_KR_IV_LEN] =
 {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb};
 
 static const uint8_t serialized_provider_info[] = {
-    'M', 'a', 's', 't', 'e', 'r', ' ', 'k', 'e', 'y', ' ', 'i', 'd',
+    'K', 'e', 'y', ' ', 'n', 'a', 'm', 'e',
     0x00, 0x00, 0x00, RAW_AES_KR_TAG_LEN << 3,
     0x00, 0x00, 0x00, RAW_AES_KR_IV_LEN,
     0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb};
@@ -40,11 +40,11 @@ int serialize_valid_provider_info() {
 
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_serialize_provider_info_init(alloc,
                                                                                   &provider_info,
-                                                                                  ser_master_key_id,
+                                                                                  ser_key_name,
                                                                                   iv));
 
     TEST_ASSERT_BUF_EQ(provider_info,
-                       'M', 'a', 's', 't', 'e', 'r', ' ', 'k', 'e', 'y', ' ', 'i', 'd',
+                       'K', 'e', 'y', ' ', 'n', 'a', 'm', 'e',
                        0x00, 0x00, 0x00, RAW_AES_KR_TAG_LEN << 3,
                        0x00, 0x00, 0x00, RAW_AES_KR_IV_LEN,
                        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb);
@@ -55,8 +55,8 @@ int serialize_valid_provider_info() {
 
 int parse_valid_provider_info() {
     struct aws_cryptosdk_keyring * kr = aws_cryptosdk_raw_aes_keyring_new(aws_default_allocator(),
-                                                                aws_string_bytes(ser_master_key_id),
-                                                                ser_master_key_id->len,
+                                                                aws_string_bytes(ser_key_name),
+                                                                ser_key_name->len,
                                                                 aws_string_bytes(ser_provider_id),
                                                                 ser_provider_id->len,
                                                                 raw_key_bytes,
