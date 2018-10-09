@@ -334,8 +334,14 @@ static void decrypt_test_badciphertext(
     size_t insz = ct.len;
     size_t out_produced, in_consumed;
 
+#ifndef REDUCE_TEST_ITERATIONS
+    int increment = 1;
+#else
+    int increment = 8;
+#endif
+
     // Verify that decryption fails if we flip any bit in the ciphertext
-    for (size_t bit = 0; bit < ct.len * 8; bit++) {
+    for (size_t bit = 0; bit < ct.len * 8; bit += increment) {
         ct.buffer[bit / 8] ^= 1 << (bit % 8);
 
         if (aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT)) unexpected_error();

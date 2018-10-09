@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You may not use
@@ -11,10 +13,13 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-version: 0.2
+set -euxo pipefail
 
-phases:
-  build:
-    commands:
-      - .\codebuild\common-windows.bat -G "Visual Studio 14 2015 Win64"
+apt-get -y update
+export DEBIAN_FRONTEND=noninteractive
 
+apt-get -y install "$@"
+# Clean up files we don't need in the final image. We need to do this in this
+# script so they don't get baked into intermediate layers.
+# Note also that apt-get clean doesn't clean up /var/lib/apt/lists, so do it manually
+rm -rf /var/cache/apt/* /var/lib/apt/lists/*
