@@ -45,7 +45,7 @@ set(BUILD_SHARED_LIBS FALSE
 option(PERFORM_HEADER_CHECK "Performs compile-time checks that each header can be included independently. Requires a C++ compiler.")
 
 option(VALGRIND_TEST_SUITE "Run the test suite under valgrind")
-set(VALGRIND_OPTIONS "" CACHE STRING "Additional options to pass to valgrind")
+set(VALGRIND_OPTIONS "--suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind.suppressions" CACHE STRING "Additional options to pass to valgrind")
 
 if (VALGRIND_TEST_SUITE)
     set(VALGRIND valgrind --error-exitcode=42 --errors-for-leak-kinds=definite,possible --leak-check=full ${VALGRIND_OPTIONS})
@@ -183,6 +183,10 @@ add_executable(test_decryption_vectors "tests/decryption_vectors.c" ${TEST_LIB})
 target_link_libraries(test_decryption_vectors ${PROJECT_NAME})
 set_target_properties(test_decryption_vectors PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 target_include_directories(test_decryption_vectors PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
+
+if (REDUCE_TEST_ITERATIONS)
+    target_compile_definitions(test_decryption_vectors PRIVATE REDUCE_TEST_ITERATIONS)
+endif()
 
 if(CURL_FOUND)
     add_executable(t_encrypt_compat tests/integration/t_encrypt_compat.c ${TEST_LIB})

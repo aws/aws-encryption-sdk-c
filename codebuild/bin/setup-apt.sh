@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You may not use
@@ -11,10 +13,18 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-version: 0.2
+# This script installs dependencies from APT. If specific additional dependencies are needed,
+# the $EXTRA_PACKAGES environment variable can be set from the Dockerfile to avoid having to
+# `apt-get update' twice in the dockerfile.
 
-phases:
-  build:
-    commands:
-      - .\codebuild\common-windows.bat -G "Visual Studio 14 2015 Win64"
+EXTRA_PACKAGES=${EXTRA_PACKAGES:-}
+
+set -euxo pipefail
+
+apt-get -y update
+export DEBIAN_FRONTEND=noninteractive
+
+apt-get -y dist-upgrade
+apt-get -y install xutils-dev wget build-essential cmake3 git zlib1g-dev awscli valgrind ninja-build $EXTRA_PACKAGES
+rm -rf /var/cache/apt/* /var/lib/apt/lists/*
 
