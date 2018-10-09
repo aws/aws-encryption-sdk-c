@@ -17,10 +17,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <mutex>
+#include <vector>
+#include <iostream>
+
 #include <aws/common/common.h>
 #include <aws/common/array_list.h>
 #include <aws/core/Aws.h>
-#include <aws/core/utils/logging/DefaultLogSystem.h>
+#include <aws/core/utils/logging/ConsoleLogSystem.h>
 #include <aws/core/utils/logging/AWSLogging.h>
 #include <aws/core/utils/memory/MemorySystemInterface.h>
 #include <aws/core/utils/memory/stl/AWSString.h>
@@ -62,6 +66,12 @@ struct TestData {
     TestData(Aws::String region = Aws::Region::US_WEST_2) : alloc(aws_default_allocator()),
                  pt_in(aws_byte_buf_from_array(pt_str, sizeof(pt_str))) {
         client_configuration.region = region;
+
+        // When running under valgrind, we can run slowly enough that requests timeout.
+        // We'll bump these up to try to mitigate this.
+        client_configuration.requestTimeoutMs = 10000;
+        client_configuration.connectTimeoutMs = 10000;
+
         kms_client = Aws::MakeShared<Aws::KMS::KMSClient>(CLASS_CTAG, client_configuration);
     }
 };
@@ -337,16 +347,61 @@ int encryptdkAndDecrypt_twoKeys_returnSuccess() {
 //todo add more tests for grantTokens
 //todo We'll need tests for the default region that encrypt with key IDs of the form [uuid] or alias/whatever.
 
+/*
+ * These RAII-style logging classes will buffer log entries until .clear() is called on the LoggingRAII object.
+ * If a test fails, RUN_TEST will return from main without calling clear, and the destructor on LoggingRAII will dump
+ * the buffered log entries for the specific failed test to stderr before exiting.
+ */
 namespace {
+    class BufferedLogSystem : public Aws::Utils::Logging::FormattedLogSystem {
+        private:
+            std::mutex logMutex;
+            std::vector<Aws::String> buffer;
+        public:
+            void clear() {
+                std::lock_guard<std::mutex> guard(logMutex);
+
+                buffer.clear();
+            }
+
+            void dump() {
+                std::lock_guard<std::mutex> guard(logMutex);
+
+                for (auto& str : buffer) {
+                    std::cerr << str;
+                }
+            }
+
+            BufferedLogSystem(Aws::Utils::Logging::LogLevel logLevel)
+                : FormattedLogSystem(logLevel)
+            {}
+        protected:
+            // Overrides FormattedLogSystem pure virtual function
+            virtual void ProcessFormattedStatement(Aws::String &&statement) {
+                std::lock_guard<std::mutex> guard(logMutex);
+
+                buffer.push_back(std::move(statement));
+            }
+    };
+
     class LoggingRAII {
+        std::shared_ptr<BufferedLogSystem> logSystem;
+
         public:
         LoggingRAII() {
-            Aws::Utils::Logging::InitializeAWSLogging(
-                Aws::MakeShared<Aws::Utils::Logging::DefaultLogSystem>(
-                    "RunUnitTests", Aws::Utils::Logging::LogLevel::Trace, "aws_encryption_sdk_"));
+            logSystem = Aws::MakeShared<BufferedLogSystem>("LoggingRAII", Aws::Utils::Logging::LogLevel::Trace);
+
+            Aws::Utils::Logging::InitializeAWSLogging(logSystem);
         }
+
+        void clear() {
+            logSystem->clear();
+        }
+
         ~LoggingRAII() {
             Aws::Utils::Logging::ShutdownAWSLogging();
+
+            logSystem->dump();
         }
     };
 }
@@ -355,20 +410,27 @@ int main() {
     aws_load_error_strings();
     aws_cryptosdk_err_init_strings();
 
+    LoggingRAII logging;
+
     SDKOptions options;
     Aws::InitAPI(options);
 
-    // Enabling AWS C++ SDK logging generates valgrind warnings from deep in the SDK client code
-    //LoggingRAII loggingInit;
-
     RUN_TEST(generatedkAndDecrypt_sameKeyringKey1_returnSuccess());
+    logging.clear();
     RUN_TEST(generatedkAndDecrypt_sameKeyringKey2_returnSuccess());
+    logging.clear();
     RUN_TEST(generatedkAndDecrypt_twoDistinctKeyrings_returnSuccess());
+    logging.clear();
     RUN_TEST(generatedkAndDecrypt_oneKeyEncryptsTwoKeysForDecryptionConfigured_returnSuccess());
+    logging.clear();
     RUN_TEST(generatedkAndDecrypt_twoKeysEncryptsTwoKeyDecrypts_returnSuccess());
+    logging.clear();
     RUN_TEST(generatedkAndDecrypt_keyForDecryptionMismatch_returnErr());
+    logging.clear();
     RUN_TEST(encryptdkAndDecrypt_singleKey_returnSuccess());
+    logging.clear();
     RUN_TEST(encryptdkAndDecrypt_twoKeys_returnSuccess());
+    logging.clear();
 
     Aws::ShutdownAPI(options);
 }
