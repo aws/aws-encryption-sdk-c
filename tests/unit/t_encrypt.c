@@ -254,14 +254,6 @@ int test_different_keyring_cant_decrypt() {
     create_session(AWS_CRYPTOSDK_DECRYPT, zero_kr);
     hexdump(stderr, ct_buf, ct_size);
 
-#if 0
-    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_NO_KEYRINGS_FOUND,
-        aws_cryptosdk_session_process(session,
-            pt_buf, pt_size, &pt_consumed,
-            ct_buf, ct_size, &ct_consumed
-        )
-    );
-#else
     // We don't yet return the correct error, but we can check that -some- error is returned.
     TEST_ASSERT_INT_EQ(AWS_OP_ERR,
         aws_cryptosdk_session_process(session,
@@ -269,7 +261,6 @@ int test_different_keyring_cant_decrypt() {
             ct_buf, ct_size, &ct_consumed
         )
     );
-#endif
 
     free_bufs();
 
