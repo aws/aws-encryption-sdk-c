@@ -43,14 +43,14 @@ static int encrypt_data_key(struct aws_cryptosdk_keyring *kr,
     if (aws_byte_buf_init(request_alloc, &edk.name_space, self->name_space->len)) goto err;
     edk.name_space.len = edk.name_space.capacity;
 
-    if (aws_byte_buf_init(request_alloc, &edk.provider_info, self->key_name->len)) goto err;
-    edk.provider_info.len = edk.provider_info.capacity;
+    if (aws_byte_buf_init(request_alloc, &edk.key_name, self->key_name->len)) goto err;
+    edk.key_name.len = edk.key_name.capacity;
 
     struct aws_byte_cursor name_space = aws_byte_cursor_from_buf(&edk.name_space);
     if (!aws_byte_cursor_write_from_whole_string(&name_space, self->name_space)) goto err;
 
-    struct aws_byte_cursor provider_info = aws_byte_cursor_from_buf(&edk.provider_info);
-    if (!aws_byte_cursor_write_from_whole_string(&provider_info, self->key_name)) goto err;
+    struct aws_byte_cursor key_name = aws_byte_cursor_from_buf(&edk.key_name);
+    if (!aws_byte_cursor_write_from_whole_string(&key_name, self->key_name)) goto err;
 
     if (aws_array_list_push_back(edks, &edk)) goto err;
 
@@ -109,9 +109,9 @@ static int raw_rsa_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
         const struct aws_cryptosdk_edk *edk;
         if (aws_array_list_get_at_ptr(edks, (void **)&edk, edk_idx)) { return AWS_OP_ERR; }
 
-        if (!edk->name_space.len || !edk->provider_info.len || !edk->enc_data_key.len) continue;
+        if (!edk->name_space.len || !edk->key_name.len || !edk->enc_data_key.len) continue;
         if (!aws_string_eq_byte_buf(self->name_space, &edk->name_space)) continue;
-        if (!aws_string_eq_byte_buf(self->key_name, &edk->provider_info)) continue;
+        if (!aws_string_eq_byte_buf(self->key_name, &edk->key_name)) continue;
 
         if (aws_cryptosdk_rsa_decrypt(unencrypted_data_key,
                                       request_alloc,

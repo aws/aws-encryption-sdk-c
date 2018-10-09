@@ -43,45 +43,45 @@ static struct aws_cryptosdk_edk wrong_edk_bytes_len_edk() {
     return edk;
 }
 
-static struct aws_cryptosdk_edk wrong_provider_info_len_edk() {
+static struct aws_cryptosdk_edk wrong_key_name_len_edk() {
     struct aws_cryptosdk_edk edk = good_edk();
-    edk.provider_info.len--;
+    edk.key_name.len--;
     return edk;
 }
 
 static struct aws_cryptosdk_edk wrong_key_name_edk() {
     struct aws_cryptosdk_edk edk = good_edk();
-    static const uint8_t edk_provider_info[] =
+    static const uint8_t edk_key_name[] =
         "asdfhasiufhiasuhviawurhgiuawrhefiuOOPS" // wrong key name
         "\x00\x00\x00\x80" // GCM tag length in bits
         "\x00\x00\x00\x0c" // IV length in bytes
         "\xbe\xa0\xfb\xd0\x0e\xee\x0d\x94\xd9\xb1\xb3\x93"; // IV
-    aws_byte_buf_clean_up(&edk.provider_info);
-    edk.provider_info = aws_byte_buf_from_array(edk_provider_info, sizeof(edk_provider_info) - 1);
+    aws_byte_buf_clean_up(&edk.key_name);
+    edk.key_name = aws_byte_buf_from_array(edk_key_name, sizeof(edk_key_name) - 1);
     return edk;
 }
 
 static struct aws_cryptosdk_edk wrong_iv_len_edk() {
     struct aws_cryptosdk_edk edk = good_edk();
-    static const uint8_t edk_provider_info[] =
+    static const uint8_t edk_key_name[] =
         "asdfhasiufhiasuhviawurhgiuawrhefiuawhf" // key name
         "\x00\x00\x00\x80" // GCM tag length in bits
         "\x00\x00\x00\x0d" // wrong IV length in bytes
         "\xbe\xa0\xfb\xd0\x0e\xee\x0d\x94\xd9\xb1\xb3\x93"; // IV
-    aws_byte_buf_clean_up(&edk.provider_info);
-    edk.provider_info = aws_byte_buf_from_array(edk_provider_info, sizeof(edk_provider_info) - 1);
+    aws_byte_buf_clean_up(&edk.key_name);
+    edk.key_name = aws_byte_buf_from_array(edk_key_name, sizeof(edk_key_name) - 1);
     return edk;
 }
 
 static struct aws_cryptosdk_edk wrong_tag_len_edk() {
     struct aws_cryptosdk_edk edk = good_edk();
-    static const uint8_t edk_provider_info[] =
+    static const uint8_t edk_key_name[] =
         "asdfhasiufhiasuhviawurhgiuawrhefiuawhf" // key name
         "\x00\x00\x00\x81" // wrong GCM tag length in bits
         "\x00\x00\x00\x0c" // IV length in bytes
         "\xbe\xa0\xfb\xd0\x0e\xee\x0d\x94\xd9\xb1\xb3\x93"; // IV
-    aws_byte_buf_clean_up(&edk.provider_info);
-    edk.provider_info = aws_byte_buf_from_array(edk_provider_info, sizeof(edk_provider_info) - 1);
+    aws_byte_buf_clean_up(&edk.key_name);
+    edk.key_name = aws_byte_buf_from_array(edk_key_name, sizeof(edk_key_name) - 1);
     return edk;
 }
 
@@ -191,7 +191,7 @@ typedef struct aws_cryptosdk_edk (*edk_generator)();
 edk_generator edk_gens[] = {empty_edk,
                             wrong_name_space_edk,
                             wrong_edk_bytes_len_edk,
-                            wrong_provider_info_len_edk,
+                            wrong_key_name_len_edk,
                             wrong_key_name_edk,
                             wrong_iv_len_edk,
                             wrong_tag_len_edk,

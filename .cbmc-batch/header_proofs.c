@@ -67,12 +67,12 @@ struct aws_cryptosdk_hdr * get_aws_cryptosdk_hdr_ptr(struct aws_allocator * allo
             // For each entry in hdr->edk_tbl
             struct aws_cryptosdk_edk * edk = hdr->edk_tbl + i;
             size_t name_space_len = nondet_size_t();
-            size_t provider_info_len = nondet_size_t();
+            size_t key_name_len = nondet_size_t();
             size_t enc_data_key_len = nondet_size_t();
             // Assume name_space_len is below bound on buffer length
             __CPROVER_assume(name_space_len < MAX_BUFFER_LEN);
-            // Assume provider_info_len is below bound on buffer length
-            __CPROVER_assume(provider_info_len < MAX_BUFFER_LEN);
+            // Assume key_name_len is below bound on buffer length
+            __CPROVER_assume(key_name_len < MAX_BUFFER_LEN);
             // Assume enc_data_key_len is below bound on buffer length
             __CPROVER_assume(enc_data_key_len < MAX_BUFFER_LEN);
             // Nondeterministically initialize buffers or make sure that either
@@ -84,11 +84,11 @@ struct aws_cryptosdk_hdr * get_aws_cryptosdk_hdr_ptr(struct aws_allocator * allo
             else
                 edk->name_space.buffer = NULL;
             if (full_init)
-                aws_byte_buf_init(allocator, &edk->provider_info, provider_info_len);
+                aws_byte_buf_init(allocator, &edk->key_name, key_name_len);
             else if (nondet_int())
-                edk->provider_info.allocator = NULL;
+                edk->key_name.allocator = NULL;
             else
-                edk->provider_info.buffer = NULL;
+                edk->key_name.buffer = NULL;
             if (full_init)
                 aws_byte_buf_init(allocator, &edk->enc_data_key, enc_data_key_len);
             else if (nondet_int())

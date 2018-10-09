@@ -45,13 +45,13 @@ struct aws_cryptosdk_edk build_test_edk_init(const uint8_t * edk_bytes, size_t e
     edk.enc_data_key = aws_byte_buf_from_array(edk_bytes, edk_len);
     edk.name_space = aws_byte_buf_from_array(raw_aes_keyring_tv_name_space, sizeof(raw_aes_keyring_tv_name_space) - 1);
 
-    if (aws_byte_buf_init(aws_default_allocator(), &edk.provider_info, sizeof(edk_provider_prefix) - 1 + RAW_AES_KR_IV_LEN)) {
+    if (aws_byte_buf_init(aws_default_allocator(), &edk.key_name, sizeof(edk_provider_prefix) - 1 + RAW_AES_KR_IV_LEN)) {
         fprintf(stderr, "\nTest failed at %s:%d\n", __FILE__, __LINE__);
         abort();
     }
-    memcpy(edk.provider_info.buffer, edk_provider_prefix, sizeof(edk_provider_prefix) - 1);
-    memcpy(edk.provider_info.buffer + sizeof(edk_provider_prefix) - 1, iv, RAW_AES_KR_IV_LEN);
-    edk.provider_info.len = edk.provider_info.capacity;
+    memcpy(edk.key_name.buffer, edk_provider_prefix, sizeof(edk_provider_prefix) - 1);
+    memcpy(edk.key_name.buffer + sizeof(edk_provider_prefix) - 1, iv, RAW_AES_KR_IV_LEN);
+    edk.key_name.len = edk.key_name.capacity;
     return edk;
 }
 

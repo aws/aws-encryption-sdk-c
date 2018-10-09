@@ -46,16 +46,16 @@ static struct aws_cryptosdk_edk wrong_edk_bytes() {
     return edk;
 }
 
-static struct aws_cryptosdk_edk wrong_provider_info_len_edk() {
+static struct aws_cryptosdk_edk wrong_key_name_len_edk() {
     struct aws_cryptosdk_edk edk = good_edk();
-    edk.provider_info.len--;
+    edk.key_name.len--;
     return edk;
 }
 static struct aws_cryptosdk_edk wrong_key_name_edk() {
     struct aws_cryptosdk_edk edk = good_edk();
-    static const uint8_t edk_provider_info[] = "asdfhasiufhiasuhviawurhgiuawrhefiuOOPS";  // wrong key name
-    aws_byte_buf_clean_up(&edk.provider_info);
-    edk.provider_info = aws_byte_buf_from_array(edk_provider_info, sizeof(edk_provider_info) - 1);
+    static const uint8_t edk_key_name[] = "asdfhasiufhiasuhviawurhgiuawrhefiuOOPS";  // wrong key name
+    aws_byte_buf_clean_up(&edk.key_name);
+    edk.key_name = aws_byte_buf_from_array(edk_key_name, sizeof(edk_key_name) - 1);
     return edk;
 }
 
@@ -76,7 +76,7 @@ edk_generator rsa_edk_gens[] = { empty_edk,
                                  wrong_name_space_edk,
                                  wrong_edk_bytes_len_edk,
                                  wrong_edk_bytes,
-                                 wrong_provider_info_len_edk,
+                                 wrong_key_name_len_edk,
                                  wrong_key_name_edk,
                                  enc_data_key_too_small_edk,
                                  enc_data_key_too_large_edk,

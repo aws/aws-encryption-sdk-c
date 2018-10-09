@@ -79,10 +79,10 @@ int KmsKeyring::OnDecrypt(struct aws_cryptosdk_keyring *keyring,
             continue;
         }
 
-        const Aws::String key_arn = Private::aws_string_from_c_aws_byte_buf(&edk->provider_info);
+        const Aws::String key_arn = Private::aws_string_from_c_aws_byte_buf(&edk->key_name);
         auto kms_region = self->GetRegionForConfiguredKmsKeys(key_arn);
         // If kms_region is empty this means that key_arn was never configured in KmsKeyring.
-        // Key saved in provider_info must match the key that has been configured in the KmsKeyring. At this point is
+        // Key saved in key_name must match the key that has been configured in the KmsKeyring. At this point is
         // not supported to use another key (like an alias)
         if (kms_region == "") {
             error_buf << "Error: KeyId for encrypted data_key is not configured in KmsKeyring";

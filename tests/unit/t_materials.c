@@ -60,7 +60,7 @@ int default_cmm_zero_keyring_enc_mat() {
 
     TEST_ASSERT_BUF_EQ(edk->enc_data_key, 'n', 'u', 'l', 'l');
     TEST_ASSERT_BUF_EQ(edk->name_space, 'n', 'u', 'l', 'l');
-    TEST_ASSERT_BUF_EQ(edk->provider_info, 'n', 'u', 'l', 'l');
+    TEST_ASSERT_BUF_EQ(edk->key_name, 'n', 'u', 'l', 'l');
 
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
     aws_cryptosdk_cmm_release(cmm);

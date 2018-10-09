@@ -27,7 +27,7 @@ extern struct test_case materials_test_cases[];
 extern struct test_case enc_context_test_cases[];
 extern struct test_case encrypt_test_cases[];
 extern struct test_case hkdf_test_cases[];
-extern struct test_case raw_aes_keyring_provider_info_test_cases[];
+extern struct test_case raw_aes_keyring_key_name_test_cases[];
 extern struct test_case raw_aes_keyring_decrypt_test_cases[];
 extern struct test_case raw_aes_keyring_encrypt_test_cases[];
 extern struct test_case multi_keyring_test_cases[];

@@ -60,7 +60,7 @@ int t_assert_edk_contains_expected_values(const struct aws_cryptosdk_edk *edk,
                                           const char *expected_name_space,
                                           struct aws_allocator *allocator) {
     TEST_ASSERT(string(expected_ct) == string((char *)edk->enc_data_key.buffer, edk->enc_data_key.len));
-    TEST_ASSERT(string(expected_key_id) == string((char *)edk->provider_info.buffer, edk->provider_info.len));
+    TEST_ASSERT(string(expected_key_id) == string((char *)edk->key_name.buffer, edk->key_name.len));
     TEST_ASSERT(string(expected_name_space) == string((char *)edk->name_space.buffer, edk->name_space.len));
     TEST_ASSERT_ADDR_EQ(allocator, edk->enc_data_key.allocator);
     return 0;

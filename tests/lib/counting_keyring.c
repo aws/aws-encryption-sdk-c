@@ -27,18 +27,18 @@ static inline struct aws_byte_buf aws_string_to_buf(const struct aws_string *s) 
     return aws_byte_buf_from_array(aws_string_bytes(s), s->len);
 }
 
-AWS_STATIC_STRING_FROM_LITERAL(prov_name, "test_counting");
-AWS_STATIC_STRING_FROM_LITERAL(prov_info, "test_counting_prov_info");
+AWS_STATIC_STRING_FROM_LITERAL(name_space, "test_counting");
+AWS_STATIC_STRING_FROM_LITERAL(key_name, "test_counting_key_name");
 AWS_STATIC_STRING_FROM_LITERAL(expected_edk, "\x40\x41\x42\x43\x44");
 
 static int set_edk(struct aws_allocator *alloc, struct aws_cryptosdk_edk *edk) {
     struct aws_byte_buf src;
 
-    src = aws_string_to_buf(prov_name);
+    src = aws_string_to_buf(name_space);
     if (aws_byte_buf_init_copy(alloc, &edk->name_space, &src))
         return AWS_OP_ERR;
-    src = aws_string_to_buf(prov_info);
-    if (aws_byte_buf_init_copy(alloc, &edk->provider_info, &src))
+    src = aws_string_to_buf(key_name);
+    if (aws_byte_buf_init_copy(alloc, &edk->key_name, &src))
         return AWS_OP_ERR;
     src = aws_string_to_buf(expected_edk);
     if (aws_byte_buf_init_copy(alloc, &edk->enc_data_key, &src))
@@ -53,8 +53,8 @@ static inline bool str_eq_buf(const struct aws_string *s, const struct aws_byte_
 
 static inline bool is_counting_edk(const struct aws_cryptosdk_edk *edk) {
     return (
-        str_eq_buf(prov_name, &edk->name_space) &&
-        str_eq_buf(prov_info, &edk->provider_info) &&
+        str_eq_buf(name_space, &edk->name_space) &&
+        str_eq_buf(key_name, &edk->key_name) &&
         str_eq_buf(expected_edk, &edk->enc_data_key)
     );
 }

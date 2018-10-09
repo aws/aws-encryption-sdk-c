@@ -34,7 +34,7 @@ struct raw_aes_keyring {
 };
 
 /**
- * Allocates the output buffer and writes the provider info for an EDK encrypted
+ * Allocates the output buffer and writes the key name for an EDK encrypted
  * by this KR into it. The format is:
  *
  * Key Name (variable length)
@@ -42,19 +42,19 @@ struct raw_aes_keyring {
  * IV length (4 bytes, big-endian)
  * IV bytes (length determined by previous field)
  */
-int aws_cryptosdk_serialize_provider_info_init(struct aws_allocator * alloc,
+int aws_cryptosdk_serialize_key_name_init(struct aws_allocator * alloc,
                                                struct aws_byte_buf * output,
                                                const struct aws_string * key_name,
                                                const uint8_t * iv);
 
 
 /**
- * Checks whether the provider info of a particular EDK is compatible with this KR
- * by seeing whether the known Key Name, tag length, and IV length are in the
- * provider info and whether the entire buffer has the proper length.
+ * Checks whether the key name of a particular EDK is compatible with this KR
+ * by seeing whether the known key name, tag length, and IV length are in the
+ * key name and whether the entire buffer has the proper length.
  *
  * If all of the above checks pass, the IV byte buffer is set up to look at the
- * bytes of the IV within the provider info and true is returned.
+ * bytes of the IV within the key name and true is returned.
  *
  * If any of the checks fail, false is returned, signaling that this EDK is not
  * compatible with this KR.
@@ -62,9 +62,9 @@ int aws_cryptosdk_serialize_provider_info_init(struct aws_allocator * alloc,
  * No memory is allocated by this function, as the IV buffer does not own its own
  * memory.
  */
-bool aws_cryptosdk_parse_provider_info(struct aws_cryptosdk_keyring * kr,
+bool aws_cryptosdk_parse_key_name(struct aws_cryptosdk_keyring * kr,
                                        struct aws_byte_buf * iv,
-                                       const struct aws_byte_buf * provider_info);
+                                       const struct aws_byte_buf * key_name);
 
 /**
  * Does everything that the raw AES KR's on_encrypt virtual function

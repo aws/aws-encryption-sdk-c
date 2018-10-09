@@ -25,8 +25,8 @@
  * and so on.
  *
  * The test pattern used for generated data key (or decrypted data keys) has
- * "test_counting" as the name space, "test_counting_prov_info" as the
- * provider info, and 0x4041424344 as the encrypted data key field; EDKs not
+ * "test_counting" as the name space, "test_counting_key_name" as the
+ * key name, and 0x4041424344 as the encrypted data key field; EDKs not
  * conforming to this will not be considered decryptable using this Keyring.
  */
 struct aws_cryptosdk_keyring *aws_cryptosdk_counting_keyring_new(struct aws_allocator *alloc);

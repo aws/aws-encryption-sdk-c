@@ -91,7 +91,7 @@ struct aws_cryptosdk_edk edk_init(const uint8_t *edk_bytes, size_t edk_len) {
     edk.enc_data_key = aws_byte_buf_from_array(edk_bytes, edk_len);
     edk.name_space =
         aws_byte_buf_from_array(raw_rsa_keyring_tv_name_space, strlen((const char *)raw_rsa_keyring_tv_name_space));
-    edk.provider_info = aws_byte_buf_from_array(
+    edk.key_name = aws_byte_buf_from_array(
         raw_rsa_keyring_tv_key_name, strlen((const char *)raw_rsa_keyring_tv_key_name));
     return edk;
 }

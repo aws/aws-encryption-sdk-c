@@ -224,12 +224,12 @@ int generatedkAndDecrypt_keyForDecryptionMismatch_returnErr() {
 
 
 static int test_assert_edk_name_space_and_info(const char *expected_name_space,
-                                                const char *expected_provider_info,
+                                                const char *expected_key_name,
                                                 struct aws_cryptosdk_edk *edk) {
     struct aws_byte_buf name_space_bb = aws_byte_buf_from_c_str(expected_name_space);
-    struct aws_byte_buf provider_info_bb = aws_byte_buf_from_c_str(expected_provider_info);
+    struct aws_byte_buf key_name_bb = aws_byte_buf_from_c_str(expected_key_name);
     TEST_ASSERT(aws_byte_buf_eq(&edk->name_space, &name_space_bb));
-    TEST_ASSERT(aws_byte_buf_eq(&edk->provider_info, &provider_info_bb));
+    TEST_ASSERT(aws_byte_buf_eq(&edk->key_name, &key_name_bb));
 
     return 0;
 }

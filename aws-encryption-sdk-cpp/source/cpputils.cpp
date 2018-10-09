@@ -66,15 +66,15 @@ int append_aws_byte_buf_key_dup_to_edks(struct aws_allocator *allocator,
                                         const aws_byte_buf *key_provider) {
     struct aws_cryptosdk_edk edk{};
     edk.name_space = {0};
-    edk.provider_info = {0};
+    edk.key_name = {0};
     edk.enc_data_key = {0};
 
     if (aws_byte_buf_init_copy(allocator, &edk.name_space, key_provider) != AWS_OP_SUCCESS
-        || aws_byte_buf_init_copy(allocator, &edk.provider_info, data_key_id) != AWS_OP_SUCCESS
+        || aws_byte_buf_init_copy(allocator, &edk.key_name, data_key_id) != AWS_OP_SUCCESS
         || aws_byte_buf_init_copy(allocator, &edk.enc_data_key, encrypted_data_key) != AWS_OP_SUCCESS
         || aws_array_list_push_back(encrypted_data_keys, &edk) != AWS_OP_SUCCESS) {
         aws_byte_buf_clean_up(&edk.name_space);
-        aws_byte_buf_clean_up(&edk.provider_info);
+        aws_byte_buf_clean_up(&edk.key_name);
         aws_byte_buf_clean_up(&edk.enc_data_key);
         return AWS_OP_ERR;
     }

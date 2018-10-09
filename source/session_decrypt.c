@@ -55,7 +55,7 @@ static int fill_request(
         }
         // Because the session header owns the EDKs, clear the allocators to avoid any unfortunate double frees
         edk.name_space.allocator = NULL;
-        edk.provider_info.allocator = NULL;
+        edk.key_name.allocator = NULL;
         edk.enc_data_key.allocator = NULL;
 
         if (aws_array_list_push_back(&request->encrypted_data_keys, &edk)) {

@@ -24,7 +24,7 @@ int aws_cryptosdk_edk_list_init(struct aws_allocator *alloc, struct aws_array_li
 
 void aws_cryptosdk_edk_clean_up(struct aws_cryptosdk_edk * edk) {
     aws_byte_buf_clean_up(&edk->name_space);
-    aws_byte_buf_clean_up(&edk->provider_info);
+    aws_byte_buf_clean_up(&edk->key_name);
     aws_byte_buf_clean_up(&edk->enc_data_key);
 }
 
