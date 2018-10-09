@@ -131,7 +131,7 @@ int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
                 aws_cryptosdk_edk_list_clean_up(&aws_list);
                 initialized = false;
             }
-	}
+        }
         int Create(struct aws_allocator *alloc) {
             auto rv = aws_cryptosdk_edk_list_init(alloc, &aws_list);
             initialized = (rv == AWS_OP_SUCCESS);
@@ -189,15 +189,16 @@ int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
         if (rv != AWS_OP_SUCCESS) goto out;
     }
 
-    for (auto key : self->key_ids) {
+    for (auto key_region_pair : self->key_ids) {
         /* Default CMK used to generate data key is also in the list of key IDs.
          * Do not re-encrypt with that same one.
          */
-        if (generated_new_data_key && key.first == self->default_key_id) continue;
-        auto kms_region = key.second;
+        auto kms_cmk_name = key_region_pair.first;
+        if (generated_new_data_key && kms_cmk_name == self->default_key_id) continue;
+        auto kms_region = key_region_pair.second;
         auto kms_client = self->GetKmsClient(kms_region);
         auto kms_client_request = self->CreateEncryptRequest(
-            key.first,
+            kms_cmk_name,
             self->grant_tokens,
             aws_utils_byte_buffer_from_c_aws_byte_buf(unencrypted_data_key),
             aws_map_from_c_aws_hash_table(enc_context));
