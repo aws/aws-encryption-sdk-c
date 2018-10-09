@@ -63,7 +63,7 @@ int append_aws_byte_buf_key_dup_to_edks(struct aws_allocator *allocator,
                                         struct aws_array_list *encrypted_data_keys,
                                         const struct aws_byte_buf *encrypted_data_key,
                                         const struct aws_byte_buf *data_key_id,
-                                        const aws_byte_buf *key_provider) {
+                                        const struct aws_byte_buf *key_provider) {
     struct aws_cryptosdk_edk edk{};
     edk.provider_id = {0};
     edk.provider_info = {0};
@@ -73,9 +73,7 @@ int append_aws_byte_buf_key_dup_to_edks(struct aws_allocator *allocator,
         || aws_byte_buf_init_copy(allocator, &edk.provider_info, data_key_id) != AWS_OP_SUCCESS
         || aws_byte_buf_init_copy(allocator, &edk.enc_data_key, encrypted_data_key) != AWS_OP_SUCCESS
         || aws_array_list_push_back(encrypted_data_keys, &edk) != AWS_OP_SUCCESS) {
-        aws_byte_buf_clean_up(&edk.provider_id);
-        aws_byte_buf_clean_up(&edk.provider_info);
-        aws_byte_buf_clean_up(&edk.enc_data_key);
+        aws_cryptosdk_edk_clean_up(&edk);
         return AWS_OP_ERR;
     }
 
@@ -86,7 +84,7 @@ int append_key_dup_to_edks(struct aws_allocator *allocator,
                            struct aws_array_list *encrypted_data_keys,
                            const Utils::ByteBuffer *encrypted_data_key,
                            const Aws::String *data_key_id,
-                           const aws_byte_buf *key_provider) {
+                           const struct aws_byte_buf *key_provider) {
     // although this functions will not copy, append_aws_byte_buf_key_dup_to_edks will create a duplicate
     // of enc_data_key_byte, data_key_id_byte and key_provider before appending them
     struct aws_byte_buf enc_data_key_byte = aws_byte_buf_from_array(encrypted_data_key->GetUnderlyingData(),
@@ -111,19 +109,19 @@ int append_key_dup_to_edks(struct aws_allocator *allocator,
 inline static bool aws_byte_buf_eq_char_array(const char *char_buf_a,
                                        size_t a_idx_start,
                                        size_t a_idx_end,
-                                       const aws_byte_buf &byte_buf_b) {
+                                       const struct aws_byte_buf &byte_buf_b) {
     if (a_idx_end == std::string::npos || a_idx_start == std::string::npos || char_buf_a == NULL) {
         return false;
     }
 
-    const aws_byte_buf byte_buf_a = aws_byte_buf_from_array((uint8_t *)(char_buf_a + a_idx_start),
+    const struct aws_byte_buf byte_buf_a = aws_byte_buf_from_array((uint8_t *)(char_buf_a + a_idx_start),
                                                             a_idx_end - a_idx_start);
     return aws_byte_buf_eq(&byte_buf_a, &byte_buf_b);
 }
 
 Aws::String parse_region_from_kms_key_arn(const Aws::String &key_id) {
-    static const aws_byte_buf arn_str = aws_byte_buf_from_c_str("arn");
-    static const aws_byte_buf kms_str = aws_byte_buf_from_c_str("kms");
+    static const struct aws_byte_buf arn_str = aws_byte_buf_from_c_str("arn");
+    static const struct aws_byte_buf kms_str = aws_byte_buf_from_c_str("kms");
     Aws::String rv;
     size_t idx_start = 0;
     size_t idx_end = 0;
