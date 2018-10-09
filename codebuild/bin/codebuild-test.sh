@@ -37,9 +37,9 @@ run_test() {
 # Print env variables for debug purposes
 env
 
-# Run a lighter weight test suite under valgrind
-run_test -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREDUCE_TEST_ITERATIONS=TRUE -DVALGRIND_TEST_SUITE=ON -DCMAKE_PREFIX_PATH='/deps/install;/deps/static/install'
 # Run the full test suite without valgrind, and as a shared library
 run_test -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=ON -DCMAKE_PREFIX_PATH='/deps/install;/deps/shared/install'
 # Also run the test suite as a debug build (probing for -DNDEBUG issues), and as a static library
 run_test -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH='/deps/install;/deps/shared/install'
+# Run a lighter weight test suite under valgrind
+run_test -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREDUCE_TEST_ITERATIONS=TRUE -DVALGRIND_TEST_SUITE=ON -DCMAKE_PREFIX_PATH='/deps/install;/deps/static/install'
