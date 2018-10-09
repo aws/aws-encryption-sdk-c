@@ -29,7 +29,7 @@ struct raw_aes_keyring {
     struct aws_cryptosdk_keyring base;
     struct aws_allocator * alloc;
     const struct aws_string * key_name;
-    const struct aws_string * provider_id;
+    const struct aws_string * name_space;
     const struct aws_string * raw_key;
 };
 

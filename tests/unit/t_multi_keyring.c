@@ -236,7 +236,7 @@ static size_t already_there_list_len = 7;
 static struct aws_cryptosdk_edk already_there_edk;
 static int put_stuff_in_edk_list() {
     already_there_edk.enc_data_key = aws_byte_buf_from_c_str("already there edk");
-    already_there_edk.provider_id = aws_byte_buf_from_c_str("already there provider id");
+    already_there_edk.name_space = aws_byte_buf_from_c_str("already there name space");
     already_there_edk.provider_info = aws_byte_buf_from_c_str("already there provider info");
     for (size_t idx = 0; idx < already_there_list_len; ++idx) {
         TEST_ASSERT_SUCCESS(aws_array_list_push_back(&edks,

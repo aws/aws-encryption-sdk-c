@@ -67,7 +67,7 @@ type alg_properties_c_t = {
 // Multiple fields missing or concatenated. 
 type hdr_c_t = {
     aad_len_total : size_bits_t, // Length of the total amount of aad : sum of the key and value across all aad. 
-    edk_len_total : size_bits_t  // Length of the total edk : sum of provider_id, provider_info and enc_data_key for   
+    edk_len_total : size_bits_t  // Length of the total edk : sum of name_space, provider_info and enc_data_key for   
                                     // all edk
 }
 

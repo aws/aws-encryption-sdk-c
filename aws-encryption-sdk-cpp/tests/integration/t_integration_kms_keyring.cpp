@@ -223,12 +223,12 @@ int generatedkAndDecrypt_keyForDecryptionMismatch_returnErr() {
 }
 
 
-static int test_assert_edk_provider_id_and_info(const char *expected_provider_id,
+static int test_assert_edk_name_space_and_info(const char *expected_name_space,
                                                 const char *expected_provider_info,
                                                 struct aws_cryptosdk_edk *edk) {
-    struct aws_byte_buf provider_id_bb = aws_byte_buf_from_c_str(expected_provider_id);
+    struct aws_byte_buf name_space_bb = aws_byte_buf_from_c_str(expected_name_space);
     struct aws_byte_buf provider_info_bb = aws_byte_buf_from_c_str(expected_provider_info);
-    TEST_ASSERT(aws_byte_buf_eq(&edk->provider_id, &provider_id_bb));
+    TEST_ASSERT(aws_byte_buf_eq(&edk->name_space, &name_space_bb));
     TEST_ASSERT(aws_byte_buf_eq(&edk->provider_info, &provider_info_bb));
 
     return 0;
@@ -276,7 +276,7 @@ int encryptdkAndDecrypt_singleKey_returnSuccess() {
 
     struct aws_cryptosdk_edk *edk;
     TEST_ASSERT_SUCCESS(aws_array_list_get_at_ptr(&edks.encrypted_data_keys, (void **) &edk, 0));
-    TEST_ASSERT_SUCCESS(test_assert_edk_provider_id_and_info("aws-kms", KEY_ARN_STR2, edk));
+    TEST_ASSERT_SUCCESS(test_assert_edk_name_space_and_info("aws-kms", KEY_ARN_STR2, edk));
 
     TEST_ASSERT_SUCCESS(test_keyring_datakey_decrypt_and_compare_with_pt(alloc,
                                                                          &plain_text,
@@ -316,7 +316,7 @@ int encryptdkAndDecrypt_twoKeys_returnSuccess() {
     for (unsigned int i = 0; i < keys.size(); i++) {
         struct aws_cryptosdk_edk *edk;
         TEST_ASSERT_SUCCESS(aws_array_list_get_at_ptr(&edks.encrypted_data_keys, (void **) &edk, i));
-        TEST_ASSERT_SUCCESS(test_assert_edk_provider_id_and_info("aws-kms", keys[i], edk));
+        TEST_ASSERT_SUCCESS(test_assert_edk_name_space_and_info("aws-kms", keys[i], edk));
 
         auto decrypting_keyring = KmsKeyring::Builder().AppendKeyId(keys[i]).Build();
         TEST_ASSERT_ADDR_NOT_NULL(decrypting_keyring);

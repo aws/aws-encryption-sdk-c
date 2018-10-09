@@ -54,7 +54,7 @@ static int fill_request(
             goto UNEXPECTED_ERROR;
         }
         // Because the session header owns the EDKs, clear the allocators to avoid any unfortunate double frees
-        edk.provider_id.allocator = NULL;
+        edk.name_space.allocator = NULL;
         edk.provider_info.allocator = NULL;
         edk.enc_data_key.allocator = NULL;
 

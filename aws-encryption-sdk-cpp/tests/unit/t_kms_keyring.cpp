@@ -77,7 +77,7 @@ struct TestValues {
     const char *pt = "Random plain text";
     const char *ct = "expected_ct";
     const static char *key_id;
-    const char *provider_id = "aws-kms";
+    const char *name_space = "aws-kms";
 
     struct aws_allocator *allocator;
     std::shared_ptr<KmsClientMock> kms_client_mock;
@@ -303,7 +303,7 @@ int encrypt_validInputs_returnSuccess() {
     TEST_ASSERT_SUCCESS(t_assert_edks_with_single_element_contains_expected_values(&ev.edks,
                                                                                    ev.ct,
                                                                                    ev.key_id,
-                                                                                   ev.provider_id,
+                                                                                   ev.name_space,
                                                                                    ev.allocator));
 
     TEST_ASSERT(ev.kms_client_mock->ExpectingOtherCalls() == false);
@@ -312,7 +312,7 @@ int encrypt_validInputs_returnSuccess() {
 
 /**
  * Sets kms_client_mock to expect an encrypt call with \param key and plaintext as \param in_pt and
- * to return \param expected_ct. Also in expected_edks will append the key, ev.provider_id, expected_ct as it would
+ * to return \param expected_ct. Also in expected_edks will append the key, ev.name_space, expected_ct as it would
  * have the encrypt operation (for comparison purposes).
  * purposes
  */
@@ -324,7 +324,7 @@ int expect_encrypt(struct aws_array_list &expected_edks,
     Aws::Utils::ByteBuffer pt = t_aws_utils_bb_from_char(in_pt);
     Aws::Utils::ByteBuffer ct = t_aws_utils_bb_from_char(expected_ct);
     ev.kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest(key, pt, {}, ev.GetEncryptionContext()), ev.GetResult(key, ct));
-    TEST_ASSERT_SUCCESS(t_append_c_str_key_to_edks(ev.allocator, &expected_edks, &ct, key, ev.provider_id));
+    TEST_ASSERT_SUCCESS(t_append_c_str_key_to_edks(ev.allocator, &expected_edks, &ct, key, ev.name_space));
     return AWS_OP_SUCCESS;
 }
 
@@ -406,7 +406,7 @@ int encrypt_emptyRegionNameInKeys_returnSuccess() {
     TEST_ASSERT_SUCCESS(t_assert_edks_with_single_element_contains_expected_values(&ev.edks,
                                                                                    ev.ct,
                                                                                    key.front().c_str(),
-                                                                                   ev.provider_id,
+                                                                                   ev.name_space,
                                                                                    ev.allocator));
 
     TEST_ASSERT(kms_client_mock->ExpectingOtherCalls() == false);
@@ -450,7 +450,7 @@ int encrypt_multipleKeysOneFails_initialEdksAreNotAffected() {
                                                    &ev.edks,
                                                    &initial_ct_bb,
                                                    initial_key,
-                                                   ev.provider_id));
+                                                   ev.name_space));
 
 
     // first request works
@@ -469,7 +469,7 @@ int encrypt_multipleKeysOneFails_initialEdksAreNotAffected() {
     TEST_ASSERT_SUCCESS(t_assert_edks_with_single_element_contains_expected_values(&ev.edks,
                                                                                    initial_ct,
                                                                                    initial_key,
-                                                                                   ev.provider_id,
+                                                                                   ev.name_space,
                                                                                    ev.allocator));
 
     TEST_ASSERT(ev.kms_client_mock->ExpectingOtherCalls() == false);
@@ -499,7 +499,7 @@ int decrypt_validInputs_returnSuccess() {
                                                    &dv.edks.encrypted_data_keys,
                                                    &dv.ct_bb,
                                                    dv.key_id,
-                                                   dv.provider_id));
+                                                   dv.name_space));
 
     dv.kms_client_mock->ExpectDecryptAccumulator(dv.GetRequest(), return_decrypt);
 
@@ -528,7 +528,7 @@ int decrypt_emptyRegionNameInKeys_returnSuccess() {
                                                    &dv.edks.encrypted_data_keys,
                                                    &dv.ct_bb,
                                                    key.c_str(),
-                                                   dv.provider_id));
+                                                   dv.name_space));
 
 
     kms_client_mock->ExpectDecryptAccumulator(dv.GetRequest(), dv.GetResult(key, dv.pt_bb));
@@ -555,7 +555,7 @@ int decrypt_validInputsButNoKeyMatched_returnSuccess() {
                                                    &dv.edks.encrypted_data_keys,
                                                    &dv.ct_bb,
                                                    dv.key_id,
-                                                   "invalid provider id"));
+                                                   "invalid name space"));
 
     TEST_ASSERT_SUCCESS(dv.kms_keyring->OnDecrypt(dv.kms_keyring,
                                                   dv.allocator,
@@ -599,28 +599,28 @@ int build_multiple_edks(DecryptValues &dv) {
                                                    &dv.edks.encrypted_data_keys,
                                                    &dv.ct_bb,
                                                    dv.key_id,
-                                                   dv.provider_id));
+                                                   dv.name_space));
 
     // decrypt is not called with invalid key
     TEST_ASSERT_SUCCESS(t_append_c_str_key_to_edks(dv.allocator,
                                                    &dv.edks.encrypted_data_keys,
                                                    &dv.ct_bb,
                                                    "Invalid key id",
-                                                   dv.provider_id));
+                                                   dv.name_space));
 
-    // decrypt is not called because the provider_id is invalid
+    // decrypt is not called because the name_space is invalid
     TEST_ASSERT_SUCCESS(t_append_c_str_key_to_edks(dv.allocator,
                                                    &dv.edks.encrypted_data_keys,
                                                    &dv.ct_bb,
                                                    dv.key_id,
-                                                   "Invalid provider id"));
+                                                   "Invalid name space"));
 
     // this should succeed
     TEST_ASSERT_SUCCESS(t_append_c_str_key_to_edks(dv.allocator,
                                                    &dv.edks.encrypted_data_keys,
                                                    &dv.ct_bb,
                                                    dv.key_id,
-                                                   dv.provider_id));
+                                                   dv.name_space));
     Model::DecryptOutcome return_decrypt3(MakeDecryptResult(dv.key_id, dv.pt));
     dv.kms_client_mock->ExpectDecryptAccumulator(dv.GetRequest(), return_decrypt3);
 
@@ -679,7 +679,7 @@ int generateDataKey_validInputs_returnSuccess() {
     TEST_ASSERT_SUCCESS(t_assert_edks_with_single_element_contains_expected_values(&gv.edks,
                                                                                    gv.ct,
                                                                                    gv.key_id,
-                                                                                   gv.provider_id,
+                                                                                   gv.name_space,
                                                                                    gv.allocator));
     TEST_ASSERT(aws_byte_buf_eq(&gv.unencrypted_data_key, &gv.pt_aws_byte) == true);
 
@@ -709,7 +709,7 @@ int generateDataKey_validInputsWithGrantTokensAndEncContext_returnSuccess() {
     TEST_ASSERT_SUCCESS(t_assert_edks_with_single_element_contains_expected_values(&gv.edks,
                                                                                    gv.ct,
                                                                                    gv.key_id,
-                                                                                   gv.provider_id,
+                                                                                   gv.name_space,
                                                                                    gv.allocator));
     TEST_ASSERT(aws_byte_buf_eq(&gv.unencrypted_data_key, &gv.pt_aws_byte) == true);
 
@@ -878,7 +878,7 @@ int t_assert_encrypt_with_default_values(KmsMasterKeyExposer *kms_keyring, Encry
     TEST_ASSERT_SUCCESS(t_assert_edks_with_single_element_contains_expected_values(&ev.edks,
                                                                                    ev.ct,
                                                                                    ev.key_id,
-                                                                                   ev.provider_id,
+                                                                                   ev.name_space,
                                                                                    ev.allocator));
     return 0;
 }

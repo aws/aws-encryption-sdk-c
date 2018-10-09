@@ -20,7 +20,7 @@ struct raw_rsa_keyring {
     struct aws_cryptosdk_keyring base;
     struct aws_allocator *alloc;
     const struct aws_string *key_name;
-    const struct aws_string *provider_id;
+    const struct aws_string *name_space;
     const struct aws_string * rsa_private_key_pem;
     const struct aws_string * rsa_public_key_pem;
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode;
@@ -40,14 +40,14 @@ static int encrypt_data_key(struct aws_cryptosdk_keyring *kr,
                                   self->rsa_public_key_pem,
                                   self->rsa_padding_mode)) goto err;
 
-    if (aws_byte_buf_init(request_alloc, &edk.provider_id, self->provider_id->len)) goto err;
-    edk.provider_id.len = edk.provider_id.capacity;
+    if (aws_byte_buf_init(request_alloc, &edk.name_space, self->name_space->len)) goto err;
+    edk.name_space.len = edk.name_space.capacity;
 
     if (aws_byte_buf_init(request_alloc, &edk.provider_info, self->key_name->len)) goto err;
     edk.provider_info.len = edk.provider_info.capacity;
 
-    struct aws_byte_cursor provider_id = aws_byte_cursor_from_buf(&edk.provider_id);
-    if (!aws_byte_cursor_write_from_whole_string(&provider_id, self->provider_id)) goto err;
+    struct aws_byte_cursor name_space = aws_byte_cursor_from_buf(&edk.name_space);
+    if (!aws_byte_cursor_write_from_whole_string(&name_space, self->name_space)) goto err;
 
     struct aws_byte_cursor provider_info = aws_byte_cursor_from_buf(&edk.provider_info);
     if (!aws_byte_cursor_write_from_whole_string(&provider_info, self->key_name)) goto err;
@@ -109,8 +109,8 @@ static int raw_rsa_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
         const struct aws_cryptosdk_edk *edk;
         if (aws_array_list_get_at_ptr(edks, (void **)&edk, edk_idx)) { return AWS_OP_ERR; }
 
-        if (!edk->provider_id.len || !edk->provider_info.len || !edk->enc_data_key.len) continue;
-        if (!aws_string_eq_byte_buf(self->provider_id, &edk->provider_id)) continue;
+        if (!edk->name_space.len || !edk->provider_info.len || !edk->enc_data_key.len) continue;
+        if (!aws_string_eq_byte_buf(self->name_space, &edk->name_space)) continue;
         if (!aws_string_eq_byte_buf(self->key_name, &edk->provider_info)) continue;
 
         if (aws_cryptosdk_rsa_decrypt(unencrypted_data_key,
@@ -134,7 +134,7 @@ static int raw_rsa_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
 static void raw_rsa_keyring_destroy(struct aws_cryptosdk_keyring *kr) {
     struct raw_rsa_keyring *self = (struct raw_rsa_keyring *)kr;
     aws_string_destroy((void *)self->key_name);
-    aws_string_destroy((void *)self->provider_id);
+    aws_string_destroy((void *)self->name_space);
     aws_string_destroy_secure((void *)self->rsa_private_key_pem);
     aws_string_destroy_secure((void *)self->rsa_public_key_pem);
     aws_mem_release(self->alloc, self);
@@ -152,8 +152,8 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     struct aws_allocator *alloc,
     const uint8_t *key_name,
     size_t key_name_len,
-    const uint8_t *provider_id,
-    size_t provider_id_len,
+    const uint8_t *name_space,
+    size_t name_space_len,
     const char *rsa_private_key_pem,
     const char *rsa_public_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
@@ -164,8 +164,8 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     kr->key_name = aws_string_new_from_array(alloc, key_name, key_name_len);
     if (!kr->key_name) goto err;
 
-    kr->provider_id = aws_string_new_from_array(alloc, provider_id, provider_id_len);
-    if (!kr->provider_id) goto err;
+    kr->name_space = aws_string_new_from_array(alloc, name_space, name_space_len);
+    if (!kr->name_space) goto err;
 
     kr->rsa_private_key_pem = aws_string_new_from_c_str(alloc, rsa_private_key_pem);
 
@@ -181,7 +181,7 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
 
 err:
     aws_string_destroy((void *)kr->key_name);
-    aws_string_destroy((void *)kr->provider_id);
+    aws_string_destroy((void *)kr->name_space);
     aws_mem_release(alloc, kr);
     return NULL;
 }

@@ -29,7 +29,7 @@
  */
 
 struct aws_cryptosdk_edk {
-    struct aws_byte_buf provider_id;
+    struct aws_byte_buf name_space;
     struct aws_byte_buf provider_info;
     struct aws_byte_buf enc_data_key;
 };
@@ -70,7 +70,7 @@ void aws_cryptosdk_edk_list_clear(struct aws_array_list *edk_list);
 AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_edk_eq(const struct aws_cryptosdk_edk *a, const struct aws_cryptosdk_edk *b) {
     return aws_byte_buf_eq(&a->enc_data_key, &b->enc_data_key) &&
         aws_byte_buf_eq(&a->provider_info, &b->provider_info) &&
-        aws_byte_buf_eq(&a->provider_id, &b->provider_id);
+        aws_byte_buf_eq(&a->name_space, &b->name_space);
 }
 
 /**

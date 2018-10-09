@@ -52,33 +52,33 @@ class Edks {
 
 
 /**
- * Assets that an edk structure has the expected values for expected_ct, expected_key_id, expected_provider_id
+ * Assets that an edk structure has the expected values for expected_ct, expected_key_id, expected_name_space
  */
 int t_assert_edk_contains_expected_values(const struct aws_cryptosdk_edk *edk,
                                           const char *expected_ct,
                                           const char *expected_key_id,
-                                          const char *expected_provider_id,
+                                          const char *expected_name_space,
                                           struct aws_allocator *allocator) {
     TEST_ASSERT(string(expected_ct) == string((char *)edk->enc_data_key.buffer, edk->enc_data_key.len));
     TEST_ASSERT(string(expected_key_id) == string((char *)edk->provider_info.buffer, edk->provider_info.len));
-    TEST_ASSERT(string(expected_provider_id) == string((char *)edk->provider_id.buffer, edk->provider_id.len));
+    TEST_ASSERT(string(expected_name_space) == string((char *)edk->name_space.buffer, edk->name_space.len));
     TEST_ASSERT_ADDR_EQ(allocator, edk->enc_data_key.allocator);
     return 0;
 }
 
 /**
  * Assets that an edks list has a single element with the expected values for expected_ct, expected_key_id,
- * expected_provider_id
+ * expected_name_space
  */
 int t_assert_edks_with_single_element_contains_expected_values(const struct aws_array_list *encrypted_data_keys,
                                                                const char *expected_ct,
                                                                const char *expected_key_id,
-                                                               const char *expected_provider_id,
+                                                               const char *expected_name_space,
                                                                struct aws_allocator *allocator) {
     TEST_ASSERT_INT_EQ(1, aws_array_list_length(encrypted_data_keys));
     struct aws_cryptosdk_edk *edk;
     TEST_ASSERT_INT_EQ(0, aws_array_list_get_at_ptr(encrypted_data_keys, (void **) &edk, 0));
-    return t_assert_edk_contains_expected_values(edk, expected_ct, expected_key_id, expected_provider_id, allocator);
+    return t_assert_edk_contains_expected_values(edk, expected_ct, expected_key_id, expected_name_space, allocator);
 }
 
 /**

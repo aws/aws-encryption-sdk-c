@@ -123,8 +123,8 @@ static inline int parse_edk(struct aws_allocator *allocator, struct aws_cryptosd
     memset(edk, 0, sizeof(*edk));
 
     if (!aws_byte_cursor_read_be16(cur, &field_len)) goto SHORT_BUF;
-    if (aws_byte_buf_init(allocator, &edk->provider_id, field_len)) goto MEM_ERR;
-    if (!aws_byte_cursor_read_and_fill_buffer(cur, &edk->provider_id)) goto SHORT_BUF;
+    if (aws_byte_buf_init(allocator, &edk->name_space, field_len)) goto MEM_ERR;
+    if (!aws_byte_cursor_read_and_fill_buffer(cur, &edk->name_space)) goto SHORT_BUF;
 
     if (!aws_byte_cursor_read_be16(cur, &field_len)) goto SHORT_BUF;
     if (aws_byte_buf_init(allocator, &edk->provider_info, field_len)) goto MEM_ERR;
@@ -283,7 +283,7 @@ int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr) {
         edk = vp_edk;
         // 2 bytes for each field's length header * 3 fields
         bytes = saturating_add(bytes, 6);
-        bytes = saturating_add(bytes, edk->provider_id.len);
+        bytes = saturating_add(bytes, edk->name_space.len);
         bytes = saturating_add(bytes, edk->provider_info.len);
         bytes = saturating_add(bytes, edk->enc_data_key.len);
     }
@@ -320,8 +320,8 @@ int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_
 
         const struct aws_cryptosdk_edk *edk = vp_edk;
 
-        if (!aws_byte_cursor_write_be16(&output, (uint16_t)edk->provider_id.len)) goto WRITE_ERR;
-        if (!aws_byte_cursor_write_from_whole_buffer(&output, &edk->provider_id)) goto WRITE_ERR;
+        if (!aws_byte_cursor_write_be16(&output, (uint16_t)edk->name_space.len)) goto WRITE_ERR;
+        if (!aws_byte_cursor_write_from_whole_buffer(&output, &edk->name_space)) goto WRITE_ERR;
 
         if (!aws_byte_cursor_write_be16(&output, (uint16_t)edk->provider_info.len)) goto WRITE_ERR;
         if (!aws_byte_cursor_write_from_whole_buffer(&output, &edk->provider_info)) goto WRITE_ERR;

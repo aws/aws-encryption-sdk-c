@@ -16,7 +16,7 @@
 #include <aws/cryptosdk/raw_rsa_keyring.h>
 
 static const uint8_t raw_rsa_keyring_tv_key_name[] = "asdfhasiufhiasuhviawurhgiuawrhefiuawhf";
-static const uint8_t raw_rsa_keyring_tv_provider_id[] = "asoghis";
+static const uint8_t raw_rsa_keyring_tv_name_space[] = "asoghis";
 
 static const char raw_rsa_keyring_tv_public_key[] =
     "-----BEGIN PUBLIC KEY-----\n"
@@ -74,7 +74,7 @@ struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new(
     struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
     return aws_cryptosdk_raw_rsa_keyring_new(
         alloc, raw_rsa_keyring_tv_key_name, strlen((const char *)raw_rsa_keyring_tv_key_name),
-        raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id),
+        raw_rsa_keyring_tv_name_space, strlen((const char *)raw_rsa_keyring_tv_name_space),
         raw_rsa_keyring_tv_private_key, raw_rsa_keyring_tv_public_key, rsa_padding_mode);
 }
 
@@ -82,15 +82,15 @@ struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new_with_wrong_key(
     struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
     return aws_cryptosdk_raw_rsa_keyring_new(
         alloc, raw_rsa_keyring_tv_key_name, strlen((const char *)raw_rsa_keyring_tv_key_name),
-        raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id),
+        raw_rsa_keyring_tv_name_space, strlen((const char *)raw_rsa_keyring_tv_name_space),
         wrong_raw_rsa_keyring_tv_private_key, wrong_raw_rsa_keyring_tv_public_key, rsa_padding_mode);
 }
 
 struct aws_cryptosdk_edk edk_init(const uint8_t *edk_bytes, size_t edk_len) {
     struct aws_cryptosdk_edk edk;
     edk.enc_data_key = aws_byte_buf_from_array(edk_bytes, edk_len);
-    edk.provider_id =
-        aws_byte_buf_from_array(raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id));
+    edk.name_space =
+        aws_byte_buf_from_array(raw_rsa_keyring_tv_name_space, strlen((const char *)raw_rsa_keyring_tv_name_space));
     edk.provider_info = aws_byte_buf_from_array(
         raw_rsa_keyring_tv_key_name, strlen((const char *)raw_rsa_keyring_tv_key_name));
     return edk;

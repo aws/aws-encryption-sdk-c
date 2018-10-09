@@ -27,7 +27,7 @@ extern "C" {
  * A Keyring (KR) which does local AES-GCM encryption and decryption of data keys using
  * the bytes in the array provided as the AES key.
  *
- * Key name, provider ID and raw key bytes provided by the caller are copied into
+ * Key name, name space and raw key bytes provided by the caller are copied into
  * the state of the KR, so those arrays do not need to be maintained while using the KR.
  * For maximum security, the caller should zero out the array of raw key bytes after
  * creating this object.
@@ -35,10 +35,10 @@ extern "C" {
  * The encryption context which is passed to this KR on encrypt and decrypt calls is
  * used as additional authenticated data (AAD) in the AES-GCM encryption of the data keys.
  * This means that the same encryption context must be present for both encryption and
- * decryption. The key name and provider ID are solely used to determine which master
+ * decryption. The key name and name space are solely used to determine which master
  * key to use, so if they do not match, this KR will not find the encrypted data key to
  * decrypt. In other words, a raw AES KR which attempts to decrypt data previously
- * encrypted by another raw AES KR must have the same key name and provider ID.
+ * encrypted by another raw AES KR must have the same key name and name space.
  *
  * On failure returns NULL and sets an internal AWS error code.
  */
@@ -46,8 +46,8 @@ AWS_CRYPTOSDK_API
 struct aws_cryptosdk_keyring * aws_cryptosdk_raw_aes_keyring_new(struct aws_allocator * alloc,
                                                                  const uint8_t * key_name,
                                                                  size_t key_name_len,
-                                                                 const uint8_t * provider_id,
-                                                                 size_t provider_id_len,
+                                                                 const uint8_t * name_space,
+                                                                 size_t name_space_len,
                                                                  const uint8_t * raw_key_bytes,
                                                                  enum aws_cryptosdk_aes_key_len key_len);
 

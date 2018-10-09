@@ -73,7 +73,7 @@ int KmsKeyring::OnDecrypt(struct aws_cryptosdk_keyring *keyring,
             continue;
         }
 
-        if (!aws_byte_buf_eq(&edk->provider_id, &self->key_provider)) {
+        if (!aws_byte_buf_eq(&edk->name_space, &self->key_provider)) {
             // FIXME: this is not an error, just means EDK belongs to a different keyring.
             error_buf << "Error: Provider of current key is not " << KEY_PROVIDER_STR << " ";
             continue;

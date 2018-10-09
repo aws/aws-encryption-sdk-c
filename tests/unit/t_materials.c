@@ -59,7 +59,7 @@ int default_cmm_zero_keyring_enc_mat() {
                        aws_array_list_get_at_ptr(&enc_mat->encrypted_data_keys, (void **)&edk, 0));
 
     TEST_ASSERT_BUF_EQ(edk->enc_data_key, 'n', 'u', 'l', 'l');
-    TEST_ASSERT_BUF_EQ(edk->provider_id, 'n', 'u', 'l', 'l');
+    TEST_ASSERT_BUF_EQ(edk->name_space, 'n', 'u', 'l', 'l');
     TEST_ASSERT_BUF_EQ(edk->provider_info, 'n', 'u', 'l', 'l');
 
     aws_cryptosdk_encryption_materials_destroy(enc_mat);

@@ -27,9 +27,9 @@ static struct aws_cryptosdk_edk empty_edk() {
     struct aws_cryptosdk_edk edk = { { 0 } };
     return edk;
 }
-static struct aws_cryptosdk_edk wrong_provider_id_edk() {
+static struct aws_cryptosdk_edk wrong_name_space_edk() {
     struct aws_cryptosdk_edk edk = good_edk();
-    edk.provider_id = aws_byte_buf_from_c_str("HelloWorld");
+    edk.name_space = aws_byte_buf_from_c_str("HelloWorld");
     return edk;
 }
 static struct aws_cryptosdk_edk wrong_edk_bytes_len_edk() {
@@ -73,7 +73,7 @@ static struct aws_cryptosdk_edk enc_data_key_too_large_edk() {
 typedef struct aws_cryptosdk_edk (*edk_generator)();
 
 edk_generator rsa_edk_gens[] = { empty_edk,
-                                 wrong_provider_id_edk,
+                                 wrong_name_space_edk,
                                  wrong_edk_bytes_len_edk,
                                  wrong_edk_bytes,
                                  wrong_provider_info_len_edk,

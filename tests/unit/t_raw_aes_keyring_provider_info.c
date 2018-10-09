@@ -29,7 +29,7 @@ static const uint8_t serialized_provider_info[] = {
     0x00, 0x00, 0x00, RAW_AES_KR_IV_LEN,
     0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb};
 
-AWS_STATIC_STRING_FROM_LITERAL(ser_provider_id, "Provider id");
+AWS_STATIC_STRING_FROM_LITERAL(ser_name_space, "Name space");
 
 static const uint8_t raw_key_bytes[32];
 
@@ -57,8 +57,8 @@ int parse_valid_provider_info() {
     struct aws_cryptosdk_keyring * kr = aws_cryptosdk_raw_aes_keyring_new(aws_default_allocator(),
                                                                 aws_string_bytes(ser_key_name),
                                                                 ser_key_name->len,
-                                                                aws_string_bytes(ser_provider_id),
-                                                                ser_provider_id->len,
+                                                                aws_string_bytes(ser_name_space),
+                                                                ser_name_space->len,
                                                                 raw_key_bytes,
                                                                 AWS_CRYPTOSDK_AES_256);
     TEST_ASSERT_ADDR_NOT_NULL(kr);
