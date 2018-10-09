@@ -108,7 +108,7 @@ static int zero_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
             return AWS_OP_SUCCESS;
         }
     }
-    /* We were not able to decrypt any of the EDKs using this master key. This is normal behavior,
+    /* We were not able to decrypt any of the EDKs using this keyring. This is normal behavior,
      * so return success without allocating an unencrypted data key.
      */
     return AWS_OP_SUCCESS;

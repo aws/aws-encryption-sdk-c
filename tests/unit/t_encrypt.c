@@ -255,7 +255,7 @@ int test_different_keyring_cant_decrypt() {
     hexdump(stderr, ct_buf, ct_size);
 
 #if 0
-    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_NO_MASTER_KEYS_FOUND,
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_NO_KEYRINGS_FOUND,
         aws_cryptosdk_session_process(session,
             pt_buf, pt_size, &pt_consumed,
             ct_buf, ct_size, &ct_consumed
