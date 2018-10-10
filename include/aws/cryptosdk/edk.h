@@ -31,7 +31,7 @@
 struct aws_cryptosdk_edk {
     struct aws_byte_buf name_space;
     struct aws_byte_buf key_name;
-    struct aws_byte_buf enc_data_key;
+    struct aws_byte_buf cipher_text;
 };
 
 #ifdef __cplusplus
@@ -68,7 +68,7 @@ void aws_cryptosdk_edk_list_clear(struct aws_array_list *edk_list);
  * Returns true if the contents of all EDK byte buffers are identical, false otherwise.
  */
 AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_edk_eq(const struct aws_cryptosdk_edk *a, const struct aws_cryptosdk_edk *b) {
-    return aws_byte_buf_eq(&a->enc_data_key, &b->enc_data_key) &&
+    return aws_byte_buf_eq(&a->cipher_text, &b->cipher_text) &&
         aws_byte_buf_eq(&a->key_name, &b->key_name) &&
         aws_byte_buf_eq(&a->name_space, &b->name_space);
 }

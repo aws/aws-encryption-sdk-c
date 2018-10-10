@@ -101,13 +101,13 @@ struct aws_cryptosdk_hdr_aad test_header_1_aad_tbl[] = {
 
 uint8_t test_header_1_edk_name_space[] = {0x10, 0x11, 0x12, 0x00};
 uint8_t test_header_1_edk_key_name[] = {0x01, 0x02, 0x03, 0x04};
-uint8_t test_header_1_edk_enc_data_key[] = {0x11, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x88};
+uint8_t test_header_1_edk_cipher_text[] = {0x11, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x88};
 struct aws_cryptosdk_edk test_header_1_edk_tbl[] = {
     {{0}},
     {
         .name_space = {.len = sizeof(test_header_1_edk_name_space), .buffer = test_header_1_edk_name_space},
         .key_name = {.len = sizeof(test_header_1_edk_key_name), .buffer = test_header_1_edk_key_name},
-        .enc_data_key = {.len = sizeof(test_header_1_edk_enc_data_key), .buffer = test_header_1_edk_enc_data_key}
+        .cipher_text = {.len = sizeof(test_header_1_edk_cipher_text), .buffer = test_header_1_edk_cipher_text}
     },
     {{0}}
 };
@@ -360,17 +360,17 @@ int simple_header_parse() {
     TEST_ASSERT_SUCCESS(aws_array_list_get_at(&hdr.edk_list, &edk, 0));
     TEST_ASSERT_INT_EQ(0, edk.name_space.len);
     TEST_ASSERT_INT_EQ(0, edk.key_name.len);
-    TEST_ASSERT_INT_EQ(0, edk.enc_data_key.len);
+    TEST_ASSERT_INT_EQ(0, edk.cipher_text.len);
 
     TEST_ASSERT_SUCCESS(aws_array_list_get_at(&hdr.edk_list, &edk, 2));
     TEST_ASSERT_INT_EQ(0, edk.name_space.len);
     TEST_ASSERT_INT_EQ(0, edk.key_name.len);
-    TEST_ASSERT_INT_EQ(0, edk.enc_data_key.len);
+    TEST_ASSERT_INT_EQ(0, edk.cipher_text.len);
 
     TEST_ASSERT_SUCCESS(aws_array_list_get_at(&hdr.edk_list, &edk, 1));
     TEST_ASSERT_BUF_EQ(edk.name_space, 0x10, 0x11, 0x12, 0x00);
     TEST_ASSERT_BUF_EQ(edk.key_name, 0x01, 0x02, 0x03, 0x04);
-    TEST_ASSERT_BUF_EQ(edk.enc_data_key, 0x11, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x88);
+    TEST_ASSERT_BUF_EQ(edk.cipher_text, 0x11, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x88);
 
     TEST_ASSERT_INT_EQ(aws_cryptosdk_hdr_size(&hdr), hdr.auth_len + hdr.auth_tag.len + hdr.iv.len);
 
@@ -414,17 +414,17 @@ int simple_header_parse2() {
     TEST_ASSERT_SUCCESS(aws_array_list_get_at(&hdr.edk_list, &edk, 0));
     TEST_ASSERT_INT_EQ(0, edk.name_space.len);
     TEST_ASSERT_INT_EQ(0, edk.key_name.len);
-    TEST_ASSERT_INT_EQ(0, edk.enc_data_key.len);
+    TEST_ASSERT_INT_EQ(0, edk.cipher_text.len);
 
     TEST_ASSERT_SUCCESS(aws_array_list_get_at(&hdr.edk_list, &edk, 2));
     TEST_ASSERT_INT_EQ(0, edk.name_space.len);
     TEST_ASSERT_INT_EQ(0, edk.key_name.len);
-    TEST_ASSERT_INT_EQ(0, edk.enc_data_key.len);
+    TEST_ASSERT_INT_EQ(0, edk.cipher_text.len);
 
     TEST_ASSERT_SUCCESS(aws_array_list_get_at(&hdr.edk_list, &edk, 1));
     TEST_ASSERT_BUF_EQ(edk.name_space, 0x10, 0x11, 0x12, 0x00);
     TEST_ASSERT_BUF_EQ(edk.key_name, 0x01, 0x02, 0x03, 0x04);
-    TEST_ASSERT_BUF_EQ(edk.enc_data_key, 0x11, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x88);
+    TEST_ASSERT_BUF_EQ(edk.cipher_text, 0x11, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x88);
 
     TEST_ASSERT_INT_EQ(aws_cryptosdk_hdr_size(&hdr), hdr.auth_len + hdr.auth_tag.len + hdr.iv.len);
 
@@ -549,7 +549,7 @@ int header_size() {
         struct aws_cryptosdk_edk edk;
         TEST_ASSERT_SUCCESS(aws_array_list_get_at(&hdr.edk_list, &edk, i));
 
-        edk.enc_data_key.len = SIZE_MAX >> 1;
+        edk.cipher_text.len = SIZE_MAX >> 1;
         edk.name_space.len = SIZE_MAX >> 1;
         edk.key_name.len = SIZE_MAX >> 1;
 

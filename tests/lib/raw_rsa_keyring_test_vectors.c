@@ -88,7 +88,7 @@ struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new_with_wrong_key(
 
 struct aws_cryptosdk_edk edk_init(const uint8_t *edk_bytes, size_t edk_len) {
     struct aws_cryptosdk_edk edk;
-    edk.enc_data_key = aws_byte_buf_from_array(edk_bytes, edk_len);
+    edk.cipher_text = aws_byte_buf_from_array(edk_bytes, edk_len);
     edk.name_space =
         aws_byte_buf_from_array(raw_rsa_keyring_tv_name_space, strlen((const char *)raw_rsa_keyring_tv_name_space));
     edk.key_name = aws_byte_buf_from_array(

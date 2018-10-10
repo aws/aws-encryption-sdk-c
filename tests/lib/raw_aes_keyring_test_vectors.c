@@ -42,7 +42,7 @@ struct aws_cryptosdk_edk build_test_edk_init(const uint8_t * edk_bytes, size_t e
         "\x00\x00\x00\x0c"; // IV length in bytes
 
     struct aws_cryptosdk_edk edk;
-    edk.enc_data_key = aws_byte_buf_from_array(edk_bytes, edk_len);
+    edk.cipher_text = aws_byte_buf_from_array(edk_bytes, edk_len);
     edk.name_space = aws_byte_buf_from_array(raw_aes_keyring_tv_name_space, sizeof(raw_aes_keyring_tv_name_space) - 1);
 
     if (aws_byte_buf_init(aws_default_allocator(), &edk.key_name, sizeof(edk_provider_prefix) - 1 + RAW_AES_KR_IV_LEN)) {

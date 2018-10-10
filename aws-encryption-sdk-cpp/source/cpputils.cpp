@@ -67,11 +67,11 @@ int append_aws_byte_buf_key_dup_to_edks(struct aws_allocator *allocator,
     struct aws_cryptosdk_edk edk{};
     edk.name_space = {0};
     edk.key_name = {0};
-    edk.enc_data_key = {0};
+    edk.cipher_text = {0};
 
     if (aws_byte_buf_init_copy(allocator, &edk.name_space, key_provider) != AWS_OP_SUCCESS
         || aws_byte_buf_init_copy(allocator, &edk.key_name, data_key_id) != AWS_OP_SUCCESS
-        || aws_byte_buf_init_copy(allocator, &edk.enc_data_key, encrypted_data_key) != AWS_OP_SUCCESS
+        || aws_byte_buf_init_copy(allocator, &edk.cipher_text, encrypted_data_key) != AWS_OP_SUCCESS
         || aws_array_list_push_back(encrypted_data_keys, &edk) != AWS_OP_SUCCESS) {
         aws_cryptosdk_edk_clean_up(&edk);
         return AWS_OP_ERR;
@@ -86,15 +86,15 @@ int append_key_dup_to_edks(struct aws_allocator *allocator,
                            const Aws::String *data_key_id,
                            const struct aws_byte_buf *key_provider) {
     // although this functions will not copy, append_aws_byte_buf_key_dup_to_edks will create a duplicate
-    // of enc_data_key_byte, data_key_id_byte and key_provider before appending them
-    struct aws_byte_buf enc_data_key_byte = aws_byte_buf_from_array(encrypted_data_key->GetUnderlyingData(),
+    // of cipher_text_byte, data_key_id_byte and key_provider before appending them
+    struct aws_byte_buf cipher_text_byte = aws_byte_buf_from_array(encrypted_data_key->GetUnderlyingData(),
                                                                     encrypted_data_key->GetLength());
     struct aws_byte_buf data_key_id_byte = aws_byte_buf_from_array((const uint8_t *) data_key_id->data(),
                                                                    data_key_id->length());
 
     return append_aws_byte_buf_key_dup_to_edks(allocator,
                                                encrypted_data_keys,
-                                               &enc_data_key_byte,
+                                               &cipher_text_byte,
                                                &data_key_id_byte,
                                                key_provider);
 }

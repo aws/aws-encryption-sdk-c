@@ -235,7 +235,7 @@ int fail_on_failed_encrypt_and_stop() {
 static size_t already_there_list_len = 7;
 static struct aws_cryptosdk_edk already_there_edk;
 static int put_stuff_in_edk_list() {
-    already_there_edk.enc_data_key = aws_byte_buf_from_c_str("already there edk");
+    already_there_edk.cipher_text = aws_byte_buf_from_c_str("already there edk");
     already_there_edk.name_space = aws_byte_buf_from_c_str("already there name space");
     already_there_edk.key_name = aws_byte_buf_from_c_str("already there key name");
     for (size_t idx = 0; idx < already_there_list_len; ++idx) {

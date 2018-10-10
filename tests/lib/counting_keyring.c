@@ -41,7 +41,7 @@ static int set_edk(struct aws_allocator *alloc, struct aws_cryptosdk_edk *edk) {
     if (aws_byte_buf_init_copy(alloc, &edk->key_name, &src))
         return AWS_OP_ERR;
     src = aws_string_to_buf(expected_edk);
-    if (aws_byte_buf_init_copy(alloc, &edk->enc_data_key, &src))
+    if (aws_byte_buf_init_copy(alloc, &edk->cipher_text, &src))
         return AWS_OP_ERR;
 
     return AWS_OP_SUCCESS;
@@ -55,7 +55,7 @@ static inline bool is_counting_edk(const struct aws_cryptosdk_edk *edk) {
     return (
         str_eq_buf(name_space, &edk->name_space) &&
         str_eq_buf(key_name, &edk->key_name) &&
-        str_eq_buf(expected_edk, &edk->enc_data_key)
+        str_eq_buf(expected_edk, &edk->cipher_text)
     );
 }
 

@@ -91,7 +91,7 @@ int KmsKeyring::OnDecrypt(struct aws_cryptosdk_keyring *keyring,
         auto kms_client = self->GetKmsClient(kms_region);
         auto kms_request = self->CreateDecryptRequest(key_arn,
                                                       self->grant_tokens,
-                                                      aws_utils_byte_buffer_from_c_aws_byte_buf(&edk->enc_data_key),
+                                                      aws_utils_byte_buffer_from_c_aws_byte_buf(&edk->cipher_text),
                                                       aws_map_from_c_aws_hash_table(enc_context));
 
         Aws::KMS::Model::DecryptOutcome outcome = kms_client->Decrypt(kms_request);

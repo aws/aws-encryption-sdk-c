@@ -108,21 +108,21 @@ int aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(struct aws_cryptosdk_
 
     struct aws_cryptosdk_edk edk = {{0}};
     /* Encrypted data key bytes same length as unencrypted data key in GCM.
-     * enc_data_key field also includes tag afterward.
+     * cipher_text field also includes tag afterward.
      */
-    if (aws_byte_buf_init(request_alloc, &edk.enc_data_key, data_key_len + RAW_AES_KR_TAG_LEN)) {
+    if (aws_byte_buf_init(request_alloc, &edk.cipher_text, data_key_len + RAW_AES_KR_TAG_LEN)) {
         aws_byte_buf_clean_up(&aad);
         return AWS_OP_ERR;
     }
-    struct aws_byte_buf edk_bytes = aws_byte_buf_from_array(edk.enc_data_key.buffer, data_key_len);
-    struct aws_byte_buf tag = aws_byte_buf_from_array(edk.enc_data_key.buffer + data_key_len, RAW_AES_KR_TAG_LEN);
-    if (aws_cryptosdk_aes_gcm_encrypt(&edk_bytes,
+    struct aws_byte_buf cipher_text = aws_byte_buf_from_array(edk.cipher_text.buffer, data_key_len);
+    struct aws_byte_buf tag = aws_byte_buf_from_array(edk.cipher_text.buffer + data_key_len, RAW_AES_KR_TAG_LEN);
+    if (aws_cryptosdk_aes_gcm_encrypt(&cipher_text,
                                       &tag,
                                       aws_byte_cursor_from_buf(unencrypted_data_key),
                                       aws_byte_cursor_from_array(iv, RAW_AES_KR_IV_LEN),
                                       aws_byte_cursor_from_buf(&aad),
                                       self->raw_key)) goto err;
-    edk.enc_data_key.len = edk.enc_data_key.capacity;
+    edk.cipher_text.len = edk.cipher_text.capacity;
 
     if (aws_cryptosdk_serialize_key_name_init(request_alloc, &edk.key_name, self->key_name, iv))
         goto err;
@@ -210,23 +210,23 @@ static int raw_aes_keyring_on_decrypt(struct aws_cryptosdk_keyring * kr,
             aws_byte_buf_clean_up(&aad);
             return AWS_OP_ERR;
         }
-        if (!edk->name_space.len || !edk->key_name.len || !edk->enc_data_key.len) continue;
+        if (!edk->name_space.len || !edk->key_name.len || !edk->cipher_text.len) continue;
 
         if (!aws_string_eq_byte_buf(self->name_space, &edk->name_space)) continue;
 
         struct aws_byte_buf iv;
         if (!aws_cryptosdk_parse_key_name(kr, &iv, &edk->key_name)) continue;
 
-        const struct aws_byte_buf *edk_bytes = &edk->enc_data_key;
+        const struct aws_byte_buf *cipher_text = &edk->cipher_text;
 
         /* Using GCM, so encrypted and unencrypted data key have same length, i.e. data_key_len.
-         * edk_bytes->buffer holds encrypted data key followed by GCM tag.
+         * cipher_text->buffer holds encrypted data key followed by GCM tag.
          */
-        if (data_key_len + RAW_AES_KR_TAG_LEN != edk_bytes->len) continue;
+        if (data_key_len + RAW_AES_KR_TAG_LEN != cipher_text->len) continue;
 
         if (aws_cryptosdk_aes_gcm_decrypt(unencrypted_data_key,
-                                          aws_byte_cursor_from_array(edk_bytes->buffer, data_key_len),
-                                          aws_byte_cursor_from_array(edk_bytes->buffer + data_key_len,
+                                          aws_byte_cursor_from_array(cipher_text->buffer, data_key_len),
+                                          aws_byte_cursor_from_array(cipher_text->buffer + data_key_len,
                                                                      RAW_AES_KR_TAG_LEN),
                                           aws_byte_cursor_from_buf(&iv),
                                           aws_byte_cursor_from_buf(&aad),

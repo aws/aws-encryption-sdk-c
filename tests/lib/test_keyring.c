@@ -38,7 +38,7 @@ static int test_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
         }
 
         static struct aws_cryptosdk_edk edk;
-        edk.enc_data_key = aws_byte_buf_from_c_str("test keyring generate edk");
+        edk.cipher_text = aws_byte_buf_from_c_str("test keyring generate cipher text");
         edk.name_space = aws_byte_buf_from_c_str("test keyring generate name space");
         edk.key_name = aws_byte_buf_from_c_str("test keyring generate key name");
         aws_array_list_push_back(edks, &edk);

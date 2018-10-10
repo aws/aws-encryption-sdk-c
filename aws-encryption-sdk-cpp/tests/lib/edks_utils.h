@@ -59,10 +59,10 @@ int t_assert_edk_contains_expected_values(const struct aws_cryptosdk_edk *edk,
                                           const char *expected_key_id,
                                           const char *expected_name_space,
                                           struct aws_allocator *allocator) {
-    TEST_ASSERT(string(expected_ct) == string((char *)edk->enc_data_key.buffer, edk->enc_data_key.len));
+    TEST_ASSERT(string(expected_ct) == string((char *)edk->cipher_text.buffer, edk->cipher_text.len));
     TEST_ASSERT(string(expected_key_id) == string((char *)edk->key_name.buffer, edk->key_name.len));
     TEST_ASSERT(string(expected_name_space) == string((char *)edk->name_space.buffer, edk->name_space.len));
-    TEST_ASSERT_ADDR_EQ(allocator, edk->enc_data_key.allocator);
+    TEST_ASSERT_ADDR_EQ(allocator, edk->cipher_text.allocator);
     return 0;
 }
 
@@ -105,14 +105,14 @@ int t_assert_edks_equals(const struct aws_array_list *encrypted_data_keys_a,
  */
 int t_append_c_str_key_to_edks(struct aws_allocator *allocator,
                                struct aws_array_list *encrypted_data_keys,
-                               const Aws::Utils::ByteBuffer *enc_data_key,
+                               const Aws::Utils::ByteBuffer *cipher_text,
                                const char *data_key_id,
                                const char *key_provider) {
     aws_byte_buf key_provider_bb = aws_byte_buf_from_c_str(key_provider);
     Aws::String data_key_id_str(data_key_id);
     return append_key_dup_to_edks(allocator,
                                   encrypted_data_keys,
-                                  enc_data_key,
+                                  cipher_text,
                                   &data_key_id_str,
                                   &key_provider_bb);
 }

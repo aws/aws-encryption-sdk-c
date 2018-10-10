@@ -58,7 +58,7 @@ int default_cmm_zero_keyring_enc_mat() {
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS,
                        aws_array_list_get_at_ptr(&enc_mat->encrypted_data_keys, (void **)&edk, 0));
 
-    TEST_ASSERT_BUF_EQ(edk->enc_data_key, 'n', 'u', 'l', 'l');
+    TEST_ASSERT_BUF_EQ(edk->cipher_text, 'n', 'u', 'l', 'l');
     TEST_ASSERT_BUF_EQ(edk->name_space, 'n', 'u', 'l', 'l');
     TEST_ASSERT_BUF_EQ(edk->key_name, 'n', 'u', 'l', 'l');
 
