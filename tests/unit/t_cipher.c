@@ -896,6 +896,35 @@ static int test_sign_header() {
     return 0;
 }
 
+static int test_digest_sha512() {
+    struct aws_allocator *allocator = aws_default_allocator();
+    struct aws_cryptosdk_md_context *context;
+    uint8_t buf[AWS_CRYPTOSDK_MD_MAX_SIZE];
+    uint8_t expected[] = {
+        /* SHA-512 of "foobarbaz" */
+        0xcb, 0x37, 0x7c, 0x10, 0xb0, 0xf5, 0xa6, 0x2c, 0x80, 0x36, 0x25, 0xa7, 0x99, 0xd9, 0xe9, 0x08,
+        0xbe, 0x45, 0xe7, 0x67, 0xf5, 0xd1, 0x47, 0xd4, 0x74, 0x49, 0x07, 0xcb, 0x05, 0x59, 0x7a, 0xa4,
+        0xed, 0xd3, 0x29, 0xa0, 0xaf, 0x14, 0x7a, 0xdd, 0x0c, 0xf4, 0x18, 0x1e, 0xd3, 0x28, 0xfa, 0x1e,
+        0x79, 0x94, 0x26, 0x58, 0x26, 0xb3, 0xed, 0x3d, 0x7e, 0xf6, 0xf0, 0x67, 0xca, 0x99, 0x18, 0x5a
+    };
+    size_t md_len;
+
+    TEST_ASSERT_INT_EQ(64, aws_cryptosdk_md_size(AWS_CRYPTOSDK_MD_SHA512));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_md_init(allocator, &context, AWS_CRYPTOSDK_MD_SHA512));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_md_update(context, "foo", 3));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_md_update(context, "barbaz", 6));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_md_finish(context, buf, &md_len));
+
+    TEST_ASSERT_INT_EQ(md_len, sizeof(expected));
+    TEST_ASSERT_INT_EQ(0, memcmp(expected, buf, md_len));
+
+    /* test abort path as well */
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_md_init(allocator, &context, AWS_CRYPTOSDK_MD_SHA512));
+    aws_cryptosdk_md_abort(context);
+
+    return 0;
+}
+
 struct test_case cipher_test_cases[] = {
     { "cipher", "test_kdf", test_kdf },
     { "cipher", "test_decrypt_frame_aad", test_decrypt_frame_aad },
@@ -904,6 +933,7 @@ struct test_case cipher_test_cases[] = {
     { "cipher", "test_random", test_random },
     { "cipher", "test_encrypt_body", test_encrypt_body },
     { "cipher", "test_sign_header", test_sign_header },
+    { "cipher", "test_digest_sha512", test_digest_sha512 },
     { NULL }
 };
 
