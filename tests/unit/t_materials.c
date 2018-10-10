@@ -45,7 +45,6 @@ int default_cmm_zero_keyring_enc_mat() {
                        aws_cryptosdk_cmm_generate_encryption_materials(cmm, &enc_mat, &req));
     TEST_ASSERT(req.requested_alg != 0);
 
-    TEST_ASSERT_ADDR_EQ(enc_mat->enc_context, &enc_context);
     TEST_ASSERT_INT_EQ(enc_mat->alg, AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE);
     TEST_ASSERT_INT_EQ(enc_mat->alg, req.requested_alg);
 
