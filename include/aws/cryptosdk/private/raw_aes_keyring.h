@@ -34,10 +34,10 @@ struct raw_aes_keyring {
 };
 
 /**
- * Allocates the output buffer and writes the key name for an EDK encrypted
+ * Allocates the output buffer and writes the key name field for an EDK encrypted
  * by this KR into it. The format is:
  *
- * Key Name (variable length)
+ * Key name (variable length)
  * AES-GCM tag length *IN BITS* (4 bytes, big-endian)
  * IV length (4 bytes, big-endian)
  * IV bytes (length determined by previous field)
@@ -49,7 +49,7 @@ int aws_cryptosdk_serialize_key_name_init(struct aws_allocator * alloc,
 
 
 /**
- * Checks whether the key name of a particular EDK is compatible with this KR
+ * Checks whether the key name field of a particular EDK is compatible with this KR
  * by seeing whether the known key name, tag length, and IV length are in the
  * key name and whether the entire buffer has the proper length.
  *
