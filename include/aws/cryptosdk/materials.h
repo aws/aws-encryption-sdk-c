@@ -71,6 +71,9 @@ struct aws_cryptosdk_key_pair {
 
 struct aws_cryptosdk_encryption_request {
     struct aws_allocator * alloc;
+    // The encryption context for this message. CMMs are permitted to modify this
+    // hash table in order to inject additional keys or otherwise modify the encryption
+    // context.
     struct aws_hash_table * enc_context;
     // The session will initially call generate_encryption_materials on the CMM
     // with a zero requested_alg; it's up to one of the CMMs in the chain to fill
@@ -89,7 +92,6 @@ struct aws_cryptosdk_encryption_materials {
     struct aws_allocator * alloc;
     struct aws_byte_buf unencrypted_data_key;
     struct aws_array_list encrypted_data_keys; // list of struct aws_cryptosdk_edk objects
-    struct aws_hash_table * enc_context;
     struct aws_cryptosdk_signctx *signctx;
     enum aws_cryptosdk_alg_id alg;
 };

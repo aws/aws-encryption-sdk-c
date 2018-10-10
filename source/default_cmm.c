@@ -44,15 +44,13 @@ static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * 
     enc_mat = aws_cryptosdk_encryption_materials_new(request->alloc, request->requested_alg);
     if (!enc_mat) goto err;
 
-    enc_mat->enc_context = request->enc_context;
-
     if (props->signature_len) {
         struct aws_string *pubkey = NULL;
         if (aws_cryptosdk_sig_sign_start_keygen(&enc_mat->signctx, request->alloc, &pubkey, props)) {
             goto err;
         }
 
-        if (aws_hash_table_put(enc_mat->enc_context, EC_PUBLIC_KEY_FIELD, pubkey, NULL)) {
+        if (aws_hash_table_put(request->enc_context, EC_PUBLIC_KEY_FIELD, pubkey, NULL)) {
             aws_string_destroy(pubkey);
             goto err;
         }
