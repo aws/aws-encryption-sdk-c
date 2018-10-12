@@ -130,7 +130,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PLATFORM_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
-target_link_libraries(${PROJECT_NAME} PUBLIC aws-c-common)
+target_link_libraries(${PROJECT_NAME} PUBLIC AWS::aws-c-common)
 
 # Some of our unit tests need to access private symbols. Build a static library for their use.
 # We'll use the shared lib for integration tests.
@@ -147,7 +147,7 @@ target_include_directories(aws-encryption-sdk-test PUBLIC
 )
 
 target_link_libraries(aws-encryption-sdk-test PRIVATE ${PLATFORM_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
-target_link_libraries(aws-encryption-sdk-test PUBLIC aws-c-common)
+target_link_libraries(aws-encryption-sdk-test PUBLIC AWS::aws-c-common)
 
 
 
