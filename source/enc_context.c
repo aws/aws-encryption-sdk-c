@@ -156,3 +156,71 @@ RETHROW:
     aws_cryptosdk_enc_context_clear(enc_context);
     return AWS_OP_ERR;
 }
+
+static struct aws_string *clone_or_reuse_string(struct aws_allocator *allocator, const struct aws_string *str) {
+    if (str->allocator == NULL) {
+        /*
+         * Since the string cannot be deallocated, we assume that it
+         * will remain valid for the lifetime of the application
+         */
+        return (struct aws_string *)str;
+    }
+
+    return aws_string_new_from_array(allocator, aws_string_bytes(str), str->len);
+}
+
+int aws_cryptosdk_enc_context_clone(
+    struct aws_allocator *alloc,
+    struct aws_hash_table *dest,
+    const struct aws_hash_table *src
+) {
+    /* First, scan the destination for keys that don't belong, and remove them */
+    for (struct aws_hash_iter iter = aws_hash_iter_begin(dest); !aws_hash_iter_done(&iter); aws_hash_iter_next(&iter)) {
+        struct aws_hash_element *src_elem = NULL;
+
+        /* We don't need to check for an error return as we can just look at src_elem */
+        aws_hash_table_find(src, iter.element.key, &src_elem);
+
+        if (src_elem == NULL) {
+            aws_hash_iter_delete(&iter, true);
+        }
+    }
+
+    /* Next, iterate src and ensure that the destination is consistent */
+    for (struct aws_hash_iter iter = aws_hash_iter_begin(src); !aws_hash_iter_done(&iter); aws_hash_iter_next(&iter)) {
+        struct aws_hash_element *dest_elem = NULL;
+
+        /*
+         * We don't use _create here as we might not be able to reuse the key as-is, and want to avoid duping it
+         * if it's already in the destination hash table.
+         */
+        aws_hash_table_find(dest, iter.element.key, &dest_elem);
+
+        if (dest_elem && !aws_string_eq(dest_elem->value, iter.element.value)) {
+            /* The key was present; only the value needs to be updated */
+            struct aws_string *value = clone_or_reuse_string(alloc, iter.element.value);
+
+            if (!value) {
+                return AWS_OP_ERR;
+            }
+
+            aws_string_destroy(dest_elem->value);
+            dest_elem->value = value;
+        } else if (!dest_elem) {
+            /* A new element needs to be created, with a copy of the key and value */
+            struct aws_string *key = clone_or_reuse_string(alloc, iter.element.key);
+            struct aws_string *value = clone_or_reuse_string(alloc, iter.element.value);
+
+            if (!key || !value || aws_hash_table_put(dest, key, value, NULL)) {
+                aws_string_destroy(key);
+                aws_string_destroy(value);
+
+                return AWS_OP_ERR;
+            }
+        } else {
+            /* Key and value matched; no change needed */
+        }
+    }
+
+    return AWS_OP_SUCCESS;
+}
