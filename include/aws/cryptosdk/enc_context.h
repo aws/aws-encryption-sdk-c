@@ -49,6 +49,25 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_enc_context_clean_up(struct aws_h
     aws_hash_table_clean_up(enc_context);
 }
 
+/**
+ * Copies the contents of the 'src' encryption context into the 'dest' encryption context.
+ * 'dest' must be pre-allocated.
+ *
+ * This method will reuse pre-existing entries in dest that match the values in src, and
+ * will also reuse aws_strings with a NULL allocator in src. Any other values will be copied
+ * into newly allocated memory using the given allocator.
+ *
+ * If this function returns an error, the contents of dest are unspecified, but are in a state
+ * where aws_cryptosdk_enc_context_clear or aws_cryptosdk_enc_context_clean_up can be safely 
+ * used without leaking memory.
+ */
+AWS_CRYPTOSDK_API
+int aws_cryptosdk_enc_context_clone(
+    struct aws_allocator *alloc,
+    struct aws_hash_table *dest,
+    const struct aws_hash_table *src
+);
+
 #ifdef __cplusplus
 }
 #endif

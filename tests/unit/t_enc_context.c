@@ -280,6 +280,86 @@ int serialize_error_when_too_many_elements() {
     return 0;
 }
 
+static void *checked_aws_str_dup(struct aws_allocator *alloc, const char *str) {
+    void *val = aws_string_new_from_c_str(alloc, str);
+    if (!val) {
+        abort();
+    }
+
+    return val;
+}
+
+int enc_context_clone_test() {
+    struct aws_allocator * alloc = aws_default_allocator();
+    struct aws_hash_table context_src, context_dst;
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, &context_src));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, &context_dst));
+
+    AWS_STATIC_STRING_FROM_LITERAL(static_val, "static value");
+    AWS_STATIC_STRING_FROM_LITERAL(static_key, "static key");
+
+    TEST_ASSERT_SUCCESS(
+        aws_hash_table_put(&context_src, static_key, checked_aws_str_dup(alloc, "value for static key"), NULL)
+    );
+    TEST_ASSERT_SUCCESS(
+        aws_hash_table_put(&context_src, checked_aws_str_dup(alloc, "key for static value"), (void *)static_val, NULL)
+    );
+    TEST_ASSERT_SUCCESS(
+        aws_hash_table_put(&context_src, checked_aws_str_dup(alloc, "already present key"), checked_aws_str_dup(alloc, "already matching value"), NULL)
+    );
+    struct aws_string *already_present_key, *already_matching_value;
+    TEST_ASSERT_SUCCESS(
+        aws_hash_table_put(&context_dst, already_present_key = checked_aws_str_dup(alloc, "already present key"), already_matching_value = checked_aws_str_dup(alloc, "already matching value"), NULL)
+    );
+    TEST_ASSERT_SUCCESS(
+        aws_hash_table_put(&context_src, checked_aws_str_dup(alloc, "value differs"), checked_aws_str_dup(alloc, "value1"), NULL)
+    );
+    struct aws_string *value_differs_key;
+    TEST_ASSERT_SUCCESS(
+        aws_hash_table_put(&context_dst, value_differs_key = checked_aws_str_dup(alloc, "value differs"), checked_aws_str_dup(alloc, "value2"), NULL)
+    );
+    TEST_ASSERT_SUCCESS(
+        aws_hash_table_put(&context_dst, checked_aws_str_dup(alloc, "excess key"), checked_aws_str_dup(alloc, "excess value"), NULL)
+    );
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_clone(alloc, &context_dst, &context_src));
+    TEST_ASSERT(aws_hash_table_eq(&context_src, &context_dst, aws_string_eq));
+
+    /* Verify that things were/weren't allocated as appropriate */
+    struct aws_hash_element *src_element, *dst_element;
+#define LOOKUP(key) do {\
+    AWS_STATIC_STRING_FROM_LITERAL(lookup_key, key); \
+    TEST_ASSERT_SUCCESS(aws_hash_table_find(&context_src, lookup_key, &src_element)); \
+    TEST_ASSERT_ADDR_NOT_NULL(src_element); \
+    TEST_ASSERT_SUCCESS(aws_hash_table_find(&context_dst, lookup_key, &dst_element)); \
+    TEST_ASSERT_ADDR_NOT_NULL(dst_element); \
+} while (0)
+    LOOKUP("static key");
+    TEST_ASSERT_ADDR_EQ(src_element->key, dst_element->key);
+    TEST_ASSERT_ADDR_NE(src_element->value, dst_element->value);
+
+    LOOKUP("key for static value");
+    TEST_ASSERT_ADDR_NE(src_element->key, dst_element->key);
+    TEST_ASSERT_ADDR_EQ(src_element->value, dst_element->value);
+
+    LOOKUP("already present key");
+    TEST_ASSERT_ADDR_NE(src_element->key, dst_element->key);
+    TEST_ASSERT_ADDR_NE(src_element->value, dst_element->value);
+    TEST_ASSERT_ADDR_EQ(already_present_key, dst_element->key);
+    TEST_ASSERT_ADDR_EQ(already_matching_value, dst_element->value);
+
+    LOOKUP("value differs");
+    TEST_ASSERT_ADDR_NE(src_element->key, dst_element->key);
+    TEST_ASSERT_ADDR_NE(src_element->value, dst_element->value);
+    TEST_ASSERT_ADDR_EQ(value_differs_key, dst_element->key);
+
+    aws_hash_table_clean_up(&context_dst);
+    aws_hash_table_clean_up(&context_src);
+
+    return 0;
+}
+
 struct test_case enc_context_test_cases[] = {
     { "enc_context", "get_sorted_elems_array_test", get_sorted_elems_array_test },
     { "enc_context", "serialize_empty_enc_context", serialize_empty_enc_context },
@@ -289,5 +369,6 @@ struct test_case enc_context_test_cases[] = {
     { "enc_context", "serialize_error_when_serialized_len_too_long", serialize_error_when_serialized_len_too_long },
     { "enc_context", "serialize_valid_enc_context_max_length", serialize_valid_enc_context_max_length },
     { "enc_context", "serialize_error_when_too_many_elements", serialize_error_when_too_many_elements },
+    { "enc_context", "clone_test", enc_context_clone_test },
     { NULL }
 };
