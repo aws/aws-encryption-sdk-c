@@ -73,7 +73,7 @@ if (BUILD_AWS_ENC_SDK_CPP)
             $<INSTALL_INTERFACE:include>
             )
     set_target_properties(aws-encryption-sdk-cpp PROPERTIES LINKER_LANGUAGE CXX)
-    target_link_libraries(aws-encryption-sdk-cpp aws-c-common aws-cpp-sdk-kms aws-cpp-sdk-core aws-encryption-sdk)
+    target_link_libraries(aws-encryption-sdk-cpp AWS::aws-c-common aws-cpp-sdk-kms aws-cpp-sdk-core aws-encryption-sdk)
     install(
             TARGETS aws-encryption-sdk-cpp EXPORT aws-encryption-sdk-cpp
             ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
