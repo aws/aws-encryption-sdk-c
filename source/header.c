@@ -275,10 +275,11 @@ int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr) {
     bytes += aad_len;
 
     for (idx = 0 ; idx < edk_count ; ++idx) {
-        void *vp_edk;
+        void *vp_edk = NULL;
         struct aws_cryptosdk_edk *edk;
 
         aws_array_list_get_at_ptr(&hdr->edk_list, &vp_edk, idx);
+        assert(vp_edk);
 
         edk = vp_edk;
         // 2 bytes for each field's length header * 3 fields
@@ -314,9 +315,10 @@ int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_
     if (!aws_byte_cursor_write_be16(&output, (uint16_t)edk_count)) goto WRITE_ERR;
 
     for (size_t idx = 0 ; idx < edk_count ; ++idx) {
-        void *vp_edk;
+        void *vp_edk = NULL;
 
         aws_array_list_get_at_ptr(&hdr->edk_list, &vp_edk, idx);
+        assert(vp_edk);
 
         const struct aws_cryptosdk_edk *edk = vp_edk;
 
