@@ -68,9 +68,22 @@ struct aws_cryptosdk_signctx;
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_get_privkey(
-    struct aws_cryptosdk_signctx *ctx,
+    const struct aws_cryptosdk_signctx *ctx,
     struct aws_allocator *alloc,
     struct aws_string **priv_key_buf
+);
+
+/**
+ * Obtains the public key from a signing context, which may be in either sign or verify
+ * mode, and serializes it to a byte buffer.
+ *
+ * This method is intended to be used with caching mechanisms to clone a verification context.
+ */
+AWS_CRYPTOSDK_API
+int aws_cryptosdk_sig_get_pubkey(
+    const struct aws_cryptosdk_signctx *ctx,
+    struct aws_allocator *alloc,
+    struct aws_string **pub_key_buf
 );
 
 /**
