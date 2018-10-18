@@ -628,6 +628,7 @@ static uint64_t get_creation_time(
     const struct local_cache_entry *entry = (const struct local_cache_entry *)generic_entry;
 
     assert(&entry->owner->base == cache);
+    (void)cache;
 
     return entry->creation_time;
 }
@@ -640,6 +641,7 @@ static void set_expiration_hint(
     struct local_cache_entry *entry = (struct local_cache_entry *)generic_entry;
     struct aws_cryptosdk_local_cache *cache = entry->owner;
     assert(&cache->base == generic_cache);
+    (void)generic_cache;
 
     /*
      * Fast path: If we already have the right expiration hint or are invalidated,
