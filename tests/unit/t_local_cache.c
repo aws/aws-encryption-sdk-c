@@ -150,7 +150,7 @@ static int single_put() {
     stats_2.bytes_encrypted = 90000;
     stats_2.messages_encrypted = 80000;
     aws_cryptosdk_mat_cache_get_entry_for_encrypt(
-        alloc, cache, &entry,
+        cache, alloc, &entry,
         &enc_mat_2, &enc_context_2,
         &cache_id, &stats_2
     );
@@ -168,7 +168,7 @@ static int single_put() {
     aws_cryptosdk_encryption_materials_destroy(enc_mat_2);
 
     aws_cryptosdk_mat_cache_get_entry_for_encrypt(
-        alloc, cache, &entry,
+        cache, alloc, &entry,
         &enc_mat_2, &enc_context_2,
         &cache_id, &stats_2
     );
@@ -224,7 +224,7 @@ static int entry_refcount() {
     TEST_ASSERT_ADDR_NOT_NULL(entry_1);
 
     aws_cryptosdk_mat_cache_get_entry_for_encrypt(
-        alloc, cache, &entry_2,
+        cache, alloc, &entry_2,
         &enc_mat_2, &enc_context_2,
         &cache_id, &stats_2
     );
@@ -298,7 +298,7 @@ static int check_enc_entry(struct aws_cryptosdk_mat_cache *cache, int index, boo
     if (setup_enc_params(index, &enc_mat, &enc_context, &cache_id)) return 1;
     TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(aws_default_allocator(), &cached_context));
 
-    aws_cryptosdk_mat_cache_get_entry_for_encrypt(aws_default_allocator(), cache, &entry, &cached_materials, &cached_context, &cache_id, &stats);
+    aws_cryptosdk_mat_cache_get_entry_for_encrypt(cache, aws_default_allocator(), &entry, &cached_materials, &cached_context, &cache_id, &stats);
 
     if (!expected_present) {
         TEST_ASSERT_ADDR_NULL(cached_materials);
