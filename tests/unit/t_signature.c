@@ -426,6 +426,30 @@ static int t_trailing_garbage() {
     return 0;
 }
 
+static int t_get_pubkey() {
+    struct aws_string *pub_key, *pub_key_2;
+    struct aws_cryptosdk_signctx *ctx;
+    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_start_keygen(&ctx, aws_default_allocator(), &pub_key, props));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_get_pubkey(ctx, aws_default_allocator(), &pub_key_2));
+
+    TEST_ASSERT(aws_string_compare(pub_key, pub_key_2) == 0);
+    aws_string_destroy(pub_key_2);
+    aws_cryptosdk_sig_abort(ctx);
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_start(&ctx, aws_default_allocator(), pub_key, props));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_get_pubkey(ctx, aws_default_allocator(), &pub_key_2));
+
+    TEST_ASSERT(aws_string_compare(pub_key, pub_key_2) == 0);
+    aws_string_destroy(pub_key);
+    aws_string_destroy(pub_key_2);
+    aws_cryptosdk_sig_abort(ctx);
+
+    return 0;
+}
+
+
 struct test_case signature_test_cases[] = {
     { "signature", "t_basic_signature_sign_verify", t_basic_signature_sign_verify },
     { "signature", "t_signature_length", t_signature_length },
@@ -438,5 +462,6 @@ struct test_case signature_test_cases[] = {
     { "signature", "t_empty_signature", t_empty_signature },
     { "signature", "t_test_vectors", t_test_vectors },
     { "signature", "t_trailing_garbage", t_trailing_garbage },
+    { "signature", "t_get_pubkey", t_get_pubkey },
     { NULL }
 };

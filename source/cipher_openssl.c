@@ -292,8 +292,16 @@ err:
     return AWS_OP_ERR;
 }
 
+int aws_cryptosdk_sig_get_pubkey(
+    const struct aws_cryptosdk_signctx *ctx,
+    struct aws_allocator *alloc,
+    struct aws_string **pub_key_buf
+) {
+    return serialize_pubkey(alloc, ctx->keypair, pub_key_buf);
+}
+
 int aws_cryptosdk_sig_get_privkey(
-    struct aws_cryptosdk_signctx *ctx,
+    const struct aws_cryptosdk_signctx *ctx,
     struct aws_allocator *alloc,
     struct aws_string **priv_key
 ) {
