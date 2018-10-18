@@ -43,6 +43,38 @@ struct content_key {
     uint8_t keybuf[MAX_DATA_KEY_SIZE];
 };
 
+struct aws_cryptosdk_md_context;
+
+#define AWS_CRYPTOSDK_MD_MAX_SIZE (512 / 8)
+
+enum aws_cryptosdk_md_alg {
+    AWS_CRYPTOSDK_MD_SHA512
+};
+
+int aws_cryptosdk_md_init(
+    struct aws_allocator *alloc,
+    struct aws_cryptosdk_md_context **md_context,
+    enum aws_cryptosdk_md_alg md_alg
+);
+
+size_t aws_cryptosdk_md_size(enum aws_cryptosdk_md_alg alg);
+
+int aws_cryptosdk_md_update(
+    struct aws_cryptosdk_md_context *md_context,
+    const void *buf,
+    size_t length
+);
+
+int aws_cryptosdk_md_finish(
+    struct aws_cryptosdk_md_context *md_context,
+    void *output_buf,
+    size_t *length
+);
+
+void aws_cryptosdk_md_abort(
+    struct aws_cryptosdk_md_context *md_context
+);
+
 /**
  * Derive the decryption key from the data key.
  * Depending on the algorithm ID, this either does a HKDF,

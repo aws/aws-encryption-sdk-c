@@ -79,6 +79,97 @@ struct aws_cryptosdk_signctx {
     bool is_sign;
 };
 
+struct aws_cryptosdk_md_context {
+    struct aws_allocator *alloc;
+    EVP_MD_CTX *evp_md_ctx;
+};
+
+int aws_cryptosdk_md_init(
+    struct aws_allocator *alloc,
+    struct aws_cryptosdk_md_context **md_context,
+    enum aws_cryptosdk_md_alg md_alg
+) {
+    const EVP_MD *evp_md_alg;
+    *md_context = NULL;
+
+    switch (md_alg) {
+        case AWS_CRYPTOSDK_MD_SHA512:
+            evp_md_alg = EVP_sha512();
+            break;
+        default:
+            return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+    }
+
+    EVP_MD_CTX *evp_md_ctx = EVP_MD_CTX_new();
+    if (!evp_md_ctx) {
+        aws_raise_error(AWS_ERROR_OOM);
+        goto err;
+    }
+
+    if (1 != EVP_DigestInit_ex(evp_md_ctx, evp_md_alg, NULL)) {
+        aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+        goto err;
+    }
+
+    *md_context = aws_mem_acquire(alloc, sizeof(**md_context));
+    if (!*md_context) {
+        goto err;
+    }
+
+    (*md_context)->alloc = alloc;
+    (*md_context)->evp_md_ctx = evp_md_ctx;
+
+    return AWS_OP_SUCCESS;
+err:
+    EVP_MD_CTX_destroy(evp_md_ctx);
+    return AWS_OP_ERR;
+}
+
+size_t aws_cryptosdk_md_size(enum aws_cryptosdk_md_alg md_alg) {
+    switch (md_alg) {
+        case AWS_CRYPTOSDK_MD_SHA512:
+            return 512 / 8;
+        default:
+            return 0;
+    }
+}
+
+int aws_cryptosdk_md_update(
+    struct aws_cryptosdk_md_context *md_context,
+    const void *buf,
+    size_t length
+) {
+    if (1 != EVP_DigestUpdate(md_context->evp_md_ctx, buf, length)) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+    }
+
+    return AWS_OP_SUCCESS;
+}
+
+int aws_cryptosdk_md_finish(struct aws_cryptosdk_md_context *md_context, void *output_buf, size_t *length) {
+    int rv = AWS_OP_SUCCESS;
+    unsigned int size = 0;
+
+    if (!output_buf) {
+        abort();
+    }
+
+    if (1 != EVP_DigestFinal_ex(md_context->evp_md_ctx, output_buf, &size)) {
+        rv = aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+        size = 0;
+    }
+
+    *length = size;
+
+    aws_cryptosdk_md_abort(md_context);
+
+    return rv;
+}
+
+void aws_cryptosdk_md_abort(struct aws_cryptosdk_md_context *md_context) {
+    EVP_MD_CTX_destroy(md_context->evp_md_ctx);
+    aws_mem_release(md_context->alloc, md_context);
+}
 
 static EC_GROUP *group_for_props(const struct aws_cryptosdk_alg_properties *props) {
     // TODO: Cache? Are EC_GROUPs threadsafe?
@@ -201,8 +292,16 @@ err:
     return AWS_OP_ERR;
 }
 
+int aws_cryptosdk_sig_get_pubkey(
+    const struct aws_cryptosdk_signctx *ctx,
+    struct aws_allocator *alloc,
+    struct aws_string **pub_key_buf
+) {
+    return serialize_pubkey(alloc, ctx->keypair, pub_key_buf);
+}
+
 int aws_cryptosdk_sig_get_privkey(
-    struct aws_cryptosdk_signctx *ctx,
+    const struct aws_cryptosdk_signctx *ctx,
     struct aws_allocator *alloc,
     struct aws_string **priv_key
 ) {
