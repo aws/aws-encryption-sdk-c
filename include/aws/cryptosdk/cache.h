@@ -80,9 +80,9 @@ struct aws_cryptosdk_mat_cache_vt {
      *
      * Parameters:
      *
+     * @param cache - The cache to perform the lookup against
      * @param request_allocator - The allocator to use to allocate the output decryption materials
      *  and copied encryption context keys and values
-     * @param cache - The cache to perform the lookup against
      * @param entry - Out-parameter that receives a handle to the cache entry, if found
      * @param materials - Out-parameter that receives the encryption materials, if found
      * @param enc_context - Out-parameter containing a (pre-initialized) encryption context
@@ -94,8 +94,8 @@ struct aws_cryptosdk_mat_cache_vt {
      */
 
     int (*get_entry_for_encrypt)(
-        struct aws_allocator *request_allocator,
         struct aws_cryptosdk_mat_cache *cache,
+        struct aws_allocator *request_allocator,
         struct aws_cryptosdk_mat_cache_entry **entry,
         struct aws_cryptosdk_encryption_materials **materials,
         struct aws_hash_table *enc_context,
@@ -137,15 +137,15 @@ struct aws_cryptosdk_mat_cache_vt {
      *
      * Parameters:
      *
-     * @param request_allocator - The allocator to use to allocate the output decryption materials
      * @param cache - The cache to perform the lookup against
+     * @param request_allocator - The allocator to use to allocate the output decryption materials
      * @param entry - Out-parameter that receives the cache entry, if found
      * @param materials - Out-parameter that receives the decryption materials, if found.
      * @param cache_id - The cache identifier to look up.
      */
     void (*get_entry_for_decrypt)(
-        struct aws_allocator *request_allocator,
         struct aws_cryptosdk_mat_cache *cache,
+        struct aws_allocator *request_allocator,
         struct aws_cryptosdk_mat_cache_entry **entry,
         struct aws_cryptosdk_decryption_materials **materials,
         const struct aws_byte_buf *cache_id
@@ -229,8 +229,8 @@ struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_local_new(
 
 AWS_CRYPTOSDK_STATIC_INLINE
 int aws_cryptosdk_mat_cache_get_entry_for_encrypt(
-    struct aws_allocator *request_allocator,
     struct aws_cryptosdk_mat_cache *cache,
+    struct aws_allocator *request_allocator,
     struct aws_cryptosdk_mat_cache_entry **entry,
     struct aws_cryptosdk_encryption_materials **materials,
     struct aws_hash_table *enc_context,
@@ -238,8 +238,8 @@ int aws_cryptosdk_mat_cache_get_entry_for_encrypt(
     struct aws_cryptosdk_cache_usage_stats *usage_stats
 ) {
     int (*get_entry_for_encrypt)(
-        struct aws_allocator *request_allocator,
         struct aws_cryptosdk_mat_cache *cache,
+        struct aws_allocator *request_allocator,
         struct aws_cryptosdk_mat_cache_entry **entry,
         struct aws_cryptosdk_encryption_materials **materials,
         struct aws_hash_table *enc_context,
@@ -249,7 +249,7 @@ int aws_cryptosdk_mat_cache_get_entry_for_encrypt(
 
     *entry = NULL;
     if (get_entry_for_encrypt) {
-        return get_entry_for_encrypt(request_allocator, cache, entry, materials, enc_context, cache_id, usage_stats);
+        return get_entry_for_encrypt(cache, request_allocator, entry, materials, enc_context, cache_id, usage_stats);
     }
 
     /* Emulate a cache miss by default */
@@ -282,15 +282,15 @@ void aws_cryptosdk_mat_cache_put_entry_for_encrypt(
 
 AWS_CRYPTOSDK_STATIC_INLINE
 void aws_cryptosdk_mat_cache_get_entry_for_decrypt(
-    struct aws_allocator *request_allocator,
     struct aws_cryptosdk_mat_cache *cache,
+    struct aws_allocator *request_allocator,
     struct aws_cryptosdk_mat_cache_entry **entry,
     struct aws_cryptosdk_decryption_materials **materials,
     const struct aws_byte_buf *cache_id
 ) {
     void (*get_entry_for_decrypt)(
-        struct aws_allocator *request_allocator,
         struct aws_cryptosdk_mat_cache *cache,
+        struct aws_allocator *request_allocator,
         struct aws_cryptosdk_mat_cache_entry **entry,
         struct aws_cryptosdk_decryption_materials **materials,
         const struct aws_byte_buf *cache_id
@@ -298,7 +298,7 @@ void aws_cryptosdk_mat_cache_get_entry_for_decrypt(
 
     *entry = NULL;
     if (get_entry_for_decrypt) {
-        get_entry_for_decrypt(request_allocator, cache, entry, materials, cache_id);
+        get_entry_for_decrypt(cache, request_allocator, entry, materials, cache_id);
     }
 }
 

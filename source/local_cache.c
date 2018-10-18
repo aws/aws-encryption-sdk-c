@@ -461,8 +461,8 @@ static size_t entry_count(const struct aws_cryptosdk_mat_cache *generic_cache) {
 
 
 static int get_entry_for_encrypt(
-    struct aws_allocator *request_allocator,
     struct aws_cryptosdk_mat_cache *generic_cache,
+    struct aws_allocator *request_allocator,
     struct aws_cryptosdk_mat_cache_entry **entry,
     struct aws_cryptosdk_encryption_materials **materials_out,
     struct aws_hash_table *enc_context,
@@ -596,8 +596,8 @@ out:
 }
 
 static void get_entry_for_decrypt(
-    struct aws_allocator *request_allocator,
     struct aws_cryptosdk_mat_cache *cache,
+    struct aws_allocator *request_allocator,
     struct aws_cryptosdk_mat_cache_entry **entry,
     struct aws_cryptosdk_decryption_materials **materials,
     const struct aws_byte_buf *cache_id
