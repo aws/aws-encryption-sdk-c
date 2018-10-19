@@ -216,6 +216,11 @@ struct aws_cryptosdk_mat_cache_vt {
         struct aws_cryptosdk_mat_cache_entry *entry,
         uint64_t exp_time
     );
+
+    /**
+     * Attempts to clear all entries in the cache.
+     */
+    void (*clear)(struct aws_cryptosdk_mat_cache *cache);
 };
 
 /**
@@ -382,6 +387,19 @@ void aws_cryptosdk_mat_cache_entry_ttl_hint(
 
     if (entry_ttl_hint) {
         entry_ttl_hint(cache, entry, exp_time);
+    }
+}
+
+/**
+ * Attempts to clear all entries in the cache
+ */
+AWS_CRYPTOSDK_STATIC_INLINE
+void aws_cryptosdk_mat_cache_clear(struct aws_cryptosdk_mat_cache *cache) {
+    void (*clear)(struct aws_cryptosdk_mat_cache *cache)
+        = AWS_CRYPTOSDK_INTERNAL_VT_GET(cache->vt, clear, NULL);
+
+    if (clear) {
+        clear(cache);
     }
 }
 
