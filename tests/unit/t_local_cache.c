@@ -22,6 +22,25 @@
 
 #include <stdarg.h>
 
+static uint64_t now = 10000;
+
+/* Exposed for unit tests only */
+void aws_cryptosdk_local_cache_set_clock(
+    struct aws_cryptosdk_mat_cache *generic_cache,
+    int (*clock_get_ticks)(uint64_t *timestamp)
+);
+
+static int test_clock(uint64_t *timestamp) {
+    *timestamp = now;
+    return AWS_OP_SUCCESS;
+}
+
+static int test_clock_broken(uint64_t *timestamp) {
+    (void)timestamp;
+
+    return aws_raise_error(AWS_ERROR_UNKNOWN);
+}
+
 static void byte_buf_printf(struct aws_byte_buf *buf, struct aws_allocator *alloc, const char *fmt, ...) {
     va_list ap;
 
@@ -268,7 +287,7 @@ static int setup_enc_params(int index, struct aws_cryptosdk_encryption_materials
     return 0;
 }
 
-static void insert_enc_entry(struct aws_cryptosdk_mat_cache *cache, int index) {
+static void insert_enc_entry(struct aws_cryptosdk_mat_cache *cache, int index, struct aws_cryptosdk_mat_cache_entry **p_entry) {
     struct aws_cryptosdk_encryption_materials *enc_mat;
     struct aws_hash_table enc_context;
     struct aws_byte_buf cache_id;
@@ -281,13 +300,24 @@ static void insert_enc_entry(struct aws_cryptosdk_mat_cache *cache, int index) {
     aws_cryptosdk_mat_cache_put_entry_for_encrypt(cache, &entry, &cache_id, enc_mat, &enc_context, stats);
     if (!entry) abort();
 
-    aws_cryptosdk_mat_cache_entry_release(cache, entry, false);
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
     aws_byte_buf_clean_up(&cache_id);
     aws_cryptosdk_enc_context_clean_up(&enc_context);
+
+    if (p_entry) {
+        *p_entry = entry;
+    } else {
+        aws_cryptosdk_mat_cache_entry_release(cache, entry, false);
+    }
 }
 
-static int check_enc_entry(struct aws_cryptosdk_mat_cache *cache, int index, bool expected_present, bool invalidate) {
+static int check_enc_entry(
+    struct aws_cryptosdk_mat_cache *cache,
+    int index,
+    bool expected_present,
+    bool invalidate,
+    struct aws_cryptosdk_mat_cache_entry **p_entry
+) {
     struct aws_cryptosdk_encryption_materials *enc_mat, *cached_materials;
     struct aws_hash_table enc_context, cached_context;
     struct aws_byte_buf cache_id;
@@ -301,9 +331,15 @@ static int check_enc_entry(struct aws_cryptosdk_mat_cache *cache, int index, boo
     aws_cryptosdk_mat_cache_get_entry_for_encrypt(cache, aws_default_allocator(), &entry, &cached_materials, &cached_context, &cache_id, &stats);
 
     if (!expected_present) {
+        if (cached_materials) {
+            fprintf(stderr, "\nUnexpected entry for material #%d\n", index);
+        }
         TEST_ASSERT_ADDR_NULL(cached_materials);
         TEST_ASSERT_ADDR_NULL(entry);
     } else {
+        if (!cached_materials) {
+            fprintf(stderr, "\nMissing entry for material #%d\n", index);
+        }
         TEST_ASSERT_ADDR_NOT_NULL(cached_materials);
         TEST_ASSERT_ADDR_NOT_NULL(entry);
 
@@ -328,35 +364,35 @@ int test_lru() {
     struct aws_cryptosdk_mat_cache *cache = aws_cryptosdk_mat_cache_local_new(alloc, 16);
 
     for (int i = 0; i <= 16; i++) {
-        insert_enc_entry(cache, i);
+        insert_enc_entry(cache, i, NULL);
     }
 
     /* Entry 0 should be LRU-evicted */
-    if (check_enc_entry(cache, 0, false, false)) {
+    if (check_enc_entry(cache, 0, false, false, NULL)) {
         return 1;
     }
 
     for (int i = 1; i <= 16; i++) {
         /* All other entries should be present */
-        if (check_enc_entry(cache, i, true, false)) return 1;
+        if (check_enc_entry(cache, i, true, false, NULL)) return 1;
     }
 
     /* Make entry 5 the least recently used */
     for (int i = 1; i <= 16; i++) {
-        if (i != 5 && check_enc_entry(cache, i, true, false)) return 1;
+        if (i != 5 && check_enc_entry(cache, i, true, false, NULL)) return 1;
     }
 
-    insert_enc_entry(cache, 17);
+    insert_enc_entry(cache, 17, NULL);
 
     /* Verify that entry 5 is gone now. While we're at it, drop entry 17 */
     for (int i = 1; i <= 17; i++) {
-        if (check_enc_entry(cache, i, i != 5, i == 17)) return 1;
+        if (check_enc_entry(cache, i, i != 5, i == 17, NULL)) return 1;
     }
 
     /* Now we'll insert 5 again; we shouldn't drop anything, after freeing space by dropping 17 */
-    insert_enc_entry(cache, 5);
+    insert_enc_entry(cache, 5, NULL);
     for (int i = 1; i <= 16; i++) {
-        if (check_enc_entry(cache, i, true, false)) return 1;
+        if (check_enc_entry(cache, i, true, false, NULL)) return 1;
     }
 
     aws_cryptosdk_mat_cache_release(cache);
@@ -365,11 +401,89 @@ int test_lru() {
 }
 
 
+int test_ttl() {
+    struct aws_allocator *alloc = aws_default_allocator();
+    struct aws_cryptosdk_mat_cache *cache = aws_cryptosdk_mat_cache_local_new(alloc, 16);
+
+    now = 10000;
+    aws_cryptosdk_local_cache_set_clock(cache, test_clock);
+
+    for (int i = 0; i < 16; i++) {
+        struct aws_cryptosdk_mat_cache_entry *entry;
+        insert_enc_entry(cache, i, &entry);
+
+        if (i == 15) {
+            /* Entry 15 will be MRU, but we'll have it expire soon */
+            aws_cryptosdk_mat_cache_entry_ttl_hint(cache, entry, 10010);
+        } else if (i == 14) {
+            /* Entry 14 will expire slightly later */
+            aws_cryptosdk_mat_cache_entry_ttl_hint(cache, entry, 10030);
+            aws_cryptosdk_mat_cache_entry_ttl_hint(cache, entry, 10011);
+        } else if (i == 13) {
+            /* Also test the case where the smaller ttl comes first */
+            aws_cryptosdk_mat_cache_entry_ttl_hint(cache, entry, 10012);
+            aws_cryptosdk_mat_cache_entry_ttl_hint(cache, entry, 10040);
+        } else if (i == 12) {
+            /* Entry 12 will be invalidated before expiration */
+            aws_cryptosdk_mat_cache_entry_ttl_hint(cache, entry, 10013);
+        } else {
+            /*
+             * All other entries will be in the pqueue, but not expire.
+             * This tests handling during cache teardown.
+             */
+            aws_cryptosdk_mat_cache_entry_ttl_hint(cache, entry, 20000);
+        }
+
+        aws_cryptosdk_mat_cache_entry_release(cache, entry, false);
+    }
+
+    now = 10010;
+
+    /* Entry 15 should expire */
+    insert_enc_entry(cache, 16, NULL);
+
+    if (check_enc_entry(cache, 15, false, false, NULL)) return 1;
+
+    for (int i = 0; i < 15; i++) {
+        if (check_enc_entry(cache, i, true, false, NULL)) return 1;
+    }
+
+    now = 10011;
+    /* Entry 14 should expire */
+    if (check_enc_entry(cache, 14, false, false, NULL)) return 1;
+    for (int i = 0; i < 14; i++) {
+        if (check_enc_entry(cache, i, true, false, NULL)) return 1;
+    }
+
+    now = 10012;
+    if (check_enc_entry(cache, 13, false, false, NULL)) return 1;
+    for (int i = 0; i < 13; i++) {
+        if (check_enc_entry(cache, i, true, false, NULL)) return 1;
+    }
+
+    /* Invalidate 12 before expiration. */
+    if (check_enc_entry(cache, 12, true, true, NULL)) return 1;
+    now = 10013;
+
+    /*
+     * Now insert more entries. We're testing to make sure the pqueue entry for 12 is
+     * gone after normal invalidation.
+     */
+    for (int i = 20; i < 25; i++) {
+        insert_enc_entry(cache, i, NULL);
+    }
+
+    aws_cryptosdk_mat_cache_release(cache);
+
+    return 0;
+}
+
 #define TEST_CASE(name) { "local_cache", #name, name }
 struct test_case local_cache_test_cases[] = {
     TEST_CASE(create_destroy),
     TEST_CASE(single_put),
     TEST_CASE(entry_refcount),
     TEST_CASE(test_lru),
+    TEST_CASE(test_ttl),
     { NULL }
 };
