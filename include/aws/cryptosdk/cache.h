@@ -213,7 +213,7 @@ struct aws_cryptosdk_mat_cache_vt {
      */
     void (*entry_ttl_hint)(
         struct aws_cryptosdk_mat_cache *cache,
-        struct aws_cryptosdk_mat_cache_entry *entry_count,
+        struct aws_cryptosdk_mat_cache_entry *entry,
         uint64_t exp_time
     );
 };
@@ -371,17 +371,17 @@ uint64_t aws_cryptosdk_mat_cache_entry_ctime(
 AWS_CRYPTOSDK_STATIC_INLINE
 void aws_cryptosdk_mat_cache_entry_ttl_hint(
     struct aws_cryptosdk_mat_cache *cache,
-    struct aws_cryptosdk_mat_cache_entry *entry_count,
+    struct aws_cryptosdk_mat_cache_entry *entry,
     uint64_t exp_time
 ) {
     void (*entry_ttl_hint)(
         struct aws_cryptosdk_mat_cache *cache,
-        struct aws_cryptosdk_mat_cache_entry *entry_count,
+        struct aws_cryptosdk_mat_cache_entry *entry,
         uint64_t exp_time
     ) = AWS_CRYPTOSDK_INTERNAL_VT_GET(cache->vt, entry_ttl_hint, NULL);
 
     if (entry_ttl_hint) {
-        entry_ttl_hint(cache, entry_count, exp_time);
+        entry_ttl_hint(cache, entry, exp_time);
     }
 }
 

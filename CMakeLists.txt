@@ -148,6 +148,7 @@ target_include_directories(aws-encryption-sdk-test PUBLIC
 
 target_link_libraries(aws-encryption-sdk-test PRIVATE ${PLATFORM_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
 target_link_libraries(aws-encryption-sdk-test PUBLIC AWS::aws-c-common)
+target_compile_definitions(aws-encryption-sdk-test PRIVATE AWS_CRYPTOSDK_TEST_STATIC=)
 
 
 

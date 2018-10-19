@@ -117,6 +117,11 @@ struct aws_cryptosdk_local_cache {
      * lru_head->prev is the LEAST recently used.
      */
     struct aws_linked_list_node lru_head;
+
+    /*
+     * Time source - overridable in tests
+     */
+    int (*clock_get_ticks)(uint64_t *timestamp);
 };
 
 /********** General helpers **********/
@@ -147,8 +152,11 @@ static bool eq_cache_id(const void *vp_a, const void *vp_b) {
 }
 
 static inline int ttl_heap_cmp(const void *vpa, const void *vpb) {
-    const struct local_cache_entry *a = vpa;
-    const struct local_cache_entry *b = vpb;
+    const struct local_cache_entry *const *pa = vpa;
+    const struct local_cache_entry *const *pb = vpb;
+
+    const struct local_cache_entry *a = *pa;
+    const struct local_cache_entry *b = *pb;
 
     if (a == b) {
         return 0;
@@ -197,7 +205,8 @@ static void locked_invalidate_entry(struct aws_cryptosdk_local_cache *cache, str
     }
 
     if (entry->expiry_time != NO_EXPIRY) {
-        aws_priority_queue_remove(&cache->ttl_heap, entry, &entry->heap_node);
+        void *ignored;
+        aws_priority_queue_remove(&cache->ttl_heap, &ignored, &entry->heap_node);
     }
 
     if (!skip_hash) {
@@ -281,14 +290,14 @@ static int locked_process_ttls(struct aws_cryptosdk_local_cache *cache) {
     struct local_cache_entry *entry;
     uint64_t now;
 
-    if (aws_sys_clock_get_ticks(&now)) {
+    if (cache->clock_get_ticks(&now)) {
         return AWS_OP_ERR;
     }
 
     while (max_items_to_expire--
         && aws_priority_queue_size(&cache->ttl_heap)
         && !aws_priority_queue_top(&cache->ttl_heap, &vp_item)
-        && (entry = vp_item)->expiry_time <= now
+        && (entry = *(struct local_cache_entry **)vp_item)->expiry_time <= now
     ) {
         locked_invalidate_entry(cache, entry, false);
     }
@@ -353,7 +362,7 @@ static int locked_insert_entry(
 static struct local_cache_entry *new_entry(struct aws_cryptosdk_local_cache *cache, const struct aws_byte_buf *cache_id) {
     uint64_t now;
 
-    if (aws_sys_clock_get_ticks(&now)) {
+    if (cache->clock_get_ticks(&now)) {
         return NULL;
     }
 
@@ -377,6 +386,7 @@ static struct local_cache_entry *new_entry(struct aws_cryptosdk_local_cache *cac
     memcpy(entry->cache_id_arr, cache_id->buffer, id_length);
     entry->cache_id = aws_byte_buf_from_array(entry->cache_id_arr, id_length);
     entry->creation_time = now;
+    entry->expiry_time = NO_EXPIRY;
 
     entry->lru_node.next = entry->lru_node.prev = &entry->lru_node;
 
@@ -663,15 +673,17 @@ static void set_expiration_hint(
     }
 
     if (entry->expiry_time < NO_EXPIRY) {
+        void *ignored;
         /* Remove from the heap before we muck with the heap order */
-        int rv = aws_priority_queue_remove(&cache->ttl_heap, entry, &entry->heap_node);
+        int rv = aws_priority_queue_remove(&cache->ttl_heap, &ignored, &entry->heap_node);
         assert(!rv);
         /* Suppress unused rv warnings when NDEBUG is set */
         (void)rv;
     }
 
     entry->expiry_time = expiry_time;
-    if (aws_priority_queue_push_ref(&cache->ttl_heap, entry, &entry->heap_node)) {
+    void *vp_entry = entry;
+    if (aws_priority_queue_push_ref(&cache->ttl_heap, &vp_entry, &entry->heap_node)) {
         /* Heap insertion failed - should be impossible, but deal with it anyway */
         entry->expiry_time = NO_EXPIRY;
     }
@@ -788,10 +800,24 @@ static const struct aws_cryptosdk_mat_cache_vt local_cache_vt = {
     .entry_ttl_hint = set_expiration_hint
 };
 
+AWS_CRYPTOSDK_TEST_STATIC
+void aws_cryptosdk_local_cache_set_clock(
+    struct aws_cryptosdk_mat_cache *generic_cache,
+    int (*clock_get_ticks)(uint64_t *timestamp)
+) {
+    assert(generic_cache->vt == &local_cache_vt);
+    struct aws_cryptosdk_local_cache *cache = (struct aws_cryptosdk_local_cache *)generic_cache;
+
+    cache->clock_get_ticks = clock_get_ticks;
+}
+
 struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_local_new(
     struct aws_allocator *alloc,
     size_t capacity
 ) {
+    /* Suppress unused static method warnings */
+    (void)aws_cryptosdk_local_cache_set_clock;
+
     if (capacity < 2) {
         /* This miniumum capacity avoids some annoying edge conditions in the LRU removal logic */
         capacity = 2;
@@ -809,6 +835,7 @@ struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_local_new(
     cache->allocator = alloc;
     cache->lru_head.next = cache->lru_head.prev = &cache->lru_head;
     cache->capacity = capacity;
+    cache->clock_get_ticks = aws_sys_clock_get_ticks;
 
     if (aws_mutex_init(&cache->mutex)) {
         goto err_mutex;
