@@ -478,6 +478,61 @@ int test_ttl() {
     return 0;
 }
 
+int overwrite_enc_entry() {
+    struct aws_allocator *alloc = aws_default_allocator();
+    struct aws_cryptosdk_mat_cache *cache = aws_cryptosdk_mat_cache_local_new(alloc, 16);
+    struct aws_cryptosdk_mat_cache_entry *entry;
+
+    now = 10000;
+    aws_cryptosdk_local_cache_set_clock(cache, test_clock);
+
+    insert_enc_entry(cache, 1, &entry);
+    aws_cryptosdk_mat_cache_entry_ttl_hint(cache, entry, 10100);
+
+    insert_enc_entry(cache, 1, NULL);
+    aws_cryptosdk_mat_cache_entry_release(cache, entry, false);
+
+    check_enc_entry(cache, 1, true, false, NULL);
+
+    now = 10100;
+    /* The cache shouldn't expire the entry we overwrote */
+    insert_enc_entry(cache, 2, NULL);
+    insert_enc_entry(cache, 2, NULL);
+
+    aws_cryptosdk_mat_cache_release(cache);
+
+    return 0;
+}
+
+int clear_cache() {
+    struct aws_allocator *alloc = aws_default_allocator();
+    struct aws_cryptosdk_mat_cache *cache = aws_cryptosdk_mat_cache_local_new(alloc, 16);
+    struct aws_cryptosdk_mat_cache_entry *entry;
+
+    now = 10000;
+    aws_cryptosdk_local_cache_set_clock(cache, test_clock);
+
+    insert_enc_entry(cache, 1, &entry);
+    aws_cryptosdk_mat_cache_entry_ttl_hint(cache, entry, 10100);
+    aws_cryptosdk_mat_cache_entry_release(cache, entry, false);
+
+    insert_enc_entry(cache, 2, NULL);
+    insert_enc_entry(cache, 3, NULL);
+
+    aws_cryptosdk_mat_cache_clear(cache);
+    now = 10100;
+    /* Should not trigger TTL expiry */
+    insert_enc_entry(cache, 4, NULL);
+
+    check_enc_entry(cache, 1, false, false, NULL);
+    check_enc_entry(cache, 2, false, false, NULL);
+    check_enc_entry(cache, 3, false, false, NULL);
+
+    aws_cryptosdk_mat_cache_release(cache);
+
+    return 0;
+}
+
 #define TEST_CASE(name) { "local_cache", #name, name }
 struct test_case local_cache_test_cases[] = {
     TEST_CASE(create_destroy),
@@ -485,5 +540,7 @@ struct test_case local_cache_test_cases[] = {
     TEST_CASE(entry_refcount),
     TEST_CASE(test_lru),
     TEST_CASE(test_ttl),
+    TEST_CASE(overwrite_enc_entry),
+    TEST_CASE(clear_cache),
     { NULL }
 };

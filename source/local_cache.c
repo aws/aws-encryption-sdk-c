@@ -786,6 +786,34 @@ static void release_entry(
     }
 }
 
+static void clear(struct aws_cryptosdk_mat_cache *generic_cache) {
+    struct aws_cryptosdk_local_cache *cache = (struct aws_cryptosdk_local_cache *)generic_cache;
+
+    if (aws_mutex_lock(&cache->mutex)) {
+        return;
+    }
+
+    for (struct aws_hash_iter iter = aws_hash_iter_begin(&cache->entries);
+        !aws_hash_iter_done(&iter);
+        aws_hash_iter_next(&iter)
+    ) {
+        struct local_cache_entry *entry = iter.element.value;
+
+        /*
+         * Don't delete from the entries table from within invalidate,
+         * as this would interfere with our iterator. Instead delete via the
+         * iterator.
+         */
+        locked_invalidate_entry(cache, entry, true);
+
+        aws_hash_iter_delete(&iter, false);
+    }
+
+    if (aws_mutex_unlock(&cache->mutex)) {
+        abort();
+    }
+}
+
 static const struct aws_cryptosdk_mat_cache_vt local_cache_vt = {
     .vt_size = sizeof(local_cache_vt),
     .name = "Local materials cache",
@@ -797,7 +825,8 @@ static const struct aws_cryptosdk_mat_cache_vt local_cache_vt = {
     .entry_count = entry_count,
     .entry_release = release_entry,
     .entry_ctime = get_creation_time,
-    .entry_ttl_hint = set_expiration_hint
+    .entry_ttl_hint = set_expiration_hint,
+    .clear = clear
 };
 
 AWS_CRYPTOSDK_TEST_STATIC
