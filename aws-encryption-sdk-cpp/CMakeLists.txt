@@ -82,6 +82,10 @@ if (BUILD_AWS_ENC_SDK_CPP)
     )
     install(EXPORT aws-encryption-sdk-cpp DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/aws-encryption-sdk/cmake/")
 
+    if (VALGRIND_TEST_SUITE)
+        target_compile_definitions(aws-encryption-sdk-cpp PRIVATE VALGRIND_TESTS=1)
+    endif()
+
     include(CTest)
     enable_testing()
 

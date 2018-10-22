@@ -346,6 +346,12 @@ std::shared_ptr<KMS::KMSClient> KmsKeyring::DefaultRegionalClientSupplier::GetCl
     const Aws::String &region_name) const {
     Aws::Client::ClientConfiguration client_configuration;
     client_configuration.region = region_name;
+#ifdef VALGRIND_TESTS
+    // When running under valgrind, the default timeouts are too slow
+    client_configuration.requestTimeoutMs = 10000;
+    client_configuration.connectTimeoutMs = 10000;
+#endif
+
     return Aws::MakeShared<Aws::KMS::KMSClient>("AWS_CRYPTOSDK_REGIONAL_CLIENT_SUPPLIER", client_configuration);
 }
 
