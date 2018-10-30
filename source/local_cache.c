@@ -74,7 +74,7 @@ struct local_cache_entry {
      */
     struct aws_priority_queue_node heap_node;
 
-    /* For LRU purposes, we also include an intrusive doubly-linked-list */
+    /* For LRU purposes, we also include an intrusive circular doubly-linked-list */
     struct aws_linked_list_node lru_node;
 
     /*
@@ -113,7 +113,7 @@ struct aws_cryptosdk_local_cache {
     struct aws_priority_queue ttl_heap;
 
     /*
-     * the root of a _circular_ linked list. lru_head->next is the MOST recently used;
+     * the root of a _circular_ doubly linked list. lru_head->next is the MOST recently used;
      * lru_head->prev is the LEAST recently used.
      */
     struct aws_linked_list_node lru_head;
@@ -196,6 +196,10 @@ static void aws_cryptosdk_encryption_materials_clean_up(
  *
  * This is distinct from locked_clean_entry in that it also removes the references from the
  * hash table and LRU.
+ *
+ * If skip_hash is true, this function will not actually remove the entry from the hashtable;
+ * this is useful when the hashtable is being iterated, or otherwise when the entry will be
+ * cleared by some other means.
  */
 static void locked_invalidate_entry(struct aws_cryptosdk_local_cache *cache, struct local_cache_entry *entry, bool skip_hash) {
     assert(entry->owner == cache);
@@ -223,9 +227,9 @@ static void locked_invalidate_entry(struct aws_cryptosdk_local_cache *cache, str
 }
 
 /**
- * Called when an entry has been removed from the hashtable and priority queue, to clean up
- * various allocated datastructures that are not needed on an invalidated entry (and possibly
- * to free the entry itself).
+ * Called when an entry has (or will soon be) been removed from the hashtable and priority queue,
+ * to clean up various allocated datastructures that are not needed on an invalidated entry (and
+ * possibly to free the entry itself).
  *
  * This also moves the entry to the zombie list.
  */
@@ -238,7 +242,7 @@ static void locked_clean_entry(struct local_cache_entry *entry) {
         abort();
     }
 
-    memset(&entry->u, 0, sizeof(entry->u));
+    aws_secure_zero(&entry->u, sizeof(entry->u));
 
     aws_string_destroy_secure(entry->key_materials);
     aws_cryptosdk_enc_context_clean_up(&entry->enc_context);
@@ -475,9 +479,9 @@ static int get_entry_for_encrypt(
     struct aws_allocator *request_allocator,
     struct aws_cryptosdk_mat_cache_entry **entry,
     struct aws_cryptosdk_encryption_materials **materials_out,
+    struct aws_cryptosdk_cache_usage_stats *usage_stats,
     struct aws_hash_table *enc_context,
-    const struct aws_byte_buf *cache_id,
-    struct aws_cryptosdk_cache_usage_stats *usage_stats
+    const struct aws_byte_buf *cache_id
 ) {
     struct aws_cryptosdk_local_cache *cache = (struct aws_cryptosdk_local_cache *)generic_cache;
     struct aws_cryptosdk_encryption_materials *materials = NULL;
@@ -543,10 +547,10 @@ unlock:
 static void put_entry_for_encrypt(
     struct aws_cryptosdk_mat_cache *generic_cache,
     struct aws_cryptosdk_mat_cache_entry **ret_entry,
-    const struct aws_byte_buf *cache_id,
     const struct aws_cryptosdk_encryption_materials *materials,
+    struct aws_cryptosdk_cache_usage_stats initial_usage,
     const struct aws_hash_table *enc_context,
-    struct aws_cryptosdk_cache_usage_stats initial_usage
+    const struct aws_byte_buf *cache_id
 ) {
     struct aws_cryptosdk_local_cache *cache = (struct aws_cryptosdk_local_cache *)generic_cache;
     *ret_entry = NULL;
@@ -622,8 +626,8 @@ static void get_entry_for_decrypt(
 static void put_entry_for_decrypt(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_cryptosdk_mat_cache_entry **entry,
-    const struct aws_byte_buf *cache_id,
-    const struct aws_cryptosdk_decryption_materials *materials
+    const struct aws_cryptosdk_decryption_materials *materials,
+    const struct aws_byte_buf *cache_id
 ) {
     // TODO
     (void)cache; (void)materials; (void)cache_id;
