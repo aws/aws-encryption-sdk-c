@@ -40,11 +40,9 @@ struct local_cache_entry {
     struct aws_cryptosdk_local_cache *owner;
 
     /*
-     * The cache ID is stored in this inline array.
-     * cache_id then points back into this array, and is used as the key for the entries
-     * hash table.
+     * The cache ID for this entry. Owned by the entry itself, and freed when the entry
+     * becomes a zombie.
      */
-    uint8_t cache_id_arr[AWS_CRYPTOSDK_MD_MAX_SIZE];
     struct aws_byte_buf cache_id;
 
     /*
@@ -137,7 +135,8 @@ static uint64_t hash_cache_id(const void *vp_buf) {
      * TODO: Should we re-hash to deal with CMMs which don't pre-hash?
      */
     uint64_t hash_code = 0;
-    memcpy(&hash_code, buf->buffer, buf->len < sizeof(hash_code) ? buf->len : sizeof(hash_code));
+    size_t copylen = buf->len > sizeof(hash_code) ? sizeof(hash_code) : buf->len;
+    memcpy((char *)&hash_code + sizeof(hash_code) - copylen, buf->buffer, copylen);
 
     return hash_code;
 }
@@ -182,6 +181,10 @@ static inline int ttl_heap_cmp(const void *vpa, const void *vpb) {
  * If skip_hash is true, this function will not actually remove the entry from the hashtable;
  * this is useful when the hashtable is being iterated, or otherwise when the entry will be
  * cleared by some other means.
+ *
+ * Note that the entry may be destroyed upon return, and the cache_id certainly will be
+ * freed upon return. As such, if skip_hash is true, the caller must arrange to remove
+ * the hash table's reference to the key without performing a lookup.
  */
 static void locked_invalidate_entry(struct aws_cryptosdk_local_cache *cache, struct local_cache_entry *entry, bool skip_hash) {
     assert(entry->owner == cache);
@@ -226,6 +229,8 @@ static void locked_clean_entry(struct local_cache_entry *entry) {
     aws_cryptosdk_enc_context_clean_up(&entry->enc_context);
 
     entry->zombie = true;
+
+    aws_byte_buf_clean_up(&entry->cache_id);
 
     aws_linked_list_remove(&entry->lru_node);
     entry->lru_node.next = entry->lru_node.prev = &entry->lru_node;
@@ -356,6 +361,11 @@ static struct local_cache_entry *new_entry(struct aws_cryptosdk_local_cache *cac
 
     memset(entry, 0, sizeof(*entry));
 
+    if (aws_byte_buf_init_copy(cache->allocator, &entry->cache_id, cache_id)) {
+        aws_mem_release(cache->allocator, entry);
+        return NULL;
+    }
+
     aws_atomic_init_int(&entry->refcount, 1);
     entry->owner = cache;
 
@@ -364,9 +374,6 @@ static struct local_cache_entry *new_entry(struct aws_cryptosdk_local_cache *cac
         id_length = AWS_CRYPTOSDK_MD_MAX_SIZE;
     }
 
-    /* TODO: Dynamically allocate the cache ID if it's large? Rehash? */
-    memcpy(entry->cache_id_arr, cache_id->buffer, id_length);
-    entry->cache_id = aws_byte_buf_from_array(entry->cache_id_arr, id_length);
     entry->creation_time = now;
     entry->expiry_time = NO_EXPIRY;
 
