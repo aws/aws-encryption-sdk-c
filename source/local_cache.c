@@ -52,10 +52,9 @@ struct local_cache_entry {
      */
     uint64_t expiry_time, creation_time;
 
-    union {
-        struct aws_cryptosdk_encryption_materials enc_materials;
-        struct aws_cryptosdk_decryption_materials dec_materials;
-    } u;
+    struct aws_cryptosdk_encryption_materials *enc_materials;
+    struct aws_cryptosdk_decryption_materials *dec_materials;
+
     /* Initialized for encrypt-mode entries only */
     struct aws_hash_table enc_context;
 
@@ -88,8 +87,7 @@ struct local_cache_entry {
      *   * The entry is not in the TTL heap (expiry_time = NO_EXPIRY)
      *   * lru_node is not in the LRU list
      */
-    bool zombie : 1;
-    bool is_encrypt : 1;
+    bool zombie;
 };
 
 struct aws_cryptosdk_local_cache {
@@ -171,22 +169,6 @@ static inline int ttl_heap_cmp(const void *vpa, const void *vpb) {
     }
 }
 
-/*
- * The normal pattern for the encryption_materials and decryption_materials structures is to
- * allocate them on the heap. In our case we inline them in the larger cache entry structure,
- * so we can't use aws_cryptosdk_[de/en]cryption_materials_destroy. Instead, we have our own
- * clean_up routines here.
- */
-static void aws_cryptosdk_encryption_materials_clean_up(
-    struct aws_cryptosdk_encryption_materials *materials
-) {
-    if (materials) {
-        aws_cryptosdk_sig_abort(materials->signctx);
-        aws_byte_buf_clean_up_secure(&materials->unencrypted_data_key);
-        aws_cryptosdk_edk_list_clean_up(&materials->encrypted_data_keys);
-    }
-}
-
 /**
  * Remove (invalidate) an entry from the cache, if it is not already invalidated.
  * The cache mutex must be held.
@@ -234,15 +216,11 @@ static void locked_invalidate_entry(struct aws_cryptosdk_local_cache *cache, str
  * This also moves the entry to the zombie list.
  */
 static void locked_clean_entry(struct local_cache_entry *entry) {
-    if (entry->is_encrypt) {
-        aws_cryptosdk_encryption_materials_clean_up(&entry->u.enc_materials);
-    } else {
-        // TODO
-//        aws_cryptosdk_decryption_materials_clean_up(&entry->u.dec_materials);
-        abort();
-    }
+    aws_cryptosdk_encryption_materials_destroy(entry->enc_materials);
+    aws_cryptosdk_decryption_materials_destroy(entry->dec_materials);
 
-    aws_secure_zero(&entry->u, sizeof(entry->u));
+    entry->enc_materials = NULL;
+    entry->dec_materials = NULL;
 
     aws_string_destroy_secure(entry->key_materials);
     aws_cryptosdk_enc_context_clean_up(&entry->enc_context);
@@ -411,14 +389,6 @@ static int clone_edk(struct aws_allocator *alloc, struct aws_cryptosdk_edk *out,
     return AWS_OP_SUCCESS;
 }
 
-static int encryption_materials_init(struct aws_allocator *alloc, struct aws_cryptosdk_encryption_materials *materials) {
-    memset(materials, 0, sizeof(*materials));
-
-    materials->alloc = alloc;
-
-    return aws_cryptosdk_edk_list_init(alloc, &materials->encrypted_data_keys);
-}
-
 static int copy_encryption_materials(struct aws_allocator *alloc, struct aws_cryptosdk_encryption_materials *out, const struct aws_cryptosdk_encryption_materials *in) {
     size_t edk_count = aws_array_list_length(&in->encrypted_data_keys);
 
@@ -496,15 +466,15 @@ static int get_entry_for_encrypt(
     int rv = AWS_OP_ERR;
 
     struct local_cache_entry *local_entry;
-    if (locked_find_entry(cache, &local_entry, cache_id) && local_entry->is_encrypt) {
+    if (locked_find_entry(cache, &local_entry, cache_id) && local_entry->enc_materials) {
         local_entry->usage_stats.bytes_encrypted += usage_stats->bytes_encrypted;
         local_entry->usage_stats.messages_encrypted += usage_stats->messages_encrypted;
 
         *usage_stats = local_entry->usage_stats;
 
-        materials = aws_cryptosdk_encryption_materials_new(request_allocator, local_entry->u.enc_materials.alg);
+        materials = aws_cryptosdk_encryption_materials_new(request_allocator, local_entry->enc_materials->alg);
 
-        if (copy_encryption_materials(request_allocator, materials, &local_entry->u.enc_materials)) {
+        if (copy_encryption_materials(request_allocator, materials, local_entry->enc_materials)) {
             goto out;
         }
 
@@ -564,14 +534,13 @@ static void put_entry_for_encrypt(
         goto out;
     }
 
-    entry->is_encrypt = true;
     entry->usage_stats = initial_usage;
 
-    if (encryption_materials_init(cache->allocator, &entry->u.enc_materials)) {
+    if (!(entry->enc_materials = aws_cryptosdk_encryption_materials_new(cache->allocator, materials->alg))) {
         goto out;
     }
 
-    if (copy_encryption_materials(cache->allocator, &entry->u.enc_materials, materials)) {
+    if (copy_encryption_materials(cache->allocator, entry->enc_materials, materials)) {
         goto out;
     }
 
