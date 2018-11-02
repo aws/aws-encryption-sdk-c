@@ -527,6 +527,22 @@ int clear_cache() {
     return 0;
 }
 
+uint64_t hash_cache_id(const void *vp_buf);
+
+int hash_truncation() {
+    uint8_t short_buf[] = { 0x01, 0x02 };
+    struct aws_byte_buf bytebuf = aws_byte_buf_from_array(short_buf, sizeof(short_buf));
+
+    TEST_ASSERT_INT_EQ(0x0102, hash_cache_id(&bytebuf));
+
+    uint8_t long_buf[] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
+    bytebuf = aws_byte_buf_from_array(long_buf, sizeof(long_buf));
+
+    TEST_ASSERT_INT_EQ(0x0102030405060708ull, hash_cache_id(&bytebuf));
+
+    return 0;
+}
+
 #define TEST_CASE(name) { "local_cache", #name, name }
 struct test_case local_cache_test_cases[] = {
     TEST_CASE(create_destroy),
@@ -536,5 +552,6 @@ struct test_case local_cache_test_cases[] = {
     TEST_CASE(test_ttl),
     TEST_CASE(overwrite_enc_entry),
     TEST_CASE(clear_cache),
+    TEST_CASE(hash_truncation),
     { NULL }
 };

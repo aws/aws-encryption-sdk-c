@@ -135,7 +135,7 @@ static void locked_invalidate_entry(struct aws_cryptosdk_local_cache *cache, str
 static void locked_release_entry(struct aws_cryptosdk_local_cache *cache, struct local_cache_entry *entry, bool invalidate);
 static void locked_clean_entry(struct local_cache_entry *entry);
 
-static uint64_t hash_cache_id(const void *vp_buf) {
+AWS_CRYPTOSDK_TEST_STATIC uint64_t hash_cache_id(const void *vp_buf) {
     const struct aws_byte_buf *buf = vp_buf;
 
     /*
