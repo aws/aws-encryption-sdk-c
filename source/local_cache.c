@@ -33,7 +33,11 @@
  * point to.
  */
 struct local_cache_entry {
-    /* This refcount includes a count for the hashtable, if !zombie */
+    /*
+     * The local_cache_entry is kept allocated until refcount hits zero.
+     * To keep it alive while it's referenced in the cache hash table, we consider
+     * the hashtable itself to have a reference, and so refcount >= 1 when zombie == false.
+     */
     struct aws_atomic_var refcount;
 
     /* The owning cache */
@@ -122,6 +126,11 @@ struct aws_cryptosdk_local_cache {
 
 /********** General helpers **********/
 
+/*
+ * Note: locked_* functions must be invoked while holding a lock on the cache mutex.
+ * It follows that these locked_* functions must not reacquire the mutex, as aws-c-common
+ * mutexes are not reentrant.
+ */
 static void locked_invalidate_entry(struct aws_cryptosdk_local_cache *cache, struct local_cache_entry *entry, bool skip_hash);
 static void locked_release_entry(struct aws_cryptosdk_local_cache *cache, struct local_cache_entry *entry, bool invalidate);
 static void locked_clean_entry(struct local_cache_entry *entry);
@@ -766,7 +775,7 @@ static void release_entry(
     }
 }
 
-static void clear(struct aws_cryptosdk_mat_cache *generic_cache) {
+static void clear_cache(struct aws_cryptosdk_mat_cache *generic_cache) {
     struct aws_cryptosdk_local_cache *cache = (struct aws_cryptosdk_local_cache *)generic_cache;
 
     if (aws_mutex_lock(&cache->mutex)) {
@@ -806,7 +815,7 @@ static const struct aws_cryptosdk_mat_cache_vt local_cache_vt = {
     .entry_release = release_entry,
     .entry_ctime = get_creation_time,
     .entry_ttl_hint = set_expiration_hint,
-    .clear = clear
+    .clear = clear_cache
 };
 
 AWS_CRYPTOSDK_TEST_STATIC
