@@ -259,7 +259,7 @@ int aws_cryptosdk_mat_cache_get_entry_for_encrypt(
         struct aws_cryptosdk_cache_usage_stats *usage_stats,
         struct aws_hash_table *enc_context,
         const struct aws_byte_buf *cache_id
-    ) = AWS_CRYPTOSDK_INTERNAL_VT_GET_NULL(cache->vt, get_entry_for_encrypt);
+    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, get_entry_for_encrypt);
 
     *entry = NULL;
     if (get_entry_for_encrypt) {
@@ -286,7 +286,7 @@ void aws_cryptosdk_mat_cache_put_entry_for_encrypt(
         struct aws_cryptosdk_cache_usage_stats initial_usage,
         const struct aws_hash_table *enc_context,
         const struct aws_byte_buf *cache_id
-    ) = AWS_CRYPTOSDK_INTERNAL_VT_GET_NULL(cache->vt, put_entry_for_encrypt);
+    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, put_entry_for_encrypt);
 
     *entry = NULL;
     if (put_entry_for_encrypt) {
@@ -308,7 +308,7 @@ void aws_cryptosdk_mat_cache_get_entry_for_decrypt(
         struct aws_cryptosdk_mat_cache_entry **entry,
         struct aws_cryptosdk_decryption_materials **decryption_materials,
         const struct aws_byte_buf *cache_id
-    ) = AWS_CRYPTOSDK_INTERNAL_VT_GET_NULL(cache->vt, get_entry_for_decrypt);
+    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, get_entry_for_decrypt);
 
     *entry = NULL;
     if (get_entry_for_decrypt) {
@@ -328,7 +328,7 @@ void aws_cryptosdk_mat_cache_put_entry_for_decrypt(
         struct aws_cryptosdk_mat_cache_entry **entry,
         const struct aws_cryptosdk_decryption_materials *decryption_materials,
         const struct aws_byte_buf *cache_id
-    ) = AWS_CRYPTOSDK_INTERNAL_VT_GET_NULL(cache->vt, put_entry_for_decrypt);
+    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, put_entry_for_decrypt);
 
     *entry = NULL;
     if (put_entry_for_decrypt) {
@@ -339,7 +339,7 @@ void aws_cryptosdk_mat_cache_put_entry_for_decrypt(
 AWS_CRYPTOSDK_STATIC_INLINE
 size_t aws_cryptosdk_mat_cache_entry_count(const struct aws_cryptosdk_mat_cache *cache) {
     size_t (*entry_count)(const struct aws_cryptosdk_mat_cache *cache)
-        = AWS_CRYPTOSDK_INTERNAL_VT_GET_NULL(cache->vt, entry_count);
+        = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_count);
 
     if (!entry_count) {
         return SIZE_MAX;
@@ -358,7 +358,7 @@ void aws_cryptosdk_mat_cache_entry_release(
         struct aws_cryptosdk_mat_cache *cache,
         struct aws_cryptosdk_mat_cache_entry *entry,
         bool invalidate
-    ) = AWS_CRYPTOSDK_INTERNAL_VT_GET_NULL(cache->vt, entry_release);
+    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_release);
 
     if (entry_release) {
         entry_release(cache, entry, invalidate);
@@ -373,7 +373,7 @@ uint64_t aws_cryptosdk_mat_cache_entry_ctime(
     uint64_t (*entry_ctime)(
         const struct aws_cryptosdk_mat_cache *cache,
         const struct aws_cryptosdk_mat_cache_entry *entry
-    ) = AWS_CRYPTOSDK_INTERNAL_VT_GET_NULL(cache->vt, entry_ctime);
+    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_ctime);
 
     if (entry_ctime) {
         return entry_ctime(cache, entry);
@@ -392,7 +392,7 @@ void aws_cryptosdk_mat_cache_entry_ttl_hint(
         struct aws_cryptosdk_mat_cache *cache,
         struct aws_cryptosdk_mat_cache_entry *entry,
         uint64_t exp_time
-    ) = AWS_CRYPTOSDK_INTERNAL_VT_GET_NULL(cache->vt, entry_ttl_hint);
+    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_ttl_hint);
 
     if (entry_ttl_hint) {
         entry_ttl_hint(cache, entry, exp_time);
@@ -405,7 +405,7 @@ void aws_cryptosdk_mat_cache_entry_ttl_hint(
 AWS_CRYPTOSDK_STATIC_INLINE
 void aws_cryptosdk_mat_cache_clear(struct aws_cryptosdk_mat_cache *cache) {
     void (*clear)(struct aws_cryptosdk_mat_cache *cache)
-        = AWS_CRYPTOSDK_INTERNAL_VT_GET_NULL(cache->vt, clear);
+        = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, clear);
 
     if (clear) {
         clear(cache);
@@ -418,7 +418,7 @@ void aws_cryptosdk_mat_cache_clear(struct aws_cryptosdk_mat_cache *cache) {
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_mat_cache_release(struct aws_cryptosdk_mat_cache *mat_cache) {
     if (mat_cache && aws_cryptosdk_private_refcount_down(&mat_cache->refcount)) {
         void (*destroy)(struct aws_cryptosdk_mat_cache *cache)
-            = AWS_CRYPTOSDK_INTERNAL_VT_GET_NULL(mat_cache->vt, destroy);
+            = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(mat_cache->vt, destroy);
 
         if (!destroy) {
             abort();
