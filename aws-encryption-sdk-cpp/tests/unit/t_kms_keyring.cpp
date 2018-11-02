@@ -231,7 +231,7 @@ struct GenerateDataKeyValues : public TestValues {
 
 Model::DecryptResult MakeDecryptResult(const char *key_id, const char *plaintext) {
     Model::DecryptResult dr;
-    Aws::Utils::ByteBuffer pt((u_char *) plaintext, strlen(plaintext));
+    Aws::Utils::ByteBuffer pt((uint8_t *) plaintext, strlen(plaintext));
 
     dr.SetKeyId(key_id);
     dr.SetPlaintext(pt);

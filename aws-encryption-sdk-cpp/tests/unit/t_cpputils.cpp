@@ -72,7 +72,7 @@ int awsStringFromCAwsString_validInputs_returnAwsString() {
 
 int awsByteBufDupFromAwsUtils_validInputs_returnNewAwsByteBuf() {
     struct aws_allocator *allocator = aws_default_allocator();
-    const Aws::Utils::ByteBuffer src((u_char *) TEST_STRING, strlen(TEST_STRING));
+    const Aws::Utils::ByteBuffer src((uint8_t *) TEST_STRING, strlen(TEST_STRING));
     struct aws_byte_buf dest;
     struct aws_byte_buf dest_expected = aws_byte_buf_from_c_str(TEST_STRING);
     TEST_ASSERT_SUCCESS(aws_byte_buf_dup_from_aws_utils(allocator, &dest, src));
@@ -134,7 +134,7 @@ struct EdksTestData {
           data_key_id(data_key_id),
           key_provider(key_provider),
           edks(allocator),
-          enc((u_char *) enc_data, strlen(enc_data)) {
+          enc((uint8_t *) enc_data, strlen(enc_data)) {
 
     }
 };
