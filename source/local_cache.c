@@ -391,44 +391,14 @@ static struct local_cache_entry *new_entry(struct aws_cryptosdk_local_cache *cac
     return entry;
 }
 
-static int clone_edk(struct aws_allocator *alloc, struct aws_cryptosdk_edk *out, const struct aws_cryptosdk_edk *in) {
-    memset(out, 0, sizeof(*out));
-
-    if (
-        aws_byte_buf_init_copy(alloc, &out->provider_id, &in->provider_id)
-     || aws_byte_buf_init_copy(alloc, &out->provider_info, &in->provider_info)
-     || aws_byte_buf_init_copy(alloc, &out->enc_data_key, &in->enc_data_key)
-    ) {
-        return AWS_OP_ERR;
-    }
-
-    return AWS_OP_SUCCESS;
-}
 
 static int copy_encryption_materials(struct aws_allocator *alloc, struct aws_cryptosdk_encryption_materials *out, const struct aws_cryptosdk_encryption_materials *in) {
-    size_t edk_count = aws_array_list_length(&in->encrypted_data_keys);
-
     if (aws_byte_buf_init_copy(alloc, &out->unencrypted_data_key, &in->unencrypted_data_key)) {
         goto err;
     }
 
-    for (size_t i = 0; i < edk_count; i++) {
-        void *edk_in;
-        struct aws_cryptosdk_edk edk_out;
-
-        if (aws_array_list_get_at_ptr(&in->encrypted_data_keys, &edk_in, i)) {
-            /* Shouldn't happen */
-            goto err;
-        }
-
-        if (clone_edk(alloc, &edk_out, edk_in)) {
-            goto err;
-        }
-
-        if (aws_array_list_push_back(&out->encrypted_data_keys, &edk_out)) {
-            aws_cryptosdk_edk_clean_up(&edk_out);
-            goto err;
-        }
+    if (aws_cryptosdk_edk_list_copy_all(alloc, &out->encrypted_data_keys, &in->encrypted_data_keys)) {
+        goto err;
     }
 
     /* We do not clone the signing context itself, but instead we save the public or private keys elsewhere */
