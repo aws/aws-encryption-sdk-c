@@ -164,7 +164,7 @@ int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
         auto kms_client = self->GetKmsClient(kms_region);
         auto kms_request = self->CreateGenerateDataKeyRequest(self->default_key_id,
                                                               self->grant_tokens,
-                                                              alg_prop->data_key_len,
+                                                              (int)alg_prop->data_key_len,
                                                               aws_map_from_c_aws_hash_table(enc_context));
 
         Aws::KMS::Model::GenerateDataKeyOutcome outcome = kms_client->GenerateDataKey(kms_request);

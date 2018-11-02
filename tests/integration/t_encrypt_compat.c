@@ -216,7 +216,7 @@ static int test_basic() {
 
 static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size) {
     uint8_t *plaintext = malloc(plaintext_sz);
-    RAND_bytes(plaintext, plaintext_sz);
+    RAND_bytes(plaintext, (int)plaintext_sz);
 
     uint8_t *ciphertext = malloc(plaintext_sz);
     size_t ciphertext_buf_sz = plaintext_sz;
@@ -234,7 +234,7 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
     aws_cryptosdk_cmm_release(cmm);
 
     if (early_size) aws_cryptosdk_session_set_message_size(session, plaintext_sz);
-    aws_cryptosdk_session_set_frame_size(session, framesize);
+    aws_cryptosdk_session_set_frame_size(session, (uint32_t)framesize);
 
     size_t pt_offset = 0, ct_offset = 0;
 
