@@ -25,7 +25,7 @@
  *
  * Note: This is is an unstable, internal API. Do not depend on it in your applications.
  */
-#define AWS_CRYPTOSDK_INTERNAL_VT_GET(vt, member, fallback) \
+#define AWS_CRYPTOSDK_PRIVATE_VT_GET(vt, member, fallback) \
     (((ptrdiff_t)&((vt)->member) - (ptrdiff_t)(vt)) + sizeof((vt)->member) <= (vt)->vt_size \
       ? (vt)->member \
       : (fallback))
@@ -37,6 +37,6 @@
  *
  * Note: This is is an unstable, internal API. Do not depend on it in your applications.
  */
-#define AWS_CRYPTOSDK_INTERNAL_VT_GET_NULL(vt, member) AWS_CRYPTOSDK_INTERNAL_VT_GET(vt, member, NULL)
+#define AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(vt, member) AWS_CRYPTOSDK_PRIVATE_VT_GET(vt, member, NULL)
 
 #endif
