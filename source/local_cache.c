@@ -140,12 +140,18 @@ static uint64_t hash_cache_id(const void *vp_buf) {
 
     /*
      * Our cache IDs are already (large) hashes, so we can just take a subset of the hash
-     * as our cache ID.
+     * as our cache ID. We make sure that if the hash is smaller than 64 bits, we align
+     * it to the low-order bits of the value, as the hash table itself will further truncate
+     * down and we don't want all the entropy of the cache ID to be discarded by this masking
+     * step.
      * TODO: Should we re-hash to deal with CMMs which don't pre-hash?
      */
     uint64_t hash_code = 0;
     size_t copylen = buf->len > sizeof(hash_code) ? sizeof(hash_code) : buf->len;
     memcpy((char *)&hash_code + sizeof(hash_code) - copylen, buf->buffer, copylen);
+
+    /* We placed the hash code at the big-endian LSBs, so convert to host endian now */
+    hash_code = aws_ntoh64(hash_code);
 
     return hash_code;
 }
