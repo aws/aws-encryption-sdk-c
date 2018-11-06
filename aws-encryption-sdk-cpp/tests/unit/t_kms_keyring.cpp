@@ -37,19 +37,16 @@ const char *CLASS_TAG = "KMS_MASTER_KEY_CTAG";
  */
 struct KmsMasterKeyExposer : Aws::Cryptosdk::KmsKeyring {
   protected:
-    KmsMasterKeyExposer(struct aws_allocator *allocator,
-                        std::shared_ptr<Aws::KMS::KMSClient> kms,
+    KmsMasterKeyExposer(std::shared_ptr<Aws::KMS::KMSClient> kms,
                         const Aws::String &key_id)
-        : KmsMasterKeyExposer(allocator, kms, Aws::List<Aws::String> { key_id }) {
+        : KmsMasterKeyExposer(kms, Aws::List<Aws::String> { key_id }) {
     }
-    KmsMasterKeyExposer(struct aws_allocator *allocator,
-                        std::shared_ptr<Aws::KMS::KMSClient> kms,
+    KmsMasterKeyExposer(std::shared_ptr<Aws::KMS::KMSClient> kms,
                         const Aws::List<Aws::String> &key_ids,
                         const Aws::Vector<Aws::String> &grant_tokens = { },
                         std::shared_ptr<KmsClientCache> kms_client_cache = NULL
                         )
-        : KmsKeyring(allocator,
-                     key_ids,
+        : KmsKeyring(key_ids,
                      "default_region",
                      grant_tokens,
                      Aws::MakeShared<SingleClientSupplier>("KMS_EXPOSER", kms),
@@ -95,7 +92,6 @@ struct TestValues {
                  : allocator(aws_default_allocator()),
                    kms_client_mock(Aws::MakeShared<KmsClientMock>(CLASS_TAG)),
                    kms_keyring(Aws::New<KmsMasterKeyExposer>(CLASS_TAG,
-                                                             allocator,
                                                              std::shared_ptr<Aws::KMS::KMSClient>(kms_client_mock),
                                                              key_ids,
                                                              grant_tokens)),
@@ -389,7 +385,6 @@ int encrypt_emptyRegionNameInKeys_returnSuccess() {
 
     auto kms_client_mock = Aws::MakeShared<KmsClientMock>(CLASS_TAG);
     auto kms_keyring = Aws::New<KmsMasterKeyExposer>(CLASS_TAG,
-                                                     ev.allocator,
                                                      kms_client_mock,
                                                      key
     );
@@ -520,7 +515,6 @@ int decrypt_emptyRegionNameInKeys_returnSuccess() {
 
     auto kms_client_mock = Aws::MakeShared<KmsClientMock>(CLASS_TAG);
     auto kms_keyring = Aws::New<KmsMasterKeyExposer>(CLASS_TAG,
-                                                     dv.allocator,
                                                      kms_client_mock,
                                                      key
     );
@@ -790,7 +784,6 @@ struct KmsKeyringBuilderExposer : KmsKeyring::Builder {
     using KmsKeyring::Builder::BuildDefaultRegion;
     using KmsKeyring::Builder::BuildClientSupplier;
     using KmsKeyring::Builder::ValidParameters;
-    using KmsKeyring::Builder::BuildAllocator;
 };
 
 int testBuilder_buildDefaultRegion_buildsRegion() {
@@ -832,16 +825,11 @@ int testBuilder_invalidInputs_returnFalse() {
     // no keys
     TEST_ASSERT(a.ValidParameters() == false);
 
-    // no keys
-    a.SetAllocator(aws_default_allocator());
-    TEST_ASSERT(a.ValidParameters() == false);
-
     // minimum valid parameters are met
     a.SetKeyId("arn:aws:kms:region_extracted_from_key:");
     TEST_ASSERT(a.ValidParameters() == true);
 
     // no keys that contain region
-    a.SetAllocator(aws_default_allocator());
     a.SetKeyId("arn:aws:kms:");
     TEST_ASSERT(a.ValidParameters() == false);
 
@@ -851,18 +839,6 @@ int testBuilder_invalidInputs_returnFalse() {
     // empty key is not allowed
     a.AppendKeyId("");
     TEST_ASSERT(a.ValidParameters() == false);
-
-    return 0;
-}
-
-int testBuilder_allocator_returnAlloc() {
-    KmsKeyringBuilderExposer a;
-    struct aws_allocator test_alloc;
-
-    TEST_ASSERT_ADDR_NE(NULL, a.BuildAllocator());
-    a.SetAllocator(&test_alloc);
-
-    TEST_ASSERT_ADDR_EQ(&test_alloc, a.BuildAllocator());
 
     return 0;
 }
@@ -891,13 +867,11 @@ int testKmsClientCache_cacheAlreadyContainValues_sameInitializedClientIsUsed() {
     client_cache->SaveInCache("default_region", kms_cached_client_mock);
 
     KmsMasterKeyExposer *kms_keyring1 = Aws::New<KmsMasterKeyExposer>("TEST_CTOR",
-                                                                      aws_default_allocator(),
                                                                       ev1.kms_client_mock,
                                                                       Aws::List<Aws::String>{ev1.key_id},
                                                                       Aws::Vector<Aws::String>{},
                                                                       client_cache);
     KmsMasterKeyExposer *kms_keyring2 = Aws::New<KmsMasterKeyExposer>("TEST_CTOR",
-                                                                      aws_default_allocator(),
                                                                       ev2.kms_client_mock,
                                                                       Aws::List<Aws::String>{ev2.key_id},
                                                                       Aws::Vector<Aws::String>{},
@@ -924,13 +898,11 @@ int testKmsClientCache_cacheDoesNotContainValues_cacheWillBePopulatedWithValues(
     auto kms_cached_client_mock(Aws::MakeShared<KmsClientMock>(CLASS_TAG));
 
     KmsMasterKeyExposer *kms_keyring1 = Aws::New<KmsMasterKeyExposer>("TEST_CTOR",
-                                                                      aws_default_allocator(),
                                                                       ev1.kms_client_mock,
                                                                       Aws::List<Aws::String>{ev1.key_id},
                                                                       Aws::Vector<Aws::String>{},
                                                                       client_cache);
     KmsMasterKeyExposer *kms_keyring2 = Aws::New<KmsMasterKeyExposer>("TEST_CTOR",
-                                                                      aws_default_allocator(),
                                                                       ev2.kms_client_mock,
                                                                       Aws::List<Aws::String>{ev2.key_id},
                                                                       Aws::Vector<Aws::String>{},
@@ -979,7 +951,6 @@ int main() {
     RUN_TEST(testBuilder_buildDefaultRegion_buildsRegion());
     RUN_TEST(testBuilder_buildClientSupplier_buildsClient());
     RUN_TEST(testBuilder_invalidInputs_returnFalse());
-    RUN_TEST(testBuilder_allocator_returnAlloc());
     RUN_TEST(testKmsClientCache_cacheAlreadyContainValues_sameInitializedClientIsUsed());
     RUN_TEST(testKmsClientCache_cacheDoesNotContainValues_cacheWillBePopulatedWithValues());
 
