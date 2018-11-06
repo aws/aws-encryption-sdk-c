@@ -31,17 +31,7 @@
 namespace Aws {
 namespace Cryptosdk {
 
-class KmsKeyring;
-
-struct aws_cryptosdk_kms_keyring : aws_cryptosdk_keyring {
-    struct aws_allocator *alloc;
-    KmsKeyring *keyring_data;
-};
-
-/**
- * Class that allows C AWS Enc SDK to use C++ KMS Keyring
- */
-class KmsKeyring : public aws_cryptosdk_kms_keyring {
+class KmsKeyring : public aws_cryptosdk_keyring {
   public:
     class RegionalClientSupplier;
     class KmsClientCache;
@@ -56,8 +46,6 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
     /**
      * Initializes KmsKeyring using a list of KeyIds
      * Use KmsKeyring::Builder to allocate a new KmsKeyring.
-     * @param alloc Allocator structure. An instance of this will be passed around for anything needing memory
-     *              allocation
      * @param key_ids A list with unique identifier for the customer master key (KMS).
      *               To specify a master key, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
      *               This should be specified in the same structure as the one required by KMS client
@@ -72,7 +60,6 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
      *                         keyrings and are sensitive to performance.
      */
     KmsKeyring(
-        struct aws_allocator *alloc,
         const Aws::List<Aws::String> &key_ids,
         const String &default_region,
         const Aws::Vector<Aws::String> &grant_tokens,
@@ -173,9 +160,6 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
     std::shared_ptr<KMS::KMSClient> GetKmsClient(const Aws::String &region) const;
 
   private:
-    void Init(struct aws_allocator *alloc, const Aws::List<Aws::String> &in_key_ids);
-    void InitAwsCryptosdkKeyring(struct aws_allocator *allocator);
-
     const aws_byte_buf key_provider;
     std::shared_ptr<RegionalClientSupplier> kms_client_supplier;
 
@@ -251,13 +235,6 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
      */
     class Builder {
       public:
-        /**
-         * Sets allocator structure. An instance of this will be passed around for anything needing memory
-         * allocation.
-         * If no allocator is set the aws_default_allocator() is used
-         */
-        Builder &SetAllocator(struct aws_allocator *alloc);
-
         /**
          * Sets default region. This region will be used when specifying key IDs for encryption that are not full ARNs,
          * but are instead bare key IDs or aliases.
@@ -337,9 +314,7 @@ class KmsKeyring : public aws_cryptosdk_kms_keyring {
       protected:
         Aws::String BuildDefaultRegion() const;
         std::shared_ptr<RegionalClientSupplier> BuildClientSupplier() const;
-        struct aws_allocator * BuildAllocator() const;
       private:
-        struct aws_allocator *alloc = NULL;
         Aws::List<Aws::String> key_ids;
         Aws::String default_region;
         std::shared_ptr<KMS::KMSClient> kms_client;
