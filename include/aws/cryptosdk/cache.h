@@ -77,7 +77,7 @@ struct aws_cryptosdk_mat_cache_vt {
      * usage by *usage_stats; the updated usage stats are then returned in *usage_stats
      *
      * This function returns AWS_OP_SUCCESS on a successful cache hit or miss.
-     * However, if an internal error occurs during processing, then AWS_OP_ERROR
+     * However, if an internal error occurs during processing, then AWS_OP_ERR
      * is returned and an error is raised. In this case, the state of the materials
      * object and encryption context is unspecified, but can be safely destroyed and
      * cleaned up, respectively.
@@ -88,23 +88,52 @@ struct aws_cryptosdk_mat_cache_vt {
      * @param request_allocator - The allocator to use to allocate the output decryption materials
      *  and copied encryption context keys and values
      * @param entry - Out-parameter that receives a handle to the cache entry, if found
-     * @param encryption_materials - Out-parameter that receives the encryption materials, if found
-     * @param usage_stats - Amount to increment usage stats by; receives final usage stats
-     *                      after addition.
-     * @param enc_context - Out-parameter containing a (pre-initialized) encryption context
-     *  hash table. If the cache is a hit, this will be updated with the encryption context
-     *  that was cached.
+     * @param is_encrypt - If an entry is found, set to true if the entry is for encryption,
+     *  or false if for decryption.
      * @param cache_id - The cache identifier to look up.
      */
 
-    int (*get_entry_for_encrypt)(
+    int (*find_entry)(
         struct aws_cryptosdk_mat_cache *cache,
-        struct aws_allocator *request_allocator,
         struct aws_cryptosdk_mat_cache_entry **entry,
-        struct aws_cryptosdk_encryption_materials **encryption_materials,
-        struct aws_cryptosdk_cache_usage_stats *usage_stats,
-        struct aws_hash_table *enc_context,
+        bool *is_encrypt,
         const struct aws_byte_buf *cache_id
+    );
+
+    /**
+     * Adds *usage_stats to the entry's usage stats, then returns the updated usage
+     * stats in *usage_stats. This operation is atomic with respect to each component
+     * of usage_stats, but may not be atomic with respect to the overall usage_stats
+     * structure.
+     * 
+     * If the cache entry is not an encrypt entry, or if the entry has been invalidated,
+     * or if an internal error occurs during processing, the returned value of *usage_stats
+     * is unspecified, and an error may be raised (AWS_OP_ERR returned).
+     */
+    int (*update_usage_stats)(
+        struct aws_cryptosdk_mat_cache *cache,
+        struct aws_cryptosdk_mat_cache_entry *entry,
+        struct aws_cryptosdk_cache_usage_stats *usage_stats
+    );
+
+    /**
+     * Copies cached encryption materials into *materials, and updates *enc_context
+     * with the cached encryption context.
+     * 
+     * This function will allocate a new aws_cryptosdk_encryption_materials object;
+     * therefore, the initial value of *materials will be ignored. On failure,
+     * *materials will be set to NULL, and the contents of enc_context are unspecified
+     * (however, any strings added to enc_context are safe to pass to aws_string_destroy).
+     * 
+     * This function will fail if called on cached decryption materials. It MAY fail
+     * when called on an invalidated entry, but this is not guaranteed.
+     */
+    int (*get_encryption_materials)(
+        struct aws_cryptosdk_mat_cache *cache,
+        struct aws_allocator *allocator,
+        struct aws_cryptosdk_encryption_materials **materials,
+        struct aws_hash_table *enc_context,
+        struct aws_cryptosdk_mat_cache_entry *entry
     );
 
     /**
@@ -207,6 +236,7 @@ struct aws_cryptosdk_mat_cache_vt {
     /**
      * Returns the creation time of the given cache entry.
      * If the creation time is unknown or an error occurs, returns 0.
+     * TODO: rename
      */
     uint64_t (*entry_ctime)(
         const struct aws_cryptosdk_mat_cache *cache,
@@ -242,33 +272,70 @@ struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_local_new(
 );
 
 AWS_CRYPTOSDK_STATIC_INLINE
-int aws_cryptosdk_mat_cache_get_entry_for_encrypt(
+int aws_cryptosdk_mat_cache_find_entry(
     struct aws_cryptosdk_mat_cache *cache,
-    struct aws_allocator *request_allocator,
     struct aws_cryptosdk_mat_cache_entry **entry,
-    struct aws_cryptosdk_encryption_materials **encryption_materials,
-    struct aws_cryptosdk_cache_usage_stats *usage_stats,
-    struct aws_hash_table *enc_context,
+    bool *is_encrypt,
     const struct aws_byte_buf *cache_id
 ) {
-    int (*get_entry_for_encrypt)(
+    int (*find_entry)(
         struct aws_cryptosdk_mat_cache *cache,
-        struct aws_allocator *request_allocator,
         struct aws_cryptosdk_mat_cache_entry **entry,
-        struct aws_cryptosdk_encryption_materials **encryption_materials,
-        struct aws_cryptosdk_cache_usage_stats *usage_stats,
-        struct aws_hash_table *enc_context,
+        bool *is_encrypt,
         const struct aws_byte_buf *cache_id
-    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, get_entry_for_encrypt);
+    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, find_entry);
 
     *entry = NULL;
-    if (get_entry_for_encrypt) {
-        return get_entry_for_encrypt(cache, request_allocator, entry, encryption_materials, usage_stats, enc_context, cache_id);
+    if (find_entry) {
+        return find_entry(cache, entry, is_encrypt, cache_id);
     }
 
-    /* Emulate a cache miss by default */
     return AWS_OP_SUCCESS;
 }
+
+AWS_CRYPTOSDK_STATIC_INLINE
+int aws_cryptosdk_mat_cache_update_usage_stats(
+    struct aws_cryptosdk_mat_cache *cache,
+    struct aws_cryptosdk_mat_cache_entry *entry,
+    struct aws_cryptosdk_cache_usage_stats *usage_stats
+) {
+    int (*update_usage_stats)(
+        struct aws_cryptosdk_mat_cache *cache,
+        struct aws_cryptosdk_mat_cache_entry *entry,
+        struct aws_cryptosdk_cache_usage_stats *usage_stats
+    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, update_usage_stats);
+
+    if (!update_usage_stats) {
+        return aws_raise_error(AWS_ERROR_UNSUPPORTED_OPERATION);
+    }
+
+    return update_usage_stats(cache, entry, usage_stats);
+}
+
+
+AWS_CRYPTOSDK_STATIC_INLINE
+int aws_cryptosdk_mat_cache_get_encryption_materials(
+    struct aws_cryptosdk_mat_cache *cache,
+    struct aws_allocator *allocator,
+    struct aws_cryptosdk_encryption_materials **materials,
+    struct aws_hash_table *enc_context,
+    struct aws_cryptosdk_mat_cache_entry *entry
+) {
+    int (*get_encryption_materials)(
+        struct aws_cryptosdk_mat_cache *cache,
+        struct aws_allocator *allocator,
+        struct aws_cryptosdk_encryption_materials **materials,
+        struct aws_hash_table *enc_context,
+        struct aws_cryptosdk_mat_cache_entry *entry
+    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, get_encryption_materials);
+
+    if (!get_encryption_materials) {
+        return aws_raise_error(AWS_ERROR_UNSUPPORTED_OPERATION);
+    }
+
+    return get_encryption_materials(cache, allocator, materials, enc_context, entry);
+}
+
 
 AWS_CRYPTOSDK_STATIC_INLINE
 void aws_cryptosdk_mat_cache_put_entry_for_encrypt(
