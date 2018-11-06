@@ -160,9 +160,6 @@ class KmsKeyring : public aws_cryptosdk_keyring {
     std::shared_ptr<KMS::KMSClient> GetKmsClient(const Aws::String &region) const;
 
   private:
-    void Init(const Aws::List<Aws::String> &in_key_ids);
-    void InitAwsCryptosdkKeyring();
-
     const aws_byte_buf key_provider;
     std::shared_ptr<RegionalClientSupplier> kms_client_supplier;
 

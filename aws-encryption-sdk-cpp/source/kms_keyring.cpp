@@ -223,17 +223,6 @@ out:
     return rv;
 }
 
-void KmsKeyring::InitAwsCryptosdkKeyring() {
-    static const aws_cryptosdk_keyring_vt kms_keyring_vt = {
-        sizeof(struct aws_cryptosdk_keyring_vt),  // size
-        KEY_PROVIDER_STR,  // name
-        &KmsKeyring::DestroyAwsCryptoKeyring,  // destroy callback
-        &KmsKeyring::OnEncrypt, // on_encrypt callback
-        &KmsKeyring::OnDecrypt  // on_decrypt callback
-    };
-    aws_cryptosdk_keyring_base_init(this, &kms_keyring_vt);
-}
-
 Aws::Cryptosdk::KmsKeyring::~KmsKeyring() {
 }
 
@@ -247,7 +236,21 @@ Aws::Cryptosdk::KmsKeyring::KmsKeyring(const Aws::List<Aws::String> &key_ids,
       default_region(default_region),
       grant_tokens(grant_tokens),
       kms_client_cache(kms_client_cache) {
-    Init(key_ids);
+
+    static const aws_cryptosdk_keyring_vt kms_keyring_vt = {
+        sizeof(struct aws_cryptosdk_keyring_vt),  // size
+        KEY_PROVIDER_STR,  // name
+        &KmsKeyring::DestroyAwsCryptoKeyring,  // destroy callback
+        &KmsKeyring::OnEncrypt, // on_encrypt callback
+        &KmsKeyring::OnDecrypt  // on_decrypt callback
+    };
+
+    if (!this->kms_client_cache) {
+        this->kms_client_cache = Aws::MakeShared<KmsClientCache>(AWS_CRYPTO_SDK_KMS_CLASS_TAG);
+    }
+    aws_cryptosdk_keyring_base_init(this, &kms_keyring_vt);
+    this->default_key_id = key_ids.front();
+    this->key_ids = BuildKeyIds(key_ids);
 }
 
 Aws::KMS::Model::EncryptRequest KmsKeyring::CreateEncryptRequest(const Aws::String &key_id,
@@ -306,16 +309,6 @@ Aws::Map<Aws::String, Aws::String> KmsKeyring::BuildKeyIds(const Aws::List<Aws::
         }
     }
     return rv;
-}
-
-void KmsKeyring::Init(const Aws::List<Aws::String> &in_key_ids) {
-    if (!kms_client_cache) {
-        kms_client_cache = Aws::MakeShared<KmsClientCache>(AWS_CRYPTO_SDK_KMS_CLASS_TAG);
-    }
-
-    InitAwsCryptosdkKeyring();
-    default_key_id = in_key_ids.front();
-    this->key_ids = BuildKeyIds(in_key_ids);
 }
 
 Aws::String KmsKeyring::GetRegionForConfiguredKmsKeys(const Aws::String &key_id) const {
