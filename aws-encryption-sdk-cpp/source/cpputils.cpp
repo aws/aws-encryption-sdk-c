@@ -125,7 +125,7 @@ inline static bool aws_byte_buf_eq_char_array(const char *char_buf_a,
 
 Aws::String parse_region_from_kms_key_arn(const Aws::String &key_id) {
     try {
-        std::regex dummy("");
+        std::regex dummy("", std::regex_constants::extended);
         auto flags = dummy.flags();
         if (flags & std::regex_constants::ECMAScript) {
 	    std::cout << "ECMAScript" << std::endl;
@@ -134,7 +134,8 @@ Aws::String parse_region_from_kms_key_arn(const Aws::String &key_id) {
         }        
         
         // KMS alias may use alphanumeric characters, hyphens, forward slashes, and underscores only
-        std::regex arn("arn:([-a-z0-9]+):kms:([-a-z0-9]+):[0-9]+:(key|alias)/[-/_A-Za-z0-9]+");
+        std::regex arn("arn:([-a-z0-9]+):kms:([-a-z0-9]+):[0-9]+:(key|alias)/[-/_A-Za-z0-9]+",
+            std::regex_constants::extended);
         std::cmatch match_results;
 
         if (std::regex_match(key_id.c_str(), match_results, arn)) {
