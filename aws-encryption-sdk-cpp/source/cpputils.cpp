@@ -147,8 +147,44 @@ Aws::String parse_region_from_kms_key_arn(const Aws::String &key_id) {
 
     } catch (const std::regex_error& e) {
         std::cout << "regex_error caught: " << e.what() << std::endl;
-        std::cout << "regex error code: " << e.code() << std::endl;
-        
+        switch (e.code()) {
+        case std::regex_constants::error_collate:
+                std::cout << "error_collate" << std::endl;
+                break;
+        case std::regex_constants::error_escape:
+		std::cout << "error_escape" <<	std::endl;
+		break;
+        case std::regex_constants::error_backref:
+		std::cout << "error_backref" <<	std::endl;
+		break;
+	case std::regex_constants::error_brack:
+		std::cout << "error_brack" << std::endl;
+		break;
+	case std::regex_constants::error_paren:
+		std::cout << "error_paren" << std::endl;
+		break;
+	case std::regex_constants::error_brace:
+		std::cout << "error_brace" << std::endl;
+		break;
+	case std::regex_constants::error_badbrace:
+		std::cout << "error_badbrace" << std::endl;
+		break;
+	case std::regex_constants::error_range:
+		std::cout << "error_range" << std::endl;
+		break;
+	case std::regex_constants::error_space:
+		std::cout << "error_space" << std::endl;
+		break;
+	case std::regex_constants::error_badrepeat:
+		std::cout << "error_badrepeat" << std::endl;
+		break;
+	case std::regex_constants::error_complexity:
+		std::cout << "error_complexity" << std::endl;
+		break;
+	case std::regex_constants::error_stack:
+		std::cout << "error_stack" << std::endl;
+		break;
+        }
         throw;
     }
 }
