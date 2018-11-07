@@ -793,8 +793,8 @@ int testBuilder_buildDefaultRegion_buildsRegion() {
     TEST_ASSERT(a.BuildDefaultRegion() == default_region);
 
     a.SetDefaultRegion("");
-    a.SetKeyId("arn:aws:kms:region_extracted_from_key:");
-    TEST_ASSERT(a.BuildDefaultRegion() == "region_extracted_from_key");
+    a.SetKeyId("arn:aws:kms:us-fake-3:999999999999:alias/KeyName");
+    TEST_ASSERT(a.BuildDefaultRegion() == "us-fake-3");
 
     // no default region is set if there are two keys
     a.AppendKeyId("key2");
@@ -826,7 +826,7 @@ int testBuilder_invalidInputs_returnFalse() {
     TEST_ASSERT(a.ValidParameters() == false);
 
     // minimum valid parameters are met
-    a.SetKeyId("arn:aws:kms:region_extracted_from_key:");
+    a.SetKeyId("arn:aws:kms:us-fake-3:999999999999:alias/KeyName");
     TEST_ASSERT(a.ValidParameters() == true);
 
     // no keys that contain region

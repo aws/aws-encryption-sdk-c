@@ -214,14 +214,14 @@ int appendKeyToEdks_multipleElementsAppended_elementsAreAppended() {
 }
 
 int parseRegionFromKmsKeyArn_validKeyArn_returnsRegion() {
-    Aws::String key_arn1 = "arn:aws:kms:us-west-1:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
-    Aws::String key_arn2 = "arn:xxx:kms:us-west-2:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
-    Aws::String key_arn3 = "arn::kms:us-west-3:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
-    Aws::String key_arn4 = "arn::kms:us-west-4:1";
+    Aws::String key_arn1 = "arn:aws:kms:us-west-1:999999999999:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
+    Aws::String key_arn2 = "arn:aws-us-gov:kms:us-gov-west-1:999999999999:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
+    Aws::String key_arn3 = "arn:aws:kms:ap-fake-3:999999999999:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
+    Aws::String key_arn4 = "arn:aws-foo:kms:eu-west-4:999999999999:alias/foobar";
     TEST_ASSERT(parse_region_from_kms_key_arn(key_arn1) == Aws::String("us-west-1"));
-    TEST_ASSERT(parse_region_from_kms_key_arn(key_arn2) == Aws::String("us-west-2"));
-    TEST_ASSERT(parse_region_from_kms_key_arn(key_arn3) == Aws::String("us-west-3"));
-    TEST_ASSERT(parse_region_from_kms_key_arn(key_arn4) == Aws::String("us-west-4"));
+    TEST_ASSERT(parse_region_from_kms_key_arn(key_arn2) == Aws::String("us-gov-west-1"));
+    TEST_ASSERT(parse_region_from_kms_key_arn(key_arn3) == Aws::String("ap-fake-3"));
+    TEST_ASSERT(parse_region_from_kms_key_arn(key_arn4) == Aws::String("eu-west-4"));
     return 0;
 }
 

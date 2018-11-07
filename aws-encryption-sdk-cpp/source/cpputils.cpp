@@ -18,6 +18,7 @@
 #include <aws/common/hash_table.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/materials.h>
+#include <regex>
 
 namespace Aws {
 namespace Cryptosdk {
@@ -120,34 +121,17 @@ inline static bool aws_byte_buf_eq_char_array(const char *char_buf_a,
 }
 
 Aws::String parse_region_from_kms_key_arn(const Aws::String &key_id) {
-    static const struct aws_byte_buf arn_str = aws_byte_buf_from_c_str("arn");
-    static const struct aws_byte_buf kms_str = aws_byte_buf_from_c_str("kms");
-    Aws::String rv;
-    size_t idx_start = 0;
-    size_t idx_end = 0;
-    // first group is "arn"
-    idx_end = key_id.find(':', idx_start);
-    if (aws_byte_buf_eq_char_array(key_id.data(), idx_start, idx_end, arn_str) == false) {
-        return rv;
+    std::regex arn("arn:aws(-[-a-z]+)?:kms:([a-z]{2}-[a-z]{2,}-[1-9]|[a-z]{2}-[a-z]{2,}-[a-z]{2,}-[1-9])"
+                   ":[0-9]{12}:(key|alias)/[-/_A-Za-z0-9]+");
+    std::cmatch match_results;
+
+    if (std::regex_match(key_id.c_str(), match_results, arn)) {
+        Aws::String region(match_results[2].first, match_results[2].second);
+        return region;
+    } else {
+        Aws::String empty_str;
+        return empty_str;
     }
-    idx_start = idx_end + 1;
-
-    // second group is "aws" but can vary
-    idx_end = key_id.find(':', idx_start);
-    if (idx_end == std::string::npos) { return rv; }
-    idx_start = idx_end + 1;
-
-    // third group is "kms"
-    idx_end = key_id.find(':', idx_start);
-    if (aws_byte_buf_eq_char_array(key_id.data(), idx_start, idx_end, kms_str) == false) {
-        return rv;
-    }
-    idx_start = idx_end + 1;
-
-    // forth group is region
-    idx_end = key_id.find(':', idx_start);
-    if (idx_end == std::string::npos || idx_start >= idx_end) { return rv; }
-    return Aws::String(key_id.data() + idx_start, idx_end - idx_start);
 }
 
 }  // namespace Private
