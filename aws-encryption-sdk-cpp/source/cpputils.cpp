@@ -20,6 +20,9 @@
 #include <aws/cryptosdk/materials.h>
 #include <regex>
 
+// REMOVE after debugging
+#include <iostream>
+
 namespace Aws {
 namespace Cryptosdk {
 namespace Private {
@@ -121,16 +124,22 @@ inline static bool aws_byte_buf_eq_char_array(const char *char_buf_a,
 }
 
 Aws::String parse_region_from_kms_key_arn(const Aws::String &key_id) {
-    // KMS alias may use alphanumeric characters, hyphens, forward slashes, and underscores only
-    std::regex arn("arn:([-a-z0-9]+):kms:([-a-z0-9]+):[0-9]+:(key|alias)/[-/_A-Za-z0-9]+");
-    std::cmatch match_results;
+    try {
+        // KMS alias may use alphanumeric characters, hyphens, forward slashes, and underscores only
+        std::regex arn("arn:([-a-z0-9]+):kms:([-a-z0-9]+):[0-9]+:(key|alias)/[-/_A-Za-z0-9]+");
+        std::cmatch match_results;
 
-    if (std::regex_match(key_id.c_str(), match_results, arn)) {
-        Aws::String region(match_results[2].first, match_results[2].second);
-        return region;
-    } else {
-        Aws::String empty_str;
-        return empty_str;
+        if (std::regex_match(key_id.c_str(), match_results, arn)) {
+            Aws::String region(match_results[2].first, match_results[2].second);
+            return region;
+        } else {
+            Aws::String empty_str;
+            return empty_str;
+        }
+
+    } catch (const std::regex_error& e) {
+        std::cout << "regex_error caught: " << e.what() << std::endl;
+        throw;
     }
 }
 
