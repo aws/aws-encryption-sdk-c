@@ -807,7 +807,7 @@ static const struct aws_cryptosdk_mat_cache_vt local_cache_vt = {
     .destroy = destroy_cache,
     .entry_count = entry_count,
     .entry_release = release_entry,
-    .entry_ctime = get_creation_time,
+    .entry_get_creation_time = get_creation_time,
     .entry_ttl_hint = set_expiration_hint,
     .clear = clear_cache
 };
