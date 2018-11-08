@@ -236,9 +236,8 @@ struct aws_cryptosdk_mat_cache_vt {
     /**
      * Returns the creation time of the given cache entry.
      * If the creation time is unknown or an error occurs, returns 0.
-     * TODO: rename
      */
-    uint64_t (*entry_ctime)(
+    uint64_t (*entry_get_creation_time)(
         const struct aws_cryptosdk_mat_cache *cache,
         const struct aws_cryptosdk_mat_cache_entry *entry
     );
@@ -433,17 +432,17 @@ void aws_cryptosdk_mat_cache_entry_release(
 }
 
 AWS_CRYPTOSDK_STATIC_INLINE
-uint64_t aws_cryptosdk_mat_cache_entry_ctime(
+uint64_t aws_cryptosdk_mat_cache_entry_get_creation_time(
     const struct aws_cryptosdk_mat_cache *cache,
     const struct aws_cryptosdk_mat_cache_entry *entry
 ) {
-    uint64_t (*entry_ctime)(
+    uint64_t (*entry_get_creation_time)(
         const struct aws_cryptosdk_mat_cache *cache,
         const struct aws_cryptosdk_mat_cache_entry *entry
-    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_ctime);
+    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_get_creation_time);
 
-    if (entry_ctime) {
-        return entry_ctime(cache, entry);
+    if (entry_get_creation_time) {
+        return entry_get_creation_time(cache, entry);
     } else {
         return 0;
     }

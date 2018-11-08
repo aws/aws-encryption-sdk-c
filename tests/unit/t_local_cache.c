@@ -248,8 +248,8 @@ static int entry_refcount() {
     aws_cryptosdk_mat_cache_entry_release(cache, entry_2, true);
 
     /* It should be safe to manipulate entry_1 still */
-    TEST_ASSERT_INT_NE(UINT64_MAX, aws_cryptosdk_mat_cache_entry_ctime(cache, entry_1));
-    aws_cryptosdk_mat_cache_entry_ttl_hint(cache, entry_1, aws_cryptosdk_mat_cache_entry_ctime(cache, entry_1) + 1000000000ULL);
+    TEST_ASSERT_INT_NE(UINT64_MAX, aws_cryptosdk_mat_cache_entry_get_creation_time(cache, entry_1));
+    aws_cryptosdk_mat_cache_entry_ttl_hint(cache, entry_1, aws_cryptosdk_mat_cache_entry_get_creation_time(cache, entry_1) + 1000000000ULL);
 
     /* Releasing with invalidate=true should be safe */
     aws_cryptosdk_mat_cache_entry_release(cache, entry_2, true);
