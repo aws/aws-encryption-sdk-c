@@ -281,7 +281,7 @@ static int check_enc_entry(
     return 0;
 }
 
-int test_lru() {
+static int test_lru() {
     struct aws_allocator *alloc = aws_default_allocator();
     struct aws_cryptosdk_mat_cache *cache = aws_cryptosdk_mat_cache_local_new(alloc, 16);
 
@@ -323,7 +323,7 @@ int test_lru() {
 }
 
 
-int test_ttl() {
+static int test_ttl() {
     struct aws_allocator *alloc = aws_default_allocator();
     struct aws_cryptosdk_mat_cache *cache = aws_cryptosdk_mat_cache_local_new(alloc, 16);
 
@@ -400,7 +400,7 @@ int test_ttl() {
     return 0;
 }
 
-int overwrite_enc_entry() {
+static int overwrite_enc_entry() {
     struct aws_allocator *alloc = aws_default_allocator();
     struct aws_cryptosdk_mat_cache *cache = aws_cryptosdk_mat_cache_local_new(alloc, 16);
     struct aws_cryptosdk_mat_cache_entry *entry;
@@ -426,7 +426,7 @@ int overwrite_enc_entry() {
     return 0;
 }
 
-int clear_cache() {
+static int clear_cache() {
     struct aws_allocator *alloc = aws_default_allocator();
     struct aws_cryptosdk_mat_cache *cache = aws_cryptosdk_mat_cache_local_new(alloc, 16);
     struct aws_cryptosdk_mat_cache_entry *entry;
@@ -457,7 +457,7 @@ int clear_cache() {
 
 uint64_t hash_cache_id(const void *vp_buf);
 
-int hash_truncation() {
+static int hash_truncation() {
     uint8_t short_buf[] = { 0x01, 0x02 };
     struct aws_byte_buf bytebuf = aws_byte_buf_from_array(short_buf, sizeof(short_buf));
 
