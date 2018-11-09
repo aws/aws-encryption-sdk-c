@@ -261,7 +261,6 @@ static void ht_entry_destructor(void *vp_entry) {
      */
     struct local_cache_entry *entry = vp_entry;
 
-    entry->expiry_time = NO_EXPIRY;
     locked_destroy_entry(entry);
 }
 
@@ -763,7 +762,7 @@ static void release_entry(
          * so all we need to do now is actually free the entry structure.
          */
         assert(entry->zombie);
-        aws_mem_release(cache->allocator, entry);
+        locked_destroy_entry(entry);
     }
 }
 
