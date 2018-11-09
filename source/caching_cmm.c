@@ -108,6 +108,9 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
     }
 
     struct caching_cmm *cmm = aws_mem_acquire(alloc, sizeof(*cmm));
+    if (!cmm) {
+        return NULL;
+    }
 
     aws_cryptosdk_cmm_base_init(&cmm->base, &caching_cmm_vt);
 
@@ -125,7 +128,7 @@ int hash_encrypt_request(struct aws_string *partition_id, struct aws_byte_buf *o
     uint8_t digestbuf[AWS_CRYPTOSDK_MD_MAX_SIZE] = {0};
 
     if (out->capacity < AWS_CRYPTOSDK_MD_MAX_SIZE) {
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+        return aws_raise_error(AWS_ERROR_INVALID_BUFFER_SIZE);
     }
 
     struct aws_cryptosdk_md_context *md_context, *enc_context_md;
@@ -214,7 +217,7 @@ static int on_encrypt(struct aws_cryptosdk_cmm *generic_cmm,
         &entry,
         &is_encrypt,
         &hash_buf
-    ) || !is_encrypt) {
+    ) || !entry || !is_encrypt) {
         goto cache_miss;
     }
 

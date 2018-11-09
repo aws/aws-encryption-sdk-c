@@ -128,6 +128,7 @@ static int enc_cache_hit() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_encryption_materials(cmm, &output, &request));
     mock_mat_cache->usage_stats.bytes_encrypted = 42;
     mock_mat_cache->should_hit = true;
+    aws_cryptosdk_encryption_materials_destroy(output);
     
     struct aws_byte_buf cache_id_buf;
     TEST_ASSERT_SUCCESS(aws_byte_buf_init_copy(aws_default_allocator(), &cache_id_buf, &mock_mat_cache->last_cache_id));
