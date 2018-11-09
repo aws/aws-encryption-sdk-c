@@ -244,12 +244,12 @@ static int enc_cache_unique_ids() {
     return 0;
 }
 
-struct aws_string *prep_partition_id(struct aws_allocator *alloc, const struct aws_byte_buf *partition_id);
+struct aws_string *hash_or_generate_partition_id(struct aws_allocator *alloc, const struct aws_byte_buf *partition_id);
 int hash_encrypt_request(struct aws_string *partition_id, struct aws_byte_buf *out, const struct aws_cryptosdk_encryption_request *req);
 
 static int encrypt_id_vector(const char *expected_b64, const char *partition_name, enum aws_cryptosdk_alg_id requested_alg, /* k, v, k, v, NULL */ ...) {
     struct aws_byte_buf partition_name_buf = aws_byte_buf_from_c_str(partition_name);
-    struct aws_string *partition_id = prep_partition_id(aws_default_allocator(), &partition_name_buf);
+    struct aws_string *partition_id = hash_or_generate_partition_id(aws_default_allocator(), &partition_name_buf);
     TEST_ASSERT_ADDR_NOT_NULL(partition_id);
 
     struct aws_byte_buf expected_b64_buf, expected, actual;

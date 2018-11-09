@@ -29,15 +29,15 @@ struct caching_cmm {
 };
 
 static void destroy_caching_cmm(struct aws_cryptosdk_cmm *generic_cmm);
-static int on_encrypt(struct aws_cryptosdk_cmm * cmm,
-               struct aws_cryptosdk_encryption_materials ** output,
-               struct aws_cryptosdk_encryption_request * request);
+static int generate_enc_materials(struct aws_cryptosdk_cmm * cmm,
+                                  struct aws_cryptosdk_encryption_materials ** output,
+                                  struct aws_cryptosdk_encryption_request * request);
 
 static const struct aws_cryptosdk_cmm_vt caching_cmm_vt = {
     .vt_size = sizeof(caching_cmm_vt),
     .name = "Caching CMM",
     .destroy = destroy_caching_cmm,
-    .generate_encryption_materials = on_encrypt,
+    .generate_encryption_materials = generate_enc_materials,
     .decrypt_materials = NULL
 };
 
@@ -58,7 +58,7 @@ static bool can_cache_algorithm(enum aws_cryptosdk_alg_id alg_id) {
 }
 
 AWS_CRYPTOSDK_TEST_STATIC
-struct aws_string *prep_partition_id(struct aws_allocator *alloc, const struct aws_byte_buf *partition_name) {
+struct aws_string *hash_or_generate_partition_id(struct aws_allocator *alloc, const struct aws_byte_buf *partition_name) {
     uint8_t tmparr[AWS_CRYPTOSDK_MD_MAX_SIZE];
 
     if (partition_name) {
@@ -101,7 +101,7 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
     struct aws_cryptosdk_cmm *upstream,
     const struct aws_byte_buf *partition_name
 ) {
-    struct aws_string *partition_id_str = prep_partition_id(alloc, partition_name);
+    struct aws_string *partition_id_str = hash_or_generate_partition_id(alloc, partition_name);
 
     if (!partition_id_str) {
         return NULL;
@@ -187,7 +187,7 @@ md_err:
     return AWS_OP_ERR;
 }
 
-static int on_encrypt(struct aws_cryptosdk_cmm *generic_cmm,
+static int generate_enc_materials(struct aws_cryptosdk_cmm *generic_cmm,
                struct aws_cryptosdk_encryption_materials ** output,
                struct aws_cryptosdk_encryption_request * request
 ) {

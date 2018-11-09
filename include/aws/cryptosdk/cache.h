@@ -66,27 +66,17 @@ struct aws_cryptosdk_mat_cache_vt {
 
     /**
      * Attempts to find an entry in the cache. If found, returns a
-     * handle to the cache entry in *entry and the actual encryption materials
-     * in *encryption_materials. Otherwise, *entry and *encryption_materials are
-     * set to NULL.
+     * handle to the cache entry in *entry Otherwise, *entry is set to NULL.
      *
-     * If the entry contains decryption materials, this method will behave as if
-     * the entry was not present.
-     *
-     * As part of finding the entry, this method will atomically increment the entry's
-     * usage by *usage_stats; the updated usage stats are then returned in *usage_stats
+     * If is_encrypt is non-NULL, *is_encrypt is set to TRUE if the found
+     * materials are encryption materials, or FALSE if they are decryption
+     * materials. If no entry was found, the value of *is_encrypt is undefined.
      *
      * This function returns AWS_OP_SUCCESS on a successful cache hit or miss.
-     * However, if an internal error occurs during processing, then AWS_OP_ERR
-     * is returned and an error is raised. In this case, the state of the materials
-     * object and encryption context is unspecified, but can be safely destroyed and
-     * cleaned up, respectively.
      *
      * Parameters:
      *
      * @param cache - The cache to perform the lookup against
-     * @param request_allocator - The allocator to use to allocate the output decryption materials
-     *  and copied encryption context keys and values
      * @param entry - Out-parameter that receives a handle to the cache entry, if found
      * @param is_encrypt - If an entry is found, set to true if the entry is for encryption,
      *  or false if for decryption.
@@ -117,8 +107,9 @@ struct aws_cryptosdk_mat_cache_vt {
     );
 
     /**
-     * Copies cached encryption materials into *materials, and updates *enc_context
-     * with the cached encryption context.
+     * Creates a copy of the cached encryption materials associated with entry, and
+     * places the newly allocated encryption materials in *materials. Additionally,
+     * updates the hash table at *enc_context to match the cached encryption context.
      * 
      * This function will allocate a new aws_cryptosdk_encryption_materials object;
      * therefore, the initial value of *materials will be ignored. On failure,
