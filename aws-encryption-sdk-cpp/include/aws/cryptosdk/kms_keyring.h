@@ -33,8 +33,7 @@ namespace Cryptosdk {
 
 class KmsKeyring : public aws_cryptosdk_keyring {
   public:
-    class RegionalClientSupplier;
-    class KmsClientCache;
+    class ClientSupplier;
 
     ~KmsKeyring();
 
@@ -55,16 +54,12 @@ class KmsKeyring : public aws_cryptosdk_keyring {
      * @param default_region This region will be used when specifying key IDs for encryption that are not full ARNs,
      *                      but are instead bare key IDs or aliases.
      * @param supplier Object that supplies an KMSClient instance to use for a given region.
-     * @param kms_client_cache A cache object for the kms clients. This allows re-usability of Kms clients among
-     *                         multiple instances of KmsKeyring. Can be used in applications that frequently create new
-     *                         keyrings and are sensitive to performance.
      */
     KmsKeyring(
         const Aws::List<Aws::String> &key_ids,
         const String &default_region,
         const Aws::Vector<Aws::String> &grant_tokens,
-        std::shared_ptr<RegionalClientSupplier> supplier,
-        std::shared_ptr<KmsClientCache> kms_client_cache);
+        std::shared_ptr<ClientSupplier> supplier);
 
     /**
      * Attempts to find a valid KMS-keyring-generated EDK to decrypt, and if found
@@ -144,87 +139,78 @@ class KmsKeyring : public aws_cryptosdk_keyring {
         const Aws::Map<Aws::String, Aws::String> &encryption_context) const;
 
     /**
-     * Returns a new map <KeyId, KMS-Region>
+     * Returns the KMS Client for a specific key ID
      */
-    Aws::Map<Aws::String, Aws::String> BuildKeyIds(const Aws::List<Aws::String> &key_ids) const;
+    std::shared_ptr<KMS::KMSClient> GetKmsClient(const Aws::String &key_id) const;
 
     /**
-     * Returns the region of the key_id or an empty string if it can't extract region
+     *  Creates a AWS C++ SDK KMS Client for region with default options.
      */
-    Aws::String GetRegionForConfiguredKmsKeys(const Aws::String &key_id) const;
-
-    /**
-     * Returns the KMS Client for a specific region. It can extract it either from the cache (if it exists) or it will
-     * create a new one
-     */
-    std::shared_ptr<KMS::KMSClient> GetKmsClient(const Aws::String &region) const;
+    static std::shared_ptr<KMS::KMSClient> CreateDefaultKmsClient(const Aws::String &region);
 
   private:
     const aws_byte_buf key_provider;
-    std::shared_ptr<RegionalClientSupplier> kms_client_supplier;
+    std::shared_ptr<ClientSupplier> kms_client_supplier;
 
-    Aws::String default_key_id;  // default key used for encryption/key generation
     const Aws::String default_region;  // if no region can be extracted from key_id this will be used as default
     Aws::Vector<Aws::String> grant_tokens;
 
-    //TODO use Aws::UnorderedMap
-    // A map of <key-id, region>
-    Aws::Map<Aws::String, Aws::String> key_ids;
-    std::shared_ptr<KmsClientCache> kms_client_cache;
+    // FIXME: change to Aws::Vector in builder and here
+    Aws::List<Aws::String> key_ids;
 
   public:
     /**
-     * Class used to cache KmsClients among multiple KmsKeyring objects.
-     * Note that this class should be thread-safe
+     * Interface that supplies KmsKeyring with KMS Client objects
      */
-    class KmsClientCache {
-      public:
-        /* Returns the KMS Client for a specific region or null if the client is not cached */
-        std::shared_ptr<KMS::KMSClient> GetCachedClient(const Aws::String &region) const;
-
-        /**
-         * Saves a KMS Client for a specific region in the cache.
-         * Note: a KMS Client can be saved in cache only after a successful call was made to it
-         * (to guarantee that the region exists)
-        */
-        void SaveInCache(const Aws::String &region, std::shared_ptr<KMS::KMSClient> kms_client);
-
-      private:
-        mutable std::mutex keyring_cache_mutex;
-
-        //TODO use Aws::UnorderedMap
-        // A map of <region, kms-client>. A single Kms client is cached for each region. Note that in order to be cached a
-        // client needs to have at least one successful request to KMS.
-        Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> kms_cached_clients;
-    };
-    /**
-     * Interface that supplies KmsKeyring with a new KMSClient in a specific region
-     */
-    class RegionalClientSupplier {
+    class ClientSupplier {
       public:
         /**
-         * Returns a new KMSClient in the specified region
+         * Returns a KMS Client in the specified region. Does not acquire a lock on the cache.
+         * Only to be used in cases where the cache is not being modified during operation of keyring.
          */
-        virtual std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region_name) const = 0;
-        virtual ~RegionalClientSupplier() {};
+        virtual std::shared_ptr<KMS::KMSClient> UnlockedGetClient(const Aws::String &region_name) const = 0;
+        virtual ~ClientSupplier() {};
     };
 
     /**
-     * Provides the default configured KMSClient in a specific region
+     * Provides KMS clients in multiple regions, and allows caching of clients between
+     * multiple KMS keyrings.
      */
-    class DefaultRegionalClientSupplier : public RegionalClientSupplier {
+    class CachingClientSupplier : public ClientSupplier {
       public:
-        std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region_name) const;
+        std::shared_ptr<KMS::KMSClient> UnlockedGetClient(const Aws::String &region_name) const;
+
+        /**
+         * Returns a KMS Client in the specified region. Does acquire the cache lock.
+         * Always use this instead of UnlockedGetClient if the cache can be modified during keyring
+         * operation. (i.e., for Discovery Keyring)
+         */
+        std::shared_ptr<KMS::KMSClient> LockedGetClient(const Aws::String &region_name) const;
+
+        /**
+         * Stores the provided client as the cached client for the specified region. If the client
+         * is not provided, constructs a default client for the specified region.
+         */
+	void PutClient(const Aws::String &region, std::shared_ptr<KMS::KMSClient> client = nullptr);
+      private:
+        /**
+         * Acquired by both PutClient and LockedGetClient before accessing the cache.
+         */
+        mutable std::mutex cache_mutex;
+        /**
+         * Region name -> KMS Client.
+         */
+        Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> cache;
     };
 
-    /*
-     * Provides the same KMS client initialized in the constructor regardless of the region
-     * Note this Supplier is not suitable for multiple regions
+    /**
+     * Provides the same KMS client initialized in the constructor regardless of the region.
+     * Note this Supplier is not suitable for multiple regions.
      */
-    class SingleClientSupplier : public RegionalClientSupplier {
+    class SingleClientSupplier : public ClientSupplier {
       public:
         SingleClientSupplier(const std::shared_ptr<KMS::KMSClient> &kms_client);
-        std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region_name) const;
+        std::shared_ptr<KMS::KMSClient> UnlockedGetClient(const Aws::String &region_name) const;
       private:
         std::shared_ptr<KMS::KMSClient> kms_client;
     };
@@ -236,71 +222,50 @@ class KmsKeyring : public aws_cryptosdk_keyring {
     class Builder {
       public:
         /**
-         * Sets default region. This region will be used when specifying key IDs for encryption that are not full ARNs,
-         * but are instead bare key IDs or aliases.
-         * If KMS Client is set then the RegionalClientSupplier and default_region parameters are ignored
+         * Sets default region. This region will be used when specifying key IDs that are not full ARNs,
+         * but are instead bare key IDs or aliases. If all key IDs provided are full ARNs, this is not
+         * necessary. If KMS Client is set, then this parameter is ignored.
          */
-        Builder &SetDefaultRegion(const Aws::String &default_region);
+        Builder &WithDefaultRegion(const Aws::String &default_region);
 
         /**
-         * Appends KMS keys to the already configured keys.
+         * Adds multiple KMS keys to the already configured keys.
          * To specify a master key, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
-         * This should be specified in the same structure as the one required by KMS client
          * At least one key needs to be configured!
          */
-        Builder &AppendKeyIds(const Aws::List<Aws::String> &key_ids);
+        Builder &WithKeyIds(const Aws::List<Aws::String> &key_ids);
 
         /**
-         * Appends a new KMS key to the already configured keys
+         * Adds a new KMS key to the already configured keys.
          * To specify a master key, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
-         * This should be specified in the same structure as the one required by KMS client
          * At least one key needs to be configured!
          */
-        Builder &AppendKeyId(const Aws::String &key_id);
+        Builder &WithKeyId(const Aws::String &key_id);
 
         /**
-         * Sets a single KMS key to be used
-         * To specify a master key, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
-         * This should be specified in the same structure as the one required by KMS client
-         * At least one key needs to be configured!
-         */
-        Builder &SetKeyId(const Aws::String &key_id);
-
-        /**
-         * Sets a list with unique identifiers for the customer master key (KMS)
-         * To specify a master key, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
-         * This should be specified in the same structure as the one required by KMS client
-         * At least one key needs to be configured!
-         */
-        Builder &SetKeyIds(const Aws::List<Aws::String> &key_ids);
-
-        /**
-         *  A list of grant tokens. For more information, see
+         *  Adds a list of grant tokens. For more information, see
          *  <a href="http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token">Grant
          *  Tokens</a> in the <i>AWS Key Management Service Developer Guide</i>
          */
-        Builder &SetGrantTokens(const Aws::Vector<Aws::String> &grant_tokens);
+        Builder &WithGrantTokens(const Aws::Vector<Aws::String> &grant_tokens);
 
         /**
-         * Sets the object that supplies a KMSClient instance to use for a given region.
+         *  Adds a single grant token.
          */
-        Builder &SetRegionalClientSupplier(const std::shared_ptr<RegionalClientSupplier> &client_supplier);
+        Builder &WithGrantToken(const Aws::String &grant_token);
 
         /**
-         * Sets a cache object for the kms clients. This allows re-usability of Kms clients among
-         * multiple instances of KmsKeyring. Can be used in applications that frequently create new
-         * keyrings and are sensitive to performance.
-         * If you want a KmsClientCache to be shared among multiple KmsKeyring instances make sure you create it using
-         * auto kms_client_cache = Aws::MakeShared<KmsClientCache>("your_class_tag");
-         * and then you pass it to the builder.
+         * Sets the object that supplies and caches KMSClient instances. This allows re-usability of a
+         * caching client supplier among more than one KMS keyring. This is optional. A client supplier
+         * will be created if one is not provided.
          */
-        Builder &SetKmsClientCache(std::shared_ptr<KmsClientCache> kms_client_cache);
+        Builder &WithCachingClientSupplier(const std::shared_ptr<CachingClientSupplier> &client_supplier);
 
         /**
          * KmsKeyring will use only this KMS Client regardless of the configured region.
-         * If KMS Client is set then the RegionalClientSupplier and default_region parameters are ignored
+         * If KMS Client is set then the ClientSupplier and default_region parameters are ignored.
          */
-        Builder &SetKmsClient(std::shared_ptr<KMS::KMSClient> kms_client);
+        Builder &WithKmsClient(std::shared_ptr<KMS::KMSClient> kms_client);
 
         /**
          * Creates a new KmsKeyring object or return NULL if parameters are invalid
@@ -312,15 +277,13 @@ class KmsKeyring : public aws_cryptosdk_keyring {
          */
         bool ValidParameters() const;
       protected:
-        Aws::String BuildDefaultRegion() const;
-        std::shared_ptr<RegionalClientSupplier> BuildClientSupplier() const;
+        std::shared_ptr<ClientSupplier> BuildClientSupplier() const;
       private:
         Aws::List<Aws::String> key_ids;
         Aws::String default_region;
         std::shared_ptr<KMS::KMSClient> kms_client;
         Aws::Vector<Aws::String> grant_tokens;
-        std::shared_ptr<RegionalClientSupplier> client_supplier;
-        std::shared_ptr<KmsClientCache> kms_client_cache;
+        std::shared_ptr<CachingClientSupplier> client_supplier;
     };
 };
 
