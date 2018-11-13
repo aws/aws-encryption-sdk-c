@@ -56,7 +56,7 @@ class KmsKeyring : public aws_cryptosdk_keyring {
      * @param supplier Object that supplies an KMSClient instance to use for a given region.
      */
     KmsKeyring(
-        const Aws::List<Aws::String> &key_ids,
+        const Aws::Vector<Aws::String> &key_ids,
         const String &default_region,
         const Aws::Vector<Aws::String> &grant_tokens,
         std::shared_ptr<ClientSupplier> supplier);
@@ -154,9 +154,7 @@ class KmsKeyring : public aws_cryptosdk_keyring {
 
     const Aws::String default_region;  // if no region can be extracted from key_id this will be used as default
     Aws::Vector<Aws::String> grant_tokens;
-
-    // FIXME: change to Aws::Vector in builder and here
-    Aws::List<Aws::String> key_ids;
+    Aws::Vector<Aws::String> key_ids;
 
   public:
     /**
@@ -233,7 +231,7 @@ class KmsKeyring : public aws_cryptosdk_keyring {
          * To specify a master key, use its key ID, Amazon Resource Name (ARN), alias name, or alias ARN.
          * At least one key needs to be configured!
          */
-        Builder &WithKeyIds(const Aws::List<Aws::String> &key_ids);
+        Builder &WithKeyIds(const Aws::Vector<Aws::String> &key_ids);
 
         /**
          * Adds a new KMS key to the already configured keys.
@@ -279,7 +277,7 @@ class KmsKeyring : public aws_cryptosdk_keyring {
       protected:
         std::shared_ptr<ClientSupplier> BuildClientSupplier() const;
       private:
-        Aws::List<Aws::String> key_ids;
+        Aws::Vector<Aws::String> key_ids;
         Aws::String default_region;
         std::shared_ptr<KMS::KMSClient> kms_client;
         Aws::Vector<Aws::String> grant_tokens;

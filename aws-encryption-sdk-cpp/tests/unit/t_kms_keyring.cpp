@@ -39,10 +39,10 @@ struct KmsMasterKeyExposer : Aws::Cryptosdk::KmsKeyring {
   protected:
     KmsMasterKeyExposer(std::shared_ptr<Aws::KMS::KMSClient> kms,
                         const Aws::String &key_id)
-        : KmsMasterKeyExposer(kms, Aws::List<Aws::String> { key_id }) {
+        : KmsMasterKeyExposer(kms, Aws::Vector<Aws::String> { key_id }) {
     }
     KmsMasterKeyExposer(std::shared_ptr<Aws::KMS::KMSClient> kms,
-                        const Aws::List<Aws::String> &key_ids,
+                        const Aws::Vector<Aws::String> &key_ids,
                         const Aws::Vector<Aws::String> &grant_tokens = { }
                         )
         : KmsKeyring(key_ids,
@@ -86,7 +86,7 @@ struct TestValues {
     TestValues() : TestValues({ key_id }) {
     };
 
-    TestValues(const Aws::List<Aws::String> &key_ids, const Aws::Vector<Aws::String> &grant_tokens = { })
+    TestValues(const Aws::Vector<Aws::String> &key_ids, const Aws::Vector<Aws::String> &grant_tokens = { })
                  : allocator(aws_default_allocator()),
                    kms_client_mock(Aws::MakeShared<KmsClientMock>(CLASS_TAG)),
                    kms_keyring(Aws::New<KmsMasterKeyExposer>(CLASS_TAG,
@@ -138,7 +138,7 @@ struct EncryptTestValues : public TestValues {
     EncryptTestValues() : EncryptTestValues( { key_id } ) {
 
     }
-    EncryptTestValues(const Aws::List<Aws::String> &key_ids, const Aws::Vector<Aws::String> &grant_tokens = { })
+    EncryptTestValues(const Aws::Vector<Aws::String> &key_ids, const Aws::Vector<Aws::String> &grant_tokens = { })
         : TestValues(key_ids, grant_tokens),
           alg(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE),
           unencrypted_data_key(aws_byte_buf_from_c_str(pt)) {
@@ -249,7 +249,7 @@ class DecryptValues : public TestValues {
         unencrypted_data_key({0}) {
     }
 
-    DecryptValues(const Aws::List<Aws::String> &key_ids, const Aws::Vector<Aws::String> &grant_tokens = { })
+    DecryptValues(const Aws::Vector<Aws::String> &key_ids, const Aws::Vector<Aws::String> &grant_tokens = { })
     : TestValues(key_ids, grant_tokens),
       edks(allocator),
       alg(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE),
@@ -346,7 +346,7 @@ int encrypt_validInputsMultipleKeys_returnSuccess() {
 }
 
 int encrypt_validInputsMultipleKeysWithGrantTokensAndEncContext_returnSuccess() {
-    Aws::List<Aws::String> keys = {"key1", "key2", "key3"};
+    Aws::Vector<Aws::String> keys = {"key1", "key2", "key3"};
     Aws::Map <Aws::String, Aws::String> enc_context = { {"k1", "v1"}, {"k2", "v2"} };
     Aws::Vector<Aws::String> grant_tokens = { "gt1", "gt2" };
 
@@ -378,7 +378,7 @@ int encrypt_validInputsMultipleKeysWithGrantTokensAndEncContext_returnSuccess() 
 }
 
 int encrypt_emptyRegionNameInKeys_returnSuccess() {
-    Aws::List<Aws::String> key = {"arn:aws:kms::123456789010:whatever"};
+    Aws::Vector<Aws::String> key = {"arn:aws:kms::123456789010:whatever"};
     EncryptTestValues ev(key);
 
     auto kms_client_mock = Aws::MakeShared<KmsClientMock>(CLASS_TAG);

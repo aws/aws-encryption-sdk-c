@@ -220,7 +220,7 @@ out:
 Aws::Cryptosdk::KmsKeyring::~KmsKeyring() {
 }
 
-Aws::Cryptosdk::KmsKeyring::KmsKeyring(const Aws::List<Aws::String> &key_ids,
+Aws::Cryptosdk::KmsKeyring::KmsKeyring(const Aws::Vector<Aws::String> &key_ids,
                                        const String &default_region,
                                        const Aws::Vector<Aws::String> &grant_tokens,
                                        std::shared_ptr<ClientSupplier> client_supplier)
@@ -412,7 +412,7 @@ aws_cryptosdk_keyring *KmsKeyring::Builder::Build() const {
      */
     class KmsKeyringWithPublicConstructor : public KmsKeyring {
     public:
-        KmsKeyringWithPublicConstructor(const Aws::List<Aws::String> &key_ids,
+        KmsKeyringWithPublicConstructor(const Aws::Vector<Aws::String> &key_ids,
                                         const String &default_region,
                                         const Aws::Vector<Aws::String> &grant_tokens,
                                         std::shared_ptr<ClientSupplier> client_supplier) :
@@ -434,7 +434,7 @@ KmsKeyring::Builder &KmsKeyring::Builder::WithDefaultRegion(const String &defaul
     return *this;
 }
 
-KmsKeyring::Builder &KmsKeyring::Builder::WithKeyIds(const Aws::List<Aws::String> &key_ids) {
+KmsKeyring::Builder &KmsKeyring::Builder::WithKeyIds(const Aws::Vector<Aws::String> &key_ids) {
     this->key_ids.insert(this->key_ids.end(), key_ids.begin(), key_ids.end());
     return *this;
 }
