@@ -178,14 +178,12 @@ int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
 
     const auto unencrypted_data_key_cpp = aws_utils_byte_buffer_from_c_aws_byte_buf(unencrypted_data_key);
 
-    for (auto kms_cmk_name : self->key_ids) {
-        /* When we make generate data key call above, KMS also encrypts the data
-         * key once. In that case, do not reencrypt with the same CMK.
-         */
-        if (generated_new_data_key && kms_cmk_name == generating_key_id) continue;
-        auto kms_client = self->GetKmsClient(kms_cmk_name);
+    size_t num_key_ids = self->key_ids.size();
+    for (size_t key_id_idx = generated_new_data_key ? 1 : 0; key_id_idx < num_key_ids; ++key_id_idx) {
+        auto key_id = self->key_ids[key_id_idx];
+        auto kms_client = self->GetKmsClient(key_id);
         auto kms_client_request = self->CreateEncryptRequest(
-            kms_cmk_name,
+            key_id,
             self->grant_tokens,
             unencrypted_data_key_cpp,
             enc_context_cpp);
