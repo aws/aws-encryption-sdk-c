@@ -179,8 +179,8 @@ int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
     const auto unencrypted_data_key_cpp = aws_utils_byte_buffer_from_c_aws_byte_buf(unencrypted_data_key);
 
     for (auto kms_cmk_name : self->key_ids) {
-        /* CMK used to generate data key is also in the list of key IDs.
-         * Do not re-encrypt with that same one.
+        /* When we make generate data key call above, KMS also encrypts the data
+         * key once. In that case, do not reencrypt with the same CMK.
          */
         if (generated_new_data_key && kms_cmk_name == generating_key_id) continue;
         auto kms_client = self->GetKmsClient(kms_cmk_name);
@@ -333,7 +333,7 @@ std::shared_ptr<KMS::KMSClient> KmsKeyring::CachingClientSupplier::UnlockedGetCl
     if (cache.find(region) != cache.end()) {
         return cache.at(region);
     }
-    return NULL;
+    return nullptr;
 }
 
 std::shared_ptr<KMS::KMSClient> KmsKeyring::CachingClientSupplier::LockedGetClient(const Aws::String &region) const {
@@ -341,7 +341,7 @@ std::shared_ptr<KMS::KMSClient> KmsKeyring::CachingClientSupplier::LockedGetClie
     if (cache.find(region) != cache.end()) {
         return cache.at(region);
     }
-    return NULL;
+    return nullptr;
 }
 
 std::shared_ptr<KmsKeyring::ClientSupplier> KmsKeyring::Builder::BuildClientSupplier() const {

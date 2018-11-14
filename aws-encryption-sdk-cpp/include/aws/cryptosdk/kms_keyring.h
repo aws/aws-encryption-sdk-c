@@ -166,7 +166,7 @@ class KmsKeyring : public aws_cryptosdk_keyring {
          * Returns a KMS Client in the specified region. Does not acquire a lock on the cache.
          * Only to be used in cases where the cache is not being modified during operation of keyring.
          */
-        virtual std::shared_ptr<KMS::KMSClient> UnlockedGetClient(const Aws::String &region_name) const = 0;
+        virtual std::shared_ptr<KMS::KMSClient> UnlockedGetClient(const Aws::String &region) const = 0;
         virtual ~ClientSupplier() {};
     };
 
@@ -176,14 +176,14 @@ class KmsKeyring : public aws_cryptosdk_keyring {
      */
     class CachingClientSupplier : public ClientSupplier {
       public:
-        std::shared_ptr<KMS::KMSClient> UnlockedGetClient(const Aws::String &region_name) const;
+        std::shared_ptr<KMS::KMSClient> UnlockedGetClient(const Aws::String &region) const;
 
         /**
-         * Returns a KMS Client in the specified region. Does acquire the cache lock.
-         * Always use this instead of UnlockedGetClient if the cache can be modified during keyring
-         * operation. (i.e., for Discovery Keyring)
+         * Returns a KMS Client in the specified region. Does acquire the cache lock. Always use
+         * this instead of UnlockedGetClient if the cache can be modified during keyring operaion.
+         * (i.e., for Discovery Keyring) Returns nullptr if no cached client found for region.
          */
-        std::shared_ptr<KMS::KMSClient> LockedGetClient(const Aws::String &region_name) const;
+        virtual std::shared_ptr<KMS::KMSClient> LockedGetClient(const Aws::String &region) const;
 
         /**
          * Stores the provided client as the cached client for the specified region. If the client
@@ -196,7 +196,7 @@ class KmsKeyring : public aws_cryptosdk_keyring {
          */
         mutable std::mutex cache_mutex;
         /**
-         * Region name -> KMS Client.
+         * Region -> KMS Client.
          */
         Aws::Map<Aws::String, std::shared_ptr<Aws::KMS::KMSClient>> cache;
     };
