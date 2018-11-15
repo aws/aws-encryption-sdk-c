@@ -105,7 +105,7 @@ static int enc_cache_miss() {
 
 static int enc_cache_hit() {
     setup_mocks();
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(aws_default_allocator(), &mock_mat_cache->base, &mock_upstream_cmm->base, NULL);
+    struct aws_cryptosdk_cmm*cmm = aws_cryptosdk_caching_cmm_new(aws_default_allocator(), &mock_mat_cache->base, &mock_upstream_cmm->base, NULL);
     release_mocks();
 
     struct aws_hash_table req_context, expect_context;
@@ -338,6 +338,182 @@ static int enc_cache_id_test_vecs() {
     return 0;
 }
 
+static int access_cache(
+    struct aws_cryptosdk_cmm *cmm,
+    struct aws_cryptosdk_encryption_request *request,
+    bool *was_hit,
+    struct aws_cryptosdk_cache_usage_stats usag
+) {
+    mock_upstream_cmm->n_edks = 1;
+    mock_upstream_cmm->returned_alg = AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE;
+    mock_mat_cache->should_hit = mock_mat_cache->enc_materials != NULL;
+
+    mock_upstream_cmm->last_enc_request = NULL;
+    mock_mat_cache->invalidated = false;
+
+    struct aws_cryptosdk_encryption_materials *output;
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_encryption_materials(
+        cmm, &output, request
+    ));
+
+    *was_hit = !mock_upstream_cmm->last_enc_request;
+
+    aws_cryptosdk_encryption_materials_destroy(output);
+
+    return 0;
+}
+
+static uint64_t mock_clock_time = 0;
+static bool mock_clock_queried;
+static int mock_clock_get_ticks(uint64_t *now) {
+    *now = mock_clock_time;
+    mock_clock_queried = true;
+    return 0;
+}
+void caching_cmm_set_clock(struct aws_cryptosdk_cmm *generic_cmm, int (*clock_get_ticks)(uint64_t *now));
+
+static int limits_test() {
+    setup_mocks();
+    struct aws_cryptosdk_cmm*cmm = aws_cryptosdk_caching_cmm_new(aws_default_allocator(), &mock_mat_cache->base, &mock_upstream_cmm->base, NULL);
+
+    struct aws_hash_table req_context;
+    aws_cryptosdk_enc_context_init(aws_default_allocator(), &req_context);
+
+    struct aws_cryptosdk_encryption_request request;
+    request.alloc = aws_default_allocator();
+    request.requested_alg = 0;
+    request.plaintext_size = 32768;
+
+    bool was_hit;
+    struct aws_cryptosdk_cache_usage_stats usage = { 1, 1 };
+
+#define ASSERT_HIT(should_hit) do { \
+    request.enc_context = &req_context; \
+    aws_hash_table_clear(&req_context); \
+    if (access_cache(cmm, &request, &was_hit, usage)) { \
+        return 1; \
+    } \
+    TEST_ASSERT_INT_EQ(should_hit, was_hit); \
+} while (0)
+
+    // Set a sentinel value so we know if the CMM set a TTL hint when it shouldn't
+    mock_mat_cache->entry_ttl_hint = 0x424242;
+    mock_clock_queried = false;
+    caching_cmm_set_clock(cmm, mock_clock_get_ticks);
+
+    // Do an initial miss to create the response
+    ASSERT_HIT(false);
+
+    // Sanity check: We should hit
+    ASSERT_HIT(true);
+
+    // If we set a message use limit, we'll expire after we hit the limit
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limits(
+        cmm, AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES, 4
+    ));
+    mock_mat_cache->usage_stats.messages_encrypted = 2;
+    ASSERT_HIT(true);
+    TEST_ASSERT(!mock_mat_cache->invalidated);
+    mock_mat_cache->usage_stats.messages_encrypted = 3;
+    ASSERT_HIT(true);
+    TEST_ASSERT(mock_mat_cache->invalidated);
+    mock_mat_cache->usage_stats.messages_encrypted = 4;
+    ASSERT_HIT(false);
+    TEST_ASSERT(mock_mat_cache->invalidated);
+    // Note that our mock doesn't actually invalidate when asked, so we can continue on
+
+    // The caching CMM should clamp the message limit to 1<<32
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limits(
+        cmm, AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES, UINT64_MAX
+    ));
+    mock_mat_cache->usage_stats.messages_encrypted = ((uint64_t)1 << 32) - 1;
+    ASSERT_HIT(true);
+    mock_mat_cache->usage_stats.messages_encrypted = (uint64_t)1 << 32;
+    ASSERT_HIT(false);
+
+    // Byte limits next
+    mock_mat_cache->usage_stats.messages_encrypted = 0;
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limits(
+        cmm, AWS_CRYPTOSDK_CACHE_LIMIT_BYTES, 1000
+    ));
+
+    request.plaintext_size = 250;
+    mock_mat_cache->usage_stats.bytes_encrypted = 250;
+    ASSERT_HIT(true);
+
+    request.plaintext_size = 500;
+    mock_mat_cache->usage_stats.bytes_encrypted = 500;
+    ASSERT_HIT(true);
+    // Request should have invalidated this entry, but still hit
+    TEST_ASSERT(mock_mat_cache->invalidated);
+
+    request.plaintext_size = 501;
+    mock_mat_cache->usage_stats.bytes_encrypted = 500;
+    ASSERT_HIT(false);
+    TEST_ASSERT(mock_mat_cache->invalidated);
+
+    request.plaintext_size = 1;
+    mock_mat_cache->usage_stats.bytes_encrypted = 1000;
+    ASSERT_HIT(false);
+    TEST_ASSERT(mock_mat_cache->invalidated);
+
+    // TTL limits
+    // Since we had no limit set until now, the CMM should not have been querying the clock
+    // or setting TTLs
+    TEST_ASSERT(!mock_clock_queried);
+    TEST_ASSERT_INT_EQ(mock_mat_cache->entry_ttl_hint, 0x424242);
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limits(
+        cmm, AWS_CRYPTOSDK_CACHE_LIMIT_BYTES, UINT64_MAX
+    ));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limits(
+        cmm, AWS_CRYPTOSDK_CACHE_LIMIT_TTL, 10000
+    ));
+    mock_mat_cache->usage_stats.bytes_encrypted = 0;
+
+    mock_clock_time = 100;
+    mock_mat_cache->entry_creation_time = 1;
+    ASSERT_HIT(true);
+    TEST_ASSERT_INT_EQ(10001, mock_mat_cache->entry_ttl_hint);
+    TEST_ASSERT(!mock_mat_cache->invalidated);
+
+    mock_clock_time = 200;
+    ASSERT_HIT(true);
+    TEST_ASSERT_INT_EQ(10001, mock_mat_cache->entry_ttl_hint);
+    TEST_ASSERT(!mock_mat_cache->invalidated);
+
+    mock_clock_time = 10000;
+    ASSERT_HIT(true);
+    TEST_ASSERT_INT_EQ(10001, mock_mat_cache->entry_ttl_hint);
+    TEST_ASSERT(!mock_mat_cache->invalidated);
+
+    mock_clock_time = 10001;
+    ASSERT_HIT(false);
+    TEST_ASSERT(mock_mat_cache->invalidated);
+
+    mock_clock_time = 10002;
+    ASSERT_HIT(false);
+    TEST_ASSERT(mock_mat_cache->invalidated);
+
+    // If someone sets a really big timeout, and the expiration overflows, we shouldn't
+    // expire.
+    mock_mat_cache->entry_creation_time = (uint64_t)0xE << 60; // 0xE000....ULL
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limits(
+        cmm, AWS_CRYPTOSDK_CACHE_LIMIT_TTL, (uint64_t)0x2 << 60
+    ));
+    mock_clock_time = 2;
+
+    mock_mat_cache->entry_ttl_hint = 0x424242;
+    ASSERT_HIT(true);
+    TEST_ASSERT_INT_EQ(mock_mat_cache->entry_ttl_hint, 0x424242);
+
+    aws_cryptosdk_cmm_release(cmm);
+    aws_cryptosdk_enc_context_clean_up(&req_context);
+    teardown();
+
+    return 0;
+}
+
 static void setup_mocks() {
     mock_mat_cache = mock_mat_cache_new(aws_default_allocator());
     mock_upstream_cmm = mock_upstream_cmm_new(aws_default_allocator());
@@ -370,5 +546,6 @@ struct test_case caching_cmm_test_cases[] = {
     TEST_CASE(enc_cache_unique_ids),
     TEST_CASE(enc_cache_id_test_vecs),
     TEST_CASE(enc_cache_hit),
+    TEST_CASE(limits_test),
     { NULL }
 };
