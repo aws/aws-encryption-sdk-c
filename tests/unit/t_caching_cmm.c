@@ -99,6 +99,8 @@ static int enc_cache_miss() {
 
     aws_cryptosdk_cmm_release(cmm);
     teardown();
+
+    return 0;
 }
 
 static int enc_cache_hit() {
@@ -162,6 +164,8 @@ static int enc_cache_hit() {
 
     aws_cryptosdk_cmm_release(cmm);
     teardown();
+
+    return 0;
 }
 
 static int enc_cache_unique_ids() {
