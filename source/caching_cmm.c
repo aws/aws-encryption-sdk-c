@@ -124,6 +124,16 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
 
 AWS_CRYPTOSDK_TEST_STATIC
 int hash_encrypt_request(struct aws_string *partition_id, struct aws_byte_buf *out, const struct aws_cryptosdk_encryption_request *req) {
+    /*
+     * Here, we hash the relevant aspects of the request structure to use as a cache identifier.
+     * The hash is intended to match Java and Python, but since we've not yet committed to maintaining
+     * that parity indefinitely, we don't include this structure as part of the header API docs.
+     * The structure, internally, is:
+     *   [partition ID hash]
+     *   [0x01 if the request alg id is set, otherwise 0x00]
+     *   [request alg id, if set]
+     *   [serialized encryption context]
+     */
     struct aws_byte_buf context_buf = {0};
     uint8_t digestbuf[AWS_CRYPTOSDK_MD_MAX_SIZE] = {0};
 
