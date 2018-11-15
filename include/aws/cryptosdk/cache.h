@@ -91,12 +91,18 @@ struct aws_cryptosdk_mat_cache_vt {
     );
 
     /**
-     * Updates the entry's usage stats; first, the value of *usage_stats is added
-     * to the entry's aggregate usage stats, then the new value of these aggregate
-     * stats is returned.
+     * Performs an atomic add-and-fetch on this entry's usage stats. The value
+     * passed in via *usage_stats is added to the entry's usage stats; then, atomically
+     * with the add, the new sum is read and returned via *usage_stats.
+     *
+     * In other words, this operation effectively does:
+     *   *usage_stats = entry->stats = entry->stats + *usage_stats
      *
      * This operation is atomic with respect to each component of usage_stats, but may
-     * not be atomic with respect to the overall usage_stats structure.
+     * not be atomic with respect to the overall usage_stats structure; this means that,
+     * for example, if we start with (messages=1, bytes=1), and we have two threads
+     * adding (1,1), one thread might observe (3,2) and the other might observe (2,3), but
+     * we won't ever have both threads observing the same value.
      * 
      * If the cache entry is not an encrypt entry, or if the entry has been invalidated,
      * or if an internal error occurs during processing, the returned value of *usage_stats
