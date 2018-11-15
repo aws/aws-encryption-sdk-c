@@ -339,12 +339,29 @@ static void locked_release_entry(
     bool invalidate
 ) {
     /*
-     * We must use release order here, to guard against a race where two threads release the last
-     * two references simultaneously, and then pending writes to the entry are processed on one
-     * thread while the other is destroying the entry.
+     * We must use release memory order here, to guard against a race condition. Consider the following
+     * program order:
      *
-     * By using release order, we ensure that these pending writes are ordered before the final
-     * release operation on the entry.
+     * Thread A:
+     *   get_encryption_materials
+     *   locked_release_entry(invalidate=true)
+     *
+     * Thread B:
+     *   release_entry
+     *
+     * If we use relaxed memory order, we could end up with the following execution order:
+     *
+     * Thread A:
+     *   locked_release_entry (old_count = 2)
+     * Thread B:
+     *   release_entry (old_count = 1)
+     *     -> destroy_entry
+     * Thread A:
+     *   get_encryption_materials
+     *     (accesses uninitialized memory)
+     *
+     * To prevent this race, we use release memory order; this prevents any memory accesses performed
+     * before this atomic operation from being reordered to happen later, resolving this race.
      */
     size_t old_count = aws_atomic_fetch_sub_explicit(&entry->refcount, 1, aws_memory_order_release);
     assert(old_count != 0);
@@ -765,12 +782,8 @@ static void release_entry(
     }
 
     /*
-     * We must use release order here, to guard against a race where two threads release the last
-     * two references simultaneously, and then pending writes to the entry are processed on one
-     * thread while the other is destroying the entry.
-     *
-     * By using release order, we ensure that these pending writes are ordered before the final
-     * release operation on the entry.
+     * We must use release order here; see comments in locked_release_entry regarding the race we're guarding
+     * against.
      */
     size_t old_count = aws_atomic_fetch_sub_explicit(&entry->refcount, 1, aws_memory_order_release);
     assert(old_count != 0);

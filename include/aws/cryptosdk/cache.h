@@ -91,10 +91,12 @@ struct aws_cryptosdk_mat_cache_vt {
     );
 
     /**
-     * Adds *usage_stats to the entry's usage stats, then returns the updated usage
-     * stats in *usage_stats. This operation is atomic with respect to each component
-     * of usage_stats, but may not be atomic with respect to the overall usage_stats
-     * structure.
+     * Updates the entry's usage stats; first, the value of *usage_stats is added
+     * to the entry's aggregate usage stats, then the new value of these aggregate
+     * stats is returned.
+     *
+     * This operation is atomic with respect to each component of usage_stats, but may
+     * not be atomic with respect to the overall usage_stats structure.
      * 
      * If the cache entry is not an encrypt entry, or if the entry has been invalidated,
      * or if an internal error occurs during processing, the returned value of *usage_stats
@@ -107,16 +109,18 @@ struct aws_cryptosdk_mat_cache_vt {
     );
 
     /**
-     * Creates a copy of the cached encryption materials associated with entry, and
-     * places the newly allocated encryption materials in *materials. Additionally,
-     * updates the hash table at *enc_context to match the cached encryption context.
+     * Retrieves the cached encryption materials from the cache.
      * 
-     * This function will allocate a new aws_cryptosdk_encryption_materials object;
-     * therefore, the initial value of *materials will be ignored. On failure,
-     * *materials will be set to NULL, and the contents of enc_context are unspecified
-     * (however, any strings added to enc_context are safe to pass to aws_string_destroy).
+     * On success, (1) `*materials` is overwritten with a newly allocated encryption
+     * materials object, and (2) `enc_context` is updated to match the cached encryption
+     * context (adding and removing entries to make it match the cached value).
      * 
-     * This function will fail if called on cached decryption materials. It MAY fail
+     * On failure (e.g., out of memory), `*materials` will be set to NULL; `enc_context`
+     * remains an allocated encryption context hash table, but the contents of the hash
+     * table are unspecified, as we may have been forced to abort partway through updating
+     * the contents of the hash table.
+     *
+     * This function will always fail if called on cached decryption materials. It MAY fail
      * when called on an invalidated entry, but this is not guaranteed.
      */
     int (*get_encryption_materials)(
