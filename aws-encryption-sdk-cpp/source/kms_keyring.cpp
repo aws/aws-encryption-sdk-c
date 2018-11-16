@@ -74,13 +74,21 @@ int KmsKeyring::OnDecrypt(struct aws_cryptosdk_keyring *keyring,
         }
 
         const Aws::String key_arn = Private::aws_string_from_c_aws_byte_buf(&edk->provider_info);
-        if (std::find(self->key_ids.begin(), self->key_ids.end(), key_arn) == self->key_ids.end()) {
-            // EDK encrypted by KMS key this keyring does not have access to. Skip.
+
+        /* If there are no key IDs in the list, keyring is in "discovery" mode and will attempt KMS calls with
+         * every ARN it comes across in the message. If there are key IDs in the list, it will cross check the
+         * ARN it reads with that list before attempting KMS calls. Note that if caller provided key IDs in
+         * anything other than a CMK ARN format, the SDK will not attempt to decrypt those data keys, because
+         * the EDK data format always specifies the CMK with the full ARN.
+         */
+        if (self->key_ids.size() && std::find(self->key_ids.begin(), self->key_ids.end(), key_arn) == self->key_ids.end()) {
+            // This keyring does not have access to the CMK used to encrypt this data key. Skip.
             continue;
         }
-        auto kms_client = self->GetKmsClient(key_arn);
-        auto kms_request = self->CreateDecryptRequest(key_arn,
-                                                      self->grant_tokens,
+        Aws::String kms_region = Private::parse_region_from_kms_key_arn(key_arn);
+        bool should_cache = false;
+        auto kms_client = self->kms_client_supplier->GetClient(kms_region, should_cache);
+        auto kms_request = self->CreateDecryptRequest(self->grant_tokens,
                                                       aws_utils_byte_buffer_from_c_aws_byte_buf(&edk->enc_data_key),
                                                       enc_context_cpp);
 
@@ -90,6 +98,7 @@ int KmsKeyring::OnDecrypt(struct aws_cryptosdk_keyring *keyring,
                       << outcome.GetError().GetMessage() << " ";
             continue;
         }
+        if (should_cache) self->kms_client_supplier->CacheClient(kms_region, kms_client);
 
         const Aws::String &outcome_key_id = outcome.GetResult().GetKeyId();
         if (outcome_key_id == key_arn) {
@@ -131,9 +140,14 @@ int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
     };
     
     if (!keyring || !request_alloc || !unencrypted_data_key || !edk_list || !enc_context) {
-            abort();
+        abort();
     }
     auto self = static_cast<Aws::Cryptosdk::KmsKeyring *>(keyring);
+
+    /* When no key IDs are configured, i.e. "discovery mode", keyring can only be used for decrypt. */
+    if (!self->key_ids.size()) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    }
 
     EdksRaii edks;
     int rv = edks.Create(request_alloc);
@@ -142,15 +156,18 @@ int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
     const auto enc_context_cpp = aws_map_from_c_aws_hash_table(enc_context);
 
     bool generated_new_data_key = false;
-    Aws::String generating_key_id = self->key_ids.front();
     if (!unencrypted_data_key->buffer) {
         const struct aws_cryptosdk_alg_properties *alg_prop = aws_cryptosdk_alg_props(alg);
         if (alg_prop == NULL) {
             AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "Invalid encryption materials algorithm properties");
             return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
         }
-        auto kms_client = self->GetKmsClient(generating_key_id);
-        auto kms_request = self->CreateGenerateDataKeyRequest(generating_key_id,
+        Aws::String key_id = self->key_ids.front();
+        Aws::String kms_region = Private::parse_region_from_kms_key_arn(key_id);
+        if (kms_region.empty()) kms_region = self->default_region;
+        bool should_cache = false;
+        auto kms_client = self->kms_client_supplier->GetClient(kms_region, should_cache);
+        auto kms_request = self->CreateGenerateDataKeyRequest(key_id,
                                                               self->grant_tokens,
                                                               (int)alg_prop->data_key_len,
                                                               enc_context_cpp);
@@ -160,7 +177,7 @@ int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
             AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "Invalid encryption materials algorithm properties");
             return aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
         }
-
+        if (should_cache) self->kms_client_supplier->CacheClient(kms_region, kms_client);
         rv = append_key_dup_to_edks(request_alloc,
                                     &edks.aws_list,
                                     &outcome.GetResult().GetCiphertextBlob(),
@@ -180,8 +197,11 @@ int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
 
     size_t num_key_ids = self->key_ids.size();
     for (size_t key_id_idx = generated_new_data_key ? 1 : 0; key_id_idx < num_key_ids; ++key_id_idx) {
-        auto key_id = self->key_ids[key_id_idx];
-        auto kms_client = self->GetKmsClient(key_id);
+        Aws::String key_id = self->key_ids[key_id_idx];
+        Aws::String kms_region = Private::parse_region_from_kms_key_arn(key_id);
+        if (kms_region.empty()) kms_region = self->default_region;
+        bool should_cache = false;
+        auto kms_client = self->kms_client_supplier->GetClient(kms_region, should_cache);
         auto kms_client_request = self->CreateEncryptRequest(
             key_id,
             self->grant_tokens,
@@ -196,7 +216,7 @@ int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
             rv = aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
             goto out;
         }
-
+        if (should_cache) self->kms_client_supplier->CacheClient(kms_region, kms_client);
         rv = append_key_dup_to_edks(
             request_alloc,
             &edks.aws_list,
@@ -254,8 +274,7 @@ Aws::KMS::Model::EncryptRequest KmsKeyring::CreateEncryptRequest(const Aws::Stri
     return encryption_request;
 }
 
-Aws::KMS::Model::DecryptRequest KmsKeyring::CreateDecryptRequest(const Aws::String &key_id,
-                                                                 const Aws::Vector<Aws::String> &grant_tokens,
+Aws::KMS::Model::DecryptRequest KmsKeyring::CreateDecryptRequest(const Aws::Vector<Aws::String> &grant_tokens,
                                                                  const Utils::ByteBuffer &ciphertext,
                                                                  const Aws::Map<Aws::String,
                                                                                 Aws::String> &encryption_context) const {
@@ -284,16 +303,7 @@ Aws::KMS::Model::GenerateDataKeyRequest KmsKeyring::CreateGenerateDataKeyRequest
     return request;
 }
 
-std::shared_ptr<KMS::KMSClient> KmsKeyring::GetKmsClient(const Aws::String &key_id) const {
-    auto region = Private::parse_region_from_kms_key_arn(key_id);
-    if (region.empty()) {
-	region = default_region;
-    }
-
-    return kms_client_supplier->UnlockedGetClient(region);
-}
-
-std::shared_ptr<KMS::KMSClient> KmsKeyring::CreateDefaultKmsClient(const Aws::String &region) {
+static std::shared_ptr<KMS::KMSClient> CreateDefaultKmsClient(const Aws::String &region) {
     Aws::Client::ClientConfiguration client_configuration;
     client_configuration.region = region;
 #ifdef VALGRIND_TESTS
@@ -302,44 +312,30 @@ std::shared_ptr<KMS::KMSClient> KmsKeyring::CreateDefaultKmsClient(const Aws::St
     client_configuration.connectTimeoutMs = 10000;
 #endif
     return Aws::MakeShared<Aws::KMS::KMSClient>(AWS_CRYPTO_SDK_KMS_CLASS_TAG, client_configuration);
-
 }
 
-void KmsKeyring::CachingClientSupplier::PutClient(const Aws::String &region, std::shared_ptr<KMS::KMSClient> kms_client) {
+void KmsKeyring::CachingClientSupplier::CacheClient(const Aws::String &region, std::shared_ptr<KMS::KMSClient> kms_client) {
     std::unique_lock<std::mutex> lock(cache_mutex);
     if (cache.find(region) != cache.end()) {
         // Already have a cached client for this region. Do nothing.
         return;
     }
-
-    if (!kms_client) {
-        kms_client = CreateDefaultKmsClient(region);
-    }
     cache[region] = kms_client;
 }
 
-KmsKeyring::SingleClientSupplier::SingleClientSupplier(const std::shared_ptr<KMS::KMSClient> &kms_client)
-    : kms_client(kms_client) {
-}
-
-std::shared_ptr<KMS::KMSClient> KmsKeyring::SingleClientSupplier::UnlockedGetClient(const Aws::String &region) const {
+std::shared_ptr<KMS::KMSClient> KmsKeyring::SingleClientSupplier::GetClient(const Aws::String &region, bool &should_cache) const {
+    should_cache = false;
     return kms_client;
 }
 
-
-std::shared_ptr<KMS::KMSClient> KmsKeyring::CachingClientSupplier::UnlockedGetClient(const Aws::String &region) const {
-    if (cache.find(region) != cache.end()) {
-        return cache.at(region);
-    }
-    return nullptr;
-}
-
-std::shared_ptr<KMS::KMSClient> KmsKeyring::CachingClientSupplier::LockedGetClient(const Aws::String &region) const {
+std::shared_ptr<KMS::KMSClient> KmsKeyring::CachingClientSupplier::GetClient(const Aws::String &region, bool &should_cache) const {
     std::unique_lock<std::mutex> lock(cache_mutex);
     if (cache.find(region) != cache.end()) {
+        should_cache = false;
         return cache.at(region);
     }
-    return nullptr;
+    should_cache = true;
+    return CreateDefaultKmsClient(region);
 }
 
 std::shared_ptr<KmsKeyring::ClientSupplier> KmsKeyring::Builder::BuildClientSupplier() const {
@@ -359,26 +355,12 @@ std::shared_ptr<KmsKeyring::ClientSupplier> KmsKeyring::Builder::BuildClientSupp
         return Aws::MakeShared<SingleClientSupplier>(AWS_CRYPTO_SDK_KMS_CLASS_TAG, CreateDefaultKmsClient(region));
     }
 
-    auto my_client_supplier = client_supplier ? client_supplier :
+    return client_supplier ? client_supplier :
         Aws::MakeShared<CachingClientSupplier>(AWS_CRYPTO_SDK_KMS_CLASS_TAG);
-
-    for (auto &key : key_ids) {
-        Aws::String region = Private::parse_region_from_kms_key_arn(key);
-        if (region.empty()) {
-            region = default_region;
-        }
-        my_client_supplier->PutClient(region);
-    }
-    return my_client_supplier;
 }
 
 bool KmsKeyring::Builder::ValidParameters() const {
-    if (key_ids.size() == 0) {
-        AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "No key IDs were provided");
-        return false;
-    }
-
-    bool need_full_arns = kms_client == nullptr && default_region == "";
+    bool need_full_arns = !kms_client && default_region.empty();
 
     for (auto &key : key_ids) {
         if (key.empty()) {
@@ -447,8 +429,12 @@ KmsKeyring::Builder &KmsKeyring::Builder::WithGrantTokens(const Aws::Vector<Aws:
     return *this;
 }
 
-KmsKeyring::Builder &KmsKeyring::Builder::WithCachingClientSupplier(
-        const std::shared_ptr<CachingClientSupplier> &client_supplier) {
+KmsKeyring::Builder &KmsKeyring::Builder::WithGrantToken(const Aws::String &grant_token) {
+    this->grant_tokens.push_back(grant_token);
+    return *this;
+}
+
+KmsKeyring::Builder &KmsKeyring::Builder::WithClientSupplier(const std::shared_ptr<ClientSupplier> &client_supplier) {
     this->client_supplier = client_supplier;
     return *this;
 }

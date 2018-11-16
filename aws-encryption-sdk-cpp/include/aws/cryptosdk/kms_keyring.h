@@ -123,8 +123,7 @@ class KmsKeyring : public aws_cryptosdk_keyring {
     /**
      * Creates a new KMS Decrypt request
      */
-    Aws::KMS::Model::DecryptRequest CreateDecryptRequest(const Aws::String &key_id,
-                                                         const Aws::Vector<Aws::String> &grant_tokens,
+    Aws::KMS::Model::DecryptRequest CreateDecryptRequest(const Aws::Vector<Aws::String> &grant_tokens,
                                                          const Utils::ByteBuffer &ciphertext,
                                                          const Aws::Map<Aws::String,
                                                                         Aws::String> &encryption_context) const;
@@ -143,11 +142,6 @@ class KmsKeyring : public aws_cryptosdk_keyring {
      */
     std::shared_ptr<KMS::KMSClient> GetKmsClient(const Aws::String &key_id) const;
 
-    /**
-     *  Creates a AWS C++ SDK KMS Client for region with default options.
-     */
-    static std::shared_ptr<KMS::KMSClient> CreateDefaultKmsClient(const Aws::String &region);
-
   private:
     const aws_byte_buf key_provider;
     std::shared_ptr<ClientSupplier> kms_client_supplier;
@@ -158,42 +152,31 @@ class KmsKeyring : public aws_cryptosdk_keyring {
 
   public:
     /**
-     * Interface that supplies KmsKeyring with KMS Client objects
-     */
-    class ClientSupplier {
-      public:
-        /**
-         * Returns a KMS Client in the specified region. Does not acquire a lock on the cache.
-         * Only to be used in cases where the cache is not being modified during operation of keyring.
-         */
-        virtual std::shared_ptr<KMS::KMSClient> UnlockedGetClient(const Aws::String &region) const = 0;
-        virtual ~ClientSupplier() {};
-    };
-
-    /**
      * Provides KMS clients in multiple regions, and allows caching of clients between
      * multiple KMS keyrings.
      */
-    class CachingClientSupplier : public ClientSupplier {
+    class ClientSupplier {
       public:
-        std::shared_ptr<KMS::KMSClient> UnlockedGetClient(const Aws::String &region) const;
+        virtual ~ClientSupplier() {};
+        /**
+         * Returns a KMS client for the particular region. Sets the flag should_cache to recommend whether to
+         * cache this client. Implementations that do not support caching should always* set this flag to false,
+         * and implementations that do support caching should set it to true when the client that is returned is
+         * not already cached.
+         */
+        virtual std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region, bool &should_cache) const = 0;
 
         /**
-         * Returns a KMS Client in the specified region. Does acquire the cache lock. Always use
-         * this instead of UnlockedGetClient if the cache can be modified during keyring operaion.
-         * (i.e., for Discovery Keyring) Returns nullptr if no cached client found for region.
+         * If client supplier supports caching, stores the provided client as the cached client for the
+         * specified region. Otherwise, it is a no-op.
          */
-        virtual std::shared_ptr<KMS::KMSClient> LockedGetClient(const Aws::String &region) const;
+	virtual void CacheClient(const Aws::String &region, std::shared_ptr<KMS::KMSClient> client) {}
+    };
 
-        /**
-         * Stores the provided client as the cached client for the specified region. If the client
-         * is not provided, constructs a default client for the specified region.
-         */
-	void PutClient(const Aws::String &region, std::shared_ptr<KMS::KMSClient> client = nullptr);
-      private:
-        /**
-         * Acquired by both PutClient and LockedGetClient before accessing the cache.
-         */
+    class CachingClientSupplier : public ClientSupplier {
+        std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region, bool &should_cache) const;
+        void CacheClient(const Aws::String &region, std::shared_ptr<KMS::KMSClient> client);
+      protected:
         mutable std::mutex cache_mutex;
         /**
          * Region -> KMS Client.
@@ -207,8 +190,8 @@ class KmsKeyring : public aws_cryptosdk_keyring {
      */
     class SingleClientSupplier : public ClientSupplier {
       public:
-        SingleClientSupplier(const std::shared_ptr<KMS::KMSClient> &kms_client);
-        std::shared_ptr<KMS::KMSClient> UnlockedGetClient(const Aws::String &region_name) const;
+        SingleClientSupplier(const std::shared_ptr<KMS::KMSClient> &kms_client) : kms_client(kms_client) {}
+        std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region_name, bool &already_cached) const;
       private:
         std::shared_ptr<KMS::KMSClient> kms_client;
     };
@@ -257,7 +240,7 @@ class KmsKeyring : public aws_cryptosdk_keyring {
          * caching client supplier among more than one KMS keyring. This is optional. A client supplier
          * will be created if one is not provided.
          */
-        Builder &WithCachingClientSupplier(const std::shared_ptr<CachingClientSupplier> &client_supplier);
+        Builder &WithClientSupplier(const std::shared_ptr<ClientSupplier> &client_supplier);
 
         /**
          * KmsKeyring will use only this KMS Client regardless of the configured region.
@@ -281,7 +264,7 @@ class KmsKeyring : public aws_cryptosdk_keyring {
         Aws::String default_region;
         std::shared_ptr<KMS::KMSClient> kms_client;
         Aws::Vector<Aws::String> grant_tokens;
-        std::shared_ptr<CachingClientSupplier> client_supplier;
+        std::shared_ptr<ClientSupplier> client_supplier;
     };
 };
 

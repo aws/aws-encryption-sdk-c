@@ -732,8 +732,7 @@ int createDecryptRequest_validInputes_returnRequest() {
 
     DecryptValues dv;
     dv.grant_tokens = {"gt1", "gt2"};
-    Model::DecryptRequest outcome_out = dv.kms_keyring->CreateDecryptRequest(dv.key_id,
-                                                                             dv.grant_tokens,
+    Model::DecryptRequest outcome_out = dv.kms_keyring->CreateDecryptRequest(dv.grant_tokens,
                                                                              dv.ct_bb,
                                                                              dv.GetEncryptionContext());
 
@@ -794,27 +793,46 @@ int testBuilder_buildClientSupplier_buildsClient() {
     return 0;
 }
 
-int testBuilder_invalidInputs_returnFalse() {
+int testBuilder_noKeys_valid() {
     KmsKeyringBuilderExposer a;
-
     // no keys
-    TEST_ASSERT(a.ValidParameters() == false);
+    TEST_ASSERT(a.ValidParameters() == true);
+    return 0;
+}
 
-    // minimum valid parameters are met
+int testBuilder_keyWithRegion_valid() {
+    KmsKeyringBuilderExposer a;
     a.WithKeyId("arn:aws:kms:region_extracted_from_key:");
     TEST_ASSERT(a.ValidParameters() == true);
+    return 0;
+}
 
-    // key without region
+int testBuilder_keyWithoutRegion_invalid() {
+    KmsKeyringBuilderExposer a;
     a.WithKeyId("alias/foobar");
     TEST_ASSERT(a.ValidParameters() == false);
+    return 0;
+}
 
-    a.WithDefaultRegion("default_region_set");
+int testBuilder_keyWithoutRegionAndDefaultRegion_valid() {
+    KmsKeyringBuilderExposer a;
+    a.WithKeyId("alias/foobar").WithDefaultRegion("default_region_set");
     TEST_ASSERT(a.ValidParameters() == true);
+    return 0;
+}
 
-    // empty key is not allowed
-    a.WithKeyId("");
+int testBuilder_keyWithoutRegionAndKmsClient_valid() {
+    KmsKeyringBuilderExposer a;
+    TestValues tv;
+    a.WithKeyId("alias/foobar").WithKmsClient(tv.kms_client_mock);
+    TEST_ASSERT(a.ValidParameters() == true);
+    return 0;
+}
+
+int testBuilder_emptyKey_invalid() {
+    KmsKeyringBuilderExposer a;
+    a.WithKeyId("").WithDefaultRegion("default_region_set");
     TEST_ASSERT(a.ValidParameters() == false);
-
     return 0;
 }
 
@@ -861,7 +879,12 @@ int main() {
     RUN_TEST(createGenerateDataKeyRequest_validInputes_returnRequest());
     RUN_TEST(createEncryptRequest_validInputes_returnRequest());
     RUN_TEST(testBuilder_buildClientSupplier_buildsClient());
-    RUN_TEST(testBuilder_invalidInputs_returnFalse());
+    RUN_TEST(testBuilder_noKeys_valid());
+    RUN_TEST(testBuilder_keyWithRegion_valid());
+    RUN_TEST(testBuilder_keyWithoutRegion_invalid());
+    RUN_TEST(testBuilder_keyWithoutRegionAndDefaultRegion_valid());
+    RUN_TEST(testBuilder_keyWithoutRegionAndKmsClient_valid());
+    RUN_TEST(testBuilder_emptyKey_invalid());
 
     Aws::ShutdownAPI(*options);
     Aws::Delete(options);
