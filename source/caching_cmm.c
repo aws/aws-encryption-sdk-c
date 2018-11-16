@@ -149,12 +149,12 @@ int hash_encrypt_request(struct aws_string *partition_id, struct aws_byte_buf *o
         goto md_err;
     }
 
-    uint8_t requested_alg = req->requested_alg != 0;
-    if (aws_cryptosdk_md_update(md_context, &requested_alg, 1)) {
+    uint8_t requested_alg_present = req->requested_alg != 0;
+    if (aws_cryptosdk_md_update(md_context, &requested_alg_present, 1)) {
         goto md_err;
     }
 
-    if (requested_alg) {
+    if (requested_alg_present) {
         uint16_t alg_id = aws_hton16(req->requested_alg);
         if (aws_cryptosdk_md_update(md_context, &alg_id, sizeof(alg_id))) {
             goto md_err;
