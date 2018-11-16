@@ -64,12 +64,11 @@ struct aws_string *hash_or_generate_partition_id(struct aws_allocator *alloc, co
     if (partition_name) {
         struct aws_cryptosdk_md_context *md_context = NULL;
 
-        if (aws_cryptosdk_md_init(alloc, &md_context, AWS_CRYPTOSDK_MD_SHA512)) {
-            goto md_fault;
-        }
-
-        if (aws_cryptosdk_md_update(md_context, partition_name->buffer, partition_name->len)) {
-            goto md_fault;
+        if (aws_cryptosdk_md_init(alloc, &md_context, AWS_CRYPTOSDK_MD_SHA512)
+            || aws_cryptosdk_md_update(md_context, partition_name->buffer, partition_name->len))
+        {
+            aws_cryptosdk_md_abort(md_context);
+            return NULL;
         }
 
         size_t len;
@@ -78,10 +77,6 @@ struct aws_string *hash_or_generate_partition_id(struct aws_allocator *alloc, co
         }
 
         return aws_string_new_from_array(alloc, tmparr, len);
-
-    md_fault:
-        aws_cryptosdk_md_abort(md_context);
-        return NULL;
     } else {
         /*
          * Note that other SDKs generate a UUID and hash the UUID, but this is equivalent
@@ -203,11 +198,9 @@ static int generate_enc_materials(struct aws_cryptosdk_cmm *generic_cmm,
 ) {
     struct caching_cmm *cmm = AWS_CONTAINER_OF(generic_cmm, struct caching_cmm, base);
 
-    uint8_t hash_arr[AWS_CRYPTOSDK_MD_MAX_SIZE];
-    struct aws_byte_buf hash_buf = aws_byte_buf_from_array(hash_arr, sizeof(hash_arr));
-    struct aws_cryptosdk_mat_cache_entry *entry = NULL;
-    struct aws_cryptosdk_cache_usage_stats delta_usage, stats;
     bool is_encrypt;
+    struct aws_cryptosdk_mat_cache_entry *entry = NULL;
+    struct aws_cryptosdk_cache_usage_stats delta_usage;
 
     delta_usage.bytes_encrypted = request->plaintext_size;
     delta_usage.messages_encrypted = 1;
@@ -218,6 +211,8 @@ static int generate_enc_materials(struct aws_cryptosdk_cmm *generic_cmm,
         return aws_cryptosdk_cmm_generate_encryption_materials(cmm->upstream, output, request);
     }
 
+    uint8_t hash_arr[AWS_CRYPTOSDK_MD_MAX_SIZE];
+    struct aws_byte_buf hash_buf = aws_byte_buf_from_array(hash_arr, sizeof(hash_arr));
     if (hash_encrypt_request(cmm->partition_id, &hash_buf, request)) {
         return AWS_OP_ERR;
     }
@@ -231,7 +226,7 @@ static int generate_enc_materials(struct aws_cryptosdk_cmm *generic_cmm,
         goto cache_miss;
     }
 
-    stats = delta_usage;
+    struct aws_cryptosdk_cache_usage_stats stats = delta_usage;
     if (aws_cryptosdk_mat_cache_update_usage_stats(cmm->mat_cache, entry, &stats)) {
         goto cache_miss;
     }
