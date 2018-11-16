@@ -21,6 +21,7 @@ include(AwsCFlags)
 include(CheckLibraryExists)
 include(CheckCXXSourceCompiles)
 include(CheckCXXCompilerFlag)
+include(CodeCoverageFlags)
 
 # TODO: Static link?
 include(FindOpenSSL)
@@ -150,7 +151,7 @@ target_link_libraries(aws-encryption-sdk-test PRIVATE ${PLATFORM_LIBS} ${OPENSSL
 target_link_libraries(aws-encryption-sdk-test PUBLIC AWS::aws-c-common)
 target_compile_definitions(aws-encryption-sdk-test PRIVATE AWS_CRYPTOSDK_TEST_STATIC=)
 
-
+include(CodeCoverageTargets)
 
 file(GLOB UNIT_TEST_SRC "tests/unit/*.c")
 file(GLOB UNIT_TEST_HDRS "tests/*.h")
