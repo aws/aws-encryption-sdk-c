@@ -94,8 +94,11 @@ int KmsKeyring::OnDecrypt(struct aws_cryptosdk_keyring *keyring,
 
         Aws::KMS::Model::DecryptOutcome outcome = kms_client->Decrypt(kms_request);
         if (!outcome.IsSuccess()) {
-            error_buf << "Error: " << outcome.GetError().GetExceptionName() << " Message:"
-                      << outcome.GetError().GetMessage() << " ";
+            // Failing on this call is normal behavior in "discovery" mode, but not in standard mode.
+            if (self->key_ids.size()) {
+                    error_buf << "Error: " << outcome.GetError().GetExceptionName() << " Message:"
+                              << outcome.GetError().GetMessage() << " ";
+                }
             continue;
         }
         if (should_cache) self->kms_client_supplier->CacheClient(kms_region, kms_client);
