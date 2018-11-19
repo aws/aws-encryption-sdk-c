@@ -35,13 +35,13 @@ const char *CLASS_TAG = "KMS_MASTER_KEY_CTAG";
 /**
  * Changes access control for some protected members from KmsCMasterKey for testing purposes
  */
-struct KmsMasterKeyExposer : Aws::Cryptosdk::KmsKeyring {
+struct KmsKeyringExposer : Aws::Cryptosdk::KmsKeyring {
   protected:
-    KmsMasterKeyExposer(std::shared_ptr<Aws::KMS::KMSClient> kms,
+    KmsKeyringExposer(std::shared_ptr<Aws::KMS::KMSClient> kms,
                         const Aws::String &key_id)
-        : KmsMasterKeyExposer(kms, Aws::Vector<Aws::String> { key_id }) {
+        : KmsKeyringExposer(kms, Aws::Vector<Aws::String> { key_id }) {
     }
-    KmsMasterKeyExposer(std::shared_ptr<Aws::KMS::KMSClient> kms,
+    KmsKeyringExposer(std::shared_ptr<Aws::KMS::KMSClient> kms,
                         const Aws::Vector<Aws::String> &key_ids,
                         const Aws::Vector<Aws::String> &grant_tokens = { }
                         )
@@ -76,7 +76,7 @@ struct TestValues {
 
     struct aws_allocator *allocator;
     std::shared_ptr<KmsClientMock> kms_client_mock;
-    KmsMasterKeyExposer *kms_keyring;
+    KmsKeyringExposer *kms_keyring;
     Aws::Utils::ByteBuffer pt_bb;
     Aws::Utils::ByteBuffer ct_bb;
     aws_byte_buf pt_aws_byte;
@@ -89,7 +89,7 @@ struct TestValues {
     TestValues(const Aws::Vector<Aws::String> &key_ids, const Aws::Vector<Aws::String> &grant_tokens = { })
                  : allocator(aws_default_allocator()),
                    kms_client_mock(Aws::MakeShared<KmsClientMock>(CLASS_TAG)),
-                   kms_keyring(Aws::New<KmsMasterKeyExposer>(CLASS_TAG,
+                   kms_keyring(Aws::New<KmsKeyringExposer>(CLASS_TAG,
                                                              std::shared_ptr<Aws::KMS::KMSClient>(kms_client_mock),
                                                              key_ids,
                                                              grant_tokens)),
@@ -382,7 +382,7 @@ int encrypt_emptyRegionNameInKeys_returnSuccess() {
     EncryptTestValues ev(key);
 
     auto kms_client_mock = Aws::MakeShared<KmsClientMock>(CLASS_TAG);
-    auto kms_keyring = Aws::New<KmsMasterKeyExposer>(CLASS_TAG,
+    auto kms_keyring = Aws::New<KmsKeyringExposer>(CLASS_TAG,
                                                      kms_client_mock,
                                                      key
     );
@@ -512,7 +512,7 @@ int decrypt_emptyRegionNameInKeys_returnSuccess() {
     DecryptValues dv( { key } );
 
     auto kms_client_mock = Aws::MakeShared<KmsClientMock>(CLASS_TAG);
-    auto kms_keyring = Aws::New<KmsMasterKeyExposer>(CLASS_TAG,
+    auto kms_keyring = Aws::New<KmsKeyringExposer>(CLASS_TAG,
                                                      kms_client_mock,
                                                      key
     );
@@ -784,59 +784,57 @@ struct KmsKeyringBuilderExposer : KmsKeyring::Builder {
 
 int testBuilder_buildClientSupplier_buildsClient() {
     KmsKeyringBuilderExposer a;
-    TEST_ASSERT(dynamic_cast<KmsKeyring::ClientSupplier*>(a.BuildClientSupplier().get()) != NULL);
+    TEST_ASSERT(dynamic_cast<KmsKeyring::CachingClientSupplier*>(
+                    a.BuildClientSupplier({"arn:aws:kms:region1:", "arn:aws:kms:region2:"}).get()) != NULL);
 
     TestValues tv;
     a.WithKmsClient(tv.kms_client_mock);
-    TEST_ASSERT(dynamic_cast<KmsKeyring::SingleClientSupplier*>(a.BuildClientSupplier().get()) != NULL);
+    TEST_ASSERT(dynamic_cast<KmsKeyring::SingleClientSupplier*>(
+                    a.BuildClientSupplier({"arn:aws:kms:region:"}).get()) != NULL);
 
     return 0;
 }
 
-int testBuilder_noKeys_valid() {
+int testBuilder_noKeys_invalid() {
     KmsKeyringBuilderExposer a;
     // no keys
-    TEST_ASSERT(a.ValidParameters() == true);
+    Aws::Vector<Aws::String> empty_key_id_list;
+    TEST_ASSERT(!a.Build(empty_key_id_list));
     return 0;
 }
 
 int testBuilder_keyWithRegion_valid() {
     KmsKeyringBuilderExposer a;
-    a.WithKeyId("arn:aws:kms:region_extracted_from_key:");
-    TEST_ASSERT(a.ValidParameters() == true);
+    TEST_ASSERT(a.Build({"arn:aws:kms:region_extracted_from_key:"}));
     return 0;
 }
 
 int testBuilder_keyWithoutRegion_invalid() {
     KmsKeyringBuilderExposer a;
-    a.WithKeyId("alias/foobar");
-    TEST_ASSERT(a.ValidParameters() == false);
+    TEST_ASSERT(!a.Build({"alias/foobar"}));
     return 0;
 }
 
 int testBuilder_keyWithoutRegionAndDefaultRegion_valid() {
     KmsKeyringBuilderExposer a;
-    a.WithKeyId("alias/foobar").WithDefaultRegion("default_region_set");
-    TEST_ASSERT(a.ValidParameters() == true);
+    TEST_ASSERT(a.WithDefaultRegion("default_region_set").Build({"alias/foobar"}));
     return 0;
 }
 
 int testBuilder_keyWithoutRegionAndKmsClient_valid() {
     KmsKeyringBuilderExposer a;
     TestValues tv;
-    a.WithKeyId("alias/foobar").WithKmsClient(tv.kms_client_mock);
-    TEST_ASSERT(a.ValidParameters() == true);
+    TEST_ASSERT(a.WithKmsClient(tv.kms_client_mock).Build({"alias/foobar"}));
     return 0;
 }
 
 int testBuilder_emptyKey_invalid() {
     KmsKeyringBuilderExposer a;
-    a.WithKeyId("").WithDefaultRegion("default_region_set");
-    TEST_ASSERT(a.ValidParameters() == false);
+    TEST_ASSERT(!a.WithDefaultRegion("default_region_set").Build({""}));
     return 0;
 }
 
-int t_assert_encrypt_with_default_values(KmsMasterKeyExposer *kms_keyring, EncryptTestValues &ev) {
+int t_assert_encrypt_with_default_values(KmsKeyringExposer *kms_keyring, EncryptTestValues &ev) {
     TEST_ASSERT(kms_keyring != NULL);
     TEST_ASSERT_SUCCESS(kms_keyring->OnEncrypt(kms_keyring,
                                                ev.allocator,
@@ -879,7 +877,7 @@ int main() {
     RUN_TEST(createGenerateDataKeyRequest_validInputes_returnRequest());
     RUN_TEST(createEncryptRequest_validInputes_returnRequest());
     RUN_TEST(testBuilder_buildClientSupplier_buildsClient());
-    RUN_TEST(testBuilder_noKeys_valid());
+    RUN_TEST(testBuilder_noKeys_invalid());
     RUN_TEST(testBuilder_keyWithRegion_valid());
     RUN_TEST(testBuilder_keyWithoutRegion_invalid());
     RUN_TEST(testBuilder_keyWithoutRegionAndDefaultRegion_valid());

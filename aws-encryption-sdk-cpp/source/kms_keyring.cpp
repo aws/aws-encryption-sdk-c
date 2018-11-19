@@ -341,7 +341,7 @@ std::shared_ptr<KMS::KMSClient> KmsKeyring::CachingClientSupplier::GetClient(con
     return CreateDefaultKmsClient(region);
 }
 
-std::shared_ptr<KmsKeyring::ClientSupplier> KmsKeyring::Builder::BuildClientSupplier() const {
+std::shared_ptr<KmsKeyring::ClientSupplier> KmsKeyring::Builder::BuildClientSupplier(const Aws::Vector<Aws::String> &key_ids) const {
     /* Presence of default region when needed has already been verified by ValidParameters()
      * so we will not recheck for it here.
      */
@@ -362,7 +362,12 @@ std::shared_ptr<KmsKeyring::ClientSupplier> KmsKeyring::Builder::BuildClientSupp
         Aws::MakeShared<CachingClientSupplier>(AWS_CRYPTO_SDK_KMS_CLASS_TAG);
 }
 
-bool KmsKeyring::Builder::ValidParameters() const {
+bool KmsKeyring::Builder::ValidParameters(const Aws::Vector<Aws::String> &key_ids) const {
+    if (!key_ids.size()) {
+        AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "No keys provided");
+        return false;
+    }
+
     bool need_full_arns = !kms_client && default_region.empty();
 
     for (auto &key : key_ids) {
@@ -379,51 +384,54 @@ bool KmsKeyring::Builder::ValidParameters() const {
     return true;
 }
 
-aws_cryptosdk_keyring *KmsKeyring::Builder::Build() const {
-    if (!ValidParameters()) {
+/**
+ * FIXME: No longer a nested class, but we don't necessarily need this once we take the entire
+ * implementation of the KmsKeyring class out of the public header file. Update this comment
+ * after reorganization.
+ *
+ * We want to allow construction of a KmsKeyring object only through the builder, which is why
+ * KmsKeyring has a protected constructor. Doing this allows us to guarantee that it is always
+ * allocated with Aws::New. However, Aws::New only allocates memory for classes that have public
+ * constructors or for which Aws::New is a friend function. Making Aws::New a friend function
+ * would allow creation of a KmsKeyring without the builder. The solution was to make a nested
+ * class in the builder which is just the KmsKeyring with a public constructor.
+ */
+class KmsKeyringWithPublicConstructor : public KmsKeyring {
+public:
+    KmsKeyringWithPublicConstructor(const Aws::Vector<Aws::String> &key_ids,
+                                    const String &default_region,
+                                    const Aws::Vector<Aws::String> &grant_tokens,
+                                    std::shared_ptr<ClientSupplier> client_supplier) :
+        KmsKeyring(key_ids,
+                   default_region,
+                   grant_tokens,
+                   client_supplier) {}
+};
+
+aws_cryptosdk_keyring *KmsKeyring::Builder::Build(const Aws::Vector<Aws::String> &key_ids) const {
+    if (!ValidParameters(key_ids)) {
         aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
         return NULL;
     }
 
-    /**
-     * We want to allow construction of a KmsKeyring object only through the builder, which is why
-     * KmsKeyring has a protected constructor. Doing this allows us to guarantee that it is always
-     * allocated with Aws::New. However, Aws::New only allocates memory for classes that have public
-     * constructors or for which Aws::New is a friend function. Making Aws::New a friend function
-     * would allow creation of a KmsKeyring without the builder. The solution was to make a nested
-     * class in the builder which is just the KmsKeyring with a public constructor.
-     */
-    class KmsKeyringWithPublicConstructor : public KmsKeyring {
-    public:
-        KmsKeyringWithPublicConstructor(const Aws::Vector<Aws::String> &key_ids,
-                                        const String &default_region,
-                                        const Aws::Vector<Aws::String> &grant_tokens,
-                                        std::shared_ptr<ClientSupplier> client_supplier) :
-            KmsKeyring(key_ids,
-                       default_region,
-                       grant_tokens,
-                       client_supplier) {}
-    };
-
     return Aws::New<KmsKeyringWithPublicConstructor>(AWS_CRYPTO_SDK_KMS_CLASS_TAG,
-                                                     std::move(key_ids),
-                                                     std::move(default_region),
-                                                     std::move(grant_tokens),
-                                                     BuildClientSupplier());
+                                                     key_ids,
+                                                     default_region,
+                                                     grant_tokens,
+                                                     BuildClientSupplier(key_ids));
 }
 
+aws_cryptosdk_keyring *KmsKeyring::Builder::BuildDiscovery() const {
+    Aws::Vector<Aws::String> empty_key_ids_list;
+    return Aws::New<KmsKeyringWithPublicConstructor>(AWS_CRYPTO_SDK_KMS_CLASS_TAG,
+                                                     empty_key_ids_list,
+                                                     default_region,
+                                                     grant_tokens,
+                                                     BuildClientSupplier(empty_key_ids_list));
+}
+    
 KmsKeyring::Builder &KmsKeyring::Builder::WithDefaultRegion(const String &default_region) {
     this->default_region = default_region;
-    return *this;
-}
-
-KmsKeyring::Builder &KmsKeyring::Builder::WithKeyIds(const Aws::Vector<Aws::String> &key_ids) {
-    this->key_ids.insert(this->key_ids.end(), key_ids.begin(), key_ids.end());
-    return *this;
-}
-
-KmsKeyring::Builder &KmsKeyring::Builder::WithKeyId(const Aws::String &key_id) {
-    this->key_ids.push_back(key_id);
     return *this;
 }
 

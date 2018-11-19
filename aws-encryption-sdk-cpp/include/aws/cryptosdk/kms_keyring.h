@@ -47,48 +47,6 @@ class KmsKeyring : public aws_cryptosdk_keyring {
      *
      * For general documentation about keyrings see include/aws/cryptosdk/materials.h. This header will
      * only document what is specific to the KmsKeyring.
-     *
-     * You may specify one or multiple KMS key IDs to use for encryption and/or decryption with the AWS
-     * Encryption SDK, and you may specify one or multiple grant tokens to use in all calls to KMS. All
-     * calls to WithKeyId(s) and WithGrantToken(s) are cumulative. They add additional key IDs or grant
-     * tokens to the list that the keyring is configured with. Once a key ID or grant token is added to
-     * the builder, it is not removable. If you want to build a KmsKeyring with a different set of key
-     * IDs or grant tokens, use a different builder.
-     *
-     * Key IDs for encryption may be specified in four different ways:
-     *
-     * (1) key ARN: arn:aws:kms:us-east-1:999999999999:key/01234567-89ab-cdef-fedc-ba9876543210
-     * (2) key UUID:  01234567-89ab-cdef-fedc-ba9876543210
-     * (3) alias ARN:  arn:aws:kms:us-east-1:999999999999:alias/MyCryptoKey
-     * (4) alias name: alias/MyCryptoKey
-     *
-     * Encrypting with multiple keys gives users who have KMS DecryptDataKey access with *any one* of
-     * those keys the ability to decrypt the data.
-     *
-     * If you specify keys with either key ARN or alias ARN, the AWS Encryption SDK will
-     * detect what region they are in and make the KMS calls to the correct region for each key.
-     * If any of the keys you specify are in either key UUID or alias name format, then you must
-     * specify a default region in which to make those KMS calls. All keys in those formats must be
-     * in that same default region. If you want to use multiple default regions, set up separate
-     * KmsKeyrings for each default region, and join them together with a multi-keyring.
-     *
-     * Key IDs for decryption must be specified as key ARNs *only*, i.e., format (1) above. Formats
-     * (2) through (4) will not work for decryption. The AWS Encryption SDK will allow you to attempt
-     * decrypts with a KmsKeyring configured with keys in formats (2) through (4) without errors, but
-     * it will only succeed in decrypting data that was encrypted with keys that were specified in
-     * key ARN format. This is a limitation of the message format of encryption and of the KMS APIs,
-     * not of this software package.
-     *
-     * You may build a KmsKeyring with no key IDs configured. When you do that, the KmsKeyring is in
-     * "discovery" mode. This means the following:
-     *
-     * (1) The KmsKeyring may not be used for encryption at all. If you attempt to encrypt with
-     *     a KmsKeyring in this mode, it will fail with error code AWS_CRYPTOSDK_ERR_BAD_STATE.
-     *
-     * (2) On attempts to decrypt, the AWS Encryption SDK will attempt KMS DecryptDataKey calls for
-     *     every KMS key that was used to encrypt the data until it finds one that you have permission
-     *     to use. This may include calls to any region and to KMS keys that you do not have permissions
-     *     for, if they were used in the encryption process, and it may be less efficient.
      */
     class Builder {
       public:
@@ -100,26 +58,22 @@ class KmsKeyring : public aws_cryptosdk_keyring {
         Builder &WithDefaultRegion(const Aws::String &default_region);
 
         /**
-         * Adds a KMS key to the already configured keys. Read the documentation of the Builder class
-         * for more information on key ID formats.
-         */
-        Builder &WithKeyId(const Aws::String &key_id);
-
-        /**
-         * Adds multiple KMS keys to the already configured keys. Read the documentation of the Builder
-         * class for more information on key ID formats.
-         */
-        Builder &WithKeyIds(const Aws::Vector<Aws::String> &key_ids);
-
-        /**
-         *  Adds a single grant token. For more information, see
-         *  http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token
+         * Adds a single grant token. For more information, see
+         * http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token
+         *
+         * May be called multiple times, adding additional grant tokens to the list that the keyring
+         * is configured with. Once a grant token is added to the builder, it is not removable.
+         * To build a KmsKeyring with a different set of grant tokens, use a different builder.
          */
         Builder &WithGrantToken(const Aws::String &grant_token);
         
         /**
-         *  Adds a list of grant tokens. For more information, see
-         *  http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token
+         * Adds multiple grant tokens. For more information, see
+         * http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token
+         *
+         * May be called multiple times, adding additional grant tokens to the list that the keyring
+         * is configured with. Once a grant token is added to the builder, it is not removable.
+         * To build a KmsKeyring with a different set of grant tokens, use a different builder.
          */
         Builder &WithGrantTokens(const Aws::Vector<Aws::String> &grant_tokens);
 
@@ -138,17 +92,53 @@ class KmsKeyring : public aws_cryptosdk_keyring {
 
         /**
          * Creates a new KmsKeyring object or returns NULL if parameters are invalid.
+         *
+         * You must specify at least one KMS CMK to use as a master key for encryption and decryption.
+         * Encrypting with multiple keys gives users who have KMS DecryptDataKey access with *any one*
+         * of those keys the ability to decrypt the data. Providing multiple CMKs for decryptions
+         * allows the decryption of data that was encrypted using any of those keys.
+         *
+         * Key IDs for encryption may be specified in four different ways:
+         *
+         * (1) key ARN: arn:aws:kms:us-east-1:999999999999:key/01234567-89ab-cdef-fedc-ba9876543210
+         * (2) key UUID:  01234567-89ab-cdef-fedc-ba9876543210
+         * (3) alias ARN:  arn:aws:kms:us-east-1:999999999999:alias/MyCryptoKey
+         * (4) alias name: alias/MyCryptoKey
+         *
+         * If you specify keys with either key ARN or alias ARN, the AWS Encryption SDK will
+         * detect what region they are in and make the KMS calls to the correct region for each key.
+         * If any of the keys you specify are in either key UUID or alias name format, then you must
+         * specify a default region in which to make those KMS calls. All keys in those formats must be
+         * in that same default region. If you want to use multiple default regions, set up separate
+         * KmsKeyrings for each default region, and join them together with a multi-keyring.
+         *
+         * Key IDs for decryption must be specified as key ARNs *only*, i.e., format (1) above. Formats
+         * (2) through (4) will not work for decryption. The AWS Encryption SDK will allow you to attempt
+         * decrypts with a KmsKeyring configured with keys in formats (2) through (4) without errors, but
+         * it will only succeed in decrypting data that was encrypted with keys that were specified in
+         * key ARN format. This is a limitation of the message format of encryption and of the KMS APIs,
+         * not of this software package.
          */
-        aws_cryptosdk_keyring *Build() const;
+        aws_cryptosdk_keyring *Build(const Aws::Vector<Aws::String> &key_ids) const;
 
         /**
-         * Returns true if parameters are valid.
+         * Creates a new KmsKeyring object with no KMS keys configured, i.e., in "discovery" mode.
+         * This means the following:
+         *
+         * (1) The KmsKeyring may not be used for encryption at all. If you attempt to encrypt with
+         *     a KmsKeyring in this mode, it will fail with error code AWS_CRYPTOSDK_ERR_BAD_STATE.
+         *
+         * (2) On attempts to decrypt, the AWS Encryption SDK will attempt KMS DecryptDataKey calls for
+         *     every KMS key that was used to encrypt the data until it finds one that you have permission
+         *     to use. This may include calls to any region and to KMS keys that you do not have permissions
+         *     for if they were used in the encryption process, and it may be less efficient.
          */
-        bool ValidParameters() const;
+        aws_cryptosdk_keyring *BuildDiscovery() const;
+
       protected:
-        std::shared_ptr<ClientSupplier> BuildClientSupplier() const;
+        bool ValidParameters(const Aws::Vector<Aws::String> &key_ids) const;
+        std::shared_ptr<ClientSupplier> BuildClientSupplier(const Aws::Vector<Aws::String> &key_ids) const;
       private:
-        Aws::Vector<Aws::String> key_ids;
         Aws::String default_region;
         std::shared_ptr<KMS::KMSClient> kms_client;
         Aws::Vector<Aws::String> grant_tokens;
