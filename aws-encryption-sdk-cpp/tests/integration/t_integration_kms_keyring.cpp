@@ -132,7 +132,7 @@ int t_kms_keyring_encrypt(TestDataOut &td_out, TestData &td, const Aws::String &
 /**
  * Decrypts plaintext at td.pt_in and stores it in td_out.pt_out using a temporary KmsKeyring
  */
-int t_kms_keyring_decrypt(TestDataOut &td_out, TestData &td, const Aws::String &key_arn) {
+int t_kms_keyring_decrypt(TestDataOut &td_out, const Aws::String &key_arn) {
     auto kms_keyring_decrypt = KmsKeyring::Builder().Build({key_arn});
     TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring_decrypt,
                                                 AWS_CRYPTOSDK_DECRYPT,
@@ -142,9 +142,21 @@ int t_kms_keyring_decrypt(TestDataOut &td_out, TestData &td, const Aws::String &
     return 0;
 }
 
+/**
+ * Decrypts plaintext at td.pt_in and stores it in td_out.pt_out using a discovery KmsKeyring
+ */
+int t_kms_keyring_discovery_decrypt(TestDataOut &td_out) {
+    auto kms_keyring_discovery = KmsKeyring::Builder().BuildDiscovery();
+    TEST_ASSERT_SUCCESS(t_aws_cryptosdk_process(kms_keyring_discovery,
+                                                AWS_CRYPTOSDK_DECRYPT,
+                                                &td_out.ct_out,
+                                                &td_out.pt_out));
+    aws_cryptosdk_keyring_release(kms_keyring_discovery);
+    return 0;
+}
+
 struct aws_cryptosdk_keyring *kms_keyring_with_two_keys() {
     auto keyring = KmsKeyring::Builder()
-	.WithDefaultRegion(KEY_ARN_STR2_REGION)
         .Build({KEY_ARN_STR2, KEY_ARN_STR1});
     if (!keyring) abort();
     return keyring;
@@ -156,9 +168,22 @@ int encryptAndDecrypt_twoDistinctKeyrings_returnSuccess() {
 
     TEST_ASSERT_SUCCESS(t_kms_keyring_encrypt(td_out, td, KEY_ARN_STR1));
 
-    TEST_ASSERT_SUCCESS(t_kms_keyring_decrypt(td_out, td, KEY_ARN_STR1));
+    TEST_ASSERT_SUCCESS(t_kms_keyring_decrypt(td_out, KEY_ARN_STR1));
 
-    TEST_ASSERT(aws_byte_buf_eq(&td.pt_in, &td_out.pt_out) == true);
+    TEST_ASSERT(aws_byte_buf_eq(&td.pt_in, &td_out.pt_out));
+
+    return 0;
+}
+
+int encryptAndDecrypt_discoveryKeyringDecrypts_returnSuccess() {
+    TestData td;
+    TestDataOut td_out;
+
+    TEST_ASSERT_SUCCESS(t_kms_keyring_encrypt(td_out, td, KEY_ARN_STR1));
+
+    TEST_ASSERT_SUCCESS(t_kms_keyring_discovery_decrypt(td_out));
+
+    TEST_ASSERT(aws_byte_buf_eq(&td.pt_in, &td_out.pt_out));
 
     return 0;
 }
@@ -344,7 +369,6 @@ int dataKeyEncryptAndDecrypt_twoKeys_returnSuccess() {
     return 0;
 }
 
-//todo add more tests for each type of KmsKeyring constructor
 //todo add more tests for grantTokens
 //todo We'll need tests for the default region that encrypt with key IDs of the form [uuid] or alias/whatever.
 
@@ -421,6 +445,8 @@ int main() {
     RUN_TEST(encryptAndDecrypt_sameKeyringKey2_returnSuccess());
     logging.clear();
     RUN_TEST(encryptAndDecrypt_twoDistinctKeyrings_returnSuccess());
+    logging.clear();
+    RUN_TEST(encryptAndDecrypt_discoveryKeyringDecrypts_returnSuccess());
     logging.clear();
     RUN_TEST(encryptAndDecrypt_oneKeyEncryptsTwoKeysForDecryptionConfigured_returnSuccess());
     logging.clear();
