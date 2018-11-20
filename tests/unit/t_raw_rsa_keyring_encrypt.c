@@ -131,29 +131,60 @@ int encrypt_decrypt_data_key_from_test_vectors() {
 }
 
 /**
- * Test to check for encryption failure of an unencrypted data key with an incorrect rsa private key.
+ * Test to check for encryption failure of an unencrypted data key with an incorrect rsa public key.
  */
-// FIXME: have this explicitly test for the correct error code
-int encrypt_data_key_from_bad_rsa_private_key() {
+int encrypt_data_key_from_bad_rsa_public_key() {
     uint8_t data_key_dup[32];
     struct raw_rsa_keyring_test_vector tv = raw_rsa_keyring_test_vectors[0];
     TEST_ASSERT_SUCCESS(set_up_encrypt_with_wrong_key(tv.rsa_padding_mode));
     memcpy(data_key_dup, tv.data_key, tv.data_key_len);
     unencrypted_data_key = aws_byte_buf_from_array(data_key_dup, tv.data_key_len);
-    TEST_ASSERT_SUCCESS(!aws_cryptosdk_keyring_on_encrypt(kr1,
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(kr1,
                                                           alloc,
                                                           &unencrypted_data_key,
                                                           &edks,
                                                           NULL,
-                                                          tv.alg));
+                                                          tv.alg) == AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     TEST_ASSERT_INT_EQ(aws_array_list_length(&edks), 0);
     tear_down_encrypt();
+
+    return 0;
+}
+/**
+ * Test to check for cases when either or both the private and public rsa pem files are NULL
+ */
+int test_for_null_pem_files_while_setting_up_rsa_kr()
+{
+    struct aws_cryptosdk_keyring *kr = NULL;
+    alloc = aws_default_allocator();
+    const uint8_t raw_rsa_keyring_tv_master_key_id[] = "master key ID";
+    const uint8_t raw_rsa_keyring_tv_provider_id[] = "provider ID";
+    const char raw_rsa_keyring_tv_public_key[] = "Test not-NULL public key";
+    const char raw_rsa_keyring_tv_private_key[] = "Test not-NULL private key";
+
+    kr = aws_cryptosdk_raw_rsa_keyring_new(alloc, raw_rsa_keyring_tv_master_key_id, strlen((const char *)raw_rsa_keyring_tv_master_key_id),
+                                           raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id),
+                                           NULL, NULL, AWS_CRYPTOSDK_RSA_PKCS1);
+    TEST_ASSERT_ADDR_NULL(kr);
+
+    kr = aws_cryptosdk_raw_rsa_keyring_new(alloc, raw_rsa_keyring_tv_master_key_id, strlen((const char *)raw_rsa_keyring_tv_master_key_id),
+                                           raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id),
+                                           raw_rsa_keyring_tv_private_key, NULL, AWS_CRYPTOSDK_RSA_PKCS1);
+    TEST_ASSERT_ADDR_NOT_NULL(kr);
+    aws_cryptosdk_keyring_release(kr);
+
+    kr = aws_cryptosdk_raw_rsa_keyring_new(alloc, raw_rsa_keyring_tv_master_key_id, strlen((const char *)raw_rsa_keyring_tv_master_key_id),
+                                           raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id),
+                                           NULL, raw_rsa_keyring_tv_public_key, AWS_CRYPTOSDK_RSA_PKCS1);
+    TEST_ASSERT_ADDR_NOT_NULL(kr);
+    aws_cryptosdk_keyring_release(kr);
 
     return 0;
 }
 struct test_case raw_rsa_keyring_encrypt_test_cases[] = {
     { "raw_rsa_keyring", "generate_decrypt_from_data_key", generate_decrypt_from_data_key },
     { "raw_rsa_keyring", "encrypt_decrypt_data_key_from_test_vectors", encrypt_decrypt_data_key_from_test_vectors },
-    { "raw_rsa_keyring", "encrypt_data_key_from_bad_rsa_private_key", encrypt_data_key_from_bad_rsa_private_key },
+    { "raw_rsa_keyring", "encrypt_data_key_from_bad_rsa_public_key", encrypt_data_key_from_bad_rsa_public_key },
+    { "raw_rsa_keyring", "test_for_null_pem_files_while_setting_up_rsa_kr", test_for_null_pem_files_while_setting_up_rsa_kr },
     { NULL }
 };
