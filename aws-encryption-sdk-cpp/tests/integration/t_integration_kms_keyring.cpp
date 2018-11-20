@@ -32,6 +32,7 @@
 #include <aws/kms/model/EncryptResult.h>
 #include <aws/cryptosdk/session.h>
 #include <aws/cryptosdk/default_cmm.h>
+#include <aws/cryptosdk/enc_context.h>
 #include <aws/cryptosdk/private/cpputils.h>
 #include <aws/cryptosdk/kms_keyring.h>
 #include <test_keyring.h>
@@ -285,22 +286,48 @@ int test_keyring_datakey_decrypt_and_compare_with_pt_datakey(struct aws_allocato
     return 0;
 }
 
+static auto alg = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE;
+static aws_allocator * alloc;
+static struct aws_hash_table enc_context;
+
+static void setup_dataKeyEncryptAndDecrypt_tests() {
+    alloc = aws_default_allocator();
+    test_enc_context_init_and_fill(&enc_context);
+}
+
+static void teardown_dataKeyEncryptAndDecrypt_tests() {
+    aws_cryptosdk_enc_context_clean_up(&enc_context);
+}
+
+int dataKeyEncrypt_discoveryKeyringCannotEncrypt_returnErr() {
+    setup_dataKeyEncryptAndDecrypt_tests();
+
+    aws_byte_buf pt_datakey = {0};
+    Testing::Edks edks(alloc);
+    auto kms_keyring = KmsKeyring::Builder().BuildDiscovery();
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_STATE, aws_cryptosdk_keyring_on_encrypt(kms_keyring,
+                                                                                    alloc,
+                                                                                    &pt_datakey,
+                                                                                    &edks.encrypted_data_keys,
+                                                                                    &enc_context,
+                                                                                    alg));
+    aws_cryptosdk_keyring_release(kms_keyring);
+    teardown_dataKeyEncryptAndDecrypt_tests();
+    return 0;
+}
+
 int dataKeyEncryptAndDecrypt_singleKey_returnSuccess() {
-    auto alg = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE;
-    auto alloc = aws_default_allocator();
+    setup_dataKeyEncryptAndDecrypt_tests();
+
+    auto kms_keyring = KmsKeyring::Builder().Build({KEY_ARN_STR2});
 
     /* First iteration of loop, generate a data key. Second iteration, use the provided one. */
     struct aws_byte_buf pt_datakeys[2] = {{0}, aws_byte_buf_from_c_str("encrypt_me___16b")};
-    for (struct aws_byte_buf *pt_datakey = pt_datakeys; pt_datakey !=  pt_datakeys + 2; pt_datakey++) {
+    for (struct aws_byte_buf &pt_datakey : pt_datakeys) {
         Testing::Edks edks(alloc);
-
-        struct aws_hash_table enc_context;
-        test_enc_context_init_and_fill(&enc_context);
-        auto kms_keyring = KmsKeyring::Builder().Build({KEY_ARN_STR2});
-
         TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(kms_keyring,
                                                              alloc,
-                                                             pt_datakey,
+                                                             &pt_datakey,
                                                              &edks.encrypted_data_keys,
                                                              &enc_context,
                                                              alg));
@@ -311,39 +338,36 @@ int dataKeyEncryptAndDecrypt_singleKey_returnSuccess() {
         TEST_ASSERT_SUCCESS(test_assert_edk_provider_id_and_info("aws-kms", KEY_ARN_STR2, edk));
 
         TEST_ASSERT_SUCCESS(test_keyring_datakey_decrypt_and_compare_with_pt_datakey(alloc,
-                                                                                     pt_datakey,
+                                                                                     &pt_datakey,
                                                                                      kms_keyring,
                                                                                      &edks.encrypted_data_keys,
                                                                                      &enc_context,
                                                                                      alg));
 
-        aws_byte_buf_clean_up(pt_datakey);
-        aws_cryptosdk_keyring_release(kms_keyring);
-        aws_hash_table_clean_up(&enc_context);
+        aws_byte_buf_clean_up(&pt_datakey);
     }
+    aws_cryptosdk_keyring_release(kms_keyring);
+    teardown_dataKeyEncryptAndDecrypt_tests();
     return 0;
 }
 
 int dataKeyEncryptAndDecrypt_twoKeys_returnSuccess() {
-    auto alg = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE;
-    auto alloc = aws_default_allocator();
+    setup_dataKeyEncryptAndDecrypt_tests();
+
+    auto encrypting_keyring_with_two_keys = kms_keyring_with_two_keys();
+
 
     /* First iteration of loop, generate a data key. Second iteration, use the provided one. */
     struct aws_byte_buf pt_datakeys[2] = {{0}, aws_byte_buf_from_c_str("encrypt_me___16b")};
-    for (struct aws_byte_buf *pt_datakey = pt_datakeys; pt_datakey !=  pt_datakeys + 2; pt_datakey++) {
+    for (struct aws_byte_buf &pt_datakey : pt_datakeys) {
         Testing::Edks edks(alloc);
-
-        struct aws_hash_table enc_context;
-        test_enc_context_init_and_fill(&enc_context);
-        auto encrypting_keyring_with_two_keys = kms_keyring_with_two_keys();
 
         TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(encrypting_keyring_with_two_keys,
                                                              alloc,
-                                                             pt_datakey,
+                                                             &pt_datakey,
                                                              &edks.encrypted_data_keys,
                                                              &enc_context,
                                                              alg));
-        aws_cryptosdk_keyring_release(encrypting_keyring_with_two_keys);
         TEST_ASSERT_INT_EQ(edks.encrypted_data_keys.length, 2);
 
         // make sure it can be decrypted with either CMK
@@ -356,16 +380,17 @@ int dataKeyEncryptAndDecrypt_twoKeys_returnSuccess() {
             auto decrypting_keyring = KmsKeyring::Builder().Build({keys[i]});
             TEST_ASSERT_ADDR_NOT_NULL(decrypting_keyring);
             TEST_ASSERT_SUCCESS(test_keyring_datakey_decrypt_and_compare_with_pt_datakey(alloc,
-                                                                                         pt_datakey,
+                                                                                         &pt_datakey,
                                                                                          decrypting_keyring,
                                                                                          &edks.encrypted_data_keys,
                                                                                          &enc_context,
                                                                                          alg));
             aws_cryptosdk_keyring_release(decrypting_keyring);
         }
-        aws_byte_buf_clean_up(pt_datakey);
-        aws_hash_table_clean_up(&enc_context);
+        aws_byte_buf_clean_up(&pt_datakey);
     }
+    aws_cryptosdk_keyring_release(encrypting_keyring_with_two_keys);
+    teardown_dataKeyEncryptAndDecrypt_tests();
     return 0;
 }
 
@@ -453,6 +478,8 @@ int main() {
     RUN_TEST(encryptAndDecrypt_twoKeysEncryptsTwoKeyDecrypts_returnSuccess());
     logging.clear();
     RUN_TEST(encryptAndDecrypt_keyForDecryptionMismatch_returnErr());
+    logging.clear();
+    RUN_TEST(dataKeyEncrypt_discoveryKeyringCannotEncrypt_returnErr());
     logging.clear();
     RUN_TEST(dataKeyEncryptAndDecrypt_singleKey_returnSuccess());
     logging.clear();
