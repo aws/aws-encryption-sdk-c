@@ -805,32 +805,38 @@ int testBuilder_noKeys_invalid() {
 
 int testBuilder_keyWithRegion_valid() {
     KmsKeyringBuilderExposer a;
-    TEST_ASSERT(a.Build({"arn:aws:kms:region_extracted_from_key:"}));
+    aws_cryptosdk_keyring *k = a.Build({"arn:aws:kms:region_extracted_from_key:"});
+    TEST_ASSERT_ADDR_NOT_NULL(k);
+    aws_cryptosdk_keyring_release(k);
     return 0;
 }
 
 int testBuilder_keyWithoutRegion_invalid() {
     KmsKeyringBuilderExposer a;
-    TEST_ASSERT(!a.Build({"alias/foobar"}));
+    TEST_ASSERT_ADDR_NULL(a.Build({"alias/foobar"}));
     return 0;
 }
 
 int testBuilder_keyWithoutRegionAndDefaultRegion_valid() {
     KmsKeyringBuilderExposer a;
-    TEST_ASSERT(a.WithDefaultRegion("default_region_set").Build({"alias/foobar"}));
+    aws_cryptosdk_keyring *k = a.WithDefaultRegion("default_region_set").Build({"alias/foobar"});
+    TEST_ASSERT_ADDR_NOT_NULL(k);
+    aws_cryptosdk_keyring_release(k);
     return 0;
 }
 
 int testBuilder_keyWithoutRegionAndKmsClient_valid() {
     KmsKeyringBuilderExposer a;
     TestValues tv;
-    TEST_ASSERT(a.WithKmsClient(tv.kms_client_mock).Build({"alias/foobar"}));
+    aws_cryptosdk_keyring *k = a.WithKmsClient(tv.kms_client_mock).Build({"alias/foobar"});
+    TEST_ASSERT_ADDR_NOT_NULL(k);
+    aws_cryptosdk_keyring_release(k);
     return 0;
 }
 
 int testBuilder_emptyKey_invalid() {
     KmsKeyringBuilderExposer a;
-    TEST_ASSERT(!a.WithDefaultRegion("default_region_set").Build({""}));
+    TEST_ASSERT_ADDR_NULL(a.WithDefaultRegion("default_region_set").Build({""}));
     return 0;
 }
 
