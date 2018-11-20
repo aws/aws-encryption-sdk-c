@@ -19,10 +19,17 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <aws/common/hash_table.h>
+#include <aws/common/byte_buf.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/*
+ * Formats a string using printf format specifiers, and places it into buf, allocating space using alloc.
+ * Aborts on allocation failure.
+ */
+void byte_buf_printf(struct aws_byte_buf *buf, struct aws_allocator *alloc, const char *fmt, ...);
 
 /* 
  * Loads a file from disk into a newly malloc'd buffer.
