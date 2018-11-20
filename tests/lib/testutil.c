@@ -119,7 +119,6 @@ int test_loadfile(const char *filename, uint8_t **buf, size_t *datasize) {
         }
 
         *datasize = offset;
-        if (tmpbuf) free(tmpbuf);
         if (fp) fclose(fp);
         return 0;
     }
