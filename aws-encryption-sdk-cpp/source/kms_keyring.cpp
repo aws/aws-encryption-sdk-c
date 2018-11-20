@@ -88,6 +88,10 @@ int KmsKeyring::OnDecrypt(struct aws_cryptosdk_keyring *keyring,
         Aws::String kms_region = Private::parse_region_from_kms_key_arn(key_arn);
         bool should_cache = false;
         auto kms_client = self->kms_client_supplier->GetClient(kms_region, should_cache);
+        if (!kms_client) {
+            // Client supplier does not serve this region. Skip.
+            continue;
+        }
         auto kms_request = self->CreateDecryptRequest(self->grant_tokens,
                                                       aws_utils_byte_buffer_from_c_aws_byte_buf(&edk->enc_data_key),
                                                       enc_context_cpp);
@@ -170,6 +174,13 @@ int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
         if (kms_region.empty()) kms_region = self->default_region;
         bool should_cache = false;
         auto kms_client = self->kms_client_supplier->GetClient(kms_region, should_cache);
+        if (!kms_client) {
+            /* Client supplier is allowed to return NULL if, for example, user wants to exclude particular
+             * regions. But if we are here it means that user configured keyring with a KMS key that was
+             * incompatible with the client supplier in use.
+             */
+            return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+        }
         auto kms_request = self->CreateGenerateDataKeyRequest(key_id,
                                                               self->grant_tokens,
                                                               (int)alg_prop->data_key_len,
@@ -319,16 +330,7 @@ static std::shared_ptr<KMS::KMSClient> CreateDefaultKmsClient(const Aws::String 
 
 void KmsKeyring::CachingClientSupplier::CacheClient(const Aws::String &region, std::shared_ptr<KMS::KMSClient> kms_client) {
     std::unique_lock<std::mutex> lock(cache_mutex);
-    if (cache.find(region) != cache.end()) {
-        // Already have a cached client for this region. Do nothing.
-        return;
-    }
     cache[region] = kms_client;
-}
-
-std::shared_ptr<KMS::KMSClient> KmsKeyring::SingleClientSupplier::GetClient(const Aws::String &region, bool &should_cache) const {
-    should_cache = false;
-    return kms_client;
 }
 
 std::shared_ptr<KMS::KMSClient> KmsKeyring::CachingClientSupplier::GetClient(const Aws::String &region, bool &should_cache) const {

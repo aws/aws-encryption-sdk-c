@@ -248,6 +248,10 @@ class KmsKeyring : public aws_cryptosdk_keyring {
          * cache this client. Implementations that do not support caching should always* set this flag to false,
          * and implementations that do support caching should set it to true when the client that is returned is
          * not already cached.
+         *
+         * Implementations of GetClient may return nullptr in order to limit KMS calls to particular regions.
+         * However, if a keyring is configured with KMS keys in a particular set of regions and GetClient
+         * returns nullptr for any of those regions, encryption will always fail with AWS_CRYPTOSDK_ERR_BAD_STATE.
          */
         virtual std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region, bool &should_cache) const = 0;
 
@@ -259,7 +263,16 @@ class KmsKeyring : public aws_cryptosdk_keyring {
     };
 
     class CachingClientSupplier : public ClientSupplier {
+        /**
+         * If a client is already cached for this region, returns that one and sets should_cache false.
+         * If a client is not already cached for this region, returns a KMS client with default settings
+         * and sets should_cache true. Never returns nullptr.
+         */
         std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region, bool &should_cache) const;
+        /**
+         * Saves the KMS client in the cache for this region, overwriting the old one for this region
+         * if there is one. This is as simple an implementation as possible. Cache entries never expire.
+         */
         void CacheClient(const Aws::String &region, std::shared_ptr<KMS::KMSClient> client);
       protected:
         mutable std::mutex cache_mutex;
@@ -276,7 +289,10 @@ class KmsKeyring : public aws_cryptosdk_keyring {
     class SingleClientSupplier : public ClientSupplier {
       public:
         SingleClientSupplier(const std::shared_ptr<KMS::KMSClient> &kms_client) : kms_client(kms_client) {}
-        std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region_name, bool &already_cached) const;
+        std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &, bool &should_cache) const {
+            should_cache = false;
+            return kms_client;
+        }
       private:
         std::shared_ptr<KMS::KMSClient> kms_client;
     };
