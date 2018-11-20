@@ -18,6 +18,10 @@
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/materials.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * A Keyring (KR) which does local RSA encryption and decryption of data keys using
  * the RSA keys provided as a null terminated C-string in PEM format.
@@ -45,5 +49,9 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     const char *rsa_private_key_pem,
     const char *rsa_public_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // AWS_CRYPTOSDK_RAW_RSA_KEYRING_H

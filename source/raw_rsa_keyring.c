@@ -167,10 +167,18 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     kr->provider_id = aws_string_new_from_array(alloc, provider_id, provider_id_len);
     if (!kr->provider_id) goto err;
 
-    kr->rsa_private_key_pem = aws_string_new_from_c_str(alloc, rsa_private_key_pem);
+    if (!rsa_private_key_pem && !rsa_public_key_pem)
+        goto err;
 
-    kr->rsa_public_key_pem = aws_string_new_from_c_str(alloc, rsa_public_key_pem);
-    if (!kr->rsa_public_key_pem && !kr->rsa_private_key_pem) goto err;
+    if (!rsa_private_key_pem)
+    {
+        kr->rsa_public_key_pem = aws_string_new_from_c_str(alloc, rsa_public_key_pem);
+    }
+
+    if (!rsa_public_key_pem)
+    {
+        kr->rsa_private_key_pem = aws_string_new_from_c_str(alloc, rsa_private_key_pem);
+    }
 
     kr->rsa_padding_mode = rsa_padding_mode;
     kr->alloc = alloc;
