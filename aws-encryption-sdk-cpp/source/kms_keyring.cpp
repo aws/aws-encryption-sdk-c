@@ -91,8 +91,9 @@ int KmsKeyring::OnDecrypt(struct aws_cryptosdk_keyring *keyring,
                 key_arn << " ";
             continue;
         }
-        bool should_cache = false;
-        auto kms_client = self->kms_client_supplier->GetClient(kms_region, should_cache);
+
+        std::function<void()> report_success;
+        auto kms_client = self->kms_client_supplier->GetClient(kms_region, report_success);
         if (!kms_client) {
             // Client supplier does not serve this region. Skip.
             continue;
@@ -110,7 +111,7 @@ int KmsKeyring::OnDecrypt(struct aws_cryptosdk_keyring *keyring,
                 }
             continue;
         }
-        if (should_cache) self->kms_client_supplier->CacheClient(kms_region, kms_client);
+        report_success();
 
         const Aws::String &outcome_key_id = outcome.GetResult().GetKeyId();
         if (outcome_key_id == key_arn) {
@@ -177,8 +178,9 @@ int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
         Aws::String key_id = self->key_ids.front();
         Aws::String kms_region = Private::parse_region_from_kms_key_arn(key_id);
         if (kms_region.empty()) kms_region = self->default_region;
-        bool should_cache = false;
-        auto kms_client = self->kms_client_supplier->GetClient(kms_region, should_cache);
+
+        std::function<void()> report_success;
+        auto kms_client = self->kms_client_supplier->GetClient(kms_region, report_success);
         if (!kms_client) {
             /* Client supplier is allowed to return NULL if, for example, user wants to exclude particular
              * regions. But if we are here it means that user configured keyring with a KMS key that was
@@ -196,7 +198,7 @@ int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
             AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "Invalid encryption materials algorithm properties");
             return aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
         }
-        if (should_cache) self->kms_client_supplier->CacheClient(kms_region, kms_client);
+        report_success();
         rv = append_key_dup_to_edks(request_alloc,
                                     &edks.aws_list,
                                     &outcome.GetResult().GetCiphertextBlob(),
@@ -219,8 +221,9 @@ int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
         Aws::String key_id = self->key_ids[key_id_idx];
         Aws::String kms_region = Private::parse_region_from_kms_key_arn(key_id);
         if (kms_region.empty()) kms_region = self->default_region;
-        bool should_cache = false;
-        auto kms_client = self->kms_client_supplier->GetClient(kms_region, should_cache);
+
+        std::function<void()> report_success;
+        auto kms_client = self->kms_client_supplier->GetClient(kms_region, report_success);
         auto kms_client_request = self->CreateEncryptRequest(
             key_id,
             self->grant_tokens,
@@ -235,7 +238,7 @@ int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
             rv = aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
             goto out;
         }
-        if (should_cache) self->kms_client_supplier->CacheClient(kms_region, kms_client);
+        report_success();
         rv = append_key_dup_to_edks(
             request_alloc,
             &edks.aws_list,
@@ -337,23 +340,27 @@ std::shared_ptr<KmsKeyring::SingleClientSupplier> KmsKeyring::SingleClientSuppli
     return Aws::MakeShared<SingleClientSupplier>(AWS_CRYPTO_SDK_KMS_CLASS_TAG, kms_client);
 }
 
+std::shared_ptr<KMS::KMSClient> KmsKeyring::SingleClientSupplier::GetClient(const Aws::String &, std::function<void()> &report_success) {
+    report_success = []{}; // no-op lambda
+    return this->kms_client;
+}
+
 std::shared_ptr<KmsKeyring::CachingClientSupplier> KmsKeyring::CachingClientSupplier::Create() {
     return Aws::MakeShared<CachingClientSupplier>(AWS_CRYPTO_SDK_KMS_CLASS_TAG);
 }
 
-void KmsKeyring::CachingClientSupplier::CacheClient(const Aws::String &region, std::shared_ptr<KMS::KMSClient> kms_client) {
-    std::unique_lock<std::mutex> lock(cache_mutex);
-    cache[region] = kms_client;
-}
-
-std::shared_ptr<KMS::KMSClient> KmsKeyring::CachingClientSupplier::GetClient(const Aws::String &region, bool &should_cache) const {
-    std::unique_lock<std::mutex> lock(cache_mutex);
-    if (cache.find(region) != cache.end()) {
-        should_cache = false;
-        return cache.at(region);
+std::shared_ptr<KMS::KMSClient> KmsKeyring::CachingClientSupplier::GetClient(const Aws::String &region, std::function<void()> &report_success) {
+    {
+        std::unique_lock<std::mutex> lock(cache_mutex);
+        if (cache.find(region) != cache.end()) {
+            report_success = []{}; // no-op lambda
+            return cache.at(region);
+        }
     }
-    should_cache = true;
-    return CreateDefaultKmsClient(region);
+    auto client = CreateDefaultKmsClient(region);
+    report_success = [this,region,client]{std::unique_lock<std::mutex> lock(this->cache_mutex);
+                                          this->cache[region] = client;};
+    return client;
 }
 
 std::shared_ptr<KmsKeyring::ClientSupplier> KmsKeyring::Builder::BuildClientSupplier(const Aws::Vector<Aws::String> &key_ids) const {

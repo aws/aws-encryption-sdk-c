@@ -15,6 +15,7 @@
 #ifndef AWS_ENCRYPTION_SDK_KMS_KEYRING_H
 #define AWS_ENCRYPTION_SDK_KMS_KEYRING_H
 
+#include <functional>
 #include <mutex>
 #include <aws/common/common.h>
 #include <aws/core/utils/memory/AWSMemory.h>
@@ -246,22 +247,14 @@ class KmsKeyring : public aws_cryptosdk_keyring {
       public:
         virtual ~ClientSupplier() {};
         /**
-         * Returns a KMS client for the particular region. Sets the flag should_cache to recommend whether to
-         * cache this client. Implementations that do not support caching should always set this flag to false,
-         * and implementations that do support caching should set it to true when the client that is returned is
-         * not already cached.
+         * Returns a KMS client for the particular region. Returns a callable at report_success which should be
+         * called if the client is used successfully.
          *
          * Implementations of GetClient may return nullptr in order to limit KMS calls to particular regions.
          * However, if a keyring is configured with KMS keys in a particular set of regions and GetClient
          * returns nullptr for any of those regions, encryption will always fail with AWS_CRYPTOSDK_ERR_BAD_STATE.
          */
-        virtual std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region, bool &should_cache) const = 0;
-
-        /**
-         * If client supplier supports caching, stores the provided client as the cached client for the
-         * specified region. Otherwise, it is a no-op.
-         */
-	virtual void CacheClient(const Aws::String &region, std::shared_ptr<KMS::KMSClient> client) {}
+        virtual std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region, std::function<void()> &report_success) = 0;
     };
 
     class CachingClientSupplier : public ClientSupplier {
@@ -272,16 +265,11 @@ class KmsKeyring : public aws_cryptosdk_keyring {
         static std::shared_ptr<CachingClientSupplier> Create();
 
         /**
-         * If a client is already cached for this region, returns that one and sets should_cache false.
+         * If a client is already cached for this region, returns that one and provides a no-op callable.
          * If a client is not already cached for this region, returns a KMS client with default settings
-         * and sets should_cache true. Never returns nullptr.
+         * and provides a callable which will cache the client. Never returns nullptr.
          */
-        std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region, bool &should_cache) const;
-        /**
-         * Saves the KMS client in the cache for this region, overwriting the old one for this region
-         * if there is one. This is as simple an implementation as possible. Cache entries never expire.
-         */
-        void CacheClient(const Aws::String &region, std::shared_ptr<KMS::KMSClient> client);
+        std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region, std::function<void()> &report_success);
       protected:
         mutable std::mutex cache_mutex;
         /**
@@ -300,11 +288,13 @@ class KmsKeyring : public aws_cryptosdk_keyring {
          * Helper function which creates a new SingleClientSupplier and returns a shared pointer to it.
          */
         static std::shared_ptr<SingleClientSupplier> Create(const std::shared_ptr<KMS::KMSClient> &kms_client);
+
+        /**
+         * Always returns the same KMS client this supplier was initialized with and provides a no-op callable.
+         */
+        std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &, std::function<void()> &report_success);
+
         SingleClientSupplier(const std::shared_ptr<KMS::KMSClient> &kms_client) : kms_client(kms_client) {}
-        std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &, bool &should_cache) const {
-            should_cache = false;
-            return kms_client;
-        }
       private:
         std::shared_ptr<KMS::KMSClient> kms_client;
     };
