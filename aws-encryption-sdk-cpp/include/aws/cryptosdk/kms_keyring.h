@@ -130,8 +130,8 @@ class KmsKeyring : public aws_cryptosdk_keyring {
          *
          * (2) On attempts to decrypt, the AWS Encryption SDK will attempt KMS DecryptDataKey calls for
          *     every KMS key that was used to encrypt the data until it finds one that you have permission
-         *     to use. This may include calls to any region and to KMS keys that you do not have permissions
-         *     for if they were used in the encryption process, and it may be less efficient.
+         *     to use. This may include calls to any region and to KMS keys that are outside of your
+         *     account, unless prevented by policies on the IAM user or role.
          */
         aws_cryptosdk_keyring *BuildDiscovery() const;
 
@@ -245,7 +245,7 @@ class KmsKeyring : public aws_cryptosdk_keyring {
         virtual ~ClientSupplier() {};
         /**
          * Returns a KMS client for the particular region. Sets the flag should_cache to recommend whether to
-         * cache this client. Implementations that do not support caching should always* set this flag to false,
+         * cache this client. Implementations that do not support caching should always set this flag to false,
          * and implementations that do support caching should set it to true when the client that is returned is
          * not already cached.
          *

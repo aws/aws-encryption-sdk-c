@@ -79,13 +79,18 @@ int KmsKeyring::OnDecrypt(struct aws_cryptosdk_keyring *keyring,
          * every ARN it comes across in the message. If there are key IDs in the list, it will cross check the
          * ARN it reads with that list before attempting KMS calls. Note that if caller provided key IDs in
          * anything other than a CMK ARN format, the SDK will not attempt to decrypt those data keys, because
-         * the EDK data format always specifies the CMK with the full ARN.
+         * the EDK data format always specifies the CMK with the full (non-alias) ARN.
          */
         if (self->key_ids.size() && std::find(self->key_ids.begin(), self->key_ids.end(), key_arn) == self->key_ids.end()) {
             // This keyring does not have access to the CMK used to encrypt this data key. Skip.
             continue;
         }
         Aws::String kms_region = Private::parse_region_from_kms_key_arn(key_arn);
+        if (kms_region.empty()) {
+            error_buf << "Error: Malformed ciphertext. Provider ID field of KMS EDK is invalid KMS CMK ARN: " <<
+                key_arn << " ";
+            continue;
+        }
         bool should_cache = false;
         auto kms_client = self->kms_client_supplier->GetClient(kms_region, should_cache);
         if (!kms_client) {

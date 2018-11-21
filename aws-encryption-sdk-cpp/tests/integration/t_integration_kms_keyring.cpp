@@ -23,6 +23,7 @@
 
 #include <aws/common/common.h>
 #include <aws/common/array_list.h>
+#include <aws/common/encoding.h>
 #include <aws/core/Aws.h>
 #include <aws/core/utils/logging/ConsoleLogSystem.h>
 #include <aws/core/utils/logging/AWSLogging.h>
@@ -56,6 +57,9 @@ const char *KEY_ARN_STR1 = "arn:aws:kms:us-west-2:658956600833:key/b3537ef1-d8dc
 const char *KEY_ARN_STR1_REGION = Aws::Region::US_WEST_2;
 const char *KEY_ARN_STR2 = "arn:aws:kms:eu-central-1:658956600833:key/75414c93-5285-4b57-99c9-30c1cf0a22c2";
 const char *KEY_ARN_STR2_REGION = Aws::Region::EU_CENTRAL_1;
+/* For testing that discovery keyring fails cleanly when it gets a key it cannot decrypt with */
+const char *KEY_ARN_STR_FAKE = "arn:aws:kms:us-west-2:658956600833:key/01234567-89ab-cdef-fedc-ba9876543210";
+const char *KEY_ARN_STR_FAKE_REGION = Aws::Region::US_WEST_2;
 
 struct TestData {
     struct aws_allocator *alloc;
@@ -268,12 +272,12 @@ static int test_assert_edk_provider_id_and_info(const char *expected_provider_id
  * Decrypts content of edk and then compares with expected_plain_text
  * @return 0 on success when content of decryption is equal with expected_plain_text
  */
-int test_keyring_datakey_decrypt_and_compare_with_pt_datakey(struct aws_allocator *alloc,
-                                                             const struct aws_byte_buf *expected_pt_datakey,
-                                                             struct aws_cryptosdk_keyring *keyring,
-                                                             struct aws_array_list *edks,
-                                                             struct aws_hash_table *enc_context,
-                                                             enum aws_cryptosdk_alg_id alg) {
+static int test_keyring_datakey_decrypt_and_compare_with_pt_datakey(struct aws_allocator *alloc,
+                                                                    const struct aws_byte_buf *expected_pt_datakey,
+                                                                    struct aws_cryptosdk_keyring *keyring,
+                                                                    struct aws_array_list *edks,
+                                                                    struct aws_hash_table *enc_context,
+                                                                    enum aws_cryptosdk_alg_id alg) {
     struct aws_byte_buf result_output = {0};
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(keyring,
                                                          alloc,
@@ -286,7 +290,7 @@ int test_keyring_datakey_decrypt_and_compare_with_pt_datakey(struct aws_allocato
     return 0;
 }
 
-static auto alg = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE;
+static const auto alg = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE;
 static aws_allocator * alloc;
 static struct aws_hash_table enc_context;
 
@@ -313,6 +317,55 @@ int dataKeyEncrypt_discoveryKeyringCannotEncrypt_returnErr() {
                                                                                     alg));
     aws_cryptosdk_keyring_release(kms_keyring);
     teardown_dataKeyEncryptAndDecrypt_tests();
+    return 0;
+}
+
+static aws_byte_buf aws_byte_buf_from_b64(struct aws_allocator *alloc, const char *b64) {
+    const aws_byte_buf b64_buf = aws_byte_buf_from_c_str(b64);
+    aws_byte_buf buf = {0};
+    size_t decoded_len;
+    if (aws_base64_compute_decoded_len(&b64_buf, &decoded_len) ||
+        aws_byte_buf_init(alloc, &buf, decoded_len) ||
+        aws_base64_decode(&b64_buf, &buf)) abort();
+    return buf;
+}
+
+static aws_cryptosdk_edk create_kms_edk(struct aws_allocator *alloc, const char *key_arn, const char *b64) {
+    aws_cryptosdk_edk edk;
+    edk.provider_id = aws_byte_buf_from_c_str("aws-kms");
+    edk.provider_info = aws_byte_buf_from_c_str(key_arn);
+    edk.enc_data_key = aws_byte_buf_from_b64(alloc, b64);
+    return edk;
+}
+
+int dataKeyDecrypt_discoveryKeyringHandlesKeyItCannotAccess_returnSuccess() {
+    const auto my_alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE;
+    alloc = aws_default_allocator();
+    aws_cryptosdk_enc_context_init(alloc, &enc_context); // empty encryption context for this key
+    Testing::Edks edks(alloc);
+
+    for (auto &key_arn : {KEY_ARN_STR_FAKE, KEY_ARN_STR1}) {
+        aws_cryptosdk_edk edk = create_kms_edk(
+            alloc,
+            key_arn,
+            "AQEDAHhA84wnXjEJdBbBBylRUFcZZK2j7xwh6UyLoL28nQ+0FAAAAH4wfAYJKoZIhvcNAQcGoG8"
+            "wbQIBADBoBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDPVbPiDgp7xqrnyFzwIBEIA7oESPqm"
+            "r8JCHVnMaySHGncvyb73O1deYukuy/iPRJ2Ts8Q486xow2LOhl/6QMsMGY+NHoqC61cNJfr6w=");
+        TEST_ASSERT_SUCCESS(aws_array_list_push_back(&edks.encrypted_data_keys, &edk));
+    }
+    auto kms_keyring = KmsKeyring::Builder().BuildDiscovery();
+    struct aws_byte_buf pt_datakey = aws_byte_buf_from_b64(
+        alloc,
+        "sVCsYPf6v/zGp0clol/ffyVrdkqXrw4LwTxB0pRGvok=");
+    TEST_ASSERT_SUCCESS(test_keyring_datakey_decrypt_and_compare_with_pt_datakey(alloc,
+                                                                                 &pt_datakey,
+                                                                                 kms_keyring,
+                                                                                 &edks.encrypted_data_keys,
+                                                                                 &enc_context,
+                                                                                 my_alg));
+    aws_byte_buf_clean_up(&pt_datakey);
+    aws_cryptosdk_enc_context_clean_up(&enc_context);
+    aws_cryptosdk_keyring_release(kms_keyring);
     return 0;
 }
 
@@ -480,6 +533,8 @@ int main() {
     RUN_TEST(encryptAndDecrypt_keyForDecryptionMismatch_returnErr());
     logging.clear();
     RUN_TEST(dataKeyEncrypt_discoveryKeyringCannotEncrypt_returnErr());
+    logging.clear();
+    RUN_TEST(dataKeyDecrypt_discoveryKeyringHandlesKeyItCannotAccess_returnSuccess());
     logging.clear();
     RUN_TEST(dataKeyEncryptAndDecrypt_singleKey_returnSuccess());
     logging.clear();
