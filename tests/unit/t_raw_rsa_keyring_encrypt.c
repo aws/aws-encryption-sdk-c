@@ -139,12 +139,12 @@ int encrypt_data_key_from_bad_rsa_public_key() {
     TEST_ASSERT_SUCCESS(set_up_encrypt_with_wrong_key(tv.rsa_padding_mode));
     memcpy(data_key_dup, tv.data_key, tv.data_key_len);
     unencrypted_data_key = aws_byte_buf_from_array(data_key_dup, tv.data_key_len);
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(kr1,
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN, aws_cryptosdk_keyring_on_encrypt(kr1,
                                                           alloc,
                                                           &unencrypted_data_key,
                                                           &edks,
                                                           NULL,
-                                                          tv.alg) == AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+                                                          tv.alg));
     TEST_ASSERT_INT_EQ(aws_array_list_length(&edks), 0);
     tear_down_encrypt();
 
