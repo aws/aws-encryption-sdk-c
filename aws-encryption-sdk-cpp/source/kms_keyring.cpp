@@ -108,7 +108,7 @@ int KmsKeyring::OnDecrypt(struct aws_cryptosdk_keyring *keyring,
             if (self->key_ids.size()) {
                     error_buf << "Error: " << outcome.GetError().GetExceptionName() << " Message:"
                               << outcome.GetError().GetMessage() << " ";
-                }
+            }
             continue;
         }
         report_success();

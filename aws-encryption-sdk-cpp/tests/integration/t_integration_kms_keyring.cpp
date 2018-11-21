@@ -338,19 +338,25 @@ static aws_cryptosdk_edk create_kms_edk(struct aws_allocator *alloc, const char 
     return edk;
 }
 
+static const char *key_arns[2] = {KEY_ARN_STR_FAKE, KEY_ARN_STR1};
+static const char *edk_bytes[2] = {
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    "AQEDAHhA84wnXjEJdBbBBylRUFcZZK2j7xwh6UyLoL28nQ+0FAAAAH4wfAYJKoZIhvcNAQcGoG8"
+    "wbQIBADBoBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDPVbPiDgp7xqrnyFzwIBEIA7oESPqm"
+    "r8JCHVnMaySHGncvyb73O1deYukuy/iPRJ2Ts8Q486xow2LOhl/6QMsMGY+NHoqC61cNJfr6w="
+};
+
+
 int dataKeyDecrypt_discoveryKeyringHandlesKeyItCannotAccess_returnSuccess() {
     const auto my_alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE;
     alloc = aws_default_allocator();
     aws_cryptosdk_enc_context_init(alloc, &enc_context); // empty encryption context for this key
     Testing::Edks edks(alloc);
 
-    for (auto &key_arn : {KEY_ARN_STR_FAKE, KEY_ARN_STR1}) {
-        aws_cryptosdk_edk edk = create_kms_edk(
-            alloc,
-            key_arn,
-            "AQEDAHhA84wnXjEJdBbBBylRUFcZZK2j7xwh6UyLoL28nQ+0FAAAAH4wfAYJKoZIhvcNAQcGoG8"
-            "wbQIBADBoBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDPVbPiDgp7xqrnyFzwIBEIA7oESPqm"
-            "r8JCHVnMaySHGncvyb73O1deYukuy/iPRJ2Ts8Q486xow2LOhl/6QMsMGY+NHoqC61cNJfr6w=");
+    for (int i = 0; i < 2; ++i) {
+        aws_cryptosdk_edk edk = create_kms_edk(alloc, key_arns[i], edk_bytes[i]);
         TEST_ASSERT_SUCCESS(aws_array_list_push_back(&edks.encrypted_data_keys, &edk));
     }
     auto kms_keyring = KmsKeyring::Builder().BuildDiscovery();
@@ -364,6 +370,29 @@ int dataKeyDecrypt_discoveryKeyringHandlesKeyItCannotAccess_returnSuccess() {
                                                                                  &enc_context,
                                                                                  my_alg));
     aws_byte_buf_clean_up(&pt_datakey);
+    aws_cryptosdk_enc_context_clean_up(&enc_context);
+    aws_cryptosdk_keyring_release(kms_keyring);
+    return 0;
+}
+
+int dataKeyDecrypt_doNotReturnDataKeyWhenKeyIdMismatchFromKms_returnSuccess() {
+    const auto my_alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE;
+    alloc = aws_default_allocator();
+    aws_cryptosdk_enc_context_init(alloc, &enc_context); // empty encryption context for this key
+    Testing::Edks edks(alloc);
+
+    // Use real key bytes that will decrypt, but for a different ARN
+    aws_cryptosdk_edk edk = create_kms_edk(alloc, key_arns[0], edk_bytes[1]);
+    TEST_ASSERT_SUCCESS(aws_array_list_push_back(&edks.encrypted_data_keys, &edk));
+    auto kms_keyring = KmsKeyring::Builder().Build({key_arns[0]});
+    struct aws_byte_buf output = {0};
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kms_keyring,
+                                                         alloc,
+                                                         &output,
+                                                         &edks.encrypted_data_keys,
+                                                         &enc_context,
+                                                         my_alg));
+    TEST_ASSERT_ADDR_NULL(output.buffer);
     aws_cryptosdk_enc_context_clean_up(&enc_context);
     aws_cryptosdk_keyring_release(kms_keyring);
     return 0;
@@ -458,7 +487,7 @@ int dataKeyEncryptAndDecrypt_twoKeysSharedBuilderAndCache_returnSuccess() {
         /* First iteration of loop, generate a data key. Second iteration, use the provided one. */
     struct aws_byte_buf pt_datakeys[2] = {{0}, aws_byte_buf_from_c_str("encrypt_me___16b")};
     for (struct aws_byte_buf &pt_datakey : pt_datakeys) {
-	Testing::Edks edks(alloc);
+        Testing::Edks edks(alloc);
 
         TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(encrypting_keyring,
                                                              alloc,
@@ -573,6 +602,8 @@ int main() {
     RUN_TEST(dataKeyEncrypt_discoveryKeyringEncryptIsNoOp_returnSuccess());
     logging.clear();
     RUN_TEST(dataKeyDecrypt_discoveryKeyringHandlesKeyItCannotAccess_returnSuccess());
+    logging.clear();
+    RUN_TEST(dataKeyDecrypt_doNotReturnDataKeyWhenKeyIdMismatchFromKms_returnSuccess());
     logging.clear();
     RUN_TEST(dataKeyEncryptAndDecrypt_singleKey_returnSuccess());
     logging.clear();
