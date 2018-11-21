@@ -128,7 +128,7 @@ struct TestValues {
     }
 };
 
-const char *TestValues::key_id = "Key_id";
+const char *TestValues::key_id = "arn:aws:kms:us-west-2:658956600833:key/01234567-89ab-cdef-fedc-ba9876543210";
 
 struct EncryptTestValues : public TestValues {
     enum aws_cryptosdk_alg_id alg;
@@ -507,38 +507,6 @@ int decrypt_validInputs_returnSuccess() {
     return 0;
 }
 
-int decrypt_emptyRegionNameInKeys_returnSuccess() {
-    Aws::String key = {"arn:aws:kms::123456789010:whatever"};
-    DecryptValues dv( { key } );
-
-    auto kms_client_mock = Aws::MakeShared<KmsClientMock>(CLASS_TAG);
-    auto kms_keyring = Aws::New<KmsKeyringExposer>(CLASS_TAG,
-                                                     kms_client_mock,
-                                                     key
-    );
-    TEST_ASSERT_SUCCESS(t_append_c_str_key_to_edks(dv.allocator,
-                                                   &dv.edks.encrypted_data_keys,
-                                                   &dv.ct_bb,
-                                                   key.c_str(),
-                                                   dv.provider_id));
-
-
-    kms_client_mock->ExpectDecryptAccumulator(dv.GetRequest(), dv.GetResult(key, dv.pt_bb));
-
-    TEST_ASSERT_SUCCESS(kms_keyring->OnDecrypt(kms_keyring,
-                                               dv.allocator,
-                                               &dv.unencrypted_data_key,
-                                               &dv.edks.encrypted_data_keys,
-                                               &dv.encryption_context,
-                                               dv.alg));
-    TEST_ASSERT(aws_byte_buf_eq(&dv.unencrypted_data_key, &dv.pt_aws_byte) == true);
-    TEST_ASSERT(kms_client_mock->ExpectingOtherCalls() == false);
-
-    Aws::Delete(kms_keyring);
-
-    return 0;
-}
-
 int decrypt_validInputsButNoKeyMatched_returnSuccess() {
     DecryptValues dv;
     Model::DecryptOutcome return_decrypt(dv.decrypt_result);
@@ -871,7 +839,6 @@ int main() {
     RUN_TEST(encrypt_multipleKeysOneFails_returnFail());
     RUN_TEST(encrypt_multipleKeysOneFails_initialEdksAreNotAffected());
     RUN_TEST(decrypt_validInputs_returnSuccess());
-    RUN_TEST(decrypt_emptyRegionNameInKeys_returnSuccess());
     RUN_TEST(decrypt_validInputsButNoKeyMatched_returnSuccess());
     RUN_TEST(decrypt_noKeys_returnSuccess());
     RUN_TEST(decrypt_validInputsWithMultipleEdks_returnSuccess());
