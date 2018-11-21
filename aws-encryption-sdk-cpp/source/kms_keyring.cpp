@@ -333,6 +333,14 @@ static std::shared_ptr<KMS::KMSClient> CreateDefaultKmsClient(const Aws::String 
     return Aws::MakeShared<Aws::KMS::KMSClient>(AWS_CRYPTO_SDK_KMS_CLASS_TAG, client_configuration);
 }
 
+std::shared_ptr<KmsKeyring::SingleClientSupplier> KmsKeyring::SingleClientSupplier::Create(const std::shared_ptr<KMS::KMSClient> &kms_client) {
+    return Aws::MakeShared<SingleClientSupplier>(AWS_CRYPTO_SDK_KMS_CLASS_TAG, kms_client);
+}
+
+std::shared_ptr<KmsKeyring::CachingClientSupplier> KmsKeyring::CachingClientSupplier::Create() {
+    return Aws::MakeShared<CachingClientSupplier>(AWS_CRYPTO_SDK_KMS_CLASS_TAG);
+}
+
 void KmsKeyring::CachingClientSupplier::CacheClient(const Aws::String &region, std::shared_ptr<KMS::KMSClient> kms_client) {
     std::unique_lock<std::mutex> lock(cache_mutex);
     cache[region] = kms_client;
@@ -354,7 +362,7 @@ std::shared_ptr<KmsKeyring::ClientSupplier> KmsKeyring::Builder::BuildClientSupp
      */
 
     if (kms_client) {
-        return Aws::MakeShared<SingleClientSupplier>(AWS_CRYPTO_SDK_KMS_CLASS_TAG, kms_client);
+        return KmsKeyring::SingleClientSupplier::Create(kms_client);
     }
 
     if (key_ids.size() == 1) {
@@ -362,11 +370,11 @@ std::shared_ptr<KmsKeyring::ClientSupplier> KmsKeyring::Builder::BuildClientSupp
         if (region.empty()) {
             region = default_region;
         }
-        return Aws::MakeShared<SingleClientSupplier>(AWS_CRYPTO_SDK_KMS_CLASS_TAG, CreateDefaultKmsClient(region));
+        return KmsKeyring::SingleClientSupplier::Create(CreateDefaultKmsClient(region));
     }
 
     return client_supplier ? client_supplier :
-        Aws::MakeShared<CachingClientSupplier>(AWS_CRYPTO_SDK_KMS_CLASS_TAG);
+        KmsKeyring::CachingClientSupplier::Create();
 }
 
 bool KmsKeyring::Builder::ValidParameters(const Aws::Vector<Aws::String> &key_ids) const {

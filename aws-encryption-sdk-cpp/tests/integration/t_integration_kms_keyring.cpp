@@ -44,7 +44,6 @@
 #include "testutil.h"
 
 using namespace Aws::Cryptosdk;
-using Aws::Cryptosdk::Private::aws_string_from_c_aws_byte_buf;
 using Aws::SDKOptions;
 
 const char *CLASS_CTAG = "Test KMS";
@@ -161,8 +160,7 @@ int t_kms_keyring_discovery_decrypt(TestDataOut &td_out) {
 }
 
 struct aws_cryptosdk_keyring *kms_keyring_with_two_keys() {
-    auto keyring = KmsKeyring::Builder()
-        .Build({KEY_ARN_STR2, KEY_ARN_STR1});
+    auto keyring = KmsKeyring::Builder().Build({KEY_ARN_STR2, KEY_ARN_STR1});
     if (!keyring) abort();
     return keyring;
 }
@@ -447,6 +445,44 @@ int dataKeyEncryptAndDecrypt_twoKeys_returnSuccess() {
     return 0;
 }
 
+int dataKeyEncryptAndDecrypt_twoKeysSharedBuilderAndCache_returnSuccess() {
+    setup_dataKeyEncryptAndDecrypt_tests();
+    auto builder = KmsKeyring::Builder().WithClientSupplier(KmsKeyring::CachingClientSupplier::Create());
+    auto encrypting_keyring = builder.Build({KEY_ARN_STR2, KEY_ARN_STR1});
+
+    aws_cryptosdk_keyring *decrypting_keyrings[2] = {builder.Build({KEY_ARN_STR2}),
+                                   builder.Build({KEY_ARN_STR1})};
+
+        /* First iteration of loop, generate a data key. Second iteration, use the provided one. */
+    struct aws_byte_buf pt_datakeys[2] = {{0}, aws_byte_buf_from_c_str("encrypt_me___16b")};
+    for (struct aws_byte_buf &pt_datakey : pt_datakeys) {
+	Testing::Edks edks(alloc);
+
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(encrypting_keyring,
+                                                             alloc,
+	                                                     &pt_datakey,
+	                                                     &edks.encrypted_data_keys,
+                                                             &enc_context,
+                                                             alg));
+	TEST_ASSERT_INT_EQ(edks.encrypted_data_keys.length, 2);
+
+        for (auto &keyring : decrypting_keyrings) {
+            TEST_ASSERT_SUCCESS(test_keyring_datakey_decrypt_and_compare_with_pt_datakey(alloc,
+                                                                                         &pt_datakey,
+                                                                                         keyring,
+                                                                                         &edks.encrypted_data_keys,
+                                                                                         &enc_context,
+                                                                                         alg));
+        }
+        aws_byte_buf_clean_up(&pt_datakey);
+    }
+    aws_cryptosdk_keyring_release(encrypting_keyring);
+    aws_cryptosdk_keyring_release(decrypting_keyrings[0]);
+    aws_cryptosdk_keyring_release(decrypting_keyrings[1]);
+    teardown_dataKeyEncryptAndDecrypt_tests();
+    return 0;
+}
+
 //todo add more tests for grantTokens
 //todo We'll need tests for the default region that encrypt with key IDs of the form [uuid] or alias/whatever.
 
@@ -539,6 +575,8 @@ int main() {
     RUN_TEST(dataKeyEncryptAndDecrypt_singleKey_returnSuccess());
     logging.clear();
     RUN_TEST(dataKeyEncryptAndDecrypt_twoKeys_returnSuccess());
+    logging.clear();
+    RUN_TEST(dataKeyEncryptAndDecrypt_twoKeysSharedBuilderAndCache_returnSuccess());
     logging.clear();
 
     Aws::ShutdownAPI(options);

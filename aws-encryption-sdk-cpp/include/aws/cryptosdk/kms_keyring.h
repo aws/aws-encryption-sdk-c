@@ -263,6 +263,12 @@ class KmsKeyring : public aws_cryptosdk_keyring {
     };
 
     class CachingClientSupplier : public ClientSupplier {
+      public:
+        /**
+         * Helper function which creates a new CachingClientSupplier and returns a shared pointer to it.
+         */
+        static std::shared_ptr<CachingClientSupplier> Create();
+
         /**
          * If a client is already cached for this region, returns that one and sets should_cache false.
          * If a client is not already cached for this region, returns a KMS client with default settings
@@ -288,6 +294,10 @@ class KmsKeyring : public aws_cryptosdk_keyring {
      */
     class SingleClientSupplier : public ClientSupplier {
       public:
+        /**
+         * Helper function which creates a new SingleClientSupplier and returns a shared pointer to it.
+         */
+        static std::shared_ptr<SingleClientSupplier> Create(const std::shared_ptr<KMS::KMSClient> &kms_client);
         SingleClientSupplier(const std::shared_ptr<KMS::KMSClient> &kms_client) : kms_client(kms_client) {}
         std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &, bool &should_cache) const {
             should_cache = false;
