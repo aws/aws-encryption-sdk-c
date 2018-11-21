@@ -125,8 +125,10 @@ class KmsKeyring : public aws_cryptosdk_keyring {
          * Creates a new KmsKeyring object with no KMS keys configured, i.e., in "discovery" mode.
          * This means the following:
          *
-         * (1) The KmsKeyring may not be used for encryption at all. If you attempt to encrypt with
-         *     a KmsKeyring in this mode, it will fail with error code AWS_CRYPTOSDK_ERR_BAD_STATE.
+         * (1) This KmsKeyring will not do anything on encryption attempts. If you attempt encryption
+         *     with this as your only keyring, it will fail. If you include this keyring as part of a
+         *     multi-keyring and attempt encryption, the results will be the same as if this keyring
+         *     was not included.
          *
          * (2) On attempts to decrypt, the AWS Encryption SDK will attempt KMS DecryptDataKey calls for
          *     every KMS key that was used to encrypt the data until it finds one that you have permission

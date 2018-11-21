@@ -156,9 +156,9 @@ int KmsKeyring::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
     }
     auto self = static_cast<Aws::Cryptosdk::KmsKeyring *>(keyring);
 
-    /* When no key IDs are configured, i.e. "discovery mode", keyring can only be used for decrypt. */
+    /* When no key IDs are configured, i.e. "discovery mode", this function is a no-op. */
     if (!self->key_ids.size()) {
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+        return AWS_OP_SUCCESS;
     }
 
     EdksRaii edks;

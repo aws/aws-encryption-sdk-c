@@ -301,18 +301,20 @@ static void teardown_dataKeyEncryptAndDecrypt_tests() {
     aws_cryptosdk_enc_context_clean_up(&enc_context);
 }
 
-int dataKeyEncrypt_discoveryKeyringCannotEncrypt_returnErr() {
+int dataKeyEncrypt_discoveryKeyringEncryptIsNoOp_returnSuccess() {
     setup_dataKeyEncryptAndDecrypt_tests();
 
     aws_byte_buf pt_datakey = {0};
     Testing::Edks edks(alloc);
     auto kms_keyring = KmsKeyring::Builder().BuildDiscovery();
-    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_STATE, aws_cryptosdk_keyring_on_encrypt(kms_keyring,
-                                                                                    alloc,
-                                                                                    &pt_datakey,
-                                                                                    &edks.encrypted_data_keys,
-                                                                                    &enc_context,
-                                                                                    alg));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(kms_keyring,
+                                                         alloc,
+                                                         &pt_datakey,
+                                                         &edks.encrypted_data_keys,
+                                                         &enc_context,
+                                                         alg));
+    TEST_ASSERT_ADDR_NULL(pt_datakey.buffer);
+    TEST_ASSERT(!aws_array_list_length(&edks.encrypted_data_keys));
     aws_cryptosdk_keyring_release(kms_keyring);
     teardown_dataKeyEncryptAndDecrypt_tests();
     return 0;
@@ -568,7 +570,7 @@ int main() {
     logging.clear();
     RUN_TEST(encryptAndDecrypt_keyForDecryptionMismatch_returnErr());
     logging.clear();
-    RUN_TEST(dataKeyEncrypt_discoveryKeyringCannotEncrypt_returnErr());
+    RUN_TEST(dataKeyEncrypt_discoveryKeyringEncryptIsNoOp_returnSuccess());
     logging.clear();
     RUN_TEST(dataKeyDecrypt_discoveryKeyringHandlesKeyItCannotAccess_returnSuccess());
     logging.clear();
