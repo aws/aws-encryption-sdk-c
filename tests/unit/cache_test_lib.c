@@ -308,6 +308,7 @@ static void mock_put_entry_for_encrypt(
 
     cache->usage_stats = initial_usage;
     *entry = (struct aws_cryptosdk_mat_cache_entry *)&cache->entry_marker;
+    cache->entry_refcount++;
 }
 
 static void mock_entry_release(

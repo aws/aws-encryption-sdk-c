@@ -350,6 +350,7 @@ cache_miss:
          * and we should invalidate.
          */
         aws_cryptosdk_mat_cache_entry_release(cmm->mat_cache, entry, true);
+        entry = NULL;
     }
 
     if (aws_cryptosdk_cmm_generate_encryption_materials(cmm->upstream, output, request)) {
@@ -365,6 +366,20 @@ cache_miss:
             request->enc_context,
             &hash_buf
         );
+
+        if (entry && cmm->ttl != UINT64_MAX) {
+            uint64_t creation_time = aws_cryptosdk_mat_cache_entry_get_creation_time(cmm->mat_cache, entry);
+            uint64_t exp_time = creation_time + cmm->ttl;
+
+            if (exp_time > creation_time) {
+                aws_cryptosdk_mat_cache_entry_ttl_hint(cmm->mat_cache, entry, exp_time);
+            }
+        }
+
+        /* TODO test leak */
+        if (entry) {
+            aws_cryptosdk_mat_cache_entry_release(cmm->mat_cache, entry, false);
+        }
     }
 
     return AWS_OP_SUCCESS;

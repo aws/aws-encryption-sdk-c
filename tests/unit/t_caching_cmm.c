@@ -397,7 +397,7 @@ void caching_cmm_set_clock(struct aws_cryptosdk_cmm *generic_cmm, int (*clock_ge
 
 static int limits_test() {
     setup_mocks();
-    struct aws_cryptosdk_cmm*cmm = aws_cryptosdk_caching_cmm_new(aws_default_allocator(), &mock_mat_cache->base, &mock_upstream_cmm->base, NULL);
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(aws_default_allocator(), &mock_mat_cache->base, &mock_upstream_cmm->base, NULL);
 
     struct aws_hash_table req_context;
     aws_cryptosdk_enc_context_init(aws_default_allocator(), &req_context);
@@ -491,19 +491,27 @@ static int limits_test() {
     TEST_ASSERT(!mock_mat_cache->invalidated);
 
     mock_clock_time = 200;
+    mock_mat_cache->entry_ttl_hint = 0;
     ASSERT_HIT(true);
     TEST_ASSERT_INT_EQ(10001, mock_mat_cache->entry_ttl_hint);
     TEST_ASSERT(!mock_mat_cache->invalidated);
 
     mock_clock_time = 10000;
+    mock_mat_cache->entry_ttl_hint = 0;
     ASSERT_HIT(true);
     TEST_ASSERT_INT_EQ(10001, mock_mat_cache->entry_ttl_hint);
     TEST_ASSERT(!mock_mat_cache->invalidated);
 
+    mock_mat_cache->entry_ttl_hint = 0;
     mock_clock_time = 10001;
     ASSERT_HIT(false);
     TEST_ASSERT(mock_mat_cache->invalidated);
+    // Note: This seems a bit strange since our mock clock time is 10001,
+    // but since the mock materials cache returns '1' for entry creation time
+    // for the new entry this behavior is expected.
+    TEST_ASSERT_INT_EQ(10001, mock_mat_cache->entry_ttl_hint);
 
+    mock_mat_cache->entry_creation_time = 1;
     mock_clock_time = 10002;
     ASSERT_HIT(false);
     TEST_ASSERT(mock_mat_cache->invalidated);
