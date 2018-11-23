@@ -140,6 +140,24 @@ struct aws_cryptosdk_mat_cache_vt {
     );
 
     /**
+     * Retrieves the cached decryption materials from the cache.
+     *
+     * On success, `*materials` is overwritten with a newly allocated decryption
+     * materials object.
+     *
+     * On failure (e.g., out of memory), `*materials` will be set to NULL.
+     *
+     * This function will always fail if called on cached encryption materials. It MAY fail
+     * when called on an invalidated entry, but this is not guaranteed.
+     */
+    int (*get_decryption_materials)(
+        const struct aws_cryptosdk_mat_cache *cache,
+        struct aws_allocator *allocator,
+        struct aws_cryptosdk_decryption_materials **materials,
+        const struct aws_cryptosdk_mat_cache_entry *entry
+    );
+
+    /**
      * Attempts to put a copy of *encryption_materials into the cache, under the
      * given cache ID, and with the specified initial usage.
      *
@@ -163,30 +181,6 @@ struct aws_cryptosdk_mat_cache_vt {
         const struct aws_cryptosdk_encryption_materials *encryption_materials,
         struct aws_cryptosdk_cache_usage_stats initial_usage,
         const struct aws_hash_table *enc_context,
-        const struct aws_byte_buf *cache_id
-    );
-
-    /**
-     * Attempts to find an entry in the cache. If found, returns a handle to the
-     * cache entry in *entry, and the decryption materials in *decryption_materials.
-     * If the entry is not found, or an error occurs, sets *entry and *materials to NULL.
-     *
-     * If the entry contains encryption materials, this method will behave as if
-     * the entry was not present.
-     *
-     * Parameters:
-     *
-     * @param cache - The cache to perform the lookup against
-     * @param request_allocator - The allocator to use to allocate the output decryption materials
-     * @param entry - Out-parameter that receives the cache entry, if found
-     * @param decryption_materials - Out-parameter that receives the decryption materials, if found.
-     * @param cache_id - The cache identifier to look up.
-     */
-    void (*get_entry_for_decrypt)(
-        struct aws_cryptosdk_mat_cache *cache,
-        struct aws_allocator *request_allocator,
-        struct aws_cryptosdk_mat_cache_entry **entry,
-        struct aws_cryptosdk_decryption_materials **decryption_materials,
         const struct aws_byte_buf *cache_id
     );
 
@@ -339,6 +333,27 @@ int aws_cryptosdk_mat_cache_get_encryption_materials(
     return get_encryption_materials(cache, allocator, materials, enc_context, entry);
 }
 
+AWS_CRYPTOSDK_STATIC_INLINE
+int aws_cryptosdk_mat_cache_get_decryption_materials(
+    const struct aws_cryptosdk_mat_cache *cache,
+    struct aws_allocator *allocator,
+    struct aws_cryptosdk_decryption_materials **materials,
+    const struct aws_cryptosdk_mat_cache_entry *entry
+) {
+    int (*get_decryption_materials)(
+        const struct aws_cryptosdk_mat_cache *cache,
+        struct aws_allocator *allocator,
+        struct aws_cryptosdk_decryption_materials **materials,
+        const struct aws_cryptosdk_mat_cache_entry *entry
+    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, get_decryption_materials);
+
+    *materials = NULL;
+    if (!get_decryption_materials) {
+        return aws_raise_error(AWS_ERROR_UNSUPPORTED_OPERATION);
+    }
+
+    return get_decryption_materials(cache, allocator, materials, entry);
+}
 
 AWS_CRYPTOSDK_STATIC_INLINE
 void aws_cryptosdk_mat_cache_put_entry_for_encrypt(

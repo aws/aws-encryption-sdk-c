@@ -167,6 +167,10 @@ int aws_cryptosdk_md_finish(struct aws_cryptosdk_md_context *md_context, void *o
 }
 
 void aws_cryptosdk_md_abort(struct aws_cryptosdk_md_context *md_context) {
+    if (!md_context) {
+        return;
+    }
+
     EVP_MD_CTX_destroy(md_context->evp_md_ctx);
     aws_mem_release(md_context->alloc, md_context);
 }

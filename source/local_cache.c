@@ -473,6 +473,18 @@ err:
     return AWS_OP_ERR;
 }
 
+static int copy_decryption_materials(struct aws_allocator *alloc, struct aws_cryptosdk_decryption_materials *out, const struct aws_cryptosdk_decryption_materials *in) {
+    if (aws_byte_buf_init_copy(&out->unencrypted_data_key, alloc, &in->unencrypted_data_key)) {
+        return AWS_OP_ERR;
+    }
+
+    /* We do not clone the signing context itself, but instead we save the public or private keys elsewhere */
+    out->signctx = NULL;
+    out->alg = in->alg;
+
+    return AWS_OP_SUCCESS;
+}
+
 /********** Local cache vtable methods **********/
 
 static void destroy_cache(struct aws_cryptosdk_mat_cache *generic_cache) {
@@ -612,6 +624,45 @@ out:
 
     return *materials_out ? AWS_OP_SUCCESS : AWS_OP_ERR;
 }
+static int get_decryption_materials(
+    const struct aws_cryptosdk_mat_cache *cache,
+    struct aws_allocator *allocator,
+    struct aws_cryptosdk_decryption_materials **materials_out,
+    const struct aws_cryptosdk_mat_cache_entry *entry
+) {
+    (void)cache;
+    struct local_cache_entry *local_entry = (struct local_cache_entry *)entry;
+    struct aws_cryptosdk_decryption_materials *materials = NULL;
+    *materials_out = NULL;
+
+    if (!local_entry->dec_materials) {
+        // XXX
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    }
+
+    materials = aws_cryptosdk_decryption_materials_new(allocator, local_entry->dec_materials->alg);
+
+    if (copy_decryption_materials(allocator, materials, local_entry->dec_materials)) {
+        goto out;
+    }
+
+    if (local_entry->key_materials
+        && aws_cryptosdk_sig_verify_start(
+            &materials->signctx,
+            allocator,
+            local_entry->key_materials,
+            aws_cryptosdk_alg_props(materials->alg)
+    )) {
+        goto out;
+    }
+
+    *materials_out = materials;
+    materials = NULL;
+out:
+    aws_cryptosdk_decryption_materials_destroy(materials);
+
+    return *materials_out ? AWS_OP_SUCCESS : AWS_OP_ERR;
+}
 
 static void put_entry_for_encrypt(
     struct aws_cryptosdk_mat_cache *generic_cache,
@@ -679,16 +730,59 @@ out:
 }
 
 static void put_entry_for_decrypt(
-    struct aws_cryptosdk_mat_cache *cache,
-    struct aws_cryptosdk_mat_cache_entry **entry,
+    struct aws_cryptosdk_mat_cache *generic_cache,
+    struct aws_cryptosdk_mat_cache_entry **ret_entry,
     const struct aws_cryptosdk_decryption_materials *materials,
     const struct aws_byte_buf *cache_id
 ) {
-    // TODO
-    (void)cache; (void)materials; (void)cache_id;
-    *entry = NULL;
-}
+    struct aws_cryptosdk_local_cache *cache = (struct aws_cryptosdk_local_cache *)generic_cache;
+    *ret_entry = NULL;
 
+    if (aws_mutex_lock(&cache->mutex)) {
+        return;
+    }
+
+    struct local_cache_entry *entry = new_entry(cache, cache_id);
+    if (!entry) {
+        goto out;
+    }
+
+    aws_atomic_init_int(&entry->usage_bytes, 0);
+    aws_atomic_init_int(&entry->usage_messages, 0);
+
+    if (!(entry->dec_materials = aws_cryptosdk_decryption_materials_new(cache->allocator, materials->alg))) {
+        goto out;
+    }
+
+    if (copy_decryption_materials(cache->allocator, entry->dec_materials, materials)) {
+        goto out;
+    }
+
+    if (materials->signctx) {
+        if (aws_cryptosdk_sig_get_pubkey(materials->signctx, cache->allocator, &entry->key_materials)) {
+            goto out;
+        }
+    }
+
+    if (!locked_insert_entry(cache, entry)) {
+        /* Prevent the entry from being freed - and prepare to return it */
+        *ret_entry = (struct aws_cryptosdk_mat_cache_entry *)entry;
+        aws_atomic_fetch_add_explicit(&entry->refcount, 1, aws_memory_order_acq_rel);
+        entry = NULL;
+    }
+out:
+    if (entry) {
+        /*
+         * If entry is non-NULL, it means we didn't successfully insert the entry.
+         * We will therefore destroy it immediately.
+         */
+        destroy_cache_entry(entry);
+    }
+
+    if (aws_mutex_unlock(&cache->mutex)) {
+        abort();
+    }
+}
 
 static uint64_t get_creation_time(
     const struct aws_cryptosdk_mat_cache *cache,
@@ -839,7 +933,7 @@ static const struct aws_cryptosdk_mat_cache_vt local_cache_vt = {
     .find_entry = find_entry,
     .update_usage_stats = update_usage_stats,
     .get_encryption_materials = get_encryption_materials,
-//    .get_entry_for_decrypt = get_entry_for_decrypt,
+    .get_decryption_materials = get_decryption_materials,
     .put_entry_for_encrypt = put_entry_for_encrypt,
     .put_entry_for_decrypt = put_entry_for_decrypt,
     .destroy = destroy_cache,
