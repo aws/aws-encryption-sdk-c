@@ -719,6 +719,49 @@ static int dec_materials() {
     return 0;
 }
 
+static int cache_miss_failed_put() {
+    setup_mocks();
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(aws_default_allocator(), &mock_mat_cache->base, &mock_upstream_cmm->base, NULL);
+    caching_cmm_set_clock(cmm, mock_clock_get_ticks);
+
+    struct aws_hash_table enc_context;
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(aws_default_allocator(), &enc_context));
+
+    struct aws_cryptosdk_edk edk;
+    edk.provider_id = aws_byte_buf_from_c_str("provider_id");
+    edk.provider_info = aws_byte_buf_from_c_str("provider_info");
+    edk.enc_data_key = aws_byte_buf_from_c_str("enc_data_key");
+
+    struct aws_cryptosdk_decryption_request dec_request = {0};
+    dec_request.alloc = aws_default_allocator();
+    dec_request.alg = AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384;
+    dec_request.enc_context = &enc_context;
+    aws_array_list_init_static(&dec_request.encrypted_data_keys, &edk, 1, sizeof(edk));
+
+    struct aws_cryptosdk_encryption_request enc_request;
+    enc_request.alloc = aws_default_allocator();
+    enc_request.requested_alg = 0;
+    enc_request.plaintext_size = 32768;
+    enc_request.enc_context = &enc_context;
+
+    mock_mat_cache->should_fail = true;
+    mock_upstream_cmm->returned_alg = AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE;
+
+    struct aws_cryptosdk_encryption_materials *enc_materials;
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_encryption_materials(cmm, &enc_materials, &enc_request));
+    aws_cryptosdk_encryption_materials_destroy(enc_materials);
+
+    struct aws_cryptosdk_decryption_materials *dec_materials;
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_decrypt_materials(cmm, &dec_materials, &dec_request));
+    aws_cryptosdk_decryption_materials_destroy(dec_materials);
+
+    aws_cryptosdk_enc_context_clean_up(&enc_context);
+    aws_cryptosdk_cmm_release(cmm);
+    teardown();
+
+    return 0;
+}
+
 static void setup_mocks() {
     mock_mat_cache = mock_mat_cache_new(aws_default_allocator());
     mock_upstream_cmm = mock_upstream_cmm_new(aws_default_allocator());
@@ -730,6 +773,12 @@ static void setup_mocks() {
 }
 
 static void release_mocks() {
+    // Check for reference leaks on teardown
+    if (mat_cache && mock_mat_cache->entry_refcount != 0) {
+        fprintf(stderr, "\nReference leak: %zu material entry references remain\n", mock_mat_cache->entry_refcount);
+        abort();
+    }
+
     aws_cryptosdk_mat_cache_release(mat_cache);
     aws_cryptosdk_cmm_release(cmm);
 
@@ -754,6 +803,7 @@ struct test_case caching_cmm_test_cases[] = {
     TEST_CASE(limits_test),
     TEST_CASE(dec_cache_id_test_vecs),
     TEST_CASE(dec_materials),
+    TEST_CASE(cache_miss_failed_put),
     { NULL }
 };
 

@@ -528,7 +528,6 @@ cache_miss:
             }
         }
 
-        /* TODO test leak */
         if (entry) {
             aws_cryptosdk_mat_cache_entry_release(cmm->mat_cache, entry, false);
         }
@@ -603,7 +602,9 @@ cache_miss:
         }
     }
 
-    aws_cryptosdk_mat_cache_entry_release(cmm->mat_cache, entry, false);
+    if (entry) {
+        aws_cryptosdk_mat_cache_entry_release(cmm->mat_cache, entry, false);
+    }
 
     return AWS_OP_SUCCESS;
 }
