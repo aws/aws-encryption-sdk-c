@@ -260,7 +260,7 @@ static int encrypt_id_vector(const char *expected_b64, const char *partition_nam
     size_t expected_size;
 
     expected_b64_buf = aws_byte_buf_from_c_str(expected_b64);
-    TEST_ASSERT_SUCCESS(aws_base64_compute_decoded_len(expected_b64, strlen(expected_b64), &expected_size));
+    TEST_ASSERT_SUCCESS(aws_base64_compute_decoded_len(&expected_b64_buf, &expected_size));
     TEST_ASSERT_SUCCESS(aws_byte_buf_init(aws_default_allocator(), &expected, expected_size));
     TEST_ASSERT_SUCCESS(aws_byte_buf_init(aws_default_allocator(), &actual, expected_size));
     TEST_ASSERT_SUCCESS(aws_base64_decode(&expected_b64_buf, &expected));
