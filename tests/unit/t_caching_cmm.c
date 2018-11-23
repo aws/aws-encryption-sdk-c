@@ -762,6 +762,143 @@ static int cache_miss_failed_put() {
     return 0;
 }
 
+static bool partitions_match_on_enc(const struct aws_byte_buf *partition_name_a, const struct aws_byte_buf *partition_name_b) {
+    struct aws_cryptosdk_cmm *cmm_a = aws_cryptosdk_caching_cmm_new(aws_default_allocator(), &mock_mat_cache->base, &mock_upstream_cmm->base, partition_name_a);
+    struct aws_cryptosdk_cmm *cmm_b = aws_cryptosdk_caching_cmm_new(aws_default_allocator(), &mock_mat_cache->base, &mock_upstream_cmm->base, partition_name_b);
+
+    struct aws_hash_table enc_context;
+    if (aws_cryptosdk_enc_context_init(aws_default_allocator(), &enc_context)) {
+        abort();
+    }
+
+    struct aws_cryptosdk_encryption_request enc_request;
+    enc_request.alloc = aws_default_allocator();
+    enc_request.requested_alg = 0;
+    enc_request.plaintext_size = 32768;
+    enc_request.enc_context = &enc_context;
+
+    mock_upstream_cmm->returned_alg = AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE;
+
+    struct aws_cryptosdk_encryption_materials *materials;
+    if (aws_cryptosdk_cmm_generate_encryption_materials(cmm_a, &materials, &enc_request)) {
+        abort();
+    }
+    aws_cryptosdk_encryption_materials_destroy(materials);
+
+    struct aws_byte_buf cache_id_a = mock_mat_cache->last_cache_id;
+    // Prevent the cache ID from being freed on the next call
+    mock_mat_cache->last_cache_id = aws_byte_buf_from_c_str("");
+
+    aws_hash_table_clear(&enc_context);
+    if (aws_cryptosdk_cmm_generate_encryption_materials(cmm_b, &materials, &enc_request)) {
+        abort();
+    }
+    aws_cryptosdk_encryption_materials_destroy(materials);
+
+    aws_cryptosdk_cmm_release(cmm_a);
+    aws_cryptosdk_cmm_release(cmm_b);
+
+    aws_cryptosdk_enc_context_clean_up(&enc_context);
+
+    bool matched = aws_byte_buf_eq(&cache_id_a, &mock_mat_cache->last_cache_id);
+    aws_byte_buf_clean_up(&cache_id_a);
+
+    return matched;
+}
+
+static bool partitions_match_on_dec(const struct aws_byte_buf *partition_name_a, const struct aws_byte_buf *partition_name_b) {
+    struct aws_cryptosdk_cmm *cmm_a = aws_cryptosdk_caching_cmm_new(aws_default_allocator(), &mock_mat_cache->base, &mock_upstream_cmm->base, partition_name_a);
+    struct aws_cryptosdk_cmm *cmm_b = aws_cryptosdk_caching_cmm_new(aws_default_allocator(), &mock_mat_cache->base, &mock_upstream_cmm->base, partition_name_b);
+
+    struct aws_hash_table enc_context;
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(aws_default_allocator(), &enc_context));
+
+    struct aws_cryptosdk_edk edk;
+    edk.provider_id = aws_byte_buf_from_c_str("provider_id");
+    edk.provider_info = aws_byte_buf_from_c_str("provider_info");
+    edk.enc_data_key = aws_byte_buf_from_c_str("enc_data_key");
+
+    struct aws_cryptosdk_decryption_request dec_request = {0};
+    dec_request.alloc = aws_default_allocator();
+    dec_request.alg = AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384;
+    dec_request.enc_context = &enc_context;
+    aws_array_list_init_static(&dec_request.encrypted_data_keys, &edk, 1, sizeof(edk));
+
+    struct aws_cryptosdk_decryption_materials *materials;
+    if (aws_cryptosdk_cmm_decrypt_materials(cmm_a, &materials, &dec_request)) {
+        abort();
+    }
+    aws_cryptosdk_decryption_materials_destroy(materials);
+
+    struct aws_byte_buf cache_id_a = mock_mat_cache->last_cache_id;
+    // Prevent the cache ID from being freed on the next call
+    mock_mat_cache->last_cache_id = aws_byte_buf_from_c_str("");
+
+    if (aws_cryptosdk_cmm_decrypt_materials(cmm_b, &materials, &dec_request)) {
+        abort();
+    }
+    aws_cryptosdk_decryption_materials_destroy(materials);
+
+    aws_cryptosdk_cmm_release(cmm_a);
+    aws_cryptosdk_cmm_release(cmm_b);
+
+    aws_cryptosdk_enc_context_clean_up(&enc_context);
+
+    bool matched = aws_byte_buf_eq(&cache_id_a, &mock_mat_cache->last_cache_id);
+    aws_byte_buf_clean_up(&cache_id_a);
+
+    return matched;
+}
+
+
+static int same_partition_id_cache_ids_match() {
+    setup_mocks();
+    struct aws_byte_buf partition_id = aws_byte_buf_from_c_str("partition 1");
+
+    TEST_ASSERT(partitions_match_on_enc(&partition_id, &partition_id));
+    TEST_ASSERT(partitions_match_on_dec(&partition_id, &partition_id));
+
+    teardown();
+
+    return 0;
+}
+
+static int static_and_null_partition_id_dont_match() {
+    setup_mocks();
+    struct aws_byte_buf partition_id = aws_byte_buf_from_c_str("partition 1");
+
+    TEST_ASSERT(!partitions_match_on_enc(&partition_id, NULL));
+    TEST_ASSERT(!partitions_match_on_dec(&partition_id, NULL));
+
+    teardown();
+
+    return 0;
+}
+
+static int two_null_partition_ids_dont_match() {
+    setup_mocks();
+
+    TEST_ASSERT(!partitions_match_on_enc(NULL, NULL));
+    TEST_ASSERT(!partitions_match_on_dec(NULL, NULL));
+
+    teardown();
+
+    return 0;
+}
+
+static int two_different_static_partition_ids_dont_match() {
+    setup_mocks();
+    struct aws_byte_buf p1 = aws_byte_buf_from_c_str("partition 1");
+    struct aws_byte_buf p2 = aws_byte_buf_from_c_str("partition 2");
+
+    TEST_ASSERT(!partitions_match_on_enc(&p1, &p2));
+    TEST_ASSERT(!partitions_match_on_dec(&p1, &p2));
+
+    teardown();
+
+    return 0;
+}
+
 static void setup_mocks() {
     mock_mat_cache = mock_mat_cache_new(aws_default_allocator());
     mock_upstream_cmm = mock_upstream_cmm_new(aws_default_allocator());
@@ -804,8 +941,11 @@ struct test_case caching_cmm_test_cases[] = {
     TEST_CASE(dec_cache_id_test_vecs),
     TEST_CASE(dec_materials),
     TEST_CASE(cache_miss_failed_put),
+    TEST_CASE(same_partition_id_cache_ids_match),
+    TEST_CASE(static_and_null_partition_id_dont_match),
+    TEST_CASE(two_null_partition_ids_dont_match),
+    TEST_CASE(two_different_static_partition_ids_dont_match),
     { NULL }
 };
 
-// TEST TODO: Instantiate two CMMs with same/different/null partition IDs, check that cache IDs are/are not consistent
 // TEST TODO: Threadstorm
