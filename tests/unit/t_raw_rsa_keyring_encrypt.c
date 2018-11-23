@@ -162,10 +162,11 @@ int test_for_null_pem_files_while_setting_up_rsa_kr()
     const char raw_rsa_keyring_tv_public_key[] = "Test not-NULL public key";
     const char raw_rsa_keyring_tv_private_key[] = "Test not-NULL private key";
 
+    aws_reset_error();
     kr = aws_cryptosdk_raw_rsa_keyring_new(alloc, raw_rsa_keyring_tv_master_key_id, strlen((const char *)raw_rsa_keyring_tv_master_key_id),
                                            raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id),
                                            NULL, NULL, AWS_CRYPTOSDK_RSA_PKCS1);
-    TEST_ASSERT_ADDR_NULL(kr);
+    TEST_ASSERT(aws_last_error() == AWS_CRYPTOSDK_ERR_BAD_STATE);
 
     kr = aws_cryptosdk_raw_rsa_keyring_new(alloc, raw_rsa_keyring_tv_master_key_id, strlen((const char *)raw_rsa_keyring_tv_master_key_id),
                                            raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id),
