@@ -35,22 +35,20 @@ const char *CLASS_TAG = "KMS_MASTER_KEY_CTAG";
 /**
  * Changes access control for some protected members from KmsCMasterKey for testing purposes
  */
-struct KmsMasterKeyExposer : Aws::Cryptosdk::KmsKeyring {
+struct KmsKeyringExposer : Aws::Cryptosdk::KmsKeyring {
   protected:
-    KmsMasterKeyExposer(std::shared_ptr<Aws::KMS::KMSClient> kms,
+    KmsKeyringExposer(std::shared_ptr<Aws::KMS::KMSClient> kms,
                         const Aws::String &key_id)
-        : KmsMasterKeyExposer(kms, Aws::List<Aws::String> { key_id }) {
+        : KmsKeyringExposer(kms, Aws::Vector<Aws::String> { key_id }) {
     }
-    KmsMasterKeyExposer(std::shared_ptr<Aws::KMS::KMSClient> kms,
-                        const Aws::List<Aws::String> &key_ids,
-                        const Aws::Vector<Aws::String> &grant_tokens = { },
-                        std::shared_ptr<KmsClientCache> kms_client_cache = NULL
+    KmsKeyringExposer(std::shared_ptr<Aws::KMS::KMSClient> kms,
+                        const Aws::Vector<Aws::String> &key_ids,
+                        const Aws::Vector<Aws::String> &grant_tokens = { }
                         )
         : KmsKeyring(key_ids,
                      "default_region",
                      grant_tokens,
-                     Aws::MakeShared<SingleClientSupplier>("KMS_EXPOSER", kms),
-                     kms_client_cache) {
+                     Aws::MakeShared<SingleClientSupplier>("KMS_EXPOSER", kms)) {
     }
   public:
     using KmsKeyring::OnEncrypt;
@@ -78,7 +76,7 @@ struct TestValues {
 
     struct aws_allocator *allocator;
     std::shared_ptr<KmsClientMock> kms_client_mock;
-    KmsMasterKeyExposer *kms_keyring;
+    KmsKeyringExposer *kms_keyring;
     Aws::Utils::ByteBuffer pt_bb;
     Aws::Utils::ByteBuffer ct_bb;
     aws_byte_buf pt_aws_byte;
@@ -88,10 +86,10 @@ struct TestValues {
     TestValues() : TestValues({ key_id }) {
     };
 
-    TestValues(const Aws::List<Aws::String> &key_ids, const Aws::Vector<Aws::String> &grant_tokens = { })
+    TestValues(const Aws::Vector<Aws::String> &key_ids, const Aws::Vector<Aws::String> &grant_tokens = { })
                  : allocator(aws_default_allocator()),
                    kms_client_mock(Aws::MakeShared<KmsClientMock>(CLASS_TAG)),
-                   kms_keyring(Aws::New<KmsMasterKeyExposer>(CLASS_TAG,
+                   kms_keyring(Aws::New<KmsKeyringExposer>(CLASS_TAG,
                                                              std::shared_ptr<Aws::KMS::KMSClient>(kms_client_mock),
                                                              key_ids,
                                                              grant_tokens)),
@@ -130,7 +128,7 @@ struct TestValues {
     }
 };
 
-const char *TestValues::key_id = "Key_id";
+const char *TestValues::key_id = "arn:aws:kms:us-west-2:658956600833:key/01234567-89ab-cdef-fedc-ba9876543210";
 
 struct EncryptTestValues : public TestValues {
     enum aws_cryptosdk_alg_id alg;
@@ -140,7 +138,7 @@ struct EncryptTestValues : public TestValues {
     EncryptTestValues() : EncryptTestValues( { key_id } ) {
 
     }
-    EncryptTestValues(const Aws::List<Aws::String> &key_ids, const Aws::Vector<Aws::String> &grant_tokens = { })
+    EncryptTestValues(const Aws::Vector<Aws::String> &key_ids, const Aws::Vector<Aws::String> &grant_tokens = { })
         : TestValues(key_ids, grant_tokens),
           alg(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE),
           unencrypted_data_key(aws_byte_buf_from_c_str(pt)) {
@@ -251,7 +249,7 @@ class DecryptValues : public TestValues {
         unencrypted_data_key({0}) {
     }
 
-    DecryptValues(const Aws::List<Aws::String> &key_ids, const Aws::Vector<Aws::String> &grant_tokens = { })
+    DecryptValues(const Aws::Vector<Aws::String> &key_ids, const Aws::Vector<Aws::String> &grant_tokens = { })
     : TestValues(key_ids, grant_tokens),
       edks(allocator),
       alg(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE),
@@ -348,7 +346,7 @@ int encrypt_validInputsMultipleKeys_returnSuccess() {
 }
 
 int encrypt_validInputsMultipleKeysWithGrantTokensAndEncContext_returnSuccess() {
-    Aws::List<Aws::String> keys = {"key1", "key2", "key3"};
+    Aws::Vector<Aws::String> keys = {"key1", "key2", "key3"};
     Aws::Map <Aws::String, Aws::String> enc_context = { {"k1", "v1"}, {"k2", "v2"} };
     Aws::Vector<Aws::String> grant_tokens = { "gt1", "gt2" };
 
@@ -380,11 +378,11 @@ int encrypt_validInputsMultipleKeysWithGrantTokensAndEncContext_returnSuccess() 
 }
 
 int encrypt_emptyRegionNameInKeys_returnSuccess() {
-    Aws::List<Aws::String> key = {"arn:aws:kms::123456789010:whatever"};
+    Aws::Vector<Aws::String> key = {"arn:aws:kms::123456789010:whatever"};
     EncryptTestValues ev(key);
 
     auto kms_client_mock = Aws::MakeShared<KmsClientMock>(CLASS_TAG);
-    auto kms_keyring = Aws::New<KmsMasterKeyExposer>(CLASS_TAG,
+    auto kms_keyring = Aws::New<KmsKeyringExposer>(CLASS_TAG,
                                                      kms_client_mock,
                                                      key
     );
@@ -506,38 +504,6 @@ int decrypt_validInputs_returnSuccess() {
                                                   dv.alg));
     TEST_ASSERT(aws_byte_buf_eq(&dv.unencrypted_data_key, &dv.pt_aws_byte) == true);
     TEST_ASSERT(dv.kms_client_mock->ExpectingOtherCalls() == false);
-    return 0;
-}
-
-int decrypt_emptyRegionNameInKeys_returnSuccess() {
-    Aws::String key = {"arn:aws:kms::123456789010:whatever"};
-    DecryptValues dv( { key } );
-
-    auto kms_client_mock = Aws::MakeShared<KmsClientMock>(CLASS_TAG);
-    auto kms_keyring = Aws::New<KmsMasterKeyExposer>(CLASS_TAG,
-                                                     kms_client_mock,
-                                                     key
-    );
-    TEST_ASSERT_SUCCESS(t_append_c_str_key_to_edks(dv.allocator,
-                                                   &dv.edks.encrypted_data_keys,
-                                                   &dv.ct_bb,
-                                                   key.c_str(),
-                                                   dv.provider_id));
-
-
-    kms_client_mock->ExpectDecryptAccumulator(dv.GetRequest(), dv.GetResult(key, dv.pt_bb));
-
-    TEST_ASSERT_SUCCESS(kms_keyring->OnDecrypt(kms_keyring,
-                                               dv.allocator,
-                                               &dv.unencrypted_data_key,
-                                               &dv.edks.encrypted_data_keys,
-                                               &dv.encryption_context,
-                                               dv.alg));
-    TEST_ASSERT(aws_byte_buf_eq(&dv.unencrypted_data_key, &dv.pt_aws_byte) == true);
-    TEST_ASSERT(kms_client_mock->ExpectingOtherCalls() == false);
-
-    Aws::Delete(kms_keyring);
-
     return 0;
 }
 
@@ -734,8 +700,7 @@ int createDecryptRequest_validInputes_returnRequest() {
 
     DecryptValues dv;
     dv.grant_tokens = {"gt1", "gt2"};
-    Model::DecryptRequest outcome_out = dv.kms_keyring->CreateDecryptRequest(dv.key_id,
-                                                                             dv.grant_tokens,
+    Model::DecryptRequest outcome_out = dv.kms_keyring->CreateDecryptRequest(dv.grant_tokens,
                                                                              dv.ct_bb,
                                                                              dv.GetEncryptionContext());
 
@@ -781,69 +746,69 @@ int createEncryptRequest_validInputes_returnRequest() {
 // exposes protected members
 struct KmsKeyringBuilderExposer : KmsKeyring::Builder {
   public:
-    using KmsKeyring::Builder::BuildDefaultRegion;
     using KmsKeyring::Builder::BuildClientSupplier;
     using KmsKeyring::Builder::ValidParameters;
 };
 
-int testBuilder_buildDefaultRegion_buildsRegion() {
-    const static char *default_region = "test";
-    KmsKeyringBuilderExposer a;
-    a.SetDefaultRegion(default_region);
-    TEST_ASSERT(a.BuildDefaultRegion() == default_region);
-
-    a.SetDefaultRegion("");
-    a.SetKeyId("arn:aws:kms:region_extracted_from_key:");
-    TEST_ASSERT(a.BuildDefaultRegion() == "region_extracted_from_key");
-
-    // no default region is set if there are two keys
-    a.AppendKeyId("key2");
-    TEST_ASSERT(a.BuildDefaultRegion() == "");
-
-    TestValues tv;
-    a.SetKmsClient(tv.kms_client_mock);
-    TEST_ASSERT(a.BuildDefaultRegion() == "default_region");
-
-    return 0;
-}
-
-
 int testBuilder_buildClientSupplier_buildsClient() {
     KmsKeyringBuilderExposer a;
-    TEST_ASSERT(dynamic_cast<KmsKeyring::DefaultRegionalClientSupplier*>(a.BuildClientSupplier().get()) != NULL);
+    TEST_ASSERT(dynamic_cast<KmsKeyring::CachingClientSupplier*>(
+                    a.BuildClientSupplier({"arn:aws:kms:region1:", "arn:aws:kms:region2:"}).get()) != NULL);
 
     TestValues tv;
-    a.SetKmsClient(tv.kms_client_mock);
-    TEST_ASSERT(dynamic_cast<KmsKeyring::SingleClientSupplier*>(a.BuildClientSupplier().get()) != NULL);
+    a.WithKmsClient(tv.kms_client_mock);
+    TEST_ASSERT(dynamic_cast<KmsKeyring::SingleClientSupplier*>(
+                    a.BuildClientSupplier({"arn:aws:kms:region:"}).get()) != NULL);
 
     return 0;
 }
 
-int testBuilder_invalidInputs_returnFalse() {
+int testBuilder_noKeys_invalid() {
     KmsKeyringBuilderExposer a;
-
     // no keys
-    TEST_ASSERT(a.ValidParameters() == false);
-
-    // minimum valid parameters are met
-    a.SetKeyId("arn:aws:kms:region_extracted_from_key:");
-    TEST_ASSERT(a.ValidParameters() == true);
-
-    // no keys that contain region
-    a.SetKeyId("arn:aws:kms:");
-    TEST_ASSERT(a.ValidParameters() == false);
-
-    a.SetDefaultRegion("default_region_set");
-    TEST_ASSERT(a.ValidParameters() == true);
-
-    // empty key is not allowed
-    a.AppendKeyId("");
-    TEST_ASSERT(a.ValidParameters() == false);
-
+    Aws::Vector<Aws::String> empty_key_id_list;
+    TEST_ASSERT(!a.Build(empty_key_id_list));
     return 0;
 }
 
-int t_assert_encrypt_with_default_values(KmsMasterKeyExposer *kms_keyring, EncryptTestValues &ev) {
+int testBuilder_keyWithRegion_valid() {
+    KmsKeyringBuilderExposer a;
+    aws_cryptosdk_keyring *k = a.Build({"arn:aws:kms:region_extracted_from_key:"});
+    TEST_ASSERT_ADDR_NOT_NULL(k);
+    aws_cryptosdk_keyring_release(k);
+    return 0;
+}
+
+int testBuilder_keyWithoutRegion_invalid() {
+    KmsKeyringBuilderExposer a;
+    TEST_ASSERT_ADDR_NULL(a.Build({"alias/foobar"}));
+    return 0;
+}
+
+int testBuilder_keyWithoutRegionAndDefaultRegion_valid() {
+    KmsKeyringBuilderExposer a;
+    aws_cryptosdk_keyring *k = a.WithDefaultRegion("default_region_set").Build({"alias/foobar"});
+    TEST_ASSERT_ADDR_NOT_NULL(k);
+    aws_cryptosdk_keyring_release(k);
+    return 0;
+}
+
+int testBuilder_keyWithoutRegionAndKmsClient_valid() {
+    KmsKeyringBuilderExposer a;
+    TestValues tv;
+    aws_cryptosdk_keyring *k = a.WithKmsClient(tv.kms_client_mock).Build({"alias/foobar"});
+    TEST_ASSERT_ADDR_NOT_NULL(k);
+    aws_cryptosdk_keyring_release(k);
+    return 0;
+}
+
+int testBuilder_emptyKey_invalid() {
+    KmsKeyringBuilderExposer a;
+    TEST_ASSERT_ADDR_NULL(a.WithDefaultRegion("default_region_set").Build({""}));
+    return 0;
+}
+
+int t_assert_encrypt_with_default_values(KmsKeyringExposer *kms_keyring, EncryptTestValues &ev) {
     TEST_ASSERT(kms_keyring != NULL);
     TEST_ASSERT_SUCCESS(kms_keyring->OnEncrypt(kms_keyring,
                                                ev.allocator,
@@ -856,69 +821,6 @@ int t_assert_encrypt_with_default_values(KmsMasterKeyExposer *kms_keyring, Encry
                                                                                    ev.key_id,
                                                                                    ev.provider_id,
                                                                                    ev.allocator));
-    return 0;
-}
-
-int testKmsClientCache_cacheAlreadyContainValues_sameInitializedClientIsUsed() {
-    EncryptTestValues ev1;
-    EncryptTestValues ev2;
-    std::shared_ptr<KmsKeyring::KmsClientCache> client_cache = Aws::MakeShared<KmsKeyring::KmsClientCache>("test");
-    auto kms_cached_client_mock(Aws::MakeShared<KmsClientMock>(CLASS_TAG));
-    client_cache->SaveInCache("default_region", kms_cached_client_mock);
-
-    KmsMasterKeyExposer *kms_keyring1 = Aws::New<KmsMasterKeyExposer>("TEST_CTOR",
-                                                                      ev1.kms_client_mock,
-                                                                      Aws::List<Aws::String>{ev1.key_id},
-                                                                      Aws::Vector<Aws::String>{},
-                                                                      client_cache);
-    KmsMasterKeyExposer *kms_keyring2 = Aws::New<KmsMasterKeyExposer>("TEST_CTOR",
-                                                                      ev2.kms_client_mock,
-                                                                      Aws::List<Aws::String>{ev2.key_id},
-                                                                      Aws::Vector<Aws::String>{},
-                                                                      client_cache);
-
-    // Kms_keyring should use kms_cached_client_mock because is already in cache and should not try to use the
-    // ev1.kms_client_mock or ev2.kms_client_mock
-    kms_cached_client_mock->ExpectEncryptAccumulator(ev1.GetRequest(), ev1.GetResult());
-    kms_cached_client_mock->ExpectEncryptAccumulator(ev2.GetRequest(), ev2.GetResult());
-
-    TEST_ASSERT_SUCCESS(t_assert_encrypt_with_default_values(kms_keyring1, ev1));
-    TEST_ASSERT_SUCCESS(t_assert_encrypt_with_default_values(kms_keyring2, ev2));
-    Aws::Delete(kms_keyring1);
-    Aws::Delete(kms_keyring2);
-
-    return 0;
-}
-
-int testKmsClientCache_cacheDoesNotContainValues_cacheWillBePopulatedWithValues() {
-    EncryptTestValues ev1;
-    EncryptTestValues ev2;
-
-    std::shared_ptr<KmsKeyring::KmsClientCache> client_cache = Aws::MakeShared<KmsKeyring::KmsClientCache>("test");
-    auto kms_cached_client_mock(Aws::MakeShared<KmsClientMock>(CLASS_TAG));
-
-    KmsMasterKeyExposer *kms_keyring1 = Aws::New<KmsMasterKeyExposer>("TEST_CTOR",
-                                                                      ev1.kms_client_mock,
-                                                                      Aws::List<Aws::String>{ev1.key_id},
-                                                                      Aws::Vector<Aws::String>{},
-                                                                      client_cache);
-    KmsMasterKeyExposer *kms_keyring2 = Aws::New<KmsMasterKeyExposer>("TEST_CTOR",
-                                                                      ev2.kms_client_mock,
-                                                                      Aws::List<Aws::String>{ev2.key_id},
-                                                                      Aws::Vector<Aws::String>{},
-                                                                      client_cache);
-
-    // Kms_keyring1 should use ev1.kms_client_mock and then to store it in client_cache. The call of kms_keyring2
-    // should pick kms_client from the cache (ev1.kms_client_mock) instead of using its own
-    ev1.kms_client_mock->ExpectEncryptAccumulator(ev1.GetRequest(), ev1.GetResult());
-    ev1.kms_client_mock->ExpectEncryptAccumulator(ev2.GetRequest(), ev2.GetResult());
-
-    TEST_ASSERT_SUCCESS(t_assert_encrypt_with_default_values(kms_keyring1, ev1));
-    TEST_ASSERT_SUCCESS(t_assert_encrypt_with_default_values(kms_keyring2, ev2));
-
-    Aws::Delete(kms_keyring1);
-    Aws::Delete(kms_keyring2);
-
     return 0;
 }
 
@@ -937,7 +839,6 @@ int main() {
     RUN_TEST(encrypt_multipleKeysOneFails_returnFail());
     RUN_TEST(encrypt_multipleKeysOneFails_initialEdksAreNotAffected());
     RUN_TEST(decrypt_validInputs_returnSuccess());
-    RUN_TEST(decrypt_emptyRegionNameInKeys_returnSuccess());
     RUN_TEST(decrypt_validInputsButNoKeyMatched_returnSuccess());
     RUN_TEST(decrypt_noKeys_returnSuccess());
     RUN_TEST(decrypt_validInputsWithMultipleEdks_returnSuccess());
@@ -948,11 +849,13 @@ int main() {
     RUN_TEST(createDecryptRequest_validInputes_returnRequest());
     RUN_TEST(createGenerateDataKeyRequest_validInputes_returnRequest());
     RUN_TEST(createEncryptRequest_validInputes_returnRequest());
-    RUN_TEST(testBuilder_buildDefaultRegion_buildsRegion());
     RUN_TEST(testBuilder_buildClientSupplier_buildsClient());
-    RUN_TEST(testBuilder_invalidInputs_returnFalse());
-    RUN_TEST(testKmsClientCache_cacheAlreadyContainValues_sameInitializedClientIsUsed());
-    RUN_TEST(testKmsClientCache_cacheDoesNotContainValues_cacheWillBePopulatedWithValues());
+    RUN_TEST(testBuilder_noKeys_invalid());
+    RUN_TEST(testBuilder_keyWithRegion_valid());
+    RUN_TEST(testBuilder_keyWithoutRegion_invalid());
+    RUN_TEST(testBuilder_keyWithoutRegionAndDefaultRegion_valid());
+    RUN_TEST(testBuilder_keyWithoutRegionAndKmsClient_valid());
+    RUN_TEST(testBuilder_emptyKey_invalid());
 
     Aws::ShutdownAPI(*options);
     Aws::Delete(options);
