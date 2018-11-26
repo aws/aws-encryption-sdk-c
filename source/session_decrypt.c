@@ -111,7 +111,7 @@ static int validate_header(struct aws_cryptosdk_session *session) {
     return aws_cryptosdk_verify_header(session->alg_props, &session->content_key, &authtag, &headerbytebuf);
 }
 
-int unwrap_keys(
+int aws_cryptosdk_priv_unwrap_keys(
     struct aws_cryptosdk_session * AWS_RESTRICT session
 ) {
     struct aws_cryptosdk_decryption_request request;
@@ -150,7 +150,7 @@ int unwrap_keys(
 
     session->frame_seqno = 1;
     session->frame_size = session->header.frame_len;
-    session_change_state(session, ST_DECRYPT_BODY);
+    aws_cryptosdk_priv_session_change_state(session, ST_DECRYPT_BODY);
 
     rv = AWS_OP_SUCCESS;
 out:
@@ -160,7 +160,7 @@ out:
     return rv;
 }
 
-int try_parse_header(
+int aws_cryptosdk_priv_try_parse_header(
     struct aws_cryptosdk_session * AWS_RESTRICT session,
     struct aws_byte_cursor * AWS_RESTRICT input
 ) {
@@ -200,12 +200,12 @@ int try_parse_header(
 
     memcpy(session->header_copy, header_start, session->header_size);
 
-    session_change_state(session, ST_UNWRAP_KEY);
+    aws_cryptosdk_priv_session_change_state(session, ST_UNWRAP_KEY);
 
-    return unwrap_keys(session);
+    return aws_cryptosdk_priv_unwrap_keys(session);
 }
 
-int try_decrypt_body(
+int aws_cryptosdk_priv_try_decrypt_body(
     struct aws_cryptosdk_session * AWS_RESTRICT session,
     struct aws_byte_cursor * AWS_RESTRICT poutput,
     struct aws_byte_cursor * AWS_RESTRICT pinput
@@ -263,7 +263,7 @@ int try_decrypt_body(
         }
 
         if (frame.type != FRAME_TYPE_FRAME) {
-            session_change_state(session, ST_CHECK_TRAILER);
+            aws_cryptosdk_priv_session_change_state(session, ST_CHECK_TRAILER);
         }
 
         return rv;
@@ -273,13 +273,13 @@ int try_decrypt_body(
     return rv;
 }
 
-int check_trailer(
+int aws_cryptosdk_priv_check_trailer(
     struct aws_cryptosdk_session * AWS_RESTRICT session,
     struct aws_byte_cursor * AWS_RESTRICT input
 ) {
     struct aws_byte_cursor initial_input = *input;
     if (session->signctx == NULL) {
-        session_change_state(session, ST_DONE);
+        aws_cryptosdk_priv_session_change_state(session, ST_DONE);
         return AWS_OP_SUCCESS;
     }
 
