@@ -30,23 +30,23 @@ static int build_header(struct aws_cryptosdk_session *session, struct aws_crypto
 static int sign_header(struct aws_cryptosdk_session *session);
 
 /* Session encrypt path routines */
-void encrypt_compute_body_estimate(struct aws_cryptosdk_session *session) {
+void aws_cryptosdk_priv_encrypt_compute_body_estimate(struct aws_cryptosdk_session *session) {
     if (session->state != ST_ENCRYPT_BODY) {
         return;
     }
 
     /*
-     * We'll update the input/output estimates by simply doing a trial run of try_encrypt_body
+     * We'll update the input/output estimates by simply doing a trial run of aws_cryptosdk_priv_try_encrypt_body
      * with empty input/output buffers.
      */
 
     struct aws_byte_cursor empty_input = { .ptr = (uint8_t *)"", .len = 0 };
     struct aws_byte_cursor empty_output = empty_input;
 
-    try_encrypt_body(session, &empty_output, &empty_input);
+    aws_cryptosdk_priv_try_encrypt_body(session, &empty_output, &empty_input);
 }
 
-int try_gen_key(struct aws_cryptosdk_session *session) {
+int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
     struct aws_cryptosdk_encryption_request request;
     struct aws_cryptosdk_encryption_materials *materials = NULL;
     struct data_key data_key;
@@ -198,14 +198,14 @@ static int sign_header(struct aws_cryptosdk_session *session) {
     }
 
     session->frame_seqno = 1;
-    session_change_state(session, ST_WRITE_HEADER);
+    aws_cryptosdk_priv_session_change_state(session, ST_WRITE_HEADER);
 
     // TODO - should we free the parsed header here?
 
     return AWS_OP_SUCCESS;
 }
 
-int try_write_header(
+int aws_cryptosdk_priv_try_write_header(
     struct aws_cryptosdk_session *session,
     struct aws_byte_cursor *output
 ) {
@@ -216,7 +216,7 @@ int try_write_header(
 
     // TODO - should we try to write incrementally?
     if (aws_byte_cursor_write(output, session->header_copy, session->header_size)) {
-        session_change_state(session, ST_ENCRYPT_BODY);
+        aws_cryptosdk_priv_session_change_state(session, ST_ENCRYPT_BODY);
     }
 
     // TODO - should we free the parsed header here?
@@ -224,7 +224,7 @@ int try_write_header(
     return AWS_OP_SUCCESS;
 }
 
-int try_encrypt_body(
+int aws_cryptosdk_priv_try_encrypt_body(
     struct aws_cryptosdk_session * AWS_RESTRICT session,
     struct aws_byte_cursor * AWS_RESTRICT poutput,
     struct aws_byte_cursor * AWS_RESTRICT pinput
@@ -330,18 +330,18 @@ int try_encrypt_body(
 
     if (frame.type != FRAME_TYPE_FRAME) {
         // We've written a final frame, move on to the trailer
-        session_change_state(session, ST_WRITE_TRAILER);
+        aws_cryptosdk_priv_session_change_state(session, ST_WRITE_TRAILER);
     }
 
     return AWS_OP_SUCCESS;
 }
 
-int write_trailer(
+int aws_cryptosdk_priv_write_trailer(
     struct aws_cryptosdk_session * AWS_RESTRICT session,
     struct aws_byte_cursor * AWS_RESTRICT poutput
 ) {
     if (session->alg_props->signature_len == 0) {
-        session_change_state(session, ST_DONE);
+        aws_cryptosdk_priv_session_change_state(session, ST_DONE);
         return AWS_OP_SUCCESS;
     }
 
@@ -375,7 +375,7 @@ int write_trailer(
     aws_string_destroy(signature);
 
     if (rv == AWS_OP_SUCCESS) {
-        session_change_state(session, ST_DONE);
+        aws_cryptosdk_priv_session_change_state(session, ST_DONE);
     }
 
     return rv;

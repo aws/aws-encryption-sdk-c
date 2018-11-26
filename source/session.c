@@ -59,7 +59,7 @@ int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_
     if (mode != AWS_CRYPTOSDK_ENCRYPT && mode != AWS_CRYPTOSDK_DECRYPT) {
         // We do this only after clearing all internal state, to ensure that we don't
         // accidentally leak some secret data
-        return fail_session(session, AWS_ERROR_UNIMPLEMENTED);
+        return aws_cryptosdk_priv_fail_session(session, AWS_ERROR_UNIMPLEMENTED);
     }
 
     return AWS_OP_SUCCESS;
@@ -142,18 +142,18 @@ int aws_cryptosdk_session_set_message_size(
 
     if (session->precise_size_known) {
         // TODO AWS_BAD_STATE
-        return fail_session(session, AWS_CRYPTOSDK_ERR_BAD_STATE);
+        return aws_cryptosdk_priv_fail_session(session, AWS_CRYPTOSDK_ERR_BAD_STATE);
     }
 
     if (session->size_bound < message_size) {
-        return fail_session(session, AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
+        return aws_cryptosdk_priv_fail_session(session, AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
     }
 
     session->precise_size = message_size;
     session->precise_size_known = true;
 
     if (session->state == ST_ENCRYPT_BODY) {
-        encrypt_compute_body_estimate(session);
+        aws_cryptosdk_priv_encrypt_compute_body_estimate(session);
     }
 
     return AWS_OP_SUCCESS;
@@ -168,7 +168,7 @@ int aws_cryptosdk_session_set_message_bound(
     }
 
     if (session->precise_size_known && session->precise_size > max_message_size) {
-        return fail_session(session, AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
+        return aws_cryptosdk_priv_fail_session(session, AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
     }
 
     if (session->size_bound > max_message_size) {
@@ -219,37 +219,37 @@ int aws_cryptosdk_session_process(
                 }
 
                 if (session->mode == AWS_CRYPTOSDK_ENCRYPT) {
-                    session_change_state(session, ST_GEN_KEY);
+                    aws_cryptosdk_priv_session_change_state(session, ST_GEN_KEY);
                 } else {
-                    session_change_state(session, ST_READ_HEADER);
+                    aws_cryptosdk_priv_session_change_state(session, ST_READ_HEADER);
                 }
                 result = AWS_OP_SUCCESS;
                 break;
 
             case ST_READ_HEADER:
-                result = try_parse_header(session, &input);
+                result = aws_cryptosdk_priv_try_parse_header(session, &input);
                 break;
             case ST_UNWRAP_KEY:
-                result = unwrap_keys(session);
+                result = aws_cryptosdk_priv_unwrap_keys(session);
                 break;
             case ST_DECRYPT_BODY:
-                result = try_decrypt_body(session, &output, &input);
+                result = aws_cryptosdk_priv_try_decrypt_body(session, &output, &input);
                 break;
             case ST_CHECK_TRAILER:
-                result = check_trailer(session, &input);
+                result = aws_cryptosdk_priv_check_trailer(session, &input);
                 break;
 
             case ST_GEN_KEY:
-                result = try_gen_key(session);
+                result = aws_cryptosdk_priv_try_gen_key(session);
                 break;
             case ST_WRITE_HEADER:
-                result = try_write_header(session, &output);
+                result = aws_cryptosdk_priv_try_write_header(session, &output);
                 break;
             case ST_ENCRYPT_BODY:
-                result = try_encrypt_body(session, &output, &input);
+                result = aws_cryptosdk_priv_try_encrypt_body(session, &output, &input);
                 break;
             case ST_WRITE_TRAILER:
-                result = write_trailer(session, &output);
+                result = aws_cryptosdk_priv_write_trailer(session, &output);
                 break;
 
             case ST_DONE:
@@ -276,7 +276,7 @@ int aws_cryptosdk_session_process(
 
         if (session->state != ST_ERROR) {
             session->error = aws_last_error();
-            session_change_state(session, ST_ERROR);
+            aws_cryptosdk_priv_session_change_state(session, ST_ERROR);
         }
     }
 
@@ -314,7 +314,7 @@ void aws_cryptosdk_session_estimate_buf(
     *inbuf_needed = session->input_size_estimate;
 }
 
-void session_change_state(struct aws_cryptosdk_session *session, enum session_state new_state) {
+void aws_cryptosdk_priv_session_change_state(struct aws_cryptosdk_session *session, enum session_state new_state) {
     // Performs internal sanity checks before allowing a state change.
 
     // Since the intent is mostly to avoid use of initialized memory due to internal bugs, we
@@ -468,10 +468,10 @@ void session_change_state(struct aws_cryptosdk_session *session, enum session_st
     session->state = new_state;
 }
 
-int fail_session(struct aws_cryptosdk_session *session, int error_code) {
+int aws_cryptosdk_priv_fail_session(struct aws_cryptosdk_session *session, int error_code) {
     if (session->state != ST_ERROR) {
         session->error = error_code;
-        session_change_state(session, ST_ERROR);
+        aws_cryptosdk_priv_session_change_state(session, ST_ERROR);
     }
 
     return aws_raise_error(error_code);
