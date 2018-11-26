@@ -21,6 +21,8 @@
 #include <aws/cryptosdk/vtable.h>
 #include <aws/cryptosdk/exports.h>
 
+#define AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES ((uint64_t)1 << 32)
+
 struct aws_cryptosdk_cache_usage_stats {
     uint64_t bytes_encrypted, messages_encrypted;
 };
@@ -525,6 +527,42 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
     const struct aws_byte_buf *partition_id
 );
 
+enum aws_cryptosdk_caching_cmm_limit_type {
+    AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES = 0x1000,
+    AWS_CRYPTOSDK_CACHE_LIMIT_BYTES,
+    AWS_CRYPTOSDK_CACHE_LIMIT_TTL
+};
 
+/**
+ * Configures the usage limis for cached entries when used via this CMM.
+ *
+ * The caching CMM can be configured to limit cache entry usage by number of messages encrypted,
+ * number of bytes encrypted, and/or by the maximum time to live in the cache. For decrypt operations,
+ * only the time to live limit is effective.
+ *
+ * Note that the byte limit is determined based on information available at the time the encrypt operation
+ * begins; if the aws_cryptosdk_session_set_message_size function is not called before invoking
+ * aws_cryptosdk_session_process for the first time, then this will be based on the
+ * aws_cryptosdk_session_set_message_bound value. If neither function is called before the first call to
+ * process, then a cache miss will be forced on encrypt, as the message size is completely unknown.
+ *
+ * By default, all limits are set to their maximum permitted values:
+ *   * The message count limit is set to 1 << 32 (AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES)
+ *   * The byte count limit is set to UINT64_MAX
+ *   * The TTL limit is set to UINT64_MAX
+ *
+ * If you attempt to set a limit to a value higher than the maximum permitted value,
+ * it will instead be set to the maximum permitted value.
+ *
+ * Parameters:
+ * @param cmm - The caching CMM to configure.
+ * @param type - The type of limit to set
+ * @param new_value - The new value of the limit
+ */
+int aws_cryptosdk_caching_cmm_set_limits(
+    struct aws_cryptosdk_cmm *cmm,
+    enum aws_cryptosdk_caching_cmm_limit_type type,
+    uint64_t new_value
+);
 
 #endif
