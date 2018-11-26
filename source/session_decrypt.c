@@ -207,7 +207,7 @@ int aws_cryptosdk_priv_try_parse_header(
 
 int aws_cryptosdk_priv_try_decrypt_body(
     struct aws_cryptosdk_session * AWS_RESTRICT session,
-    struct aws_byte_cursor * AWS_RESTRICT poutput,
+    struct aws_byte_buf * AWS_RESTRICT poutput,
     struct aws_byte_cursor * AWS_RESTRICT pinput
 ) {
     struct aws_cryptosdk_frame frame;
@@ -239,17 +239,18 @@ int aws_cryptosdk_priv_try_decrypt_body(
     }
 
     // Before we go further, do we have enough room to place the plaintext?
-    struct aws_byte_cursor output = aws_byte_cursor_advance_nospec(poutput, plaintext_size);
-    if (!output.ptr) {
+    struct aws_byte_buf output;
+    if (!aws_byte_buf_advance(poutput, &output, plaintext_size)) {
         *pinput = input_rollback;
         // No progress due to not enough plaintext output space.
         return AWS_OP_SUCCESS;
     }
 
     // We have everything we need, try to decrypt
+    struct aws_byte_cursor ciphertext_cursor = aws_byte_cursor_from_buf(&frame.ciphertext);
     int rv = aws_cryptosdk_decrypt_body(
-        session->alg_props, &output, &frame.ciphertext, session->header.message_id, frame.sequence_number,
-        frame.iv.ptr, &session->content_key, frame.authtag.ptr, frame.type
+        session->alg_props, &output, &ciphertext_cursor, session->header.message_id, frame.sequence_number,
+        frame.iv.buffer, &session->content_key, frame.authtag.buffer, frame.type
     );
 
     if (rv == AWS_ERROR_SUCCESS) {

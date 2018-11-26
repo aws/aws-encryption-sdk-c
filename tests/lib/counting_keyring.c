@@ -35,13 +35,13 @@ static int set_edk(struct aws_allocator *alloc, struct aws_cryptosdk_edk *edk) {
     struct aws_byte_buf src;
 
     src = aws_string_to_buf(prov_name);
-    if (aws_byte_buf_init_copy(alloc, &edk->provider_id, &src))
+    if (aws_byte_buf_init_copy(&edk->provider_id, alloc, &src))
         return AWS_OP_ERR;
     src = aws_string_to_buf(prov_info);
-    if (aws_byte_buf_init_copy(alloc, &edk->provider_info, &src))
+    if (aws_byte_buf_init_copy(&edk->provider_info, alloc, &src))
         return AWS_OP_ERR;
     src = aws_string_to_buf(expected_edk);
-    if (aws_byte_buf_init_copy(alloc, &edk->enc_data_key, &src))
+    if (aws_byte_buf_init_copy(&edk->enc_data_key, alloc, &src))
         return AWS_OP_ERR;
 
     return AWS_OP_SUCCESS;
@@ -82,7 +82,7 @@ static int counting_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
             }
         }
     } else {
-        if (aws_byte_buf_init(request_alloc, unencrypted_data_key, props->data_key_len)) {
+        if (aws_byte_buf_init(unencrypted_data_key, request_alloc, props->data_key_len)) {
             return AWS_OP_ERR;
         }
         unencrypted_data_key->len = props->data_key_len;
@@ -117,7 +117,7 @@ static int counting_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
         if (is_counting_edk(edk)) {
             const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
 
-            if (aws_byte_buf_init(request_alloc, unencrypted_data_key, props->data_key_len)) {
+            if (aws_byte_buf_init(unencrypted_data_key, request_alloc, props->data_key_len)) {
                 return AWS_OP_ERR;
             }
 

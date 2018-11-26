@@ -26,11 +26,11 @@ struct aws_cryptosdk_frame {
     /* The frame sequence number. For nonframed bodies, this should be 1 */
     uint32_t sequence_number;
     /* A cursor to space for the IV in the ciphertext buffer */
-    struct aws_byte_cursor iv;
+    struct aws_byte_buf iv;
     /* A cursor to space for the ciphertext in the ciphertext buffer */
-    struct aws_byte_cursor ciphertext;
+    struct aws_byte_buf ciphertext;
     /* A cursor to space for the AEAD tag in the ciphertext buffer */
-    struct aws_byte_cursor authtag;
+    struct aws_byte_buf authtag;
 };
 
 
@@ -69,7 +69,7 @@ int aws_cryptosdk_serialize_frame(
     size_t *ciphertext_size, /* out */
     /* in */
     size_t plaintext_size,
-    struct aws_byte_cursor *ciphertext_buf,
+    struct aws_byte_buf *ciphertext_buf,
     const struct aws_cryptosdk_alg_properties *alg_props
 );
 

@@ -72,7 +72,7 @@ static int zero_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
             }
         }
     } else {
-        if (aws_byte_buf_init(request_alloc, unencrypted_data_key, props->data_key_len)) {
+        if (aws_byte_buf_init(unencrypted_data_key, request_alloc, props->data_key_len)) {
             return AWS_OP_ERR;
         }
         aws_byte_buf_secure_zero(unencrypted_data_key);
@@ -100,7 +100,7 @@ static int zero_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
         if (aws_array_list_get_at_ptr(edks, (void **)&edk, key_idx)) return AWS_OP_ERR;
         if (is_literally_null_edk(edk)) {
             const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
-            if (aws_byte_buf_init(request_alloc, unencrypted_data_key, props->data_key_len)) {
+            if (aws_byte_buf_init(unencrypted_data_key, request_alloc, props->data_key_len)) {
                 return AWS_OP_ERR;
             }
             aws_byte_buf_secure_zero(unencrypted_data_key);

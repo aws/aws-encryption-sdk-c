@@ -300,7 +300,7 @@ static int update_frame_aad(
 
 int aws_cryptosdk_encrypt_body(
     const struct aws_cryptosdk_alg_properties *props,
-    struct aws_byte_cursor *outp,
+    struct aws_byte_buf *outp,
     const struct aws_byte_cursor *inp,
     const uint8_t *message_id,
     uint32_t seqno,
@@ -309,7 +309,7 @@ int aws_cryptosdk_encrypt_body(
     uint8_t *tag,
     int body_frame_type
 ) {
-    if (inp->len != outp->len) {
+    if (inp->len != outp->capacity) {
         return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     }
 
@@ -345,11 +345,11 @@ int aws_cryptosdk_encrypt_body(
     if (!(ctx = evp_gcm_cipher_init(props, key, iv, true))) goto out;
     if (!update_frame_aad(ctx, message_id, body_frame_type, seqno, inp->len)) goto out;
 
-    struct aws_byte_cursor outcurs = *outp;
+    struct aws_byte_buf outbuf = *outp;
     struct aws_byte_cursor incurs = *inp;
 
     while (incurs.len) {
-        if (incurs.len != outcurs.len) {
+        if (incurs.len != outbuf.capacity - outbuf.len) {
             /*
              * None of the algorithms we currently support should break this invariant.
              * Bail out immediately with an unknown error.
@@ -360,13 +360,15 @@ int aws_cryptosdk_encrypt_body(
         int in_len = incurs.len > INT_MAX ? INT_MAX : incurs.len;
         int ct_len;
 
-        if (!EVP_EncryptUpdate(ctx, outcurs.ptr, &ct_len, incurs.ptr, in_len)) goto out;
+        if (!EVP_EncryptUpdate(ctx, outbuf.buffer + outbuf.len, &ct_len, incurs.ptr, in_len)) goto out;
         /*
          * The next two advances should never fail ... but check the return values
          * just in case.
          */
         if (!aws_byte_cursor_advance_nospec(&incurs, in_len).ptr) goto out;
-        if (!aws_byte_cursor_advance(&outcurs, ct_len).ptr) {
+        outbuf.len += ct_len;
+
+        if (outbuf.capacity < outbuf.len) {
             /* Somehow we ran over the output buffer. abort() to limit the damage. */
             abort();
         }
@@ -378,16 +380,17 @@ out:
     if (ctx) EVP_CIPHER_CTX_free(ctx);
 
     if (result == AWS_ERROR_SUCCESS) {
+        *outp = outbuf;
         return AWS_OP_SUCCESS;
     } else {
-        aws_secure_zero(outp->ptr, outp->len);
+        aws_secure_zero(outp->buffer, outp->capacity);
         return aws_raise_error(result);
     }
 }
 
 int aws_cryptosdk_decrypt_body(
     const struct aws_cryptosdk_alg_properties *props,
-    struct aws_byte_cursor *outp,
+    struct aws_byte_buf *outp,
     const struct aws_byte_cursor *inp,
     const uint8_t *message_id,
     uint32_t seqno,
@@ -396,12 +399,12 @@ int aws_cryptosdk_decrypt_body(
     const uint8_t *tag,
     int body_frame_type
 ) {
-    if (inp->len != outp->len) {
+    if (inp->len != outp->capacity - outp->len) {
         return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     }
 
     EVP_CIPHER_CTX *ctx = NULL;
-    struct aws_byte_cursor outcurs = *outp;
+    struct aws_byte_buf outcurs = *outp;
     struct aws_byte_cursor incurs = *inp;
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
 
@@ -413,13 +416,14 @@ int aws_cryptosdk_decrypt_body(
         int in_len = incurs.len > INT_MAX ? INT_MAX : incurs.len;
         int pt_len;
 
-        if (!EVP_DecryptUpdate(ctx, outcurs.ptr, &pt_len, incurs.ptr, in_len)) goto out;
+        if (!EVP_DecryptUpdate(ctx, outcurs.buffer + outcurs.len, &pt_len, incurs.ptr, in_len)) goto out;
         /*
          * The next two advances should never fail ... but check the return values
          * just in case.
          */
         if (!aws_byte_cursor_advance_nospec(&incurs, in_len).ptr) goto out;
-        if (!aws_byte_cursor_advance(&outcurs, pt_len).ptr) {
+        outcurs.len += pt_len;
+        if (outcurs.len > outcurs.capacity) {
             /* Somehow we ran over the output buffer. abort() to limit the damage. */
             abort();
         }
@@ -430,9 +434,10 @@ out:
     if (ctx) EVP_CIPHER_CTX_free(ctx);
 
     if (result == AWS_ERROR_SUCCESS) {
+        *outp = outcurs;
         return AWS_OP_SUCCESS;
     } else {
-        aws_secure_zero(outp->ptr, outp->len);
+        aws_secure_zero(outp->buffer, outp->capacity);
         return aws_raise_error(result);
     }
 }
@@ -592,7 +597,7 @@ int aws_cryptosdk_rsa_encrypt(
     }
     size_t outlen;
     if (EVP_PKEY_encrypt(ctx, NULL, &outlen, plain.ptr, plain.len) <= 0) goto cleanup;
-    if (aws_byte_buf_init(alloc, cipher, outlen)) goto cleanup;
+    if (aws_byte_buf_init(cipher, alloc, outlen)) goto cleanup;
     if (1 == EVP_PKEY_encrypt(ctx, cipher->buffer, &outlen, plain.ptr, plain.len)) {
         cipher->len = outlen;
         error = false;
@@ -640,7 +645,7 @@ int aws_cryptosdk_rsa_decrypt(
     }
     size_t outlen;
     if (EVP_PKEY_decrypt(ctx, NULL, &outlen, cipher.ptr, cipher.len) <= 0) goto cleanup;
-    if (aws_byte_buf_init(alloc, plain, outlen)) goto cleanup;
+    if (aws_byte_buf_init(plain, alloc, outlen)) goto cleanup;
     if (EVP_PKEY_decrypt(ctx, plain->buffer, &outlen, cipher.ptr, cipher.len) <= 0) {
         err_code = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
     } else {

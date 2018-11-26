@@ -401,7 +401,7 @@ static struct local_cache_entry *new_entry(struct aws_cryptosdk_local_cache *cac
 
     memset(entry, 0, sizeof(*entry));
 
-    if (aws_byte_buf_init_copy(cache->allocator, &entry->cache_id, cache_id)) {
+    if (aws_byte_buf_init_copy(&entry->cache_id, cache->allocator, cache_id)) {
         aws_mem_release(cache->allocator, entry);
         return NULL;
     }
@@ -456,7 +456,7 @@ static void destroy_cache_entry_vp(void *vp_entry) {
 }
 
 static int copy_encryption_materials(struct aws_allocator *alloc, struct aws_cryptosdk_encryption_materials *out, const struct aws_cryptosdk_encryption_materials *in) {
-    if (aws_byte_buf_init_copy(alloc, &out->unencrypted_data_key, &in->unencrypted_data_key)) {
+    if (aws_byte_buf_init_copy(&out->unencrypted_data_key, alloc, &in->unencrypted_data_key)) {
         goto err;
     }
 

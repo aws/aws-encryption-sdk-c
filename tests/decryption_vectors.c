@@ -400,7 +400,7 @@ error:
 
 static struct aws_byte_buf b64_decode(const char *b64_input) {
     size_t outlen;
-    struct aws_byte_buf in = aws_byte_buf_from_c_str(b64_input);
+    struct aws_byte_cursor in = aws_byte_cursor_from_c_str(b64_input);
 
     if (aws_base64_compute_decoded_len(&in, &outlen)) {
         fprintf(stderr, "Base64 compute decoded len failed for {%s}: 0x%04x\n",
@@ -409,7 +409,7 @@ static struct aws_byte_buf b64_decode(const char *b64_input) {
     }
 
     struct aws_byte_buf out;
-    if (aws_byte_buf_init(aws_default_allocator(), &out, outlen)) abort();
+    if (aws_byte_buf_init(&out, aws_default_allocator(), outlen)) abort();
 
     if (aws_base64_decode(&in, &out)) {
         fprintf(stderr, "Base64 decode failed for {%s}: 0x%04x\n",

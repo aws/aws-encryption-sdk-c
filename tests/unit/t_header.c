@@ -570,7 +570,7 @@ int simple_header_write() {
     uint8_t *outbuf = alloca(outlen);
     size_t bytes_written;
 
-    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_write(&hdr, &bytes_written, outbuf, outlen));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_hdr_write(&hdr, &bytes_written, outbuf, outlen));
     TEST_ASSERT_INT_EQ(bytes_written, outlen);
     TEST_ASSERT(!memcmp(test_header_1, outbuf, outlen));
 

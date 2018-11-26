@@ -18,6 +18,9 @@
 #include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/materials.h>
 
+#include <aws/common/byte_buf.h>
+#include <aws/common/string.h>
+
 static int serialize_aad_init(struct aws_allocator *alloc,
                               struct aws_byte_buf *aad,
                               const struct aws_hash_table *enc_context) {
@@ -26,7 +29,7 @@ static int serialize_aad_init(struct aws_allocator *alloc,
     memset(aad, 0, sizeof(*aad));
 
     if (aws_cryptosdk_context_size(&aad_len, enc_context)
-        || aws_byte_buf_init(alloc, aad, aad_len)
+        || aws_byte_buf_init(aad, alloc, aad_len)
         || aws_cryptosdk_context_serialize(alloc, aad, enc_context)) {
         aws_byte_buf_clean_up(aad);
 
@@ -41,15 +44,13 @@ int aws_cryptosdk_serialize_provider_info_init(struct aws_allocator * alloc,
                                                const struct aws_string * master_key_id,
                                                const uint8_t * iv) {
     size_t serialized_len = master_key_id->len + RAW_AES_KR_IV_LEN + 8; // 4 for tag len, 4 for iv len
-    if (aws_byte_buf_init(alloc, output, serialized_len)) {
+    if (aws_byte_buf_init(output, alloc, serialized_len)) {
         return AWS_OP_ERR;
     }
-    output->len = output->capacity;
-    struct aws_byte_cursor cur = aws_byte_cursor_from_buf(output);
-    if (!aws_byte_cursor_write_from_whole_string(&cur, master_key_id)) goto write_err;
-    if (!aws_byte_cursor_write_be32(&cur, RAW_AES_KR_TAG_LEN * 8)) goto write_err;
-    if (!aws_byte_cursor_write_be32(&cur, RAW_AES_KR_IV_LEN)) goto write_err;
-    if (!aws_byte_cursor_write(&cur, iv, RAW_AES_KR_IV_LEN)) goto write_err;
+    if (!aws_byte_buf_write_from_whole_string(output, master_key_id)) goto write_err;
+    if (!aws_byte_buf_write_be32(output, RAW_AES_KR_TAG_LEN * 8)) goto write_err;
+    if (!aws_byte_buf_write_be32(output, RAW_AES_KR_IV_LEN)) goto write_err;
+    if (!aws_byte_buf_write(output, iv, RAW_AES_KR_IV_LEN)) goto write_err;
 
     return AWS_OP_SUCCESS;
 
@@ -110,7 +111,7 @@ int aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(struct aws_cryptosdk_
     /* Encrypted data key bytes same length as unencrypted data key in GCM.
      * enc_data_key field also includes tag afterward.
      */
-    if (aws_byte_buf_init(request_alloc, &edk.enc_data_key, data_key_len + RAW_AES_KR_TAG_LEN)) {
+    if (aws_byte_buf_init(&edk.enc_data_key, request_alloc, data_key_len + RAW_AES_KR_TAG_LEN)) {
         aws_byte_buf_clean_up(&aad);
         return AWS_OP_ERR;
     }
@@ -127,10 +128,8 @@ int aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(struct aws_cryptosdk_
     if (aws_cryptosdk_serialize_provider_info_init(request_alloc, &edk.provider_info, self->master_key_id, iv))
         goto err;
 
-    if (aws_byte_buf_init(request_alloc, &edk.provider_id, self->provider_id->len)) goto err;
-    edk.provider_id.len = edk.provider_id.capacity;
-    struct aws_byte_cursor provider_id = aws_byte_cursor_from_buf(&edk.provider_id);
-    if (!aws_byte_cursor_write_from_whole_string(&provider_id, self->provider_id)) goto err;
+    if (aws_byte_buf_init(&edk.provider_id, request_alloc, self->provider_id->len)) goto err;
+    if (!aws_byte_buf_write_from_whole_string(&edk.provider_id, self->provider_id)) goto err;
 
     if (aws_array_list_push_back(edks, &edk)) goto err;
 
@@ -157,7 +156,7 @@ static int raw_aes_keyring_on_encrypt(struct aws_cryptosdk_keyring * kr,
 
     bool generated_new_data_key = false;
     if (!unencrypted_data_key->buffer) {
-        if (aws_byte_buf_init(request_alloc, unencrypted_data_key, data_key_len)) return AWS_OP_ERR;
+        if (aws_byte_buf_init(unencrypted_data_key, request_alloc, data_key_len)) return AWS_OP_ERR;
 
         if (aws_cryptosdk_genrandom(unencrypted_data_key->buffer, data_key_len)) {
             aws_byte_buf_clean_up(unencrypted_data_key);
@@ -199,7 +198,7 @@ static int raw_aes_keyring_on_decrypt(struct aws_cryptosdk_keyring * kr,
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
     size_t data_key_len = props->data_key_len;
 
-    if (aws_byte_buf_init(request_alloc, unencrypted_data_key, props->data_key_len)) {
+    if (aws_byte_buf_init(unencrypted_data_key, request_alloc, props->data_key_len)) {
         aws_byte_buf_clean_up(&aad);
         return AWS_OP_ERR;
     }

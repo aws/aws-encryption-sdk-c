@@ -180,7 +180,7 @@ static int mock_find_entry(
     struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
 
     aws_byte_buf_clean_up(&cache->last_cache_id);
-    if (aws_byte_buf_init_copy(cache->alloc, &cache->last_cache_id, cache_id)) abort();
+    if (aws_byte_buf_init_copy(&cache->last_cache_id, cache->alloc, cache_id)) abort();
 
     *entry = NULL;
 
@@ -227,7 +227,7 @@ static struct aws_cryptosdk_encryption_materials *clone_enc_materials(
     new_materials = aws_cryptosdk_encryption_materials_new(allocator, materials->alg);
     if (!new_materials) abort();
 
-    if (aws_byte_buf_init_copy(allocator, &new_materials->unencrypted_data_key, &materials->unencrypted_data_key)) abort();
+    if (aws_byte_buf_init_copy(&new_materials->unencrypted_data_key, allocator, &materials->unencrypted_data_key)) abort();
     if (aws_cryptosdk_edk_list_copy_all(allocator, &new_materials->encrypted_data_keys, &materials->encrypted_data_keys)) abort();
 
     if (materials->signctx) {
@@ -279,7 +279,7 @@ static void mock_put_entry_for_encrypt(
     struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
 
     aws_byte_buf_clean_up(&cache->last_cache_id);
-    if (aws_byte_buf_init_copy(cache->alloc, &cache->last_cache_id, cache_id)) abort();
+    if (aws_byte_buf_init_copy(&cache->last_cache_id, cache->alloc, cache_id)) abort();
 
     if (cache->should_fail) {
         *entry = NULL;

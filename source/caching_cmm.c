@@ -249,7 +249,7 @@ int hash_encrypt_request(struct aws_string *partition_id, struct aws_byte_buf *o
 
     size_t context_size;
     if (aws_cryptosdk_context_size(&context_size, req->enc_context)
-        || aws_byte_buf_init(req->alloc, &context_buf, context_size)
+        || aws_byte_buf_init(&context_buf, req->alloc, context_size)
         || aws_cryptosdk_context_serialize(req->alloc, &context_buf, req->enc_context)
         || aws_cryptosdk_md_update(enc_context_md, context_buf.buffer, context_buf.len)
     ) {

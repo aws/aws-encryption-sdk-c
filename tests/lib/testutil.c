@@ -35,7 +35,7 @@ void byte_buf_printf(struct aws_byte_buf *buf, struct aws_allocator *alloc, cons
     va_start(ap, fmt);
 
     int size = vsnprintf(NULL, 0, fmt, ap);
-    if (aws_byte_buf_init(alloc, buf, size + 1)) {
+    if (aws_byte_buf_init(buf, alloc, size + 1)) {
         abort();
     }
     va_end(ap);

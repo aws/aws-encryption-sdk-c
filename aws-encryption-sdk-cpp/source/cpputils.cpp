@@ -39,7 +39,7 @@ int aws_byte_buf_dup_from_aws_utils(struct aws_allocator *allocator,
                                     struct aws_byte_buf *dest,
                                     const Aws::Utils::ByteBuffer &src) {
     struct aws_byte_buf data_key_bb = aws_byte_buf_from_array(src.GetUnderlyingData(), src.GetLength());
-    return aws_byte_buf_init_copy(allocator, dest, &data_key_bb);
+    return aws_byte_buf_init_copy(dest, allocator, &data_key_bb);
 }
 
 Aws::Map<Aws::String, Aws::String> aws_map_from_c_aws_hash_table(const struct aws_hash_table *hash_table) {
@@ -69,9 +69,9 @@ int append_aws_byte_buf_key_dup_to_edks(struct aws_allocator *allocator,
     edk.provider_info = {0};
     edk.enc_data_key = {0};
 
-    if (aws_byte_buf_init_copy(allocator, &edk.provider_id, key_provider) != AWS_OP_SUCCESS
-        || aws_byte_buf_init_copy(allocator, &edk.provider_info, data_key_id) != AWS_OP_SUCCESS
-        || aws_byte_buf_init_copy(allocator, &edk.enc_data_key, encrypted_data_key) != AWS_OP_SUCCESS
+    if (aws_byte_buf_init_copy(&edk.provider_id, allocator, key_provider) != AWS_OP_SUCCESS
+        || aws_byte_buf_init_copy(&edk.provider_info, allocator, data_key_id) != AWS_OP_SUCCESS
+        || aws_byte_buf_init_copy(&edk.enc_data_key, allocator, encrypted_data_key) != AWS_OP_SUCCESS
         || aws_array_list_push_back(encrypted_data_keys, &edk) != AWS_OP_SUCCESS) {
         aws_cryptosdk_edk_clean_up(&edk);
         return AWS_OP_ERR;

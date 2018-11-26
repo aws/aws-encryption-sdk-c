@@ -197,18 +197,29 @@ int aws_cryptosdk_session_process(
     const uint8_t *inp, size_t inlen, size_t *in_bytes_read
 ) {
 
-    struct aws_byte_cursor output = { .ptr = outp, .len = outlen };
+    struct aws_byte_buf output = { .buffer = outp, .capacity = outlen, .len = 0 };
     struct aws_byte_cursor input  = { .ptr = (uint8_t *)inp, .len =  inlen };
     int result;
 
     enum session_state prior_state;
-    const uint8_t *old_outp, *old_inp;
+    const uint8_t *old_inp;
+    size_t old_outlen;
     bool made_progress;
+
+    *out_bytes_written = 0;
 
     do {
         prior_state = session->state;
-        old_outp = output.ptr;
+        old_outlen = output.len;
         old_inp = input.ptr;
+
+        // Adjust the output buffer to only contain the remaining space. This allows
+        // the state handlers to clear the entire buffer capacity on failure, instead
+        // of having to remember exactly where they started.
+        output.buffer += output.len;
+        *out_bytes_written += output.len;
+        output.capacity -= output.len;
+        output.len = 0;
 
         switch (session->state) {
             case ST_CONFIG:
@@ -263,10 +274,10 @@ int aws_cryptosdk_session_process(
                 break;
         }
 
-        made_progress = (output.ptr != old_outp) || (input.ptr != old_inp) || (prior_state != session->state);
+        made_progress = (output.len != old_outlen) || (input.ptr != old_inp) || (prior_state != session->state);
     } while (result == AWS_OP_SUCCESS && made_progress);
 
-    *out_bytes_written = output.ptr - outp;
+    *out_bytes_written += output.len;
     *in_bytes_read = input.ptr - inp;
 
     if (result != AWS_OP_SUCCESS) {
