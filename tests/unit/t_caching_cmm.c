@@ -105,7 +105,9 @@ static int enc_cache_miss() {
 
 static int enc_cache_hit() {
     setup_mocks();
-    struct aws_cryptosdk_cmm*cmm = aws_cryptosdk_caching_cmm_new(aws_default_allocator(), &mock_mat_cache->base, &mock_upstream_cmm->base, NULL);
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
+        aws_default_allocator(), &mock_mat_cache->base, &mock_upstream_cmm->base, NULL
+    );
     release_mocks();
 
     struct aws_hash_table req_context, expect_context;
@@ -373,6 +375,15 @@ static int mock_clock_get_ticks(uint64_t *now) {
 }
 void caching_cmm_set_clock(struct aws_cryptosdk_cmm *generic_cmm, int (*clock_get_ticks)(uint64_t *now));
 
+#define ASSERT_HIT(should_hit) do { \
+    request.enc_context = &req_context; \
+    aws_hash_table_clear(&req_context); \
+    if (access_cache(cmm, &request, &was_hit, usage)) { \
+        return 1; \
+    } \
+    TEST_ASSERT_INT_EQ(should_hit, was_hit); \
+} while (0)
+
 static int limits_test() {
     setup_mocks();
     struct aws_cryptosdk_cmm*cmm = aws_cryptosdk_caching_cmm_new(aws_default_allocator(), &mock_mat_cache->base, &mock_upstream_cmm->base, NULL);
@@ -387,15 +398,6 @@ static int limits_test() {
 
     bool was_hit;
     struct aws_cryptosdk_cache_usage_stats usage = { 1, 1 };
-
-#define ASSERT_HIT(should_hit) do { \
-    request.enc_context = &req_context; \
-    aws_hash_table_clear(&req_context); \
-    if (access_cache(cmm, &request, &was_hit, usage)) { \
-        return 1; \
-    } \
-    TEST_ASSERT_INT_EQ(should_hit, was_hit); \
-} while (0)
 
     // Set a sentinel value so we know if the CMM set a TTL hint when it shouldn't
     mock_mat_cache->entry_ttl_hint = 0x424242;
@@ -427,9 +429,9 @@ static int limits_test() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limits(
         cmm, AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES, UINT64_MAX
     ));
-    mock_mat_cache->usage_stats.messages_encrypted = ((uint64_t)1 << 32) - 1;
+    mock_mat_cache->usage_stats.messages_encrypted = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES - 1;
     ASSERT_HIT(true);
-    mock_mat_cache->usage_stats.messages_encrypted = (uint64_t)1 << 32;
+    mock_mat_cache->usage_stats.messages_encrypted = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES;
     ASSERT_HIT(false);
 
     // Byte limits next

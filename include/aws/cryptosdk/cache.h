@@ -21,6 +21,8 @@
 #include <aws/cryptosdk/vtable.h>
 #include <aws/cryptosdk/exports.h>
 
+#define AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES ((uint64_t)1 << 32)
+
 struct aws_cryptosdk_cache_usage_stats {
     uint64_t bytes_encrypted, messages_encrypted;
 };
@@ -121,7 +123,7 @@ struct aws_cryptosdk_mat_cache_vt {
      * materials object, and (2) `enc_context` is updated to match the cached encryption
      * context (adding and removing entries to make it match the cached value).
      * 
-     * On failure (e.g., out of memory), `*materials` will be set to NULL; `enc_context`
+     * On failure (e., out of memory), `*materials` will be set to NULL; `enc_context`
      * remains an allocated encryption context hash table, but the contents of the hash
      * table are unspecified, as we may have been forced to abort partway through updating
      * the contents of the hash table.
@@ -545,11 +547,11 @@ enum aws_cryptosdk_caching_cmm_limit_type {
  * process, then a cache miss will be forced on encrypt, as the message size is completely unknown.
  *
  * By default, all limits are set to their maximum permitted values:
- *   * The message count limit is set to 1 << 32
+ *   * The message count limit is set to 1 << 32 (AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES)
  *   * The byte count limit is set to UINT64_MAX
  *   * The TTL limit is set to UINT64_MAX
  *
- * If you attempt to set a limit to a value higher than the maximum perimtted value,
+ * If you attempt to set a limit to a value higher than the maximum permitted value,
  * it will instead be set to the maximum permitted value.
  *
  * Parameters:

@@ -33,8 +33,6 @@ struct caching_cmm {
     uint64_t limit_messages, limit_bytes, ttl;
 };
 
-#define MAX_LIMIT_MESSAGES ((uint64_t)1 << 32)
-
 static void destroy_caching_cmm(struct aws_cryptosdk_cmm *generic_cmm);
 static int generate_enc_materials(struct aws_cryptosdk_cmm * cmm,
                                   struct aws_cryptosdk_encryption_materials ** output,
@@ -131,7 +129,7 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
     // We use the test helper here just to ensure we don't get unused static function warnings
     caching_cmm_set_clock(&cmm->base, aws_sys_clock_get_ticks);
 
-    cmm->limit_messages = MAX_LIMIT_MESSAGES;
+    cmm->limit_messages = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES;
     cmm->limit_bytes = UINT64_MAX;
     cmm->ttl = UINT64_MAX;
 
@@ -155,8 +153,8 @@ int aws_cryptosdk_caching_cmm_set_limits(
 
     switch (type) {
         case AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES:
-            if (new_value > MAX_LIMIT_MESSAGES) {
-                cmm->limit_messages = MAX_LIMIT_MESSAGES;
+            if (new_value > AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES) {
+                cmm->limit_messages = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES;
             } else {
                 cmm->limit_messages = new_value;
             }
