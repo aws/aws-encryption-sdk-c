@@ -123,7 +123,7 @@ struct aws_cryptosdk_mat_cache_vt {
      * materials object, and (2) `enc_context` is updated to match the cached encryption
      * context (adding and removing entries to make it match the cached value).
      * 
-     * On failure (e., out of memory), `*materials` will be set to NULL; `enc_context`
+     * On failure (e.g., out of memory), `*materials` will be set to NULL; `enc_context`
      * remains an allocated encryption context hash table, but the contents of the hash
      * table are unspecified, as we may have been forced to abort partway through updating
      * the contents of the hash table.
