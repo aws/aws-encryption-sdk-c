@@ -118,12 +118,26 @@ static int pump_ciphertext(size_t ct_window, size_t *ct_consumed, size_t pt_wind
         // we supplied - or that we're completely done
         size_t out_needed, in_needed;
 
+        if (ct_window == 105 && pt_window == 0) {
+            fprintf(stderr, "mark\n");
+
+            TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process(
+                session,
+                ct_buf + ct_size, ct_window, ct_consumed,
+                pt_buf + pt_offset, pt_window, pt_consumed
+            ));
+        }
+
         aws_cryptosdk_session_estimate_buf(session, &out_needed, &in_needed);
 
-        TEST_ASSERT(aws_cryptosdk_session_is_done(session)
+        if (!(aws_cryptosdk_session_is_done(session)
             || out_needed > ct_window
-            || in_needed > pt_window
-        );
+            || in_needed > pt_window)) {
+            TEST_ASSERT(aws_cryptosdk_session_is_done(session)
+                || out_needed > ct_window
+                || in_needed > pt_window
+            );
+        }
     }
 
     return 0;

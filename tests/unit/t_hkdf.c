@@ -204,7 +204,7 @@ int test_hkdf() {
     for (int i = 0; i < 7; i++) {
         struct aws_byte_buf myokm;
         struct aws_allocator *allocator = aws_default_allocator();
-        if (aws_byte_buf_init(allocator, &myokm, tv[i].okm_len)) return AWS_OP_ERR;
+        if (aws_byte_buf_init(&myokm, allocator, tv[i].okm_len)) return AWS_OP_ERR;
         myokm.len = tv[i].okm_len;
         const struct aws_byte_buf mysalt = aws_byte_buf_from_array(tv[i].salt, tv[i].salt_len);
         const struct aws_byte_buf myikm  = aws_byte_buf_from_array(tv[i].ikm, tv[i].ikm_len);

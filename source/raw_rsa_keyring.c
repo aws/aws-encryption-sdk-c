@@ -16,6 +16,9 @@
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/raw_rsa_keyring.h>
 
+#include <aws/common/byte_buf.h>
+#include <aws/common/string.h>
+
 struct raw_rsa_keyring {
     struct aws_cryptosdk_keyring base;
     struct aws_allocator *alloc;
@@ -40,17 +43,13 @@ static int encrypt_data_key(struct aws_cryptosdk_keyring *kr,
                                   self->rsa_public_key_pem,
                                   self->rsa_padding_mode)) goto err;
 
-    if (aws_byte_buf_init(request_alloc, &edk.provider_id, self->provider_id->len)) goto err;
-    edk.provider_id.len = edk.provider_id.capacity;
+    if (aws_byte_buf_init(&edk.provider_id, request_alloc, self->provider_id->len)) goto err;
 
-    if (aws_byte_buf_init(request_alloc, &edk.provider_info, self->master_key_id->len)) goto err;
-    edk.provider_info.len = edk.provider_info.capacity;
+    if (aws_byte_buf_init(&edk.provider_info, request_alloc, self->master_key_id->len)) goto err;
 
-    struct aws_byte_cursor provider_id = aws_byte_cursor_from_buf(&edk.provider_id);
-    if (!aws_byte_cursor_write_from_whole_string(&provider_id, self->provider_id)) goto err;
+    if (!aws_byte_buf_write_from_whole_string(&edk.provider_id, self->provider_id)) goto err;
 
-    struct aws_byte_cursor provider_info = aws_byte_cursor_from_buf(&edk.provider_info);
-    if (!aws_byte_cursor_write_from_whole_string(&provider_info, self->master_key_id)) goto err;
+    if (!aws_byte_buf_write_from_whole_string(&edk.provider_info, self->master_key_id)) goto err;
 
     if (aws_array_list_push_back(edks, &edk)) goto err;
 
@@ -76,7 +75,7 @@ static int raw_rsa_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
         const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
         size_t data_key_len = props->data_key_len;
 
-        if (aws_byte_buf_init(request_alloc, unencrypted_data_key, data_key_len)) return AWS_OP_ERR;
+        if (aws_byte_buf_init(unencrypted_data_key, request_alloc, data_key_len)) return AWS_OP_ERR;
 
         if (aws_cryptosdk_genrandom(unencrypted_data_key->buffer, data_key_len)) {
             aws_byte_buf_clean_up(unencrypted_data_key);

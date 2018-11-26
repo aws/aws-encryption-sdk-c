@@ -76,7 +76,7 @@ int encrypt_decrypt_data_key() {
                 TEST_ASSERT_SUCCESS(set_up_all_the_things(raw_key_lens[key_len_idx], fill_enc_context));
 
                 const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(algs[alg_idx]);
-                TEST_ASSERT_SUCCESS(aws_byte_buf_init(alloc, &unencrypted_data_key, props->data_key_len));
+                TEST_ASSERT_SUCCESS(aws_byte_buf_init(&unencrypted_data_key, alloc, props->data_key_len));
                 memset(unencrypted_data_key.buffer, 0x77, props->data_key_len);
                 unencrypted_data_key.len = unencrypted_data_key.capacity;
 

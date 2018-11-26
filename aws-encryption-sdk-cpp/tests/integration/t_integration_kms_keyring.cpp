@@ -321,11 +321,11 @@ int dataKeyEncrypt_discoveryKeyringEncryptIsNoOp_returnSuccess() {
 }
 
 static aws_byte_buf aws_byte_buf_from_b64(struct aws_allocator *alloc, const char *b64) {
-    const aws_byte_buf b64_buf = aws_byte_buf_from_c_str(b64);
+    const aws_byte_cursor b64_buf = aws_byte_cursor_from_c_str(b64);
     aws_byte_buf buf = {0};
     size_t decoded_len;
     if (aws_base64_compute_decoded_len(&b64_buf, &decoded_len) ||
-        aws_byte_buf_init(alloc, &buf, decoded_len) ||
+        aws_byte_buf_init(&buf, alloc, decoded_len) ||
         aws_base64_decode(&b64_buf, &buf)) abort();
     return buf;
 }

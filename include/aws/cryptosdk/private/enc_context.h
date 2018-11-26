@@ -27,6 +27,7 @@ int aws_cryptosdk_context_size(size_t *size, const struct aws_hash_table *enc_co
 
 /**
  * Serializes an encryption context into the given buffer, which must be preallocated.
+ * The serialized context will be appended to the buffer (failing if it hits the buffer's capacity).
  * The passed allocator is used for temporary working memory only.
  */
 int aws_cryptosdk_context_serialize(struct aws_allocator *alloc,

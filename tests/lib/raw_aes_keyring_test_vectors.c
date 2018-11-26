@@ -45,7 +45,7 @@ struct aws_cryptosdk_edk build_test_edk_init(const uint8_t * edk_bytes, size_t e
     edk.enc_data_key = aws_byte_buf_from_array(edk_bytes, edk_len);
     edk.provider_id = aws_byte_buf_from_array(raw_aes_keyring_tv_provider_id, sizeof(raw_aes_keyring_tv_provider_id) - 1);
 
-    if (aws_byte_buf_init(aws_default_allocator(), &edk.provider_info, sizeof(edk_provider_prefix) - 1 + RAW_AES_KR_IV_LEN)) {
+    if (aws_byte_buf_init(&edk.provider_info, aws_default_allocator(), sizeof(edk_provider_prefix) - 1 + RAW_AES_KR_IV_LEN)) {
         fprintf(stderr, "\nTest failed at %s:%d\n", __FILE__, __LINE__);
         abort();
     }
