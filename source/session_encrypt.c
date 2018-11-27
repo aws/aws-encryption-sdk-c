@@ -306,7 +306,7 @@ int aws_cryptosdk_priv_try_encrypt_body(
         frame.type
     )) {
         // Something terrible happened. Clear the ciphertext buffer and error out.
-        aws_secure_zero(poutput->buffer, poutput->capacity);
+        aws_byte_buf_secure_zero(poutput);
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 

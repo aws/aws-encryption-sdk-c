@@ -275,7 +275,7 @@ int aws_cryptosdk_serialize_frame(
 
     if (result != AWS_ERROR_SUCCESS) {
         // Clear any garbage we wrote
-        aws_secure_zero(ciphertext_buf->buffer, ciphertext_buf->capacity);
+        aws_byte_buf_secure_zero(ciphertext_buf);
         return aws_raise_error(result);
     } else {
         *ciphertext_buf = state.u.buffer;

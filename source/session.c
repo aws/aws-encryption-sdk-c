@@ -203,23 +203,15 @@ int aws_cryptosdk_session_process(
 
     enum session_state prior_state;
     const uint8_t *old_inp;
-    size_t old_outlen;
     bool made_progress;
 
     *out_bytes_written = 0;
 
     do {
         prior_state = session->state;
-        old_outlen = output.len;
         old_inp = input.ptr;
 
-        // Adjust the output buffer to only contain the remaining space. This allows
-        // the state handlers to clear the entire buffer capacity on failure, instead
-        // of having to remember exactly where they started.
-        output.buffer += output.len;
-        *out_bytes_written += output.len;
-        output.capacity -= output.len;
-        output.len = 0;
+        struct aws_byte_buf remaining_space = aws_byte_buf_from_empty_array(output.buffer + output.len, output.capacity - output.len);
 
         switch (session->state) {
             case ST_CONFIG:
@@ -244,7 +236,7 @@ int aws_cryptosdk_session_process(
                 result = aws_cryptosdk_priv_unwrap_keys(session);
                 break;
             case ST_DECRYPT_BODY:
-                result = aws_cryptosdk_priv_try_decrypt_body(session, &output, &input);
+                result = aws_cryptosdk_priv_try_decrypt_body(session, &remaining_space, &input);
                 break;
             case ST_CHECK_TRAILER:
                 result = aws_cryptosdk_priv_check_trailer(session, &input);
@@ -254,13 +246,13 @@ int aws_cryptosdk_session_process(
                 result = aws_cryptosdk_priv_try_gen_key(session);
                 break;
             case ST_WRITE_HEADER:
-                result = aws_cryptosdk_priv_try_write_header(session, &output);
+                result = aws_cryptosdk_priv_try_write_header(session, &remaining_space);
                 break;
             case ST_ENCRYPT_BODY:
-                result = aws_cryptosdk_priv_try_encrypt_body(session, &output, &input);
+                result = aws_cryptosdk_priv_try_encrypt_body(session, &remaining_space, &input);
                 break;
             case ST_WRITE_TRAILER:
-                result = aws_cryptosdk_priv_write_trailer(session, &output);
+                result = aws_cryptosdk_priv_write_trailer(session, &remaining_space);
                 break;
 
             case ST_DONE:
@@ -274,15 +266,17 @@ int aws_cryptosdk_session_process(
                 break;
         }
 
-        made_progress = (output.len != old_outlen) || (input.ptr != old_inp) || (prior_state != session->state);
+        made_progress = (remaining_space.len) || (input.ptr != old_inp) || (prior_state != session->state);
+
+        output.len += remaining_space.len;
     } while (result == AWS_OP_SUCCESS && made_progress);
 
-    *out_bytes_written += output.len;
+    *out_bytes_written = output.len;
     *in_bytes_read = input.ptr - inp;
 
     if (result != AWS_OP_SUCCESS) {
         // Destroy any incomplete (and possibly corrupt) plaintext
-        aws_secure_zero(outp, outlen);
+        aws_byte_buf_secure_zero(&output);
         *out_bytes_written = 0;
 
         if (session->state != ST_ERROR) {
