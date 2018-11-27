@@ -383,7 +383,7 @@ out:
         *outp = outbuf;
         return AWS_OP_SUCCESS;
     } else {
-        aws_secure_zero(outp->buffer, outp->capacity);
+        aws_byte_buf_secure_zero(outp);
         return aws_raise_error(result);
     }
 }
@@ -437,7 +437,7 @@ out:
         *outp = outcurs;
         return AWS_OP_SUCCESS;
     } else {
-        aws_secure_zero(outp->buffer, outp->capacity);
+        aws_byte_buf_secure_zero(outp);
         return aws_raise_error(result);
     }
 }
