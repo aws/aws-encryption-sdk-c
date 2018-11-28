@@ -14,7 +14,7 @@
  */
 
 #include <aws/cryptosdk/enc_context.h>
-#include <aws/cryptosdk/kms_keyring.h>
+#include <aws/cryptosdk/private/kms_keyring.h>
 #include <aws/cryptosdk/private/cpputils.h>
 
 #include <aws/common/array_list.h>
@@ -35,7 +35,7 @@ const char *CLASS_TAG = "KMS_MASTER_KEY_CTAG";
 /**
  * Changes access control for some protected members from KmsCMasterKey for testing purposes
  */
-struct KmsKeyringExposer : Aws::Cryptosdk::KmsKeyring {
+struct KmsKeyringExposer : Aws::Cryptosdk::Private::KmsKeyringImpl {
   protected:
     KmsKeyringExposer(std::shared_ptr<Aws::KMS::KMSClient> kms,
                         const Aws::String &key_id)
@@ -45,17 +45,17 @@ struct KmsKeyringExposer : Aws::Cryptosdk::KmsKeyring {
                         const Aws::Vector<Aws::String> &key_ids,
                         const Aws::Vector<Aws::String> &grant_tokens = { }
                         )
-        : KmsKeyring(key_ids,
-                     "default_region",
-                     grant_tokens,
-                     Aws::MakeShared<SingleClientSupplier>("KMS_EXPOSER", kms)) {
+        : KmsKeyringImpl(key_ids,
+                         "default_region",
+                         grant_tokens,
+                         Aws::MakeShared<Aws::Cryptosdk::KmsKeyring::SingleClientSupplier>("KMS_EXPOSER", kms)) {
     }
   public:
-    using KmsKeyring::OnEncrypt;
-    using KmsKeyring::OnDecrypt;
-    using KmsKeyring::CreateEncryptRequest;
-    using KmsKeyring::CreateDecryptRequest;
-    using KmsKeyring::CreateGenerateDataKeyRequest;
+    using KmsKeyringImpl::OnEncrypt;
+    using KmsKeyringImpl::OnDecrypt;
+    using KmsKeyringImpl::CreateEncryptRequest;
+    using KmsKeyringImpl::CreateDecryptRequest;
+    using KmsKeyringImpl::CreateGenerateDataKeyRequest;
 
     template<typename T, typename ...ArgTypes>
     friend T *Aws::New(const char *allocationTag, ArgTypes &&... args);
