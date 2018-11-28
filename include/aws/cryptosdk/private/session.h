@@ -87,33 +87,33 @@ struct aws_cryptosdk_session {
 
 /* Common session routines */
 
-void session_change_state(struct aws_cryptosdk_session *session, enum session_state new_state);
-int fail_session(struct aws_cryptosdk_session *session, int error_code);
+void aws_cryptosdk_priv_session_change_state(struct aws_cryptosdk_session *session, enum session_state new_state);
+int aws_cryptosdk_priv_fail_session(struct aws_cryptosdk_session *session, int error_code);
 
 /* Decrypt path */
-int unwrap_keys(struct aws_cryptosdk_session * AWS_RESTRICT session);
-int try_parse_header(
+int aws_cryptosdk_priv_unwrap_keys(struct aws_cryptosdk_session * AWS_RESTRICT session);
+int aws_cryptosdk_priv_try_parse_header(
     struct aws_cryptosdk_session * AWS_RESTRICT session,
     struct aws_byte_cursor * AWS_RESTRICT input
 );
-int try_decrypt_body(
+int aws_cryptosdk_priv_try_decrypt_body(
     struct aws_cryptosdk_session * AWS_RESTRICT session,
-    struct aws_byte_cursor * AWS_RESTRICT poutput,
+    struct aws_byte_buf * AWS_RESTRICT poutput,
     struct aws_byte_cursor * AWS_RESTRICT pinput
 );
-int check_trailer(struct aws_cryptosdk_session * AWS_RESTRICT session, struct aws_byte_cursor * AWS_RESTRICT pinput);
+int aws_cryptosdk_priv_check_trailer(struct aws_cryptosdk_session * AWS_RESTRICT session, struct aws_byte_cursor * AWS_RESTRICT pinput);
 
 /* Encrypt path */
-void encrypt_compute_body_estimate(struct aws_cryptosdk_session *session);
+void aws_cryptosdk_priv_encrypt_compute_body_estimate(struct aws_cryptosdk_session *session);
 
-int try_gen_key(struct aws_cryptosdk_session *session);
-int try_write_header(struct aws_cryptosdk_session *session, struct aws_byte_cursor *output);
-int try_encrypt_body(
+int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session);
+int aws_cryptosdk_priv_try_write_header(struct aws_cryptosdk_session *session, struct aws_byte_buf *output);
+int aws_cryptosdk_priv_try_encrypt_body(
     struct aws_cryptosdk_session * AWS_RESTRICT session,
-    struct aws_byte_cursor * AWS_RESTRICT poutput,
+    struct aws_byte_buf * AWS_RESTRICT poutput,
     struct aws_byte_cursor * AWS_RESTRICT pinput
 );
-int write_trailer(struct aws_cryptosdk_session * AWS_RESTRICT session, struct aws_byte_cursor * AWS_RESTRICT poutput);
+int aws_cryptosdk_priv_write_trailer(struct aws_cryptosdk_session * AWS_RESTRICT session, struct aws_byte_buf * AWS_RESTRICT poutput);
 
 
 

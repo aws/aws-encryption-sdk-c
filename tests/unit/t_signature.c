@@ -356,7 +356,7 @@ static int t_empty_signature() {
 static int testVector(const char *algName, enum aws_cryptosdk_alg_id alg_id, const char *pubkey_s, const char *sig_s) {
     uint8_t tmparr[512];
     struct aws_byte_buf tmpbuf = aws_byte_buf_from_array(tmparr, sizeof(tmparr));
-    struct aws_byte_buf sigraw = aws_byte_buf_from_c_str(sig_s);
+    struct aws_byte_cursor sigraw = aws_byte_cursor_from_c_str(sig_s);
 
     TEST_ASSERT_SUCCESS(aws_base64_decode(&sigraw, &tmpbuf));
 
@@ -410,11 +410,11 @@ static int t_trailing_garbage() {
     const char *sig_s = "MEYCIQDIRrHUpsJDWsguDyT/CY0+IGL7f0W8LdGz2kqXvgfSJwIhAKoy0JFwexw2aqRaI4+TSrC+CKBGHEgSvP/vcQaQDyDR";
     uint8_t tmparr[512];
     struct aws_byte_buf tmpbuf = aws_byte_buf_from_array(tmparr, sizeof(tmparr));
-    struct aws_byte_buf sigraw = aws_byte_buf_from_c_str(sig_s);
+    struct aws_byte_cursor sigraw = aws_byte_cursor_from_c_str(sig_s);
 
     TEST_ASSERT_SUCCESS(aws_base64_decode(&sigraw, &tmpbuf));
 
-    struct aws_string *sig = aws_string_new_from_array(aws_default_allocator(), sigraw.buffer, sigraw.len);
+    struct aws_string *sig = aws_string_new_from_array(aws_default_allocator(), tmpbuf.buffer, tmpbuf.len);
 
     TEST_ASSERT_SUCCESS(check_signature(
         aws_cryptosdk_alg_props(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256),

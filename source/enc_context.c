@@ -78,7 +78,6 @@ int aws_cryptosdk_context_serialize(struct aws_allocator *alloc,
 
     if (length == 0) {
         // Empty encryption context
-        output->len = 0;
         return AWS_OP_SUCCESS;
     }
 
@@ -89,10 +88,7 @@ int aws_cryptosdk_context_serialize(struct aws_allocator *alloc,
 
     aws_array_list_sort(&elems, aws_cryptosdk_compare_hash_elems_by_key_string);
 
-    output->len = length;
-    struct aws_byte_cursor cur = aws_byte_cursor_from_buf(output);
-
-    if (!aws_byte_cursor_write_be16(&cur, (uint16_t)num_elems)) goto WRITE_ERR;
+    if (!aws_byte_buf_write_be16(output, (uint16_t)num_elems)) goto WRITE_ERR;
 
     for (size_t idx = 0; idx < num_elems; ++idx) {
         struct aws_hash_element elem;
@@ -102,10 +98,10 @@ int aws_cryptosdk_context_serialize(struct aws_allocator *alloc,
         }
         const struct aws_string * key = (const struct aws_string *)elem.key;
         const struct aws_string * value = (const struct aws_string *)elem.value;
-        if (!aws_byte_cursor_write_be16(&cur, (uint16_t)key->len)) goto WRITE_ERR;
-        if (!aws_byte_cursor_write_from_whole_string(&cur, key)) goto WRITE_ERR;
-        if (!aws_byte_cursor_write_be16(&cur, (uint16_t)value->len)) goto WRITE_ERR;
-        if (!aws_byte_cursor_write_from_whole_string(&cur, value)) goto WRITE_ERR;
+        if (!aws_byte_buf_write_be16(output, (uint16_t)key->len)) goto WRITE_ERR;
+        if (!aws_byte_buf_write_from_whole_string(output, key)) goto WRITE_ERR;
+        if (!aws_byte_buf_write_be16(output, (uint16_t)value->len)) goto WRITE_ERR;
+        if (!aws_byte_buf_write_from_whole_string(output, value)) goto WRITE_ERR;
     }
     aws_array_list_clean_up(&elems);
     return AWS_OP_SUCCESS;

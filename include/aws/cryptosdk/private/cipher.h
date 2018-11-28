@@ -123,7 +123,7 @@ enum aws_cryptosdk_frame_type {
  */
 int aws_cryptosdk_decrypt_body(
     const struct aws_cryptosdk_alg_properties *alg_props,
-    struct aws_byte_cursor *out,
+    struct aws_byte_buf *out,
     const struct aws_byte_cursor *in,
     const uint8_t *message_id,
     uint32_t seqno,
@@ -139,7 +139,7 @@ int aws_cryptosdk_decrypt_body(
  */
 int aws_cryptosdk_encrypt_body(
     const struct aws_cryptosdk_alg_properties *alg_props,
-    struct aws_byte_cursor *out,
+    struct aws_byte_buf *out,
     const struct aws_byte_cursor *in,
     const uint8_t *message_id,
     uint32_t seqno,

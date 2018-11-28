@@ -66,7 +66,7 @@ struct local_cache_entry {
      */
     struct aws_string *key_materials;
 
-    struct aws_cryptosdk_cache_usage_stats usage_stats;
+    struct aws_atomic_var usage_messages, usage_bytes;
 
     /*
      * Cache entries are organized into a binary heap sorted by (expiration timestamp, thisptr)
@@ -126,14 +126,35 @@ struct aws_cryptosdk_local_cache {
 
 /********** General helpers **********/
 
+/* Hash and compare functions that operate on struct aws_byte_buf * */
+AWS_CRYPTOSDK_TEST_STATIC uint64_t hash_cache_id(const void *vp_buf);
+static bool eq_cache_id(const void *vp_a, const void *vp_b);
+/* Heap comparator that acts on struct local_cache_entry * */
+static inline int ttl_heap_cmp(const void *vpa, const void *vpb);
+
 /*
  * Note: locked_* functions must be invoked while holding a lock on the cache mutex.
  * It follows that these locked_* functions must not reacquire the mutex, as aws-c-common
  * mutexes are not reentrant.
  */
 static void locked_invalidate_entry(struct aws_cryptosdk_local_cache *cache, struct local_cache_entry *entry, bool skip_hash);
+static inline void locked_lru_move_to_head(struct aws_linked_list_node *head, struct aws_linked_list_node *entry);
+static int locked_process_ttls(struct aws_cryptosdk_local_cache *cache);
+static bool locked_find_entry(
+    struct aws_cryptosdk_local_cache *cache,
+    struct local_cache_entry **entry,
+    const struct aws_byte_buf *cache_id
+);
+static int locked_insert_entry(
+    struct aws_cryptosdk_local_cache *cache,
+    struct local_cache_entry *entry
+);
 static void locked_release_entry(struct aws_cryptosdk_local_cache *cache, struct local_cache_entry *entry, bool invalidate);
-static void locked_clean_entry(struct local_cache_entry *entry);
+
+static struct local_cache_entry *new_entry(struct aws_cryptosdk_local_cache *cache, const struct aws_byte_buf *cache_id);
+static void destroy_cache_entry(struct local_cache_entry *entry);
+static void destroy_cache_entry_vp(void *vp_entry);
+static int copy_encryption_materials(struct aws_allocator *alloc, struct aws_cryptosdk_encryption_materials *out, const struct aws_cryptosdk_encryption_materials *in);
 
 AWS_CRYPTOSDK_TEST_STATIC uint64_t hash_cache_id(const void *vp_buf) {
     const struct aws_byte_buf *buf = vp_buf;
@@ -216,68 +237,19 @@ static void locked_invalidate_entry(struct aws_cryptosdk_local_cache *cache, str
     if (!skip_hash) {
         struct aws_hash_element element;
         /*
-         * Note: Because we accept the old value into element, ht_entry_destructor
+         * Note: Because we accept the old value into element, destroy_cache_entry_vp
          * is not called.
          */
         aws_hash_table_remove(&cache->entries, &entry->cache_id, &element, NULL);
         assert(element.value == entry);
     }
 
-    locked_clean_entry(entry);
-}
-
-/**
- * Called when an entry has (or will soon be) been removed from the hashtable and priority queue,
- * to clean up various allocated datastructures that are not needed on an invalidated entry (and
- * possibly to free the entry itself).
- *
- * This also moves the entry to the zombie list.
- */
-static void locked_clean_entry(struct local_cache_entry *entry) {
-    aws_cryptosdk_encryption_materials_destroy(entry->enc_materials);
-    aws_cryptosdk_decryption_materials_destroy(entry->dec_materials);
-
-    entry->enc_materials = NULL;
-    entry->dec_materials = NULL;
-
-    aws_string_destroy_secure(entry->key_materials);
-    aws_cryptosdk_enc_context_clean_up(&entry->enc_context);
-
-    entry->zombie = true;
-
-    aws_byte_buf_clean_up(&entry->cache_id);
-
     aws_linked_list_remove(&entry->lru_node);
     entry->lru_node.next = entry->lru_node.prev = &entry->lru_node;
+    entry->zombie = true;
 
+    /* Release the reference count owned by the cache itself */
     locked_release_entry(entry->owner, entry, false);
-}
-
-static void ht_entry_destructor(void *vp_entry) {
-    /*
-     * We enter this function already holding the cache mutex; because aws-common mutexes are non-reentrant,
-     * and because we're actively manipulating the hash table, we can't safely re-use the release_entry invalidation
-     * logic.
-     *
-     * Instead, we'll just set expiry_time to NO_EXPIRY (the priority queue will be cleared en masse later) and clean
-     * the entry itself.
-     */
-    struct local_cache_entry *entry = vp_entry;
-
-    entry->expiry_time = NO_EXPIRY;
-    locked_clean_entry(entry);
-}
-
-static void destroy_cache(struct aws_cryptosdk_mat_cache *generic_cache) {
-    struct aws_cryptosdk_local_cache *cache = (struct aws_cryptosdk_local_cache *)generic_cache;
-
-    /* No need to take a lock - we're the only thread with a reference now */
-
-    aws_hash_table_clean_up(&cache->entries);
-    aws_priority_queue_clean_up(&cache->ttl_heap);
-    aws_mutex_clean_up(&cache->mutex);
-
-    aws_mem_release(cache->allocator, cache);
 }
 
 static inline void locked_lru_move_to_head(struct aws_linked_list_node *head, struct aws_linked_list_node *entry) {
@@ -361,6 +333,59 @@ static int locked_insert_entry(
     return AWS_OP_SUCCESS;
 }
 
+static void locked_release_entry(
+    struct aws_cryptosdk_local_cache *cache,
+    struct local_cache_entry *entry,
+    bool invalidate
+) {
+    /*
+     * We must use release memory order here, to guard against a race condition. Consider the following
+     * program order:
+     *
+     * Thread A:
+     *   get_encryption_materials
+     *   locked_release_entry(invalidate=true)
+     *
+     * Thread B:
+     *   release_entry
+     *
+     * If we use relaxed memory order, we could end up with the following execution order:
+     *
+     * Thread A:
+     *   locked_release_entry (old_count = 2)
+     * Thread B:
+     *   release_entry (old_count = 1)
+     *     -> destroy_cache_entry
+     * Thread A:
+     *   get_encryption_materials
+     *     (accesses uninitialized memory)
+     *
+     * To prevent this race, we use release memory order; this prevents any memory accesses performed
+     * before this atomic operation from being reordered to happen later, resolving this race.
+     */
+    size_t old_count = aws_atomic_fetch_sub_explicit(&entry->refcount, 1, aws_memory_order_release);
+    assert(old_count != 0);
+
+    if (old_count == 1) {
+        assert(entry->zombie);
+
+        destroy_cache_entry(entry);
+
+        return;
+    }
+
+    if (invalidate && !entry->zombie) {
+        /* We should have had least two references: The caller's reference, and the cache's reference */
+        assert(old_count >= 2);
+
+        /*
+         * This will recurse back into locked_release_entry to remove the cache's reference
+         * (and potentially free the entry)
+         */
+        locked_invalidate_entry(cache, entry, false);
+    }
+}
+
 static struct local_cache_entry *new_entry(struct aws_cryptosdk_local_cache *cache, const struct aws_byte_buf *cache_id) {
     uint64_t now;
 
@@ -376,7 +401,7 @@ static struct local_cache_entry *new_entry(struct aws_cryptosdk_local_cache *cac
 
     memset(entry, 0, sizeof(*entry));
 
-    if (aws_byte_buf_init_copy(cache->allocator, &entry->cache_id, cache_id)) {
+    if (aws_byte_buf_init_copy(&entry->cache_id, cache->allocator, cache_id)) {
         aws_mem_release(cache->allocator, entry);
         return NULL;
     }
@@ -397,9 +422,41 @@ static struct local_cache_entry *new_entry(struct aws_cryptosdk_local_cache *cac
     return entry;
 }
 
+/**
+ * Called when the last reference to an entry is released;
+ * frees all memory associated with the entry.
+ */
+static void destroy_cache_entry(struct local_cache_entry *entry) {
+    aws_cryptosdk_encryption_materials_destroy(entry->enc_materials);
+    aws_cryptosdk_decryption_materials_destroy(entry->dec_materials);
+
+    entry->enc_materials = NULL;
+    entry->dec_materials = NULL;
+
+    aws_string_destroy_secure(entry->key_materials);
+    aws_cryptosdk_enc_context_clean_up(&entry->enc_context);
+
+    aws_byte_buf_clean_up(&entry->cache_id);
+
+    aws_mem_release(entry->owner->allocator, entry);
+}
+
+static void destroy_cache_entry_vp(void *vp_entry) {
+    /*
+     * We enter this function already holding the cache mutex; because aws-common mutexes are non-reentrant,
+     * and because we're actively manipulating the hash table, we can't safely re-use the release_entry invalidation
+     * logic.
+     *
+     * Instead, we'll just set expiry_time to NO_EXPIRY (the priority queue has already been destroyed) and free
+     * the entry immediately.
+     */
+    struct local_cache_entry *entry = vp_entry;
+
+    destroy_cache_entry(entry);
+}
 
 static int copy_encryption_materials(struct aws_allocator *alloc, struct aws_cryptosdk_encryption_materials *out, const struct aws_cryptosdk_encryption_materials *in) {
-    if (aws_byte_buf_init_copy(alloc, &out->unencrypted_data_key, &in->unencrypted_data_key)) {
+    if (aws_byte_buf_init_copy(&out->unencrypted_data_key, alloc, &in->unencrypted_data_key)) {
         goto err;
     }
 
@@ -417,6 +474,23 @@ err:
 }
 
 /********** Local cache vtable methods **********/
+
+static void destroy_cache(struct aws_cryptosdk_mat_cache *generic_cache) {
+    struct aws_cryptosdk_local_cache *cache = (struct aws_cryptosdk_local_cache *)generic_cache;
+
+    /* No need to take a lock - we're the only thread with a reference now */
+
+    /*
+     * Destroy the pqueue first - when we destroy the hash table, destroy_cache_entry_vp will
+     * free all entries in the cache, and so we want to make sure the pqueue references to
+     * local_cache_entry->heap_node are no longer usable first.
+     */
+    aws_priority_queue_clean_up(&cache->ttl_heap);
+    aws_hash_table_clean_up(&cache->entries);
+    aws_mutex_clean_up(&cache->mutex);
+
+    aws_mem_release(cache->allocator, cache);
+}
 
 static size_t entry_count(const struct aws_cryptosdk_mat_cache *generic_cache) {
     // Removing const so we can lock the cache mutex
@@ -436,20 +510,15 @@ static size_t entry_count(const struct aws_cryptosdk_mat_cache *generic_cache) {
 }
 
 
-static int get_entry_for_encrypt(
+static int find_entry(
     struct aws_cryptosdk_mat_cache *generic_cache,
-    struct aws_allocator *request_allocator,
     struct aws_cryptosdk_mat_cache_entry **entry,
-    struct aws_cryptosdk_encryption_materials **materials_out,
-    struct aws_cryptosdk_cache_usage_stats *usage_stats,
-    struct aws_hash_table *enc_context,
+    bool *is_encrypt,
     const struct aws_byte_buf *cache_id
 ) {
     struct aws_cryptosdk_local_cache *cache = (struct aws_cryptosdk_local_cache *)generic_cache;
-    struct aws_cryptosdk_encryption_materials *materials = NULL;
 
     *entry = NULL;
-    *materials_out = NULL;
 
     if (aws_mutex_lock(&cache->mutex)) {
         return AWS_OP_ERR;
@@ -458,52 +527,90 @@ static int get_entry_for_encrypt(
     int rv = AWS_OP_ERR;
 
     struct local_cache_entry *local_entry;
-    if (locked_find_entry(cache, &local_entry, cache_id) && local_entry->enc_materials) {
-        local_entry->usage_stats.bytes_encrypted += usage_stats->bytes_encrypted;
-        local_entry->usage_stats.messages_encrypted += usage_stats->messages_encrypted;
-
-        *usage_stats = local_entry->usage_stats;
-
-        materials = aws_cryptosdk_encryption_materials_new(request_allocator, local_entry->enc_materials->alg);
-
-        if (copy_encryption_materials(request_allocator, materials, local_entry->enc_materials)) {
-            goto out;
-        }
-
-        if (aws_cryptosdk_enc_context_clone(request_allocator, enc_context, &local_entry->enc_context)) {
-            goto out;
-        }
-
-        if (local_entry->key_materials
-            && aws_cryptosdk_sig_sign_start(
-                &materials->signctx,
-                request_allocator,
-                NULL,
-                aws_cryptosdk_alg_props(materials->alg),
-                local_entry->key_materials
-        )) {
-            goto out;
-        }
-
+    if (locked_find_entry(cache, &local_entry, cache_id)) {
         aws_atomic_fetch_add_explicit(&local_entry->refcount, 1, aws_memory_order_relaxed);
         *entry = (struct aws_cryptosdk_mat_cache_entry *)local_entry;
-        *materials_out = materials;
-        materials = NULL;
+        if (is_encrypt) {
+            *is_encrypt = (local_entry->enc_materials != NULL);
+        }
     }
 
     rv = AWS_OP_SUCCESS;
 
-    goto unlock;
-
-out:
-    aws_cryptosdk_encryption_materials_destroy(materials);
-
-unlock:
     if (aws_mutex_unlock(&cache->mutex)) {
         abort();
     }
 
     return rv;
+}
+
+static int update_usage_stats(
+    struct aws_cryptosdk_mat_cache *cache,
+    struct aws_cryptosdk_mat_cache_entry *entry,
+    struct aws_cryptosdk_cache_usage_stats *usage_stats
+) {
+    (void)cache;
+    struct local_cache_entry *local_entry = (struct local_cache_entry *)entry;
+
+    if (local_entry->zombie || !local_entry->enc_materials) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    }
+
+/* TODO: Saturation */
+    usage_stats->bytes_encrypted
+        += aws_atomic_fetch_add(&local_entry->usage_bytes, usage_stats->bytes_encrypted);
+    usage_stats->messages_encrypted
+        += aws_atomic_fetch_add(&local_entry->usage_messages, usage_stats->messages_encrypted);
+
+    return AWS_OP_SUCCESS;
+}
+
+static int get_encryption_materials(
+    struct aws_cryptosdk_mat_cache *cache,
+    struct aws_allocator *allocator,
+    struct aws_cryptosdk_encryption_materials **materials_out,
+    struct aws_hash_table *enc_context,
+    struct aws_cryptosdk_mat_cache_entry *entry
+) {
+    (void)cache;
+    struct local_cache_entry *local_entry = (struct local_cache_entry *)entry;
+    struct aws_cryptosdk_encryption_materials *materials = NULL;
+    *materials_out = NULL;
+
+    if (!local_entry->enc_materials) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    }
+    materials = aws_cryptosdk_encryption_materials_new(allocator, local_entry->enc_materials->alg);
+    if (!materials) {
+        return AWS_OP_ERR;
+    }
+
+    if (copy_encryption_materials(allocator, materials, local_entry->enc_materials)) {
+        goto out;
+    }
+
+    if (aws_cryptosdk_enc_context_clone(allocator, enc_context, &local_entry->enc_context)) {
+        goto out;
+    }
+
+    if (local_entry->key_materials
+        && aws_cryptosdk_sig_sign_start(
+            &materials->signctx,
+            allocator,
+            NULL,
+            aws_cryptosdk_alg_props(materials->alg),
+            local_entry->key_materials
+    )) {
+        goto out;
+    }
+
+    *materials_out = materials;
+    materials = NULL;
+
+out:
+    aws_cryptosdk_encryption_materials_destroy(materials);
+
+    return *materials_out ? AWS_OP_SUCCESS : AWS_OP_ERR;
 }
 
 static void put_entry_for_encrypt(
@@ -526,7 +633,8 @@ static void put_entry_for_encrypt(
         goto out;
     }
 
-    entry->usage_stats = initial_usage;
+    aws_atomic_init_int(&entry->usage_bytes, initial_usage.bytes_encrypted);
+    aws_atomic_init_int(&entry->usage_messages, initial_usage.messages_encrypted);
 
     if (!(entry->enc_materials = aws_cryptosdk_encryption_materials_new(cache->allocator, materials->alg))) {
         goto out;
@@ -562,26 +670,12 @@ out:
          * If entry is non-NULL, it means we didn't successfully insert the entry.
          * We will therefore destroy it immediately.
          */
-        locked_clean_entry(entry);
+        destroy_cache_entry(entry);
     }
 
     if (aws_mutex_unlock(&cache->mutex)) {
         abort();
     }
-}
-
-static void get_entry_for_decrypt(
-    struct aws_cryptosdk_mat_cache *cache,
-    struct aws_allocator *request_allocator,
-    struct aws_cryptosdk_mat_cache_entry **entry,
-    struct aws_cryptosdk_decryption_materials **materials,
-    const struct aws_byte_buf *cache_id
-) {
-    // TODO
-    (void)request_allocator;
-    (void)cache; (void)cache_id;
-    *entry = NULL;
-    *materials = NULL;
 }
 
 static void put_entry_for_decrypt(
@@ -660,42 +754,6 @@ out:
     }
 }
 
-static void locked_release_entry(
-    struct aws_cryptosdk_local_cache *cache,
-    struct local_cache_entry *entry,
-    bool invalidate
-) {
-    /*
-     * We must use release order here, to guard against a race where two threads release the last
-     * two references simultaneously, and then pending writes to the entry are processed on one
-     * thread while the other is destroying the entry.
-     *
-     * By using release order, we ensure that these pending writes are ordered before the final
-     * release operation on the entry.
-     */
-    size_t old_count = aws_atomic_fetch_sub_explicit(&entry->refcount, 1, aws_memory_order_release);
-    assert(old_count != 0);
-
-    if (old_count == 1) {
-        assert(entry->zombie);
-
-        aws_mem_release(cache->allocator, entry);
-
-        return;
-    }
-
-    if (invalidate && !entry->zombie) {
-        /* We should have had least two references: The caller's reference, and the cache's reference */
-        assert(old_count >= 2);
-
-        /*
-         * This will recurse back into locked_release_entry to remove the cache's reference
-         * (and potentially free the entry)
-         */
-        locked_invalidate_entry(cache, entry, false);
-    }
-}
-
 static void release_entry(
     struct aws_cryptosdk_mat_cache *generic_cache,
     struct aws_cryptosdk_mat_cache_entry *generic_entry,
@@ -730,12 +788,8 @@ static void release_entry(
     }
 
     /*
-     * We must use release order here, to guard against a race where two threads release the last
-     * two references simultaneously, and then pending writes to the entry are processed on one
-     * thread while the other is destroying the entry.
-     *
-     * By using release order, we ensure that these pending writes are ordered before the final
-     * release operation on the entry.
+     * We must use release order here; see comments in locked_release_entry regarding the race we're guarding
+     * against.
      */
     size_t old_count = aws_atomic_fetch_sub_explicit(&entry->refcount, 1, aws_memory_order_release);
     assert(old_count != 0);
@@ -747,7 +801,7 @@ static void release_entry(
          * so all we need to do now is actually free the entry structure.
          */
         assert(entry->zombie);
-        aws_mem_release(cache->allocator, entry);
+        destroy_cache_entry(entry);
     }
 }
 
@@ -782,14 +836,16 @@ static void clear_cache(struct aws_cryptosdk_mat_cache *generic_cache) {
 static const struct aws_cryptosdk_mat_cache_vt local_cache_vt = {
     .vt_size = sizeof(local_cache_vt),
     .name = "Local materials cache",
-    .get_entry_for_encrypt = get_entry_for_encrypt,
+    .find_entry = find_entry,
+    .update_usage_stats = update_usage_stats,
+    .get_encryption_materials = get_encryption_materials,
+//    .get_entry_for_decrypt = get_entry_for_decrypt,
     .put_entry_for_encrypt = put_entry_for_encrypt,
-    .get_entry_for_decrypt = get_entry_for_decrypt,
     .put_entry_for_decrypt = put_entry_for_decrypt,
     .destroy = destroy_cache,
     .entry_count = entry_count,
     .entry_release = release_entry,
-    .entry_ctime = get_creation_time,
+    .entry_get_creation_time = get_creation_time,
     .entry_ttl_hint = set_expiration_hint,
     .clear = clear_cache
 };
@@ -840,7 +896,7 @@ struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_local_new(
         alloc,
         capacity,
         hash_cache_id, eq_cache_id,
-        NULL, ht_entry_destructor
+        NULL, destroy_cache_entry_vp
     )) {
         goto err_hash_table;
     }

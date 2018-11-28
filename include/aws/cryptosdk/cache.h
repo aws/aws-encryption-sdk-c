@@ -21,6 +21,8 @@
 #include <aws/cryptosdk/vtable.h>
 #include <aws/cryptosdk/exports.h>
 
+#define AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES ((uint64_t)1 << 32)
+
 struct aws_cryptosdk_cache_usage_stats {
     uint64_t bytes_encrypted, messages_encrypted;
 };
@@ -66,45 +68,75 @@ struct aws_cryptosdk_mat_cache_vt {
 
     /**
      * Attempts to find an entry in the cache. If found, returns a
-     * handle to the cache entry in *entry and the actual encryption materials
-     * in *encryption_materials. Otherwise, *entry and *encryption_materials are
-     * set to NULL.
+     * handle to the cache entry in *entry Otherwise, *entry is set to NULL.
      *
-     * If the entry contains decryption materials, this method will behave as if
-     * the entry was not present.
-     *
-     * As part of finding the entry, this method will atomically increment the entry's
-     * usage by *usage_stats; the updated usage stats are then returned in *usage_stats
+     * If is_encrypt is non-NULL, *is_encrypt is set to TRUE if the found
+     * materials are encryption materials, or FALSE if they are decryption
+     * materials. If no entry was found, the value of *is_encrypt is undefined.
      *
      * This function returns AWS_OP_SUCCESS on a successful cache hit or miss.
-     * However, if an internal error occurs during processing, then AWS_OP_ERROR
-     * is returned and an error is raised. In this case, the state of the materials
-     * object and encryption context is unspecified, but can be safely destroyed and
-     * cleaned up, respectively.
      *
      * Parameters:
      *
      * @param cache - The cache to perform the lookup against
-     * @param request_allocator - The allocator to use to allocate the output decryption materials
-     *  and copied encryption context keys and values
      * @param entry - Out-parameter that receives a handle to the cache entry, if found
-     * @param encryption_materials - Out-parameter that receives the encryption materials, if found
-     * @param usage_stats - Amount to increment usage stats by; receives final usage stats
-     *                      after addition.
-     * @param enc_context - Out-parameter containing a (pre-initialized) encryption context
-     *  hash table. If the cache is a hit, this will be updated with the encryption context
-     *  that was cached.
+     * @param is_encrypt - If an entry is found, set to true if the entry is for encryption,
+     *  or false if for decryption.
      * @param cache_id - The cache identifier to look up.
      */
 
-    int (*get_entry_for_encrypt)(
+    int (*find_entry)(
         struct aws_cryptosdk_mat_cache *cache,
-        struct aws_allocator *request_allocator,
         struct aws_cryptosdk_mat_cache_entry **entry,
-        struct aws_cryptosdk_encryption_materials **encryption_materials,
-        struct aws_cryptosdk_cache_usage_stats *usage_stats,
-        struct aws_hash_table *enc_context,
+        bool *is_encrypt,
         const struct aws_byte_buf *cache_id
+    );
+
+    /**
+     * Performs an atomic add-and-fetch on this entry's usage stats. The value
+     * passed in via *usage_stats is added to the entry's usage stats; then, atomically
+     * with the add, the new sum is read and returned via *usage_stats.
+     *
+     * In other words, this operation effectively does:
+     *   *usage_stats = entry->stats = entry->stats + *usage_stats
+     *
+     * This operation is atomic with respect to each component of usage_stats, but may
+     * not be atomic with respect to the overall usage_stats structure; this means that,
+     * for example, if we start with (messages=1, bytes=1), and we have two threads
+     * adding (1,1), one thread might observe (3,2) and the other might observe (2,3), but
+     * we won't ever have both threads observing the same value.
+     * 
+     * If the cache entry is not an encrypt entry, or if the entry has been invalidated,
+     * or if an internal error occurs during processing, the returned value of *usage_stats
+     * is unspecified, and an error may be raised (AWS_OP_ERR returned).
+     */
+    int (*update_usage_stats)(
+        struct aws_cryptosdk_mat_cache *cache,
+        struct aws_cryptosdk_mat_cache_entry *entry,
+        struct aws_cryptosdk_cache_usage_stats *usage_stats
+    );
+
+    /**
+     * Retrieves the cached encryption materials from the cache.
+     * 
+     * On success, (1) `*materials` is overwritten with a newly allocated encryption
+     * materials object, and (2) `enc_context` is updated to match the cached encryption
+     * context (adding and removing entries to make it match the cached value).
+     * 
+     * On failure (e.g., out of memory), `*materials` will be set to NULL; `enc_context`
+     * remains an allocated encryption context hash table, but the contents of the hash
+     * table are unspecified, as we may have been forced to abort partway through updating
+     * the contents of the hash table.
+     *
+     * This function will always fail if called on cached decryption materials. It MAY fail
+     * when called on an invalidated entry, but this is not guaranteed.
+     */
+    int (*get_encryption_materials)(
+        struct aws_cryptosdk_mat_cache *cache,
+        struct aws_allocator *allocator,
+        struct aws_cryptosdk_encryption_materials **materials,
+        struct aws_hash_table *enc_context,
+        struct aws_cryptosdk_mat_cache_entry *entry
     );
 
     /**
@@ -208,7 +240,7 @@ struct aws_cryptosdk_mat_cache_vt {
      * Returns the creation time of the given cache entry.
      * If the creation time is unknown or an error occurs, returns 0.
      */
-    uint64_t (*entry_ctime)(
+    uint64_t (*entry_get_creation_time)(
         const struct aws_cryptosdk_mat_cache *cache,
         const struct aws_cryptosdk_mat_cache_entry *entry
     );
@@ -242,33 +274,70 @@ struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_local_new(
 );
 
 AWS_CRYPTOSDK_STATIC_INLINE
-int aws_cryptosdk_mat_cache_get_entry_for_encrypt(
+int aws_cryptosdk_mat_cache_find_entry(
     struct aws_cryptosdk_mat_cache *cache,
-    struct aws_allocator *request_allocator,
     struct aws_cryptosdk_mat_cache_entry **entry,
-    struct aws_cryptosdk_encryption_materials **encryption_materials,
-    struct aws_cryptosdk_cache_usage_stats *usage_stats,
-    struct aws_hash_table *enc_context,
+    bool *is_encrypt,
     const struct aws_byte_buf *cache_id
 ) {
-    int (*get_entry_for_encrypt)(
+    int (*find_entry)(
         struct aws_cryptosdk_mat_cache *cache,
-        struct aws_allocator *request_allocator,
         struct aws_cryptosdk_mat_cache_entry **entry,
-        struct aws_cryptosdk_encryption_materials **encryption_materials,
-        struct aws_cryptosdk_cache_usage_stats *usage_stats,
-        struct aws_hash_table *enc_context,
+        bool *is_encrypt,
         const struct aws_byte_buf *cache_id
-    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, get_entry_for_encrypt);
+    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, find_entry);
 
     *entry = NULL;
-    if (get_entry_for_encrypt) {
-        return get_entry_for_encrypt(cache, request_allocator, entry, encryption_materials, usage_stats, enc_context, cache_id);
+    if (find_entry) {
+        return find_entry(cache, entry, is_encrypt, cache_id);
     }
 
-    /* Emulate a cache miss by default */
     return AWS_OP_SUCCESS;
 }
+
+AWS_CRYPTOSDK_STATIC_INLINE
+int aws_cryptosdk_mat_cache_update_usage_stats(
+    struct aws_cryptosdk_mat_cache *cache,
+    struct aws_cryptosdk_mat_cache_entry *entry,
+    struct aws_cryptosdk_cache_usage_stats *usage_stats
+) {
+    int (*update_usage_stats)(
+        struct aws_cryptosdk_mat_cache *cache,
+        struct aws_cryptosdk_mat_cache_entry *entry,
+        struct aws_cryptosdk_cache_usage_stats *usage_stats
+    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, update_usage_stats);
+
+    if (!update_usage_stats) {
+        return aws_raise_error(AWS_ERROR_UNSUPPORTED_OPERATION);
+    }
+
+    return update_usage_stats(cache, entry, usage_stats);
+}
+
+
+AWS_CRYPTOSDK_STATIC_INLINE
+int aws_cryptosdk_mat_cache_get_encryption_materials(
+    struct aws_cryptosdk_mat_cache *cache,
+    struct aws_allocator *allocator,
+    struct aws_cryptosdk_encryption_materials **materials,
+    struct aws_hash_table *enc_context,
+    struct aws_cryptosdk_mat_cache_entry *entry
+) {
+    int (*get_encryption_materials)(
+        struct aws_cryptosdk_mat_cache *cache,
+        struct aws_allocator *allocator,
+        struct aws_cryptosdk_encryption_materials **materials,
+        struct aws_hash_table *enc_context,
+        struct aws_cryptosdk_mat_cache_entry *entry
+    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, get_encryption_materials);
+
+    if (!get_encryption_materials) {
+        return aws_raise_error(AWS_ERROR_UNSUPPORTED_OPERATION);
+    }
+
+    return get_encryption_materials(cache, allocator, materials, enc_context, entry);
+}
+
 
 AWS_CRYPTOSDK_STATIC_INLINE
 void aws_cryptosdk_mat_cache_put_entry_for_encrypt(
@@ -366,17 +435,17 @@ void aws_cryptosdk_mat_cache_entry_release(
 }
 
 AWS_CRYPTOSDK_STATIC_INLINE
-uint64_t aws_cryptosdk_mat_cache_entry_ctime(
+uint64_t aws_cryptosdk_mat_cache_entry_get_creation_time(
     const struct aws_cryptosdk_mat_cache *cache,
     const struct aws_cryptosdk_mat_cache_entry *entry
 ) {
-    uint64_t (*entry_ctime)(
+    uint64_t (*entry_get_creation_time)(
         const struct aws_cryptosdk_mat_cache *cache,
         const struct aws_cryptosdk_mat_cache_entry *entry
-    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_ctime);
+    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_get_creation_time);
 
-    if (entry_ctime) {
-        return entry_ctime(cache, entry);
+    if (entry_get_creation_time) {
+        return entry_get_creation_time(cache, entry);
     } else {
         return 0;
     }
@@ -458,6 +527,42 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
     const struct aws_byte_buf *partition_id
 );
 
+enum aws_cryptosdk_caching_cmm_limit_type {
+    AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES = 0x1000,
+    AWS_CRYPTOSDK_CACHE_LIMIT_BYTES,
+    AWS_CRYPTOSDK_CACHE_LIMIT_TTL
+};
 
+/**
+ * Configures the usage limis for cached entries when used via this CMM.
+ *
+ * The caching CMM can be configured to limit cache entry usage by number of messages encrypted,
+ * number of bytes encrypted, and/or by the maximum time to live in the cache. For decrypt operations,
+ * only the time to live limit is effective.
+ *
+ * Note that the byte limit is determined based on information available at the time the encrypt operation
+ * begins; if the aws_cryptosdk_session_set_message_size function is not called before invoking
+ * aws_cryptosdk_session_process for the first time, then this will be based on the
+ * aws_cryptosdk_session_set_message_bound value. If neither function is called before the first call to
+ * process, then a cache miss will be forced on encrypt, as the message size is completely unknown.
+ *
+ * By default, all limits are set to their maximum permitted values:
+ *   * The message count limit is set to 1 << 32 (AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES)
+ *   * The byte count limit is set to UINT64_MAX
+ *   * The TTL limit is set to UINT64_MAX
+ *
+ * If you attempt to set a limit to a value higher than the maximum permitted value,
+ * it will instead be set to the maximum permitted value.
+ *
+ * Parameters:
+ * @param cmm - The caching CMM to configure.
+ * @param type - The type of limit to set
+ * @param new_value - The new value of the limit
+ */
+int aws_cryptosdk_caching_cmm_set_limits(
+    struct aws_cryptosdk_cmm *cmm,
+    enum aws_cryptosdk_caching_cmm_limit_type type,
+    uint64_t new_value
+);
 
 #endif

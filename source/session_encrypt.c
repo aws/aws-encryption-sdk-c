@@ -30,23 +30,23 @@ static int build_header(struct aws_cryptosdk_session *session, struct aws_crypto
 static int sign_header(struct aws_cryptosdk_session *session);
 
 /* Session encrypt path routines */
-void encrypt_compute_body_estimate(struct aws_cryptosdk_session *session) {
+void aws_cryptosdk_priv_encrypt_compute_body_estimate(struct aws_cryptosdk_session *session) {
     if (session->state != ST_ENCRYPT_BODY) {
         return;
     }
 
     /*
-     * We'll update the input/output estimates by simply doing a trial run of try_encrypt_body
+     * We'll update the input/output estimates by simply doing a trial run of aws_cryptosdk_priv_try_encrypt_body
      * with empty input/output buffers.
      */
 
     struct aws_byte_cursor empty_input = { .ptr = (uint8_t *)"", .len = 0 };
-    struct aws_byte_cursor empty_output = empty_input;
+    struct aws_byte_buf empty_output = { .buffer = NULL, .len = 0, .capacity = 0 };
 
-    try_encrypt_body(session, &empty_output, &empty_input);
+    aws_cryptosdk_priv_try_encrypt_body(session, &empty_output, &empty_input);
 }
 
-int try_gen_key(struct aws_cryptosdk_session *session) {
+int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
     struct aws_cryptosdk_encryption_request request;
     struct aws_cryptosdk_encryption_materials *materials = NULL;
     struct data_key data_key;
@@ -137,11 +137,11 @@ static int build_header(struct aws_cryptosdk_session *session, struct aws_crypto
     // zero EDKs (otherwise we'd need to destroy the old EDKs as well).
     assert(aws_array_list_length(&materials->encrypted_data_keys) == 0);
 
-    aws_byte_buf_init(session->alloc, &session->header.iv, session->alg_props->iv_len);
+    aws_byte_buf_init(&session->header.iv, session->alloc, session->alg_props->iv_len);
     aws_secure_zero(session->header.iv.buffer, session->alg_props->iv_len);
     session->header.iv.len = session->header.iv.capacity;
 
-    if (aws_byte_buf_init(session->alloc, &session->header.auth_tag, session->alg_props->tag_len)) {
+    if (aws_byte_buf_init(&session->header.auth_tag, session->alloc, session->alg_props->tag_len)) {
         return AWS_OP_ERR;
     }
     session->header.auth_tag.len = session->header.auth_tag.capacity;
@@ -198,16 +198,16 @@ static int sign_header(struct aws_cryptosdk_session *session) {
     }
 
     session->frame_seqno = 1;
-    session_change_state(session, ST_WRITE_HEADER);
+    aws_cryptosdk_priv_session_change_state(session, ST_WRITE_HEADER);
 
     // TODO - should we free the parsed header here?
 
     return AWS_OP_SUCCESS;
 }
 
-int try_write_header(
+int aws_cryptosdk_priv_try_write_header(
     struct aws_cryptosdk_session *session,
-    struct aws_byte_cursor *output
+    struct aws_byte_buf *output
 ) {
     session->output_size_estimate = session->header_size;
 
@@ -215,8 +215,8 @@ int try_write_header(
     // write the whole thing.
 
     // TODO - should we try to write incrementally?
-    if (aws_byte_cursor_write(output, session->header_copy, session->header_size)) {
-        session_change_state(session, ST_ENCRYPT_BODY);
+    if (aws_byte_buf_write(output, session->header_copy, session->header_size)) {
+        aws_cryptosdk_priv_session_change_state(session, ST_ENCRYPT_BODY);
     }
 
     // TODO - should we free the parsed header here?
@@ -224,9 +224,9 @@ int try_write_header(
     return AWS_OP_SUCCESS;
 }
 
-int try_encrypt_body(
+int aws_cryptosdk_priv_try_encrypt_body(
     struct aws_cryptosdk_session * AWS_RESTRICT session,
-    struct aws_byte_cursor * AWS_RESTRICT poutput,
+    struct aws_byte_buf * AWS_RESTRICT poutput,
     struct aws_byte_cursor * AWS_RESTRICT pinput
 ) {
     /* First, figure out how much plaintext we need. */
@@ -259,7 +259,7 @@ int try_encrypt_body(
      * We'll use a shadow copy of the cursors; this lets us avoid modifying the
      * output if the input is too small, and vice versa.
      */
-    struct aws_byte_cursor output = *poutput;
+    struct aws_byte_buf output = *poutput;
     struct aws_byte_cursor input = *pinput;
 
     struct aws_cryptosdk_frame frame;
@@ -300,24 +300,30 @@ int try_encrypt_body(
         &plaintext,
         session->header.message_id,
         frame.sequence_number,
-        frame.iv.ptr,
+        frame.iv.buffer,
         &session->content_key,
-        frame.authtag.ptr,
+        frame.authtag.buffer,
         frame.type
     )) {
         // Something terrible happened. Clear the ciphertext buffer and error out.
-        aws_secure_zero(poutput->ptr, poutput->len);
+        aws_byte_buf_secure_zero(poutput);
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
     if (session->signctx) {
+        // Note that the 'output' buffer contains only our ciphertext; we need to keep track of the frame
+        // headers as well
+
+        uint8_t *original_start = poutput->buffer + poutput->len;
+        uint8_t *current_end = output.buffer + output.len;
+        
         struct aws_byte_cursor to_sign = aws_byte_cursor_from_array(
-            poutput->ptr, output.ptr - poutput->ptr
+            original_start, current_end - original_start
         );
 
         if (aws_cryptosdk_sig_update(session->signctx, to_sign)) {
             // Something terrible happened. Clear the ciphertext buffer and error out.
-            aws_secure_zero(poutput->ptr, poutput->len);
+            aws_secure_zero(original_start, current_end - original_start);
             return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
         }
     }
@@ -330,18 +336,18 @@ int try_encrypt_body(
 
     if (frame.type != FRAME_TYPE_FRAME) {
         // We've written a final frame, move on to the trailer
-        session_change_state(session, ST_WRITE_TRAILER);
+        aws_cryptosdk_priv_session_change_state(session, ST_WRITE_TRAILER);
     }
 
     return AWS_OP_SUCCESS;
 }
 
-int write_trailer(
+int aws_cryptosdk_priv_write_trailer(
     struct aws_cryptosdk_session * AWS_RESTRICT session,
-    struct aws_byte_cursor * AWS_RESTRICT poutput
+    struct aws_byte_buf * AWS_RESTRICT poutput
 ) {
     if (session->alg_props->signature_len == 0) {
-        session_change_state(session, ST_DONE);
+        aws_cryptosdk_priv_session_change_state(session, ST_DONE);
         return AWS_OP_SUCCESS;
     }
 
@@ -349,7 +355,7 @@ int write_trailer(
     // Since we generate the signature with a deterministic size, we know how much space we need
     // ahead of time.
     size_t size_needed = 2 + session->alg_props->signature_len;
-    if (poutput->len < size_needed) {
+    if (poutput->capacity - poutput->len < size_needed) {
         session->output_size_estimate = size_needed;
         session->input_size_estimate = 0;
         return AWS_OP_SUCCESS;
@@ -366,8 +372,8 @@ int write_trailer(
         return AWS_OP_ERR;
     }
 
-    if (!aws_byte_cursor_write_be16(poutput, signature->len)
-        || !aws_byte_cursor_write_from_whole_string(poutput, signature)) {
+    if (!aws_byte_buf_write_be16(poutput, signature->len)
+        || !aws_byte_buf_write_from_whole_string(poutput, signature)) {
         // Should never happen, but just in case
         rv = aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
@@ -375,7 +381,7 @@ int write_trailer(
     aws_string_destroy(signature);
 
     if (rv == AWS_OP_SUCCESS) {
-        session_change_state(session, ST_DONE);
+        aws_cryptosdk_priv_session_change_state(session, ST_DONE);
     }
 
     return rv;

@@ -64,9 +64,9 @@ int aws_cryptosdk_edk_init_clone(struct aws_allocator *alloc, struct aws_cryptos
     memset(dest, 0, sizeof(*dest));
 
     if (
-        aws_byte_buf_init_copy(alloc, &dest->provider_id, &src->provider_id)
-     || aws_byte_buf_init_copy(alloc, &dest->provider_info, &src->provider_info)
-     || aws_byte_buf_init_copy(alloc, &dest->enc_data_key, &src->enc_data_key)
+        aws_byte_buf_init_copy(&dest->provider_id, alloc, &src->provider_id)
+     || aws_byte_buf_init_copy(&dest->provider_info, alloc, &src->provider_info)
+     || aws_byte_buf_init_copy(&dest->enc_data_key, alloc, &src->enc_data_key)
     ) {
         aws_cryptosdk_edk_clean_up(dest);
         memset(dest, 0, sizeof(*dest));

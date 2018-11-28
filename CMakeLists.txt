@@ -21,6 +21,7 @@ include(AwsCFlags)
 include(CheckLibraryExists)
 include(CheckCXXSourceCompiles)
 include(CheckCXXCompilerFlag)
+include(CodeCoverageFlags)
 
 # TODO: Static link?
 include(FindOpenSSL)
@@ -150,7 +151,7 @@ target_link_libraries(aws-encryption-sdk-test PRIVATE ${PLATFORM_LIBS} ${OPENSSL
 target_link_libraries(aws-encryption-sdk-test PUBLIC AWS::aws-c-common)
 target_compile_definitions(aws-encryption-sdk-test PRIVATE AWS_CRYPTOSDK_TEST_STATIC=)
 
-
+include(CodeCoverageTargets)
 
 file(GLOB UNIT_TEST_SRC "tests/unit/*.c")
 file(GLOB UNIT_TEST_HDRS "tests/*.h")
@@ -213,6 +214,7 @@ add_test(multi_keyring ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite m
 add_test(signature ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite signature)
 add_test(trailing_sig ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite trailing_sig)
 add_test(local_cache ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite local_cache)
+add_test(caching_cmm ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite caching_cmm)
 
 set(TEST_DATA ${CMAKE_CURRENT_SOURCE_DIR}/tests/data)
 

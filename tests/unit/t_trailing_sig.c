@@ -70,7 +70,7 @@ static int trailing_sig_no_key() {
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
 
-    TEST_ASSERT_SUCCESS(aws_byte_buf_init(aws_default_allocator(), &buf, 1024));
+    TEST_ASSERT_SUCCESS(aws_byte_buf_init(&buf, aws_default_allocator(), 1024));
 
     struct strip_key_cmm strip_key_cmm_s = {.cmm = cmm};
     struct aws_cryptosdk_cmm *enc_cmm = (struct aws_cryptosdk_cmm *)&strip_key_cmm_s;
@@ -113,7 +113,7 @@ static int trailing_sig_no_sig() {
     TEST_ASSERT_ADDR_NOT_NULL(cmm);
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
-    TEST_ASSERT_SUCCESS(aws_byte_buf_init(aws_default_allocator(), &buf, 1024));
+    TEST_ASSERT_SUCCESS(aws_byte_buf_init(&buf, aws_default_allocator(), 1024));
 
     session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm);
     TEST_ASSERT_ADDR_NOT_NULL(session);
@@ -158,7 +158,7 @@ static int trailing_sig_bad_sig() {
     TEST_ASSERT_ADDR_NOT_NULL(cmm);
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
-    TEST_ASSERT_SUCCESS(aws_byte_buf_init(aws_default_allocator(), &buf, 1024));
+    TEST_ASSERT_SUCCESS(aws_byte_buf_init(&buf, aws_default_allocator(), 1024));
 
     session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm);
     TEST_ASSERT_ADDR_NOT_NULL(session);

@@ -245,7 +245,8 @@ static int serialize_pubkey(struct aws_allocator *alloc, EC_KEY *keypair, struct
     unsigned char *buf = NULL;
     int length;
     size_t b64_len;
-    struct aws_byte_buf binary, b64;
+    struct aws_byte_cursor binary;
+    struct aws_byte_buf b64;
     uint8_t tmp[MAX_PUBKEY_SIZE_B64];
 
     // TODO: We currently _only_ accept compressed points. Should we accept uncompressed points as well?
@@ -257,7 +258,7 @@ static int serialize_pubkey(struct aws_allocator *alloc, EC_KEY *keypair, struct
         goto err;
     }
 
-    binary = aws_byte_buf_from_array(buf, length);
+    binary = aws_byte_cursor_from_array(buf, length);
     b64 = aws_byte_buf_from_array(tmp, sizeof(tmp));
 
     if (aws_base64_compute_encoded_len(length, &b64_len)) {
@@ -609,7 +610,7 @@ static int load_pubkey(EC_KEY **key, const struct aws_cryptosdk_alg_properties *
     EC_GROUP *group = NULL;
     uint8_t b64_decode_arr[MAX_PUBKEY_SIZE] = {0};
     struct aws_byte_buf b64_decode_buf = aws_byte_buf_from_array(b64_decode_arr, sizeof(b64_decode_arr));
-    struct aws_byte_buf pub_key = aws_byte_buf_from_array(aws_string_bytes(pub_key_s), pub_key_s->len);
+    struct aws_byte_cursor pub_key = aws_byte_cursor_from_string(pub_key_s);
 
     *key = NULL;
 
@@ -808,7 +809,7 @@ int aws_cryptosdk_sig_sign_finish(
      * e.g. set the S3 content-length on a PutObject, or otherwise preallocate
      * the destination space.
      */
-    if (aws_byte_buf_init(alloc, &sigtmp, siglen)) {
+    if (aws_byte_buf_init(&sigtmp, alloc, siglen)) {
         goto rethrow;
     }
 

@@ -37,7 +37,7 @@ static int serialize_init(struct aws_allocator *alloc, struct aws_byte_buf *buf,
     size_t len;
 
     if (aws_cryptosdk_context_size(&len, enc_context)) return AWS_OP_ERR;
-    if (aws_byte_buf_init(alloc, buf, len)) return AWS_OP_ERR;
+    if (aws_byte_buf_init(buf, alloc, len)) return AWS_OP_ERR;
 
     return aws_cryptosdk_context_serialize(alloc, buf, enc_context);
 }

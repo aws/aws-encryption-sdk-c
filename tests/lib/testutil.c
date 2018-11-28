@@ -14,6 +14,7 @@
  */
 
 #include <stdlib.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <errno.h>
@@ -27,6 +28,23 @@
 #ifdef _MSC_VER
 #pragma warning(disable: 4774) // printf format string is not a string literal
 #endif
+
+void byte_buf_printf(struct aws_byte_buf *buf, struct aws_allocator *alloc, const char *fmt, ...) {
+    va_list ap;
+
+    va_start(ap, fmt);
+
+    int size = vsnprintf(NULL, 0, fmt, ap);
+    if (aws_byte_buf_init(buf, alloc, size + 1)) {
+        abort();
+    }
+    va_end(ap);
+
+    va_start(ap, fmt);
+    buf->len = vsnprintf((char *)buf->buffer, buf->capacity, fmt, ap);
+
+    va_end(ap);
+}
 
 void hexdump(FILE *fd, const uint8_t *buf, size_t size) {
     for (size_t row = 0; row < size; row += 16) {
@@ -101,6 +119,7 @@ int test_loadfile(const char *filename, uint8_t **buf, size_t *datasize) {
         }
 
         *datasize = offset;
+        if (fp) fclose(fp);
         return 0;
     }
 
