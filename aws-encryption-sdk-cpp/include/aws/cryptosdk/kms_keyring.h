@@ -33,7 +33,7 @@ namespace Aws {
 namespace Cryptosdk {
 namespace KmsKeyring {
     class ClientSupplier;
-    
+
     /**
      * Helper class for building a new KmsKeyring object. You cannot construct a KmsKeyring directly
      * and must use this class instead. This class is the only API you need to interact with KmsKeyrings.
