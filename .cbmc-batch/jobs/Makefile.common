@@ -1,0 +1,247 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+# this file except in compliance with the License. A copy of the License is
+# located at
+#
+#     http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and
+# limitations under the License.
+
+SHELL=/bin/bash
+
+default: report
+
+################################################################
+INC += \
+	-I$(SRCDIR)/c-common-inc \
+	-I$(SRCDIR)/c-enc-sdk-inc \
+	-I$(SRCDIR)/helper-inc 
+
+DEF += -DCBMC=1
+
+OPT += 
+
+CFLAGS += $(CFLAGS2) $(DEF) $(OPT) 
+
+LINKFARM = $(abspath ./link-farm)
+
+################################################################
+CBMCFLAGS += \
+	--bounds-check \
+	--pointer-check \
+	--signed-overflow-check \
+	--unsigned-overflow-check \
+	--pointer-overflow-check \
+	--div-by-zero-check \
+	--unwinding-assertions
+
+UNWIND ?= 0
+SIMPLIFY ?= 0
+
+ABSTRACTIONS ?=
+
+################################################################
+# makes a symlink if one doesn't already exist
+# make_symlink where src dest
+define make_symlink
+	@ cd $(1) ; \
+	if [ ! -h $(3) ] ; then \
+		ln -s $(2) $(3) ; \
+	fi
+endef
+
+################ Clone the necessary repos
+common-git:
+	@if [ ! -d $(COMMONDIR) ] ;\
+	then \
+		cd $(BASEDIR); \
+		git clone --quiet --depth 1 https://github.com/awslabs/aws-c-common.git $(COMMON_REPO_NAME); \
+	else \
+		echo "c-common repo already exists. Nothing to do."; \
+	fi
+
+linkfarm-dir:
+	mkdir -p link-farm
+
+# If we have dangling links here, batch is not happy. So make them as needed.
+common-symlinks: common-git linkfarm-dir
+	$(call make_symlink, $(LINKFARM), $(COMMONDIR)/include, c-common-inc)
+	$(call make_symlink, $(LINKFARM), $(COMMONDIR)/source, c-common-src)
+
+enc-sdk-symlinks: linkfarm-dir
+	$(call make_symlink, $(LINKFARM), $(SDKDIR)/include, c-enc-sdk-inc)
+	$(call make_symlink, $(LINKFARM), $(SDKDIR)/source, c-enc-sdk-src)
+
+harness-symlink: linkfarm-dir
+	$(call make_symlink, $(LINKFARM), ../$(HARNESS_NAME), $(HARNESS_NAME)); 
+
+helper-symlinks: linkfarm-dir
+	$(call make_symlink, $(LINKFARM), $(HELPERDIR)/include, helper-inc)
+	$(call make_symlink, $(LINKFARM), $(HELPERDIR)/source, helper-src)
+
+
+fill-linkfarm: harness-symlink enc-sdk-symlinks common-symlinks helper-symlinks
+
+$(ENTRY)1.goto: fill-linkfarm $(OBJS)
+	$(GOTO_CC) --function harness -o $@ $(OBJS)
+
+$(ENTRY)3.goto: $(ENTRY)1.goto
+	 $(GOTO_INSTRUMENT) $(ABSTRACTIONS) --add-library $< $@ \
+		2>&1 | tee $(ENTRY)3.txt ; exit $${PIPESTATUS[0]}
+
+# Simplify and constant propagation may benefit from unwinding first
+$(ENTRY)4.goto: $(ENTRY)3.goto
+ifeq ($(UNWIND_GOTO), 1)
+	$(GOTO_INSTRUMENT) $(UNWINDING) $< $@ \
+		2>&1 | tee $(ENTRY)4.txt ; exit $${PIPESTATUS[0]}
+else
+	cp $< $@
+endif
+
+# Skip simplify (and hence generate-function-body) until missing source locations debugged
+$(ENTRY)5.goto: $(ENTRY)4.goto
+ifeq ($(SIMPLIFY), 1)
+	$(GOTO_INSTRUMENT) --generate-function-body '.*' $< $@ \
+		2>&1 | tee $(ENTRY)5.txt ; exit $${PIPESTATUS[0]}
+else
+	cp $< $@
+endif
+
+# Skip simplify (and hence generate-function-body) until missing source locations debugged
+$(ENTRY)6.goto: $(ENTRY)5.goto
+ifeq ($(SIMPLIFY), 1)
+	$(GOTO_ANALYZER) --simplify $@ $< \
+		2>&1 | tee $(ENTRY)6.txt ; exit $${PIPESTATUS[0]}
+else
+	cp $< $@
+endif
+
+$(ENTRY)7.goto: $(ENTRY)6.goto
+	$(GOTO_INSTRUMENT) --drop-unused-functions $< $@ \
+		2>&1 | tee $(ENTRY)7.txt ; exit $${PIPESTATUS[0]}
+
+$(ENTRY)8.goto: $(ENTRY)7.goto
+	$(GOTO_INSTRUMENT) --slice-global-inits $< $@ \
+		2>&1 | tee $(ENTRY)8.txt ; exit $${PIPESTATUS[0]}
+
+$(ENTRY).goto: $(ENTRY)8.goto
+	cp $< $@
+
+%.goto : %.c fill-linkfarm
+	$(GOTO_CC) -o $@ $(INC) $(CFLAGS) $<
+
+goto: $(ENTRY).goto 
+
+cbmc.txt: $(ENTRY).goto
+	cbmc $(CBMCFLAGS) --trace $< 2>&1 | tee $@
+
+property.xml: $(ENTRY).goto
+	cbmc $(CBMCFLAGS) --show-properties --xml-ui $< 2>&1 > $@
+
+coverage.xml: $(ENTRY).goto
+	cbmc $(filter-out --unwinding-assertions,$(CBMCFLAGS)) --cover location --xml-ui $< 2>&1 > $@
+
+cbmc: cbmc.txt
+
+property: property.xml
+
+coverage: coverage.xml
+
+report: cbmc.txt property.xml coverage.xml
+	$(VIEWER) \
+	--goto $(ENTRY).goto \
+	--srcdir $(SRCDIR) \
+	--htmldir html \
+	--srcexclude "(./verification|./tests|./tools|./lib/third_party)" \
+	--result cbmc.txt \
+	--property property.xml \
+	--block coverage.xml
+
+clean:
+	$(RM) $(GOTOS)
+	$(RM) $(OBJS) $(ENTRY).goto
+	$(RM) $(ENTRY)[0-9].goto $(ENTRY)[0-9].txt
+	$(RM) cbmc.txt property.xml coverage.xml TAGS
+	$(RM) *~ \#*
+
+veryclean: clean
+	$(RM) -r html
+	$(RM) -r link-farm
+
+gitclean: veryclean
+	$(RM) -r $(COMMONDIR)
+
+
+.PHONY: cbmc property coverage report clean veryclean common-symlinks common-git harness-symlink fill-linkfarm helper-symlinks
+
+################################################################
+# Launching cbmc on cbmc-batch
+
+BATCH ?= cbmc-batch
+WS ?= ws
+
+define encode_options
+       '=$(shell echo $(1) | sed 's/ ,/ /g' | sed 's/ /;/g')='
+endef
+
+PROPMEM ?= 64000
+COVMEM ?= 64000
+CBMCPKG ?= cbmc-20180820
+BATCHPKG ?= cbmc-batch-20180913
+VIEWERPKG ?= cbmc-viewer-20180913
+
+BATCHFLAGS ?= \
+	--srcdir $(LINKFARM) \
+	--wsdir $(WS) \
+	--jobprefix $(ENTRY) \
+	--no-build \
+	--goto $(ENTRY).goto \
+	--cbmcflags $(call encode_options,$(CBMCFLAGS)) \
+	--property-memory $(PROPMEM) \
+	--coverage-memory $(COVMEM) \
+	--cbmcpkg $(CBMCPKG) \
+	--batchpkg $(BATCHPKG) \
+	--viewerpkg $(VIEWERPKG) \
+	--no-copysrc \
+	--srctarfile $(SRC_TARFILE) \
+	--blddir $(LINKFARM) \
+
+define yaml_encode_options
+       "$(shell echo $(1) | sed 's/ ,/ /g' | sed 's/ /;/g')"
+endef
+
+$(ENTRY).yaml: $(ENTRY).goto Makefile
+	echo 'jobos: ubuntu14' > $@
+	echo 'cbmcpkg: $(CBMCPKG)' >> $@
+	echo 'batchpkg: $(BATCHPKG)' >> $@
+	echo 'viewerpkg: $(VIEWERPKG)' >> $@
+	echo 'goto: $(ENTRY).goto' >> $@
+	echo 'build: true' >> $@
+	echo 'cbmcflags: $(call yaml_encode_options,$(CBMCFLAGS))' >> $@
+	echo 'property_memory: $(PROPMEM)' >> $@
+	echo 'coverage_memory: $(COVMEM)' >> $@
+	echo 'expected: "SUCCESSFUL"' >> $@
+
+launch: $(ENTRY).goto Makefile
+	mkdir -p $(WS)
+	cp $(ENTRY).goto $(WS)
+	$(BATCH) $(BATCHFLAGS)
+
+launch-clean:
+	for d in $(ENTRY)*; do \
+	  if [ -d $$d ]; then \
+	    for f in $$d.json $$d.yaml Makefile-$$d; do \
+	      if [ -f $$f ]; then mv $$f $$d; fi \
+	    done\
+	  fi \
+	done
+	$(RM) Makefile-$(ENTRY)-[0-9]*-[0-9]*
+	$(RM) $(ENTRY)-[0-9]*-[0-9]*.json $(ENTRY)-[0-9]*-[0-9]*.yaml
+	$(RM) -r $(WS)
+
+launch-veryclean: launch-clean
+	$(RM) -r $(ENTRY)-[0-9]*-[0-9]*
