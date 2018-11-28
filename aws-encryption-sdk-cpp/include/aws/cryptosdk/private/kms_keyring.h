@@ -28,7 +28,6 @@ class KmsKeyringImpl : public aws_cryptosdk_keyring {
     KmsKeyringImpl(const KmsKeyringImpl &) = delete;
     KmsKeyringImpl &operator=(const KmsKeyringImpl &) = delete;
 
-  protected:
     /**
      * Constructor of KmsKeyring for internal use only. Use KmsKeyring::Builder to make a new KmsKeyring.
      *
@@ -43,6 +42,7 @@ class KmsKeyringImpl : public aws_cryptosdk_keyring {
         const Aws::Vector<Aws::String> &grant_tokens,
         std::shared_ptr<Aws::Cryptosdk::KmsKeyring::ClientSupplier> supplier);
 
+  protected:
     /**
      * This is the function that will be called virtually by calling aws_cryptosdk_keyring_on_decrypt
      * on the KmsKeyring pointer. See aws_cryptosdk_keyring_on_decrypt in
