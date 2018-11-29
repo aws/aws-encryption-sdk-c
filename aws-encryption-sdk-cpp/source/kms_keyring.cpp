@@ -41,17 +41,17 @@ using Private::append_key_dup_to_edks;
 static const char *AWS_CRYPTO_SDK_KMS_CLASS_TAG = "KmsKeyring";
 static const char *KEY_PROVIDER_STR = "aws-kms";
 
-void Private::KmsKeyringImpl::DestroyAwsCryptoKeyring(struct aws_cryptosdk_keyring *keyring) {
+static void DestroyKeyring(struct aws_cryptosdk_keyring *keyring) {
     auto keyring_data_ptr = static_cast<Aws::Cryptosdk::Private::KmsKeyringImpl *>(keyring);
     Aws::Delete(keyring_data_ptr);
 }
 
-int Private::KmsKeyringImpl::OnDecrypt(struct aws_cryptosdk_keyring *keyring,
-                                       struct aws_allocator *request_alloc,
-                                       struct aws_byte_buf *unencrypted_data_key,
-                                       const struct aws_array_list *edks,
-                                       const struct aws_hash_table *enc_context,
-                                       enum aws_cryptosdk_alg_id alg) {
+static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
+                     struct aws_allocator *request_alloc,
+                     struct aws_byte_buf *unencrypted_data_key,
+                     const struct aws_array_list *edks,
+                     const struct aws_hash_table *enc_context,
+                     enum aws_cryptosdk_alg_id alg) {
     auto self = static_cast<Aws::Cryptosdk::Private::KmsKeyringImpl *>(keyring);
     if (!self || !request_alloc || !unencrypted_data_key || !edks || !enc_context) {
         abort();
@@ -98,9 +98,9 @@ int Private::KmsKeyringImpl::OnDecrypt(struct aws_cryptosdk_keyring *keyring,
             // Client supplier does not serve this region. Skip.
             continue;
         }
-        auto kms_request = self->CreateDecryptRequest(self->grant_tokens,
-                                                      aws_utils_byte_buffer_from_c_aws_byte_buf(&edk->enc_data_key),
-                                                      enc_context_cpp);
+        auto kms_request = Private::CreateDecryptRequest(self->grant_tokens,
+                                                         aws_utils_byte_buffer_from_c_aws_byte_buf(&edk->enc_data_key),
+                                                         enc_context_cpp);
 
         Aws::KMS::Model::DecryptOutcome outcome = kms_client->Decrypt(kms_request);
         if (!outcome.IsSuccess()) {
@@ -127,12 +127,12 @@ int Private::KmsKeyringImpl::OnDecrypt(struct aws_cryptosdk_keyring *keyring,
     return AWS_OP_SUCCESS;
 }
 
-int Private::KmsKeyringImpl::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
-                                   struct aws_allocator *request_alloc,
-                                   struct aws_byte_buf *unencrypted_data_key,
-                                   struct aws_array_list *edk_list,
-                                   const struct aws_hash_table *enc_context,
-                                   enum aws_cryptosdk_alg_id alg) {
+static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
+                     struct aws_allocator *request_alloc,
+                     struct aws_byte_buf *unencrypted_data_key,
+                     struct aws_array_list *edk_list,
+                     const struct aws_hash_table *enc_context,
+                     enum aws_cryptosdk_alg_id alg) {
     // Class that prevents memory leak of aws_list (even if a function throws)
     // When the object will be destroyed it will call aws_cryptosdk_edk_list_clean_up
     class EdksRaii {
@@ -188,10 +188,10 @@ int Private::KmsKeyringImpl::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
              */
             return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
         }
-        auto kms_request = self->CreateGenerateDataKeyRequest(key_id,
-                                                              self->grant_tokens,
-                                                              (int)alg_prop->data_key_len,
-                                                              enc_context_cpp);
+        auto kms_request = Private::CreateGenerateDataKeyRequest(key_id,
+                                                                 self->grant_tokens,
+                                                                 (int)alg_prop->data_key_len,
+                                                                 enc_context_cpp);
 
         Aws::KMS::Model::GenerateDataKeyOutcome outcome = kms_client->GenerateDataKey(kms_request);
         if (!outcome.IsSuccess()) {
@@ -224,7 +224,7 @@ int Private::KmsKeyringImpl::OnEncrypt(struct aws_cryptosdk_keyring *keyring,
 
         std::function<void()> report_success;
         auto kms_client = self->kms_client_supplier->GetClient(kms_region, report_success);
-        auto kms_client_request = self->CreateEncryptRequest(
+        auto kms_client_request = Private::CreateEncryptRequest(
             key_id,
             self->grant_tokens,
             unencrypted_data_key_cpp,
@@ -271,21 +271,21 @@ Aws::Cryptosdk::Private::KmsKeyringImpl::KmsKeyringImpl(const Aws::Vector<Aws::S
       key_ids(key_ids) {
 
     static const aws_cryptosdk_keyring_vt kms_keyring_vt = {
-        sizeof(struct aws_cryptosdk_keyring_vt),  // size
-        KEY_PROVIDER_STR,  // name
-        &Private::KmsKeyringImpl::DestroyAwsCryptoKeyring,  // destroy callback
-        &Private::KmsKeyringImpl::OnEncrypt, // on_encrypt callback
-        &Private::KmsKeyringImpl::OnDecrypt  // on_decrypt callback
+        sizeof(struct aws_cryptosdk_keyring_vt),
+        KEY_PROVIDER_STR,
+        &DestroyKeyring,
+        &OnEncrypt,
+        &OnDecrypt
     };
 
     aws_cryptosdk_keyring_base_init(this, &kms_keyring_vt);
 }
 
-Aws::KMS::Model::EncryptRequest Private::KmsKeyringImpl::CreateEncryptRequest(const Aws::String &key_id,
-                                                                              const Aws::Vector<Aws::String> &grant_tokens,
-                                                                              const Utils::ByteBuffer &plaintext,
-                                                                              const Aws::Map<Aws::String,
-                                                                              Aws::String> &encryption_context) const {
+Aws::KMS::Model::EncryptRequest Private::CreateEncryptRequest(const Aws::String &key_id,
+                                                              const Aws::Vector<Aws::String> &grant_tokens,
+                                                              const Utils::ByteBuffer &plaintext,
+                                                              const Aws::Map<Aws::String,
+                                                              Aws::String> &encryption_context) {
     KMS::Model::EncryptRequest encryption_request;
     encryption_request.SetKeyId(key_id);
     encryption_request.SetPlaintext(plaintext);
@@ -296,10 +296,10 @@ Aws::KMS::Model::EncryptRequest Private::KmsKeyringImpl::CreateEncryptRequest(co
     return encryption_request;
 }
 
-Aws::KMS::Model::DecryptRequest Private::KmsKeyringImpl::CreateDecryptRequest(const Aws::Vector<Aws::String> &grant_tokens,
-                                                                              const Utils::ByteBuffer &ciphertext,
-                                                                              const Aws::Map<Aws::String,
-                                                                              Aws::String> &encryption_context) const {
+Aws::KMS::Model::DecryptRequest Private::CreateDecryptRequest(const Aws::Vector<Aws::String> &grant_tokens,
+                                                              const Utils::ByteBuffer &ciphertext,
+                                                              const Aws::Map<Aws::String,
+                                                              Aws::String> &encryption_context) {
     KMS::Model::DecryptRequest request;
     request.SetCiphertextBlob(ciphertext);
 
@@ -309,11 +309,11 @@ Aws::KMS::Model::DecryptRequest Private::KmsKeyringImpl::CreateDecryptRequest(co
     return request;
 }
 
-Aws::KMS::Model::GenerateDataKeyRequest Private::KmsKeyringImpl::CreateGenerateDataKeyRequest(
+Aws::KMS::Model::GenerateDataKeyRequest Private::CreateGenerateDataKeyRequest(
     const Aws::String &key_id,
     const Aws::Vector<Aws::String> &grant_tokens,
     int number_of_bytes,
-    const Aws::Map<Aws::String, Aws::String> &encryption_context) const {
+    const Aws::Map<Aws::String, Aws::String> &encryption_context) {
 
     KMS::Model::GenerateDataKeyRequest request;
     request.SetKeyId(key_id);
