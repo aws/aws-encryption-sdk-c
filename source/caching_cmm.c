@@ -327,7 +327,7 @@ int hash_edk_for_decrypt(struct aws_allocator *alloc, struct edk_hash_entry *ent
     return aws_cryptosdk_md_finish(md_context, entry->hash_data, &ignored_length);
 }
 
-//AWS_CRYPTOSDK_TEST_STATIC
+AWS_CRYPTOSDK_TEST_STATIC
 int hash_decrypt_request(const struct aws_string *partition_id, struct aws_byte_buf *out, const struct aws_cryptosdk_decryption_request *req) {
     static const struct edk_hash_entry zero_entry = { { 0 } };
 
