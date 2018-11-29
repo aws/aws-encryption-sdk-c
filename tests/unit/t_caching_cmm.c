@@ -252,29 +252,15 @@ static int enc_cache_unique_ids() {
 
 struct aws_string *hash_or_generate_partition_id(struct aws_allocator *alloc, const struct aws_byte_buf *partition_id);
 int hash_encrypt_request(struct aws_string *partition_id, struct aws_byte_buf *out, const struct aws_cryptosdk_encryption_request *req);
-static int easy_b64_decode(struct aws_byte_buf *out, const char *str) {
-    struct aws_byte_cursor b64;
-    size_t decoded_size;
-
-    b64 = aws_byte_cursor_from_c_str(str);
-    TEST_ASSERT_SUCCESS(aws_base64_compute_decoded_len(&b64, &decoded_size));
-    TEST_ASSERT_SUCCESS(aws_byte_buf_init(out, aws_default_allocator(), decoded_size));
-    TEST_ASSERT_SUCCESS(aws_base64_decode(&b64, out));
-
-    return AWS_OP_SUCCESS;
-}
 
 static int encrypt_id_vector(const char *expected_b64, const char *partition_name, enum aws_cryptosdk_alg_id requested_alg, /* k, v, k, v, NULL */ ...) {
     struct aws_byte_buf partition_name_buf = aws_byte_buf_from_c_str(partition_name);
     struct aws_string *partition_id = hash_or_generate_partition_id(aws_default_allocator(), &partition_name_buf);
     TEST_ASSERT_ADDR_NOT_NULL(partition_id);
 
-    struct aws_byte_buf expected_b64_buf, expected, actual;
-    size_t expected_size;
+    struct aws_byte_buf expected, actual;
 
-    if (easy_b64_decode(&expected, expected_b64)) {
-        return 1;
-    }
+    expected = easy_b64_decode(expected_b64);
     TEST_ASSERT_SUCCESS(aws_byte_buf_init(&actual, aws_default_allocator(), expected.len));
 
     struct aws_cryptosdk_encryption_request request;
@@ -551,9 +537,7 @@ static int dec_test_vector(
 
     struct aws_byte_buf expected, actual;
 
-    if (easy_b64_decode(&expected, expected_b64)) {
-        return 1;
-    }
+    expected = easy_b64_decode(expected_b64);
     TEST_ASSERT_SUCCESS(aws_byte_buf_init(&actual, aws_default_allocator(), expected.len));
 
     struct aws_cryptosdk_decryption_request request;
