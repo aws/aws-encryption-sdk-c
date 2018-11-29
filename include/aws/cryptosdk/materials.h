@@ -51,24 +51,6 @@ struct aws_cryptosdk_keyring {
     const struct aws_cryptosdk_keyring_vt *vtable;
 };
 
-/*
- * TODO: Private key stuff is needed for trailing signature.
- */
-struct aws_cryptosdk_private_key {
-    //FIXME: implement
-    int x; // just putting something here for now to avoid warnings
-};
-
-struct aws_cryptosdk_public_key {
-    //FIXME: implement
-    int x; // just putting something here for now to avoid warnings
-};
-
-struct aws_cryptosdk_key_pair {
-    struct aws_cryptosdk_private_key private_key;
-    struct aws_cryptosdk_public_key public_key;
-};
-
 struct aws_cryptosdk_encryption_request {
     struct aws_allocator * alloc;
     // The encryption context for this message. CMMs are permitted to modify this
