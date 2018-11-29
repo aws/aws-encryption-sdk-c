@@ -430,6 +430,17 @@ err:
     return rv;
 }
 
+static void set_ttl_on_miss(struct caching_cmm *cmm, struct aws_cryptosdk_mat_cache_entry *entry) {
+    if (entry && cmm->ttl != UINT64_MAX) {
+        uint64_t creation_time = aws_cryptosdk_mat_cache_entry_get_creation_time(cmm->mat_cache, entry);
+        uint64_t exp_time = creation_time + cmm->ttl;
+
+        if (exp_time > creation_time) {
+            aws_cryptosdk_mat_cache_entry_ttl_hint(cmm->mat_cache, entry, exp_time);
+        }
+    }
+}
+
 static int generate_enc_materials(struct aws_cryptosdk_cmm *generic_cmm,
                struct aws_cryptosdk_encryption_materials ** output,
                struct aws_cryptosdk_encryption_request * request
@@ -519,14 +530,7 @@ cache_miss:
             &hash_buf
         );
 
-        if (entry && cmm->ttl != UINT64_MAX) {
-            uint64_t creation_time = aws_cryptosdk_mat_cache_entry_get_creation_time(cmm->mat_cache, entry);
-            uint64_t exp_time = creation_time + cmm->ttl;
-
-            if (exp_time > creation_time) {
-                aws_cryptosdk_mat_cache_entry_ttl_hint(cmm->mat_cache, entry, exp_time);
-            }
-        }
+        set_ttl_on_miss(cmm, entry);
 
         if (entry) {
             aws_cryptosdk_mat_cache_entry_release(cmm->mat_cache, entry, false);
@@ -597,14 +601,7 @@ cache_miss:
 
     aws_cryptosdk_mat_cache_put_entry_for_decrypt(cmm->mat_cache, &entry, *output, &hash_buf);
 
-    if (entry && cmm->ttl != UINT64_MAX) {
-        uint64_t creation_time = aws_cryptosdk_mat_cache_entry_get_creation_time(cmm->mat_cache, entry);
-        uint64_t exp_time = cmm->ttl + creation_time;
-
-        if (exp_time > creation_time) {
-            aws_cryptosdk_mat_cache_entry_ttl_hint(cmm->mat_cache, entry, cmm->ttl + creation_time);
-        }
-    }
+    set_ttl_on_miss(cmm, entry);
 
     if (entry) {
         aws_cryptosdk_mat_cache_entry_release(cmm->mat_cache, entry, false);
