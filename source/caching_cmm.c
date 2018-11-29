@@ -308,7 +308,7 @@ static int hash_edk_field(struct aws_cryptosdk_md_context *md_context, const str
 }
 
 AWS_CRYPTOSDK_TEST_STATIC
-int hash_decrypt_edk(struct aws_allocator *alloc, struct edk_hash_entry *entry, const struct aws_cryptosdk_edk *edk) {
+int hash_edk_for_decrypt(struct aws_allocator *alloc, struct edk_hash_entry *entry, const struct aws_cryptosdk_edk *edk) {
     struct aws_cryptosdk_md_context *md_context = NULL;
     if (aws_cryptosdk_md_init(alloc, &md_context, AWS_CRYPTOSDK_MD_SHA512)) {
         return AWS_OP_ERR;
@@ -388,7 +388,7 @@ int hash_decrypt_request(const struct aws_string *partition_id, struct aws_byte_
 
         edk = vp_edk;
 
-        if (hash_decrypt_edk(req->alloc, &entry, edk)) {
+        if (hash_edk_for_decrypt(req->alloc, &entry, edk)) {
             goto err;
         }
 
