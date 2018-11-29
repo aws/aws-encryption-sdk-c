@@ -365,28 +365,6 @@ void aws_cryptosdk_mat_cache_put_entry_for_encrypt(
 }
 
 AWS_CRYPTOSDK_STATIC_INLINE
-void aws_cryptosdk_mat_cache_get_entry_for_decrypt(
-    struct aws_cryptosdk_mat_cache *cache,
-    struct aws_allocator *request_allocator,
-    struct aws_cryptosdk_mat_cache_entry **entry,
-    struct aws_cryptosdk_decryption_materials **decryption_materials,
-    const struct aws_byte_buf *cache_id
-) {
-    void (*get_entry_for_decrypt)(
-        struct aws_cryptosdk_mat_cache *cache,
-        struct aws_allocator *request_allocator,
-        struct aws_cryptosdk_mat_cache_entry **entry,
-        struct aws_cryptosdk_decryption_materials **decryption_materials,
-        const struct aws_byte_buf *cache_id
-    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, get_entry_for_decrypt);
-
-    *entry = NULL;
-    if (get_entry_for_decrypt) {
-        get_entry_for_decrypt(cache, request_allocator, entry, decryption_materials, cache_id);
-    }
-}
-
-AWS_CRYPTOSDK_STATIC_INLINE
 void aws_cryptosdk_mat_cache_put_entry_for_decrypt(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_cryptosdk_mat_cache_entry **entry,

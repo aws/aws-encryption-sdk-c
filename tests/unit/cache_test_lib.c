@@ -143,8 +143,18 @@ const static struct aws_cryptosdk_mat_cache_vt mock_vt = {
     .entry_ttl_hint = mock_entry_ttl_hint
 };
 
-static void check_entry_ptr(struct mock_mat_cache *cache, const struct aws_cryptosdk_mat_cache_entry *entry) {
-    if (!cache->entry_refcount || entry != (void *)&cache->entry_marker) abort(); 
+static void check_entry_ptr(const struct mock_mat_cache *cache, const struct aws_cryptosdk_mat_cache_entry *entry) {
+    if (!cache->entry_refcount) {
+        fprintf(stderr, "\n mock_mat_cache entry refcount underflow\n");
+        abort();
+    }
+
+    if (entry != (void *)&cache->entry_marker) {
+        fprintf(stderr, "\n mock_mat_cache entry ptr mismatch; expected %p got %p\n",
+            (void *)&cache->entry_marker, (void *)entry
+        );
+        abort();
+    }
 }
 
 static void mock_mat_cache_destroy(struct aws_cryptosdk_mat_cache *generic_cache) {

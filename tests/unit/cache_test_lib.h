@@ -73,6 +73,7 @@ struct mock_mat_cache {
      * Contains the last cache ID passed to any function that takes a cache ID
      */
     struct aws_byte_buf last_cache_id;
+
     /*
      * The creation time for the current cache entry. Returned from entry_creation_time.
      */ 
