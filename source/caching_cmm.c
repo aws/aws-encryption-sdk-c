@@ -563,6 +563,10 @@ static int decrypt_materials(struct aws_cryptosdk_cmm *generic_cmm,
         &is_encrypt,
         &hash_buf
     ) || !entry || is_encrypt) {
+        /*
+         * If we got an encrypt entry, we'll invalidate it, since we're about to replace it anyway.
+         * (This is unlikely to happen anyway, unless our hash function is broken)
+         */
         goto cache_miss;
     }
 

@@ -505,9 +505,11 @@ static int limits_test() {
     mock_clock_time = 10001;
     ASSERT_HIT(false);
     TEST_ASSERT(mock_mat_cache->invalidated);
-    // Note: This seems a bit strange since our mock clock time is 10001,
-    // but since the mock materials cache returns '1' for entry creation time
-    // for the new entry this behavior is expected.
+    // At this point our mock clock time is 10001, and we had a cache miss.
+    // We'd expect that, since our TTL is 10000, we should get a TTL hint of
+    // 20001; however, the mock_mat_cache's entry creation time is still set
+    // to 1 (even after the miss, because the mock cache doesn't know about our
+    // fake clock), so the TTL hint ends up being 10001.
     TEST_ASSERT_INT_EQ(10001, mock_mat_cache->entry_ttl_hint);
 
     mock_mat_cache->entry_creation_time = 1;
@@ -557,7 +559,6 @@ static int dec_test_vector(
     struct aws_cryptosdk_decryption_request request;
     request.alloc = aws_default_allocator();
     request.alg = alg;
-    // XXX make const
     request.enc_context = enc_context;
 
     aws_array_list_init_static(&request.encrypted_data_keys, (void *)edk_list, n_edks, sizeof(*edk_list));
@@ -703,9 +704,11 @@ static int dec_materials() {
     /* signature key should have changed due to behavior of the mock upstream cmm */
     TEST_ASSERT_ADDR_NOT_NULL(mock_upstream_cmm->last_dec_request);
 
-    // Note: This seems a bit strange since our mock clock time is 101,
-    // but since the mock materials cache returns '0' for entry creation time
-    // for the new entry this behavior is expected.
+    // At this point our mock clock time is 101, and we had a cache miss.
+    // We'd expect that, since our TTL is 100, we should get a TTL hint of
+    // 201; however, the mock_mat_cache's entry creation time is still set
+    // to 0 (even after the miss, because the mock cache doesn't know about our
+    // fake clock), so the TTL hint ends up being 100.
     TEST_ASSERT_INT_EQ(mock_mat_cache->entry_ttl_hint, 100);
     TEST_ASSERT(!same_signing_key(miss_materials->signctx, hit_materials->signctx));
 
