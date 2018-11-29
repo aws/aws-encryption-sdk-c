@@ -19,6 +19,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <aws/common/common.h>
+#include <aws/common/encoding.h>
 #include <aws/common/hash_table.h>
 #include <aws/common/string.h>
 #include <aws/cryptosdk/enc_context.h>
@@ -153,4 +154,18 @@ int test_enc_context_init_and_fill(struct aws_hash_table *enc_context) {
     aws_hash_table_put(enc_context, enc_context_key_2, (void *)enc_context_val_2, NULL);
 
     return 0;
+}
+
+struct aws_byte_buf easy_b64_decode(const char *b64_string) {
+    struct aws_byte_cursor input = aws_byte_cursor_from_c_str(b64_string);
+    struct aws_byte_buf output;
+    size_t decoded_len;
+
+    if (aws_base64_compute_decoded_len(&input, &decoded_len)
+        || aws_byte_buf_init(&output, aws_default_allocator(), decoded_len)
+        || aws_base64_decode(&input, &output)) {
+        abort();
+    }
+
+    return output;
 }

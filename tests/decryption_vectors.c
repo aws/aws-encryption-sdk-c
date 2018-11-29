@@ -398,36 +398,14 @@ error:
     }
 }
 
-static struct aws_byte_buf b64_decode(const char *b64_input) {
-    size_t outlen;
-    struct aws_byte_cursor in = aws_byte_cursor_from_c_str(b64_input);
-
-    if (aws_base64_compute_decoded_len(&in, &outlen)) {
-        fprintf(stderr, "Base64 compute decoded len failed for {%s}: 0x%04x\n",
-            b64_input, aws_last_error());
-        exit(1);
-    }
-
-    struct aws_byte_buf out;
-    if (aws_byte_buf_init(&out, aws_default_allocator(), outlen)) abort();
-
-    if (aws_base64_decode(&in, &out)) {
-        fprintf(stderr, "Base64 decode failed for {%s}: 0x%04x\n",
-            b64_input, aws_last_error());
-        exit(1);
-    }
-
-    return out;
-}
-
 void decrypt_test_vector(
     enum aws_cryptosdk_alg_id alg_id,
     const char *vector_name,
     const char *plaintext_expected,
     const char *ciphertext
 ) {
-    struct aws_byte_buf pt = b64_decode(plaintext_expected);
-    struct aws_byte_buf ct = b64_decode(ciphertext);
+    struct aws_byte_buf pt = easy_b64_decode(plaintext_expected);
+    struct aws_byte_buf ct = easy_b64_decode(ciphertext);
 
     decrypt_test_oneshot(alg_id, vector_name, pt, ct);
     decrypt_test_incremental(alg_id, vector_name, pt, ct);
