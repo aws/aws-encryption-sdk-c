@@ -22,6 +22,13 @@ namespace Cryptosdk {
 namespace Private {
 
 class KmsKeyringImpl : public aws_cryptosdk_keyring {
+/* This entire class is a private implementation anyway, as users only handle
+ * pointers to instances as (struct aws_cryptosdk_keyring *) types.
+ * So there is not a strict need to make internal methods and variables private
+ * or protected. Furthermore, the keyring virtual functions and unit tests must have
+ * access to the internals of this class. The simplest way to do this is just to
+ * make everything in the class public visibility.
+ */
   public:
     ~KmsKeyringImpl();
     // non-copyable
@@ -42,70 +49,11 @@ class KmsKeyringImpl : public aws_cryptosdk_keyring {
         const Aws::Vector<Aws::String> &grant_tokens,
         std::shared_ptr<Aws::Cryptosdk::KmsKeyring::ClientSupplier> supplier);
 
-  protected:
-    /**
-     * This is the function that will be called virtually by calling aws_cryptosdk_keyring_on_decrypt
-     * on the KmsKeyring pointer. See aws_cryptosdk_keyring_on_decrypt in
-     * include/aws/cryptosdk/materials.h for general information on this interface.
-     */
-    static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
-                         struct aws_allocator *request_alloc,
-                         struct aws_byte_buf *unencrypted_data_key,
-                         const struct aws_array_list *edks,
-                         const struct aws_hash_table *enc_context,
-                         enum aws_cryptosdk_alg_id alg);
-
-    /**
-     * This is the function that will be called virtually by calling aws_cryptosdk_keyring_on_encrypt
-     * on the KmsKeyring pointer. See aws_cryptosdk_keyring_on_encrypt in
-     * include/aws/cryptosdk/materials.h for general information on this interface.
-     */
-    static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
-                         struct aws_allocator *request_alloc,
-                         struct aws_byte_buf *unencrypted_data_key,
-                         struct aws_array_list *edks,
-                         const struct aws_hash_table *enc_context,
-                         enum aws_cryptosdk_alg_id alg);
-
-    /**
-     * This is the function that will be called virtually by calling aws_cryptosdk_keyring_release
-     * on the KmsKeyring pointer. See aws_cryptosdk_keyring_release in
-     * include/aws/cryptosdk/materials.h for general information on this interface.
-     */
-    static void DestroyAwsCryptoKeyring(aws_cryptosdk_keyring *keyring);
-
-    /**
-     * Creates a new KMS Encrypt request
-     */
-    Aws::KMS::Model::EncryptRequest CreateEncryptRequest(const Aws::String &key_id,
-                                                         const Aws::Vector<Aws::String> &grant_tokens,
-                                                         const Utils::ByteBuffer &plaintext,
-                                                         const Aws::Map<Aws::String,
-                                                                        Aws::String> &encryption_context) const;
-
-    /**
-     * Creates a new KMS Decrypt request
-     */
-    Aws::KMS::Model::DecryptRequest CreateDecryptRequest(const Aws::Vector<Aws::String> &grant_tokens,
-                                                         const Utils::ByteBuffer &ciphertext,
-                                                         const Aws::Map<Aws::String,
-                                                                        Aws::String> &encryption_context) const;
-
-    /**
-     * Creates a new KMS Generate Data Key request
-     */
-    Aws::KMS::Model::GenerateDataKeyRequest CreateGenerateDataKeyRequest(
-        const Aws::String &key_id,
-        const Aws::Vector<Aws::String> &grant_tokens,
-        int number_of_bytes,
-        const Aws::Map<Aws::String, Aws::String> &encryption_context) const;
-
     /**
      * Returns the KMS Client for a specific key ID
      */
     std::shared_ptr<KMS::KMSClient> GetKmsClient(const Aws::String &key_id) const;
 
-  private:
     const aws_byte_buf key_provider;
     std::shared_ptr<Aws::Cryptosdk::KmsKeyring::ClientSupplier> kms_client_supplier;
 
