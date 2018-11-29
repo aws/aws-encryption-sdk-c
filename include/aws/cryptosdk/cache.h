@@ -331,6 +331,7 @@ int aws_cryptosdk_mat_cache_get_encryption_materials(
         struct aws_cryptosdk_mat_cache_entry *entry
     ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, get_encryption_materials);
 
+    *materials = NULL;
     if (!get_encryption_materials) {
         return aws_raise_error(AWS_ERROR_UNSUPPORTED_OPERATION);
     }
