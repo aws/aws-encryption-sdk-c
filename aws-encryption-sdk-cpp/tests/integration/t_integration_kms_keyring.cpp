@@ -13,33 +13,13 @@
  * limitations under the License.
  */
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-
-#include <mutex>
-#include <vector>
-#include <iostream>
-
-#include <aws/common/common.h>
-#include <aws/common/array_list.h>
 #include <aws/common/encoding.h>
-#include <aws/core/Aws.h>
 #include <aws/core/utils/logging/ConsoleLogSystem.h>
 #include <aws/core/utils/logging/AWSLogging.h>
-#include <aws/core/utils/memory/MemorySystemInterface.h>
-#include <aws/core/utils/memory/stl/AWSString.h>
-#include <aws/core/utils/Outcome.h>
-#include <aws/kms/model/EncryptResult.h>
-#include <aws/cryptosdk/session.h>
-#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/enc_context.h>
-#include <aws/cryptosdk/private/cpputils.h>
 #include <aws/cryptosdk/kms_keyring.h>
-#include <test_keyring.h>
-#include <edks_utils.h>
 
-#include "testing.h"
+#include "edks_utils.h"
 #include "test_crypto.h"
 #include "testutil.h"
 

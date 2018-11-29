@@ -16,13 +16,8 @@
 #ifndef AWS_ENCRYPTION_SDK_EDKS_UTILS_H
 #define AWS_ENCRYPTION_SDK_EDKS_UTILS_H
 
-#include <string>
-
-#include <aws/common/byte_buf.h>
-#include <aws/common/array_list.h>
-#include <aws/core/Aws.h>
-#include <aws/cryptosdk/private/cpputils.h>
 #include <aws/cryptosdk/materials.h>
+#include <aws/cryptosdk/private/cpputils.h>
 
 #include "testing.h"
 

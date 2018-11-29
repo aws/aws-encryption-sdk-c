@@ -14,21 +14,17 @@
  */
 #include <aws/cryptosdk/private/kms_keyring.h>
 
-#include <stddef.h>
-#include <stdlib.h>
-#include <aws/common/byte_buf.h>
 #include <aws/core/utils/Outcome.h>
 #include <aws/core/utils/logging/LogMacros.h>
 #include <aws/core/utils/memory/stl/AWSAllocator.h>
 #include <aws/core/utils/memory/MemorySystemInterface.h>
-#include <aws/kms/KMSClient.h>
-#include <aws/kms/model/EncryptResult.h>
-#include <aws/kms/model/DecryptResult.h>
-#include <aws/kms/model/GenerateDataKeyResult.h>
-#include <aws/cryptosdk/cipher.h>
-#include <aws/cryptosdk/error.h>
-#include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/private/cpputils.h>
+#include <aws/kms/model/DecryptRequest.h>
+#include <aws/kms/model/DecryptResult.h>
+#include <aws/kms/model/EncryptRequest.h>
+#include <aws/kms/model/EncryptResult.h>
+#include <aws/kms/model/GenerateDataKeyRequest.h>
+#include <aws/kms/model/GenerateDataKeyResult.h>
 
 namespace Aws {
 namespace Cryptosdk {
