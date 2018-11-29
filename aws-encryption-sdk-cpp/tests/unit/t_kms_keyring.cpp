@@ -17,11 +17,6 @@
 #include <aws/cryptosdk/private/kms_keyring.h>
 #include <aws/cryptosdk/private/cpputils.h>
 
-#include <aws/common/array_list.h>
-#include <aws/common/string.h>
-#include <aws/core/utils/Outcome.h>
-#include <aws/kms/KMSClient.h>
-
 #include "kms_client_mock.h"
 #include "testutil.h"
 #include "edks_utils.h"

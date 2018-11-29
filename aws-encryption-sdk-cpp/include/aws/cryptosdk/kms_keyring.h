@@ -15,19 +15,15 @@
 #ifndef AWS_ENCRYPTION_SDK_KMS_KEYRING_H
 #define AWS_ENCRYPTION_SDK_KMS_KEYRING_H
 
-#include <functional>
-#include <mutex>
-#include <aws/common/common.h>
-#include <aws/core/utils/memory/AWSMemory.h>
+#include <aws/core/Aws.h>
 #include <aws/core/utils/memory/stl/AWSString.h>
 #include <aws/core/utils/memory/stl/AWSMap.h>
 #include <aws/core/utils/memory/stl/AWSVector.h>
 #include <aws/core/utils/Outcome.h>
-#include <aws/kms/KMSClient.h>
-#include <aws/kms/model/EncryptRequest.h>
-#include <aws/kms/model/DecryptRequest.h>
-#include <aws/kms/model/GenerateDataKeyRequest.h>
 #include <aws/cryptosdk/materials.h>
+#include <aws/kms/KMSClient.h>
+#include <functional>
+#include <mutex>
 
 namespace Aws {
 namespace Cryptosdk {
