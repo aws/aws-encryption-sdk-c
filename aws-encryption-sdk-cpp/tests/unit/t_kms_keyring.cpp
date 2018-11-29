@@ -665,60 +665,13 @@ int generateDataKey_kmsFails_returnFailure() {
     gv.kms_client_mock->ExpectGenerateDataKey(gv.GetRequest(), return_generate);
 
     TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_KMS_FAILURE, aws_cryptosdk_keyring_on_encrypt(gv.kms_keyring,
-                                                                               gv.allocator,
-                                                                               &gv.unencrypted_data_key,
-                                                                               &gv.edks,
-                                                                               &gv.encryption_context,
-                                                                               gv.alg));
+                                                                                      gv.allocator,
+                                                                                      &gv.unencrypted_data_key,
+                                                                                      &gv.edks,
+                                                                                      &gv.encryption_context,
+                                                                                      gv.alg));
 
     TEST_ASSERT(gv.kms_client_mock->ExpectingOtherCalls() == false);
-
-    return 0;
-}
-
-int createDecryptRequest_validInputs_returnRequest() {
-
-    DecryptValues dv;
-    dv.grant_tokens = {"gt1", "gt2"};
-    Model::DecryptRequest outcome_out = CreateDecryptRequest(dv.grant_tokens,
-                                                             dv.ct_bb,
-                                                             dv.GetEncryptionContext());
-
-    TEST_ASSERT(outcome_out.GetCiphertextBlob() == dv.ct_bb);
-    TEST_ASSERT(outcome_out.GetGrantTokens() == dv.grant_tokens);
-    return 0;
-}
-
-int createGenerateDataKeyRequest_validInputs_returnRequest() {
-    GenerateDataKeyValues gd;
-    gd.grant_tokens = {"gt1", "gt2"};
-
-    Model::GenerateDataKeyRequest outcome_out = CreateGenerateDataKeyRequest(gd.key_id,
-                                                                             gd.grant_tokens,
-                                                                             gd.generate_expected_value,
-                                                                             gd.GetEncryptionContext());
-
-    TEST_ASSERT(outcome_out.GetKeyId() == gd.key_id);
-    TEST_ASSERT(outcome_out.GetNumberOfBytes() == gd.generate_expected_value);
-    TEST_ASSERT(outcome_out.GetGrantTokens() == gd.grant_tokens);
-
-    return 0;
-}
-
-int createEncryptRequest_validInputs_returnRequest() {
-    EncryptTestValues ev;
-    ev.grant_tokens = {"gt1", "gt2"};
-
-    Model::EncryptRequest outcome_out = CreateEncryptRequest(ev.key_id,
-                                                             ev.grant_tokens,
-                                                             ev.pt_bb,
-                                                             ev.GetEncryptionContext());
-
-    TEST_ASSERT(outcome_out.GetKeyId() == ev.key_id);
-    TEST_ASSERT(outcome_out.GetPlaintext() == ev.pt_bb);
-    TEST_ASSERT(outcome_out.GetGrantTokens() == ev.grant_tokens);
-    TEST_ASSERT(outcome_out.GetEncryptionContext() == ev.GetEncryptionContext());
-    TEST_ASSERT(outcome_out.GetGrantTokens() == ev.grant_tokens);
 
     return 0;
 }
@@ -826,9 +779,6 @@ int main() {
     RUN_TEST(generateDataKey_validInputs_returnSuccess());
     RUN_TEST(generateDataKey_validInputsWithGrantTokensAndEncContext_returnSuccess());
     RUN_TEST(generateDataKey_kmsFails_returnFailure());
-    RUN_TEST(createDecryptRequest_validInputs_returnRequest());
-    RUN_TEST(createGenerateDataKeyRequest_validInputs_returnRequest());
-    RUN_TEST(createEncryptRequest_validInputs_returnRequest());
     RUN_TEST(testBuilder_buildClientSupplier_buildsClient());
     RUN_TEST(testBuilder_noKeys_invalid());
     RUN_TEST(testBuilder_keyWithRegion_valid());

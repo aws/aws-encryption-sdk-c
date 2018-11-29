@@ -98,9 +98,11 @@ static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
             // Client supplier does not serve this region. Skip.
             continue;
         }
-        auto kms_request = Private::CreateDecryptRequest(self->grant_tokens,
-                                                         aws_utils_byte_buffer_from_c_aws_byte_buf(&edk->enc_data_key),
-                                                         enc_context_cpp);
+
+        Aws::KMS::Model::DecryptRequest kms_request;
+        kms_request.WithGrantTokens(self->grant_tokens)
+            .WithCiphertextBlob(aws_utils_byte_buffer_from_c_aws_byte_buf(&edk->enc_data_key))
+            .WithEncryptionContext(enc_context_cpp);
 
         Aws::KMS::Model::DecryptOutcome outcome = kms_client->Decrypt(kms_request);
         if (!outcome.IsSuccess()) {
@@ -188,10 +190,11 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
              */
             return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
         }
-        auto kms_request = Private::CreateGenerateDataKeyRequest(key_id,
-                                                                 self->grant_tokens,
-                                                                 (int)alg_prop->data_key_len,
-                                                                 enc_context_cpp);
+        Aws::KMS::Model::GenerateDataKeyRequest kms_request;
+        kms_request.WithKeyId(key_id)
+            .WithGrantTokens(self->grant_tokens)
+            .WithNumberOfBytes((int)alg_prop->data_key_len)
+            .WithEncryptionContext(enc_context_cpp);
 
         Aws::KMS::Model::GenerateDataKeyOutcome outcome = kms_client->GenerateDataKey(kms_request);
         if (!outcome.IsSuccess()) {
@@ -224,13 +227,21 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
 
         std::function<void()> report_success;
         auto kms_client = self->kms_client_supplier->GetClient(kms_region, report_success);
-        auto kms_client_request = Private::CreateEncryptRequest(
-            key_id,
-            self->grant_tokens,
-            unencrypted_data_key_cpp,
-            enc_context_cpp);
+        if (!kms_client) {
+            /* Client supplier is allowed to return NULL if, for example, user wants to exclude particular
+             * regions. But if we are here it means that user configured keyring with a KMS key that was
+             * incompatible with the client supplier in use.
+             */
+            rv = aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+            goto out;
+        }
+        Aws::KMS::Model::EncryptRequest kms_request;
+        kms_request.WithKeyId(key_id)
+            .WithGrantTokens(self->grant_tokens)
+            .WithPlaintext(unencrypted_data_key_cpp)
+            .WithEncryptionContext(enc_context_cpp);
 
-        Aws::KMS::Model::EncryptOutcome outcome = kms_client->Encrypt(kms_client_request);
+        Aws::KMS::Model::EncryptOutcome outcome = kms_client->Encrypt(kms_request);
         if (!outcome.IsSuccess()) {
             AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG,
                                 "KMS encryption error : " << outcome.GetError().GetExceptionName() << " Message: "
@@ -279,50 +290,6 @@ Aws::Cryptosdk::Private::KmsKeyringImpl::KmsKeyringImpl(const Aws::Vector<Aws::S
     };
 
     aws_cryptosdk_keyring_base_init(this, &kms_keyring_vt);
-}
-
-Aws::KMS::Model::EncryptRequest Private::CreateEncryptRequest(const Aws::String &key_id,
-                                                              const Aws::Vector<Aws::String> &grant_tokens,
-                                                              const Utils::ByteBuffer &plaintext,
-                                                              const Aws::Map<Aws::String,
-                                                              Aws::String> &encryption_context) {
-    KMS::Model::EncryptRequest encryption_request;
-    encryption_request.SetKeyId(key_id);
-    encryption_request.SetPlaintext(plaintext);
-
-    encryption_request.SetEncryptionContext(encryption_context);
-    encryption_request.SetGrantTokens(grant_tokens);
-
-    return encryption_request;
-}
-
-Aws::KMS::Model::DecryptRequest Private::CreateDecryptRequest(const Aws::Vector<Aws::String> &grant_tokens,
-                                                              const Utils::ByteBuffer &ciphertext,
-                                                              const Aws::Map<Aws::String,
-                                                              Aws::String> &encryption_context) {
-    KMS::Model::DecryptRequest request;
-    request.SetCiphertextBlob(ciphertext);
-
-    request.SetEncryptionContext(encryption_context);
-    request.SetGrantTokens(grant_tokens);
-
-    return request;
-}
-
-Aws::KMS::Model::GenerateDataKeyRequest Private::CreateGenerateDataKeyRequest(
-    const Aws::String &key_id,
-    const Aws::Vector<Aws::String> &grant_tokens,
-    int number_of_bytes,
-    const Aws::Map<Aws::String, Aws::String> &encryption_context) {
-
-    KMS::Model::GenerateDataKeyRequest request;
-    request.SetKeyId(key_id);
-    request.SetNumberOfBytes(number_of_bytes);
-
-    request.SetGrantTokens(grant_tokens);
-    request.SetEncryptionContext(encryption_context);
-
-    return request;
 }
 
 static std::shared_ptr<KMS::KMSClient> CreateDefaultKmsClient(const Aws::String &region) {

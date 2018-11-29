@@ -21,32 +21,6 @@ namespace Aws {
 namespace Cryptosdk {
 namespace Private {
 
-/**
- * Creates a new KMS Encrypt request
- */
-Aws::KMS::Model::EncryptRequest CreateEncryptRequest(const Aws::String &key_id,
-                                                     const Aws::Vector<Aws::String> &grant_tokens,
-                                                     const Utils::ByteBuffer &plaintext,
-                                                     const Aws::Map<Aws::String,
-                                                     Aws::String> &encryption_context);
-
-/**
- * Creates a new KMS Decrypt request
- */
-Aws::KMS::Model::DecryptRequest CreateDecryptRequest(const Aws::Vector<Aws::String> &grant_tokens,
-                                                     const Utils::ByteBuffer &ciphertext,
-                                                     const Aws::Map<Aws::String,
-                                                     Aws::String> &encryption_context);
-
-/**
- * Creates a new KMS Generate Data Key request
- */
-Aws::KMS::Model::GenerateDataKeyRequest CreateGenerateDataKeyRequest(
-    const Aws::String &key_id,
-    const Aws::Vector<Aws::String> &grant_tokens,
-    int number_of_bytes,
-    const Aws::Map<Aws::String, Aws::String> &encryption_context);
-
 class KmsKeyringImpl : public aws_cryptosdk_keyring {
 /* This entire class is a private implementation anyway, as users only handle
  * pointers to instances as (struct aws_cryptosdk_keyring *) types.
