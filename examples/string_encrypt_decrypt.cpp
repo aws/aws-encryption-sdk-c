@@ -56,7 +56,7 @@ void decrypt_string_test(struct aws_byte_buf * pt_out, struct aws_byte_buf const
 
     size_t out_consumed, in_consumed;
     int decrypt_result = aws_cryptosdk_session_process(session, pt_out->buffer, pt_out->capacity, &pt_out->len,
-                                                       ct_in->buffer, ct_in->len, &in_consumed) ;
+                                                       ct_in->buffer, ct_in->len, &in_consumed);
     if (decrypt_result != AWS_OP_SUCCESS) abort();
 }
 
@@ -74,7 +74,7 @@ int main() {
     //
     // Encrypt plaintext_original to ciphertext
     //
-    struct aws_byte_buf ciphertext ;
+    struct aws_byte_buf ciphertext;
     aws_byte_buf_init(&ciphertext, allocator, BUFFER_SIZE);
 
     encrypt_string_test(&ciphertext, &plaintext_original, allocator);
@@ -83,7 +83,7 @@ int main() {
     //
     // Decrypt ciphertext to plaintext_result
     //
-    struct aws_byte_buf plaintext_result ;
+    struct aws_byte_buf plaintext_result;
     aws_byte_buf_init(&plaintext_result, allocator, BUFFER_SIZE);
 
     decrypt_string_test(&plaintext_result, &ciphertext, allocator);
