@@ -756,8 +756,7 @@ int main() {
     Aws::SDKOptions *options = Aws::New<Aws::SDKOptions>(CLASS_TAG);
     Aws::InitAPI(*options);
 
-    aws_load_error_strings();
-    aws_cryptosdk_err_init_strings();
+    aws_cryptosdk_load_error_strings();
 
     RUN_TEST(encrypt_validInputs_returnSuccess());
     RUN_TEST(encrypt_kmsFails_returnError());

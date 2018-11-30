@@ -48,7 +48,7 @@ enum aws_cryptosdk_err {
  * Register error strings with the core error reporting APIs.
  */
 AWS_CRYPTOSDK_API
-void aws_cryptosdk_err_init_strings();
+void aws_cryptosdk_load_error_strings();
 
 #ifdef __cplusplus
 }

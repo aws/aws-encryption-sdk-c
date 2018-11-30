@@ -42,8 +42,7 @@ size_t ct_size, pt_size;
 } while(0)
 
 int test_decrypt() {
-    aws_load_error_strings();
-    aws_cryptosdk_err_init_strings();
+    aws_cryptosdk_load_error_strings();
 
     uint8_t *output_buf = malloc(pt_size);
     if (!output_buf) {

@@ -416,8 +416,7 @@ void decrypt_test_vector(
 }
 
 int main() {
-    aws_load_error_strings();
-    aws_cryptosdk_err_init_strings();
+    aws_cryptosdk_load_error_strings();
 
     decrypt_test_vector(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE, "ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256 hello empty final frame", "SGVsbG8sIHdvcmxkIQ==", "AYABFO37IzpEmc0FwZTvdUKZNmwAAAABAAh6ZXJvLWtleQANcHJvdmlkZXIgaW5mbwABAAIAAAAADAAAAA0AAAAAAAAAAAAAAACNU9yvQgmpDkhnXnIQNxa2AAAAAQAAAAAAAAAAAAAAASUlloU74HOz+Y1YlYf6Raw/tn/7oSD3tUsfzC8W/////wAAAAIAAAAAAAAAAAAAAAIAAAAAeSAQ6uk0/Gbj1GQb7AXKTw==");
     decrypt_test_vector(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE, "ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256 hello large frames", "SGVsbG8sIHdvcmxkIQ==", "AYABFGFnpBnRQb1tMqjYPdKOqIYACAABAAF4AAF5AAEACHplcm8ta2V5AA1wcm92aWRlciBpbmZvAAEAAgAAAAAMAAAQAAAAAAAAAAAAAAAAAKeI+/USYAoL5xGuEd4UpFD/////AAAAAQAAAAAAAAAAAAAAAQAAAA0lnpNe/RerbazP3UBrbs1eLvoJAJg/KfCMQ8uNng==");
