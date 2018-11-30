@@ -13,6 +13,9 @@
 # limitations under the License.
 #
 
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${PROJECT_SOURCE_DIR}/cmake")
+include(AwsCFlags)
+
 # This is useful for CodeBuild tests since we want to avoid cases where KMS dependencies are missing and
 # we are not building aws-encryption-sdk-cpp.
 option(FORCE_KMS_KEYRING_BUILD "Fail build if KMS Keyring dependencies are not satisfied")
@@ -65,6 +68,14 @@ if (BUILD_AWS_ENC_SDK_CPP)
     set(AWS_ENC_SDK_CPP "aws-encryption-sdk-cpp")
     add_library(aws-encryption-sdk-cpp ${LIBTYPE} ${CORE_CPP_HEADERS} ${AWS_CRYPTOSDK_CPP_SRC})
     set_property(TARGET aws-encryption-sdk-cpp PROPERTY CXX_STANDARD 11)
+    # -fvisibility=hidden appears incompatible with the GNU C++ library; this is because in std::basic_string
+    # there is a templated (const) static variable, which can be instantiated in multiple libraries, and which
+    # is later compared by-address in the basic_string destructor.
+    # Normally, the dynamic linker will resolve to a single instance of this static, but -fvisibility=hidden
+    # makes our instantiation a local symbol (instead of 'global unique'), which means we end up with multiple
+    # instances, and crash when a string is passed across library boundaries and then destroyed.
+    aws_set_common_properties(aws-encryption-sdk-cpp NO_VISIBILITY_HIDDEN)
+
     target_include_directories(aws-encryption-sdk-cpp PUBLIC
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/aws-encryption-sdk-cpp/include>
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -92,8 +103,8 @@ if (BUILD_AWS_ENC_SDK_CPP)
     file(GLOB TEST_LIB "tests/lib/*.cpp")
     file(GLOB TEST_LIB_HEADERS "tests/lib/*.h")
 
-    add_library(testlibcpp EXCLUDE_FROM_ALL ${TEST_LIB_HEADERS} ${TEST_LIB})
-    target_link_libraries(testlibcpp aws-encryption-sdk-cpp testlib)
+    add_library(testlibcpp ${LIBTYPE} EXCLUDE_FROM_ALL ${TEST_LIB_HEADERS} ${TEST_LIB})
+    target_link_libraries(testlibcpp PUBLIC aws-encryption-sdk-cpp testlib)
     set_target_properties(testlibcpp PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
     target_include_directories(testlibcpp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib
             ${PROJECT_SOURCE_DIR}/tests/lib $<INSTALL_INTERFACE:include>)
