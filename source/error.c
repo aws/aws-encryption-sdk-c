@@ -30,6 +30,7 @@ static const struct aws_error_info_list error_info_list = {
     .count = sizeof(error_info)/sizeof(error_info[0])
 };
 
-void aws_cryptosdk_err_init_strings() {
+void aws_cryptosdk_load_error_strings() {
+    aws_load_error_strings();
     aws_register_error_info(&error_info_list);
 }

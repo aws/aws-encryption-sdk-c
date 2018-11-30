@@ -557,8 +557,7 @@ namespace {
 }
 
 int main() {
-    aws_load_error_strings();
-    aws_cryptosdk_err_init_strings();
+    aws_cryptosdk_load_error_strings();
 
     LoggingRAII logging;
 
