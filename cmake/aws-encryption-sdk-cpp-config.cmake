@@ -13,4 +13,6 @@
 # limitations under the License.
 
 find_package(aws-c-common CONFIG REQUIRED)
+find_package(aws-encryption-sdk CONFIG REQUIRED)
+find_package(AWSSDK CONFIG REQUIRED COMPONENTS core kms)
 include(${CMAKE_CURRENT_LIST_DIR}/@AWS_INSTALL_TARGET@-targets.cmake)

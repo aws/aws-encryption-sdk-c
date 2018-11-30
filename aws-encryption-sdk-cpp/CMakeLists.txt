@@ -15,6 +15,7 @@
 
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${PROJECT_SOURCE_DIR}/cmake")
 include(AwsCFlags)
+include(InstallLogic)
 
 # This is useful for CodeBuild tests since we want to avoid cases where KMS dependencies are missing and
 # we are not building aws-encryption-sdk-cpp.
@@ -50,17 +51,9 @@ endif()
 
 
 file(GLOB AWS_CRYPTOSDK_CPP_HEADERS
-        # Headers subject to API/ABI stability guarantees
-        "include/aws/cryptosdk/*.h"
-        # Headers not subject to API stability (but subject to ABI stability)
-        # These typically include internal macros and helpers used in static inline functions
-        "include/aws/cryptosdk/private/*.h"
-        )
-
-file(GLOB CORE_CPP_HEADERS
-        ${CORE_HEADERS}
-        ${AWS_CRYPTOSDK_CPP_HEADERS}
-        )
+    # Headers subject to API/ABI stability guarantees
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/aws/cryptosdk/*.h"
+)
 
 file(GLOB AWS_CRYPTOSDK_CPP_SRC "source/*.cpp")
 
@@ -84,14 +77,9 @@ if (BUILD_AWS_ENC_SDK_CPP)
             $<INSTALL_INTERFACE:include>
             )
     set_target_properties(aws-encryption-sdk-cpp PROPERTIES LINKER_LANGUAGE CXX)
-    target_link_libraries(aws-encryption-sdk-cpp AWS::aws-c-common aws-cpp-sdk-kms aws-cpp-sdk-core aws-encryption-sdk)
-    install(
-            TARGETS aws-encryption-sdk-cpp EXPORT aws-encryption-sdk-cpp
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-            LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-            COMPONENT library
-    )
-    install(EXPORT aws-encryption-sdk-cpp DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/aws-encryption-sdk/cmake/")
+    target_link_libraries(aws-encryption-sdk-cpp PUBLIC AWS::aws-c-common aws-cpp-sdk-kms aws-cpp-sdk-core aws-encryption-sdk)
+    aws_install_target(TARGET aws-encryption-sdk-cpp HEADERS ${AWS_CRYPTOSDK_CPP_HEADERS} HEADER_ROOTS ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 
     if (VALGRIND_TEST_SUITE)
         target_compile_definitions(aws-encryption-sdk-cpp PRIVATE VALGRIND_TESTS=1)
