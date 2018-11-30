@@ -99,8 +99,7 @@ static void enable_cases(const char *specifier) {
 }
 
 int main(int argc, char **argv) {
-    aws_load_error_strings();
-    aws_cryptosdk_err_init_strings();
+    aws_cryptosdk_load_error_strings();
 
     int ret;
     assemble_test_cases(argc < 2);

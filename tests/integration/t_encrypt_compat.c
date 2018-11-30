@@ -293,8 +293,7 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
 }
 
 int main() {
-    aws_load_error_strings();
-    aws_cryptosdk_err_init_strings();
+    aws_cryptosdk_load_error_strings();
 
     curl_init();
 

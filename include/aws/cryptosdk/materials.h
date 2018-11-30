@@ -151,7 +151,30 @@ struct aws_cryptosdk_decryption_materials {
  * Internal function: Decrement a refcount; return true if the object should be destroyed.
  */
 AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_private_refcount_down(struct aws_atomic_var *refcount) {
-    size_t old_count = aws_atomic_fetch_sub_explicit(refcount, 1, aws_memory_order_relaxed);
+    /*
+     * Memory ordering note: We must use release memory order here. Otherwise, we have the following race:
+     *
+     * Program order:
+     *
+     * Thread A:
+     *   Release(obj) [if down() { free(obj) } ]
+     *
+     * Thread B:
+     *   obj->foo = 1;
+     *   Release(obj)
+     *
+     * Execution order:
+     *
+     * Thread B: down() -> false
+     * Thread A: down() -> true
+     * Thread A: free(obj)
+     * Thread B: obj->foo = 1
+     *
+     * To prevent this we use release order, which forbids any memory accesses coming before this point
+     * from being reordered later. This prevents thread B from reordering the obj->foo access to come after
+     * the down().
+     */
+    size_t old_count = aws_atomic_fetch_sub_explicit(refcount, 1, aws_memory_order_release);
 
     assert(old_count != 0);
 
@@ -162,6 +185,25 @@ AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_private_refcount_down(struct aws_
  * Internal function: Increment a refcount.
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_private_refcount_up(struct aws_atomic_var *refcount) {
+    /*
+     * Memory ordering note: It is safe to use relaxed here. As an invariant, we assume that,
+     * on entry, the thread has some guarantee that the refcount will not reach zero until after
+     * refcount_up completes. As long as this guarantee is maintained until the next release barrier,
+     * there is no problem; if we down() on the current thread, we achieve this explicitly. Otherwise,
+     * if we communicate to some other thread that it is safe to release the reference, that communication
+     * needs to be in release order, as it's effectively a proxy down() call, for the same reasons outlined
+     * above in refcount_down().
+     *
+     * Since we've established that our initial reference won't be released until a release barrier
+     * occurs, we are happy to let the increment be deferred until that barrier occurs. We're also
+     * perfectly happy with a refcount increment happening logically earlier than expected, since this
+     * won't cause the object to be freed unexpectedly.
+     *
+     * We also note that acquire order is not required: We know that the object itself is already valid
+     * when we enter refcount_up - that is, refcount_up does not change the internal state of the object.
+     * Therefore, it's okay if some code accesses the logical state of the object "before" the refcount
+     * increment, so long as the object is not actually freed.
+     */
     size_t old_count = aws_atomic_fetch_add_explicit(refcount, 1, aws_memory_order_relaxed);
 
     assert(old_count != 0 && old_count != SIZE_MAX);
