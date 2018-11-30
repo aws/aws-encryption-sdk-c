@@ -268,3 +268,6 @@ if (BUILD_DOC)
         message(FATAL_ERROR "Doxygen not found. Documentation can't be generated")
     endif (DOXYGEN_FOUND)
 endif(BUILD_DOC)
+
+# Examples
+add_subdirectory(examples)
