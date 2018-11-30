@@ -13,19 +13,15 @@
  * limitations under the License.
  */
 
+#include <string.h>
+
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/session.h>
 #include <aws/cryptosdk/kms_keyring.h>
 
-void encrypt_string_test(struct aws_byte_buf * ct_out, struct aws_byte_buf * const pt_in) {
-    const char * KEY_ARN = "arn:aws:kms:us-west-2:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
-    const char * REGION = Aws::Region::US_WEST_2;
+const char * KEY_ARN = "arn:aws:kms:us-west-2:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
 
-    struct aws_allocator * allocator = aws_default_allocator();
-
-    struct Aws::Client::ClientConfiguration client_configuration;
-    client_configuration.region = REGION;
-
+void encrypt_string_test(struct aws_byte_buf * ct_out, struct aws_byte_buf * const pt_in, struct aws_allocator * allocator) {
     auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({KEY_ARN});
 
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(allocator, kms_keyring);
@@ -40,21 +36,13 @@ void encrypt_string_test(struct aws_byte_buf * ct_out, struct aws_byte_buf * con
 
     size_t out_consumed, in_consumed;
     int encrypt_result = aws_cryptosdk_session_process(session, ct_out->buffer, ct_out->capacity, &ct_out->len,
-                                                       pt_in->buffer, pt_in->len, &in_consumed) ;
+                                                       pt_in->buffer, pt_in->len, &in_consumed);
     if (encrypt_result != AWS_OP_SUCCESS) abort();
 
     aws_cryptosdk_session_destroy(session);
 }
 
-void decrypt_string_test(struct aws_byte_buf * pt_out, struct aws_byte_buf const * ct_in) {
-    const char * KEY_ARN = "arn:aws:kms:us-west-2:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
-    const char * REGION = Aws::Region::US_WEST_2;
-
-    struct aws_allocator * allocator = aws_default_allocator();
-
-    struct Aws::Client::ClientConfiguration client_configuration;
-    client_configuration.region = REGION;
-
+void decrypt_string_test(struct aws_byte_buf * pt_out, struct aws_byte_buf const * ct_in, struct aws_allocator * allocator) {
     auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({KEY_ARN});
 
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(allocator, kms_keyring);
@@ -73,12 +61,11 @@ void decrypt_string_test(struct aws_byte_buf * pt_out, struct aws_byte_buf const
 }
 
 int main() {
-    aws_load_error_strings();
-    aws_cryptosdk_err_init_strings();
+    aws_cryptosdk_load_error_strings();
 
     Aws::SDKOptions::SDKOptions options;
     Aws::InitAPI(options);
-    enum { BUFFER_SIZE = 1024 };
+    const size_t BUFFER_SIZE = 1024;
 
     struct aws_allocator * allocator = aws_default_allocator();
 
@@ -87,24 +74,27 @@ int main() {
     //
     // Encrypt plaintext_original to ciphertext
     //
-    uint8_t ct_buf[BUFFER_SIZE] = {0};
-    struct aws_byte_buf ciphertext = aws_byte_buf_from_array(ct_buf, sizeof(ct_buf));
+    struct aws_byte_buf ciphertext ;
+    aws_byte_buf_init(&ciphertext, allocator, BUFFER_SIZE);
 
-    encrypt_string_test(&ciphertext, &plaintext_original);
-
+    encrypt_string_test(&ciphertext, &plaintext_original, allocator);
     printf(">> Encrypted to ciphertext of len %d\n", (int)ciphertext.len);
 
     //
     // Decrypt ciphertext to plaintext_result
     //
-    uint8_t pt_buf[BUFFER_SIZE] = {0};
-    struct aws_byte_buf plaintext_result = aws_byte_buf_from_array(pt_buf, sizeof(pt_buf));
+    struct aws_byte_buf plaintext_result ;
+    aws_byte_buf_init(&plaintext_result, allocator, BUFFER_SIZE);
 
-    decrypt_string_test(&plaintext_result, &ciphertext);
+    decrypt_string_test(&plaintext_result, &ciphertext, allocator);
+    printf(">> Decrypted to plaintext of length %d\n", (int)plaintext_result.len);
 
-    printf(">> Decrypted to plaintext of len %d with content [%s]\n", (int)plaintext_result.len, (char const *)plaintext_result.buffer);
+    // Compare decrypted plaintext to original plaintext
+    assert(plaintext_original.len == plaintext_result.len);
+    assert(!memcmp(plaintext_original.buffer, plaintext_result.buffer, plaintext_original.len));
 
     aws_byte_buf_clean_up_secure(&plaintext_result);
+    aws_byte_buf_clean_up(&ciphertext);
 
     Aws::ShutdownAPI(options);
 }
