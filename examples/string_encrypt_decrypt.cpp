@@ -34,7 +34,7 @@ void encrypt_string_test(struct aws_byte_buf * ct_out, struct aws_byte_buf * con
 
     aws_cryptosdk_session_set_message_size(session, pt_in->len);
 
-    size_t out_consumed, in_consumed;
+    size_t in_consumed;
     int encrypt_result = aws_cryptosdk_session_process(session, ct_out->buffer, ct_out->capacity, &ct_out->len,
                                                        pt_in->buffer, pt_in->len, &in_consumed);
     if (encrypt_result != AWS_OP_SUCCESS) abort();
@@ -52,9 +52,7 @@ void decrypt_string_test(struct aws_byte_buf * pt_out, struct aws_byte_buf const
     struct aws_cryptosdk_session * session = aws_cryptosdk_session_new_from_cmm(allocator, AWS_CRYPTOSDK_DECRYPT, cmm);
     if (!session) abort();
 
-    aws_cryptosdk_session_set_message_size(session, ct_in->len);
-
-    size_t out_consumed, in_consumed;
+    size_t in_consumed;
     int decrypt_result = aws_cryptosdk_session_process(session, pt_out->buffer, pt_out->capacity, &pt_out->len,
                                                        ct_in->buffer, ct_in->len, &in_consumed);
     if (decrypt_result != AWS_OP_SUCCESS) abort();
