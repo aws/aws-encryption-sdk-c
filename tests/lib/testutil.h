@@ -50,6 +50,12 @@ void hexdump(FILE *fd, const uint8_t *buf, size_t size);
  */
 int test_enc_context_init_and_fill(struct aws_hash_table *enc_context);
 
+/**
+ * Decodes base64 in a C string into a newly allocated aws_byte_buf.
+ * Aborts if anything goes wrong.
+ */
+struct aws_byte_buf easy_b64_decode(const char *b64_string);
+
 #ifdef __cplusplus
 }
 #endif

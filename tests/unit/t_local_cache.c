@@ -95,6 +95,12 @@ static int single_put() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_mat_cache_update_usage_stats(cache, entry, &stats_2));
     TEST_ASSERT_SUCCESS(aws_cryptosdk_mat_cache_get_encryption_materials(cache, alloc, &enc_mat_2, &enc_context_2, entry));
 
+    struct aws_cryptosdk_decryption_materials *dec_materials = (struct aws_cryptosdk_decryption_materials *)0xAA;
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_STATE,
+        aws_cryptosdk_mat_cache_get_decryption_materials(cache, alloc, &dec_materials, entry)
+    );
+    TEST_ASSERT_ADDR_NULL(dec_materials);
+
     TEST_ASSERT_ADDR_NOT_NULL(enc_mat_2);
 
     TEST_ASSERT_INT_EQ(stats_2.bytes_encrypted, 91234);
@@ -471,6 +477,65 @@ static int hash_truncation() {
     return 0;
 }
 
+static int test_decrypt_entries() {
+    struct aws_cryptosdk_mat_cache *cache = aws_cryptosdk_mat_cache_local_new(aws_default_allocator(), 16);
+    struct aws_byte_buf cache_id = aws_byte_buf_from_c_str("Hello, world!");
+    struct aws_byte_buf expected_key = aws_byte_buf_from_c_str("THE MAGIC WORDS ARE SQUEAMISH OSSIFRAGE");
+    struct aws_cryptosdk_decryption_materials *dec_mat_in = aws_cryptosdk_decryption_materials_new(aws_default_allocator(), AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384);
+    AWS_STATIC_STRING_FROM_LITERAL(pubkey, "AoZ0mPKrKqcCyWlF47FYUrk4as696N4WUmv+54kp58hBiGJ22Fm+g4esiICWcOrgfQ==");
+
+    TEST_ASSERT_SUCCESS(aws_byte_buf_init_copy(&dec_mat_in->unencrypted_data_key, aws_default_allocator(), &expected_key));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_start(&dec_mat_in->signctx, aws_default_allocator(), pubkey, aws_cryptosdk_alg_props(dec_mat_in->alg)));
+
+    struct aws_cryptosdk_mat_cache_entry *entry = NULL;
+    aws_cryptosdk_mat_cache_put_entry_for_decrypt(
+        cache, &entry, dec_mat_in, &cache_id
+    );
+    TEST_ASSERT_ADDR_NOT_NULL(entry);
+    aws_cryptosdk_mat_cache_entry_release(cache, entry, false);
+
+    struct aws_cryptosdk_decryption_materials *dec_mat_out = (struct aws_cryptosdk_decryption_materials *)0xAA;
+    struct aws_cryptosdk_encryption_materials *enc_mat_out = (struct aws_cryptosdk_encryption_materials *)0xAA;
+    struct aws_hash_table enc_context;
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(aws_default_allocator(), &enc_context));
+
+    bool is_encrypt = true;
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_mat_cache_find_entry(
+        cache, &entry, &is_encrypt, &cache_id
+    ));
+    TEST_ASSERT(!is_encrypt);
+    TEST_ASSERT_ADDR_NOT_NULL(entry);
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_STATE,
+        aws_cryptosdk_mat_cache_get_encryption_materials(
+            cache, aws_default_allocator(), &enc_mat_out, &enc_context, entry
+        )
+    );
+    TEST_ASSERT_ADDR_NULL(enc_mat_out);
+
+    TEST_ASSERT_SUCCESS(
+        aws_cryptosdk_mat_cache_get_decryption_materials(cache, aws_default_allocator(), &dec_mat_out, entry)
+    );
+    aws_cryptosdk_mat_cache_entry_release(cache, entry, true);
+
+    TEST_ASSERT(aws_byte_buf_eq(&expected_key, &dec_mat_out->unencrypted_data_key));
+
+    struct aws_string *pubkey_out;
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_get_pubkey(dec_mat_out->signctx, aws_default_allocator(), &pubkey_out));
+    TEST_ASSERT(aws_string_eq(pubkey_out, pubkey));
+    TEST_ASSERT_INT_EQ(dec_mat_out->alg, dec_mat_in->alg);
+
+    TEST_ASSERT_ADDR_NE(dec_mat_out->unencrypted_data_key.buffer, dec_mat_in->unencrypted_data_key.buffer);
+    TEST_ASSERT_ADDR_NE(dec_mat_out->signctx, dec_mat_in->signctx);
+
+    aws_string_destroy(pubkey_out);
+    aws_cryptosdk_decryption_materials_destroy(dec_mat_out);
+    aws_cryptosdk_decryption_materials_destroy(dec_mat_in);
+    aws_cryptosdk_mat_cache_release(cache);
+    aws_cryptosdk_enc_context_clean_up(&enc_context);
+
+    return 0;
+}
+
 #define TEST_CASE(name) { "local_cache", #name, name }
 struct test_case local_cache_test_cases[] = {
     TEST_CASE(create_destroy),
@@ -481,5 +546,6 @@ struct test_case local_cache_test_cases[] = {
     TEST_CASE(overwrite_enc_entry),
     TEST_CASE(clear_cache),
     TEST_CASE(hash_truncation),
+    TEST_CASE(test_decrypt_entries),
     { NULL }
 };

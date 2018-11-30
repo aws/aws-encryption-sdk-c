@@ -71,7 +71,7 @@ int aws_byte_buf_dup_from_aws_utils(struct aws_allocator *allocator,
  */
 int append_key_dup_to_edks(struct aws_allocator *allocator,
                            struct aws_array_list *encrypted_data_keys,
-                           const Utils::ByteBuffer *encrypted_data_key,
+                           const Aws::Utils::ByteBuffer *encrypted_data_key,
                            const Aws::String *data_key_id,
                            const aws_byte_buf *key_provider);
 

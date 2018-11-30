@@ -73,6 +73,7 @@ struct mock_mat_cache {
      * Contains the last cache ID passed to any function that takes a cache ID
      */
     struct aws_byte_buf last_cache_id;
+
     /*
      * The creation time for the current cache entry. Returned from entry_creation_time.
      */ 
@@ -99,6 +100,10 @@ struct mock_upstream_cmm {
     int materials_index;
     enum aws_cryptosdk_alg_id returned_alg;
     int n_edks;
+    /*
+     * Contains the last public key generated on a generate materials or decrypt materials mock request.
+     */
+    struct aws_string *last_pubkey;
 
     /* Last request pointer passed in */
     struct aws_cryptosdk_encryption_request *last_enc_request;
@@ -107,6 +112,8 @@ struct mock_upstream_cmm {
 
 void gen_enc_materials(struct aws_allocator *alloc, struct aws_cryptosdk_encryption_materials **p_materials, int index, enum aws_cryptosdk_alg_id alg, int n_edks);
 bool materials_eq(const struct aws_cryptosdk_encryption_materials *a, const struct aws_cryptosdk_encryption_materials *b);
+bool same_signing_key(struct aws_cryptosdk_signctx *a, struct aws_cryptosdk_signctx *b);
+bool dec_materials_eq(const struct aws_cryptosdk_decryption_materials *a, const struct aws_cryptosdk_decryption_materials *b);
 
 struct mock_mat_cache *mock_mat_cache_new(struct aws_allocator *alloc);
 struct mock_upstream_cmm *mock_upstream_cmm_new(struct aws_allocator *alloc);

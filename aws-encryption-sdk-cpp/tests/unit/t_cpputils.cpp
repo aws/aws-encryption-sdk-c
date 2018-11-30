@@ -13,13 +13,11 @@
  * limitations under the License.
  */
 
-#include <aws/cryptosdk/private/cpputils.h>
 #include <aws/cryptosdk/enc_context.h>
-#include <aws/common/string.h>
+#include <aws/cryptosdk/private/cpputils.h>
 
 #include "edks_utils.h"
 #include "testutil.h"
-#include "testing.h"
 
 using namespace Aws::Cryptosdk::Private;
 using namespace Aws::Cryptosdk::Testing;
