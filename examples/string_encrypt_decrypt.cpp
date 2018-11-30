@@ -13,18 +13,9 @@
  * limitations under the License.
  */
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-
-#include <aws/core/Aws.h>
-
-#include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/session.h>
 #include <aws/cryptosdk/kms_keyring.h>
-
-#include <aws/core/client/ClientConfiguration.h>
 
 void encrypt_string_test(struct aws_byte_buf * ct_out, struct aws_byte_buf * const pt_in) {
     const char * KEY_ARN = "arn:aws:kms:us-west-2:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
@@ -35,9 +26,7 @@ void encrypt_string_test(struct aws_byte_buf * ct_out, struct aws_byte_buf * con
     struct Aws::Client::ClientConfiguration client_configuration;
     client_configuration.region = REGION;
 
-    std::shared_ptr<Aws::KMS::KMSClient> kms_client = Aws::MakeShared<Aws::KMS::KMSClient>("Test KMS", client_configuration);
-
-    auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().WithKmsClient(kms_client).Build({KEY_ARN});
+    auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({KEY_ARN});
 
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(allocator, kms_keyring);
     if (!cmm) abort();
@@ -66,9 +55,7 @@ void decrypt_string_test(struct aws_byte_buf * pt_out, struct aws_byte_buf const
     struct Aws::Client::ClientConfiguration client_configuration;
     client_configuration.region = REGION;
 
-    std::shared_ptr<Aws::KMS::KMSClient> kms_client = Aws::MakeShared<Aws::KMS::KMSClient>("Test KMS", client_configuration);
-
-    auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().WithKmsClient(kms_client).Build({KEY_ARN});
+    auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({KEY_ARN});
 
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(allocator, kms_keyring);
     if (!cmm) abort();
