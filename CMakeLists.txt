@@ -19,6 +19,7 @@ include(CTest)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(AwsCFlags)
+include(InstallLogic)
 
 include(CheckLibraryExists)
 include(CheckCXXSourceCompiles)
@@ -158,30 +159,13 @@ add_subdirectory(aws-encryption-sdk-cpp)
 add_subdirectory(tests)
 
 # Installation logic
-
-foreach(HEADER_SRCPATH IN ITEMS ${CORE_HEADERS})
-    get_filename_component(HEADER_DIR ${HEADER_SRCPATH} DIRECTORY)
-    string(REPLACE ${GENERATED_INCLUDE} ${CMAKE_INSTALL_PREFIX}/include HEADER_DIR "${HEADER_DIR}")
-    string(REPLACE ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_INSTALL_PREFIX}/include HEADER_DIR "${HEADER_DIR}")
-    install(FILES ${HEADER_SRCPATH} DESTINATION ${HEADER_DIR})
-endforeach()
-
-set(LIBRARY_DIRECTORY ${CMAKE_INSTALL_PREFIX}/lib)
-install(TARGETS ${CMAKE_PROJECT_NAME} EXPORT ${CMAKE_PROJECT_NAME}-targets
-    ARCHIVE DESTINATION "${LIBRARY_DIRECTORY}"
-    LIBRARY DESTINATION "${LIBRARY_DIRECTORY}"
-    RUNTIME DESTINATION "${LIBRARY_DIRECTORY}")
-
-configure_file("cmake/${CMAKE_PROJECT_NAME}-config.cmake" "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}-config.cmake" @ONLY)
-
-install(EXPORT "${CMAKE_PROJECT_NAME}-targets" DESTINATION "${LIBRARY_DIRECTORY}/${CMAKE_PROJECT_NAME}/cmake/"
-    NAMESPACE AWS::
+aws_install_target(
+    TARGET ${CMAKE_PROJECT_NAME}
+    HEADERS ${CORE_HEADERS}
+    HEADER_ROOTS ${GENERATED_INCLUDE} ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}-config.cmake" DESTINATION "${LIBRARY_DIRECTORY}/${CMAKE_PROJECT_NAME}/cmake/")
-
-# Generate the header at the end, after we've finished feature probing
-
+# Generate the config header at the end, after we've finished feature probing
 set(AWS_CRYPTOSDK_P_HAVE_LIBPTHREAD ${HAVE_LIBPTHREAD} CACHE INTERNAL "")
 set(AWS_CRYPTOSDK_P_HAVE_LIBRT ${HAVE_LIBRT} CACHE INTERNAL "")
 set(AWS_CRYPTOSDK_P_USE_X86_64_ASM ${USE_X86_64_ASM} CACHE INTERNAL "")
