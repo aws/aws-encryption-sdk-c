@@ -46,13 +46,6 @@ namespace KmsKeyring {
     class Builder {
       public:
         /**
-         * Sets default region. This region will be used when specifying key IDs that are not full ARNs,
-         * but are instead bare key IDs or aliases. If all key IDs provided are full ARNs, this is not
-         * necessary. If KMS Client is set, then this parameter is ignored.
-         */
-        Builder &WithDefaultRegion(const Aws::String &default_region);
-
-        /**
          * Adds a single grant token. For more information, see
          * http://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#grant_token
          *
@@ -80,8 +73,8 @@ namespace KmsKeyring {
         Builder &WithClientSupplier(const std::shared_ptr<ClientSupplier> &client_supplier);
 
         /**
-         * KmsKeyring will use only this KMS Client regardless of the configured region.
-         * If KMS Client is set then the client supplier and default region parameters are ignored.
+         * KmsKeyring will use only this KMS Client. Note that this is only suitable if all
+         * KMS keys are in one region. If this is set then the client supplier parameter is ignored.
          */
         Builder &WithKmsClient(std::shared_ptr<KMS::KMSClient> kms_client);
 
@@ -93,26 +86,16 @@ namespace KmsKeyring {
          * of those keys the ability to decrypt the data. Providing multiple CMKs for decryptions
          * allows the decryption of data that was encrypted using any of those keys.
          *
-         * Key IDs for encryption may be specified in four different ways:
+         * Key IDs for encryption may be specified in two different ways:
          *
          * (1) key ARN: arn:aws:kms:us-east-1:999999999999:key/01234567-89ab-cdef-fedc-ba9876543210
-         * (2) key UUID:  01234567-89ab-cdef-fedc-ba9876543210
-         * (3) alias ARN:  arn:aws:kms:us-east-1:999999999999:alias/MyCryptoKey
-         * (4) alias name: alias/MyCryptoKey
+         * (2) alias ARN:  arn:aws:kms:us-east-1:999999999999:alias/MyCryptoKey
          *
-         * If you specify keys with either key ARN or alias ARN, the AWS Encryption SDK will
-         * detect what region they are in and make the KMS calls to the correct region for each key.
-         * If any of the keys you specify are in either key UUID or alias name format, then you must
-         * specify a default region in which to make those KMS calls. All keys in those formats must be
-         * in that same default region. If you want to use multiple default regions, set up separate
-         * KmsKeyrings for each default region, and join them together with a multi-keyring.
-         *
-         * Key IDs for decryption must be specified as key ARNs *only*, i.e., format (1) above. Formats
-         * (2) through (4) will not work for decryption. The AWS Encryption SDK will allow you to attempt
-         * decrypts with a KmsKeyring configured with keys in formats (2) through (4) without errors, but
-         * it will only succeed in decrypting data that was encrypted with keys that were specified in
-         * key ARN format. This is a limitation of the message format of encryption and of the KMS APIs,
-         * not of this software package.
+         * Key IDs for decryption must be specified as key ARNs only, i.e., format (1) above. Format
+         * (2) will not work for decryption. The AWS Encryption SDK will allow you to attempt decrypts
+         * with a KmsKeyring configured with keys in format (2) without errors, but it will only succeed
+         * in decrypting data that was encrypted with keys that were specified in key ARN format. This
+         * is a limitation of the message format of encryption and of the KMS APIs, not of this library.
          */
         aws_cryptosdk_keyring *Build(const Aws::Vector<Aws::String> &key_ids) const;
 
@@ -136,7 +119,6 @@ namespace KmsKeyring {
         bool ValidParameters(const Aws::Vector<Aws::String> &key_ids) const;
         std::shared_ptr<ClientSupplier> BuildClientSupplier(const Aws::Vector<Aws::String> &key_ids) const;
       private:
-        Aws::String default_region;
         std::shared_ptr<KMS::KMSClient> kms_client;
         Aws::Vector<Aws::String> grant_tokens;
         std::shared_ptr<ClientSupplier> client_supplier;
