@@ -57,15 +57,6 @@ struct aws_cryptosdk_encryption_request {
     // hash table in order to inject additional keys or otherwise modify the encryption
     // context.
     struct aws_hash_table * enc_context;
-    // The session will initially call generate_encryption_materials on the CMM
-    // with a zero requested_alg; it's up to one of the CMMs in the chain to fill
-    // this in before the keyring is invoked. In particular, the default CMM will
-    // fill in the algorithm ID it has been configured with, unless a CMM before
-    // the default CMM filled in a different algorithm ID.
-
-    // TODO: This is a bit of a hack; depending on what happens with PR#84 we can either
-    // move this into the output structure, or create a combined in/out structure to hold
-    // this in/out field.
     enum aws_cryptosdk_alg_id requested_alg;
     uint64_t plaintext_size;
 };
