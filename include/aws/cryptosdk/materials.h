@@ -80,7 +80,7 @@ struct aws_cryptosdk_encryption_materials {
 
 struct aws_cryptosdk_decryption_request {
     struct aws_allocator * alloc;
-    struct aws_hash_table * enc_context;
+    const struct aws_hash_table * enc_context;
     struct aws_array_list encrypted_data_keys;
     enum aws_cryptosdk_alg_id alg;
 };
