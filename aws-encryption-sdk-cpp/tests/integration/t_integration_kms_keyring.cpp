@@ -495,7 +495,6 @@ int dataKeyEncryptAndDecrypt_twoKeysSharedBuilderAndCache_returnSuccess() {
 }
 
 //todo add more tests for grantTokens
-//todo We'll need tests for the default region that encrypt with key IDs of the form [uuid] or alias/whatever.
 
 /*
  * These RAII-style logging classes will buffer log entries until .clear() is called on the LoggingRAII object.

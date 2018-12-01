@@ -40,12 +40,10 @@ class KmsKeyringImpl : public aws_cryptosdk_keyring {
      *
      * @param key_ids List of KMS customer master keys (CMK)
      * @param grant_tokens A list of grant tokens.
-     * @param default_region Region used for non-ARN key IDs.
      * @param supplier Object that supplies the KMSClient instances to use for each region.
      */
     KmsKeyringImpl(
         const Aws::Vector<Aws::String> &key_ids,
-        const String &default_region,
         const Aws::Vector<Aws::String> &grant_tokens,
         std::shared_ptr<Aws::Cryptosdk::KmsKeyring::ClientSupplier> supplier);
 
@@ -57,7 +55,6 @@ class KmsKeyringImpl : public aws_cryptosdk_keyring {
     const aws_byte_buf key_provider;
     std::shared_ptr<Aws::Cryptosdk::KmsKeyring::ClientSupplier> kms_client_supplier;
 
-    const Aws::String default_region;  // if no region can be extracted from key_id this will be used as default
     Aws::Vector<Aws::String> grant_tokens;
     Aws::Vector<Aws::String> key_ids;
 };

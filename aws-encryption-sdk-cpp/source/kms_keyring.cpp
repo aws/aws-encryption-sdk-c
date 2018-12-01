@@ -174,8 +174,9 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
             return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
         }
         Aws::String key_id = self->key_ids.front();
+
+        // Already checked on keyring build that this will succeed.
         Aws::String kms_region = Private::parse_region_from_kms_key_arn(key_id);
-        if (kms_region.empty()) kms_region = self->default_region;
 
         std::function<void()> report_success;
         auto kms_client = self->kms_client_supplier->GetClient(kms_region, report_success);
@@ -218,8 +219,9 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
     size_t num_key_ids = self->key_ids.size();
     for (size_t key_id_idx = generated_new_data_key ? 1 : 0; key_id_idx < num_key_ids; ++key_id_idx) {
         Aws::String key_id = self->key_ids[key_id_idx];
+
+        // Already checked on keyring build that this will succeed.
         Aws::String kms_region = Private::parse_region_from_kms_key_arn(key_id);
-        if (kms_region.empty()) kms_region = self->default_region;
 
         std::function<void()> report_success;
         auto kms_client = self->kms_client_supplier->GetClient(kms_region, report_success);
@@ -268,12 +270,10 @@ Aws::Cryptosdk::Private::KmsKeyringImpl::~KmsKeyringImpl() {
 }
 
 Aws::Cryptosdk::Private::KmsKeyringImpl::KmsKeyringImpl(const Aws::Vector<Aws::String> &key_ids,
-                                                        const String &default_region,
                                                         const Aws::Vector<Aws::String> &grant_tokens,
                                                         std::shared_ptr<Aws::Cryptosdk::KmsKeyring::ClientSupplier> client_supplier)
     : key_provider(aws_byte_buf_from_c_str(KEY_PROVIDER_STR)),
       kms_client_supplier(client_supplier),
-      default_region(default_region),
       grant_tokens(grant_tokens),
       key_ids(key_ids) {
 
@@ -327,19 +327,12 @@ std::shared_ptr<KMS::KMSClient> KmsKeyring::CachingClientSupplier::GetClient(con
 }
 
 std::shared_ptr<KmsKeyring::ClientSupplier> KmsKeyring::Builder::BuildClientSupplier(const Aws::Vector<Aws::String> &key_ids) const {
-    /* Presence of default region when needed has already been verified by ValidParameters()
-     * so we will not recheck for it here.
-     */
-
     if (kms_client) {
         return KmsKeyring::SingleClientSupplier::Create(kms_client);
     }
 
     if (key_ids.size() == 1) {
         Aws::String region = Private::parse_region_from_kms_key_arn(key_ids.front());
-        if (region.empty()) {
-            region = default_region;
-        }
         return KmsKeyring::SingleClientSupplier::Create(CreateDefaultKmsClient(region));
     }
 
@@ -353,15 +346,9 @@ bool KmsKeyring::Builder::ValidParameters(const Aws::Vector<Aws::String> &key_id
         return false;
     }
 
-    bool need_full_arns = !kms_client && default_region.empty();
-
     for (auto &key : key_ids) {
-        if (key.empty()) {
-            AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "A key that was provided is empty");
-            return false;
-        }
-        if (need_full_arns && Private::parse_region_from_kms_key_arn(key).empty()) {
-            AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "Default region or KMS client needed for non-ARN key IDs");
+        if (Private::parse_region_from_kms_key_arn(key).empty()) {
+            AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "Unable to parse key ARN");
             return false;
         }
     }
@@ -377,7 +364,6 @@ aws_cryptosdk_keyring *KmsKeyring::Builder::Build(const Aws::Vector<Aws::String>
 
     return Aws::New<Private::KmsKeyringImpl>(AWS_CRYPTO_SDK_KMS_CLASS_TAG,
                                              key_ids,
-                                             default_region,
                                              grant_tokens,
                                              BuildClientSupplier(key_ids));
 }
@@ -386,16 +372,10 @@ aws_cryptosdk_keyring *KmsKeyring::Builder::BuildDiscovery() const {
     Aws::Vector<Aws::String> empty_key_ids_list;
     return Aws::New<Private::KmsKeyringImpl>(AWS_CRYPTO_SDK_KMS_CLASS_TAG,
                                              empty_key_ids_list,
-                                             default_region,
                                              grant_tokens,
                                              BuildClientSupplier(empty_key_ids_list));
 }
     
-KmsKeyring::Builder &KmsKeyring::Builder::WithDefaultRegion(const String &default_region) {
-    this->default_region = default_region;
-    return *this;
-}
-
 KmsKeyring::Builder &KmsKeyring::Builder::WithGrantTokens(const Aws::Vector<Aws::String> &grant_tokens) {
     this->grant_tokens.insert(this->grant_tokens.end(), grant_tokens.begin(), grant_tokens.end());
     return *this;

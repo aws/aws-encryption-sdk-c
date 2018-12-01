@@ -301,13 +301,13 @@ int expect_encrypt(struct aws_array_list &expected_edks,
 }
 
 int encrypt_validInputsMultipleKeys_returnSuccess() {
-    EncryptTestValues ev({"key1", "key2", "key3"});
+    EncryptTestValues ev({"arn:aws:kms:us-fake-1:999999999999:key/1", "arn:aws:kms:us-fake-1:999999999999:key/2", "arn:aws:kms:us-fake-1:999999999999:key/3"});
     struct aws_array_list expected_edks;
     TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(ev.allocator, &expected_edks));
 
-    TEST_ASSERT_SUCCESS(expect_encrypt(expected_edks, ev, "key1", ev.pt, "ct1"));
-    TEST_ASSERT_SUCCESS(expect_encrypt(expected_edks, ev, "key2", ev.pt, "ct2"));
-    TEST_ASSERT_SUCCESS(expect_encrypt(expected_edks, ev, "key3", ev.pt, "ct3"));
+    TEST_ASSERT_SUCCESS(expect_encrypt(expected_edks, ev, "arn:aws:kms:us-fake-1:999999999999:key/1", ev.pt, "ct1"));
+    TEST_ASSERT_SUCCESS(expect_encrypt(expected_edks, ev, "arn:aws:kms:us-fake-1:999999999999:key/2", ev.pt, "ct2"));
+    TEST_ASSERT_SUCCESS(expect_encrypt(expected_edks, ev, "arn:aws:kms:us-fake-1:999999999999:key/3", ev.pt, "ct3"));
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(ev.kms_keyring,
                                                   ev.allocator,
@@ -324,7 +324,7 @@ int encrypt_validInputsMultipleKeys_returnSuccess() {
 }
 
 int encrypt_validInputsMultipleKeysWithGrantTokensAndEncContext_returnSuccess() {
-    Aws::Vector<Aws::String> keys = {"key1", "key2", "key3"};
+    Aws::Vector<Aws::String> keys = {"arn:aws:kms:us-fake-1:999999999999:key/1", "arn:aws:kms:us-fake-1:999999999999:key/2", "arn:aws:kms:us-fake-1:999999999999:key/3"};
     Aws::Map <Aws::String, Aws::String> enc_context = { {"k1", "v1"}, {"k2", "v2"} };
     Aws::Vector<Aws::String> grant_tokens = { "gt1", "gt2" };
 
@@ -335,9 +335,9 @@ int encrypt_validInputsMultipleKeysWithGrantTokensAndEncContext_returnSuccess() 
     struct aws_array_list expected_edks;
     TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(ev.allocator, &expected_edks));
 
-    TEST_ASSERT_SUCCESS(expect_encrypt(expected_edks, ev, "key1", ev.pt, "ct1"));
-    TEST_ASSERT_SUCCESS(expect_encrypt(expected_edks, ev, "key2", ev.pt, "ct2"));
-    TEST_ASSERT_SUCCESS(expect_encrypt(expected_edks, ev, "key3", ev.pt, "ct3"));
+    TEST_ASSERT_SUCCESS(expect_encrypt(expected_edks, ev, "arn:aws:kms:us-fake-1:999999999999:key/1", ev.pt, "ct1"));
+    TEST_ASSERT_SUCCESS(expect_encrypt(expected_edks, ev, "arn:aws:kms:us-fake-1:999999999999:key/2", ev.pt, "ct2"));
+    TEST_ASSERT_SUCCESS(expect_encrypt(expected_edks, ev, "arn:aws:kms:us-fake-1:999999999999:key/3", ev.pt, "ct3"));
     ev.kms_client_mock->ExpectGrantTokens(grant_tokens);
 
 
@@ -355,42 +355,13 @@ int encrypt_validInputsMultipleKeysWithGrantTokensAndEncContext_returnSuccess() 
     return 0;
 }
 
-int encrypt_emptyRegionNameInKeys_returnSuccess() {
-    Aws::Vector<Aws::String> key = {"arn:aws:kms::123456789010:whatever"};
-    EncryptTestValues ev(key);
-
-    auto kms_client_mock = Aws::MakeShared<KmsClientMock>(CLASS_TAG);
-    auto kms_keyring = CreateTestingKeyring(kms_client_mock, key);
-
-    kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest(key.front().c_str(), ev.pt_bb),
-                                              ev.GetResult(key.front().c_str()));
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(kms_keyring,
-                                                         ev.allocator,
-                                                         &ev.unencrypted_data_key,
-                                                         &ev.edks,
-                                                         &ev.encryption_context,
-                                                         ev.alg));
-
-    TEST_ASSERT_SUCCESS(t_assert_edks_with_single_element_contains_expected_values(&ev.edks,
-                                                                                   ev.ct,
-                                                                                   key.front().c_str(),
-                                                                                   ev.provider_id,
-                                                                                   ev.allocator));
-
-    TEST_ASSERT(kms_client_mock->ExpectingOtherCalls() == false);
-
-    aws_cryptosdk_keyring_release(kms_keyring);
-
-    return 0;
-}
-
 int encrypt_multipleKeysOneFails_returnFail() {
-    EncryptTestValues ev({"key1", "key2", "key3"});
+    EncryptTestValues ev({"arn:aws:kms:us-fake-1:999999999999:key/1", "arn:aws:kms:us-fake-1:999999999999:key/2", "arn:aws:kms:us-fake-1:999999999999:key/3"});
     Aws::Utils::ByteBuffer ct = t_aws_utils_bb_from_char("expected_ct");
     Model::EncryptOutcome error_return; // this will set IsSuccess to false
 
-    ev.kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest("key1", ev.pt_bb), ev.GetResult("key1", ct));
-    ev.kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest("key2", ev.pt_bb), error_return);
+    ev.kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest("arn:aws:kms:us-fake-1:999999999999:key/1", ev.pt_bb), ev.GetResult("arn:aws:kms:us-fake-1:999999999999:key/1", ct));
+    ev.kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest("arn:aws:kms:us-fake-1:999999999999:key/2", ev.pt_bb), error_return);
 
     TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_KMS_FAILURE, aws_cryptosdk_keyring_on_encrypt(ev.kms_keyring,
                                                                                       ev.allocator,
@@ -407,7 +378,7 @@ int encrypt_multipleKeysOneFails_returnFail() {
 // assuming that edks had already some elements before the EncryptDataKey call and we are not
 // able to encrypt, we should't modify anything
 int encrypt_multipleKeysOneFails_initialEdksAreNotAffected() {
-    EncryptTestValues ev({"key1", "key2", "key3"});
+    EncryptTestValues ev({"arn:aws:kms:us-fake-1:999999999999:key/1", "arn:aws:kms:us-fake-1:999999999999:key/2", "arn:aws:kms:us-fake-1:999999999999:key/3"});
     Model::EncryptOutcome error_return; // this will set IsSuccess to false
     const char *initial_ct = "initial_ct";
     auto initial_ct_bb = t_aws_utils_bb_from_char(initial_ct);
@@ -422,9 +393,9 @@ int encrypt_multipleKeysOneFails_initialEdksAreNotAffected() {
 
 
     // first request works
-    ev.kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest("key1", ev.pt_bb), ev.GetResult("key1", ev.ct_bb));
+    ev.kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest("arn:aws:kms:us-fake-1:999999999999:key/1", ev.pt_bb), ev.GetResult("arn:aws:kms:us-fake-1:999999999999:key/1", ev.ct_bb));
     // second request will fail
-    ev.kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest("key2", ev.pt_bb), error_return);
+    ev.kms_client_mock->ExpectEncryptAccumulator(ev.GetRequest("arn:aws:kms:us-fake-1:999999999999:key/2", ev.pt_bb), error_return);
 
     TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_KMS_FAILURE, aws_cryptosdk_keyring_on_encrypt(ev.kms_keyring,
                                                                                ev.allocator,
@@ -713,26 +684,9 @@ int testBuilder_keyWithoutRegion_invalid() {
     return 0;
 }
 
-int testBuilder_keyWithoutRegionAndDefaultRegion_valid() {
-    KmsKeyringBuilderExposer a;
-    aws_cryptosdk_keyring *k = a.WithDefaultRegion("default_region_set").Build({"alias/foobar"});
-    TEST_ASSERT_ADDR_NOT_NULL(k);
-    aws_cryptosdk_keyring_release(k);
-    return 0;
-}
-
-int testBuilder_keyWithoutRegionAndKmsClient_valid() {
-    KmsKeyringBuilderExposer a;
-    TestValues tv;
-    aws_cryptosdk_keyring *k = a.WithKmsClient(tv.kms_client_mock).Build({"alias/foobar"});
-    TEST_ASSERT_ADDR_NOT_NULL(k);
-    aws_cryptosdk_keyring_release(k);
-    return 0;
-}
-
 int testBuilder_emptyKey_invalid() {
     KmsKeyringBuilderExposer a;
-    TEST_ASSERT_ADDR_NULL(a.WithDefaultRegion("default_region_set").Build({""}));
+    TEST_ASSERT_ADDR_NULL(a.Build({""}));
     return 0;
 }
 
@@ -762,7 +716,6 @@ int main() {
     RUN_TEST(encrypt_kmsFails_returnError());
     RUN_TEST(encrypt_validInputsMultipleKeys_returnSuccess());
     RUN_TEST(encrypt_validInputsMultipleKeysWithGrantTokensAndEncContext_returnSuccess());
-    RUN_TEST(encrypt_emptyRegionNameInKeys_returnSuccess());
     RUN_TEST(encrypt_multipleKeysOneFails_returnFail());
     RUN_TEST(encrypt_multipleKeysOneFails_initialEdksAreNotAffected());
     RUN_TEST(decrypt_validInputs_returnSuccess());
@@ -777,8 +730,6 @@ int main() {
     RUN_TEST(testBuilder_noKeys_invalid());
     RUN_TEST(testBuilder_keyWithRegion_valid());
     RUN_TEST(testBuilder_keyWithoutRegion_invalid());
-    RUN_TEST(testBuilder_keyWithoutRegionAndDefaultRegion_valid());
-    RUN_TEST(testBuilder_keyWithoutRegionAndKmsClient_valid());
     RUN_TEST(testBuilder_emptyKey_invalid());
 
     Aws::ShutdownAPI(*options);
