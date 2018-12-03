@@ -17,6 +17,7 @@
 #define AWS_CRYPTOSDK_PRIVATE_SESSION_H
 
 #include <aws/cryptosdk/session.h>
+#include <aws/cryptosdk/keyring_trace.h>
 #include <aws/cryptosdk/private/header.h>
 #include <aws/cryptosdk/private/cipher.h>
 
@@ -66,6 +67,9 @@ struct aws_cryptosdk_session {
     size_t header_size;
     struct aws_cryptosdk_hdr header;
     uint64_t frame_size;   /* Frame size, zero for unframed */
+
+     /* List of (struct aws_cryptosdk_keyring_trace_item)s */
+    struct aws_array_list keyring_trace;
 
     /* Estimate for the amount of input data needed to make progress. */
     size_t input_size_estimate;

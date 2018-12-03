@@ -46,6 +46,7 @@ static int fill_request(
     }
 
     request->enc_context = &session->header.enc_context;
+    request->keyring_trace = &session->keyring_trace;
 
     for (size_t i = 0; i < n_keys; i++) {
         struct aws_cryptosdk_edk edk;

@@ -24,11 +24,10 @@
  * The identifiers which are used to indicate which wrapping key or "master key"
  * was used to do data key encryption by a keyring. Most keyring implementations
  * write the namespace into the provider ID field of EDKs and the key name into
- * the provider info field of EDKs, and all new keyring implementations MUST
+ * the provider info field of EDKs, and all new keyring implementations should
  * follow this practice. For legacy reasons, the raw AES keyring includes other
  * data in the provider ID field, but only the first part of that field (the
- * wrapping key name) corresponds to what is stored in the key name field
- * of this struct.
+ * wrapping key name) corresponds to what is stored in the name field here.
  *
  * Note: "Master Key (MK)" is used as a class name in the Java and Python
  * implementations of the AWS Encryption SDK, where it is an abstraction of a
@@ -40,7 +39,7 @@
  * Java and Python SDKs, we always refer to a single entity used by a keyring
  * for data key encryption as a wrapping key.
  *
- * The canonical example of a wrapping key is a KMS CMK, for which the namespace
+ * The motivating example of a wrapping key is a KMS CMK, for which the namespace
  * is "aws-kms" and the name is the key ARN.
  */
 struct aws_cryptosdk_wrapping_key {

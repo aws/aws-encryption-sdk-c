@@ -54,6 +54,7 @@ int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
 
     request.alloc = session->alloc;
     request.enc_context = &session->header.enc_context;
+    request.keyring_trace = &session->keyring_trace;
     // The default CMM will fill this in.
     request.requested_alg = 0;
     request.plaintext_size = session->precise_size_known ? session->precise_size : UINT64_MAX;
