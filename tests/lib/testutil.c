@@ -142,16 +142,19 @@ failure:
 }
 
 
-int test_enc_context_init_and_fill(struct aws_hash_table *enc_context) {
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(aws_default_allocator(), enc_context));
+int test_enc_context_init_and_fill(struct aws_allocator *alloc,
+                                   struct aws_hash_table *enc_context) {
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, enc_context));
 
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_1, "The night is dark");
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_1, "and full of terrors");
-    aws_hash_table_put(enc_context, enc_context_key_1, (void *)enc_context_val_1, NULL);
+    TEST_ASSERT_SUCCESS(aws_hash_table_put(enc_context, enc_context_key_1,
+                                           (void *)enc_context_val_1, NULL));
 
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_2, "You Know Nothing");
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_2, "James Bond");
-    aws_hash_table_put(enc_context, enc_context_key_2, (void *)enc_context_val_2, NULL);
+    TEST_ASSERT_SUCCESS(aws_hash_table_put(enc_context, enc_context_key_2,
+                                           (void *)enc_context_val_2, NULL));
 
     return 0;
 }
