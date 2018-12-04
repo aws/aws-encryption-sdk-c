@@ -48,6 +48,8 @@ static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
                      const struct aws_array_list *edks,
                      const struct aws_hash_table *enc_context,
                      enum aws_cryptosdk_alg_id alg) {
+    (void)alg;
+
     auto self = static_cast<Aws::Cryptosdk::Private::KmsKeyringImpl *>(keyring);
     if (!self || !request_alloc || !unencrypted_data_key || !edks || !enc_context) {
         abort();

@@ -12,11 +12,14 @@
 # limitations under the License.
 #
 
-cmake_minimum_required (VERSION 3.1)
+cmake_minimum_required (VERSION 3.9)
 project (aws-encryption-sdk)
+
+include(CTest)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(AwsCFlags)
+include(InstallLogic)
 
 include(CheckLibraryExists)
 include(CheckCXXSourceCompiles)
@@ -48,11 +51,6 @@ option(PERFORM_HEADER_CHECK "Performs compile-time checks that each header can b
 option(VALGRIND_TEST_SUITE "Run the test suite under valgrind")
 set(VALGRIND_OPTIONS "--suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind.suppressions" CACHE STRING "Additional options to pass to valgrind")
 
-if (VALGRIND_TEST_SUITE)
-    set(VALGRIND valgrind --error-exitcode=42 --errors-for-leak-kinds=definite,possible --leak-check=full ${VALGRIND_OPTIONS})
-else()
-    set(VALGRIND)
-endif()
 
 find_package(aws-c-common CONFIG REQUIRED)
 
@@ -90,7 +88,8 @@ if (PERFORM_HEADER_CHECK)
 endif()
 
 # Generate an includable header file exposing build-time configuration
-set(GENERATED_CONFIG_HEADER "${CMAKE_CURRENT_BINARY_DIR}/generated/include/aws/cryptosdk/private/config.h")
+set(GENERATED_INCLUDE "${CMAKE_CURRENT_BINARY_DIR}/generated/include")
+set(GENERATED_CONFIG_HEADER "${GENERATED_INCLUDE}/aws/cryptosdk/private/config.h")
 
 CHECK_LIBRARY_EXISTS("rt" "clock_gettime" "" HAVE_LIBRT)
 if(HAVE_LIBRT)
@@ -104,7 +103,6 @@ endif()
 
 file(GLOB CORE_HEADERS
     ${AWS_CRYPTOSDK_HEADERS}
-    ${AWS_CRYPTOSDK_PRIV_HEADERS}
     ${GENERATED_CONFIG_HEADER}
 )
 
@@ -143,7 +141,6 @@ target_include_directories(aws-encryption-sdk-test PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/noninst_include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated/include>
-    $<INSTALL_INTERFACE:include>
     ${OPENSSL_INCLUDE_DIR}
 )
 
@@ -159,88 +156,16 @@ file(GLOB UNIT_TESTS ${TEST_HDRS} ${TEST_SRC})
 file(GLOB TEST_LIB "tests/lib/*.c")
 
 add_subdirectory(aws-encryption-sdk-cpp)
+add_subdirectory(tests)
 
-include(CTest)
-enable_testing()
-
-add_library(testlib EXCLUDE_FROM_ALL ${TEST_LIB})
-target_link_libraries(testlib ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
-set_target_properties(testlib PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
-target_include_directories(testlib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
-
-add_executable(unit-test-suite ${UNIT_TEST_SRC})
-target_link_libraries(unit-test-suite aws-encryption-sdk-test ${OPENSSL_LDFLAGS} testlib)
-set_target_properties(unit-test-suite PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
-target_include_directories(unit-test-suite PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
-
-if (REDUCE_TEST_ITERATIONS)
-    target_compile_definitions(unit-test-suite PRIVATE REDUCE_TEST_ITERATIONS)
-endif()
-
-add_executable(test_decrypt "tests/decrypt.c" ${TEST_LIB})
-target_link_libraries(test_decrypt ${PROJECT_NAME} ${OPENSSL_LDFLAGS} testlib)
-set_target_properties(test_decrypt PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
-
-add_executable(test_decryption_vectors "tests/decryption_vectors.c" ${TEST_LIB})
-target_link_libraries(test_decryption_vectors ${PROJECT_NAME})
-set_target_properties(test_decryption_vectors PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
-target_include_directories(test_decryption_vectors PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
-
-if (REDUCE_TEST_ITERATIONS)
-    target_compile_definitions(test_decryption_vectors PRIVATE REDUCE_TEST_ITERATIONS)
-endif()
-
-if(CURL_FOUND)
-    add_executable(t_encrypt_compat tests/integration/t_encrypt_compat.c ${TEST_LIB})
-    set_target_properties(t_encrypt_compat PROPERTIES
-        C_STANDARD 99
-    )
-    target_link_libraries(t_encrypt_compat PRIVATE aws-encryption-sdk ${CURL_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY})
-    target_include_directories(t_encrypt_compat PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit ${CURL_INCLUDE_DIRS})
-    target_sources(t_encrypt_compat PRIVATE ${UNIT_TEST_SRC_CPP})
-    target_include_directories(t_encrypt_compat PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib)
-    add_test(integration_encrypt_compatibility ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/t_encrypt_compat)
-endif(CURL_FOUND)
-
-add_test(cipher ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite cipher)
-add_test(header ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite header)
-add_test(materials ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite materials)
-add_test(enc_context ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite enc_context)
-add_test(encrypt ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite encrypt)
-add_test(hkdf ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite hkdf)
-add_test(raw_aes_keyring ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite raw_aes_keyring)
-add_test(raw_rsa_keyring ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite raw_rsa_keyring)
-add_test(multi_keyring ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite multi_keyring)
-add_test(signature ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite signature)
-add_test(trailing_sig ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite trailing_sig)
-add_test(local_cache ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite local_cache)
-add_test(caching_cmm ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite caching_cmm)
-
-set(TEST_DATA ${CMAKE_CURRENT_SOURCE_DIR}/tests/data)
-
-add_test(decrypt_aes128_hkdf
-    ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt ${TEST_DATA}/ct_x_aes128_hkdf.bin ${TEST_DATA}/pt_x_aes128_hkdf.bin)
-add_test(decrypt_aes128_hkdf_bad_header
-    ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt --xfail ${TEST_DATA}/ct_x_aes128_hkdf_bad_header.bin ${TEST_DATA}/pt_x_aes128_hkdf.bin)
-add_test(decrypt_hello
-    ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt ${TEST_DATA}/hello.bin ${TEST_DATA}/hello.bin.pt)
-add_test(decrypt_hello_tiny
-    ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt ${TEST_DATA}/hello.tinyframes.bin ${TEST_DATA}/hello.bin.pt)
-add_test(decryption_vectors ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decryption_vectors)
-
-install (FILES ${AWS_CRYPTOSDK_HEADERS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/aws/encryption-sdk")
-install (
-         TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}-config
-         ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-         LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-         COMPONENT library
+# Installation logic
+aws_install_target(
+    TARGET ${CMAKE_PROJECT_NAME}
+    HEADERS ${CORE_HEADERS}
+    HEADER_ROOTS ${GENERATED_INCLUDE} ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-export(TARGETS ${PROJECT_NAME} FILE aws-encryption-sdk-config.cmake)
-install(EXPORT ${PROJECT_NAME}-config DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/aws-encryption-sdk/cmake/")
-
-# Generate the header at the end, after we've finished feature probing
-
+# Generate the config header at the end, after we've finished feature probing
 set(AWS_CRYPTOSDK_P_HAVE_LIBPTHREAD ${HAVE_LIBPTHREAD} CACHE INTERNAL "")
 set(AWS_CRYPTOSDK_P_HAVE_LIBRT ${HAVE_LIBRT} CACHE INTERNAL "")
 set(AWS_CRYPTOSDK_P_USE_X86_64_ASM ${USE_X86_64_ASM} CACHE INTERNAL "")
