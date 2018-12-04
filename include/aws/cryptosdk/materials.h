@@ -333,6 +333,7 @@ struct aws_cryptosdk_keyring_vt {
     int (*on_encrypt)(struct aws_cryptosdk_keyring *keyring,
                       struct aws_allocator *request_alloc,
                       struct aws_byte_buf *unencrypted_data_key,
+                      struct aws_array_list *keyring_trace,
                       struct aws_array_list *edks,
                       const struct aws_hash_table *enc_context,
                       enum aws_cryptosdk_alg_id alg);
@@ -348,6 +349,7 @@ struct aws_cryptosdk_keyring_vt {
     int (*on_decrypt)(struct aws_cryptosdk_keyring *keyring,
                       struct aws_allocator *request_alloc,
                       struct aws_byte_buf *unencrypted_data_key,
+                      struct aws_array_list *keyring_trace,
                       const struct aws_array_list *edks,
                       const struct aws_hash_table *enc_context,
                       enum aws_cryptosdk_alg_id alg);
@@ -399,6 +401,7 @@ AWS_CRYPTOSDK_API
 int aws_cryptosdk_keyring_on_encrypt(struct aws_cryptosdk_keyring *keyring,
                                      struct aws_allocator *request_alloc,
                                      struct aws_byte_buf *unencrypted_data_key,
+                                     struct aws_array_list *keyring_trace,
                                      struct aws_array_list *edks,
                                      const struct aws_hash_table *enc_context,
                                      enum aws_cryptosdk_alg_id alg);
@@ -419,6 +422,7 @@ AWS_CRYPTOSDK_API
 int aws_cryptosdk_keyring_on_decrypt(struct aws_cryptosdk_keyring * keyring,
                                      struct aws_allocator * request_alloc,
                                      struct aws_byte_buf * unencrypted_data_key,
+                                     struct aws_array_list *keyring_trace,
                                      const struct aws_array_list * edks,
                                      const struct aws_hash_table * enc_context,
                                      enum aws_cryptosdk_alg_id alg);

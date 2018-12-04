@@ -15,6 +15,7 @@
 #include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/raw_rsa_keyring.h>
+#include <aws/cryptosdk/keyring_trace.h>
 
 #include <aws/common/byte_buf.h>
 #include <aws/common/string.h>
@@ -63,6 +64,7 @@ err:
 static int raw_rsa_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
                                       struct aws_allocator *request_alloc,
                                       struct aws_byte_buf *unencrypted_data_key,
+                                      struct aws_array_list *keyring_trace,
                                       struct aws_array_list *edks,
                                       const struct aws_hash_table *enc_context,
                                       enum aws_cryptosdk_alg_id alg) {
@@ -70,7 +72,7 @@ static int raw_rsa_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
     struct raw_rsa_keyring *self = (struct raw_rsa_keyring *)kr;
     if (!self->rsa_public_key_pem) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
 
-    bool generated_new_data_key = false;
+    uint32_t flags = 0;
     if (!unencrypted_data_key->buffer) {
         const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
         size_t data_key_len = props->data_key_len;
@@ -81,12 +83,20 @@ static int raw_rsa_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
             aws_byte_buf_clean_up(unencrypted_data_key);
             return AWS_OP_ERR;
         }
-        generated_new_data_key = true;
+        flags = AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY;
         unencrypted_data_key->len = unencrypted_data_key->capacity;
     }
     int ret = encrypt_data_key(kr, request_alloc, unencrypted_data_key, edks);
-    if (ret && generated_new_data_key) {
+    if (ret && flags) {
         aws_byte_buf_clean_up(unencrypted_data_key);
+    }
+    if (!ret) {
+        flags |= AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY;
+        aws_cryptosdk_keyring_trace_add_item(request_alloc,
+                                             keyring_trace,
+                                             self->provider_id,
+                                             self->master_key_id,
+                                             flags);
     }
     return ret;
 }
@@ -94,6 +104,7 @@ static int raw_rsa_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
 static int raw_rsa_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
                                       struct aws_allocator *request_alloc,
                                       struct aws_byte_buf *unencrypted_data_key,
+                                      struct aws_array_list *keyring_trace,
                                       const struct aws_array_list *edks,
                                       const struct aws_hash_table *enc_context,
                                       enum aws_cryptosdk_alg_id alg) {
@@ -123,6 +134,11 @@ static int raw_rsa_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
              */
             aws_reset_error();
         } else {
+            aws_cryptosdk_keyring_trace_add_item(request_alloc,
+                                                 keyring_trace,
+                                                 self->provider_id,
+                                                 self->master_key_id,
+                                                 AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY);
             return AWS_OP_SUCCESS;
         }
     }

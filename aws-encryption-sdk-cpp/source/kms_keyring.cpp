@@ -18,6 +18,7 @@
 #include <aws/core/utils/logging/LogMacros.h>
 #include <aws/core/utils/memory/stl/AWSAllocator.h>
 #include <aws/core/utils/memory/MemorySystemInterface.h>
+#include <aws/cryptosdk/keyring_trace.h>
 #include <aws/cryptosdk/private/cpputils.h>
 #include <aws/kms/model/DecryptRequest.h>
 #include <aws/kms/model/DecryptResult.h>
@@ -45,6 +46,7 @@ static void DestroyKeyring(struct aws_cryptosdk_keyring *keyring) {
 static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
                      struct aws_allocator *request_alloc,
                      struct aws_byte_buf *unencrypted_data_key,
+                     struct aws_array_list *keyring_trace,
                      const struct aws_array_list *edks,
                      const struct aws_hash_table *enc_context,
                      enum aws_cryptosdk_alg_id alg) {
@@ -113,9 +115,18 @@ static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
 
         const Aws::String &outcome_key_id = outcome.GetResult().GetKeyId();
         if (outcome_key_id == key_arn) {
-            return aws_byte_buf_dup_from_aws_utils(request_alloc,
-                                                   unencrypted_data_key,
-                                                   outcome.GetResult().GetPlaintext());
+            int ret = aws_byte_buf_dup_from_aws_utils(request_alloc,
+                                                      unencrypted_data_key,
+                                                      outcome.GetResult().GetPlaintext());
+            if (ret == AWS_OP_SUCCESS) {
+                aws_cryptosdk_keyring_trace_add_item_c_str(request_alloc,
+                                                           keyring_trace,
+                                                           KEY_PROVIDER_STR,
+                                                           key_arn.c_str(),
+                                                           AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY |
+                                                           AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX);
+            }
+            return ret;
         }
     }
 
@@ -128,6 +139,7 @@ static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
 static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
                      struct aws_allocator *request_alloc,
                      struct aws_byte_buf *unencrypted_data_key,
+                     struct aws_array_list *keyring_trace,
                      struct aws_array_list *edk_list,
                      const struct aws_hash_table *enc_context,
                      enum aws_cryptosdk_alg_id alg) {
@@ -211,7 +223,13 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
                                              outcome.GetResult().GetPlaintext());
         if (rv != AWS_OP_SUCCESS) return rv;
         generated_new_data_key = true;
-
+        aws_cryptosdk_keyring_trace_add_item_c_str(request_alloc,
+                                                   keyring_trace,
+                                                   KEY_PROVIDER_STR,
+                                                   key_id.c_str(),
+                                                   AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY |
+                                                   AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
+                                                   AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX);
     }
 
     const auto unencrypted_data_key_cpp = aws_utils_byte_buffer_from_c_aws_byte_buf(unencrypted_data_key);
@@ -257,6 +275,12 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
         if (rv != AWS_OP_SUCCESS) {
             goto out;
         }
+        aws_cryptosdk_keyring_trace_add_item_c_str(request_alloc,
+                                                   keyring_trace,
+                                                   KEY_PROVIDER_STR,
+                                                   key_id.c_str(),
+                                                   AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
+                                                   AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX);
     }
     rv = aws_cryptosdk_transfer_edk_list(edk_list, &edks.aws_list);
 out:

@@ -18,6 +18,7 @@
 #include <aws/core/utils/logging/AWSLogging.h>
 #include <aws/cryptosdk/enc_context.h>
 #include <aws/cryptosdk/kms_keyring.h>
+#include <aws/cryptosdk/keyring_trace.h>
 
 #include "edks_utils.h"
 #include "test_crypto.h"
@@ -257,13 +258,24 @@ static int test_keyring_datakey_decrypt_and_compare_with_pt_datakey(struct aws_a
                                                                     struct aws_hash_table *enc_context,
                                                                     enum aws_cryptosdk_alg_id alg) {
     struct aws_byte_buf result_output = {0};
+    struct aws_array_list keyring_trace;
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_init(alloc, &keyring_trace));
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(keyring,
                                                          alloc,
                                                          &result_output,
+                                                         &keyring_trace,
                                                          edks,
                                                          enc_context,
                                                          alg));
     TEST_ASSERT(aws_byte_buf_eq(&result_output, expected_pt_datakey));
+
+    struct aws_cryptosdk_keyring_trace_item item;
+    TEST_ASSERT_SUCCESS(aws_array_list_get_at(&keyring_trace, (void *)&item, 0));
+    TEST_ASSERT_INT_EQ(item.flags,
+                       AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY |
+                       AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX);
+
+    aws_cryptosdk_keyring_trace_clean_up(&keyring_trace);
     aws_byte_buf_clean_up(&result_output);
     return 0;
 }
@@ -290,6 +302,7 @@ int dataKeyEncrypt_discoveryKeyringEncryptIsNoOp_returnSuccess() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(kms_keyring,
                                                          alloc,
                                                          &pt_datakey,
+                                                         NULL, // TODO implement
                                                          &edks.encrypted_data_keys,
                                                          &enc_context,
                                                          alg));
@@ -369,6 +382,7 @@ int dataKeyDecrypt_doNotReturnDataKeyWhenKeyIdMismatchFromKms_returnSuccess() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kms_keyring,
                                                          alloc,
                                                          &output,
+                                                         NULL, // TODO implement
                                                          &edks.encrypted_data_keys,
                                                          &enc_context,
                                                          my_alg));
@@ -390,6 +404,7 @@ int dataKeyEncryptAndDecrypt_singleKey_returnSuccess() {
         TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(kms_keyring,
                                                              alloc,
                                                              &pt_datakey,
+                                                             NULL, // TODO implement
                                                              &edks.encrypted_data_keys,
                                                              &enc_context,
                                                              alg));
@@ -427,6 +442,7 @@ int dataKeyEncryptAndDecrypt_twoKeys_returnSuccess() {
         TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(encrypting_keyring_with_two_keys,
                                                              alloc,
                                                              &pt_datakey,
+                                                             NULL, // TODO implement
                                                              &edks.encrypted_data_keys,
                                                              &enc_context,
                                                              alg));
@@ -472,6 +488,7 @@ int dataKeyEncryptAndDecrypt_twoKeysSharedBuilderAndCache_returnSuccess() {
         TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(encrypting_keyring,
                                                              alloc,
 	                                                     &pt_datakey,
+                                                             NULL, // TODO implement
 	                                                     &edks.encrypted_data_keys,
                                                              &enc_context,
                                                              alg));

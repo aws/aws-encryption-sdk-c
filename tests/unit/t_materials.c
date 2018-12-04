@@ -375,6 +375,7 @@ int on_encrypt_precondition_violation() {
                       aws_cryptosdk_keyring_on_encrypt(kr,
                                                        alloc,
                                                        &unencrypted_data_key,
+                                                       NULL,
                                                        &edks,
                                                        NULL,
                                                        0));
@@ -398,6 +399,7 @@ int on_encrypt_postcondition_violation() {
                       aws_cryptosdk_keyring_on_encrypt(kr,
                                                        alloc,
                                                        &unencrypted_data_key,
+                                                       NULL,
                                                        &edks,
                                                        NULL,
                                                        AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
@@ -417,6 +419,7 @@ int on_decrypt_precondition_violation() {
                       aws_cryptosdk_keyring_on_decrypt(kr,
                                                        alloc,
                                                        &unencrypted_data_key,
+                                                       NULL,
                                                        NULL,
                                                        NULL,
                                                        0));
@@ -439,6 +442,7 @@ int on_decrypt_postcondition_violation() {
                       aws_cryptosdk_keyring_on_decrypt(kr,
                                                        alloc,
                                                        &unencrypted_data_key,
+                                                       NULL,
                                                        &edks,
                                                        NULL,
                                                        AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));

@@ -86,6 +86,17 @@ struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new_with_wrong_key(
         wrong_raw_rsa_keyring_tv_private_key, wrong_raw_rsa_keyring_tv_public_key, rsa_padding_mode);
 }
 
+bool raw_rsa_keyring_tv_trace_updated_properly(struct aws_array_list *trace, uint32_t flags) {
+    struct aws_byte_cursor name_space = aws_byte_cursor_from_c_str(raw_rsa_keyring_tv_provider_id);
+    struct aws_byte_cursor name = aws_byte_cursor_from_c_str(raw_rsa_keyring_tv_master_key_id);
+
+    struct aws_cryptosdk_keyring_trace_item item;
+    return !aws_array_list_back(trace, (void *)&item) &&
+        aws_string_eq_byte_cursor(item.wrapping_key.name_space, &name_space) &&
+        aws_string_eq_byte_cursor(item.wrapping_key.name, &name) &&
+        item.flags == flags;
+}
+
 struct aws_cryptosdk_edk edk_init(const uint8_t *edk_bytes, size_t edk_len) {
     struct aws_cryptosdk_edk edk;
     edk.enc_data_key = aws_byte_buf_from_array(edk_bytes, edk_len);

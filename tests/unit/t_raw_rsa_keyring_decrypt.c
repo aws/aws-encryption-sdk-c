@@ -83,6 +83,7 @@ edk_generator rsa_edk_gens[] = { empty_edk,
                                  good_edk };
 static struct aws_allocator *alloc;
 static struct aws_cryptosdk_keyring *kr;
+static struct aws_array_list keyring_trace;
 static struct aws_array_list edks;
 static struct aws_byte_buf unencrypted_data_key = {0};
 
@@ -95,10 +96,12 @@ static int set_up_all_the_things(enum aws_cryptosdk_rsa_padding_mode rsa_padding
           raw_rsa_keyring_tv_new_with_wrong_key)(alloc, rsa_padding_mode);
     TEST_ASSERT_ADDR_NOT_NULL(kr);
     TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &edks));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_init(alloc, &keyring_trace));
     return 0;
 }
 
 static void tear_down_all_the_things() {
+    aws_cryptosdk_keyring_trace_clean_up(&keyring_trace);
     aws_cryptosdk_edk_list_clean_up(&edks);
     aws_cryptosdk_keyring_release(kr);
     aws_byte_buf_clean_up(&unencrypted_data_key);
@@ -117,6 +120,7 @@ int decrypt_data_key_from_test_vectors() {
         TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kr,
                                                              alloc,
                                                              &unencrypted_data_key,
+                                                             &keyring_trace,
                                                              &edks,
                                                              NULL,
                                                              tv->alg));
@@ -124,7 +128,9 @@ int decrypt_data_key_from_test_vectors() {
 
         struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv->data_key, tv->data_key_len);
         TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &known_answer));
-
+        TEST_ASSERT(raw_rsa_keyring_tv_trace_updated_properly(
+                        &keyring_trace,
+                        AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
         tear_down_all_the_things();
     }
     return 0;
@@ -145,6 +151,7 @@ int decrypt_data_key_from_multiple_edks() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kr,
                                                          alloc,
                                                          &unencrypted_data_key,
+                                                         &keyring_trace,
                                                          &edks,
                                                          NULL,
                                                          tv.alg));
@@ -152,7 +159,9 @@ int decrypt_data_key_from_multiple_edks() {
 
     struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv.data_key, tv.data_key_len);
     TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &known_answer));
-
+    TEST_ASSERT(raw_rsa_keyring_tv_trace_updated_properly(
+                    &keyring_trace,
+                    AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
     tear_down_all_the_things();
     return 0;
 }
@@ -172,11 +181,12 @@ int decrypt_data_key_from_bad_edk() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kr,
                                                          alloc,
                                                          &unencrypted_data_key,
+                                                         &keyring_trace,
                                                          &edks,
                                                          NULL,
                                                          tv.alg));
     TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
-
+    TEST_ASSERT(!aws_array_list_length(&keyring_trace));
     tear_down_all_the_things();
     return 0;
 }
@@ -194,11 +204,12 @@ int decrypt_data_key_from_bad_rsa_private_key() {
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_on_decrypt(kr,
                                                                         alloc,
                                                                         &unencrypted_data_key,
+                                                                        &keyring_trace,
                                                                         &edks,
                                                                         NULL,
                                                                         tv.alg));
     TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
-
+    TEST_ASSERT(!aws_array_list_length(&keyring_trace));
     tear_down_all_the_things();
     return 0;
 }
@@ -219,11 +230,12 @@ int decrypt_data_key_from_bad_rsa_padding_mode() {
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_keyring_on_decrypt(kr,
                                                                         alloc,
                                                                         &unencrypted_data_key,
+                                                                        &keyring_trace,
                                                                         &edks,
                                                                         NULL,
                                                                         tv.alg));
     TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
-
+    TEST_ASSERT(!aws_array_list_length(&keyring_trace));
     tear_down_all_the_things();
     return 0;
 }

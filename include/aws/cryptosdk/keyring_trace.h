@@ -23,7 +23,7 @@
 /**
  * The identifiers which are used to indicate which wrapping key or "master key"
  * was used to do data key encryption by a keyring. Most keyring implementations
- * write the namespace into the provider ID field of EDKs and the key name into
+ * write the name_space into the provider ID field of EDKs and the key name into
  * the provider info field of EDKs, and all new keyring implementations should
  * follow this practice. For legacy reasons, the raw AES keyring includes other
  * data in the provider ID field, but only the first part of that field (the
@@ -39,11 +39,11 @@
  * Java and Python SDKs, we always refer to a single entity used by a keyring
  * for data key encryption as a wrapping key.
  *
- * The motivating example of a wrapping key is a KMS CMK, for which the namespace
+ * The motivating example of a wrapping key is a KMS CMK, for which the name_space
  * is "aws-kms" and the name is the key ARN.
  */
 struct aws_cryptosdk_wrapping_key {
-    struct aws_string *namespace;
+    struct aws_string *name_space;
     struct aws_string *name;
 };
 
@@ -70,15 +70,21 @@ struct aws_cryptosdk_keyring_trace_item {
 extern "C" {
 #endif
 
-AWS_CRYPTOSDK_API
-int aws_cryptosdk_wrapping_key_init(
-    struct aws_allocator *alloc,
-    struct aws_cryptosdk_wrapping_key *wrapping_key,
-    const struct aws_string *namespace,
-    const struct aws_string *name);
+// TODO: add doc comments
 
 AWS_CRYPTOSDK_API
-void aws_cryptosdk_wrapping_key_clean_up(struct aws_cryptosdk_wrapping_key *wrapping_key);
+int aws_cryptosdk_keyring_trace_add_item(struct aws_allocator *alloc,
+                                         struct aws_array_list *trace,
+                                         const struct aws_string *name_space,
+                                         const struct aws_string *name,
+                                         uint32_t flags);
+
+AWS_CRYPTOSDK_API
+int aws_cryptosdk_keyring_trace_add_item_c_str(struct aws_allocator *alloc,
+                                               struct aws_array_list *trace,
+                                               const char *name_space,
+                                               const char *name,
+                                               uint32_t flags);
 
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_keyring_trace_init(struct aws_allocator *alloc, struct aws_array_list *trace);

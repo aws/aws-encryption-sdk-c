@@ -126,6 +126,7 @@ int delegates_on_encrypt_calls() {
         TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(multi,
                                                              alloc,
                                                              unencrypted_data_key,
+                                                             NULL,
                                                              &edks,
                                                              NULL,
                                                              alg));
@@ -151,6 +152,7 @@ int generator_set_but_not_called_when_data_key_present() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(multi,
                                                          alloc,
                                                          &unencrypted_data_key,
+                                                         NULL,
                                                          &edks,
                                                          NULL,
                                                          alg));
@@ -172,6 +174,7 @@ int on_encrypt_fails_when_generator_not_set_and_no_data_key() {
                       aws_cryptosdk_keyring_on_encrypt(multi,
                                                        alloc,
                                                        &unencrypted_data_key,
+                                                       NULL,
                                                        &edks,
                                                        NULL,
                                                        alg));
@@ -194,6 +197,7 @@ int on_encrypt_fails_when_generator_does_not_generate() {
                       aws_cryptosdk_keyring_on_encrypt(multi,
                                                        alloc,
                                                        &unencrypted_data_key,
+                                                       NULL,
                                                        &edks,
                                                        NULL,
                                                        alg));
@@ -213,6 +217,7 @@ int fail_on_failed_encrypt_and_stop() {
                            multi,
                            alloc,
                            &unencrypted_data_key,
+                           NULL,
                            &edks,
                            NULL,
                            alg));
@@ -268,6 +273,7 @@ int failed_encrypt_keeps_edk_list_intact() {
                            multi,
                            alloc,
                            &unencrypted_data_key,
+                           NULL,
                            &edks,
                            NULL,
                            alg));
@@ -289,6 +295,7 @@ int fail_on_failed_generate_and_stop() {
                            multi,
                            alloc,
                            &unencrypted_data_key,
+                           NULL,
                            &edks,
                            NULL,
                            alg));
@@ -321,6 +328,7 @@ int delegates_decrypt_calls() {
         TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(multi,
                                                              alloc,
                                                              &unencrypted_data_key,
+                                                             NULL,
                                                              &edks,
                                                              NULL,
                                                              alg));
@@ -347,6 +355,7 @@ int succeed_when_no_error_and_no_decrypt() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(multi,
                                                          alloc,
                                                          &unencrypted_data_key,
+                                                         NULL,
                                                          &edks,
                                                          NULL,
                                                          alg));
@@ -369,6 +378,7 @@ int fail_when_error_and_no_decrypt() {
     TEST_ASSERT_INT_EQ(AWS_OP_ERR, aws_cryptosdk_keyring_on_decrypt(multi,
                                                                     alloc,
                                                                     &unencrypted_data_key,
+                                                                    NULL,
                                                                     &edks,
                                                                     NULL,
                                                                     alg));

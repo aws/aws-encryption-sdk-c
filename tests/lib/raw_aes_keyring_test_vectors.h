@@ -16,6 +16,7 @@
 #define AWS_CRYPTOSDK_TESTS_LIB_RAW_AES_KR_TEST_VECTORS_H
 
 #include <aws/cryptosdk/materials.h>
+#include <aws/cryptosdk/keyring_trace.h>
 
 /**
  * Instantiate the raw AES KR that was used to generate the test vectors.
@@ -23,6 +24,13 @@
 struct aws_cryptosdk_keyring * raw_aes_keyring_tv_new(
     struct aws_allocator * alloc,
     enum aws_cryptosdk_aes_key_len raw_key_len);
+
+/**
+ * Check that the raw AES KR for test vectors added a new trace item with the
+ * specified flags.
+ */
+bool raw_aes_keyring_tv_trace_updated_properly(struct aws_array_list *trace,
+                                               uint32_t flags);
 
 /**
  * Holds the data for one unencrypted/encrypted data key pair produced by the

@@ -13,31 +13,40 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/keyring_trace.h>
+#include <aws/common/hash_table.h>
 #include "testing.h"
 
-AWS_STATIC_STRING_FROM_LITERAL(kms_namespace, "aws-kms");
+AWS_STATIC_STRING_FROM_LITERAL(kms_name_space, "aws-kms");
 AWS_STATIC_STRING_FROM_LITERAL(kms_key, "key_arn");
-int init_and_clean_up() {
+int keyring_trace_add_item_works() {
     struct aws_allocator *alloc = aws_default_allocator();
     struct aws_array_list trace;
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_init(alloc, &trace));
 
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_add_item(
+                            alloc,
+                            &trace,
+                            kms_name_space,
+                            kms_key,
+                            AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY |
+                            AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
+                            AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX));
+
     struct aws_cryptosdk_keyring_trace_item item;
-    item.flags = AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY |
-        AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
-        AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX;
-
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_wrapping_key_init(alloc,
-                                                        &item.wrapping_key,
-                                                        kms_namespace,
-                                                        kms_key));
-    TEST_ASSERT_SUCCESS(aws_array_list_push_back(&trace, (void *)&item));
-
+    TEST_ASSERT_SUCCESS(aws_array_list_get_at(&trace, (void *)&item, 0));
+    TEST_ASSERT(aws_string_eq(item.wrapping_key.name_space, kms_name_space));
+    TEST_ASSERT(aws_string_eq(item.wrapping_key.name, kms_key));
+    TEST_ASSERT(item.flags & AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY);
+    TEST_ASSERT(item.flags & AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY);
+    TEST_ASSERT(item.flags & AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX);
+    TEST_ASSERT(!(item.flags & AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
+    TEST_ASSERT(!(item.flags & AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX));
+    
     aws_cryptosdk_keyring_trace_clean_up(&trace);
     return 0;
 }
 
 struct test_case keyring_trace_test_cases[] = {
-    { "keyring_trace", "init_and_clean_up", init_and_clean_up},
+    { "keyring_trace", "keyring_trace_add_item_works", keyring_trace_add_item_works},
     { NULL }
 };

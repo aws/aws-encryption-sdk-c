@@ -36,6 +36,7 @@ static int call_on_encrypt_on_list(const struct aws_array_list *keyrings,
         if (aws_cryptosdk_keyring_on_encrypt(child,
                                              request_alloc,
                                              unencrypted_data_key,
+                                             NULL, // TODO implement
                                              edks,
                                              enc_context,
                                              alg)) return AWS_OP_ERR;
@@ -46,9 +47,12 @@ static int call_on_encrypt_on_list(const struct aws_array_list *keyrings,
 static int multi_keyring_on_encrypt(struct aws_cryptosdk_keyring *multi,
                                     struct aws_allocator *request_alloc,
                                     struct aws_byte_buf *unencrypted_data_key,
+                                    struct aws_array_list *keyring_trace,
                                     struct aws_array_list *edks,
                                     const struct aws_hash_table *enc_context,
                                     enum aws_cryptosdk_alg_id alg) {
+    (void)keyring_trace; // TODO implement
+
     struct multi_keyring *self = (struct multi_keyring *)multi;
 
     struct aws_array_list my_edks;
@@ -63,6 +67,7 @@ static int multi_keyring_on_encrypt(struct aws_cryptosdk_keyring *multi,
         if (aws_cryptosdk_keyring_on_encrypt(self->generator,
                                              request_alloc,
                                              unencrypted_data_key,
+                                             NULL, // TODO implement
                                              &my_edks,
                                              enc_context,
                                              alg)) {
@@ -96,9 +101,11 @@ out:
 static int multi_keyring_on_decrypt(struct aws_cryptosdk_keyring *multi,
                                     struct aws_allocator *request_alloc,
                                     struct aws_byte_buf *unencrypted_data_key,
+                                    struct aws_array_list *keyring_trace,
                                     const struct aws_array_list *edks,
                                     const struct aws_hash_table *enc_context,
                                     enum aws_cryptosdk_alg_id alg) {
+    (void)keyring_trace; // TODO implement
 
     /* If one of the contained keyrings succeeds at decrypting the data key, return success,
      * but if we fail to decrypt the data key, only return success if there were no
@@ -112,6 +119,7 @@ static int multi_keyring_on_decrypt(struct aws_cryptosdk_keyring *multi,
         int decrypt_err = aws_cryptosdk_keyring_on_decrypt(self->generator,
                                                            request_alloc,
                                                            unencrypted_data_key,
+                                                           NULL, // TODO implement
                                                            edks,
                                                            enc_context,
                                                            alg);
@@ -128,6 +136,7 @@ static int multi_keyring_on_decrypt(struct aws_cryptosdk_keyring *multi,
         int decrypt_err = aws_cryptosdk_keyring_on_decrypt(child,
                                                            request_alloc,
                                                            unencrypted_data_key,
+                                                           NULL, // TODO implement
                                                            edks,
                                                            enc_context,
                                                            alg);
