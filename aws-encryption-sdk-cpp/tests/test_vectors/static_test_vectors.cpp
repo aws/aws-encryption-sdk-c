@@ -104,6 +104,7 @@ int static_test_vector_framework(const char *path)
             return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
         for (int j = 0; j < json_object_array_length(master_keys_obj); j++)
         {
+            json_object *key_id_obj = NULL;
             struct aws_cryptosdk_keyring *kr = NULL;
             struct aws_cryptosdk_session *session = NULL;
             struct aws_cryptosdk_cmm *cmm = NULL;
@@ -128,25 +129,9 @@ int static_test_vector_framework(const char *path)
             json_object_object_get_ex(keys_obj, json_object_get_string(key_name_obj), &static_key_obj);
             json_object_object_get_ex(static_key_obj, "material", &material_obj);
             json_object_object_get_ex(static_key_obj, "encoding", &encoding_obj);
+            json_object_object_get_ex(static_key_obj, "key-id", &key_id_obj);
 
-            json_object *kms_key_id_obj = NULL;
-            json_object *master_key_id_obj = NULL;
             enum aws_cryptosdk_rsa_padding_mode padding_mode;
-
-            if (!material_obj)
-            {
-                json_object_object_get_ex(static_key_obj, "key-id", &kms_key_id_obj);
-            }
-
-            if (!kms_key_id_obj)
-            {
-                master_key_id_obj = key_name_obj;
-            }
-            else
-            {
-                master_key_id_obj = kms_key_id_obj;
-            }
-
             const char *encoding = json_object_get_string(encoding_obj);
 
             if (encoding)
@@ -208,7 +193,7 @@ int static_test_vector_framework(const char *path)
                     }
                     //setup of aes keyring
                     if (!(kr = aws_cryptosdk_raw_aes_keyring_new(alloc,
-                                                                 (const uint8_t *)json_object_get_string(master_key_id_obj), strlen(json_object_get_string(master_key_id_obj)),
+                                                                 (const uint8_t *)json_object_get_string(key_id_obj), strlen(json_object_get_string(key_id_obj)),
                                                                  (const uint8_t *)json_object_get_string(provider_id_obj), strlen(json_object_get_string(provider_id_obj)),
                                                                  decoded_material.buffer, aes_key_len)))
                     {
@@ -269,7 +254,7 @@ int static_test_vector_framework(const char *path)
                         }
                     }
                     if (!(kr = aws_cryptosdk_raw_rsa_keyring_new(alloc,
-                                                                 (const uint8_t *)json_object_get_string(master_key_id_obj), strlen(json_object_get_string(master_key_id_obj)),
+                                                                 (const uint8_t *)json_object_get_string(key_id_obj), strlen(json_object_get_string(key_id_obj)),
                                                                  (const uint8_t *)json_object_get_string(provider_id_obj), strlen(json_object_get_string(provider_id_obj)),
                                                                  pem_file, NULL, padding_mode)))
                     {
@@ -282,13 +267,13 @@ int static_test_vector_framework(const char *path)
             else
             {
                 //setup of kms keyring
-                if (!kms_key_id_obj)
+                if (!key_id_obj)
                 {
                     failed++;
                     fprintf(stderr, "Failed to obtain the kms_key_id %d\n", aws_last_error());
                     goto next_test_case;
                 }
-                const Aws::String key_id = json_object_get_string(kms_key_id_obj);
+                const Aws::String key_id = json_object_get_string(key_id_obj);
                 kr = KmsKeyring::Builder().Build({key_id});
                 if (!kr)
                 {
@@ -376,8 +361,8 @@ int static_test_vector_framework(const char *path)
         }
     }
 
-    printf("\nDecryption successfully completed for %d test cases and failed for %d. ", passed, failed);
-    printf("\nAES Passed = %d, RSA Passed = %d, KMS Passed = %d, Encrypt-only = %d, Not-yet-supported = %d.\n",
+    printf("Decryption successfully completed for %d test cases and failed for %d.\n", passed, failed);
+    printf("AES Passed = %d, RSA Passed = %d, KMS Passed = %d, Encrypt-only = %d, Not-yet-supported = %d.\n",
            aes_passed, rsa_passed, kms_passed, decrypt_false, not_yet_supported);
     return AWS_OP_SUCCESS;
 }
