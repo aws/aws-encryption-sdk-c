@@ -16,6 +16,7 @@
 #ifndef AWS_CRYPTOSDK_TESTS_LIB_COUNTING_KEYRING_H
 #define AWS_CRYPTOSDK_TESTS_LIB_COUNTING_KEYRING_H
 
+#include "testutil.h"
 #include <aws/cryptosdk/materials.h>
 
 /**
@@ -29,6 +30,7 @@
  * provider info, and 0x4041424344 as the encrypted data key field; EDKs not
  * conforming to this will not be considered decryptable using this Keyring.
  */
+TESTLIB_API
 struct aws_cryptosdk_keyring *aws_cryptosdk_counting_keyring_new(struct aws_allocator *alloc);
 
 #endif /* AWS_CRYPTOSDK_TESTS_LIB_COUNTING_KEYRING_H */

@@ -26,6 +26,8 @@
 #include <aws/kms/model/GenerateDataKeyResult.h>
 #include <aws/core/utils/Outcome.h>
 
+#include "exports.h"
+
 namespace Aws {
 namespace Cryptosdk {
 namespace Testing {
@@ -35,7 +37,7 @@ namespace Model = Aws::KMS::Model;
 /**
  * This class simulates a mock for KmsClient. No cpp testing framework is allowed at this time
  */
-class KmsClientMock : public Aws::KMS::KMSClient {
+class TESTLIB_CPP_API KmsClientMock : public Aws::KMS::KMSClient {
   public:
     KmsClientMock();
     ~KmsClientMock();

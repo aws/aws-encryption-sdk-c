@@ -139,4 +139,3 @@ void KmsClientMock::ExpectGrantTokens(const Aws::Vector<Aws::String> &grant_toke
 }  // namespace Testing
 }  // namespace Cryptosdk
 }  // namespace Aws
-

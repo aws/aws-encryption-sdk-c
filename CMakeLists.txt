@@ -20,6 +20,7 @@ include(CTest)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(AwsCFlags)
 include(InstallLogic)
+include(TestLibraryPath)
 
 include(CheckLibraryExists)
 include(CheckCXXSourceCompiles)
@@ -147,13 +148,9 @@ target_include_directories(aws-encryption-sdk-test PUBLIC
 target_link_libraries(aws-encryption-sdk-test PRIVATE ${PLATFORM_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
 target_link_libraries(aws-encryption-sdk-test PUBLIC AWS::aws-c-common)
 target_compile_definitions(aws-encryption-sdk-test PRIVATE AWS_CRYPTOSDK_TEST_STATIC=)
+target_compile_definitions(aws-encryption-sdk-test PUBLIC AWS_ENCRYPTION_SDK_FORCE_STATIC)
 
 include(CodeCoverageTargets)
-
-file(GLOB UNIT_TEST_SRC "tests/unit/*.c")
-file(GLOB UNIT_TEST_HDRS "tests/*.h")
-file(GLOB UNIT_TESTS ${TEST_HDRS} ${TEST_SRC})
-file(GLOB TEST_LIB "tests/lib/*.c")
 
 add_subdirectory(aws-encryption-sdk-cpp)
 add_subdirectory(tests)

@@ -14,6 +14,15 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+
+#ifdef AWS_ENCRYPTION_SDK_FORCE_STATIC
+/*
+ * We build a static library for unit tests in order to access some non-exported
+ * internal functions for testing.
+ */
+#undef AWS_ENCRYPTION_SDK_SHARED
+#endif
+
 #if defined(WIN32)
 #    ifdef AWS_ENCRYPTION_SDK_SHARED
 #        ifdef AWS_ENCRYPTION_SDK_EXPORTS 

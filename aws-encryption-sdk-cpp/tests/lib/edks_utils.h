@@ -20,6 +20,7 @@
 #include <aws/cryptosdk/private/cpputils.h>
 
 #include "testing.h"
+#include "exports.h"
 
 namespace Aws {
 namespace Cryptosdk {
@@ -32,15 +33,10 @@ using Aws::Cryptosdk::Private::append_key_dup_to_edks;
 /**
  * Class that initializes and deinitializes a list that stores encrypted_data_keys
  */
-class Edks {
+class TESTLIB_CPP_API Edks {
   public:
-    Edks(struct aws_allocator *allocator) {
-        aws_cryptosdk_edk_list_init(allocator, &encrypted_data_keys);
-    }
-    ~Edks() {
-        aws_cryptosdk_edk_list_clean_up(&encrypted_data_keys);
-
-    }
+    Edks(struct aws_allocator *allocator);
+    ~Edks();
 
     struct aws_array_list encrypted_data_keys;
 };
@@ -49,7 +45,7 @@ class Edks {
 /**
  * Assets that an edk structure has the expected values for expected_ct, expected_key_id, expected_provider_id
  */
-int t_assert_edk_contains_expected_values(const struct aws_cryptosdk_edk *edk,
+static inline int t_assert_edk_contains_expected_values(const struct aws_cryptosdk_edk *edk,
                                           const char *expected_ct,
                                           const char *expected_key_id,
                                           const char *expected_provider_id,
@@ -65,7 +61,7 @@ int t_assert_edk_contains_expected_values(const struct aws_cryptosdk_edk *edk,
  * Assets that an edks list has a single element with the expected values for expected_ct, expected_key_id,
  * expected_provider_id
  */
-int t_assert_edks_with_single_element_contains_expected_values(const struct aws_array_list *encrypted_data_keys,
+static inline int t_assert_edks_with_single_element_contains_expected_values(const struct aws_array_list *encrypted_data_keys,
                                                                const char *expected_ct,
                                                                const char *expected_key_id,
                                                                const char *expected_provider_id,
@@ -79,7 +75,7 @@ int t_assert_edks_with_single_element_contains_expected_values(const struct aws_
 /**
  * Assets that an encrypted_data_keys_a has the same elements as encrypted_data_keys_b
  */
-int t_assert_edks_equals(const struct aws_array_list *encrypted_data_keys_a,
+static inline int t_assert_edks_equals(const struct aws_array_list *encrypted_data_keys_a,
                          const struct aws_array_list *encrypted_data_keys_b) {
     TEST_ASSERT_INT_EQ(aws_array_list_length(encrypted_data_keys_a), aws_array_list_length(encrypted_data_keys_b));
 
@@ -98,7 +94,7 @@ int t_assert_edks_equals(const struct aws_array_list *encrypted_data_keys_a,
  * Appends a new key to the encrypted_data_keys.
  * Same as append_key_to_edks() with the only difference that data_key_id and key_provider is a c_str
  */
-int t_append_c_str_key_to_edks(struct aws_allocator *allocator,
+static inline int t_append_c_str_key_to_edks(struct aws_allocator *allocator,
                                struct aws_array_list *encrypted_data_keys,
                                const Aws::Utils::ByteBuffer *enc_data_key,
                                const char *data_key_id,
