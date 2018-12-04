@@ -19,6 +19,7 @@ option(FORCE_KMS_KEYRING_BUILD "Fail build if KMS Keyring dependencies are not s
 
 # End-to-End tests might require special permissions
 option(AWS_ENC_SDK_END_TO_END_TESTS "Enable End-to-End tests")
+option(AWS_ENC_SDK_KNOWN_GOOD_TESTS "Enable static known good tests")
 
 
 # By default we will try to build KMS Keyring only if we find AwsSdk
@@ -97,6 +98,37 @@ if (BUILD_AWS_ENC_SDK_CPP)
     set_target_properties(testlibcpp PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
     target_include_directories(testlibcpp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib
             ${PROJECT_SOURCE_DIR}/tests/lib $<INSTALL_INTERFACE:include>)
+
+    if (AWS_ENC_SDK_KNOWN_GOOD_TESTS)
+        message(STATUS "Static known good tests on")
+        find_package(PkgConfig)
+        pkg_check_modules(JSON-C QUIET json-c)
+        find_path(JSON-C_INCLUDE_DIR json.h
+        HINTS ${JSON-C_INCLUDEDIR} ${JSON-C_INCLUDE_DIRS} PATH_SUFFIXES json-c json)
+        find_library(JSON-C_LIBRARY NAMES json-c libjson-c
+        HINTS ${JSON-C_LIBDIR} ${JSON-C_LIBRARY_DIRS})
+        set(JSON-C_LIBRARIES ${JSON-C_LIBRARY})
+        set(JSON-C_INCLUDE_DIRS ${JSON-C_INCLUDE_DIR})
+        include(FindPackageHandleStandardArgs)
+        find_package_handle_standard_args(JSON-C DEFAULT_MSG JSON-C_LIBRARY JSON-C_INCLUDE_DIR)
+
+        file(GLOB TEST_VECTORS "tests/test_vectors/*.cpp")
+        add_library(test_vectors EXCLUDE_FROM_ALL ${TEST_VECTORS})
+        target_link_libraries(test_vectors aws-encryption-sdk-cpp testlib json-c)
+        set_target_properties(test_vectors PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
+        target_include_directories(test_vectors PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib
+                ${PROJECT_SOURCE_DIR}/tests/lib $<INSTALL_INTERFACE:include>)
+        add_executable(static_test_vectors tests/test_vectors/static_test_vectors.cpp ${TEST_VECTORS})
+        target_link_libraries(static_test_vectors test_vectors)
+        set_target_properties(static_test_vectors PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
+        target_include_directories(static_test_vectors PUBLIC ${PROJECT_SOURCE_DIR}/tests/lib
+                ${PROJECT_SOURCE_DIR}/tests/unit
+                ${PROJECT_SOURCE_DIR}/tests/integration
+                $<INSTALL_INTERFACE:include>
+                )
+    else()
+        message(STATUS "Static known good tests off")
+    endif()
 
     if (AWS_ENC_SDK_END_TO_END_TESTS)
         message(STATUS "End to end tests on")
