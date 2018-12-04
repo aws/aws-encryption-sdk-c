@@ -183,8 +183,7 @@ namespace KmsKeyring {
       private:
         std::shared_ptr<KMS::KMSClient> kms_client;
     };
-
-};
+}
 
 }  // namespace Cryptosdk
 }  // namespace Aws
