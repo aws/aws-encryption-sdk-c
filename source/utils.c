@@ -9,6 +9,7 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <aws/cryptosdk/utils.h>
 #include <aws/cryptosdk/private/utils.h>
 #include <assert.h>
 
