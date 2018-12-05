@@ -19,6 +19,9 @@ PATH=$PWD/build-tools/bin:$PATH
 ROOT=$PWD
 
 run_test() {
+    PREFIX_PATH="$1"
+    shift
+
     rm -rf build
     mkdir build
     (cd build
@@ -28,18 +31,20 @@ run_test() {
         -DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
         -DOPENSSL_ROOT_DIR=/deps/openssl \
         -DVALGRIND_OPTIONS="--gen-suppressions=all;--suppressions=$ROOT/valgrind.suppressions" \
+        -DCMAKE_PREFIX_PATH="$PREFIX_PATH" \
         -GNinja \
         .. "$@" 2>&1|head -n 1000)
     cmake --build $ROOT/build -- -v
     (cd build; ctest --output-on-failure -j8)
+    "$ROOT/codebuild/bin/test-install.sh" "$PREFIX_PATH" "$PWD/build"
 }
 
 # Print env variables for debug purposes
 env
 
 # Run the full test suite without valgrind, and as a shared library
-run_test -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=ON -DCMAKE_PREFIX_PATH='/deps/install;/deps/shared/install'
+run_test '/deps/install;/deps/shared/install' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=ON
 # Also run the test suite as a debug build (probing for -DNDEBUG issues), and as a static library
-run_test -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH='/deps/install;/deps/shared/install'
+run_test '/deps/install;/deps/shared/install' -DCMAKE_BUILD_TYPE=Debug
 # Run a lighter weight test suite under valgrind
-run_test -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREDUCE_TEST_ITERATIONS=TRUE -DVALGRIND_TEST_SUITE=ON -DCMAKE_PREFIX_PATH='/deps/install;/deps/static/install'
+run_test '/deps/install;/deps/static/install' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREDUCE_TEST_ITERATIONS=TRUE -DVALGRIND_TEST_SUITE=ON

@@ -22,7 +22,7 @@ include(CheckIncludeFile)
 #  NO_WEXTRA: Disable -Wextra
 #  NO_PEDANTIC: Disable -pedantic
 function(aws_set_common_properties target)
-    set(options NO_WGNU NO_WEXTRA NO_PEDANTIC)
+    set(options NO_WGNU NO_WEXTRA NO_PEDANTIC NO_VISIBILITY_HIDDEN)
     cmake_parse_arguments(SET_PROPERTIES "${options}" "" "" ${ARGN})
 
     if(MSVC)
@@ -95,7 +95,7 @@ function(aws_set_common_properties target)
         # on windows. On Linux it has no effect.
         target_compile_definitions(${target} PUBLIC -D${target_name_tmp}_SHARED)
 
-        if(NOT MSVC)
+        if(NOT MSVC AND NOT ${SET_PROPERTIES_NO_VISIBILITY_HIDDEN})
             # Avoid exporting symbols we don't mark as exported
             # Note that this behavior is the default on windows.
             list(APPEND AWS_C_FLAGS -fvisibility=hidden)
