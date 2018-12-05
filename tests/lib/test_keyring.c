@@ -51,10 +51,10 @@ static int test_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
             // In production code we would not allow bypassing the trace, but here we
             // do for cases where test is examining other non-trace features of keyring.
             if (aws_cryptosdk_keyring_trace_add_record(request_alloc,
-                                                     keyring_trace,
-                                                     name_space,
-                                                     name,
-                                                     flags)) {
+                                                       keyring_trace,
+                                                       name_space,
+                                                       name,
+                                                       flags)) {
                 // This should only fail on memory allocation errors.
                 // In production code we ignore errors from this, as there isn't really
                 // a sensible way to handle them. But here we check for failure just to
@@ -75,15 +75,13 @@ static int test_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
                                    const struct aws_array_list *edks,
                                    const struct aws_hash_table *enc_context,
                                    enum aws_cryptosdk_alg_id alg) {
-    (void)keyring_trace;
     (void)edks;
     (void)enc_context;
     (void)alg;
-    (void)request_alloc;
     struct test_keyring *self = (struct test_keyring *)kr;
     if (!self->ret && !self->skip_output) {
         *unencrypted_data_key = self->decrypted_data_key_to_return;
-        if (keyring_trace) {
+        if (keyring_trace && self->decrypted_data_key_to_return.buffer) {
             if (aws_cryptosdk_keyring_trace_add_record(
                     request_alloc,
                     keyring_trace,
