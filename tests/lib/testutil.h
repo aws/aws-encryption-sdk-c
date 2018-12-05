@@ -64,10 +64,10 @@ struct aws_byte_buf easy_b64_decode(const char *b64_string);
  * NULL to ignore those checks.
  */
 int assert_keyring_trace_record(const struct aws_array_list *keyring_trace,
-                              size_t idx,
-                              uint32_t flags,
-                              const char *name_space,
-                              const char *name);
+                                size_t idx,
+                                uint32_t flags,
+                                const char *name_space,
+                                const char *name);
 
 
 #ifdef __cplusplus
@@ -76,6 +76,7 @@ int assert_keyring_trace_record(const struct aws_array_list *keyring_trace,
 
 #define RUN_TEST(expr) \
     do { \
+        aws_reset_error(); \
         const char *test_desc = #expr; \
         fprintf(stderr, "[RUNNING] %s ...\r", test_desc); \
         int result = (expr); \
