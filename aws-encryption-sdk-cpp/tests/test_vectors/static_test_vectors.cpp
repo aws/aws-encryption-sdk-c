@@ -74,7 +74,7 @@ static int static_test_vector_framework(const char *path)
 
     if (!json_object_object_get_ex(manifest_jso_obj, "manifest", &manifest_obj))
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-    
+
     if (!json_object_object_get_ex(manifest_obj, "type", &manifest_type_obj))
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
 
@@ -186,7 +186,6 @@ static int static_test_vector_framework(const char *path)
                         fprintf(stderr, "Failed to obtain the raw key material %d\n", aws_last_error());
                         goto next_test_scenario;
                     }
-                    enum aws_cryptosdk_aes_key_len aes_key_len;
                     struct aws_byte_buf decoded_material;
                     const aws_byte_cursor in = aws_byte_cursor_from_c_str(json_object_get_string(material_obj));
                     if (strcmp(json_object_get_string(encoding_obj), "base64") == 0)
@@ -216,7 +215,8 @@ static int static_test_vector_framework(const char *path)
                             goto next_test_scenario;
                         }
                     }
-                    else {
+                    else
+                    {
                         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
                     }
 
@@ -224,7 +224,7 @@ static int static_test_vector_framework(const char *path)
                     if (!(kr = aws_cryptosdk_raw_aes_keyring_new(alloc,
                                                                  (const uint8_t *)json_object_get_string(key_id_obj), strlen(json_object_get_string(key_id_obj)),
                                                                  (const uint8_t *)json_object_get_string(provider_id_obj), strlen(json_object_get_string(provider_id_obj)),
-                                                                 decoded_material.buffer, (enum aws_cryptosdk_aes_key_len) decoded_material.len)))
+                                                                 decoded_material.buffer, (enum aws_cryptosdk_aes_key_len)decoded_material.len)))
                     {
                         failed++;
                         fprintf(stderr, "Failed to initialize aws_cryptosdk_raw_aes_keyring %d\n", aws_last_error());
@@ -254,7 +254,7 @@ static int static_test_vector_framework(const char *path)
                     enum aws_cryptosdk_rsa_padding_mode padding_mode;
                     if (padding_algorithm != NULL)
                     {
-                        if (strcmp(padding_algorithm, "pkcs1") == 0)   
+                        if (strcmp(padding_algorithm, "pkcs1") == 0)
                         {
                             padding_mode = AWS_CRYPTOSDK_RSA_PKCS1;
                         }
