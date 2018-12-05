@@ -16,6 +16,7 @@
 #define AWS_CRYPTOSDK_UTILS_H
 
 #include <aws/common/array_list.h>
+#include <aws/cryptosdk/exports.h>
 
 #ifdef __cplusplus
 extern "C" {
