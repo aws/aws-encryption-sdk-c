@@ -182,7 +182,7 @@ int decrypt_data_key_test_vectors() {
                 struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv->data_key,
                                                                            tv->data_key_len);
                 TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &known_answer));
-                TEST_ASSERT(raw_aes_keyring_tv_trace_updated_properly(
+                TEST_ASSERT_SUCCESS(raw_aes_keyring_tv_trace_updated_properly(
                                 &keyring_trace,
                                 AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX |
                                 AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
@@ -231,7 +231,7 @@ int decrypt_data_key_multiple_edks() {
 
     struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv.data_key, tv.data_key_len);
     TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &known_answer));
-    TEST_ASSERT(raw_aes_keyring_tv_trace_updated_properly(
+    TEST_ASSERT_SUCCESS(raw_aes_keyring_tv_trace_updated_properly(
                     &keyring_trace,
                     AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX |
                     AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
@@ -302,7 +302,7 @@ int decrypt_data_key_with_sig() {
         0x9b, 0x01, 0xc1, 0xaa, 0x62, 0x25, 0x1d, 0x0f, 0x16, 0xa0, 0xa2, 0x15, 0xea, 0xe4, 0xc2, 0x37,
         0x4a, 0x8c, 0xc7, 0x9f, 0xfa, 0x3a, 0xe7, 0xa2, 0xa4, 0xa8, 0x1e, 0x83, 0xba, 0x38, 0x23, 0x16);
 
-    TEST_ASSERT(raw_aes_keyring_tv_trace_updated_properly(
+    TEST_ASSERT_SUCCESS(raw_aes_keyring_tv_trace_updated_properly(
                     &keyring_trace,
                     AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX |
                     AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
@@ -354,7 +354,7 @@ int decrypt_data_key_with_sig_and_enc_context() {
         0xaf, 0x4e, 0xaa, 0x6f, 0x3e, 0x34, 0xfa, 0x50, 0x48, 0xd1, 0x48, 0x02, 0x33, 0x86, 0xc5, 0x98,
         0x2c, 0x64, 0xe3, 0x54, 0xc4, 0x27, 0xe3, 0x66, 0x39, 0x28, 0x94, 0x89, 0xf5, 0x71, 0x68, 0xcd);
 
-    TEST_ASSERT(raw_aes_keyring_tv_trace_updated_properly(
+    TEST_ASSERT_SUCCESS(raw_aes_keyring_tv_trace_updated_properly(
                     &keyring_trace,
                     AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX |
                     AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));

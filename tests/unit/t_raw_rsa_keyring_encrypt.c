@@ -87,7 +87,7 @@ int generate_decrypt_from_data_key() {
                                                                  NULL,
                                                                  alg_ids[alg_idx]));
             TEST_ASSERT_ADDR_NOT_NULL(unencrypted_data_key.buffer);
-            TEST_ASSERT(raw_rsa_keyring_tv_trace_updated_properly(
+            TEST_ASSERT_SUCCESS(raw_rsa_keyring_tv_trace_updated_properly(
                             &keyring_trace,
                             AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY |
                             AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY));
@@ -104,7 +104,7 @@ int generate_decrypt_from_data_key() {
                                                                  NULL,
                                                                  alg_ids[alg_idx]));
             TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &decrypted_data_key));
-            TEST_ASSERT(raw_rsa_keyring_tv_trace_updated_properly(
+            TEST_ASSERT_SUCCESS(raw_rsa_keyring_tv_trace_updated_properly(
                             &keyring_trace,
                             AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
 
@@ -133,7 +133,7 @@ int encrypt_decrypt_data_key_from_test_vectors() {
                                                              NULL,
                                                              tv->alg));
         TEST_ASSERT_INT_EQ(aws_array_list_length(&edks), 1);
-        TEST_ASSERT(raw_rsa_keyring_tv_trace_updated_properly(
+        TEST_ASSERT_SUCCESS(raw_rsa_keyring_tv_trace_updated_properly(
                         &keyring_trace,
                         AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY));
 
@@ -145,7 +145,7 @@ int encrypt_decrypt_data_key_from_test_vectors() {
                                                              NULL,
                                                              tv->alg));
         TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &decrypted_data_key));
-        TEST_ASSERT(raw_rsa_keyring_tv_trace_updated_properly(
+        TEST_ASSERT_SUCCESS(raw_rsa_keyring_tv_trace_updated_properly(
                         &keyring_trace,
                         AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
 

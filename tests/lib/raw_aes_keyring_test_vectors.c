@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <aws/cryptosdk/private/raw_aes_keyring.h>
 #include "raw_aes_keyring_test_vectors.h"
+#include "testutil.h"
 
 static const uint8_t raw_aes_keyring_tv_master_key_id[] = "asdfhasiufhiasuhviawurhgiuawrhefiuawhf";
 static const uint8_t raw_aes_keyring_tv_provider_id[] = "static-random";
@@ -34,15 +35,10 @@ struct aws_cryptosdk_keyring * raw_aes_keyring_tv_new(struct aws_allocator * all
                                         raw_key_len);
 }
 
-bool raw_aes_keyring_tv_trace_updated_properly(struct aws_array_list *trace, uint32_t flags) {
-    struct aws_byte_cursor name_space = aws_byte_cursor_from_c_str(raw_aes_keyring_tv_provider_id);
-    struct aws_byte_cursor name = aws_byte_cursor_from_c_str(raw_aes_keyring_tv_master_key_id);
-
-    struct aws_cryptosdk_keyring_trace_item item;
-    return !aws_array_list_back(trace, (void *)&item) &&
-        aws_string_eq_byte_cursor(item.wrapping_key.name_space, &name_space) &&
-        aws_string_eq_byte_cursor(item.wrapping_key.name, &name) &&
-        item.flags == flags;
+int raw_aes_keyring_tv_trace_updated_properly(struct aws_array_list *trace, uint32_t flags) {
+    return assert_keyring_trace_item(trace, aws_array_list_length(trace)-1, flags,
+                                     raw_aes_keyring_tv_provider_id,
+                                     raw_aes_keyring_tv_master_key_id);
 }
 
 struct aws_cryptosdk_edk build_test_edk_init(const uint8_t * edk_bytes, size_t edk_len, const uint8_t * iv) {

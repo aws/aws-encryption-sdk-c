@@ -174,7 +174,7 @@ struct aws_byte_buf easy_b64_decode(const char *b64_string) {
     return output;
 }
 
-int assert_keyring_trace_item(struct aws_array_list *keyring_trace,
+int assert_keyring_trace_item(const struct aws_array_list *keyring_trace,
                               size_t idx,
                               uint32_t flags,
                               const char *name_space,

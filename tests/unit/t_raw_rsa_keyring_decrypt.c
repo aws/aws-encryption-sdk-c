@@ -128,7 +128,7 @@ int decrypt_data_key_from_test_vectors() {
 
         struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv->data_key, tv->data_key_len);
         TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &known_answer));
-        TEST_ASSERT(raw_rsa_keyring_tv_trace_updated_properly(
+        TEST_ASSERT_SUCCESS(raw_rsa_keyring_tv_trace_updated_properly(
                         &keyring_trace,
                         AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
         tear_down_all_the_things();
@@ -159,7 +159,7 @@ int decrypt_data_key_from_multiple_edks() {
 
     struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv.data_key, tv.data_key_len);
     TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &known_answer));
-    TEST_ASSERT(raw_rsa_keyring_tv_trace_updated_properly(
+    TEST_ASSERT_SUCCESS(raw_rsa_keyring_tv_trace_updated_properly(
                     &keyring_trace,
                     AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
     tear_down_all_the_things();
