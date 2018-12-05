@@ -35,9 +35,7 @@ using namespace Aws::Cryptosdk;
 using namespace std;
 using Aws::SDKOptions;
 
-int static_test_vector_framework(const char *path);
-
-int static_test_vector_framework(const char *path)
+static int static_test_vector_framework(const char *path)
 {
     char manifest_filename[100];
     char *key;
@@ -46,6 +44,9 @@ int static_test_vector_framework(const char *path)
     struct lh_entry *entry;
     struct aws_allocator *alloc = aws_default_allocator();
 
+    json_object *manifest_obj = NULL;
+    json_object *manifest_type_obj = NULL;
+    json_object *manifest_version_obj = NULL;
     json_object *tests_obj = NULL;
     json_object *keys_obj = NULL;
     json_object *test_case_obj = NULL;
@@ -56,18 +57,37 @@ int static_test_vector_framework(const char *path)
     json_object *key_name_obj = NULL;
     json_object *provider_id_obj = NULL;
     json_object *encryption_algorithm_obj = NULL;
-    json_object *static_key_obj = NULL;
+    json_object *keys_manifest_obj = NULL;
+    json_object *keys_manifest_type_obj = NULL;
+    json_object *keys_manifest_version_obj = NULL;
+    json_object *key_category_obj = NULL;
     json_object *material_obj = NULL;
     json_object *encoding_obj = NULL;
     json_object *decrypt_obj = NULL;
+    json_object *key_id_obj = NULL;
 
     int passed = 0, failed = 0, decrypt_false = 0, aes_passed = 0, rsa_passed = 0, kms_passed = 0, not_yet_supported = 0;
 
     strcpy(manifest_filename, path);
     strcat(manifest_filename, "/manifest.json");
-    json_object *jso = json_object_from_file(manifest_filename);
+    json_object *manifest_jso_obj = json_object_from_file(manifest_filename);
 
-    if (!json_object_object_get_ex(jso, "tests", &tests_obj))
+    if (!json_object_object_get_ex(manifest_jso_obj, "manifest", &manifest_obj))
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    
+    if (!json_object_object_get_ex(manifest_obj, "type", &manifest_type_obj))
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+
+    if (strcmp(json_object_get_string(manifest_type_obj), "awses-decrypt") != 0)
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+
+    if (!json_object_object_get_ex(manifest_obj, "version", &manifest_version_obj))
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+
+    if (json_object_get_int(manifest_version_obj) != 1)
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+
+    if (!json_object_object_get_ex(manifest_jso_obj, "tests", &tests_obj))
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
 
     /* I am looking for suggestions to replace the "file:/" string in the ciphertext and plaintext filenames 
@@ -76,13 +96,29 @@ int static_test_vector_framework(const char *path)
 
     std::string find_str = "file:/";
 
-    if (!json_object_object_get_ex(jso, "keys", &keys_obj))
+    if (!json_object_object_get_ex(manifest_jso_obj, "keys", &keys_obj))
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
 
     std::string keys_filename = json_object_get_string(keys_obj);
     keys_filename.replace(keys_filename.find(find_str), find_str.length(), path);
 
-    if (!json_object_object_get_ex(json_object_from_file(keys_filename.c_str()), "keys", &keys_obj))
+    json_object *keys_manifest_jso_obj = json_object_from_file(keys_filename.c_str());
+    if (!json_object_object_get_ex(keys_manifest_jso_obj, "keys", &keys_obj))
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+
+    if (!json_object_object_get_ex(keys_manifest_jso_obj, "manifest", &keys_manifest_obj))
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+
+    if (!json_object_object_get_ex(keys_manifest_obj, "type", &keys_manifest_type_obj))
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+
+    if (strcmp(json_object_get_string(keys_manifest_type_obj), "keys") != 0)
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+
+    if (!json_object_object_get_ex(keys_manifest_obj, "version", &keys_manifest_version_obj))
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+
+    if (json_object_get_int(keys_manifest_version_obj) != 3)
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
 
     for (entry = json_object_get_object(tests_obj)->head; (entry ? (key = (char *)entry->k, val = (struct json_object *)entry->v, entry) : 0); entry = entry->next)
@@ -104,11 +140,9 @@ int static_test_vector_framework(const char *path)
             return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
         for (int j = 0; j < json_object_array_length(master_keys_obj); j++)
         {
-            json_object *key_id_obj = NULL;
             struct aws_cryptosdk_keyring *kr = NULL;
             struct aws_cryptosdk_session *session = NULL;
             struct aws_cryptosdk_cmm *cmm = NULL;
-            struct aws_byte_buf decoded_material;
             uint8_t *output_buffer = NULL;
             uint8_t *ciphertext = NULL;
             uint8_t *plaintext = NULL;
@@ -126,80 +160,75 @@ int static_test_vector_framework(const char *path)
 
             json_object_object_get_ex(json_obj_mk_obj, "provider-id", &provider_id_obj);
             json_object_object_get_ex(json_obj_mk_obj, "encryption-algorithm", &encryption_algorithm_obj);
-            json_object_object_get_ex(keys_obj, json_object_get_string(key_name_obj), &static_key_obj);
-            json_object_object_get_ex(static_key_obj, "material", &material_obj);
-            json_object_object_get_ex(static_key_obj, "encoding", &encoding_obj);
-            json_object_object_get_ex(static_key_obj, "key-id", &key_id_obj);
+            json_object_object_get_ex(keys_obj, json_object_get_string(key_name_obj), &key_category_obj);
+            json_object_object_get_ex(key_category_obj, "material", &material_obj);
+            json_object_object_get_ex(key_category_obj, "encoding", &encoding_obj);
 
-            enum aws_cryptosdk_rsa_padding_mode padding_mode;
-            const char *encoding = json_object_get_string(encoding_obj);
+            if (!json_object_object_get_ex(key_category_obj, "key-id", &key_id_obj))
+                return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
 
-            if (encoding)
-            {
-                const aws_byte_cursor in = aws_byte_cursor_from_c_str(json_object_get_string(material_obj));
-                if (strcmp(encoding, "base64") == 0)
-                {
-                    size_t decoded_len = 0;
-
-                    if (aws_base64_compute_decoded_len(&in, &decoded_len))
-                    {
-                        failed++;
-                        fprintf(stderr, "Failed to compute base64 decode length %d\n", aws_last_error());
-                        goto next_test_case;
-                    }
-                    if (aws_byte_buf_init(&decoded_material, alloc, decoded_len + 2))
-                    {
-                        failed++;
-                        fprintf(stderr, "Failed to init aws_byte_buf %d\n", aws_last_error());
-                        goto next_test_case;
-                    }
-                    memset(decoded_material.buffer, 0xdd, decoded_material.capacity);
-                    decoded_material.len = 0;
-
-                    struct aws_byte_cursor encoded_material = aws_byte_cursor_from_c_str(json_object_get_string(material_obj));
-                    if (aws_base64_decode(&encoded_material, &decoded_material))
-                    {
-                        failed++;
-                        fprintf(stderr, "Failed to base64 decode %d\n", aws_last_error());
-                        goto next_test_case;
-                    }
-                }
-            }
-            if (!json_object_object_get_ex(static_key_obj, "decrypt", &decrypt_obj))
+            if (!json_object_object_get_ex(key_category_obj, "decrypt", &decrypt_obj))
                 return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
             if (strcmp(json_object_get_string(decrypt_obj), "false") == 0)
             {
                 passed++;
                 decrypt_false++;
-                goto next_test_case;
+                goto next_test_scenario;
             }
 
             if (strcmp(json_object_get_string(key_type_obj), "raw") == 0)
             {
-                enum aws_cryptosdk_aes_key_len aes_key_len;
                 if (strcmp(json_object_get_string(encryption_algorithm_obj), "aes") == 0)
                 {
-                    if (strcmp(json_object_get_string(key_name_obj), "aes-128") == 0)
+                    if (!material_obj)
                     {
-                        aes_key_len = AWS_CRYPTOSDK_AES_128;
+                        failed++;
+                        fprintf(stderr, "Failed to obtain the raw key material %d\n", aws_last_error());
+                        goto next_test_scenario;
                     }
-                    else if (strcmp(json_object_get_string(key_name_obj), "aes-192") == 0)
+                    enum aws_cryptosdk_aes_key_len aes_key_len;
+                    struct aws_byte_buf decoded_material;
+                    const aws_byte_cursor in = aws_byte_cursor_from_c_str(json_object_get_string(material_obj));
+                    if (strcmp(json_object_get_string(encoding_obj), "base64") == 0)
                     {
-                        aes_key_len = AWS_CRYPTOSDK_AES_192;
+                        size_t decoded_len = 0;
+
+                        if (aws_base64_compute_decoded_len(&in, &decoded_len))
+                        {
+                            failed++;
+                            fprintf(stderr, "Failed to compute base64 decode length %d\n", aws_last_error());
+                            goto next_test_scenario;
+                        }
+                        if (aws_byte_buf_init(&decoded_material, alloc, decoded_len + 2))
+                        {
+                            failed++;
+                            fprintf(stderr, "Failed to init aws_byte_buf %d\n", aws_last_error());
+                            goto next_test_scenario;
+                        }
+                        memset(decoded_material.buffer, 0xdd, decoded_material.capacity);
+                        decoded_material.len = 0;
+
+                        struct aws_byte_cursor encoded_material = aws_byte_cursor_from_c_str(json_object_get_string(material_obj));
+                        if (aws_base64_decode(&encoded_material, &decoded_material))
+                        {
+                            failed++;
+                            fprintf(stderr, "Failed to base64 decode %d\n", aws_last_error());
+                            goto next_test_scenario;
+                        }
                     }
-                    else if (strcmp(json_object_get_string(key_name_obj), "aes-256") == 0)
-                    {
-                        aes_key_len = AWS_CRYPTOSDK_AES_256;
+                    else {
+                        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
                     }
+
                     //setup of aes keyring
                     if (!(kr = aws_cryptosdk_raw_aes_keyring_new(alloc,
                                                                  (const uint8_t *)json_object_get_string(key_id_obj), strlen(json_object_get_string(key_id_obj)),
                                                                  (const uint8_t *)json_object_get_string(provider_id_obj), strlen(json_object_get_string(provider_id_obj)),
-                                                                 decoded_material.buffer, aes_key_len)))
+                                                                 decoded_material.buffer, (enum aws_cryptosdk_aes_key_len) decoded_material.len)))
                     {
                         failed++;
                         fprintf(stderr, "Failed to initialize aws_cryptosdk_raw_aes_keyring %d\n", aws_last_error());
-                        goto next_test_case;
+                        goto next_test_scenario;
                     }
                 }
                 else if (strcmp(json_object_get_string(encryption_algorithm_obj), "rsa") == 0)
@@ -209,19 +238,23 @@ int static_test_vector_framework(const char *path)
                     {
                         failed++;
                         fprintf(stderr, "Failed to obtain the raw key material %d\n", aws_last_error());
-                        goto next_test_case;
+                        goto next_test_scenario;
                     }
                     const char *pem_file = json_object_get_string(material_obj);
+                    if (strcmp(json_object_get_string(encoding_obj), "pem") != 0)
+                    {
+                        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+                    }
                     json_object *padding_algorithm_obj = NULL, *padding_hash_obj = NULL;
                     if (!json_object_object_get_ex(json_obj_mk_obj, "padding-algorithm", &padding_algorithm_obj))
                         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
                     const char *padding_algorithm = json_object_get_string(padding_algorithm_obj);
                     json_object_object_get_ex(json_obj_mk_obj, "padding-hash", &padding_hash_obj);
                     const char *padding_hash = json_object_get_string(padding_hash_obj);
-
+                    enum aws_cryptosdk_rsa_padding_mode padding_mode;
                     if (padding_algorithm != NULL)
                     {
-                        if (strcmp(padding_algorithm, "pkcs1") == 0)
+                        if (strcmp(padding_algorithm, "pkcs1") == 0)   
                         {
                             padding_mode = AWS_CRYPTOSDK_RSA_PKCS1;
                         }
@@ -242,15 +275,15 @@ int static_test_vector_framework(const char *path)
                                    later stage. For more information refer to issue #187. */
 
                                 not_yet_supported++;
-                                //fprintf(stderr, "Padding mode not supported by aws_encryption_sdk\n");
-                                goto next_test_case;
+                                fprintf(stderr, "Padding mode not yet supported pending #187\n");
+                                goto next_test_scenario;
                             }
                         }
                         else
                         {
                             failed++;
                             fprintf(stderr, "Padding mode not supported by aws_encryption_sdk\n");
-                            goto next_test_case;
+                            goto next_test_scenario;
                         }
                     }
                     if (!(kr = aws_cryptosdk_raw_rsa_keyring_new(alloc,
@@ -260,7 +293,7 @@ int static_test_vector_framework(const char *path)
                     {
                         failed++;
                         fprintf(stderr, "Failed to initialize aws_cryptosdk_raw_rsa_keyring %d\n", aws_last_error());
-                        goto next_test_case;
+                        goto next_test_scenario;
                     }
                 }
             }
@@ -271,14 +304,14 @@ int static_test_vector_framework(const char *path)
                 {
                     failed++;
                     fprintf(stderr, "Failed to obtain the kms_key_id %d\n", aws_last_error());
-                    goto next_test_case;
+                    goto next_test_scenario;
                 }
                 const Aws::String key_id = json_object_get_string(key_id_obj);
                 kr = KmsKeyring::Builder().Build({key_id});
                 if (!kr)
                 {
                     fprintf(stderr, "Failed to initialize aws_cryptosdk_kms_keyring %d\n", aws_last_error());
-                    goto next_test_case;
+                    goto next_test_scenario;
                 }
             }
 
@@ -286,28 +319,28 @@ int static_test_vector_framework(const char *path)
             {
                 failed++;
                 fprintf(stderr, "Failed to initialize aws_cryptosdk_default_cmm %d\n", aws_last_error());
-                goto next_test_case;
+                goto next_test_scenario;
             }
 
             if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm)))
             {
                 failed++;
                 fprintf(stderr, "Failed to initialize aws_cryptosdk_session %d\n", aws_last_error());
-                goto next_test_case;
+                goto next_test_scenario;
             }
 
             if (test_loadfile(ct_filename.c_str(), &ciphertext, &ct_len))
             {
                 failed++;
                 fprintf(stderr, "Failed to load ciphertext file %s: %d\n", ct_filename.c_str(), aws_last_error());
-                goto next_test_case;
+                goto next_test_scenario;
             }
 
             if (test_loadfile(pt_filename.c_str(), &plaintext, &pt_len))
             {
                 failed++;
                 fprintf(stderr, "Failed to load plaintext file %s: %d\n", pt_filename.c_str(), aws_last_error());
-                goto next_test_case;
+                goto next_test_scenario;
             }
 
             output_buffer = (uint8_t *)malloc(pt_len);
@@ -315,20 +348,20 @@ int static_test_vector_framework(const char *path)
             {
                 failed++;
                 fprintf(stderr, "out of memory\n");
-                goto next_test_case;
+                goto next_test_scenario;
             }
 
             if (aws_cryptosdk_session_process(session, output_buffer, pt_len, &out_produced, ciphertext, ct_len, &in_consumed) != AWS_OP_SUCCESS)
             {
                 failed++;
-                goto next_test_case;
+                goto next_test_scenario;
             }
 
             if (pt_len != out_produced)
             {
                 failed++;
                 fprintf(stderr, "Wrong output size, PlainText length = %zu, Produced output length = %zu %d\n", pt_len, out_produced, aws_last_error());
-                goto next_test_case;
+                goto next_test_scenario;
             }
 
             if (memcmp(output_buffer, plaintext, pt_len))
@@ -351,7 +384,7 @@ int static_test_vector_framework(const char *path)
                 passed++;
             }
 
-        next_test_case:
+        next_test_scenario:
             if (output_buffer) free(output_buffer);
             if (ciphertext) free(ciphertext);
             if (plaintext) free(plaintext);
