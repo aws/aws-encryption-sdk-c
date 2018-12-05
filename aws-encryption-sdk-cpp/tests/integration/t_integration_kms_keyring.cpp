@@ -295,6 +295,7 @@ static int setup_dataKeyEncryptAndDecrypt_tests(bool fill_enc_context) {
                          aws_cryptosdk_enc_context_init)
                         (alloc, &enc_context));
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_init(alloc, &keyring_trace));
+    return 0;
 }
 
 static void teardown_dataKeyEncryptAndDecrypt_tests() {
