@@ -19,6 +19,7 @@
 #include <aws/core/utils/memory/stl/AWSAllocator.h>
 #include <aws/core/utils/memory/MemorySystemInterface.h>
 #include <aws/cryptosdk/private/cpputils.h>
+#include <aws/cryptosdk/utils.h>
 #include <aws/kms/model/DecryptRequest.h>
 #include <aws/kms/model/DecryptResult.h>
 #include <aws/kms/model/EncryptRequest.h>
@@ -142,23 +143,31 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
                      struct aws_array_list *edk_list,
                      const struct aws_hash_table *enc_context,
                      enum aws_cryptosdk_alg_id alg) {
-    // Class that prevents memory leak of aws_list (even if a function throws)
-    // When the object will be destroyed it will call aws_cryptosdk_edk_list_clean_up
-    class EdksRaii {
+    // Class that prevents memory leak of local array lists (even if a function throws)
+    // When the object is destroyed it will clean up the lists
+    class ListRaii {
       public:
-        ~EdksRaii() {
-            if (initialized) {
-                aws_cryptosdk_edk_list_clean_up(&aws_list);
-                initialized = false;
+        ~ListRaii() {
+            if (initialized_edks) {
+                aws_cryptosdk_edk_list_clean_up(&edks);
+            }
+            if (initialized_trace) {
+                aws_cryptosdk_keyring_trace_clean_up(&trace);
             }
         }
         int Create(struct aws_allocator *alloc) {
-            auto rv = aws_cryptosdk_edk_list_init(alloc, &aws_list);
-            initialized = (rv == AWS_OP_SUCCESS);
-            return rv;
+            auto rv = aws_cryptosdk_edk_list_init(alloc, &edks);
+            if (rv) return rv;
+            initialized_edks = true;
+            rv = aws_cryptosdk_keyring_trace_init(alloc, &trace);
+            if (rv) return rv;
+            initialized_trace = true;
+            return AWS_OP_SUCCESS;
         }
-        bool initialized = false;
-        struct aws_array_list aws_list;
+        bool initialized_edks = false;
+        bool initialized_trace = false;
+        struct aws_array_list edks;
+        struct aws_array_list trace;
     };
     
     if (!keyring || !request_alloc || !unencrypted_data_key || !edk_list || !enc_context) {
@@ -171,8 +180,8 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
         return AWS_OP_SUCCESS;
     }
 
-    EdksRaii edks;
-    int rv = edks.Create(request_alloc);
+    ListRaii my_lists;
+    int rv = my_lists.Create(request_alloc);
     if (rv != AWS_OP_SUCCESS) return rv;
 
     const auto enc_context_cpp = aws_map_from_c_aws_hash_table(enc_context);
@@ -211,7 +220,7 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
         }
         report_success();
         rv = append_key_dup_to_edks(request_alloc,
-                                    &edks.aws_list,
+                                    &my_lists.edks,
                                     &outcome.GetResult().GetCiphertextBlob(),
                                     &outcome.GetResult().GetKeyId(),
                                     &self->key_provider);
@@ -223,12 +232,12 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
         if (rv != AWS_OP_SUCCESS) return rv;
         generated_new_data_key = true;
         aws_cryptosdk_keyring_trace_add_record_c_str(request_alloc,
-                                                   keyring_trace,
-                                                   KEY_PROVIDER_STR,
-                                                   key_id.c_str(),
-                                                   AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY |
-                                                   AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
-                                                   AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX);
+                                                     &my_lists.trace,
+                                                     KEY_PROVIDER_STR,
+                                                     key_id.c_str(),
+                                                     AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY |
+                                                     AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
+                                                     AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX);
     }
 
     const auto unencrypted_data_key_cpp = aws_utils_byte_buffer_from_c_aws_byte_buf(unencrypted_data_key);
@@ -267,7 +276,7 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
         report_success();
         rv = append_key_dup_to_edks(
             request_alloc,
-            &edks.aws_list,
+            &my_lists.edks,
             &outcome.GetResult().GetCiphertextBlob(),
             &outcome.GetResult().GetKeyId(),
             &self->key_provider);
@@ -275,13 +284,16 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
             goto out;
         }
         aws_cryptosdk_keyring_trace_add_record_c_str(request_alloc,
-                                                   keyring_trace,
-                                                   KEY_PROVIDER_STR,
-                                                   key_id.c_str(),
-                                                   AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
-                                                   AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX);
+                                                     &my_lists.trace,
+                                                     KEY_PROVIDER_STR,
+                                                     key_id.c_str(),
+                                                     AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
+                                                     AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX);
     }
-    rv = aws_cryptosdk_transfer_edk_list(edk_list, &edks.aws_list);
+    rv = aws_cryptosdk_transfer_list(edk_list, &my_lists.edks);
+    if (rv == AWS_OP_SUCCESS) {
+        aws_cryptosdk_transfer_list(keyring_trace, &my_lists.trace);
+    }
 out:
     if (rv != AWS_OP_SUCCESS && generated_new_data_key) {
         aws_byte_buf_clean_up(unencrypted_data_key);

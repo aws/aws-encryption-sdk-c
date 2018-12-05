@@ -38,3 +38,20 @@ int aws_cryptosdk_hash_elems_array_init(struct aws_allocator * alloc,
     assert(aws_array_list_length(elems) == entry_count);
     return AWS_OP_SUCCESS;
 }
+
+int aws_cryptosdk_transfer_list(struct aws_array_list *dest, struct aws_array_list *src) {
+    size_t src_len = aws_array_list_length(src);
+    for (size_t src_idx = 0; src_idx < src_len; ++src_idx) {
+        void *item_ptr;
+        if (aws_array_list_get_at_ptr(src, &item_ptr, src_idx)) return AWS_OP_ERR;
+        if (aws_array_list_push_back(dest, item_ptr)) return AWS_OP_ERR;
+    }
+    /* This clear is important. It does not free any memory, but it resets the length of the
+     * source list to zero, so that the buffers or strings in its list elements will NOT get
+     * freed when the list gets cleaned up. We do not want to free those buffers, because the
+     * elements that were transferred to the new list were shallow copies using the same buffers
+     * or strings.
+     */
+    aws_array_list_clear(src);
+    return AWS_OP_SUCCESS;
+}

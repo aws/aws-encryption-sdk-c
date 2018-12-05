@@ -14,6 +14,7 @@
  */
 #include <aws/cryptosdk/multi_keyring.h>
 #include <aws/cryptosdk/materials.h>
+#include <aws/cryptosdk/utils.h>
 #include <assert.h>
 
 struct multi_keyring {
@@ -89,7 +90,7 @@ static int multi_keyring_on_encrypt(struct aws_cryptosdk_keyring *multi,
                                 &my_edks,
                                 enc_context,
                                 alg) ||
-        aws_cryptosdk_transfer_edk_list(edks, &my_edks)) {
+        aws_cryptosdk_transfer_list(edks, &my_edks)) {
         ret = AWS_OP_ERR;
     }
 

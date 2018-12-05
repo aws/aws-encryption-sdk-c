@@ -87,14 +87,6 @@ AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_edk_eq(const struct aws_cryptosdk
         aws_byte_buf_eq(&a->provider_id, &b->provider_id);
 }
 
-/**
- * Appends the contents of source EDK list to destination EDK list, and clears source list,
- * but does not clean it up. This makes a shallow copy of all EDKs, so byte buffers are not
- * duplicated. Their ownership is just transferred from the source list to the destination.
- */
-AWS_CRYPTOSDK_API
-int aws_cryptosdk_transfer_edk_list(struct aws_array_list *dest, struct aws_array_list *src);
-
 #ifdef __cplusplus
 }
 #endif

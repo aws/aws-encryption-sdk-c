@@ -44,22 +44,6 @@ void aws_cryptosdk_edk_list_clean_up(struct aws_array_list * edk_list) {
     aws_array_list_clean_up(edk_list);
 }
 
-int aws_cryptosdk_transfer_edk_list(struct aws_array_list *dest, struct aws_array_list *src) {
-    size_t src_len = aws_array_list_length(src);
-    for (size_t src_idx = 0; src_idx < src_len; ++src_idx) {
-        void *item_ptr;
-	if (aws_array_list_get_at_ptr(src, &item_ptr, src_idx)) return AWS_OP_ERR;
-        if (aws_array_list_push_back(dest, item_ptr)) return AWS_OP_ERR;
-    }
-    /* This clear is important. It does not free any memory, but it resets the length of the
-     * source list to zero, so that the EDK buffers in its list will NOT get freed when the
-     * EDK list gets destroyed. We do not want to free those buffers, because we made a shallow
-     * copy of the EDK list to the destination array list, so it still uses all the same buffers.
-     */
-    aws_array_list_clear(src);
-    return AWS_OP_SUCCESS;
-}
-
 int aws_cryptosdk_edk_init_clone(struct aws_allocator *alloc, struct aws_cryptosdk_edk *dest, const struct aws_cryptosdk_edk *src) {
     memset(dest, 0, sizeof(*dest));
 
