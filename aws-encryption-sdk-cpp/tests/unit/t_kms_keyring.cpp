@@ -328,6 +328,7 @@ static int t_encrypt_multiple_keys_trace_success(struct aws_array_list *keyring_
         TEST_ASSERT_SUCCESS(assert_keyring_trace_record(keyring_trace, i, flags, "aws-kms",
                                                       fake_arns[i].c_str()));
     }
+    return 0;
 }
 
 int encrypt_validInputsMultipleKeys_returnSuccess() {

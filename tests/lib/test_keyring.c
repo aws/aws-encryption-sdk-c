@@ -32,13 +32,13 @@ static int test_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
                                    const struct aws_hash_table *enc_context,
                                    enum aws_cryptosdk_alg_id alg) {
     (void)enc_context;
-    (void)request_alloc;
     struct test_keyring *self = (struct test_keyring *)kr;
-    uint32_t flags = 0;
+
     if (!self->ret && !self->skip_output) {
+        uint32_t flags = AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY;
         if (!unencrypted_data_key->buffer) {
             *unencrypted_data_key = self->generated_data_key_to_return;
-            flags = AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY;
+            flags |= AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY;
         }
 
         static struct aws_cryptosdk_edk edk;
@@ -46,7 +46,7 @@ static int test_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
         edk.provider_id = aws_byte_buf_from_c_str("test keyring generate provider id");
         edk.provider_info = aws_byte_buf_from_c_str("test keyring generate provider info");
         aws_array_list_push_back(edks, &edk);
-        flags |= AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY;
+
         if (keyring_trace) {
             // In production code we would not allow bypassing the trace, but here we
             // do for cases where test is examining other non-trace features of keyring.
