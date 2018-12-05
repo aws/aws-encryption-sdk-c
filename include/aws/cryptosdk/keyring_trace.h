@@ -49,10 +49,9 @@ struct aws_cryptosdk_wrapping_key {
 
 /**
  * When a keyring is called it produces a trace of what actions it took with
- * the different wrapping keys it manages. The trace is an array list of these
- * items.
+ * the different wrapping keys it manages. The trace is a list of these records.
  */
-struct aws_cryptosdk_keyring_trace_item {
+struct aws_cryptosdk_keyring_trace_record {
     struct aws_cryptosdk_wrapping_key wrapping_key;
     uint32_t flags;
 };
@@ -73,14 +72,14 @@ extern "C" {
 // TODO: add doc comments
 
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_keyring_trace_add_item(struct aws_allocator *alloc,
+int aws_cryptosdk_keyring_trace_add_record(struct aws_allocator *alloc,
                                          struct aws_array_list *trace,
                                          const struct aws_string *name_space,
                                          const struct aws_string *name,
                                          uint32_t flags);
 
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_keyring_trace_add_item_c_str(struct aws_allocator *alloc,
+int aws_cryptosdk_keyring_trace_add_record_c_str(struct aws_allocator *alloc,
                                                struct aws_array_list *trace,
                                                const char *name_space,
                                                const char *name,

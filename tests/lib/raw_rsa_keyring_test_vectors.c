@@ -88,7 +88,7 @@ struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new_with_wrong_key(
 }
 
 int raw_rsa_keyring_tv_trace_updated_properly(struct aws_array_list *trace, uint32_t flags) {
-    return assert_keyring_trace_item(trace, aws_array_list_length(trace)-1, flags,
+    return assert_keyring_trace_record(trace, aws_array_list_length(trace)-1, flags,
                                      raw_rsa_keyring_tv_provider_id,
                                      raw_rsa_keyring_tv_master_key_id);
 }

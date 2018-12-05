@@ -118,7 +118,7 @@ static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
                                                       unencrypted_data_key,
                                                       outcome.GetResult().GetPlaintext());
             if (ret == AWS_OP_SUCCESS) {
-                aws_cryptosdk_keyring_trace_add_item_c_str(request_alloc,
+                aws_cryptosdk_keyring_trace_add_record_c_str(request_alloc,
                                                            keyring_trace,
                                                            KEY_PROVIDER_STR,
                                                            key_arn.c_str(),
@@ -222,7 +222,7 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
                                              outcome.GetResult().GetPlaintext());
         if (rv != AWS_OP_SUCCESS) return rv;
         generated_new_data_key = true;
-        aws_cryptosdk_keyring_trace_add_item_c_str(request_alloc,
+        aws_cryptosdk_keyring_trace_add_record_c_str(request_alloc,
                                                    keyring_trace,
                                                    KEY_PROVIDER_STR,
                                                    key_id.c_str(),
@@ -274,7 +274,7 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
         if (rv != AWS_OP_SUCCESS) {
             goto out;
         }
-        aws_cryptosdk_keyring_trace_add_item_c_str(request_alloc,
+        aws_cryptosdk_keyring_trace_add_record_c_str(request_alloc,
                                                    keyring_trace,
                                                    KEY_PROVIDER_STR,
                                                    key_id.c_str(),

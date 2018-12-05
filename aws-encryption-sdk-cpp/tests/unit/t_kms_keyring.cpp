@@ -277,7 +277,7 @@ static int t_encrypt_with_single_key_success(TestValues &tv, bool generated) {
         AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX;
     if (generated) flags |= AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY;
 
-    return assert_keyring_trace_item(&tv.keyring_trace, 0, flags, tv.provider_id, tv.key_id);
+    return assert_keyring_trace_record(&tv.keyring_trace, 0, flags, tv.provider_id, tv.key_id);
 }
 
 
@@ -324,8 +324,8 @@ const Aws::Vector<Aws::String> fake_arns = {"arn:aws:kms:us-fake-1:999999999999:
 static int t_encrypt_multiple_keys_trace_success(struct aws_array_list *keyring_trace) {
     uint32_t flags = AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
         AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX;
-    for	(unsigned int i = 0; i < fake_arns.size(); i++)	{
-    	TEST_ASSERT_SUCCESS(assert_keyring_trace_item(keyring_trace, i, flags, "aws-kms",
+    for (unsigned int i = 0; i < fake_arns.size(); i++)	{
+        TEST_ASSERT_SUCCESS(assert_keyring_trace_record(keyring_trace, i, flags, "aws-kms",
                                                       fake_arns[i].c_str()));
     }
 }
@@ -470,7 +470,7 @@ int encrypt_kmsFails_returnError() {
 
 static int t_decrypt_success(DecryptValues &dv) {
     TEST_ASSERT(aws_byte_buf_eq(&dv.unencrypted_data_key, &dv.pt_aws_byte));
-    return assert_keyring_trace_item(&dv.keyring_trace,
+    return assert_keyring_trace_record(&dv.keyring_trace,
                                      aws_array_list_length(&dv.keyring_trace) - 1,
                                      AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY |
                                      AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX,

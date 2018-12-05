@@ -25,7 +25,7 @@ struct aws_cryptosdk_keyring * raw_aes_keyring_tv_new(
     enum aws_cryptosdk_aes_key_len raw_key_len);
 
 /**
- * Check that the raw AES KR for test vectors added a new trace item with the
+ * Check that the raw AES KR for test vectors added a new trace record with the
  * specified flags.
  */
 int raw_aes_keyring_tv_trace_updated_properly(struct aws_array_list *trace,

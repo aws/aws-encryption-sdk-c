@@ -50,7 +50,7 @@ static int test_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
         if (keyring_trace) {
             // In production code we would not allow bypassing the trace, but here we
             // do for cases where test is examining other non-trace features of keyring.
-            if (aws_cryptosdk_keyring_trace_add_item(request_alloc,
+            if (aws_cryptosdk_keyring_trace_add_record(request_alloc,
                                                      keyring_trace,
                                                      name_space,
                                                      name,
@@ -84,7 +84,7 @@ static int test_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
     if (!self->ret && !self->skip_output) {
         *unencrypted_data_key = self->decrypted_data_key_to_return;
         if (keyring_trace) {
-            if (aws_cryptosdk_keyring_trace_add_item(
+            if (aws_cryptosdk_keyring_trace_add_record(
                     request_alloc,
                     keyring_trace,
                     name_space,

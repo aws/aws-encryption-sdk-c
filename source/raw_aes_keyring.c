@@ -182,7 +182,7 @@ static int raw_aes_keyring_on_encrypt(struct aws_cryptosdk_keyring * kr,
 
         flags |= AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY
             | AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX;
-        aws_cryptosdk_keyring_trace_add_item(request_alloc,
+        aws_cryptosdk_keyring_trace_add_record(request_alloc,
                                              keyring_trace,
                                              self->provider_id,
                                              self->master_key_id,
@@ -249,7 +249,7 @@ static int raw_aes_keyring_on_decrypt(struct aws_cryptosdk_keyring * kr,
              */
             aws_reset_error();
         } else {
-            aws_cryptosdk_keyring_trace_add_item(request_alloc,
+            aws_cryptosdk_keyring_trace_add_record(request_alloc,
                                                  keyring_trace,
                                                  self->provider_id,
                                                  self->master_key_id,

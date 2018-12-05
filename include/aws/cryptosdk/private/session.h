@@ -67,7 +67,7 @@ struct aws_cryptosdk_session {
     struct aws_cryptosdk_hdr header;
     uint64_t frame_size;   /* Frame size, zero for unframed */
 
-     /* List of (struct aws_cryptosdk_keyring_trace_item)s */
+     /* List of (struct aws_cryptosdk_keyring_trace_record)s */
     struct aws_array_list keyring_trace;
 
     /* Estimate for the amount of input data needed to make progress. */

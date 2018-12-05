@@ -50,39 +50,39 @@ static inline int wrapping_key_init_from_c_strs(
     return wrapping_key_init_check(wrapping_key);
 }
 
-static inline int keyring_trace_add_item_base(
+static inline int keyring_trace_add_record_base(
     struct aws_array_list *trace,
-    struct aws_cryptosdk_keyring_trace_item *item,
+    struct aws_cryptosdk_keyring_trace_record *record,
     uint32_t flags) {
-    item->flags = flags;
-    int ret = aws_array_list_push_back(trace, (void *)item);
-    if (ret) wrapping_key_clean_up(&item->wrapping_key);
+    record->flags = flags;
+    int ret = aws_array_list_push_back(trace, (void *)record);
+    if (ret) wrapping_key_clean_up(&record->wrapping_key);
 
     return ret;
 }
 
-int aws_cryptosdk_keyring_trace_add_item(struct aws_allocator *alloc,
+int aws_cryptosdk_keyring_trace_add_record(struct aws_allocator *alloc,
                                          struct aws_array_list *trace,
                                          const struct aws_string *name_space,
                                          const struct aws_string *name,
                                          uint32_t flags) {
-    struct aws_cryptosdk_keyring_trace_item item;
-    int ret = wrapping_key_init_from_strings(alloc, &item.wrapping_key, name_space, name);
+    struct aws_cryptosdk_keyring_trace_record record;
+    int ret = wrapping_key_init_from_strings(alloc, &record.wrapping_key, name_space, name);
     if (ret) return ret;
 
-    return keyring_trace_add_item_base(trace, &item, flags);
+    return keyring_trace_add_record_base(trace, &record, flags);
 }
 
-int aws_cryptosdk_keyring_trace_add_item_c_str(struct aws_allocator *alloc,
+int aws_cryptosdk_keyring_trace_add_record_c_str(struct aws_allocator *alloc,
                                                struct aws_array_list *trace,
                                                const char *name_space,
                                                const char *name,
                                                uint32_t flags) {
-    struct aws_cryptosdk_keyring_trace_item item;
-    int ret = wrapping_key_init_from_c_strs(alloc, &item.wrapping_key, name_space, name);
+    struct aws_cryptosdk_keyring_trace_record record;
+    int ret = wrapping_key_init_from_c_strs(alloc, &record.wrapping_key, name_space, name);
     if (ret) return ret;
 
-    return keyring_trace_add_item_base(trace, &item, flags);
+    return keyring_trace_add_record_base(trace, &record, flags);
 }
 
 int aws_cryptosdk_keyring_trace_init(struct aws_allocator *alloc, struct aws_array_list *trace) {
@@ -90,15 +90,15 @@ int aws_cryptosdk_keyring_trace_init(struct aws_allocator *alloc, struct aws_arr
     return aws_array_list_init_dynamic(trace,
                                        alloc,
                                        initial_size,
-                                       sizeof(struct aws_cryptosdk_keyring_trace_item));
+                                       sizeof(struct aws_cryptosdk_keyring_trace_record));
 }
 
 void aws_cryptosdk_keyring_trace_clear(struct aws_array_list *trace) {
-    size_t num_items = aws_array_list_length(trace);
-    for (size_t idx = 0; idx < num_items; ++idx) {
-        struct aws_cryptosdk_keyring_trace_item *item;
-        if (!aws_array_list_get_at_ptr(trace, (void **)&item, idx)) {
-            wrapping_key_clean_up(&item->wrapping_key);
+    size_t num_records = aws_array_list_length(trace);
+    for (size_t idx = 0; idx < num_records; ++idx) {
+        struct aws_cryptosdk_keyring_trace_record *record;
+        if (!aws_array_list_get_at_ptr(trace, (void **)&record, idx)) {
+            wrapping_key_clean_up(&record->wrapping_key);
         }
     }
     aws_array_list_clear(trace);

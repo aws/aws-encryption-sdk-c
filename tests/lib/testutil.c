@@ -174,21 +174,21 @@ struct aws_byte_buf easy_b64_decode(const char *b64_string) {
     return output;
 }
 
-int assert_keyring_trace_item(const struct aws_array_list *keyring_trace,
-                              size_t idx,
-                              uint32_t flags,
-                              const char *name_space,
-                              const char *name) {
-    struct aws_cryptosdk_keyring_trace_item item;
-    TEST_ASSERT_SUCCESS(aws_array_list_get_at(keyring_trace, (void *)&item, idx));
-    TEST_ASSERT_INT_EQ(item.flags, flags);
+int assert_keyring_trace_record(const struct aws_array_list *keyring_trace,
+                                size_t idx,
+                                uint32_t flags,
+                                const char *name_space,
+                                const char *name) {
+    struct aws_cryptosdk_keyring_trace_record record;
+    TEST_ASSERT_SUCCESS(aws_array_list_get_at(keyring_trace, (void *)&record, idx));
+    TEST_ASSERT_INT_EQ(record.flags, flags);
     if (name_space) {
         const struct aws_byte_cursor ns = aws_byte_cursor_from_c_str(name_space);
-        TEST_ASSERT(aws_string_eq_byte_cursor(item.wrapping_key.name_space, &ns));
+        TEST_ASSERT(aws_string_eq_byte_cursor(record.wrapping_key.name_space, &ns));
     }
     if (name) {
         const struct aws_byte_cursor n = aws_byte_cursor_from_c_str(name);
-        TEST_ASSERT(aws_string_eq_byte_cursor(item.wrapping_key.name, &n));
+        TEST_ASSERT(aws_string_eq_byte_cursor(record.wrapping_key.name, &n));
     }
     return 0;
 }

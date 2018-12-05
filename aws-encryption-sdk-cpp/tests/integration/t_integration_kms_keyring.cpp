@@ -252,7 +252,7 @@ static struct aws_hash_table enc_context;
 static struct aws_array_list keyring_trace;
 
 static int verify_decrypt_trace(const char *key_arn = nullptr) {
-    return assert_keyring_trace_item(&keyring_trace,
+    return assert_keyring_trace_record(&keyring_trace,
                                      aws_array_list_length(&keyring_trace) - 1,
                                      AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY |
                                      AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX,
@@ -396,7 +396,7 @@ static int verify_encrypt_trace(size_t idx, bool generated = false, const char *
     uint32_t flags = AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
         AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX;
     if (generated) flags |= AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY;
-    return assert_keyring_trace_item(&keyring_trace, idx, flags, "aws-kms", key_arn);
+    return assert_keyring_trace_record(&keyring_trace, idx, flags, "aws-kms", key_arn);
 }
 
 int dataKeyEncryptAndDecrypt_singleKey_returnSuccess() {
