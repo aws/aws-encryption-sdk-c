@@ -16,7 +16,6 @@
 #define AWS_CRYPTOSDK_TESTS_LIB_RAW_AES_KR_TEST_VECTORS_H
 
 #include <aws/cryptosdk/materials.h>
-#include <aws/cryptosdk/keyring_trace.h>
 
 /**
  * Instantiate the raw AES KR that was used to generate the test vectors.

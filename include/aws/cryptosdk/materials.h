@@ -31,6 +31,7 @@
 #include <aws/cryptosdk/exports.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/header.h>
+#include <aws/cryptosdk/keyring_trace.h>
 
 #ifdef __cplusplus
 extern "C" {

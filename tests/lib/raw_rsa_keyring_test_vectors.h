@@ -17,7 +17,6 @@
 
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/materials.h>
-#include <aws/cryptosdk/keyring_trace.h>
 
 struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new(
     struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);

@@ -58,6 +58,18 @@ int test_enc_context_init_and_fill(struct aws_allocator *alloc,
  */
 struct aws_byte_buf easy_b64_decode(const char *b64_string);
 
+/**
+ * Verify that the idx'th element of keyring trace has all the
+ * specified attributes. name_space and/or name may be set to
+ * NULL to ignore those checks.
+ */
+int assert_keyring_trace_item(struct aws_array_list *keyring_trace,
+                              size_t idx,
+                              uint32_t flags,
+                              const char *name_space,
+                              const char *name);
+
+
 #ifdef __cplusplus
 }
 #endif

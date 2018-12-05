@@ -15,7 +15,6 @@
 
 #include "test_keyring.h"
 #include "../unit/testing.h"
-#include <aws/cryptosdk/keyring_trace.h>
 
 static void test_keyring_destroy(struct aws_cryptosdk_keyring * kr) {
     struct test_keyring *self = (struct test_keyring *)kr;

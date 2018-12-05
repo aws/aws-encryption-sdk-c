@@ -17,7 +17,6 @@
 #define AWS_CRYPTOSDK_PRIVATE_SESSION_H
 
 #include <aws/cryptosdk/session.h>
-#include <aws/cryptosdk/keyring_trace.h>
 #include <aws/cryptosdk/private/header.h>
 #include <aws/cryptosdk/private/cipher.h>
 

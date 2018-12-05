@@ -18,7 +18,6 @@
 #include <aws/core/utils/logging/AWSLogging.h>
 #include <aws/cryptosdk/enc_context.h>
 #include <aws/cryptosdk/kms_keyring.h>
-#include <aws/cryptosdk/keyring_trace.h>
 
 #include "edks_utils.h"
 #include "test_crypto.h"
@@ -253,18 +252,12 @@ static struct aws_hash_table enc_context;
 static struct aws_array_list keyring_trace;
 
 static int verify_decrypt_trace(const char *key_arn = nullptr) {
-    struct aws_cryptosdk_keyring_trace_item item;
-    const struct aws_byte_cursor name_space = aws_byte_cursor_from_c_str("aws-kms");
-    TEST_ASSERT_SUCCESS(aws_array_list_back(&keyring_trace, (void *)&item));
-    TEST_ASSERT_INT_EQ(item.flags,
-		       AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY |
-                       AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX);
-    TEST_ASSERT(aws_string_eq_byte_cursor(item.wrapping_key.name_space, &name_space));
-    if (key_arn) {
-        const struct aws_byte_cursor name = aws_byte_cursor_from_c_str(key_arn);
-        TEST_ASSERT(aws_string_eq_byte_cursor(item.wrapping_key.name, &name));
-    }
-    return 0;
+    return assert_keyring_trace_item(&keyring_trace,
+                                     aws_array_list_length(&keyring_trace) - 1,
+                                     AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY |
+                                     AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX,
+                                     "aws-kms",
+                                     key_arn);
 }
 
 /**
@@ -400,19 +393,10 @@ int dataKeyDecrypt_doNotReturnDataKeyWhenKeyIdMismatchFromKms_returnSuccess() {
 }
 
 static int verify_encrypt_trace(size_t idx, bool generated = false, const char *key_arn = nullptr) {
-    const struct aws_byte_cursor name_space = aws_byte_cursor_from_c_str("aws-kms");
-    struct aws_cryptosdk_keyring_trace_item item;
-    TEST_ASSERT_SUCCESS(aws_array_list_get_at(&keyring_trace, (void *)&item, idx));
     uint32_t flags = AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
         AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX;
     if (generated) flags |= AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY;
-    TEST_ASSERT_INT_EQ(item.flags, flags);
-    TEST_ASSERT(aws_string_eq_byte_cursor(item.wrapping_key.name_space, &name_space));
-    if (key_arn) {
-        const struct aws_byte_cursor name = aws_byte_cursor_from_c_str(key_arn);
-        TEST_ASSERT(aws_string_eq_byte_cursor(item.wrapping_key.name, &name));
-    }
-    return 0;
+    return assert_keyring_trace_item(&keyring_trace, idx, flags, "aws-kms", key_arn);
 }
 
 int dataKeyEncryptAndDecrypt_singleKey_returnSuccess() {

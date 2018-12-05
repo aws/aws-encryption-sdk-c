@@ -17,7 +17,6 @@
 #include <aws/cryptosdk/private/utils.h>
 #include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/materials.h>
-#include <aws/cryptosdk/keyring_trace.h>
 
 #include <aws/common/byte_buf.h>
 #include <aws/common/string.h>

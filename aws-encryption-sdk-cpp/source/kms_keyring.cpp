@@ -18,7 +18,6 @@
 #include <aws/core/utils/logging/LogMacros.h>
 #include <aws/core/utils/memory/stl/AWSAllocator.h>
 #include <aws/core/utils/memory/MemorySystemInterface.h>
-#include <aws/cryptosdk/keyring_trace.h>
 #include <aws/cryptosdk/private/cpputils.h>
 #include <aws/kms/model/DecryptRequest.h>
 #include <aws/kms/model/DecryptResult.h>
