@@ -176,9 +176,9 @@ struct aws_byte_buf easy_b64_decode(const char *b64_string) {
 
 int assert_keyring_trace_record(const struct aws_array_list *keyring_trace,
                                 size_t idx,
-                                uint32_t flags,
                                 const char *name_space,
-                                const char *name) {
+                                const char *name,
+                                uint32_t flags) {
     struct aws_cryptosdk_keyring_trace_record record;
     TEST_ASSERT_SUCCESS(aws_array_list_get_at(keyring_trace, (void *)&record, idx));
     TEST_ASSERT_INT_EQ(record.flags, flags);

@@ -47,20 +47,16 @@ static int test_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
         edk.provider_info = aws_byte_buf_from_c_str("test keyring generate provider info");
         aws_array_list_push_back(edks, &edk);
 
-        if (keyring_trace) {
-            // In production code we would not allow bypassing the trace, but here we
-            // do for cases where test is examining other non-trace features of keyring.
-            if (aws_cryptosdk_keyring_trace_add_record(request_alloc,
+        if (aws_cryptosdk_keyring_trace_add_record(request_alloc,
                                                        keyring_trace,
                                                        name_space,
                                                        name,
                                                        flags)) {
-                // This should only fail on memory allocation errors.
-                // In production code we ignore errors from this, as there isn't really
-                // a sensible way to handle them. But here we check for failure just to
-                // make sure this code has actually run properly.
-                abort();
-            }
+            // This should only fail on memory allocation errors.
+            // In production code we ignore errors from this, as there isn't really
+            // a sensible way to handle them. But here we check for failure just to
+            // make sure this code has actually run properly.
+            abort();
         }
     }
 
@@ -81,7 +77,7 @@ static int test_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
     struct test_keyring *self = (struct test_keyring *)kr;
     if (!self->ret && !self->skip_output) {
         *unencrypted_data_key = self->decrypted_data_key_to_return;
-        if (keyring_trace && self->decrypted_data_key_to_return.buffer) {
+        if (self->decrypted_data_key_to_return.buffer) {
             if (aws_cryptosdk_keyring_trace_add_record(
                     request_alloc,
                     keyring_trace,

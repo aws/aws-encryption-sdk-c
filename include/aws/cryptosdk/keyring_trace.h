@@ -42,8 +42,8 @@
  * The motivating example of a wrapping key is a KMS CMK, for which the name_space
  * is "aws-kms" and the name is the key ARN.
  *
- * Do not handle this structure by itself. It exists primarily as a semantic
- * label to link the name_space and name within the trace record.
+ * This structure is always handled as a subpart of the trace record. It exists
+ * primarily as a semantic label to link the name_space and name.
  */
 struct aws_cryptosdk_wrapping_key {
     struct aws_string *name_space;
@@ -60,12 +60,28 @@ struct aws_cryptosdk_keyring_trace_record {
 };
 
 /**
- * Bit flags used to indicate which actions a particular wrapping key has done.
+ * Bit flag indicating this wrapping key generated a new data key.
  */
 #define AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY 1
+
+/**
+ * Bit flag indicating this wrapping key encrypted a data key.
+ */
 #define AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY (1 << 1)
+
+/**
+ * Bit flag indicating this wrapping key decrypted a data key.
+ */
 #define AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY (1 << 2)
+
+/**
+ * Bit flag indicating this wrapping key signed the encryption context.
+ */
 #define AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX     (1 << 3)
+
+/**
+ * Bit flag indicating this wrapping key verified signature of encryption context.
+ */
 #define AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX   (1 << 4)
 
 #ifdef __cplusplus

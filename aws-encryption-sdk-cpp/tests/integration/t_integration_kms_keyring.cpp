@@ -253,11 +253,11 @@ static struct aws_array_list keyring_trace;
 
 static int verify_decrypt_trace(const char *key_arn = nullptr) {
     return assert_keyring_trace_record(&keyring_trace,
-                                     aws_array_list_length(&keyring_trace) - 1,
-                                     AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY |
-                                     AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX,
-                                     "aws-kms",
-                                     key_arn);
+                                       aws_array_list_length(&keyring_trace) - 1,
+                                       "aws-kms",
+                                       key_arn,
+                                       AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY |
+                                       AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX);
 }
 
 /**
@@ -291,9 +291,11 @@ static int test_keyring_datakey_decrypt_and_compare_with_pt_datakey(struct aws_a
 
 static int setup_dataKeyEncryptAndDecrypt_tests(bool fill_enc_context) {
     alloc = aws_default_allocator();
-    TEST_ASSERT_SUCCESS((fill_enc_context ? test_enc_context_init_and_fill :
-                         aws_cryptosdk_enc_context_init)
-                        (alloc, &enc_context));
+    if (fill_enc_context) {
+        TEST_ASSERT_SUCCESS(test_enc_context_init_and_fill(alloc, &enc_context));
+    } else {
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, &enc_context));
+    }
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_init(alloc, &keyring_trace));
     return 0;
 }
@@ -397,7 +399,7 @@ static int verify_encrypt_trace(size_t idx, bool generated = false, const char *
     uint32_t flags = AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
         AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX;
     if (generated) flags |= AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY;
-    return assert_keyring_trace_record(&keyring_trace, idx, flags, "aws-kms", key_arn);
+    return assert_keyring_trace_record(&keyring_trace, idx, "aws-kms", key_arn, flags);
 }
 
 int dataKeyEncryptAndDecrypt_singleKey_returnSuccess() {

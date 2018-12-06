@@ -65,9 +65,9 @@ struct aws_byte_buf easy_b64_decode(const char *b64_string);
  */
 int assert_keyring_trace_record(const struct aws_array_list *keyring_trace,
                                 size_t idx,
-                                uint32_t flags,
                                 const char *name_space,
-                                const char *name);
+                                const char *name,
+                                uint32_t flags);
 
 
 #ifdef __cplusplus

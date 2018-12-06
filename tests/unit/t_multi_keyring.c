@@ -141,7 +141,11 @@ int delegates_on_encrypt_calls() {
             TEST_ASSERT(test_keyrings[kr_idx].on_encrypt_called);
             uint32_t flags = AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY;
             if (!kr_idx) flags |= AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY;
-            TEST_ASSERT_SUCCESS(assert_keyring_trace_record(&keyring_trace, kr_idx-starting_idx, flags, NULL, NULL));
+            TEST_ASSERT_SUCCESS(assert_keyring_trace_record(&keyring_trace,
+                                                            kr_idx-starting_idx,
+                                                            NULL,
+                                                            NULL,
+                                                            flags));
         }
 
         TEST_ASSERT_INT_EQ(aws_array_list_length(&edks),
@@ -331,7 +335,8 @@ int delegates_decrypt_calls() {
 
         const size_t successful_keyring = 3;
 
-        test_keyrings[successful_keyring].decrypted_data_key_to_return = aws_byte_buf_from_c_str(test_data_key);
+        test_keyrings[successful_keyring].decrypted_data_key_to_return =
+            aws_byte_buf_from_c_str(test_data_key);
 
         struct aws_byte_buf unencrypted_data_key = {0};
 
@@ -353,9 +358,12 @@ int delegates_decrypt_calls() {
         } 
 
         TEST_ASSERT_INT_EQ(aws_array_list_length(&keyring_trace), 1);
-        TEST_ASSERT_SUCCESS(assert_keyring_trace_record(&keyring_trace, 0,
-                                                        AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY,
-                                                        NULL, NULL));
+        TEST_ASSERT_SUCCESS(assert_keyring_trace_record(
+                                &keyring_trace,
+                                0,
+                                NULL,
+                                NULL,
+                                AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
         tear_down_all_the_things();
     }
     return 0;

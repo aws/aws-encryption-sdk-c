@@ -15,6 +15,7 @@
 #include <aws/cryptosdk/keyring_trace.h>
 #include <aws/common/hash_table.h>
 #include "testing.h"
+#include "testutil.h"
 
 AWS_STATIC_STRING_FROM_LITERAL(kms_name_space, "aws-kms");
 AWS_STATIC_STRING_FROM_LITERAL(kms_key, "key_arn");
@@ -32,15 +33,14 @@ int keyring_trace_add_record_works() {
                             AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
                             AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX));
 
-    struct aws_cryptosdk_keyring_trace_record record;
-    TEST_ASSERT_SUCCESS(aws_array_list_get_at(&trace, (void *)&record, 0));
-    TEST_ASSERT(aws_string_eq(record.wrapping_key.name_space, kms_name_space));
-    TEST_ASSERT(aws_string_eq(record.wrapping_key.name, kms_key));
-    TEST_ASSERT(record.flags & AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY);
-    TEST_ASSERT(record.flags & AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY);
-    TEST_ASSERT(record.flags & AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX);
-    TEST_ASSERT(!(record.flags & AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
-    TEST_ASSERT(!(record.flags & AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX));
+    TEST_ASSERT_SUCCESS(assert_keyring_trace_record(
+                            &trace,
+                            0,
+                            aws_string_bytes(kms_name_space),
+                            aws_string_bytes(kms_key),
+                            AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY |
+                            AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
+                            AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX));
     
     aws_cryptosdk_keyring_trace_clean_up(&trace);
     return 0;
