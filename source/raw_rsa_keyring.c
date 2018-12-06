@@ -92,10 +92,10 @@ static int raw_rsa_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
     if (!ret) {
         flags |= AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY;
         aws_cryptosdk_keyring_trace_add_record(request_alloc,
-                                             keyring_trace,
-                                             self->provider_id,
-                                             self->master_key_id,
-                                             flags);
+                                               keyring_trace,
+                                               self->provider_id,
+                                               self->master_key_id,
+                                               flags);
     }
     return ret;
 }
@@ -134,10 +134,10 @@ static int raw_rsa_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
             aws_reset_error();
         } else {
             aws_cryptosdk_keyring_trace_add_record(request_alloc,
-                                                 keyring_trace,
-                                                 self->provider_id,
-                                                 self->master_key_id,
-                                                 AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY);
+                                                   keyring_trace,
+                                                   self->provider_id,
+                                                   self->master_key_id,
+                                                   AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY);
             return AWS_OP_SUCCESS;
         }
     }

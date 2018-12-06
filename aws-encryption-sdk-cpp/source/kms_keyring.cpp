@@ -122,11 +122,11 @@ static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
                                                       outcome.GetResult().GetPlaintext());
             if (ret == AWS_OP_SUCCESS) {
                 aws_cryptosdk_keyring_trace_add_record_c_str(request_alloc,
-                                                           keyring_trace,
-                                                           KEY_PROVIDER_STR,
-                                                           key_arn.c_str(),
-                                                           AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY |
-                                                           AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX);
+                                                             keyring_trace,
+                                                             KEY_PROVIDER_STR,
+                                                             key_arn.c_str(),
+                                                             AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY |
+                                                             AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX);
             }
             return ret;
         }

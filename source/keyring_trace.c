@@ -62,10 +62,10 @@ static inline int keyring_trace_add_record_base(
 }
 
 int aws_cryptosdk_keyring_trace_add_record(struct aws_allocator *alloc,
-                                         struct aws_array_list *trace,
-                                         const struct aws_string *name_space,
-                                         const struct aws_string *name,
-                                         uint32_t flags) {
+                                           struct aws_array_list *trace,
+                                           const struct aws_string *name_space,
+                                           const struct aws_string *name,
+                                           uint32_t flags) {
     struct aws_cryptosdk_keyring_trace_record record;
     int ret = wrapping_key_init_from_strings(alloc, &record.wrapping_key, name_space, name);
     if (ret) return ret;
@@ -74,10 +74,10 @@ int aws_cryptosdk_keyring_trace_add_record(struct aws_allocator *alloc,
 }
 
 int aws_cryptosdk_keyring_trace_add_record_c_str(struct aws_allocator *alloc,
-                                               struct aws_array_list *trace,
-                                               const char *name_space,
-                                               const char *name,
-                                               uint32_t flags) {
+                                                 struct aws_array_list *trace,
+                                                 const char *name_space,
+                                                 const char *name,
+                                                 uint32_t flags) {
     struct aws_cryptosdk_keyring_trace_record record;
     int ret = wrapping_key_init_from_c_strs(alloc, &record.wrapping_key, name_space, name);
     if (ret) return ret;
