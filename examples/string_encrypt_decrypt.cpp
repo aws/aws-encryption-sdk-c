@@ -19,10 +19,8 @@
 #include <aws/cryptosdk/session.h>
 #include <aws/cryptosdk/kms_keyring.h>
 
-const char * KEY_ARN = "arn:aws:kms:us-west-2:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
-
-void encrypt_string_test(struct aws_byte_buf * ct_out, struct aws_byte_buf * const pt_in, struct aws_allocator * allocator) {
-    auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({KEY_ARN});
+void encrypt_string_test(struct aws_byte_buf * ct_out, struct aws_byte_buf * const pt_in, const char * key_arn, struct aws_allocator * allocator) {
+    auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({key_arn});
 
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(allocator, kms_keyring);
     if (!cmm) abort();
@@ -32,7 +30,8 @@ void encrypt_string_test(struct aws_byte_buf * ct_out, struct aws_byte_buf * con
     if (!session) abort();
     aws_cryptosdk_cmm_release(cmm);
 
-    aws_cryptosdk_session_set_message_size(session, pt_in->len);
+    int aws_status = aws_cryptosdk_session_set_message_size(session, pt_in->len);
+    if (aws_status != AWS_OP_SUCCESS) abort();
 
     size_t in_consumed;
     int encrypt_result = aws_cryptosdk_session_process(session, ct_out->buffer, ct_out->capacity, &ct_out->len,
@@ -42,8 +41,8 @@ void encrypt_string_test(struct aws_byte_buf * ct_out, struct aws_byte_buf * con
     aws_cryptosdk_session_destroy(session);
 }
 
-void decrypt_string_test(struct aws_byte_buf * pt_out, struct aws_byte_buf const * ct_in, struct aws_allocator * allocator) {
-    auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({KEY_ARN});
+void decrypt_string_test(struct aws_byte_buf * pt_out, struct aws_byte_buf const * ct_in, const char * key_arn, struct aws_allocator * allocator) {
+    auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({key_arn});
 
     struct aws_cryptosdk_cmm * cmm = aws_cryptosdk_default_cmm_new(allocator, kms_keyring);
     if (!cmm) abort();
@@ -61,6 +60,12 @@ void decrypt_string_test(struct aws_byte_buf * pt_out, struct aws_byte_buf const
 int main() {
     aws_cryptosdk_load_error_strings();
 
+    char const * key_arn = getenv("KEY_ARN");
+    if (key_arn == NULL) {
+        fprintf(stderr, "Environment variable KEY_ARN for the KMS key is not set");
+        exit(1);
+    }
+
     Aws::SDKOptions::SDKOptions options;
     Aws::InitAPI(options);
     const size_t BUFFER_SIZE = 1024;
@@ -75,7 +80,7 @@ int main() {
     struct aws_byte_buf ciphertext;
     aws_byte_buf_init(&ciphertext, allocator, BUFFER_SIZE);
 
-    encrypt_string_test(&ciphertext, &plaintext_original, allocator);
+    encrypt_string_test(&ciphertext, &plaintext_original, key_arn, allocator);
     printf(">> Encrypted to ciphertext of len %d\n", (int)ciphertext.len);
 
     //
@@ -84,7 +89,7 @@ int main() {
     struct aws_byte_buf plaintext_result;
     aws_byte_buf_init(&plaintext_result, allocator, BUFFER_SIZE);
 
-    decrypt_string_test(&plaintext_result, &ciphertext, allocator);
+    decrypt_string_test(&plaintext_result, &ciphertext, key_arn, allocator);
     printf(">> Decrypted to plaintext of length %d\n", (int)plaintext_result.len);
 
     // Compare decrypted plaintext to original plaintext
