@@ -18,6 +18,6 @@ set(PROJECT_NAME test-app)
 
 find_package(aws-encryption-sdk CONFIG REQUIRED)
 
-add_executable(test "test.c")
-target_link_libraries(test PUBLIC AWS::aws-encryption-sdk)
-set_target_properties(test PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
+add_executable(testapp "test.c")
+target_link_libraries(testapp PUBLIC AWS::aws-encryption-sdk)
+set_target_properties(testapp PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
