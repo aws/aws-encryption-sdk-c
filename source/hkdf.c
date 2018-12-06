@@ -20,7 +20,7 @@
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/hkdf.h>
 
-static const EVP_MD *aws_cryptosdk_which_sha(enum aws_cryptosdk_sha_version which_sha) {
+static const EVP_MD *aws_cryptosdk_get_evp_md(enum aws_cryptosdk_sha_version which_sha) {
     switch (which_sha) {
         case AWS_CRYPTOSDK_SHA256: return EVP_sha256();
         case AWS_CRYPTOSDK_SHA384: return EVP_sha384();
@@ -38,7 +38,7 @@ static int aws_cryptosdk_hkdf_extract(
     const struct aws_byte_buf *salt,
     const struct aws_byte_buf *ikm) {
 
-    const EVP_MD *evp_md = aws_cryptosdk_which_sha(which_sha);
+    const EVP_MD *evp_md = aws_cryptosdk_get_evp_md(which_sha);
     if (!evp_md) return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
 
     static const uint8_t zeroes[EVP_MAX_MD_SIZE] = { 0 };
@@ -65,7 +65,7 @@ static int aws_cryptosdk_hkdf_expand(
     const uint8_t *prk,
     unsigned int prk_len,
     const struct aws_byte_buf *info) {
-    const EVP_MD *evp_md = aws_cryptosdk_which_sha(which_sha);
+    const EVP_MD *evp_md = aws_cryptosdk_get_evp_md(which_sha);
     if (!evp_md) return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     HMAC_CTX ctx;
     uint8_t t[EVP_MAX_MD_SIZE];
@@ -113,7 +113,7 @@ static int aws_cryptosdk_openssl_hkdf_version(
     const struct aws_byte_buf *salt,
     const struct aws_byte_buf *ikm,
     const struct aws_byte_buf *info) {
-    const EVP_MD *evp_md = aws_cryptosdk_which_sha(which_sha);
+    const EVP_MD *evp_md = aws_cryptosdk_get_evp_md(which_sha);
     if (!evp_md) return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
     if (!pctx) return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
