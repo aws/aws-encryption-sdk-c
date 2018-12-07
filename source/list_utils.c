@@ -46,10 +46,16 @@ static int list_copy_all(struct aws_allocator *alloc,
     size_t src_length = aws_array_list_length(src);
     int lasterr;
 
+    /* You can do this with a variable length uint8_t array everywhere except Windows,
+     * but Microsoft forces us to do an allocation here.
+     */
+    void *dest_item = aws_mem_acquire(alloc, dest->item_size);
+    if (!dest_item) {
+        return AWS_OP_ERR;
+    }
+
     for (size_t i = 0; i < src_length; i++) {
         void *src_item;
-        uint8_t dest_space[dest->item_size];
-        void *dest_item = dest_space;
 
         if (aws_array_list_get_at_ptr(src, &src_item, i)) {
             goto err;
@@ -65,8 +71,10 @@ static int list_copy_all(struct aws_allocator *alloc,
         }
     }
 
+    aws_mem_release(alloc, dest_item);
     return AWS_OP_SUCCESS;
 err:
+    aws_mem_release(alloc, dest_item);
     lasterr = aws_last_error();
 
     while (aws_array_list_length(dest) > initial_length) {
