@@ -15,12 +15,15 @@
 #ifndef AWS_CRYPTOSDK_TESTS_LIB_RAW_RSA_KR_TEST_VECTORS_H
 #define AWS_CRYPTOSDK_TESTS_LIB_RAW_RSA_KR_TEST_VECTORS_H
 
+#include "testutil.h"
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/materials.h>
 
+TESTLIB_API
 struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new(
     struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);
 
+TESTLIB_API
 struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new_with_wrong_key(
     struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);
 
@@ -34,12 +37,16 @@ struct raw_rsa_keyring_test_vector {
     const uint8_t *edk_bytes;
     size_t edk_bytes_len;
 };
+TESTLIB_API
 extern struct raw_rsa_keyring_test_vector raw_rsa_keyring_test_vectors[];
 
+TESTLIB_API
 struct aws_cryptosdk_edk edk_init(const uint8_t *edk_bytes, size_t edk_len);
 
+TESTLIB_API
 struct aws_cryptosdk_edk edk_init_test_vector_idx(int idx);
 
+TESTLIB_API
 struct aws_cryptosdk_edk edk_init_test_vector(struct raw_rsa_keyring_test_vector *tv);
 
 #endif  // AWS_CRYPTOSDK_TESTS_LIB_RAW_RSA_KR_TEST_VECTORS_H

@@ -15,6 +15,7 @@
 #ifndef AWS_CRYPTOSDK_TESTS_LIB_RAW_AES_KR_TEST_VECTORS_H
 #define AWS_CRYPTOSDK_TESTS_LIB_RAW_AES_KR_TEST_VECTORS_H
 
+#include "testutil.h"
 #include <aws/cryptosdk/materials.h>
 
 /**
@@ -48,6 +49,7 @@ struct raw_aes_keyring_test_vector {
     size_t num_ec_kv_pairs;
 };
 
+TESTLIB_API
 extern struct raw_aes_keyring_test_vector raw_aes_keyring_test_vectors[];
 
 /**
@@ -59,6 +61,7 @@ extern struct raw_aes_keyring_test_vector raw_aes_keyring_test_vectors[];
  * that some but not all pairs may have already been added to the table. But
  * this is just test code, Jack.
  */
+TESTLIB_API
 int set_test_vector_encryption_context(struct aws_allocator * alloc,
                                        struct aws_hash_table * enc_context,
                                        const struct raw_aes_keyring_test_vector * tv);
@@ -82,12 +85,15 @@ int set_test_vector_encryption_context(struct aws_allocator * alloc,
  *
  * (3) Deallocate the EDK directly with aws_cryptosdk_edk_clean_up.
  */
+TESTLIB_API
 struct aws_cryptosdk_edk build_test_edk_init(const uint8_t * edk_bytes, size_t edk_len, const uint8_t * iv);
 
 /**
  * Convenience wrappers around build_test_edk_init that give the EDK of any test vector.
  */
+TESTLIB_API
 struct aws_cryptosdk_edk edk_init_from_test_vector(struct raw_aes_keyring_test_vector * tv);
+TESTLIB_API
 struct aws_cryptosdk_edk edk_init_from_test_vector_idx(int idx);
 
 #endif // AWS_CRYPTOSDK_TESTS_LIB_RAW_AES_KR_TEST_VECTORS_H

@@ -24,7 +24,7 @@ set -euxo pipefail
 HOST_IP=`route -n | grep '^0.0.0.0' | perl -pe 's/^\S+\s+(\S+)\s.*/$1/'`
 
 # Is a proxy running?
-if nc $HOST_IP 3142 < /dev/null; then
+if nc -e /bin/true $HOST_IP 3142 < /dev/null; then
     echo "=== Enabling apt proxy on http://$HOST_IP:3142"
     echo "Acquire::http { Proxy \"http://$HOST_IP:3142\"; };" > /etc/apt/apt.conf.d/99proxy
 fi

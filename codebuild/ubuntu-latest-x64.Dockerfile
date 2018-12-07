@@ -11,12 +11,17 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM ubuntu:14.04.5
+FROM ubuntu:latest
+
+# Needed for setup-apt-cache.sh
+ADD https://mirrors.kernel.org/ubuntu/pool/main/n/net-tools/net-tools_1.60+git20161116.90da8a0-2ubuntu1_amd64.deb /tmp
+ADD https://mirrors.kernel.org/ubuntu/pool/universe/n/netcat/netcat-traditional_1.10-40_amd64.deb /tmp
+RUN dpkg -i /tmp/net-tools_*.deb /tmp/netcat-*.deb
 
 ADD bin/setup-apt-cache.sh /usr/local/bin/
-ADD bin/setup-apt-trusty.sh /usr/local/bin/
+ADD bin/setup-apt.sh /usr/local/bin/
 RUN setup-apt-cache.sh
-RUN setup-apt-trusty.sh
+RUN setup-apt.sh
 
 ENV PATH=/usr/local/bin:/usr/bin:/bin
 
@@ -25,12 +30,6 @@ ENV CXX=/usr/bin/g++
 ENV CFLAGS=
 ENV CXXFLAGS=
 ENV LDFLAGS=
-
-# We'll need a newer version of cmake than is available for this version of ubuntu.
-# Because cmake depends on libssl, we'll want to build it either before we set -rpaths,
-# or after we build libssl.
-ADD bin/update-cmake.sh /usr/local/bin/
-RUN update-cmake.sh
 
 # We're going to install our own version of openssl at /deps/install/lib - this lets us test against multiple openssl versions.
 # However, this also means we need to install our own version of curl, as curl links against libssl and the C++ SDK links
@@ -42,7 +41,7 @@ RUN update-cmake.sh
 # on our special versions of openssl/libcurl (or to depend on them at all for that matter).
 ENV LDFLAGS="-Wl,-rpath -Wl,/deps/install/lib -Wl,-rpath -Wl,/deps/shared/install/lib -L/deps/install/lib -L/deps/shared/install/lib"
 
-ENV OPENSSL_TAG=OpenSSL_1_0_2h
+ENV OPENSSL_TAG=OpenSSL_1_1_1a
 ENV OPENSSL_PLATFORM=linux-x86_64
 
 ADD bin/apt-install-pkgs /usr/local/bin/
