@@ -36,6 +36,7 @@ run_test() {
         .. "$@" 2>&1|head -n 1000)
     cmake --build $ROOT/build -- -v
     (cd build; ctest --output-on-failure -j8)
+    (cd build; ./tests/test_local_cache_threading)
     "$ROOT/codebuild/bin/test-install.sh" "$PREFIX_PATH" "$PWD/build"
 }
 

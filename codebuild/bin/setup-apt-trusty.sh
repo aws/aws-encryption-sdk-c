@@ -13,21 +13,18 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script builds and uploads all linux docker images.
-# The ECS_REGISTRY environment variable can be used to override which registry to upload to.
+# This script installs dependencies from APT. If specific additional dependencies are needed,
+# the $EXTRA_PACKAGES environment variable can be set from the Dockerfile to avoid having to
+# `apt-get update' twice in the dockerfile.
+
+EXTRA_PACKAGES=${EXTRA_PACKAGES:-}
 
 set -euxo pipefail
 
-ECS_REGISTRY=${ECS_REGISTRY:-636124823696.dkr.ecr.us-west-2.amazonaws.com/linux-docker-images}
+apt-get -y update
+export DEBIAN_FRONTEND=noninteractive
 
-$(aws ecr get-login --no-include-email --region us-west-2)
+apt-get -y dist-upgrade
+apt-get -y install xutils-dev wget build-essential cmake3 git zlib1g-dev awscli valgrind ninja-build $EXTRA_PACKAGES
+rm -rf /var/cache/apt/* /var/lib/apt/lists/*
 
-build_image() {
-    docker build -t $1 -f $1.Dockerfile .
-    docker tag $1:latest $ECS_REGISTRY:$1
-    docker push $ECS_REGISTRY:$1
-}
-
-build_image trusty-gcc4x-x64
-build_image trusty-gcc4x-x86
-build_image ubuntu-latest-x64
