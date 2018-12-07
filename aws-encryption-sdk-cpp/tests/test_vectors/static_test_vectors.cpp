@@ -37,6 +37,12 @@ using Aws::SDKOptions;
 
 int passed, failed, decrypt_false, aes_passed, rsa_passed, kms_passed, not_yet_supported;
 
+static int strcmp_helper(json_object *jso, const char *str)
+{
+    const char *tmp_str = json_object_get_string(jso);
+    return strcmp(tmp_str, str);
+}
+
 static int verify_manifest_type_and_version(json_object *manifest_obj)
 {
     json_object *manifest_type_obj = NULL;
@@ -44,7 +50,7 @@ static int verify_manifest_type_and_version(json_object *manifest_obj)
 
     if (!json_object_object_get_ex(manifest_obj, "type", &manifest_type_obj))
         return AWS_OP_ERR;
-    if (strcmp(json_object_get_string(manifest_type_obj), "awses-decrypt") != 0)
+    if (strcmp_helper(manifest_type_obj, "awses-decrypt") != 0)
         return AWS_OP_ERR;
     if (!json_object_object_get_ex(manifest_obj, "version", &manifest_version_obj))
         return AWS_OP_ERR;
@@ -61,7 +67,7 @@ static int verify_keys_manifest_type_and_version(json_object *keys_manifest_obj)
 
     if (!json_object_object_get_ex(keys_manifest_obj, "type", &keys_manifest_type_obj))
         return AWS_OP_ERR;
-    if (strcmp(json_object_get_string(keys_manifest_type_obj), "keys") != 0)
+    if (strcmp_helper(keys_manifest_type_obj, "keys") != 0)
         return AWS_OP_ERR;
     if (!json_object_object_get_ex(keys_manifest_obj, "version", &keys_manifest_version_obj))
         return AWS_OP_ERR;
@@ -181,16 +187,16 @@ static int process_test_scenarios(struct aws_allocator *alloc, std::string pt_fi
         /* If the decrypt attribute in the keys manifest is set to false, the corresponding key
            cannot be used to decrypt. In this case, we simply mark the test as passed and skip 
            to the next test case scenario. */
-        if (strcmp(json_object_get_string(decrypt_obj), "false") == 0)
+        if (strcmp_helper(decrypt_obj, "false") == 0)
         {
             passed++;
             decrypt_false++;
             goto next_test_scenario;
         }
 
-        if (strcmp(json_object_get_string(key_type_obj), "raw") == 0)
+        if (strcmp_helper(key_type_obj, "raw") == 0)
         {
-            if (strcmp(json_object_get_string(encryption_algorithm_obj), "aes") == 0)
+            if (strcmp_helper(encryption_algorithm_obj, "aes") == 0)
             {
                 if (!material_obj)
                 {
@@ -199,7 +205,7 @@ static int process_test_scenarios(struct aws_allocator *alloc, std::string pt_fi
                     goto next_test_scenario;
                 }
 
-                if (strcmp(json_object_get_string(encoding_obj), "base64") != 0)
+                if (strcmp_helper(encoding_obj, "base64") != 0)
                     return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
 
                 struct aws_byte_buf decoded_material;
@@ -218,7 +224,7 @@ static int process_test_scenarios(struct aws_allocator *alloc, std::string pt_fi
                     goto next_test_scenario;
                 }
             }
-            else if (strcmp(json_object_get_string(encryption_algorithm_obj), "rsa") == 0)
+            else if (strcmp_helper(encryption_algorithm_obj, "rsa") == 0)
             {
                 //setup of rsa keyring
                 if (!material_obj)
@@ -228,7 +234,7 @@ static int process_test_scenarios(struct aws_allocator *alloc, std::string pt_fi
                     goto next_test_scenario;
                 }
                 const char *pem_file = json_object_get_string(material_obj);
-                if (strcmp(json_object_get_string(encoding_obj), "pem") != 0)
+                if (strcmp_helper(encoding_obj, "pem") != 0)
                 {
                     return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
                 }
@@ -331,15 +337,15 @@ static int process_test_scenarios(struct aws_allocator *alloc, std::string pt_fi
         }
         else
         {
-            if (strcmp(json_object_get_string(key_type_obj), "raw") == 0)
+            if (strcmp_helper(key_type_obj, "raw") == 0)
             {
-                if (strcmp(json_object_get_string(encryption_algorithm_obj), "rsa") == 0)
+                if (strcmp_helper(encryption_algorithm_obj, "rsa") == 0)
                     rsa_passed++;
-                if (strcmp(json_object_get_string(encryption_algorithm_obj), "aes") == 0)
+                if (strcmp_helper(encryption_algorithm_obj, "aes") == 0)
                     aes_passed++;
             }
 
-            if (strcmp(json_object_get_string(key_type_obj), "aws-kms") == 0)
+            if (strcmp_helper(key_type_obj, "aws-kms") == 0)
                 kms_passed++;
             passed++;
         }
