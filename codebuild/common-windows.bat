@@ -26,7 +26,7 @@ cd ..\..
 rmdir/s/q build
 mkdir build
 cd build
-cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE="Release" -DFORCE_KMS_KEYRING_BUILD=ON -DAWS_ENC_SDK_END_TO_END_TESTS=ON ../ || goto error
+cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE="Release" -DFORCE_KMS_KEYRING_BUILD=ON -DAWS_ENC_SDK_END_TO_END_TESTS=ON  -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=OFF ../ || goto error
 msbuild.exe ALL_BUILD.vcxproj /p:Configuration=Release || goto error
 ctest -V --output-on-failure -j4 || goto error
 

@@ -25,7 +25,7 @@ mkdir build
 ls -l /deps/aws-c-common/install/lib/aws-c-common/cmake
 # Run a lightweight test suite with valgrind...
 (cd build;
-    cmake -DPERFORM_HEADER_CHECK=ON -DREDUCE_TEST_ITERATIONS=TRUE -DVALGRIND_TEST_SUITE=ON -DFORCE_KMS_KEYRING_BUILD=ON -DAWS_ENC_SDK_END_TO_END_TESTS=ON -DCMAKE_PREFIX_PATH='/deps/aws-c-common/install;/deps/aws-sdk-cpp/install/lib/cmake' .. &&
+    cmake -DPERFORM_HEADER_CHECK=ON -DREDUCE_TEST_ITERATIONS=TRUE -DVALGRIND_TEST_SUITE=ON -DFORCE_KMS_KEYRING_BUILD=ON -DAWS_ENC_SDK_END_TO_END_TESTS=ON -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON -DCMAKE_PREFIX_PATH='/deps/aws-c-common/install;/deps/aws-sdk-cpp/install/lib/cmake' .. &&
     make VERBOSE=1 &&
     ctest --output-on-failure -j8)
 
@@ -39,7 +39,7 @@ rm -rf build
 mkdir build
 ls -l /deps/aws-c-common/install/lib/aws-c-common/cmake
 (cd build;
-    cmake -DBUILD_SHARED_LIBS=ON -DFORCE_KMS_KEYRING_BUILD=ON -DAWS_ENC_SDK_END_TO_END_TESTS=ON -DCMAKE_PREFIX_PATH='/deps/aws-c-common/install;/deps/aws-sdk-cpp/install/lib/cmake' .. &&
+    cmake -DBUILD_SHARED_LIBS=ON -DFORCE_KMS_KEYRING_BUILD=ON -DAWS_ENC_SDK_END_TO_END_TESTS=ON -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON -DCMAKE_PREFIX_PATH='/deps/aws-c-common/install;/deps/aws-sdk-cpp/install/lib/cmake' .. &&
     make VERBOSE=1 &&
     ctest --output-on-failure -j8)
 

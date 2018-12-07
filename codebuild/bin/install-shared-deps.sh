@@ -13,13 +13,16 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script installs non-AWS dependencies. Currently this is openssl and libcurl.
+# This script installs non-AWS dependencies. Currently this is openssl, libcurl and json-c.
 
 # We install openssl primarily to control the version being used, but also to turn on
 # -DPURIFY to silence some valgrind warnings.
 
 # We install libcurl because we need a version that links against the version of openssl
 # in use, to avoid version conflicts.
+
+# We install json-c because we require it to manipulate json objects while running checks  
+# on known good test vectors.
 
 # env variables used:
 # $OPENSSL_PLATFORM: The openssl platform name (e.g. linux-generic32)
@@ -54,3 +57,14 @@ make -j8
 make install
 cd /
 rm -rf /deps/curl
+
+mkdir /deps/json-c
+cd /deps/json-c
+wget https://s3.amazonaws.com/json-c_releases/releases/json-c-0.13.tar.gz
+tar xzf json-c-*.tar.gz
+cd json-c-*/
+./configure --prefix=/deps/install
+make -j8
+make install
+cd /
+rm -rf /deps/json-c
