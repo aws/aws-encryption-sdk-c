@@ -28,6 +28,14 @@
  * need to use it and you should not do so.
  */
 
+/**
+ * @addtogroup cmm_kr_lowlevel
+ * @{
+ */
+
+/**
+ * A structure representing a single encrypted data key.
+ */
 struct aws_cryptosdk_edk {
     struct aws_byte_buf provider_id;
     struct aws_byte_buf provider_info;
@@ -82,6 +90,8 @@ AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_edk_eq(const struct aws_cryptosdk
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */ // end of doxygen group
 
 #endif // AWS_CRYPTOSDK_EDK_H
 

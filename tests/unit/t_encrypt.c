@@ -331,7 +331,7 @@ int test_different_keyring_cant_decrypt() {
     );
 #else
     // We don't yet return the correct error, but we can check that -some- error is returned.
-    TEST_ASSERT_INT_EQ(AWS_OP_ERR,
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT,
         aws_cryptosdk_session_process(session,
             pt_buf, pt_size, &pt_consumed,
             ct_buf, ct_size, &ct_consumed
