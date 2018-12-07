@@ -20,12 +20,12 @@
 #            define AWS_CRYPTOSDK_CPP_API __declspec(dllexport)
 #        else
 #            define AWS_CRYPTOSDK_CPP_API __declspec(dllimport)
-#        endif /* AWS_CRYPTOSDK_EXPORTS */
+#        endif /* AWS_CRYPTOSDK_CPP_API */
 #    else
 #        define AWS_CRYPTOSDK_CPP_API
-#    endif // USE_IMPORT_EXPORT
+#    endif /* AWS_ENCRYPTION_SDK_CPP_SHARED */
 
-#else /* defined (USE_WINDOWS_DLL_SEMANTICS) || defined (WIN32) */
+#else /* defined (WIN32) */
 
 /*
  * We don't use -fvisibility=hidden for the C++ side due to problems
@@ -33,6 +33,6 @@
  */
 #define AWS_CRYPTOSDK_CPP_API
 
-#endif /* defined (USE_WINDOWS_DLL_SEMANTICS) || defined (WIN32) */
+#endif /* defined (WIN32) */
 
 #endif /* AWS_CRYPTOSDK_CPP_EXPORTS_H */
