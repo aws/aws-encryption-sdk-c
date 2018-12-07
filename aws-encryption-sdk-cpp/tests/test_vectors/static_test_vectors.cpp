@@ -84,14 +84,12 @@ static int get_base64_decoded_material(struct aws_allocator *alloc, struct aws_b
     if (aws_base64_compute_decoded_len(&in, &decoded_len))
     {
         failed++;
-        fprintf(stderr, "Failed to compute base64 decode length %d\n", aws_last_error());
+        fprintf(stderr, "Failed to compute base64 decode length, %s\n", aws_error_str(aws_last_error()));
         return AWS_OP_ERR;
     }
     if (aws_byte_buf_init(decoded_material, alloc, decoded_len + 2))
     {
-        failed++;
-        fprintf(stderr, "Failed to init aws_byte_buf %d\n", aws_last_error());
-        return AWS_OP_ERR;
+        abort();
     }
     memset(decoded_material->buffer, 0xdd, decoded_material->capacity);
     decoded_material->len = 0;
@@ -100,7 +98,7 @@ static int get_base64_decoded_material(struct aws_allocator *alloc, struct aws_b
     if (aws_base64_decode(&encoded_material, decoded_material))
     {
         failed++;
-        fprintf(stderr, "Failed to base64 decode %d\n", aws_last_error());
+        fprintf(stderr, "Failed to base64 decode, %s\n", aws_error_str(aws_last_error()));
         return AWS_OP_ERR;
     }
 
@@ -201,7 +199,7 @@ static int process_test_scenarios(struct aws_allocator *alloc, std::string pt_fi
                 if (!material_obj)
                 {
                     failed++;
-                    fprintf(stderr, "Failed to obtain the raw key material %d\n", aws_last_error());
+                    fprintf(stderr, "Failed to obtain the raw aes key material, %s\n", aws_error_str(aws_last_error()));
                     goto next_test_scenario;
                 }
 
@@ -220,7 +218,7 @@ static int process_test_scenarios(struct aws_allocator *alloc, std::string pt_fi
                                                              decoded_material.buffer, (enum aws_cryptosdk_aes_key_len)decoded_material.len)))
                 {
                     failed++;
-                    fprintf(stderr, "Failed to initialize aws_cryptosdk_raw_aes_keyring %d\n", aws_last_error());
+                    fprintf(stderr, "Failed to initialize aws_cryptosdk_raw_aes_keyring, %s\n", aws_error_str(aws_last_error()));
                     goto next_test_scenario;
                 }
             }
@@ -230,7 +228,7 @@ static int process_test_scenarios(struct aws_allocator *alloc, std::string pt_fi
                 if (!material_obj)
                 {
                     failed++;
-                    fprintf(stderr, "Failed to obtain the raw key material %d\n", aws_last_error());
+                    fprintf(stderr, "Failed to obtain the raw rsa key material, %s\n", aws_error_str(aws_last_error()));
                     goto next_test_scenario;
                 }
                 const char *pem_file = json_object_get_string(material_obj);
@@ -258,7 +256,7 @@ static int process_test_scenarios(struct aws_allocator *alloc, std::string pt_fi
                                                              pem_file, NULL, padding_mode)))
                 {
                     failed++;
-                    fprintf(stderr, "Failed to initialize aws_cryptosdk_raw_rsa_keyring %d\n", aws_last_error());
+                    fprintf(stderr, "Failed to initialize aws_cryptosdk_raw_rsa_keyring, %s\n", aws_error_str(aws_last_error()));
                     goto next_test_scenario;
                 }
             }
@@ -269,14 +267,14 @@ static int process_test_scenarios(struct aws_allocator *alloc, std::string pt_fi
             if (!key_id_obj)
             {
                 failed++;
-                fprintf(stderr, "Failed to obtain the kms_key_id %d\n", aws_last_error());
+                fprintf(stderr, "Failed to obtain the kms_key_id, %s\n", aws_error_str(aws_last_error()));
                 goto next_test_scenario;
             }
             const Aws::String key_id = json_object_get_string(key_id_obj);
             kr = KmsKeyring::Builder().Build({key_id});
             if (!kr)
             {
-                fprintf(stderr, "Failed to initialize aws_cryptosdk_kms_keyring %d\n", aws_last_error());
+                fprintf(stderr, "Failed to initialize aws_cryptosdk_kms_keyring, %s\n", aws_error_str(aws_last_error()));
                 goto next_test_scenario;
             }
         }
@@ -284,56 +282,68 @@ static int process_test_scenarios(struct aws_allocator *alloc, std::string pt_fi
         if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr)))
         {
             failed++;
-            fprintf(stderr, "Failed to initialize aws_cryptosdk_default_cmm %d\n", aws_last_error());
+            fprintf(stderr, "Failed to initialize aws_cryptosdk_default_cmm, %s\n", aws_error_str(aws_last_error()));
             goto next_test_scenario;
         }
 
         if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm)))
         {
             failed++;
-            fprintf(stderr, "Failed to initialize aws_cryptosdk_session %d\n", aws_last_error());
+            fprintf(stderr, "Failed to initialize aws_cryptosdk_session, %s\n", aws_error_str(aws_last_error()));
             goto next_test_scenario;
         }
 
         if (test_loadfile(ct_filename.c_str(), &ciphertext, &ct_len))
         {
             failed++;
-            fprintf(stderr, "Failed to load ciphertext file %s: %d\n", ct_filename.c_str(), aws_last_error());
+            fprintf(stderr, "Failed to load ciphertext file %s, %s\n", ct_filename.c_str(), aws_error_str(aws_last_error()));
             goto next_test_scenario;
         }
 
         if (test_loadfile(pt_filename.c_str(), &plaintext, &pt_len))
         {
             failed++;
-            fprintf(stderr, "Failed to load plaintext file %s: %d\n", pt_filename.c_str(), aws_last_error());
+            fprintf(stderr, "Failed to load plaintext file %s, %s\n", pt_filename.c_str(), aws_error_str(aws_last_error()));
             goto next_test_scenario;
         }
 
         output_buffer = (uint8_t *)malloc(pt_len);
         if (!output_buffer)
         {
-            failed++;
-            fprintf(stderr, "out of memory\n");
-            goto next_test_scenario;
+            abort();
         }
 
         if (aws_cryptosdk_session_process(session, output_buffer, pt_len, &out_produced, ciphertext, ct_len, &in_consumed) != AWS_OP_SUCCESS)
         {
             failed++;
+            fprintf(stderr, "Error while processing aws_crytosdk_session, %s\n",aws_error_str(aws_last_error()));
+            goto next_test_scenario;
+        }
+
+        if (!aws_cryptosdk_session_is_done(session))
+        {
+            failed++;
+            fprintf(stderr, "Error while processing aws_crytosdk_session, decryption not complete, %s\n",aws_error_str(aws_last_error()));
+            goto next_test_scenario;
+        }
+
+        if (in_consumed != ct_len) {
+            failed++;
+            fprintf(stderr, "Error while processing aws_crytosdk_session, entire input not consumed, %s\n", aws_error_str(aws_last_error()));
             goto next_test_scenario;
         }
 
         if (pt_len != out_produced)
         {
             failed++;
-            fprintf(stderr, "Wrong output size, PlainText length = %zu, Produced output length = %zu %d\n", pt_len, out_produced, aws_last_error());
+            fprintf(stderr, "Wrong output size, PlainText length = %zu, Produced output length = %zu\n", pt_len, out_produced);
             goto next_test_scenario;
         }
 
         if (memcmp(output_buffer, plaintext, pt_len))
         {
             failed++;
-            fprintf(stderr, "Plaintext mismatch for test case %d\n", aws_last_error());
+            fprintf(stderr, "Plaintext mismatch for test case %s\n", ct_filename.c_str());
         }
         else
         {
