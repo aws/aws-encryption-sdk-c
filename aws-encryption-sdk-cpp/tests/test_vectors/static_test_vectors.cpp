@@ -120,9 +120,8 @@ static enum aws_cryptosdk_rsa_padding_mode get_padding_mode(const char *padding_
         else
         {
             /* The AWS Encryption SDK for C currently doesn't support SHA384 and SHA512 for 
-                                   use with RSA OAEP wrapping algorithms. We will be adding support to this at a 
-                                   later stage. For more information refer to issue #187. */
-
+               use with RSA OAEP wrapping algorithms. We will be adding support to this at a 
+               later stage. For more information refer to issue #187. */
             not_yet_supported++;
             fprintf(stderr, "Padding mode not yet supported pending #187\n");
             return AWS_CRYPTOSDK_RSA_NOT_YET_IMPLEMENTED;
@@ -178,7 +177,10 @@ static int process_test_scenarios(struct aws_allocator *alloc, std::string pt_fi
             return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
 
         if (!json_object_object_get_ex(key_category_obj, "decrypt", &decrypt_obj))
-            return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+            return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);   
+        /* If the decrypt attribute in the keys manifest is set to false, the corresponding key
+           cannot be used to decrypt. In this case, we simply mark the test as passed and skip 
+           to the next test case scenario. */
         if (strcmp(json_object_get_string(decrypt_obj), "false") == 0)
         {
             passed++;
