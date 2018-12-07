@@ -16,6 +16,7 @@
 #ifndef AWS_CRYPTOSDK_TESTS_LIB_BAD_CMM_H
 #define AWS_CRYPTOSDK_TESTS_LIB_BAD_CMM_H
 
+#include "testutil.h"
 #include <aws/cryptosdk/materials.h>
 
 /**
@@ -24,6 +25,7 @@
  * Because the destroy function does not work, we return this by-value and rely on stack cleanup
  * to free the memory associated with this CMM.
  */
+TESTLIB_API
 struct aws_cryptosdk_cmm aws_cryptosdk_zero_size_cmm();
 
 /**
@@ -34,6 +36,7 @@ struct aws_cryptosdk_cmm aws_cryptosdk_zero_size_cmm();
  * Because the destroy function does not work, we return this by-value and rely on stack cleanup
  * to free the memory associated with this CMM.
  */
+TESTLIB_API
 struct aws_cryptosdk_cmm aws_cryptosdk_null_cmm();
 
 /**
@@ -41,6 +44,7 @@ struct aws_cryptosdk_cmm aws_cryptosdk_null_cmm();
  * and also provides a return value of AWS_OP_ERR just because our TEST_ASSERT_ERROR
  * macro looks for that when checking the error code.
  */
+TESTLIB_API
 int aws_cryptosdk_cmm_release_with_failed_return_value(struct aws_cryptosdk_cmm * cmm);
 
 #endif // AWS_CRYPTOSDK_TESTS_LIB_BAD_CMM_H
