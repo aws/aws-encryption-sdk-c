@@ -58,8 +58,6 @@ struct aws_cryptosdk_encryption_request {
     // hash table in order to inject additional keys or otherwise modify the encryption
     // context.
     struct aws_hash_table * enc_context;
-    // The session owns this list, but it is only written to by the keyrings.
-    struct aws_array_list *keyring_trace;
     // The session will initially call generate_encryption_materials on the CMM
     // with a zero requested_alg; it's up to one of the CMMs in the chain to fill
     // this in before the keyring is invoked. In particular, the default CMM will
@@ -72,6 +70,7 @@ struct aws_cryptosdk_encryption_request {
 struct aws_cryptosdk_encryption_materials {
     struct aws_allocator * alloc;
     struct aws_byte_buf unencrypted_data_key;
+    struct aws_array_list keyring_trace;
     struct aws_array_list encrypted_data_keys; // list of struct aws_cryptosdk_edk objects
     struct aws_cryptosdk_signctx *signctx;
     enum aws_cryptosdk_alg_id alg;
@@ -80,7 +79,6 @@ struct aws_cryptosdk_encryption_materials {
 struct aws_cryptosdk_decryption_request {
     struct aws_allocator * alloc;
     const struct aws_hash_table * enc_context;
-    struct aws_array_list *keyring_trace;
     struct aws_array_list encrypted_data_keys;
     enum aws_cryptosdk_alg_id alg;
 };
@@ -88,6 +86,7 @@ struct aws_cryptosdk_decryption_request {
 struct aws_cryptosdk_decryption_materials {
     struct aws_allocator * alloc;
     struct aws_byte_buf unencrypted_data_key;
+    struct aws_array_list keyring_trace;
     struct aws_cryptosdk_signctx *signctx;
     enum aws_cryptosdk_alg_id alg;
 };

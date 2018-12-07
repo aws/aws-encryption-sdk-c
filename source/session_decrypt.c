@@ -21,6 +21,7 @@
 #include <aws/cryptosdk/session.h>
 #include <aws/cryptosdk/edk.h>
 #include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/utils.h>
 #include <aws/cryptosdk/private/header.h>
 #include <aws/cryptosdk/private/session.h>
 #include <aws/cryptosdk/private/framefmt.h>
@@ -46,7 +47,6 @@ static int fill_request(
     }
 
     request->enc_context = &session->header.enc_context;
-    request->keyring_trace = &session->keyring_trace;
 
     for (size_t i = 0; i < n_keys; i++) {
         struct aws_cryptosdk_edk edk;
@@ -129,6 +129,9 @@ int aws_cryptosdk_priv_unwrap_keys(
     int rv = AWS_OP_ERR;
 
     if (aws_cryptosdk_cmm_decrypt_materials(session->cmm, &materials, &request)) goto out;
+
+    aws_cryptosdk_transfer_list(&session->keyring_trace, &materials->keyring_trace);
+
     if (derive_data_key(session, materials)) goto out;
     if (validate_header(session)) goto out;
 
