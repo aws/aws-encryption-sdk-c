@@ -25,7 +25,7 @@ extern "C" {
 #endif
 
 /**
- * @defgroup Error codes
+ * @defgroup error Error codes
  * @{
  */
 

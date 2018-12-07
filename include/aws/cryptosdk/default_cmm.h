@@ -24,6 +24,7 @@ extern "C" {
 #endif
 
 /**
+ * @ingroup cmm_kr_highlevel
  * Instantiate the default (non-caching) implementation of the Crypto Materials
  * Manager (CMM). A Keyring (KR) must have already been instantiated
  * and a pointer to it passed in. This CMM maintains no state of its own other
@@ -38,7 +39,7 @@ extern "C" {
  *
  * If a CMM that delegates to the default CMM selects an algorithm suite, that algorithm
  * suite will be used. Otherwise, the default CMM will select a default algorithm suite.
- * This is initially AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE, but can be overridden using
+ * This is initially AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384, but can be overridden using
  * aws_cryptosdk_default_cmm_set_alg_id.
  *
  * On success allocates a CMM and returns its address. Be sure to deallocate it later
@@ -51,6 +52,7 @@ struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * 
                                                          struct aws_cryptosdk_keyring * kr);
 
 /**
+ * @ingroup cmm_kr_highlevel
  * Selects the algorithm suite ID to use for encryption. If not called, a reasonable
  * default will be selected.
  * Raises AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT if the algorithm suite ID is unknown.

@@ -55,6 +55,11 @@ extern "C" {
  * take a CMM or keyring as an argument will appropriately increment the reference count (and
  * decrement it when they no longer have a reference). When this reference count reaches zero,
  * the CMM or keyring will be destroyed.
+ *
+ * All CMMs and keyrings provided as built-ins are thread-safe with respect to the API they
+ * expose to the session; however, any configuration APIs that are specific to the type of
+ * CMM or keyring in question may not be thread safe (that is, you can't safely change the
+ * configuration while using the CMM or keyring on another thread's session object).
  */
 
 /**
@@ -65,7 +70,7 @@ extern "C" {
  */
 
 // Note: Most of this file will be in the low-level section.
-// To add a docstring to the high-level section, use @ingroup cmm_kr_highlevel
+// To move something to the high-level section, use @ingroup cmm_kr_highlevel
 
 /**
  * Base type for a Crypto Materials Manager. Unless you are writing your own CMM, you should

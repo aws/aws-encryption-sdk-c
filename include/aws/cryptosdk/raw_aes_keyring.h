@@ -24,7 +24,12 @@ extern "C" {
 #endif
 
 /**
- * A Keyring (KR) which does local AES-GCM encryption and decryption of data keys using
+ * @defgroup raw_keyring Keyrings using local (raw) keys
+ * @{
+ */
+
+/**
+ * Builds a keyring which does local AES-GCM encryption and decryption of data keys using
  * the bytes in the array provided as the AES key.
  *
  * Master key ID, provider ID and raw key bytes provided by the caller are copied into
@@ -50,6 +55,8 @@ struct aws_cryptosdk_keyring * aws_cryptosdk_raw_aes_keyring_new(struct aws_allo
                                                                  size_t provider_id_len,
                                                                  const uint8_t * raw_key_bytes,
                                                                  enum aws_cryptosdk_aes_key_len key_len);
+
+/** @} */ // doxygen group
 
 #ifdef __cplusplus
 }

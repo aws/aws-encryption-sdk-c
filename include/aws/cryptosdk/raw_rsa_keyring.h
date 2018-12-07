@@ -23,7 +23,8 @@ extern "C" {
 #endif
 
 /**
- * A Keyring (KR) which does local RSA encryption and decryption of data keys using
+ * @ingroup raw_keyring
+ * A keyring which does local RSA encryption and decryption of data keys using
  * the RSA keys provided as a null terminated C-string in PEM format.
  *
  * Here, 'rsa_public_key_pem' is a null terminated C-string containing the public key 

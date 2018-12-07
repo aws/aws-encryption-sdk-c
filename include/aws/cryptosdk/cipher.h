@@ -23,6 +23,7 @@
 
 /**
  * @addtogroup hazmat Low-level cryptographic APIs
+ * These low-level cryptographic APIs should normally only be used by developers of keyrings or CMMs.
  * @{
  */
 
@@ -30,12 +31,14 @@
 extern "C" {
 #endif
 
+/** @ingroup raw_keyring */
 enum aws_cryptosdk_aes_key_len {
     AWS_CRYPTOSDK_AES_128 = 128/8,
     AWS_CRYPTOSDK_AES_192 = 192/8,
     AWS_CRYPTOSDK_AES_256 = 256/8
 };
 
+/** @ingroup raw_keyring */
 enum aws_cryptosdk_rsa_padding_mode {
     AWS_CRYPTOSDK_RSA_PKCS1,
     AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1,
