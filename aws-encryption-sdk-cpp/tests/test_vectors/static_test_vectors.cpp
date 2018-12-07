@@ -373,7 +373,7 @@ static int process_test_scenarios(struct aws_allocator *alloc, std::string pt_fi
 
 static int test_vector_runner(const char *path)
 {
-    char manifest_filename[100];
+    char *manifest_filename = (char *)malloc(INT_MAX);
     char *key;
 
     struct json_object *val;
@@ -389,9 +389,9 @@ static int test_vector_runner(const char *path)
     json_object *master_keys_obj = NULL;
     json_object *keys_manifest_obj = NULL;
 
-    strcpy(manifest_filename, path);
-    strcat(manifest_filename, "/manifest.json");
+    snprintf(manifest_filename, INT_MAX, "%s/manifest.json", path);
     json_object *manifest_jso_obj = json_object_from_file(manifest_filename);
+    free(manifest_filename);
 
     if (!json_object_object_get_ex(manifest_jso_obj, "manifest", &manifest_obj))
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
