@@ -19,7 +19,7 @@
 
 #include <aws/cryptosdk/session.h>
 #include <aws/cryptosdk/error.h>
-#include <aws/cryptosdk/utils.h>
+#include <aws/cryptosdk/list_utils.h>
 #include <aws/cryptosdk/private/header.h>
 #include <aws/cryptosdk/private/session.h>
 #include <aws/cryptosdk/private/framefmt.h>

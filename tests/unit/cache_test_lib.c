@@ -16,7 +16,7 @@
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/cache.h>
 #include <aws/cryptosdk/enc_context.h>
-#include <aws/cryptosdk/utils.h>
+#include <aws/cryptosdk/list_utils.h>
 #include <aws/cryptosdk/private/cipher.h>
 
 #include "cache_test_lib.h"

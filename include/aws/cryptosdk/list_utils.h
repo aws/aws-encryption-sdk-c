@@ -12,8 +12,8 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef AWS_CRYPTOSDK_UTILS_H
-#define AWS_CRYPTOSDK_UTILS_H
+#ifndef AWS_CRYPTOSDK_LIST_UTILS_H
+#define AWS_CRYPTOSDK_LIST_UTILS_H
 
 #include <aws/common/array_list.h>
 #include <aws/cryptosdk/exports.h>
@@ -55,4 +55,4 @@ int aws_cryptosdk_keyring_trace_copy_all(struct aws_allocator *alloc,
 }
 #endif
 
-#endif // AWS_CRYPTOSDK_UTILS_H
+#endif // AWS_CRYPTOSDK_LIST_UTILS_H

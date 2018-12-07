@@ -14,7 +14,7 @@
  */
 #include <aws/cryptosdk/multi_keyring.h>
 #include <aws/cryptosdk/materials.h>
-#include <aws/cryptosdk/utils.h>
+#include <aws/cryptosdk/list_utils.h>
 #include <assert.h>
 
 struct multi_keyring {
