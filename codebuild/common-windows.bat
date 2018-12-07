@@ -11,7 +11,7 @@ REM "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express 
 REM implied. See the License for the specific language governing permissions and
 REM limitations under the License.
 
-rd/s/q deps
+rmdir/s/q deps
 mkdir deps
 cd deps
 git clone https://github.com/awslabs/aws-c-common.git || goto error
@@ -23,7 +23,7 @@ msbuild.exe INSTALL.vcxproj /p:Configuration=Release || goto error
 
 cd ..\..
 
-rd/s/q build
+rmdir/s/q build
 mkdir build
 cd build
 cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE="Release" -DFORCE_KMS_KEYRING_BUILD=ON -DAWS_ENC_SDK_END_TO_END_TESTS=ON ../ || goto error
@@ -35,3 +35,4 @@ goto :EOF
 :error
 echo Failed with error #%errorlevel%.
 exit /b %errorlevel%
+
