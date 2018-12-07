@@ -51,10 +51,6 @@ function(aws_set_common_properties target)
         # MSVC warnings that we don't want
         list(APPEND AWS_C_FLAGS /wd4706) # assignment within conditional
         list(APPEND AWS_C_FLAGS /wd5045) # "Compiler will insert spectre mitigations if /Qspectre specified"
-
-        if (SPECTRE_MITIGATIONS)
-            #list(APPEND AWS_C_FLAGS /Qspectre)
-        endif()
     else()
         list(APPEND AWS_C_FLAGS -Wall -Werror)
 

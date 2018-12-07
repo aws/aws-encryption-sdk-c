@@ -38,9 +38,6 @@ set(PROJECT_NAME aws-encryption-sdk)
 set(USE_ASM TRUE
     CACHE BOOL "Enable use of inline assembler, if supported by the compiler and platform")
 
-set(SPECTRE_MITIGATIONS TRUE
-    CACHE BOOL "Attempt to mitigate SPECTRE attacks, at a potential performance cost")
-
 set(REDUCE_TEST_ITERATIONS FALSE
     CACHE BOOL "Reduce the number of iterations done on some exhaustive tests. This is particularly helpful when running under valgrind")
 
