@@ -21,12 +21,20 @@ cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_BUILD_TYPE="Release" -DCMAKE_TOO
 msbuild.exe aws-c-common.vcxproj /p:Configuration=Release || goto error
 msbuild.exe INSTALL.vcxproj /p:Configuration=Release || goto error
 
+cd ..\
+git clone git clone https://github.com/json-c/json-c.git || goto error
+mkdir json-c-build
+cd json-c-build
+cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_BUILD_TYPE="Release" -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake ../json-c || goto error
+msbuild.exe json-c.vcxproj /m /verbosity:normal  /p:Configuration=Release || goto error
+msbuild.exe INSTALL.vcxproj /p:Configuration=Release || goto error
+
 cd ..\..
 
 rmdir/s/q build
 mkdir build
 cd build
-cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE="Release" -DFORCE_KMS_KEYRING_BUILD=ON -DAWS_ENC_SDK_END_TO_END_TESTS=ON  -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=OFF ../ || goto error
+cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE="Release" -DFORCE_KMS_KEYRING_BUILD=ON -DAWS_ENC_SDK_END_TO_END_TESTS=ON  -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON ../ || goto error
 msbuild.exe ALL_BUILD.vcxproj /p:Configuration=Release || goto error
 ctest -V --output-on-failure -j4 || goto error
 
