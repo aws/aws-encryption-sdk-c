@@ -11,6 +11,8 @@
  */
 #include <aws/cryptosdk/utils.h>
 #include <aws/cryptosdk/private/utils.h>
+#include <aws/cryptosdk/edk.h>
+#include <aws/cryptosdk/private/keyring_trace.h>
 #include <assert.h>
 
 int aws_cryptosdk_compare_hash_elems_by_key_string(const void * elem_a, const void * elem_b) {
@@ -60,4 +62,77 @@ int aws_cryptosdk_transfer_list(struct aws_array_list *dest, struct aws_array_li
      */
     aws_array_list_clear(src);
     return AWS_OP_SUCCESS;
+}
+
+// allocator, dest, src
+typedef int (*clone_item_fn)(struct aws_allocator *, void *, const void *);
+typedef void (*clean_up_item_fn)(void *);
+
+static int list_copy_all(struct aws_allocator *alloc,
+                         struct aws_array_list *dest,
+                         const struct aws_array_list *src,
+                         clone_item_fn cloner,
+                         clean_up_item_fn cleaner) {
+    if (dest->item_size != src->item_size) abort();
+
+    size_t initial_length = aws_array_list_length(dest);
+    size_t src_length = aws_array_list_length(src);
+    int lasterr;
+
+    for (size_t i = 0; i < src_length; i++) {
+        void *src_item;
+        uint8_t dest_space[dest->item_size];
+        void *dest_item = dest_space;
+
+        if (aws_array_list_get_at_ptr(src, &src_item, i)) {
+            goto err;
+        }
+
+        if (cloner(alloc, dest_item, src_item)) {
+            goto err;
+        }
+
+        if (aws_array_list_push_back(dest, dest_item)) {
+            cleaner(dest_item);
+            goto err;
+        }
+    }
+
+    return AWS_OP_SUCCESS;
+err:
+    lasterr = aws_last_error();
+
+    while (aws_array_list_length(dest) > initial_length) {
+        void * dest_item_ptr;
+
+        if (aws_array_list_get_at_ptr(dest, &dest_item_ptr, aws_array_list_length(dest)-1)) {
+            /*
+             * We had elements at aws_array_list, but not anymore, it seems.
+             * Someone must be mucking with the destination list from another thread;
+             * abort before we do any more damage.
+             */
+            abort();
+        }
+        cleaner(dest_item_ptr);
+        aws_array_list_pop_back(dest);
+    }
+
+    return aws_raise_error(lasterr);
+}
+
+int aws_cryptosdk_edk_list_copy_all(struct aws_allocator *alloc,
+                                    struct aws_array_list *dest,
+                                    const struct aws_array_list *src) {
+    return list_copy_all(alloc, dest, src,
+                         (clone_item_fn)aws_cryptosdk_edk_init_clone,
+                         (clean_up_item_fn)aws_cryptosdk_edk_clean_up);
+
+}
+
+int aws_cryptosdk_keyring_trace_copy_all(struct aws_allocator *alloc,
+                                         struct aws_array_list *dest,
+                                         const struct aws_array_list *src) {
+    return list_copy_all(alloc, dest, src,
+                         (clone_item_fn)aws_cryptosdk_keyring_trace_record_init_clone,
+                         (clean_up_item_fn)aws_cryptosdk_keyring_trace_record_clean_up);
 }

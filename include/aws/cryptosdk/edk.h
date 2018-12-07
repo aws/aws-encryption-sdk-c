@@ -71,14 +71,6 @@ AWS_CRYPTOSDK_API
 int aws_cryptosdk_edk_init_clone(struct aws_allocator *alloc, struct aws_cryptosdk_edk *dest, const struct aws_cryptosdk_edk *src);
 
 /**
- * _Copies_ all EDKs in the list at src, appending the copies to dest. dest must already be initialized.
- *
- * On failure, the destination list is unchanged.
- */
-AWS_CRYPTOSDK_API
-int aws_cryptosdk_edk_list_copy_all(struct aws_allocator *alloc, struct aws_array_list *dest, const struct aws_array_list *src);
-
-/**
  * Returns true if the contents of all EDK byte buffers are identical, false otherwise.
  */
 AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_edk_eq(const struct aws_cryptosdk_edk *a, const struct aws_cryptosdk_edk *b) {

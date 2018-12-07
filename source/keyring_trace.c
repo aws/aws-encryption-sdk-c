@@ -12,13 +12,14 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <aws/cryptosdk/keyring_trace.h>
+#include <aws/cryptosdk/private/keyring_trace.h>
 #include <aws/cryptosdk/private/utils.h>
 
 static inline void wrapping_key_clean_up(
     struct aws_cryptosdk_wrapping_key *wrapping_key) {
     aws_string_destroy(wrapping_key->name_space);
     aws_string_destroy(wrapping_key->name);
+    wrapping_key->name_space = wrapping_key->name = NULL;
 }
 
 static inline int wrapping_key_init_check(
@@ -27,7 +28,6 @@ static inline int wrapping_key_init_check(
         return AWS_OP_SUCCESS;
     }
     wrapping_key_clean_up(wrapping_key);
-    wrapping_key->name_space = wrapping_key->name = NULL;
     return AWS_OP_ERR;
 }
 
@@ -94,12 +94,30 @@ int aws_cryptosdk_keyring_trace_init(struct aws_allocator *alloc, struct aws_arr
                                        sizeof(struct aws_cryptosdk_keyring_trace_record));
 }
 
+void aws_cryptosdk_keyring_trace_record_clean_up(struct aws_cryptosdk_keyring_trace_record * record) {
+    wrapping_key_clean_up(&record->wrapping_key);
+    record->flags = 0;
+}
+
+int aws_cryptosdk_keyring_trace_record_init_clone(struct aws_allocator *alloc,
+                                                  struct aws_cryptosdk_keyring_trace_record *dest,
+                                                  const struct aws_cryptosdk_keyring_trace_record *src) {
+    dest->wrapping_key.name_space = aws_cryptosdk_string_dup(alloc, src->wrapping_key.name_space);
+    dest->wrapping_key.name = aws_cryptosdk_string_dup(alloc, src->wrapping_key.name);
+    if (wrapping_key_init_check(&dest->wrapping_key)) {
+        wrapping_key_clean_up(&dest->wrapping_key);
+        return AWS_OP_ERR;
+    }
+    dest->flags = src->flags;
+    return AWS_OP_SUCCESS;
+}
+
 void aws_cryptosdk_keyring_trace_clear(struct aws_array_list *trace) {
     size_t num_records = aws_array_list_length(trace);
     for (size_t idx = 0; idx < num_records; ++idx) {
         struct aws_cryptosdk_keyring_trace_record *record;
         if (!aws_array_list_get_at_ptr(trace, (void **)&record, idx)) {
-            wrapping_key_clean_up(&record->wrapping_key);
+            aws_cryptosdk_keyring_trace_record_clean_up(record);
         }
     }
     aws_array_list_clear(trace);
@@ -109,3 +127,4 @@ void aws_cryptosdk_keyring_trace_clean_up(struct aws_array_list *trace) {
     aws_cryptosdk_keyring_trace_clear(trace);
     aws_array_list_clean_up(trace);
 }
+

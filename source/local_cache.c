@@ -15,6 +15,7 @@
 
 #include <aws/cryptosdk/cache.h>
 #include <aws/cryptosdk/cipher.h>
+#include <aws/cryptosdk/utils.h>
 #include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/private/enc_context.h>
 #include <aws/cryptosdk/enc_context.h>
