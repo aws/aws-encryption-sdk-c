@@ -257,7 +257,7 @@ static int serialize_pubkey(struct aws_allocator *alloc, EC_KEY *keypair, struct
     EC_KEY_set_conv_form(keypair, POINT_CONVERSION_COMPRESSED);
 
     length = i2o_ECPublicKey(keypair, &buf);
-    if (length < 0) {
+    if (length <= 0) {
         aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
         goto err;
     }
@@ -440,7 +440,10 @@ int aws_cryptosdk_sig_sign_start_keygen(
         goto err;
     }
 
-    EC_KEY_set_group(keypair, group);
+    if (!EC_KEY_set_group(keypair, group)) {
+        goto err;
+    }
+
     if (!EC_KEY_generate_key(keypair)) {
         goto err;
     }

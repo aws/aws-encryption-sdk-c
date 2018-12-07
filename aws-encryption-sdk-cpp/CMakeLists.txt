@@ -16,6 +16,7 @@
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${PROJECT_SOURCE_DIR}/cmake")
 include(AwsCFlags)
 include(InstallLogic)
+include(TestLibraryPath)
 
 # This is useful for CodeBuild tests since we want to avoid cases where KMS dependencies are missing and
 # we are not building aws-encryption-sdk-cpp.
@@ -54,6 +55,7 @@ endif()
 file(GLOB AWS_CRYPTOSDK_CPP_HEADERS
     # Headers subject to API/ABI stability guarantees
     "${CMAKE_CURRENT_SOURCE_DIR}/include/aws/cryptosdk/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/aws/cryptosdk/cpp/*.h"
 )
 
 file(GLOB AWS_CRYPTOSDK_CPP_SRC "source/*.cpp")
@@ -95,8 +97,11 @@ if (BUILD_AWS_ENC_SDK_CPP)
     add_library(testlibcpp ${LIBTYPE} EXCLUDE_FROM_ALL ${TEST_LIB_HEADERS} ${TEST_LIB})
     target_link_libraries(testlibcpp PUBLIC aws-encryption-sdk-cpp testlib)
     set_target_properties(testlibcpp PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
-    target_include_directories(testlibcpp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib
+    target_include_directories(testlibcpp PUBLIC
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib
+            ${PROJECT_SOURCE_DIR}/tests/unit
             ${PROJECT_SOURCE_DIR}/tests/lib $<INSTALL_INTERFACE:include>)
+    target_compile_definitions(testlibcpp PRIVATE -DIN_TESTLIB_CPP_BUILD)
 
     if (AWS_ENC_SDK_KNOWN_GOOD_TESTS)
         message(STATUS "Static known good tests on")
@@ -131,7 +136,7 @@ if (BUILD_AWS_ENC_SDK_CPP)
 
     if (AWS_ENC_SDK_END_TO_END_TESTS)
         message(STATUS "End to end tests on")
-        add_executable(t_integration_kms_keyring tests/integration/t_integration_kms_keyring.cpp ${TEST_LIB})
+        add_executable(t_integration_kms_keyring tests/integration/t_integration_kms_keyring.cpp)
         target_link_libraries(t_integration_kms_keyring testlibcpp)
         target_include_directories(t_integration_kms_keyring PUBLIC ${PROJECT_SOURCE_DIR}/tests/lib
                 ${PROJECT_SOURCE_DIR}/tests/unit
@@ -139,11 +144,7 @@ if (BUILD_AWS_ENC_SDK_CPP)
                 $<INSTALL_INTERFACE:include>
                 )
         set_target_properties(t_integration_kms_keyring PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
-        add_test(integration_kms_mk ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/t_integration_kms_keyring)
-        # path env variable requierd by Windows
-        if (WIN32 AND DEFINED ${AWSSDK_LIB_DIR})
-            set_tests_properties(integration_kms_mk PROPERTIES ENVIRONMENT "PATH=${AWSSDK_LIB_DIR};$ENV{PATH}" )
-        endif()
+        aws_add_test(integration_kms_mk ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/t_integration_kms_keyring)
     else()
         message(STATUS "End to end tests off")
     endif()
@@ -151,7 +152,7 @@ if (BUILD_AWS_ENC_SDK_CPP)
     file(GLOB test_sources FOLLOW_SYMLINKS tests/unit/*.cpp)
     foreach(test_cpp ${test_sources})
         get_filename_component(TEST_NAME ${test_cpp} NAME_WE)
-        add_executable(${TEST_NAME} ${test_cpp} ${TEST_LIB})
+        add_executable(${TEST_NAME} ${test_cpp})
         target_link_libraries(${TEST_NAME} testlibcpp)
         target_include_directories(${TEST_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib
                 ${PROJECT_SOURCE_DIR}/tests/unit
@@ -160,11 +161,7 @@ if (BUILD_AWS_ENC_SDK_CPP)
                 )
         set_target_properties(${TEST_NAME} PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
 
-        add_test(${TEST_NAME}.test ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})
-        # path env variable requierd by Windows
-        if (WIN32 AND DEFINED ${AWSSDK_LIB_DIR})
-            set_tests_properties(${TEST_NAME}.test PROPERTIES ENVIRONMENT "PATH=${AWSSDK_LIB_DIR};$ENV{PATH}" )
-        endif()
+        aws_add_test(${TEST_NAME}.test ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})
     endforeach()
 
 endif(BUILD_AWS_ENC_SDK_CPP)

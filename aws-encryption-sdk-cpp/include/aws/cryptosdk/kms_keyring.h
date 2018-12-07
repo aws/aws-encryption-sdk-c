@@ -15,6 +15,8 @@
 #ifndef AWS_ENCRYPTION_SDK_KMS_KEYRING_H
 #define AWS_ENCRYPTION_SDK_KMS_KEYRING_H
 
+#include <aws/cryptosdk/cpp/exports.h>
+
 #include <aws/core/Aws.h>
 #include <aws/core/utils/memory/stl/AWSString.h>
 #include <aws/core/utils/memory/stl/AWSMap.h>
@@ -43,7 +45,7 @@ namespace KmsKeyring {
      * For general documentation about keyrings see include/aws/cryptosdk/materials.h. This header will
      * only document what is specific to the KmsKeyring.
      */
-    class Builder {
+    class AWS_CRYPTOSDK_CPP_API Builder {
       public:
         /**
          * Adds a single grant token. For more information, see
@@ -128,7 +130,7 @@ namespace KmsKeyring {
      * Provides KMS clients in multiple regions, and allows caching of clients between
      * multiple KMS keyrings.
      */
-    class ClientSupplier {
+    class AWS_CRYPTOSDK_CPP_API ClientSupplier {
       public:
         virtual ~ClientSupplier() {};
         /**
@@ -142,7 +144,7 @@ namespace KmsKeyring {
         virtual std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region, std::function<void()> &report_success) = 0;
     };
 
-    class CachingClientSupplier : public ClientSupplier {
+    class AWS_CRYPTOSDK_CPP_API CachingClientSupplier : public ClientSupplier {
       public:
         /**
          * Helper function which creates a new CachingClientSupplier and returns a shared pointer to it.
@@ -167,7 +169,7 @@ namespace KmsKeyring {
      * Provides the same KMS client initialized in the constructor regardless of the region.
      * Note this Supplier is not suitable for multiple regions.
      */
-    class SingleClientSupplier : public ClientSupplier {
+    class AWS_CRYPTOSDK_CPP_API SingleClientSupplier : public ClientSupplier {
       public:
         /**
          * Helper function which creates a new SingleClientSupplier and returns a shared pointer to it.
