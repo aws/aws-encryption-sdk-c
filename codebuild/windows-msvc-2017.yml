@@ -17,4 +17,4 @@ phases:
   build:
     commands:
       - .\codebuild\common-windows.bat -G "Visual Studio 15 2017 Win64"
-
+      - .\codebuild\common-windows.bat --trace-expand -DBUILD_SHARED_LIBS=ON -G "Visual Studio 15 2017 Win64"

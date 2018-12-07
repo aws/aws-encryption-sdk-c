@@ -51,10 +51,6 @@ function(aws_set_common_properties target)
         # MSVC warnings that we don't want
         list(APPEND AWS_C_FLAGS /wd4706) # assignment within conditional
         list(APPEND AWS_C_FLAGS /wd5045) # "Compiler will insert spectre mitigations if /Qspectre specified"
-
-        if (SPECTRE_MITIGATIONS)
-            list(APPEND AWS_C_FLAGS /Qspectre)
-        endif()
     else()
         list(APPEND AWS_C_FLAGS -Wall -Werror)
 
@@ -94,6 +90,8 @@ function(aws_set_common_properties target)
         # This define, conversely, configures the headers to import symbols from the DLL
         # on windows. On Linux it has no effect.
         target_compile_definitions(${target} PUBLIC -D${target_name_tmp}_SHARED)
+        # Also, make sure our other targets also define the _SHARED symbol
+        add_definitions(-D${target_name_tmp}_SHARED)
 
         if(NOT MSVC AND NOT ${SET_PROPERTIES_NO_VISIBILITY_HIDDEN})
             # Avoid exporting symbols we don't mark as exported
