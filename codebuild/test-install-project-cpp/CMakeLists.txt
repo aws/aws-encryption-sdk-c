@@ -20,8 +20,8 @@ find_package(aws-encryption-sdk-cpp CONFIG REQUIRED)
 
 
 
-add_executable(test "test.cpp")
-target_link_libraries(test PUBLIC AWS::aws-encryption-sdk-cpp)
-set_property(TARGET test PROPERTY CXX_STANDARD 11)
-set_property(TARGET test PROPERTY LINKER_LANGUAGE CXX)
+add_executable(testapp "test.cpp")
+target_link_libraries(testapp PUBLIC AWS::aws-encryption-sdk-cpp)
+set_property(TARGET testapp PROPERTY CXX_STANDARD 11)
+set_property(TARGET testapp PROPERTY LINKER_LANGUAGE CXX)
 
