@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/keyring_trace.h>
+#include <aws/cryptosdk/private/utils.h>
 
 static inline void wrapping_key_clean_up(
     struct aws_cryptosdk_wrapping_key *wrapping_key) {
@@ -35,8 +36,8 @@ static inline int wrapping_key_init_from_strings(
     struct aws_cryptosdk_wrapping_key *wrapping_key,
     const struct aws_string *name_space,
     const struct aws_string *name) {
-    wrapping_key->name_space = aws_string_new_from_string(alloc, name_space);
-    wrapping_key->name = aws_string_new_from_string(alloc, name);
+    wrapping_key->name_space = aws_cryptosdk_string_dup(alloc, name_space);
+    wrapping_key->name = aws_cryptosdk_string_dup(alloc, name);
     return wrapping_key_init_check(wrapping_key);
 }
 

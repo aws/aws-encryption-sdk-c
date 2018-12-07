@@ -40,6 +40,11 @@ int aws_cryptosdk_hash_elems_array_init(struct aws_allocator * alloc,
     return AWS_OP_SUCCESS;
 }
 
+struct aws_string *aws_cryptosdk_string_dup(struct aws_allocator *alloc, const struct aws_string *str) {
+    if (str->allocator) return aws_string_new_from_string(alloc, str);
+    return (struct aws_string *)str;
+}
+
 int aws_cryptosdk_transfer_list(struct aws_array_list *dest, struct aws_array_list *src) {
     size_t src_len = aws_array_list_length(src);
     for (size_t src_idx = 0; src_idx < src_len; ++src_idx) {
