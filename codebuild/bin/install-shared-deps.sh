@@ -58,13 +58,12 @@ make install
 cd /
 rm -rf /deps/curl
 
-mkdir /deps/json-c
-cd /deps/json-c
-wget https://s3.amazonaws.com/json-c_releases/releases/json-c-0.13.tar.gz
-tar xzf json-c-*.tar.gz
-cd json-c-*/
-./configure --prefix=/deps/install
+git clone --depth 1 --branch json-c-0.13 https://github.com/json-c/json-c.git /deps/json_c_src
+cd /deps/json_c_src
+mkdir build
+cd build
+cmake ..
 make -j8
 make install
 cd /
-rm -rf /deps/json-c
+rm -rf /deps/json_c_src
