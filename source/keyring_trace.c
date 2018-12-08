@@ -112,6 +112,31 @@ int aws_cryptosdk_keyring_trace_record_init_clone(struct aws_allocator *alloc,
     return AWS_OP_SUCCESS;
 }
 
+static bool aws_cryptosdk_keyring_trace_record_eq(
+    const struct aws_cryptosdk_keyring_trace_record *a,
+    const struct aws_cryptosdk_keyring_trace_record *b) {
+    return a->flags == b->flags &&
+        aws_string_eq(a->wrapping_key.name_space, b->wrapping_key.name_space) &&
+        aws_string_eq(a->wrapping_key.name, b->wrapping_key.name);
+}
+
+bool aws_cryptosdk_keyring_trace_eq(const struct aws_array_list *a,
+                                    const struct aws_array_list *b) {
+    size_t num_records = aws_array_list_length(a);
+    if (num_records != aws_array_list_length(b)) return false;
+
+    struct aws_cryptosdk_keyring_trace_record *a_rec;
+    struct aws_cryptosdk_keyring_trace_record *b_rec;
+    for (size_t idx = 0; idx < num_records; ++idx) {
+        if (aws_array_list_get_at_ptr(a, (void**)&a_rec, idx) ||
+            aws_array_list_get_at_ptr(b, (void**)&b_rec, idx)) {
+            abort();
+        }
+        if (!aws_cryptosdk_keyring_trace_record_eq(a_rec, b_rec)) return false;
+    }
+    return true;
+}
+
 void aws_cryptosdk_keyring_trace_clear(struct aws_array_list *trace) {
     size_t num_records = aws_array_list_length(trace);
     for (size_t idx = 0; idx < num_records; ++idx) {

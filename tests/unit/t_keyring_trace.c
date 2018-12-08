@@ -12,7 +12,7 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <aws/cryptosdk/keyring_trace.h>
+#include <aws/cryptosdk/private/keyring_trace.h>
 #include <aws/cryptosdk/list_utils.h>
 #include <aws/common/hash_table.h>
 #include "testing.h"
@@ -78,6 +78,8 @@ int keyring_trace_copy_all_works() {
                             AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX));
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_copy_all(alloc, &traces[1], &traces[0]));
+
+    TEST_ASSERT(aws_cryptosdk_keyring_trace_eq(&traces[0], &traces[1]));
 
     for (int i = 0; i < 2; ++i) {
         TEST_ASSERT_SUCCESS(assert_keyring_trace_record(

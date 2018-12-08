@@ -457,12 +457,10 @@ static void destroy_cache_entry_vp(void *vp_entry) {
 }
 
 static int copy_encryption_materials(struct aws_allocator *alloc, struct aws_cryptosdk_encryption_materials *out, const struct aws_cryptosdk_encryption_materials *in) {
-    if (aws_byte_buf_init_copy(&out->unencrypted_data_key, alloc, &in->unencrypted_data_key)) {
-        goto err;
-    }
-
-    if (aws_cryptosdk_edk_list_copy_all(alloc, &out->encrypted_data_keys, &in->encrypted_data_keys)) {
-        goto err;
+    if (aws_byte_buf_init_copy(&out->unencrypted_data_key, alloc, &in->unencrypted_data_key) ||
+        aws_cryptosdk_edk_list_copy_all(alloc, &out->encrypted_data_keys, &in->encrypted_data_keys) ||
+        aws_cryptosdk_keyring_trace_copy_all(alloc, &out->keyring_trace, &in->keyring_trace)) {
+        return AWS_OP_ERR;
     }
 
     /* We do not clone the signing context itself, but instead we save the public or private keys elsewhere */
@@ -470,12 +468,11 @@ static int copy_encryption_materials(struct aws_allocator *alloc, struct aws_cry
     out->alg = in->alg;
 
     return AWS_OP_SUCCESS;
-err:
-    return AWS_OP_ERR;
 }
 
 static int copy_decryption_materials(struct aws_allocator *alloc, struct aws_cryptosdk_decryption_materials *out, const struct aws_cryptosdk_decryption_materials *in) {
-    if (aws_byte_buf_init_copy(&out->unencrypted_data_key, alloc, &in->unencrypted_data_key)) {
+    if (aws_byte_buf_init_copy(&out->unencrypted_data_key, alloc, &in->unencrypted_data_key) ||
+        aws_cryptosdk_keyring_trace_copy_all(alloc, &out->keyring_trace, &in->keyring_trace)) {
         return AWS_OP_ERR;
     }
 
