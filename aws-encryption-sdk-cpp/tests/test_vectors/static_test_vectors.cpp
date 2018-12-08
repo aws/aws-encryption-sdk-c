@@ -373,7 +373,7 @@ static int process_test_scenarios(struct aws_allocator *alloc, std::string pt_fi
 
 static int test_vector_runner(const char *path)
 {
-    char *manifest_filename = (char *)malloc(INT_MAX);
+    char manifest_filename[256];
     char *key;
 
     struct json_object *val;
@@ -389,9 +389,12 @@ static int test_vector_runner(const char *path)
     json_object *master_keys_obj = NULL;
     json_object *keys_manifest_obj = NULL;
 
-    snprintf(manifest_filename, INT_MAX, "%s/manifest.json", path);
+    if (snprintf(manifest_filename, sizeof(manifest_filename), "%s/manifest.json", path) >= sizeof(manifest_filename))
+    {
+        fprintf(stderr, "Path too long\n");
+        return AWS_OP_ERR;
+    }
     json_object *manifest_jso_obj = json_object_from_file(manifest_filename);
-    free(manifest_filename);
 
     if (!json_object_object_get_ex(manifest_jso_obj, "manifest", &manifest_obj))
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
@@ -401,10 +404,6 @@ static int test_vector_runner(const char *path)
 
     if (!json_object_object_get_ex(manifest_jso_obj, "tests", &tests_obj))
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-
-    /* I am looking for suggestions to replace the "file:/" string in the ciphertext and plaintext filenames 
-    from the manifest file with the relative path detected, in a way that is compatible for all platforms. 
-    Leaving this as a temporary work-around for now.*/
 
     std::string find_str = "file:/";
 
@@ -462,7 +461,9 @@ int main(int argc, char **argv)
     aws_cryptosdk_load_error_strings();
     SDKOptions options;
     Aws::InitAPI(options);
-    test_vector_runner(argv[1]);
+    if (test_vector_runner(argv[1])) goto err;
     Aws::ShutdownAPI(options);
     return EXIT_SUCCESS;
+err:
+    return EXIT_FAILURE;
 }
