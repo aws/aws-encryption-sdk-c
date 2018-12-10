@@ -301,6 +301,7 @@ static struct aws_cryptosdk_encryption_materials *clone_enc_materials(
 
     if (aws_byte_buf_init_copy(&new_materials->unencrypted_data_key, allocator, &materials->unencrypted_data_key)) abort();
     if (aws_cryptosdk_edk_list_copy_all(allocator, &new_materials->encrypted_data_keys, &materials->encrypted_data_keys)) abort();
+    if (aws_cryptosdk_keyring_trace_copy_all(allocator, &new_materials->keyring_trace, &materials->keyring_trace)) abort();
 
     if (materials->signctx) {
         struct aws_string *priv_key_buf;
@@ -348,6 +349,10 @@ static struct aws_cryptosdk_decryption_materials *clone_dec_materials(struct aws
     }
 
     if (aws_byte_buf_init_copy(&materials->unencrypted_data_key, allocator, &input->unencrypted_data_key)) {
+        abort();
+    }
+
+    if (aws_cryptosdk_keyring_trace_copy_all(allocator, &materials->keyring_trace, &input->keyring_trace)) {
         abort();
     }
 
