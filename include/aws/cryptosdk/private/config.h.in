@@ -22,6 +22,10 @@
 #cmakedefine AWS_CRYPTOSDK_P_SPECTRE_MITIGATIONS
 #cmakedefine AWS_CRYPTOSDK_P_HAVE_BUILTIN_EXPECT
 
+// At cmake configure time we look for the current git revision; if found and
+// not on a tag, we'll add the git revision to the version strings
+#cmakedefine AWS_CRYPTOSDK_PRIVATE_GITVERSION "@AWS_CRYPTOSDK_PRIVATE_GITVERSION@"
+
 #ifdef __CPROVER__
 
 // Disable all compiler, and go to bare C
