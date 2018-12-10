@@ -117,11 +117,12 @@ static void process_file(FILE * output_fp, FILE * input_fp, aws_cryptosdk_mode m
         resize_buffer(&input_buffer, input_needed, allocator);
     }
 
+    const char * processing_type = (mode == AWS_CRYPTOSDK_ENCRYPT) ? "Encryption" : "Decryption";
     if (!aws_cryptosdk_session_is_done(session)) {
-        printf("Processing failed; status %s errno %s\n", aws_error_str(aws_status), strerror(errno));
+        printf("%s failed; status %s errno %s\n", processing_type, aws_error_str(aws_status), strerror(errno));
     } else {
-        printf("Processing succeeded; %d input bytes were consumed; %d output bytes were produced\n",
-               (int)total_input_consumed, (int)total_output_produced) ;
+        printf("%s succeeded; %d input bytes were consumed; %d output bytes were produced\n",
+               processing_type, (int)total_input_consumed, (int)total_output_produced) ;
     }
 
     aws_mem_release(allocator, input_buffer.buffer);
@@ -139,26 +140,22 @@ void decrypt_file(FILE * plaintext_fp, FILE * ciphertext_fp, char const * key_ar
 }
 
 int main(int argc, char * argv[]) {
-    if ((argc != 4) || (strcmp(argv[1], "-e") && strcmp(argv[1], "-d"))) {
-        fprintf(stderr, "Usage: %s [-e|-d] <input_file> <output_file>\n", argv[0]);
+    if ((argc != 5) || (strcmp(argv[1], "-e") && strcmp(argv[1], "-d"))) {
+        fprintf(stderr, "Usage: %s [-e|-d] <key_arn> <input_file> <output_file>\n", argv[0]);
         exit(1);
     }
 
     bool do_encrypt = !strcmp(argv[1], "-e");
 
-    char * key_arn = getenv("KEY_ARN");
-    if (key_arn == NULL) {
-        fprintf(stderr, "Environment variable KEY_ARN for the KMS key is not set");
-        exit(1);
-    }
+    char const * key_arn = argv[2];
 
-    FILE * input_fp = fopen(argv[2], "rb");
+    FILE * input_fp = fopen(argv[3], "rb");
     if (!input_fp) {
         fprintf(stderr, "Could not open input file %s for reading; error %s\n", argv[2], strerror(errno));
         exit(1);
     }
 
-    FILE * output_fp = fopen(argv[3], "wb");
+    FILE * output_fp = fopen(argv[4], "wb");
     if (!output_fp) {
         fprintf(stderr, "Could not open output file %s for writing; error %s\n", argv[3], strerror(errno));
         fclose(input_fp);
@@ -167,7 +164,7 @@ int main(int argc, char * argv[]) {
 
     aws_cryptosdk_load_error_strings();
 
-    Aws::SDKOptions::SDKOptions options;
+    Aws::SDKOptions options;
     Aws::InitAPI(options);
 
     struct aws_allocator * allocator = aws_default_allocator();
