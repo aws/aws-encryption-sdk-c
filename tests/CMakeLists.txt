@@ -43,10 +43,20 @@ target_link_libraries(unit-test-suite ${OPENSSL_LDFLAGS} testlib_static)
 set_target_properties(unit-test-suite PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 target_include_directories(unit-test-suite PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/unit)
 
-
 if (REDUCE_TEST_ITERATIONS)
     target_compile_definitions(unit-test-suite PRIVATE REDUCE_TEST_ITERATIONS)
 endif()
+
+# This is in the integration tree so its "main" entry point won't clash with the test runner
+# Ideally we'd put the cache_test_lib.c file in lib/ as well, but we currently access some
+# private symbols (hash_decrypt_request) from caching_cmm.c, so it can't be linked into
+# e.g. tests/decrypt, which deliberately uses the "public" version of the library (which
+# hides private symbols like this).
+add_executable(test_local_cache_threading "integration/t_local_cache_threading.c" "unit/cache_test_lib.c")
+target_include_directories(test_local_cache_threading PRIVATE "unit")
+target_link_libraries(test_local_cache_threading aws-encryption-sdk-test ${OPENSSL_LDFLAGS} testlib_static)
+set_target_properties(test_local_cache_threading PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
+target_include_directories(test_local_cache_threading PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
 add_executable(test_decrypt "decrypt.c")
 target_link_libraries(test_decrypt ${PROJECT_NAME} ${OPENSSL_LDFLAGS} testlib)
@@ -99,4 +109,3 @@ aws_add_test(decrypt_hello
 aws_add_test(decrypt_hello_tiny
     ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt ${TEST_DATA}/hello.tinyframes.bin ${TEST_DATA}/hello.bin.pt)
 aws_add_test(decryption_vectors ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decryption_vectors)
-
