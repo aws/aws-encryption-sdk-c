@@ -27,78 +27,75 @@
 
 #include <aws/core/client/ClientConfiguration.h>
 
-const size_t INITIAL_CAPACITY = 16 * 1024;
-
-struct byte_buf {
-    uint8_t * buffer;
-    size_t len; // number of bytes currently in use
-    size_t capacity; // allocated size
-};
-
-static void init_buffer(struct byte_buf * buf, size_t capacity, struct aws_allocator * allocator) {
-    buf->buffer = (uint8_t *)aws_mem_acquire(allocator, capacity);
-    if (!buf->buffer) abort();
-    buf->capacity = capacity;
-    buf->len = 0;
-}
-
-static void resize_buffer(struct byte_buf * buf, size_t desired_capacity, struct aws_allocator * allocator) {
-    if (buf->capacity < desired_capacity) {
-        int status = aws_mem_realloc(allocator, (void **)&buf->buffer, buf->capacity, desired_capacity);
-        if (status != AWS_OP_SUCCESS) abort();
-        buf->capacity = desired_capacity;
-    }
+static void resize_buffer(uint8_t ** buffer, size_t desired_capacity, size_t current_capacity, struct aws_allocator * allocator) {
+    int status = aws_mem_realloc(allocator, (void **)buffer, current_capacity, desired_capacity);
+    if (status != AWS_OP_SUCCESS) abort();
 }
 
 static void process_file(FILE * output_fp, FILE * input_fp, aws_cryptosdk_mode mode, char const * key_arn, struct aws_allocator * allocator) {
+    // Initialize a KMS keyring using the provided ARN.
     auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({key_arn});
 
+    // Initialize the Cryptographic Materials Manager (CMM).  Note that since the CMM holds a
+    //   reference to the keyring, we can release the local reference.
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(allocator, kms_keyring);
     if (!cmm) abort();
     aws_cryptosdk_keyring_release(kms_keyring);
 
+    // Initialize the session object.  Note that since the session holds a
+    //   reference to the CMM, we can release the local reference.
     struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(allocator, mode, cmm);
     if (!session) abort();
     aws_cryptosdk_cmm_release(cmm);
 
-    struct byte_buf input_buffer, output_buffer;
-    init_buffer(&input_buffer, INITIAL_CAPACITY, allocator);
-    init_buffer(&output_buffer, INITIAL_CAPACITY, allocator);
+    // Allocate buffers for input and output.  Note that the initial size is not critical, as we will resize
+    //   and reallocate if more space is needed to make progress.
+    const size_t INITIAL_CAPACITY = 16 * 1024;
 
+    uint8_t *input_buffer = (uint8_t *)aws_mem_acquire(allocator, INITIAL_CAPACITY);
+    size_t input_capacity = INITIAL_CAPACITY;
+    size_t input_len = 0;
+
+    uint8_t *output_buffer = (uint8_t *)aws_mem_acquire(allocator, INITIAL_CAPACITY);
+    size_t output_capacity = INITIAL_CAPACITY;
+    size_t output_len = 0;
+
+    // We use these variables to keep track of the number of bytes of input consumed and output generated.
+    //   During encryption, once we know exactly how much plaintext is to be consumed, we call the
+    //   set_message_size() function with the exact input size so that the session can be finished.
     size_t total_input_consumed = 0;
     size_t total_output_produced = 0;
 
     int aws_status = AWS_OP_SUCCESS;
 
     while (!aws_cryptosdk_session_is_done(session)) {
-        if (!feof(input_fp) && (input_buffer.len < input_buffer.capacity)) {
-            size_t num_read = fread(&input_buffer.buffer[input_buffer.len], 1, input_buffer.capacity - input_buffer.len,
+        if (!feof(input_fp) && (input_len < input_capacity)) {
+            size_t num_read = fread(&input_buffer[input_len], 1, input_capacity - input_len,
                                     input_fp);
             if (ferror(input_fp)) break;
             assert(num_read >= 0);
-            input_buffer.len += num_read;
+            input_len += num_read;
         }
 
         if ((mode == AWS_CRYPTOSDK_ENCRYPT) && feof(input_fp)) {
-            // During encryption, once end of the file is reached, set message size so session can be finished
-            aws_status = aws_cryptosdk_session_set_message_size(session, total_input_consumed + input_buffer.len);
+            aws_status = aws_cryptosdk_session_set_message_size(session, total_input_consumed + input_len);
             if (aws_status != AWS_OP_SUCCESS) break;
         }
 
         size_t output_done, input_done;
-        aws_status = aws_cryptosdk_session_process(session, output_buffer.buffer, output_buffer.capacity, &output_done,
-                                                   input_buffer.buffer, input_buffer.len, &input_done);
+        aws_status = aws_cryptosdk_session_process(session, output_buffer, output_capacity, &output_done,
+                                                   input_buffer, input_len, &input_done);
         if (aws_status != AWS_OP_SUCCESS) break;
         total_input_consumed += input_done;
 
-        if ((input_done > 0) && (input_done < input_buffer.len)) {
+        if ((input_done > 0) && (input_done < input_len)) {
             // If not all input was consumed, move what's left over to the beginning of the buffer
-            memmove(input_buffer.buffer, &input_buffer.buffer[input_done], input_buffer.len - input_done);
+            memmove(input_buffer, &input_buffer[input_done], input_len - input_done);
         }
-        input_buffer.len -= input_done;
+        input_len -= input_done;
 
         if (output_done > 0) {
-            size_t num_written = fwrite(output_buffer.buffer, 1, output_done, output_fp);
+            size_t num_written = fwrite(output_buffer, 1, output_done, output_fp);
             if (ferror(output_fp)) break;
 
             if (num_written != output_done) abort();
@@ -109,12 +106,18 @@ static void process_file(FILE * output_fp, FILE * input_fp, aws_cryptosdk_mode m
             break;
         }
 
-        // Determine how much buffer space we need to make progress, and resize if necessary
+        // Determine how much buffer space we need to make progress, and resize buffers if necessary
         size_t input_needed, output_needed;
         aws_cryptosdk_session_estimate_buf(session, &output_needed, &input_needed);
 
-        resize_buffer(&output_buffer, output_needed, allocator);
-        resize_buffer(&input_buffer, input_needed, allocator);
+        if (output_capacity < output_needed) {
+            resize_buffer(&output_buffer, output_needed, output_capacity, allocator);
+            output_capacity = output_needed;
+        }
+        if (input_capacity < input_needed) {
+            resize_buffer(&input_buffer, input_needed, input_capacity, allocator);
+            input_capacity = input_needed;
+        }
     }
 
     const char * processing_type = (mode == AWS_CRYPTOSDK_ENCRYPT) ? "Encryption" : "Decryption";
@@ -125,8 +128,8 @@ static void process_file(FILE * output_fp, FILE * input_fp, aws_cryptosdk_mode m
                processing_type, (int)total_input_consumed, (int)total_output_produced) ;
     }
 
-    aws_mem_release(allocator, input_buffer.buffer);
-    aws_mem_release(allocator, output_buffer.buffer);
+    aws_mem_release(allocator, input_buffer);
+    aws_mem_release(allocator, output_buffer);
 
     aws_cryptosdk_session_destroy(session);
 }
