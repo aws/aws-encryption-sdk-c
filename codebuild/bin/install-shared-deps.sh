@@ -58,14 +58,16 @@ make install
 cd /
 rm -rf /deps/curl
 
-git clone --depth 1 --branch json-c-0.13 https://github.com/json-c/json-c.git /deps/json_c_src
-mkdir /deps/json_c_src/build && cd /deps/json_c_src/build
-export LD_LIBRARY_PATH=/deps/install &&
+git clone --depth 1 --branch json-c-0.13 https://github.com/json-c/json-c.git /deps/json_c
+mkdir /deps/json_c/build && cd /deps/json_c/build
+export JSON_C_INCLUDE_DIR=/deps/install/include
+export JSON_C_LIBRARY_DIR=/deps/install/lib
+export LD_LIBRARY_PATH=/deps/install 
 cmake -DCMAKE_INSTALL_PREFIX=/deps/install -DCMAKE_BUILD_TYPE=RelWithDebInfo -GNinja \
       -DCMAKE_PREFIX_PATH=/deps/install \
       -DCMAKE_C_FLAGS="$CFLAGS" \
       -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
       -DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" ..
-cmake --build /deps/json_c_src/build
-cmake --build /deps/json_c_src/build --target install
-rm -rf /deps/json_c_src
+cmake --build /deps/json_c/build
+cmake --build /deps/json_c/build --target install
+rm -rf /deps/json_c

@@ -105,16 +105,14 @@ if (BUILD_AWS_ENC_SDK_CPP)
 
     if (AWS_ENC_SDK_KNOWN_GOOD_TESTS)
         message(STATUS "Static known good tests on")
-        find_package(PkgConfig)
-        pkg_check_modules(JSON-C QUIET json-c)
-        find_path(JSON-C_INCLUDE_DIR json.h
-        HINTS ${JSON-C_INCLUDEDIR} ${JSON-C_INCLUDE_DIRS} PATH_SUFFIXES json-c json)
-        find_library(JSON-C_LIBRARY NAMES json-c libjson-c
-        HINTS ${JSON-C_LIBDIR} ${JSON-C_LIBRARY_DIRS})
-        set(JSON-C_LIBRARIES ${JSON-C_LIBRARY})
-        set(JSON-C_INCLUDE_DIRS ${JSON-C_INCLUDE_DIR})
+        find_path(JSON_C_INCLUDE_DIR json.h
+        HINTS ${JSON_C_INCLUDEDIR} ${JSON_C_INCLUDE_DIR} PATH_SUFFIXES json-c json)
+        find_library(JSON_C_LIBRARY NAMES json-c libjson-c
+        HINTS ${JSON_C_LIBDIR} ${JSON_C_LIBRARY_DIR})
+        set(JSON_C_LIBRARY ${JSON_C_LIBRARY})
+        set(JSON_C_INCLUDE_DIR ${JSON_C_INCLUDE_DIR})
         include(FindPackageHandleStandardArgs)
-        find_package_handle_standard_args(JSON-C DEFAULT_MSG JSON-C_LIBRARY JSON-C_INCLUDE_DIR)
+        find_package_handle_standard_args(JSON_C DEFAULT_MSG JSON_C_LIBRARY JSON_C_INCLUDE_DIR)
 
         file(GLOB TEST_VECTORS "tests/test_vectors/*.cpp")
         add_library(test_vectors EXCLUDE_FROM_ALL ${TEST_VECTORS})
