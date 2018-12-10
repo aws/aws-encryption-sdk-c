@@ -105,21 +105,22 @@ static int get_base64_decoded_material(struct aws_allocator *alloc, struct aws_b
     return AWS_OP_SUCCESS;
 }
 
-static enum aws_cryptosdk_rsa_padding_mode get_padding_mode(const char *padding_algorithm, const char *padding_hash)
+static bool get_padding_mode(enum aws_cryptosdk_rsa_padding_mode *rsa_padding_mode, const char *padding_algorithm, const char *padding_hash)
 {
+    enum aws_cryptosdk_rsa_padding_mode padding_mode;
     if (strcmp(padding_algorithm, "pkcs1") == 0)
     {
-        return AWS_CRYPTOSDK_RSA_PKCS1;
+        padding_mode = AWS_CRYPTOSDK_RSA_PKCS1;
     }
     else if (strcmp(padding_algorithm, "oaep-mgf1") == 0)
     {
         if (strcmp(padding_hash, "sha1") == 0)
         {
-            return AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1;
+            padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1;
         }
         else if (strcmp(padding_hash, "sha256") == 0)
         {
-            return AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1;
+            padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1;
         }
         else
         {
@@ -128,15 +129,17 @@ static enum aws_cryptosdk_rsa_padding_mode get_padding_mode(const char *padding_
                later stage. For more information refer to issue #187. */
             not_yet_supported++;
             fprintf(stderr, "Padding mode not yet supported pending #187\n");
-            return AWS_CRYPTOSDK_RSA_NOT_YET_IMPLEMENTED;
+            return true;
         }
     }
     else
     {
         failed++;
         fprintf(stderr, "Padding mode not supported by aws_encryption_sdk\n");
-        return AWS_CRYPTOSDK_RSA_NOT_YET_IMPLEMENTED;
+        return true;
     }
+    *rsa_padding_mode = padding_mode;
+    return false;
 }
 
 static int process_test_scenarios(struct aws_allocator *alloc, std::string pt_filename, std::string ct_filename, json_object *master_keys_obj, json_object *keys_obj)
@@ -246,8 +249,8 @@ static int process_test_scenarios(struct aws_allocator *alloc, std::string pt_fi
                 json_object_object_get_ex(json_obj_mk_obj, "padding-hash", &padding_hash_obj);
                 const char *padding_hash = json_object_get_string(padding_hash_obj);
 
-                enum aws_cryptosdk_rsa_padding_mode padding_mode = get_padding_mode(padding_algorithm, padding_hash);
-                if (padding_mode == AWS_CRYPTOSDK_RSA_NOT_YET_IMPLEMENTED)
+                enum aws_cryptosdk_rsa_padding_mode padding_mode;
+                if (get_padding_mode(&padding_mode, padding_algorithm, padding_hash))
                     goto next_test_scenario;
 
                 if (!(kr = aws_cryptosdk_raw_rsa_keyring_new(alloc,

@@ -35,7 +35,6 @@ enum aws_cryptosdk_rsa_padding_mode {
     AWS_CRYPTOSDK_RSA_PKCS1,
     AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1,
     AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1,
-    AWS_CRYPTOSDK_RSA_NOT_YET_IMPLEMENTED,
 };
 
 struct aws_cryptosdk_alg_properties {
