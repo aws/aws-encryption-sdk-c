@@ -640,7 +640,7 @@ static int get_decryption_materials(
 
     materials = aws_cryptosdk_decryption_materials_new(allocator, local_entry->dec_materials->alg);
 
-    if (copy_decryption_materials(allocator, materials, local_entry->dec_materials)) {
+    if (!materials || copy_decryption_materials(allocator, materials, local_entry->dec_materials)) {
         goto out;
     }
 
