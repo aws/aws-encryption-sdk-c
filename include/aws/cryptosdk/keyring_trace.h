@@ -21,13 +21,18 @@
 #include <aws/cryptosdk/exports.h>
 
 /**
- * The identifiers which are used to indicate which wrapping key or "master key"
- * was used to do data key encryption by a keyring. Most keyring implementations
- * write the name_space into the provider ID field of EDKs and the key name into
- * the provider info field of EDKs, and all new keyring implementations should
- * follow this practice. For legacy reasons, the raw AES keyring includes other
- * data in the provider ID field, but only the first part of that field (the
- * wrapping key name) corresponds to what is stored in the name field here.
+ * When a keyring is called it produces a trace of what actions it took with the
+ * different wrapping keys it manages. The trace is a list of these records.
+ *
+ * The flags argument uses bit flags to indicate which actions were taken.
+ *
+ * The other arguments are identifiers which indicate which wrapping key was used
+ * to do data key encryption by a keyring. Most keyring implementations write
+ * the wrapping_key_namespace into the provider ID field of EDKs and the
+ * wrapping_key_name into the provider info field of EDKs, and all new keyring
+ * implementations should follow this practice. For legacy reasons, the raw AES
+ * keyring includes other data in the provider ID field, but only the first part
+ * of that field corresponds to what is stored in the name field here.
  *
  * Note: "Master Key (MK)" is used as a class name in the Java and Python
  * implementations of the AWS Encryption SDK, where it is an abstraction of a
@@ -39,23 +44,12 @@
  * Java and Python SDKs, we always refer to a single entity used by a keyring
  * for data key encryption as a wrapping key.
  *
- * The motivating example of a wrapping key is a KMS CMK, for which the name_space
- * is "aws-kms" and the name is the key ARN.
- *
- * This structure is always handled as a subpart of the trace record. It exists
- * primarily as a semantic label to link the name_space and name.
- */
-struct aws_cryptosdk_wrapping_key {
-    struct aws_string *name_space;
-    struct aws_string *name;
-};
-
-/**
- * When a keyring is called it produces a trace of what actions it took with
- * the different wrapping keys it manages. The trace is a list of these records.
+ * The motivating example of a wrapping key is a KMS CMK, for which the
+ * namespace is "aws-kms" and the name is the key ARN.
  */
 struct aws_cryptosdk_keyring_trace_record {
-    struct aws_cryptosdk_wrapping_key wrapping_key;
+    struct aws_string *wrapping_key_namespace;
+    struct aws_string *wrapping_key_name;
     uint32_t flags;
 };
 
@@ -89,27 +83,29 @@ extern "C" {
 #endif
 
 /**
- * Add a record to the trace with the specified name_space, name, and flags.
- * Makes duplicates of name_space and name strings. Will be deallocated
+ * Add a record to the trace with the specified namespace, name, and flags.
+ * Makes duplicates of namespace and name strings. Will be deallocated
  * when the keyring trace object is cleared or cleaned up.
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_keyring_trace_add_record(struct aws_allocator *alloc,
-                                           struct aws_array_list *trace,
-                                           const struct aws_string *name_space,
-                                           const struct aws_string *name,
-                                           uint32_t flags);
+int aws_cryptosdk_keyring_trace_add_record(
+    struct aws_allocator *alloc,
+    struct aws_array_list *trace,
+    const struct aws_string *wrapping_key_namespace,
+    const struct aws_string *wrapping_key_name,
+    uint32_t flags);
 
 /**
  * Same as aws_cryptosdk_keyring_trace_add_record except it takes C strings
  * instead of AWS strings.
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_keyring_trace_add_record_c_str(struct aws_allocator *alloc,
-                                                 struct aws_array_list *trace,
-                                                 const char *name_space,
-                                                 const char *name,
-                                                 uint32_t flags);
+int aws_cryptosdk_keyring_trace_add_record_c_str(
+    struct aws_allocator *alloc,
+    struct aws_array_list *trace,
+    const char *wrapping_key_namespace,
+    const char *wrapping_key_name,
+    uint32_t flags);
 
 /**
  * Initialize a keyring trace.

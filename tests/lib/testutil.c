@@ -189,11 +189,11 @@ int assert_keyring_trace_record(const struct aws_array_list *keyring_trace,
     TEST_ASSERT_INT_EQ(record.flags, flags);
     if (name_space) {
         const struct aws_byte_cursor ns = aws_byte_cursor_from_c_str(name_space);
-        TEST_ASSERT(aws_string_eq_byte_cursor(record.wrapping_key.name_space, &ns));
+        TEST_ASSERT(aws_string_eq_byte_cursor(record.wrapping_key_namespace, &ns));
     }
     if (name) {
         const struct aws_byte_cursor n = aws_byte_cursor_from_c_str(name);
-        TEST_ASSERT(aws_string_eq_byte_cursor(record.wrapping_key.name, &n));
+        TEST_ASSERT(aws_string_eq_byte_cursor(record.wrapping_key_name, &n));
     }
     return 0;
 }

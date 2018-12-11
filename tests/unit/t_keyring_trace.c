@@ -88,8 +88,8 @@ int keyring_trace_copy_all_works() {
         TEST_ASSERT_SUCCESS(aws_array_list_get_at_ptr(&traces[0], (void **)&rec[0], record_idx));
         TEST_ASSERT_SUCCESS(aws_array_list_get_at_ptr(&traces[1], (void **)&rec[1], record_idx));
 
-        TEST_ASSERT_ADDR_NE(rec[0]->wrapping_key.name_space, rec[1]->wrapping_key.name_space);
-        TEST_ASSERT_ADDR_NE(rec[0]->wrapping_key.name, rec[1]->wrapping_key.name);
+        TEST_ASSERT_ADDR_NE(rec[0]->wrapping_key_namespace, rec[1]->wrapping_key_namespace);
+        TEST_ASSERT_ADDR_NE(rec[0]->wrapping_key_name, rec[1]->wrapping_key_name);
     }
 
     // each copy of trace has correct parameters
