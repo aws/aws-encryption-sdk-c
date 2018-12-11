@@ -31,6 +31,12 @@ struct aws_cryptosdk_encryption_materials * aws_cryptosdk_encryption_materials_n
         return NULL;
     }
 
+    if (aws_cryptosdk_keyring_trace_init(alloc, &enc_mat->keyring_trace)) {
+        aws_cryptosdk_edk_list_clean_up(&enc_mat->encrypted_data_keys);
+        aws_mem_release(alloc, enc_mat);
+        return NULL;
+    }
+
     return enc_mat;
 }
 
@@ -39,6 +45,7 @@ void aws_cryptosdk_encryption_materials_destroy(struct aws_cryptosdk_encryption_
         aws_cryptosdk_sig_abort(enc_mat->signctx);
         aws_byte_buf_clean_up_secure(&enc_mat->unencrypted_data_key);
         aws_cryptosdk_edk_list_clean_up(&enc_mat->encrypted_data_keys);
+        aws_cryptosdk_keyring_trace_clean_up(&enc_mat->keyring_trace);
         aws_mem_release(enc_mat->alloc, enc_mat);
     }
 }
@@ -54,6 +61,10 @@ struct aws_cryptosdk_decryption_materials * aws_cryptosdk_decryption_materials_n
     dec_mat->unencrypted_data_key.allocator = NULL;
     dec_mat->alg = alg;
     dec_mat->signctx = NULL;
+    if (aws_cryptosdk_keyring_trace_init(alloc, &dec_mat->keyring_trace)) {
+        aws_mem_release(alloc, dec_mat);
+        return NULL;
+    }
 
     return dec_mat;
 }
@@ -61,8 +72,8 @@ struct aws_cryptosdk_decryption_materials * aws_cryptosdk_decryption_materials_n
 void aws_cryptosdk_decryption_materials_destroy(struct aws_cryptosdk_decryption_materials * dec_mat) {
     if (dec_mat) {
         aws_cryptosdk_sig_abort(dec_mat->signctx);
-        aws_byte_buf_secure_zero(&dec_mat->unencrypted_data_key);
-        aws_byte_buf_clean_up(&dec_mat->unencrypted_data_key);
+        aws_byte_buf_clean_up_secure(&dec_mat->unencrypted_data_key);
+        aws_cryptosdk_keyring_trace_clean_up(&dec_mat->keyring_trace);
         aws_mem_release(dec_mat->alloc, dec_mat);
     }
 }
@@ -70,6 +81,7 @@ void aws_cryptosdk_decryption_materials_destroy(struct aws_cryptosdk_decryption_
 int aws_cryptosdk_keyring_on_encrypt(struct aws_cryptosdk_keyring *keyring,
                                      struct aws_allocator *request_alloc,
                                      struct aws_byte_buf *unencrypted_data_key,
+                                     struct aws_array_list *keyring_trace,
                                      struct aws_array_list *edks,
                                      const struct aws_hash_table *enc_context,
                                      enum aws_cryptosdk_alg_id alg) {
@@ -87,6 +99,7 @@ int aws_cryptosdk_keyring_on_encrypt(struct aws_cryptosdk_keyring *keyring,
                                   keyring,
                                   request_alloc,
                                   unencrypted_data_key,
+                                  keyring_trace,
                                   edks,
                                   enc_context,
                                   alg);
@@ -113,6 +126,7 @@ int aws_cryptosdk_keyring_on_encrypt(struct aws_cryptosdk_keyring *keyring,
 int aws_cryptosdk_keyring_on_decrypt(struct aws_cryptosdk_keyring * keyring,
                                      struct aws_allocator * request_alloc,
                                      struct aws_byte_buf * unencrypted_data_key,
+                                     struct aws_array_list *keyring_trace,
                                      const struct aws_array_list * edks,
                                      const struct aws_hash_table * enc_context,
                                      enum aws_cryptosdk_alg_id alg) {
@@ -122,6 +136,7 @@ int aws_cryptosdk_keyring_on_decrypt(struct aws_cryptosdk_keyring * keyring,
                                   keyring,
                                   request_alloc,
                                   unencrypted_data_key,
+                                  keyring_trace,
                                   edks,
                                   enc_context,
                                   alg);

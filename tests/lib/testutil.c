@@ -23,6 +23,7 @@
 #include <aws/common/hash_table.h>
 #include <aws/common/string.h>
 #include <aws/cryptosdk/enc_context.h>
+#include <aws/cryptosdk/keyring_trace.h>
 #include "../unit/testing.h"
 #include "testutil.h"
 
@@ -145,16 +146,19 @@ failure:
 }
 
 TESTLIB_API
-int test_enc_context_init_and_fill(struct aws_hash_table *enc_context) {
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(aws_default_allocator(), enc_context));
+int test_enc_context_init_and_fill(struct aws_allocator *alloc,
+                                   struct aws_hash_table *enc_context) {
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, enc_context));
 
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_1, "The night is dark");
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_1, "and full of terrors");
-    aws_hash_table_put(enc_context, enc_context_key_1, (void *)enc_context_val_1, NULL);
+    TEST_ASSERT_SUCCESS(aws_hash_table_put(enc_context, enc_context_key_1,
+                                           (void *)enc_context_val_1, NULL));
 
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_2, "You Know Nothing");
     AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_2, "James Bond");
-    aws_hash_table_put(enc_context, enc_context_key_2, (void *)enc_context_val_2, NULL);
+    TEST_ASSERT_SUCCESS(aws_hash_table_put(enc_context, enc_context_key_2,
+                                           (void *)enc_context_val_2, NULL));
 
     return 0;
 }
@@ -172,4 +176,24 @@ struct aws_byte_buf easy_b64_decode(const char *b64_string) {
     }
 
     return output;
+}
+
+TESTLIB_API
+int assert_keyring_trace_record(const struct aws_array_list *keyring_trace,
+                                size_t idx,
+                                const char *name_space,
+                                const char *name,
+                                uint32_t flags) {
+    struct aws_cryptosdk_keyring_trace_record record;
+    TEST_ASSERT_SUCCESS(aws_array_list_get_at(keyring_trace, (void *)&record, idx));
+    TEST_ASSERT_INT_EQ(record.flags, flags);
+    if (name_space) {
+        const struct aws_byte_cursor ns = aws_byte_cursor_from_c_str(name_space);
+        TEST_ASSERT(aws_string_eq_byte_cursor(record.wrapping_key_namespace, &ns));
+    }
+    if (name) {
+        const struct aws_byte_cursor n = aws_byte_cursor_from_c_str(name);
+        TEST_ASSERT(aws_string_eq_byte_cursor(record.wrapping_key_name, &n));
+    }
+    return 0;
 }

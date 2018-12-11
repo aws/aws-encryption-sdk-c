@@ -27,6 +27,8 @@ TESTLIB_API
 struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new_with_wrong_key(
     struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);
 
+int raw_rsa_keyring_tv_trace_updated_properly(struct aws_array_list *trace, uint32_t flags);
+
 struct raw_rsa_keyring_test_vector {
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode;
     enum aws_cryptosdk_alg_id alg;

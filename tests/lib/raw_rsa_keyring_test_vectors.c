@@ -12,8 +12,9 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "raw_rsa_keyring_test_vectors.h"
 #include <aws/cryptosdk/raw_rsa_keyring.h>
+#include "raw_rsa_keyring_test_vectors.h"
+#include "testutil.h"
 
 static const uint8_t raw_rsa_keyring_tv_master_key_id[] = "asdfhasiufhiasuhviawurhgiuawrhefiuawhf";
 static const uint8_t raw_rsa_keyring_tv_provider_id[] = "asoghis";
@@ -84,6 +85,14 @@ struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new_with_wrong_key(
         alloc, raw_rsa_keyring_tv_master_key_id, strlen((const char *)raw_rsa_keyring_tv_master_key_id),
         raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id),
         wrong_raw_rsa_keyring_tv_private_key, wrong_raw_rsa_keyring_tv_public_key, rsa_padding_mode);
+}
+
+int raw_rsa_keyring_tv_trace_updated_properly(struct aws_array_list *trace, uint32_t flags) {
+    return assert_keyring_trace_record(trace,
+                                       aws_array_list_length(trace)-1,
+                                       raw_rsa_keyring_tv_provider_id,
+                                       raw_rsa_keyring_tv_master_key_id,
+                                       flags);
 }
 
 struct aws_cryptosdk_edk edk_init(const uint8_t *edk_bytes, size_t edk_len) {

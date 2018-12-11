@@ -13,12 +13,14 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/private/kms_keyring.h>
+#include <aws/cryptosdk/version.h>
 
 #include <aws/core/utils/Outcome.h>
 #include <aws/core/utils/logging/LogMacros.h>
 #include <aws/core/utils/memory/stl/AWSAllocator.h>
 #include <aws/core/utils/memory/MemorySystemInterface.h>
 #include <aws/cryptosdk/private/cpputils.h>
+#include <aws/cryptosdk/list_utils.h>
 #include <aws/kms/model/DecryptRequest.h>
 #include <aws/kms/model/DecryptResult.h>
 #include <aws/kms/model/EncryptRequest.h>
@@ -45,6 +47,7 @@ static void DestroyKeyring(struct aws_cryptosdk_keyring *keyring) {
 static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
                      struct aws_allocator *request_alloc,
                      struct aws_byte_buf *unencrypted_data_key,
+                     struct aws_array_list *keyring_trace,
                      const struct aws_array_list *edks,
                      const struct aws_hash_table *enc_context,
                      enum aws_cryptosdk_alg_id alg) {
@@ -115,9 +118,18 @@ static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
 
         const Aws::String &outcome_key_id = outcome.GetResult().GetKeyId();
         if (outcome_key_id == key_arn) {
-            return aws_byte_buf_dup_from_aws_utils(request_alloc,
-                                                   unencrypted_data_key,
-                                                   outcome.GetResult().GetPlaintext());
+            int ret = aws_byte_buf_dup_from_aws_utils(request_alloc,
+                                                      unencrypted_data_key,
+                                                      outcome.GetResult().GetPlaintext());
+            if (ret == AWS_OP_SUCCESS) {
+                aws_cryptosdk_keyring_trace_add_record_c_str(request_alloc,
+                                                             keyring_trace,
+                                                             KEY_PROVIDER_STR,
+                                                             key_arn.c_str(),
+                                                             AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY |
+                                                             AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX);
+            }
+            return ret;
         }
     }
 
@@ -130,28 +142,34 @@ static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
 static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
                      struct aws_allocator *request_alloc,
                      struct aws_byte_buf *unencrypted_data_key,
+                     struct aws_array_list *keyring_trace,
                      struct aws_array_list *edk_list,
                      const struct aws_hash_table *enc_context,
                      enum aws_cryptosdk_alg_id alg) {
-    // Class that prevents memory leak of aws_list (even if a function throws)
-    // When the object will be destroyed it will call aws_cryptosdk_edk_list_clean_up
-    class EdksRaii {
+
+    // Class that prevents memory leak of local array lists (even if a function throws)
+    // When the object is destroyed it will clean up the lists
+    class ListRaii {
       public:
-        ~EdksRaii() {
-            if (initialized) {
-                aws_cryptosdk_edk_list_clean_up(&aws_list);
-                initialized = false;
-            }
+        ListRaii(int (*init_fn)(struct aws_allocator *, struct aws_array_list *),
+                 void (*clean_up_fn)(struct aws_array_list *))
+            : init_fn(init_fn), clean_up_fn(clean_up_fn) {}
+        ~ListRaii() {
+            if (initialized) clean_up_fn(&list);
         }
         int Create(struct aws_allocator *alloc) {
-            auto rv = aws_cryptosdk_edk_list_init(alloc, &aws_list);
-            initialized = (rv == AWS_OP_SUCCESS);
+            int rv = init_fn(alloc, &list);
+            if (!rv) initialized = true;
             return rv;
         }
-        bool initialized = false;
-        struct aws_array_list aws_list;
+
+        struct aws_array_list list;
+      private:
+        int (*init_fn)(struct aws_allocator *, struct aws_array_list *);
+        void (*clean_up_fn)(struct aws_array_list *);
+        bool initialized;
     };
-    
+
     if (!keyring || !request_alloc || !unencrypted_data_key || !edk_list || !enc_context) {
         abort();
     }
@@ -162,9 +180,12 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
         return AWS_OP_SUCCESS;
     }
 
-    EdksRaii edks;
-    int rv = edks.Create(request_alloc);
-    if (rv != AWS_OP_SUCCESS) return rv;
+    ListRaii my_edks(aws_cryptosdk_edk_list_init, aws_cryptosdk_edk_list_clean_up);
+    ListRaii my_keyring_trace(aws_cryptosdk_keyring_trace_init, aws_cryptosdk_keyring_trace_clean_up);
+    int rv = my_edks.Create(request_alloc);
+    if (rv) return rv;
+    rv = my_keyring_trace.Create(request_alloc);
+    if (rv) return rv;
 
     const auto enc_context_cpp = aws_map_from_c_aws_hash_table(enc_context);
 
@@ -202,7 +223,7 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
         }
         report_success();
         rv = append_key_dup_to_edks(request_alloc,
-                                    &edks.aws_list,
+                                    &my_edks.list,
                                     &outcome.GetResult().GetCiphertextBlob(),
                                     &outcome.GetResult().GetKeyId(),
                                     &self->key_provider);
@@ -213,7 +234,13 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
                                              outcome.GetResult().GetPlaintext());
         if (rv != AWS_OP_SUCCESS) return rv;
         generated_new_data_key = true;
-
+        aws_cryptosdk_keyring_trace_add_record_c_str(request_alloc,
+                                                     &my_keyring_trace.list,
+                                                     KEY_PROVIDER_STR,
+                                                     key_id.c_str(),
+                                                     AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY |
+                                                     AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
+                                                     AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX);
     }
 
     const auto unencrypted_data_key_cpp = aws_utils_byte_buffer_from_c_aws_byte_buf(unencrypted_data_key);
@@ -252,15 +279,24 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
         report_success();
         rv = append_key_dup_to_edks(
             request_alloc,
-            &edks.aws_list,
+            &my_edks.list,
             &outcome.GetResult().GetCiphertextBlob(),
             &outcome.GetResult().GetKeyId(),
             &self->key_provider);
         if (rv != AWS_OP_SUCCESS) {
             goto out;
         }
+        aws_cryptosdk_keyring_trace_add_record_c_str(request_alloc,
+                                                     &my_keyring_trace.list,
+                                                     KEY_PROVIDER_STR,
+                                                     key_id.c_str(),
+                                                     AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
+                                                     AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX);
     }
-    rv = aws_cryptosdk_transfer_edk_list(edk_list, &edks.aws_list);
+    rv = aws_cryptosdk_transfer_list(edk_list, &my_edks.list);
+    if (rv == AWS_OP_SUCCESS) {
+        aws_cryptosdk_transfer_list(keyring_trace, &my_keyring_trace.list);
+    }
 out:
     if (rv != AWS_OP_SUCCESS && generated_new_data_key) {
         aws_byte_buf_clean_up(unencrypted_data_key);
@@ -293,6 +329,7 @@ Aws::Cryptosdk::Private::KmsKeyringImpl::KmsKeyringImpl(const Aws::Vector<Aws::S
 static std::shared_ptr<KMS::KMSClient> CreateDefaultKmsClient(const Aws::String &region) {
     Aws::Client::ClientConfiguration client_configuration;
     client_configuration.region = region;
+    client_configuration.userAgent += " " AWS_CRYPTOSDK_VERSION_UA "/kms-keyring-cpp";
 #ifdef VALGRIND_TESTS
     // When running under valgrind, the default timeouts are too slow
     client_configuration.requestTimeoutMs = 10000;

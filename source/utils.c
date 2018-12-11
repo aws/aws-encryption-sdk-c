@@ -38,3 +38,8 @@ int aws_cryptosdk_hash_elems_array_init(struct aws_allocator * alloc,
     assert(aws_array_list_length(elems) == entry_count);
     return AWS_OP_SUCCESS;
 }
+
+struct aws_string *aws_cryptosdk_string_dup(struct aws_allocator *alloc, const struct aws_string *str) {
+    if (str->allocator) return aws_string_new_from_string(alloc, str);
+    return (struct aws_string *)str;
+}

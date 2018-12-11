@@ -19,6 +19,7 @@
 
 #include <aws/cryptosdk/session.h>
 #include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/list_utils.h>
 #include <aws/cryptosdk/private/header.h>
 #include <aws/cryptosdk/private/session.h>
 #include <aws/cryptosdk/private/framefmt.h>
@@ -79,6 +80,8 @@ int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
 
     // TODO - eliminate the data_key type
     memcpy(&data_key, materials->unencrypted_data_key.buffer, materials->unencrypted_data_key.len);
+
+    aws_cryptosdk_transfer_list(&session->keyring_trace, &materials->keyring_trace);
 
     // Generate message ID and derive the content key from the data key.
     if (aws_cryptosdk_genrandom(session->header.message_id, sizeof(session->header.message_id))) {

@@ -21,6 +21,7 @@
 static struct aws_allocator *alloc;
 static struct aws_cryptosdk_keyring *kr;
 static struct aws_hash_table enc_context;
+static struct aws_array_list keyring_trace;
 static struct aws_array_list edks;
 static struct aws_byte_buf unencrypted_data_key = {0};
 // same key, after it has been encrypted and then decrypted
@@ -46,6 +47,7 @@ static int set_up_all_the_things(enum aws_cryptosdk_aes_key_len raw_key_len, boo
     TEST_ASSERT_ADDR_NOT_NULL(kr);
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, &enc_context));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_init(alloc, &keyring_trace));
     TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &edks));
 
     if (fill_enc_context) TEST_ASSERT_SUCCESS(put_stuff_in_encryption_context());
@@ -55,6 +57,7 @@ static int set_up_all_the_things(enum aws_cryptosdk_aes_key_len raw_key_len, boo
 
 static void tear_down_all_the_things() {
     aws_cryptosdk_enc_context_clean_up(&enc_context);
+    aws_cryptosdk_keyring_trace_clean_up(&keyring_trace);
     aws_cryptosdk_keyring_release(kr);
     aws_cryptosdk_edk_list_clean_up(&edks);
     aws_byte_buf_clean_up(&unencrypted_data_key);
@@ -83,18 +86,28 @@ int encrypt_decrypt_data_key() {
                 TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(kr,
                                                                      alloc,
                                                                      &unencrypted_data_key,
+                                                                     &keyring_trace,
                                                                      &edks,
                                                                      &enc_context,
                                                                      algs[alg_idx]));
                 TEST_ASSERT_INT_EQ(aws_array_list_length(&edks), 1);
+                TEST_ASSERT_SUCCESS(raw_aes_keyring_tv_trace_updated_properly(
+                                &keyring_trace,
+                                AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX |
+                                AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY));
 
                 TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kr,
                                                                      alloc,
                                                                      &decrypted_data_key,
+                                                                     &keyring_trace,
                                                                      &edks,
                                                                      &enc_context,
                                                                      algs[alg_idx]));
                 TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &decrypted_data_key));
+		TEST_ASSERT_SUCCESS(raw_aes_keyring_tv_trace_updated_properly(
+                                &keyring_trace,
+                                AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX |
+				AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
 
                 tear_down_all_the_things();
             }
@@ -113,10 +126,16 @@ int generate_decrypt_data_key() {
                 TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(kr,
                                                                      alloc,
                                                                      &unencrypted_data_key,
+                                                                     &keyring_trace,
                                                                      &edks,
                                                                      &enc_context,
                                                                      algs[alg_idx]));
                 TEST_ASSERT_ADDR_NOT_NULL(unencrypted_data_key.buffer);
+                TEST_ASSERT_SUCCESS(raw_aes_keyring_tv_trace_updated_properly(
+                                &keyring_trace,
+                                AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX |
+                                AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY |
+				AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY));
 
                 const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(algs[alg_idx]);
                 TEST_ASSERT_INT_EQ(unencrypted_data_key.len, props->data_key_len);
@@ -125,10 +144,15 @@ int generate_decrypt_data_key() {
                 TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(kr,
                                                                      alloc,
                                                                      &decrypted_data_key,
+                                                                     &keyring_trace,
                                                                      &edks,
                                                                      &enc_context,
                                                                      algs[alg_idx]));
                 TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &decrypted_data_key));
+                TEST_ASSERT_SUCCESS(raw_aes_keyring_tv_trace_updated_properly(
+				&keyring_trace,
+                                AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX |
+                                AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
 
                 tear_down_all_the_things();
             }
@@ -163,6 +187,8 @@ int encrypt_data_key_test_vectors() {
                                 tv->alg,
                                 tv->iv));
         TEST_ASSERT_INT_EQ(aws_array_list_length(&edks), 1);
+        // Note: the test entry function for encryption with fixed IV does not write to the
+        // trace so we don't test for it here.
 
         struct aws_cryptosdk_edk edk;
         TEST_ASSERT_SUCCESS(aws_array_list_get_at(&edks, (void *)&edk, 0));
