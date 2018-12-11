@@ -77,8 +77,9 @@ struct TestValues {
                    ct_bb((unsigned char *) ct, strlen(ct)),
                    pt_aws_byte(aws_byte_buf_from_c_str(pt)),
                    grant_tokens(grant_tokens) {
-        aws_cryptosdk_enc_context_init(allocator, &encryption_context);
-        aws_cryptosdk_keyring_trace_init(allocator, &keyring_trace);
+        if (aws_cryptosdk_enc_context_init(allocator, &encryption_context)) abort();
+        if (aws_cryptosdk_keyring_trace_init(allocator, &keyring_trace)) abort();
+        if (aws_cryptosdk_edk_list_init(allocator, &edks)) abort();
     }
 
     /**
@@ -107,6 +108,7 @@ struct TestValues {
         aws_cryptosdk_keyring_release(kms_keyring);
         aws_cryptosdk_enc_context_clean_up(&encryption_context);
         aws_cryptosdk_keyring_trace_clean_up(&keyring_trace);
+        aws_cryptosdk_edk_list_clean_up(&edks);
     }
 };
 
@@ -122,9 +124,7 @@ struct EncryptTestValues : public TestValues {
     EncryptTestValues(const Aws::Vector<Aws::String> &key_ids, const Aws::Vector<Aws::String> &grant_tokens = { })
         : TestValues(key_ids, grant_tokens),
           alg(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE),
-          unencrypted_data_key(aws_byte_buf_from_c_str(pt)) {
-        if (aws_cryptosdk_edk_list_init(allocator, &edks)) abort();
-    }
+          unencrypted_data_key(aws_byte_buf_from_c_str(pt)) {}
 
     Model::EncryptResult GetResult() {
         return GetResult(key_id);
@@ -159,7 +159,6 @@ struct EncryptTestValues : public TestValues {
 
     ~EncryptTestValues() {
         aws_byte_buf_clean_up(&unencrypted_data_key);
-        aws_cryptosdk_edk_list_clean_up(&edks);
     }
 };
 
@@ -173,7 +172,6 @@ struct GenerateDataKeyValues : public TestValues {
         : TestValues({ key_id }, grant_tokens),
           alg(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE),
           unencrypted_data_key({0}) {
-        if (aws_cryptosdk_edk_list_init(allocator, &edks)) abort();
         generate_result.SetPlaintext(pt_bb);
         generate_result.SetCiphertextBlob(ct_bb);
         generate_result.SetKeyId(key_id);
@@ -181,7 +179,6 @@ struct GenerateDataKeyValues : public TestValues {
 
     ~GenerateDataKeyValues() {
         aws_byte_buf_clean_up(&unencrypted_data_key);
-        aws_cryptosdk_edk_list_clean_up(&edks);
     }
 
     static Model::GenerateDataKeyRequest GetRequest(const Aws::String &key_id,
