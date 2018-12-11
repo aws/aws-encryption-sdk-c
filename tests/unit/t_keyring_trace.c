@@ -79,8 +79,20 @@ int keyring_trace_copy_all_works() {
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_copy_all(alloc, &traces[1], &traces[0]));
 
+    // both copies of trace have identical parameters
     TEST_ASSERT(aws_cryptosdk_keyring_trace_eq(&traces[0], &traces[1]));
 
+    // both copies of trace are using separate strings (deep copy)
+    for (int record_idx = 0; record_idx < 3; ++record_idx) {
+        struct aws_cryptosdk_keyring_trace_record *rec[2];
+        TEST_ASSERT_SUCCESS(aws_array_list_get_at_ptr(&traces[0], (void **)&rec[0], record_idx));
+        TEST_ASSERT_SUCCESS(aws_array_list_get_at_ptr(&traces[1], (void **)&rec[1], record_idx));
+
+        TEST_ASSERT_ADDR_NE(rec[0]->wrapping_key.name_space, rec[1]->wrapping_key.name_space);
+        TEST_ASSERT_ADDR_NE(rec[0]->wrapping_key.name, rec[1]->wrapping_key.name);
+    }
+
+    // each copy of trace has correct parameters
     for (int i = 0; i < 2; ++i) {
         TEST_ASSERT_SUCCESS(assert_keyring_trace_record(
                                 &traces[i],

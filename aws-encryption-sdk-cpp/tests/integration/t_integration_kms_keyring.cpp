@@ -251,7 +251,7 @@ static aws_allocator * alloc;
 static struct aws_hash_table enc_context;
 static struct aws_array_list keyring_trace;
 
-static int verify_decrypt_trace(const char *key_arn = nullptr) {
+static int verify_decrypt_trace(const char *key_arn) {
     return assert_keyring_trace_record(&keyring_trace,
                                        aws_array_list_length(&keyring_trace) - 1,
                                        "aws-kms",
@@ -395,7 +395,7 @@ int dataKeyDecrypt_doNotReturnDataKeyWhenKeyIdMismatchFromKms_returnSuccess() {
     return 0;
 }
 
-static int verify_encrypt_trace(size_t idx, bool generated = false, const char *key_arn = nullptr) {
+static int verify_encrypt_trace(size_t idx, bool generated, const char *key_arn) {
     uint32_t flags = AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
         AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX;
     if (generated) flags |= AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY;
@@ -512,9 +512,9 @@ int dataKeyEncryptAndDecrypt_twoKeysSharedBuilderAndCache_returnSuccess() {
 
         TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(encrypting_keyring,
                                                              alloc,
-	                                                     &pt_datakey,
+                                                             &pt_datakey,
                                                              &keyring_trace,
-	                                                     &edks.encrypted_data_keys,
+                                                             &edks.encrypted_data_keys,
                                                              &enc_context,
                                                              alg));
 	TEST_ASSERT_INT_EQ(aws_array_list_length(&edks.encrypted_data_keys), 2);

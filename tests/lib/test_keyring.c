@@ -47,17 +47,15 @@ static int test_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
         edk.provider_info = aws_byte_buf_from_c_str("test keyring generate provider info");
         aws_array_list_push_back(edks, &edk);
 
-        if (aws_cryptosdk_keyring_trace_add_record(request_alloc,
-                                                       keyring_trace,
-                                                       name_space,
-                                                       name,
-                                                       flags)) {
-            // This should only fail on memory allocation errors.
-            // In production code we ignore errors from this, as there isn't really
-            // a sensible way to handle them. But here we check for failure just to
-            // make sure this code has actually run properly.
-            abort();
-        }
+        // This should only fail on memory allocation errors.
+        // In production code we ignore errors from this, as there isn't really
+        // a sensible way to handle them. But here we check for failure just to
+        // make sure this code has actually run properly.
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_add_record(request_alloc,
+                                                                   keyring_trace,
+                                                                   name_space,
+                                                                   name,
+                                                                   flags));
     }
 
     self->on_encrypt_called = true;
