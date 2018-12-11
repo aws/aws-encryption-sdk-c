@@ -15,6 +15,15 @@ We use a three-part X.Y.Z (Major.Minor.Patch) versioning definition, as follows:
 
   * Z releases will also include warning of upcoming breaking changes, whenever possible.
 
+Public preview and beta builds
+==============================
+
+Untagged branches (such as master) are not subject to any API or ABI
+stability policy; APIs may change at any time.
+
+Versions with a zero major version (0.Y.Z) are considered to be public beta
+releases. For these releases, a Y-change may involve significant API changes.
+
 What this means for you
 =======================
 
