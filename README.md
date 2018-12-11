@@ -1,7 +1,7 @@
 ## AWS Encryption SDK C
 
 The AWS Encryption SDK for C provides easy-to-use envelope encryption in C,
-with a dataformat compatible with the [AWS Encryption SDKs for Java and
+with a data format compatible with the [AWS Encryption SDKs for Java and
 Python](https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/introduction.html).
 
 **This library is currently under public preview**. Feel free to check out the
