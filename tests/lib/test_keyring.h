@@ -16,6 +16,7 @@
 #ifndef AWS_CRYPTOSDK_TESTS_LIB_TEST_KEYRING_H
 #define AWS_CRYPTOSDK_TESTS_LIB_TEST_KEYRING_H
 
+#include "testutil.h"
 #include <aws/cryptosdk/materials.h>
 
 /* FIXME: Refactor this later.
@@ -38,6 +39,7 @@ struct test_keyring {
     bool destroy_called;
 };
 
+TESTLIB_API
 extern const struct aws_cryptosdk_keyring_vt test_keyring_vt;
 
 #endif // AWS_CRYPTOSDK_TESTS_LIB_TEST_KEYRING_H

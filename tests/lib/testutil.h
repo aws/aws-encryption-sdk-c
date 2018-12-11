@@ -21,6 +21,16 @@
 #include <aws/common/hash_table.h>
 #include <aws/common/byte_buf.h>
 
+#if defined(_MSC_VER) && !defined(AWS_ENCRYPTION_SDK_FORCE_STATIC) && defined(AWS_ENCRYPTION_SDK_SHARED)
+#ifdef IN_TESTLIB_BUILD
+#define TESTLIB_API __declspec(dllexport)
+#else
+#define TESTLIB_API __declspec(dllimport)
+#endif
+#else
+#define TESTLIB_API
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -29,17 +39,20 @@ extern "C" {
  * Formats a string using printf format specifiers, and places it into buf, allocating space using alloc.
  * Aborts on allocation failure.
  */
+TESTLIB_API
 void byte_buf_printf(struct aws_byte_buf *buf, struct aws_allocator *alloc, const char *fmt, ...);
 
 /* 
  * Loads a file from disk into a newly malloc'd buffer.
  * Returns 0 on success, 1 on failure (examine errno for details)
  */
+TESTLIB_API
 int test_loadfile(const char *filename, uint8_t **buf, size_t *datasize);
 
 /*
  * Performs a human-readable hexdump of the given buffer
  */
+TESTLIB_API
 void hexdump(FILE *fd, const uint8_t *buf, size_t size);
 
 /**
@@ -48,12 +61,14 @@ void hexdump(FILE *fd, const uint8_t *buf, size_t size);
  * @param enc_context Output variable with an initialized hash_table
  * @return
  */
+TESTLIB_API
 int test_enc_context_init_and_fill(struct aws_hash_table *enc_context);
 
 /**
  * Decodes base64 in a C string into a newly allocated aws_byte_buf.
  * Aborts if anything goes wrong.
  */
+TESTLIB_API
 struct aws_byte_buf easy_b64_decode(const char *b64_string);
 
 #ifdef __cplusplus

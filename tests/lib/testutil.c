@@ -30,6 +30,7 @@
 #pragma warning(disable: 4774) // printf format string is not a string literal
 #endif
 
+TESTLIB_API
 void byte_buf_printf(struct aws_byte_buf *buf, struct aws_allocator *alloc, const char *fmt, ...) {
     va_list ap;
 
@@ -47,6 +48,7 @@ void byte_buf_printf(struct aws_byte_buf *buf, struct aws_allocator *alloc, cons
     va_end(ap);
 }
 
+TESTLIB_API
 void hexdump(FILE *fd, const uint8_t *buf, size_t size) {
     for (size_t row = 0; row < size; row += 16) {
         fprintf(fd, "%08zx ", row);
@@ -66,6 +68,7 @@ void hexdump(FILE *fd, const uint8_t *buf, size_t size) {
     }
 }
 
+TESTLIB_API
 int test_loadfile(const char *filename, uint8_t **buf, size_t *datasize) {
     uint8_t *tmpbuf = NULL;
     FILE *fp = fopen(filename, "rb");
@@ -141,7 +144,7 @@ failure:
     return 1;
 }
 
-
+TESTLIB_API
 int test_enc_context_init_and_fill(struct aws_hash_table *enc_context) {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(aws_default_allocator(), enc_context));
 
@@ -156,6 +159,7 @@ int test_enc_context_init_and_fill(struct aws_hash_table *enc_context) {
     return 0;
 }
 
+TESTLIB_API
 struct aws_byte_buf easy_b64_decode(const char *b64_string) {
     struct aws_byte_cursor input = aws_byte_cursor_from_c_str(b64_string);
     struct aws_byte_buf output;

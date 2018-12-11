@@ -21,7 +21,7 @@ namespace Aws {
 namespace Cryptosdk {
 namespace Private {
 
-class KmsKeyringImpl : public aws_cryptosdk_keyring {
+class AWS_CRYPTOSDK_CPP_API KmsKeyringImpl : public aws_cryptosdk_keyring {
 /* This entire class is a private implementation anyway, as users only handle
  * pointers to instances as (struct aws_cryptosdk_keyring *) types.
  * So there is not a strict need to make internal methods and variables private

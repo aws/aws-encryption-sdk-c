@@ -14,9 +14,9 @@
 FROM i386/ubuntu:14.04
 
 ADD bin/setup-apt-cache.sh /usr/local/bin/
-ADD bin/setup-apt.sh /usr/local/bin/
+ADD bin/setup-apt-trusty.sh /usr/local/bin/
 RUN setup-apt-cache.sh
-RUN setup-apt.sh
+RUN setup-apt-trusty.sh
 
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 

@@ -33,5 +33,5 @@ for i in test-install-project test-install-project-cpp; do
     mkdir "$PROJECT_BUILD"
     (cd "$PROJECT_BUILD"; cmake .. -DCMAKE_PREFIX_PATH="$1;/tmp/TEST_INSTALL")
     cmake --build "$PROJECT_BUILD"
-    "$PROJECT_BUILD/test"
+    "$PROJECT_BUILD/testapp"
 done

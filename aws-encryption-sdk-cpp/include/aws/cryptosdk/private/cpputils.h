@@ -16,6 +16,8 @@
 #ifndef AWS_ENCRYPTION_SDK_CPPUTILS_H
 #define AWS_ENCRYPTION_SDK_CPPUTILS_H
 
+#include <aws/cryptosdk/cpp/exports.h>
+
 #include <aws/common/byte_buf.h>
 #include <aws/common/hash_table.h>
 #include <aws/common/string.h>
@@ -30,21 +32,25 @@ namespace Private {
 /**
  * Creates a new Aws::String from byte_buf
  */
+AWS_CRYPTOSDK_CPP_API
 Aws::String aws_string_from_c_aws_byte_buf(const struct aws_byte_buf *byte_buf);
 
 /**
  * Creates a new Aws::Utils::ByteBuffer from a byte_buff
  */
+AWS_CRYPTOSDK_CPP_API
 Aws::Utils::ByteBuffer aws_utils_byte_buffer_from_c_aws_byte_buf(const struct aws_byte_buf *byte_buf);
 
 /**
  * Creates a new Aws::String from aws_string
  */
+AWS_CRYPTOSDK_CPP_API
 Aws::String aws_string_from_c_aws_string(const struct aws_string *c_aws_string);
 
 /**
  * Creates a new Aws::Map<Aws::String, Aws::String> from an aws_hash_table that has aws_string as key and value
  */
+AWS_CRYPTOSDK_CPP_API
 Aws::Map<Aws::String, Aws::String> aws_map_from_c_aws_hash_table(const struct aws_hash_table *hash_table);
 
 /**
@@ -54,6 +60,7 @@ Aws::Map<Aws::String, Aws::String> aws_map_from_c_aws_hash_table(const struct aw
  * Dest capacity and len will be equal to the src len. Allocator of the dest will be identical with parameter allocator.
  * Returns AWS_OP_SUCCESS in case of success or AWS_OP_ERR when memory can't be allocated.
  */
+AWS_CRYPTOSDK_CPP_API
 int aws_byte_buf_dup_from_aws_utils(struct aws_allocator *allocator,
                                     struct aws_byte_buf *dest,
                                     const Aws::Utils::ByteBuffer &src);
@@ -69,6 +76,7 @@ int aws_byte_buf_dup_from_aws_utils(struct aws_allocator *allocator,
  * @param key_provider Data key Provider
  * @return AWS_OP_SUCCESS in case of success
  */
+AWS_CRYPTOSDK_CPP_API
 int append_key_dup_to_edks(struct aws_allocator *allocator,
                            struct aws_array_list *encrypted_data_keys,
                            const Aws::Utils::ByteBuffer *encrypted_data_key,
@@ -83,6 +91,7 @@ int append_key_dup_to_edks(struct aws_allocator *allocator,
  * it returns us-west-1
  * If no region can be extracted it return empty string.
  */
+AWS_CRYPTOSDK_CPP_API
 Aws::String parse_region_from_kms_key_arn(const Aws::String &key_id);
 
 

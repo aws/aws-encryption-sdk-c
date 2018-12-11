@@ -183,7 +183,7 @@ int main(int argc, char **argv)
     decryption_keyrings.push_back(
 	Aws::Cryptosdk::KmsKeyring::Builder()
         .WithKmsClient(create_kms_client(Aws::Region::EU_CENTRAL_1)).BuildDiscovery()
-        );        
+        );
 
     for (struct aws_cryptosdk_keyring * keyring : decryption_keyrings) {
         uint8_t plaintext_result[BUFFER_SIZE];
