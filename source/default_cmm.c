@@ -59,6 +59,7 @@ static int default_cmm_generate_encryption_materials(struct aws_cryptosdk_cmm * 
     if (aws_cryptosdk_keyring_on_encrypt(self->kr,
                                          request->alloc,
                                          &enc_mat->unencrypted_data_key,
+                                         &enc_mat->keyring_trace,
                                          &enc_mat->encrypted_data_keys,
                                          request->enc_context,
                                          request->requested_alg)) goto err;
@@ -83,6 +84,7 @@ static int default_cmm_decrypt_materials(struct aws_cryptosdk_cmm * cmm,
     if (aws_cryptosdk_keyring_on_decrypt(self->kr,
                                          request->alloc,
                                          &dec_mat->unencrypted_data_key,
+                                         &dec_mat->keyring_trace,
                                          &request->encrypted_data_keys,
                                          request->enc_context,
                                          request->alg)) goto err;

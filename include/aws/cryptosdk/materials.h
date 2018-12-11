@@ -31,6 +31,7 @@
 #include <aws/cryptosdk/exports.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/header.h>
+#include <aws/cryptosdk/keyring_trace.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -69,6 +70,7 @@ struct aws_cryptosdk_encryption_request {
 struct aws_cryptosdk_encryption_materials {
     struct aws_allocator * alloc;
     struct aws_byte_buf unencrypted_data_key;
+    struct aws_array_list keyring_trace;
     struct aws_array_list encrypted_data_keys; // list of struct aws_cryptosdk_edk objects
     struct aws_cryptosdk_signctx *signctx;
     enum aws_cryptosdk_alg_id alg;
@@ -84,6 +86,7 @@ struct aws_cryptosdk_decryption_request {
 struct aws_cryptosdk_decryption_materials {
     struct aws_allocator * alloc;
     struct aws_byte_buf unencrypted_data_key;
+    struct aws_array_list keyring_trace;
     struct aws_cryptosdk_signctx *signctx;
     enum aws_cryptosdk_alg_id alg;
 };
@@ -330,6 +333,7 @@ struct aws_cryptosdk_keyring_vt {
     int (*on_encrypt)(struct aws_cryptosdk_keyring *keyring,
                       struct aws_allocator *request_alloc,
                       struct aws_byte_buf *unencrypted_data_key,
+                      struct aws_array_list *keyring_trace,
                       struct aws_array_list *edks,
                       const struct aws_hash_table *enc_context,
                       enum aws_cryptosdk_alg_id alg);
@@ -345,6 +349,7 @@ struct aws_cryptosdk_keyring_vt {
     int (*on_decrypt)(struct aws_cryptosdk_keyring *keyring,
                       struct aws_allocator *request_alloc,
                       struct aws_byte_buf *unencrypted_data_key,
+                      struct aws_array_list *keyring_trace,
                       const struct aws_array_list *edks,
                       const struct aws_hash_table *enc_context,
                       enum aws_cryptosdk_alg_id alg);
@@ -396,6 +401,7 @@ AWS_CRYPTOSDK_API
 int aws_cryptosdk_keyring_on_encrypt(struct aws_cryptosdk_keyring *keyring,
                                      struct aws_allocator *request_alloc,
                                      struct aws_byte_buf *unencrypted_data_key,
+                                     struct aws_array_list *keyring_trace,
                                      struct aws_array_list *edks,
                                      const struct aws_hash_table *enc_context,
                                      enum aws_cryptosdk_alg_id alg);
@@ -416,6 +422,7 @@ AWS_CRYPTOSDK_API
 int aws_cryptosdk_keyring_on_decrypt(struct aws_cryptosdk_keyring * keyring,
                                      struct aws_allocator * request_alloc,
                                      struct aws_byte_buf * unencrypted_data_key,
+                                     struct aws_array_list *keyring_trace,
                                      const struct aws_array_list * edks,
                                      const struct aws_hash_table * enc_context,
                                      enum aws_cryptosdk_alg_id alg);

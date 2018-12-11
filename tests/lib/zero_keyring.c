@@ -53,9 +53,11 @@ static inline bool is_literally_null_edk(const struct aws_cryptosdk_edk *edk) {
 static int zero_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
                                    struct aws_allocator *request_alloc,
                                    struct aws_byte_buf *unencrypted_data_key,
+                                   struct aws_array_list *keyring_trace,
                                    struct aws_array_list *edks,
                                    const struct aws_hash_table *enc_context,
                                    enum aws_cryptosdk_alg_id alg) {
+    (void)keyring_trace;
     (void)enc_context;
     (void)kr;
     const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(alg);
@@ -87,9 +89,11 @@ static int zero_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
 static int zero_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
                                    struct aws_allocator *request_alloc,
                                    struct aws_byte_buf *unencrypted_data_key,
+                                   struct aws_array_list *keyring_trace,
                                    const struct aws_array_list *edks,
                                    const struct aws_hash_table *enc_context,
                                    enum aws_cryptosdk_alg_id alg) {
+    (void)keyring_trace;
     (void)enc_context;
     (void)kr;
 

@@ -132,7 +132,7 @@ static int entry_refcount() {
      */
     struct aws_allocator *alloc = aws_default_allocator();
     struct aws_cryptosdk_mat_cache *cache = aws_cryptosdk_mat_cache_local_new(alloc, 16);
-    struct aws_cryptosdk_encryption_materials *enc_mat_1, *enc_mat_2;
+    struct aws_cryptosdk_encryption_materials *enc_mat_1;
     struct aws_cryptosdk_mat_cache_entry *entry_1 = NULL, *entry_2 = NULL;
     struct aws_hash_table enc_context_1, enc_context_2;
     struct aws_byte_buf cache_id;
