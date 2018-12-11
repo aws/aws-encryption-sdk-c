@@ -491,3 +491,12 @@ int aws_cryptosdk_priv_fail_session(struct aws_cryptosdk_session *session, int e
     return aws_raise_error(error_code);
 }
 
+struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr(
+    struct aws_cryptosdk_session *session) {
+    return &session->header.enc_context;
+}
+
+const struct aws_array_list *aws_cryptosdk_session_get_keyring_trace_ptr(
+    const struct aws_cryptosdk_session *session) {
+    return (const struct aws_array_list *)&session->keyring_trace;
+}

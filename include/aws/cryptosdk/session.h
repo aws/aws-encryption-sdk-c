@@ -188,6 +188,49 @@ void aws_cryptosdk_session_estimate_buf(
     size_t * AWS_RESTRICT inbuf_needed
 );
 
+/**
+ * Returns a pointer to the encryption context held by the session. This
+ * will always point to an already initialized aws_hash_table. Callers
+ * MUST not clean up or re-initialize the hash table.
+ *
+ * This pointer can be used to add elements to the encryption context
+ * prior to encrypting. Callers MUST not modify the encryption context
+ * prior to decrypting, as the encryption context used for decryption
+ * is determined from the ciphertext itself, and any modification of
+ * that will cause decryption to fail. This pointer can also be used
+ * to view the encryption context that was used after encryption or
+ * decryption has been completed.
+ *
+ * The hash table pointed to by this pointer lives until the session is
+ * destroyed. If you want a copy of the encryption context that will
+ * outlive the session, you should duplicate it with
+ * aws_cryptosdk_enc_context_clone and then deallocate the copy with
+ * aws_cryptosdk_enc_context_clean_up when done with it.
+ */
+AWS_CRYPTOSDK_API
+struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr(
+    struct aws_cryptosdk_session *session
+);
+
+/**
+ * Returns a pointer to the keyring trace held by the session. This
+ * will always point to an already initialized aws_array_list, but
+ * it will not be populated until after the session has encrypted
+ * or decrypted data. Callers MUST not clean up, re-initialize, or
+ * otherwise modify the array list.
+ *
+ * See keyring_trace.h for information on the format of the trace.
+ * The trace pointed to by this pointer lives until the session is
+ * destroyed. If you want a copy of the trace that will outlive
+ * the session, you should duplicate it with
+ * aws_cryptosdk_keyring_trace_copy_all and then deallocate the
+ * copy with aws_cryptosdk_keyring_trace_clean_up when done with it.
+ */
+AWS_CRYPTOSDK_API
+const struct aws_array_list *aws_cryptosdk_session_get_keyring_trace_ptr(
+    const struct aws_cryptosdk_session *session
+);
+
 #ifdef __cplusplus
 }
 #endif
