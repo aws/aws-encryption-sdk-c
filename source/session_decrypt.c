@@ -131,6 +131,7 @@ int aws_cryptosdk_priv_unwrap_keys(
     if (aws_cryptosdk_cmm_decrypt_materials(session->cmm, &materials, &request)) goto out;
 
     aws_cryptosdk_transfer_list(&session->keyring_trace, &materials->keyring_trace);
+    session->cmm_success = true;
 
     if (derive_data_key(session, materials)) goto out;
     if (validate_header(session)) goto out;

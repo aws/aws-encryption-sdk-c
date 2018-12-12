@@ -82,6 +82,7 @@ int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
     memcpy(&data_key, materials->unencrypted_data_key.buffer, materials->unencrypted_data_key.len);
 
     aws_cryptosdk_transfer_list(&session->keyring_trace, &materials->keyring_trace);
+    session->cmm_success = true;
 
     // Generate message ID and derive the content key from the data key.
     if (aws_cryptosdk_genrandom(session->header.message_id, sizeof(session->header.message_id))) {

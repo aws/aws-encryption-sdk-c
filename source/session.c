@@ -35,6 +35,7 @@ int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_
     session->size_bound = UINT64_MAX;
     session->data_so_far = 0;
     session->precise_size_known = false;
+    session->cmm_success = false;
 
     if (session->header_copy) {
         aws_secure_zero(session->header_copy, session->header_size);
@@ -491,3 +492,32 @@ int aws_cryptosdk_priv_fail_session(struct aws_cryptosdk_session *session, int e
     return aws_raise_error(error_code);
 }
 
+const struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr(
+    const struct aws_cryptosdk_session *session) {
+    if (session->mode == AWS_CRYPTOSDK_DECRYPT && !session->cmm_success) {
+        /* In decrypt mode, we want to wait until after CMM call to
+         * return encryption context. This assures both that the
+         * encryption context has already been deserialized from the
+         * ciphertext and that it has already been validated, if the
+         * session is using a keyring that does validation of the
+         * encryption context.
+         */
+        return NULL;
+    }
+    return &session->header.enc_context;
+}
+
+struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr_mut(
+    struct aws_cryptosdk_session *session) {
+    if (session->mode == AWS_CRYPTOSDK_ENCRYPT && session->state == ST_CONFIG) {
+        return &session->header.enc_context;
+    }
+    return NULL;
+}
+
+const struct aws_array_list *aws_cryptosdk_session_get_keyring_trace_ptr(
+    const struct aws_cryptosdk_session *session) {
+    if (session->cmm_success) return &session->keyring_trace;
+
+    return NULL;
+}

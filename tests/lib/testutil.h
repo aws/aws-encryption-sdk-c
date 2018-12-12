@@ -56,15 +56,17 @@ TESTLIB_API
 void hexdump(FILE *fd, const uint8_t *buf, size_t size);
 
 /**
- * Creates and initializes with fixed strings an encryption context
- * Note: enc_context needs to be cleaned using aws_hash_table_clean_up
- * @param alloc Allocator for initializing the hash table
- * @param enc_context Output variable with an initialized hash_table
- * @return
+ * Adds a few fixed strings to an already initialized encryption context.
  */
 TESTLIB_API
-int test_enc_context_init_and_fill(struct aws_allocator *alloc,
-                                   struct aws_hash_table *enc_context);
+int test_enc_context_fill(struct aws_hash_table *enc_context);
+
+/**
+ * Checks whether the same fixed strings used by test_enc_context_fill are
+ * in the encryption context.
+ */
+TESTLIB_API
+int assert_enc_context_fill(const struct aws_hash_table *enc_context);
 
 /**
  * Decodes base64 in a C string into a newly allocated aws_byte_buf.

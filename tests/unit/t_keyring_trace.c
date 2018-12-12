@@ -14,7 +14,6 @@
  */
 #include <aws/cryptosdk/private/keyring_trace.h>
 #include <aws/cryptosdk/list_utils.h>
-#include <aws/common/hash_table.h>
 #include "testing.h"
 #include "testutil.h"
 

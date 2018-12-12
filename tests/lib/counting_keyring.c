@@ -47,15 +47,11 @@ static int set_edk(struct aws_allocator *alloc, struct aws_cryptosdk_edk *edk) {
     return AWS_OP_SUCCESS;
 }
 
-static inline bool str_eq_buf(const struct aws_string *s, const struct aws_byte_buf *buf) {
-    return s->len == buf->len && !memcmp(aws_string_bytes(s), buf->buffer, s->len);
-}
-
 static inline bool is_counting_edk(const struct aws_cryptosdk_edk *edk) {
     return (
-        str_eq_buf(prov_name, &edk->provider_id) &&
-        str_eq_buf(prov_info, &edk->provider_info) &&
-        str_eq_buf(expected_edk, &edk->enc_data_key)
+        aws_string_eq_byte_buf(prov_name, &edk->provider_id) &&
+        aws_string_eq_byte_buf(prov_info, &edk->provider_info) &&
+        aws_string_eq_byte_buf(expected_edk, &edk->enc_data_key)
     );
 }
 
@@ -66,11 +62,11 @@ static int counting_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
                                        struct aws_array_list *edks,
                                        const struct aws_hash_table *enc_context,
                                        enum aws_cryptosdk_alg_id alg) {
-    (void)keyring_trace;
     (void)enc_context;
     (void)kr;
 
     const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(alg);
+    uint32_t flags = AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY;
 
     if (unencrypted_data_key->buffer) {
         if (unencrypted_data_key->len != props->data_key_len) {
@@ -92,6 +88,7 @@ static int counting_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
         for (size_t i = 0; i < props->data_key_len; i++) {
             unencrypted_data_key->buffer[i] = (uint8_t)i;
         }
+        flags |= AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY;
     }
 
     struct aws_cryptosdk_edk edk;
@@ -99,6 +96,11 @@ static int counting_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
         return AWS_OP_ERR;
     }
 
+    aws_cryptosdk_keyring_trace_add_record(request_alloc,
+                                           keyring_trace,
+                                           prov_name,
+                                           prov_info,
+                                           flags);
     return aws_array_list_push_back(edks, &edk);
 }
 
@@ -109,7 +111,6 @@ static int counting_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
                                        const struct aws_array_list *edks,
                                        const struct aws_hash_table *enc_context,
                                        enum aws_cryptosdk_alg_id alg) {
-    (void)keyring_trace;
     (void)enc_context;
     (void)kr;
     
@@ -129,7 +130,11 @@ static int counting_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
             for (size_t i = 0; i < unencrypted_data_key->len; i++) {
                 unencrypted_data_key->buffer[i] = (uint8_t)i;
             }
-
+            aws_cryptosdk_keyring_trace_add_record(request_alloc,
+                                                   keyring_trace,
+                                                   prov_name,
+                                                   prov_info,
+                                                   AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY);
             return AWS_OP_SUCCESS;
         }
     }

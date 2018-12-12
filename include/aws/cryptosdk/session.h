@@ -16,11 +16,6 @@
 #ifndef AWS_CRYPTOSDK_SESSION_H
 #define AWS_CRYPTOSDK_SESSION_H
 
-#include <stdbool.h>
-
-#include <aws/common/common.h>
-#include <aws/cryptosdk/exports.h>
-#include <aws/cryptosdk/header.h>
 #include <aws/cryptosdk/materials.h>
 
 #ifdef __cplusplus
@@ -186,6 +181,73 @@ void aws_cryptosdk_session_estimate_buf(
     const struct aws_cryptosdk_session * AWS_RESTRICT session,
     size_t * AWS_RESTRICT outbuf_needed,
     size_t * AWS_RESTRICT inbuf_needed
+);
+
+/**
+ * Returns a read-only pointer to the encryption context held by the session.
+ * This will return NULL if it is called too early in the decryption process,
+ * before the SDK has finished deserializing and handling the encryption
+ * context from the header of the ciphertext.
+ *
+ * This may be called at any time during or after the encryption process for
+ * read-only access to the encryption context, but for setting the encryption
+ * context, use aws_cryptosdk_get_enc_ctx_ptr_mut instead.
+ *
+ * The hash table pointed to by this pointer lives until the session is
+ * reset or destroyed. If you want a copy of the encryption context that will
+ * outlive the session, you should duplicate it with
+ * aws_cryptosdk_enc_context_clone and then deallocate the copy with
+ * aws_cryptosdk_enc_context_clean_up when done with it.
+ */
+AWS_CRYPTOSDK_API
+const struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr(
+    const struct aws_cryptosdk_session *session
+);
+
+/**
+ * Returns a mutable pointer to the encryption context held by the session.
+ * This will only return non-NULL when the session is in encrypt mode AND
+ * aws_cryptosdk_session_process has not yet been called.
+ *
+ * The returned pointer will always point to an already initialized hash
+ * table. Callers MUST not clean up or re-initialize the hash table.
+ * The encryption context is an aws_hash_table with key and value both
+ * using the aws_string type.
+ *
+ * See the interfaces in hash_table.h and string.h in aws-c-common for
+ * guidance on how to add elements to the encryption context.
+ *
+ * Do not use this pointer across calls to the session. Doing so results
+ * in undefined behavior.
+ *
+ * See documentation of aws_cryptosdk_session_get_enc_ctx_ptr for how to
+ * make your own copy of the encryption context, if desired.
+ */
+AWS_CRYPTOSDK_API
+struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr_mut(
+    struct aws_cryptosdk_session *session);
+
+/**
+ * Returns a read-only pointer to the keyring trace held by the session.
+ * This will return NULL if called too early in the encryption or
+ * decryption process. For best results, call after checking that
+ * aws_cryptosdk_session_is_done returns true.
+ *
+ * When this returns a non-NULL pointer, it will always point to an
+ * already initialized aws_array_list with elements of type
+ * struct aws_cryptosdk_keyring_trace_record.
+ *
+ * See keyring_trace.h for more information on the format of the trace.
+ *
+ * The trace pointed to by this pointer lives until the session is
+ * reset or destroyed. If you want a copy of the trace that will
+ * outlive the session, you should duplicate it with
+ * aws_cryptosdk_keyring_trace_copy_all and then deallocate the
+ * copy with aws_cryptosdk_keyring_trace_clean_up when done with it.
+ */
+AWS_CRYPTOSDK_API
+const struct aws_array_list *aws_cryptosdk_session_get_keyring_trace_ptr(
+    const struct aws_cryptosdk_session *session
 );
 
 #ifdef __cplusplus
