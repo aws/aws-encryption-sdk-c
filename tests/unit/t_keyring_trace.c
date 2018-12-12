@@ -132,33 +132,8 @@ static void reset_test_keyring() {
     aws_cryptosdk_keyring_base_init(kr, &test_keyring_vt);
 }
 
-int copy_keyring_trace_from_session() {
-    struct aws_allocator *alloc = aws_default_allocator();
-    reset_test_keyring();
-
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(alloc, kr);
-    TEST_ASSERT_ADDR_NOT_NULL(cmm);
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(
-        alloc, AWS_CRYPTOSDK_ENCRYPT, cmm);
-    TEST_ASSERT_ADDR_NOT_NULL(session);
-    aws_cryptosdk_cmm_release(cmm);
-
-    const struct aws_array_list *trace = aws_cryptosdk_session_get_keyring_trace_ptr(
-        session);
-
-    struct aws_array_list trace_copy;
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_init(alloc, &trace_copy));
-
-    TEST_ASSERT(aws_cryptosdk_keyring_trace_eq(trace, &trace_copy));
-
-    aws_cryptosdk_keyring_trace_clean_up(&trace_copy);
-    aws_cryptosdk_session_destroy(session);
-    return 0;
-}
-
 struct test_case keyring_trace_test_cases[] = {
     { "keyring_trace", "keyring_trace_add_record_works", keyring_trace_add_record_works},
     { "keyring_trace", "keyring_trace_copy_all_works", keyring_trace_copy_all_works},
-    { "keyring_trace", "copy_keyring_trace_from_session", copy_keyring_trace_from_session},
     { NULL }
 };

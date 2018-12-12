@@ -491,12 +491,55 @@ int aws_cryptosdk_priv_fail_session(struct aws_cryptosdk_session *session, int e
     return aws_raise_error(error_code);
 }
 
-struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr(
+const struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr(
+    const struct aws_cryptosdk_session *session) {
+    if (session->mode == AWS_CRYPTOSDK_DECRYPT) {
+        if (session->state == ST_DECRYPT_BODY || session->state == ST_CHECK_TRAILER
+            || session->state == ST_DONE) {
+            return &session->header.enc_context;
+        } else {
+            /* If session is not yet at ST_DECRYPT_BODY during decrypt,
+             * it is too early to see the encryption context.
+             */
+            return NULL;
+        }
+    }
+    return &session->header.enc_context;
+}
+
+struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr_mut(
     struct aws_cryptosdk_session *session) {
+    if (session->mode == AWS_CRYPTOSDK_DECRYPT) {
+        return NULL;
+    }
+    if (session->state != ST_CONFIG) {
+        return NULL;
+    }
     return &session->header.enc_context;
 }
 
 const struct aws_array_list *aws_cryptosdk_session_get_keyring_trace_ptr(
     const struct aws_cryptosdk_session *session) {
-    return (const struct aws_array_list *)&session->keyring_trace;
+    if (session->mode == AWS_CRYPTOSDK_DECRYPT) {
+        switch (session->state) {
+        case ST_DECRYPT_BODY:
+        case ST_CHECK_TRAILER:
+        case ST_DONE:
+        case ST_ERROR:
+            return &session->keyring_trace;
+        default:
+            return NULL;
+        }
+    }
+
+    switch (session->state) {
+    case ST_WRITE_HEADER:
+    case ST_ENCRYPT_BODY:
+    case ST_WRITE_TRAILER:
+    case ST_DONE:
+    case ST_ERROR:
+        return &session->keyring_trace;
+    default:
+        return NULL;
+    }
 }

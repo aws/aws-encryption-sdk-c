@@ -143,7 +143,20 @@ static int pump_ciphertext(size_t ct_window, size_t *ct_consumed, size_t pt_wind
     return 0;
 }
 
-static int check_ciphertext() {
+static int check_ciphertext(bool zero_keyring) { // bool = false means counting keyring
+    const char * wrapping_key_namespace = zero_keyring ? "null" : "test_counting";
+    const char * wrapping_key_name = zero_keyring ? "null" : "test_counting_prov_info";
+
+    const struct aws_array_list *enc_trace = aws_cryptosdk_session_get_keyring_trace_ptr(
+        session);
+    TEST_ASSERT_ADDR_NOT_NULL(enc_trace);
+    TEST_ASSERT_INT_EQ(aws_array_list_length(enc_trace), 1);
+    TEST_ASSERT_SUCCESS(assert_keyring_trace_record(
+                            enc_trace, 0,  wrapping_key_namespace,
+                            wrapping_key_name,
+                            AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
+                            AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY));
+
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT));
 
     uint8_t *pt_check_buf = aws_mem_acquire(aws_default_allocator(), pt_size);
@@ -163,6 +176,15 @@ static int check_ciphertext() {
     TEST_ASSERT_INT_EQ(in_read, ct_size);
     TEST_ASSERT_INT_EQ(0, memcmp(pt_check_buf, pt_buf, pt_size));
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
+
+    const struct aws_array_list *dec_trace = aws_cryptosdk_session_get_keyring_trace_ptr(
+        session);
+    TEST_ASSERT_ADDR_NOT_NULL(dec_trace);
+    TEST_ASSERT_INT_EQ(aws_array_list_length(dec_trace), 1);
+    TEST_ASSERT_SUCCESS(assert_keyring_trace_record(
+                            dec_trace, 0, wrapping_key_namespace,
+                            wrapping_key_name,
+                            AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
 
     aws_mem_release(aws_default_allocator(), pt_check_buf);
 
@@ -225,7 +247,7 @@ static int test_small_buffers() {
 
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
 
-    if (check_ciphertext()) return 1;
+    if (check_ciphertext(true)) return 1;
 
     free_bufs();
     return 0;
@@ -241,10 +263,19 @@ int test_simple_roundtrip() {
     aws_cryptosdk_session_set_message_size(session, pt_size);
     precise_size_set = true;
 
+    struct aws_hash_table *enc_context = aws_cryptosdk_session_get_enc_ctx_ptr_mut(session);
+    TEST_ASSERT_ADDR_NOT_NULL(enc_context);
+    TEST_ASSERT_SUCCESS(test_enc_context_fill(enc_context));
+
     if (pump_ciphertext(2048, &ct_consumed, pt_size, &pt_consumed)) return 1;
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
 
-    if (check_ciphertext()) return 1;
+    if (check_ciphertext(true)) return 1;
+
+    const struct aws_hash_table *enc_context_after_decrypt = aws_cryptosdk_session_get_enc_ctx_ptr(
+        session);
+    TEST_ASSERT_ADDR_NOT_NULL(enc_context_after_decrypt);
+    TEST_ASSERT_SUCCESS(assert_enc_context_fill(enc_context_after_decrypt));
 
     free_bufs();
     return 0;
@@ -304,7 +335,7 @@ int test_changed_keyring_can_decrypt() {
     if (pump_ciphertext(2048, &ct_consumed, pt_size, &pt_consumed)) return 1;
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
 
-    if (check_ciphertext()) return 1;
+    if (check_ciphertext(false)) return 1;
 
     free_bufs();
 
@@ -330,7 +361,7 @@ static int test_algorithm_override_once(enum aws_cryptosdk_alg_id alg_id) {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_get_algorithm(session, &reported_alg_id));
     TEST_ASSERT_INT_EQ(alg_id, reported_alg_id);
 
-    if (check_ciphertext()) return 1;
+    if (check_ciphertext(false)) return 1;
 
     // Session is now configured for decrypt and should report decryption-side ID
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_get_algorithm(session, &reported_alg_id));

@@ -189,17 +189,13 @@ void aws_cryptosdk_session_estimate_buf(
 );
 
 /**
- * Returns a pointer to the encryption context held by the session. This
- * will always point to an already initialized aws_hash_table. Callers
- * MUST not clean up or re-initialize the hash table.
+ * Returns a read-only pointer to the encryption context held by the session.
+ * This will return NULL if it is called too early in the decryption process,
+ * before the SDK has begun decrypting the body of the message.
  *
- * This pointer can be used to add elements to the encryption context
- * prior to encrypting. Callers MUST not modify the encryption context
- * prior to decrypting, as the encryption context used for decryption
- * is determined from the ciphertext itself, and any modification of
- * that will cause decryption to fail. This pointer can also be used
- * to view the encryption context that was used after encryption or
- * decryption has been completed.
+ * This may be called at any time during or after the encryption process for
+ * read-only access to the encryption context, but for setting the encryption
+ * context, use aws_cryptosdk_get_enc_ctx_ptr_mut instead.
  *
  * The hash table pointed to by this pointer lives until the session is
  * destroyed. If you want a copy of the encryption context that will
@@ -208,18 +204,45 @@ void aws_cryptosdk_session_estimate_buf(
  * aws_cryptosdk_enc_context_clean_up when done with it.
  */
 AWS_CRYPTOSDK_API
-struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr(
-    struct aws_cryptosdk_session *session
+const struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr(
+    const struct aws_cryptosdk_session *session
 );
 
 /**
- * Returns a pointer to the keyring trace held by the session. This
- * will always point to an already initialized aws_array_list, but
- * it will not be populated until after the session has encrypted
- * or decrypted data. Callers MUST not clean up, re-initialize, or
- * otherwise modify the array list.
+ * Returns a mutable pointer to the encryption context held by the session.
+ * This will only return non-NULL when the session is in encrypt mode AND
+ * aws_cryptosdk_session_process has not yet been called.
+ *
+ * The returned pointer will always point to an already initialized hash
+ * table. Callers MUST not clean up or re-initialize the hash table.
+ * The encryption context is a aws_hash_table with key and value both
+ * using the aws_string type.
+ *
+ * See the interfaces in hash_table.h and string.h in aws-c-common for
+ * guidance on how to add elements to the encryption context.
+ *
+ * For best results, do not reuse this pointer after a call to the session.
+ * Updating the encryption context after the session has begun processing
+ * will not have the expected effect. See documentation of
+ * aws_cryptosdk_session_get_enc_ctx_ptr for how to make your own copy
+ * of the encryption context, if desired.
+ */
+AWS_CRYPTOSDK_API
+struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr_mut(
+    struct aws_cryptosdk_session *session);
+
+/**
+ * Returns a read-only pointer to the keyring trace held by the session.
+ * This will return NULL if called too early in the encryption or
+ * decryption process. For best results, call after checking that
+ * aws_cryptosdk_session_is_done returns true.
+ *
+ * When this returns a non-NULL pointer, it will always point to an
+ * already initialized aws_array_list with elements of type
+ * struct aws_cryptosdk_keyring_trace_record.
  *
  * See keyring_trace.h for information on the format of the trace.
+ *
  * The trace pointed to by this pointer lives until the session is
  * destroyed. If you want a copy of the trace that will outlive
  * the session, you should duplicate it with

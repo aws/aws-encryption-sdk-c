@@ -291,10 +291,9 @@ static int test_keyring_datakey_decrypt_and_compare_with_pt_datakey(struct aws_a
 
 static int setup_dataKeyEncryptAndDecrypt_tests(bool fill_enc_context) {
     alloc = aws_default_allocator();
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, &enc_context));
     if (fill_enc_context) {
-        TEST_ASSERT_SUCCESS(test_enc_context_init_and_fill(alloc, &enc_context));
-    } else {
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, &enc_context));
+        TEST_ASSERT_SUCCESS(test_enc_context_fill(&enc_context));
     }
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_init(alloc, &keyring_trace));
     return 0;

@@ -145,21 +145,40 @@ failure:
     return 1;
 }
 
-TESTLIB_API
-int test_enc_context_init_and_fill(struct aws_allocator *alloc,
-                                   struct aws_hash_table *enc_context) {
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, enc_context));
+AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_1, "The night is dark");
+AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_1, "and full of terrors");
+AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_2, "You Know Nothing");
+AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_2, "James Bond");
 
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_1, "The night is dark");
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_1, "and full of terrors");
+TESTLIB_API
+int test_enc_context_fill(struct aws_hash_table *enc_context) {
     TEST_ASSERT_SUCCESS(aws_hash_table_put(enc_context, enc_context_key_1,
                                            (void *)enc_context_val_1, NULL));
 
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_2, "You Know Nothing");
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_2, "James Bond");
     TEST_ASSERT_SUCCESS(aws_hash_table_put(enc_context, enc_context_key_2,
                                            (void *)enc_context_val_2, NULL));
 
+    return 0;
+}
+
+TESTLIB_API
+int assert_enc_context_fill(const struct aws_hash_table *enc_context) {
+    struct aws_hash_element *elem;
+    const struct aws_string *val;
+
+    TEST_ASSERT_SUCCESS(aws_hash_table_find(enc_context,
+                                            enc_context_key_1,
+                                            &elem));
+    TEST_ASSERT_ADDR_NOT_NULL(elem);
+    val = (const struct aws_string *)elem->value;
+    TEST_ASSERT(aws_string_eq(val, enc_context_val_1));
+
+    TEST_ASSERT_SUCCESS(aws_hash_table_find(enc_context,
+                                            enc_context_key_2,
+                                            &elem));
+    TEST_ASSERT_ADDR_NOT_NULL(elem);
+    val = (const struct aws_string *)elem->value;
+    TEST_ASSERT(aws_string_eq(val, enc_context_val_2));
     return 0;
 }
 

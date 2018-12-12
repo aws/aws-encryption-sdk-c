@@ -363,41 +363,6 @@ int enc_context_clone_test() {
     return 0;
 }
 
-static struct test_keyring test_kr;
-static struct aws_cryptosdk_keyring *kr;
-
-static void reset_test_keyring() {
-    memset(&test_kr, 0, sizeof(test_kr));
-    kr = &test_kr.base;
-    aws_cryptosdk_keyring_base_init(kr, &test_keyring_vt);
-}
-
-int copy_enc_context_from_session() {
-    struct aws_allocator *alloc = aws_default_allocator();
-    reset_test_keyring();
-
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(alloc, kr);
-    TEST_ASSERT_ADDR_NOT_NULL(cmm);
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(
-        alloc, AWS_CRYPTOSDK_ENCRYPT, cmm);
-    TEST_ASSERT_ADDR_NOT_NULL(session);
-    aws_cryptosdk_cmm_release(cmm);
-
-    const struct aws_hash_table *enc_context = aws_cryptosdk_session_get_enc_ctx_ptr(
-        session);
-
-    struct aws_hash_table enc_context_copy;
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, &enc_context_copy));
-
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_clone(alloc, &enc_context_copy, enc_context));
-
-    TEST_ASSERT(aws_hash_table_eq(enc_context, &enc_context_copy, aws_string_eq));
-
-    aws_cryptosdk_enc_context_clean_up(&enc_context_copy);
-    aws_cryptosdk_session_destroy(session);
-    return 0;
-}
-
 struct test_case enc_context_test_cases[] = {
     { "enc_context", "get_sorted_elems_array_test", get_sorted_elems_array_test },
     { "enc_context", "serialize_empty_enc_context", serialize_empty_enc_context },
@@ -408,6 +373,5 @@ struct test_case enc_context_test_cases[] = {
     { "enc_context", "serialize_valid_enc_context_max_length", serialize_valid_enc_context_max_length },
     { "enc_context", "serialize_error_when_too_many_elements", serialize_error_when_too_many_elements },
     { "enc_context", "clone_test", enc_context_clone_test },
-    { "enc_context", "copy_enc_context_from_session", copy_enc_context_from_session },
     { NULL }
 };
