@@ -62,6 +62,6 @@ void aws_cryptosdk_load_error_strings();
 }
 #endif
 
-/** @} */ // end of doxygen group
+/** @} */ // end of doxygen group error
 
 #endif

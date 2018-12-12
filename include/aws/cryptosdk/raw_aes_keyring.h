@@ -56,7 +56,7 @@ struct aws_cryptosdk_keyring * aws_cryptosdk_raw_aes_keyring_new(struct aws_allo
                                                                  const uint8_t * raw_key_bytes,
                                                                  enum aws_cryptosdk_aes_key_len key_len);
 
-/** @} */ // doxygen group
+/** @} */ // doxygen group raw_keyring
 
 #ifdef __cplusplus
 }

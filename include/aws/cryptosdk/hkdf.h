@@ -47,7 +47,7 @@ int aws_cryptosdk_hkdf(
     const struct aws_byte_buf *ikm,
     const struct aws_byte_buf *info);
 
-/** @} */ // doxygen group
+/** @} */ // doxygen group hazmat
 
 #ifdef __cplusplus
 }

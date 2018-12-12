@@ -475,7 +475,7 @@ void aws_cryptosdk_mat_cache_entry_ttl_hint(
     }
 }
 
-#endif // AWS_CRYPTOSDK_DOXYGEN
+#endif // AWS_CRYPTOSDK_DOXYGEN (unstable APIs excluded from docs)
 
 /**
  * Creates a new instance of the built-in local materials cache. This cache is thread safe, and uses a simple
@@ -616,6 +616,6 @@ int aws_cryptosdk_caching_cmm_set_limits(
     uint64_t new_value
 );
 
-/** @} */ // doxygen group
+/** @} */ // doxygen group caching
 
 #endif

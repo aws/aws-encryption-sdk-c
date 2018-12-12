@@ -112,7 +112,7 @@ AWS_CRYPTOSDK_API
 int aws_cryptosdk_multi_keyring_add(struct aws_cryptosdk_keyring *multi,
                                     struct aws_cryptosdk_keyring *child);
 
-/** @} */ // end of doxygen group
+/** @} */ // end of doxygen group cmm_kr_highlevel
 
 #ifdef __cplusplus
 }

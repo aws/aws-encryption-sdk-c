@@ -200,7 +200,7 @@ namespace KmsKeyring {
         std::shared_ptr<KMS::KMSClient> kms_client;
     };
 
-/** @} */ // doxygen group
+/** @} */ // doxygen group kms_keyring
 
 }
 

@@ -53,6 +53,6 @@
 #define AWS_CRYPTOSDK_VERSION_UA \
     "aws-encryption-sdk-c/" AWS_CRYPTOSDK_VERSION_STR
 
-/** @} */ // doxygen group
+/** @} */ // doxygen group versioning
 
 #endif

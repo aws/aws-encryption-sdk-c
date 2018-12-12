@@ -83,7 +83,7 @@ int aws_cryptosdk_enc_context_clone(
     const struct aws_hash_table *src
 );
 
-/** @} */ // end of doxygen group
+/** @} */ // end of doxygen group enc_context
 
 #ifdef __cplusplus
 }

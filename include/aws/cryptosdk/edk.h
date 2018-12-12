@@ -91,7 +91,7 @@ AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_edk_eq(const struct aws_cryptosdk
 }
 #endif
 
-/** @} */ // end of doxygen group
+/** @} */ // end of doxygen group cmm_kr_lowlevel
 
 #endif // AWS_CRYPTOSDK_EDK_H
 
