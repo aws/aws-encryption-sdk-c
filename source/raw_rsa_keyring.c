@@ -15,6 +15,7 @@
 #include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/raw_rsa_keyring.h>
+#include <aws/cryptosdk/private/utils.h>
 
 #include <aws/common/byte_buf.h>
 #include <aws/common/string.h>
@@ -164,10 +165,8 @@ static const struct aws_cryptosdk_keyring_vt raw_rsa_keyring_vt = {
 
 struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     struct aws_allocator *alloc,
-    const uint8_t *master_key_id,
-    size_t master_key_id_len,
-    const uint8_t *provider_id,
-    size_t provider_id_len,
+    const struct aws_string *key_namespace,
+    const struct aws_string *key_name,
     const char *rsa_private_key_pem,
     const char *rsa_public_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
@@ -175,10 +174,10 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     if (!kr) return NULL;
     memset(kr, 0, sizeof(struct raw_rsa_keyring));
 
-    kr->master_key_id = aws_string_new_from_array(alloc, master_key_id, master_key_id_len);
+    kr->master_key_id = aws_cryptosdk_string_dup(alloc, key_name);
     if (!kr->master_key_id) goto err;
 
-    kr->provider_id = aws_string_new_from_array(alloc, provider_id, provider_id_len);
+    kr->provider_id = aws_cryptosdk_string_dup(alloc, key_namespace);
     if (!kr->provider_id) goto err;
 
     if (!rsa_private_key_pem && !rsa_public_key_pem)

@@ -28,32 +28,33 @@ extern "C" {
  * the bytes in the array provided as the wrapping key.
  *
  * Key namespace, name, and raw key bytes provided by the caller are copied into
- * the state of the KR, so those arrays do not need to be maintained while using the KR.
- * For maximum security, the caller should zero out the array of raw key bytes after
- * creating this object.
+ * the state of the KR, so those arrays do not need to be maintained while using
+ * the KR. For maximum security, the caller should zero out the array of raw key
+ * bytes after creating this object.
  *
- * The encryption context which is passed to this KR on encrypt and decrypt calls is
- * used as additional authenticated data (AAD) in the AES-GCM encryption of the data keys.
- * This means that the same encryption context must be present for both encryption and
- * decryption.
+ * The encryption context which is passed to this KR on encrypt and decrypt calls
+ * is used as additional authenticated data (AAD) in the AES-GCM encryption of the
+ * data keys. This means that the same encryption context must be present for both
+ * encryption and decryption.
  *
- * Set your own namespace and name for the wrapping key you use, for bookkeeping purposes.
- * A raw AES keyring which attempts to decrypt data previously encrypted by another raw
- * AES keyring must specify the same name and namespace.
+ * Set your own namespace and name for the wrapping key you use, for bookkeeping
+ * purposes. A raw AES keyring which attempts to decrypt data previously encrypted
+ * by another raw AES keyring must specify the same name and namespace.
  *
- * Note: when this keyring is used, it generates a trace that includes copies of the
- * namespace and name strings for each call. If you generate either or both of the
- * namespace and name strings using the AWS_STATIC_STRING_FROM_LITERAL macro, all
- * copies of these strings will be optimized out.
+ * Note: when this keyring is used, it generates a trace that includes copies of
+ * the namespace and name strings for each call. If you generate either or both of
+ * the namespace and name strings using the AWS_STATIC_STRING_FROM_LITERAL macro,
+ * all copies of these strings will be optimized out.
  *
  * On failure returns NULL and sets an internal AWS error code.
  */
 AWS_CRYPTOSDK_API
-struct aws_cryptosdk_keyring * aws_cryptosdk_raw_aes_keyring_new(struct aws_allocator *alloc,
-                                                                 const struct aws_string *key_namespace,
-                                                                 const struct aws_string *key_name,
-                                                                 const uint8_t *key_bytes,
-                                                                 enum aws_cryptosdk_aes_key_len key_len);
+struct aws_cryptosdk_keyring *aws_cryptosdk_raw_aes_keyring_new(
+    struct aws_allocator *alloc,
+    const struct aws_string *key_namespace,
+    const struct aws_string *key_name,
+    const uint8_t *key_bytes,
+    enum aws_cryptosdk_aes_key_len key_len);
 
 #ifdef __cplusplus
 }
