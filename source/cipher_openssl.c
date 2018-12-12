@@ -575,7 +575,7 @@ int aws_cryptosdk_sig_sign_start(
     // ASN1_INTEGERS are really ASN1_STRINGS; since there's no ASN1_INTEGER_clear_free, we'll use
     // ASN1_STRING_clear_free instead.
     ASN1_STRING_clear_free(priv_key_asn1);
-    if (!priv_key) {
+    if (!priv_key_bn) {
         aws_raise_error(AWS_ERROR_OOM);
         goto out;
     }

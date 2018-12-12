@@ -270,7 +270,7 @@ int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr) {
     size_t aad_len;
 
     if (aws_cryptosdk_context_size(&aad_len, &hdr->enc_context)) {
-        return -1;
+        return 0;
     }
     bytes += aad_len;
 

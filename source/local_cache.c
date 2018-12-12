@@ -410,11 +410,6 @@ static struct local_cache_entry *new_entry(struct aws_cryptosdk_local_cache *cac
     aws_atomic_init_int(&entry->refcount, 1);
     entry->owner = cache;
 
-    size_t id_length = cache_id->len;
-    if (id_length > AWS_CRYPTOSDK_MD_MAX_SIZE) {
-        id_length = AWS_CRYPTOSDK_MD_MAX_SIZE;
-    }
-
     entry->creation_time = now;
     entry->expiry_time = NO_EXPIRY;
 
@@ -534,8 +529,6 @@ static int find_entry(
         return AWS_OP_ERR;
     }
 
-    int rv = AWS_OP_ERR;
-
     struct local_cache_entry *local_entry;
     if (locked_find_entry(cache, &local_entry, cache_id)) {
         aws_atomic_fetch_add_explicit(&local_entry->refcount, 1, aws_memory_order_relaxed);
@@ -545,13 +538,11 @@ static int find_entry(
         }
     }
 
-    rv = AWS_OP_SUCCESS;
-
     if (aws_mutex_unlock(&cache->mutex)) {
         abort();
     }
 
-    return rv;
+    return AWS_OP_SUCCESS;
 }
 
 static int update_usage_stats(
@@ -640,7 +631,7 @@ static int get_decryption_materials(
 
     materials = aws_cryptosdk_decryption_materials_new(allocator, local_entry->dec_materials->alg);
 
-    if (copy_decryption_materials(allocator, materials, local_entry->dec_materials)) {
+    if (!materials || copy_decryption_materials(allocator, materials, local_entry->dec_materials)) {
         goto out;
     }
 

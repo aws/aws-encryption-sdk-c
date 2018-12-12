@@ -301,6 +301,9 @@ int aws_cryptosdk_priv_check_trailer(
 
     // TODO: should the signature be a cursor after all?
     struct aws_string *signature_str = aws_string_new_from_array(session->alloc, signature.ptr, signature.len);
+    if (!signature_str) {
+        return AWS_OP_ERR;
+    }
     int rv = aws_cryptosdk_sig_verify_finish(session->signctx, signature_str);
 
     // signctx is unconditionally freed, so avoid double free by nulling it out

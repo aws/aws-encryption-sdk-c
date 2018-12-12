@@ -141,7 +141,9 @@ static int build_header(struct aws_cryptosdk_session *session, struct aws_crypto
     // zero EDKs (otherwise we'd need to destroy the old EDKs as well).
     assert(aws_array_list_length(&materials->encrypted_data_keys) == 0);
 
-    aws_byte_buf_init(&session->header.iv, session->alloc, session->alg_props->iv_len);
+    if (aws_byte_buf_init(&session->header.iv, session->alloc, session->alg_props->iv_len)) {
+        return AWS_OP_ERR;
+    }
     aws_secure_zero(session->header.iv.buffer, session->alg_props->iv_len);
     session->header.iv.len = session->header.iv.capacity;
 
