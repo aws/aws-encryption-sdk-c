@@ -430,7 +430,7 @@ KmsKeyring::Builder &KmsKeyring::Builder::WithClientSupplier(const std::shared_p
     return *this;
 }
 
-KmsKeyring::Builder &KmsKeyring::Builder::WithKmsClient(std::shared_ptr<KMS::KMSClient> kms_client) {
+KmsKeyring::Builder &KmsKeyring::Builder::WithKmsClient(const std::shared_ptr<KMS::KMSClient> &kms_client) {
     this->kms_client = kms_client;
     return *this;
 }
