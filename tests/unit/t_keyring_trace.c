@@ -13,12 +13,9 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/private/keyring_trace.h>
-#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/list_utils.h>
-#include <aws/cryptosdk/session.h>
 #include "testing.h"
 #include "testutil.h"
-#include "test_keyring.h"
 
 AWS_STATIC_STRING_FROM_LITERAL(kms_name_space, "aws-kms");
 AWS_STATIC_STRING_FROM_LITERAL(kms_key, "key_arn");
@@ -121,15 +118,6 @@ int keyring_trace_copy_all_works() {
         aws_cryptosdk_keyring_trace_clean_up(&traces[i]);
     }
     return 0;
-}
-
-static struct test_keyring test_kr;
-static struct aws_cryptosdk_keyring *kr;
-
-static void reset_test_keyring() {
-    memset(&test_kr, 0, sizeof(test_kr));
-    kr = &test_kr.base;
-    aws_cryptosdk_keyring_base_init(kr, &test_keyring_vt);
 }
 
 struct test_case keyring_trace_test_cases[] = {

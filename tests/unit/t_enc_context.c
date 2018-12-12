@@ -14,10 +14,7 @@
  */
 #include <aws/cryptosdk/private/enc_context.h>
 #include <aws/cryptosdk/private/utils.h>
-#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/error.h>
-#include <aws/cryptosdk/session.h>
-#include "test_keyring.h"
 #include "testing.h"
 
 /*
