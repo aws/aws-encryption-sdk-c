@@ -183,9 +183,9 @@ int decrypt_data_key_test_vectors() {
                                                                            tv->data_key_len);
                 TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &known_answer));
                 TEST_ASSERT_SUCCESS(raw_aes_keyring_tv_trace_updated_properly(
-                                &keyring_trace,
-                                AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX |
-                                AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
+                                        &keyring_trace,
+                                        AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX |
+                                        AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
             }
 
             tear_down_all_the_things();

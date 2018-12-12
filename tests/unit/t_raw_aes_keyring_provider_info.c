@@ -55,12 +55,10 @@ int serialize_valid_provider_info() {
 
 int parse_valid_provider_info() {
     struct aws_cryptosdk_keyring * kr = aws_cryptosdk_raw_aes_keyring_new(aws_default_allocator(),
-                                                                aws_string_bytes(ser_master_key_id),
-                                                                ser_master_key_id->len,
-                                                                aws_string_bytes(ser_provider_id),
-                                                                ser_provider_id->len,
-                                                                raw_key_bytes,
-                                                                AWS_CRYPTOSDK_AES_256);
+                                                                          ser_provider_id,
+                                                                          ser_master_key_id,
+                                                                          raw_key_bytes,
+                                                                          AWS_CRYPTOSDK_AES_256);
     TEST_ASSERT_ADDR_NOT_NULL(kr);
 
     struct aws_byte_buf iv_output;

@@ -282,12 +282,10 @@ static const struct aws_cryptosdk_keyring_vt raw_aes_keyring_vt = {
     .on_decrypt = raw_aes_keyring_on_decrypt
 };
 
-struct aws_cryptosdk_keyring * aws_cryptosdk_raw_aes_keyring_new(struct aws_allocator * alloc,
-                                                                 const uint8_t * master_key_id,
-                                                                 size_t master_key_id_len,
-                                                                 const uint8_t * provider_id,
-                                                                 size_t provider_id_len,
-                                                                 const uint8_t * raw_key_bytes,
+struct aws_cryptosdk_keyring * aws_cryptosdk_raw_aes_keyring_new(struct aws_allocator *alloc,
+                                                                 const struct aws_string *key_namespace,
+                                                                 const struct aws_string *key_name,
+                                                                 const uint8_t *raw_key_bytes,
                                                                  enum aws_cryptosdk_aes_key_len key_len) {
     struct raw_aes_keyring * kr = aws_mem_acquire(alloc, sizeof(struct raw_aes_keyring));
     if (!kr) return NULL;
@@ -295,10 +293,10 @@ struct aws_cryptosdk_keyring * aws_cryptosdk_raw_aes_keyring_new(struct aws_allo
 
     aws_cryptosdk_keyring_base_init(&kr->base, &raw_aes_keyring_vt);
 
-    kr->master_key_id = aws_string_new_from_array(alloc, master_key_id, master_key_id_len);
+    kr->master_key_id = aws_cryptosdk_string_dup(alloc, key_name);
     if (!kr->master_key_id) goto oom_err;
 
-    kr->provider_id = aws_string_new_from_array(alloc, provider_id, provider_id_len);
+    kr->provider_id = aws_cryptosdk_string_dup(alloc, key_namespace);
     if (!kr->provider_id) goto oom_err;
 
     kr->raw_key = aws_string_new_from_array(alloc, raw_key_bytes, key_len);
