@@ -35,6 +35,7 @@ int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_
     session->size_bound = UINT64_MAX;
     session->data_so_far = 0;
     session->precise_size_known = false;
+    session->cmm_success = false;
 
     if (session->header_copy) {
         aws_secure_zero(session->header_copy, session->header_size);
@@ -493,53 +494,30 @@ int aws_cryptosdk_priv_fail_session(struct aws_cryptosdk_session *session, int e
 
 const struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr(
     const struct aws_cryptosdk_session *session) {
-    if (session->mode == AWS_CRYPTOSDK_DECRYPT) {
-        if (session->state == ST_DECRYPT_BODY || session->state == ST_CHECK_TRAILER
-            || session->state == ST_DONE) {
-            return &session->header.enc_context;
-        } else {
-            /* If session is not yet at ST_DECRYPT_BODY during decrypt,
-             * it is too early to see the encryption context.
-             */
-            return NULL;
-        }
+    if (session->mode == AWS_CRYPTOSDK_DECRYPT && !session->cmm_success) {
+        /* In decrypt mode, we want to wait until after CMM call to
+         * return encryption context. This assures both that the
+         * encryption context has already been deserialized from the
+         * ciphertext and that it has already been validated, if the
+         * session is using a keyring that does validation of the
+         * encryption context.
+         */
+        return NULL;
     }
     return &session->header.enc_context;
 }
 
 struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr_mut(
     struct aws_cryptosdk_session *session) {
-    if (session->mode == AWS_CRYPTOSDK_DECRYPT) {
-        return NULL;
+    if (session->mode == AWS_CRYPTOSDK_ENCRYPT && session->state == ST_CONFIG) {
+        return &session->header.enc_context;
     }
-    if (session->state != ST_CONFIG) {
-        return NULL;
-    }
-    return &session->header.enc_context;
+    return NULL;
 }
 
 const struct aws_array_list *aws_cryptosdk_session_get_keyring_trace_ptr(
     const struct aws_cryptosdk_session *session) {
-    if (session->mode == AWS_CRYPTOSDK_DECRYPT) {
-        switch (session->state) {
-        case ST_DECRYPT_BODY:
-        case ST_CHECK_TRAILER:
-        case ST_DONE:
-        case ST_ERROR:
-            return &session->keyring_trace;
-        default:
-            return NULL;
-        }
-    }
+    if (session->cmm_success) return &session->keyring_trace;
 
-    switch (session->state) {
-    case ST_WRITE_HEADER:
-    case ST_ENCRYPT_BODY:
-    case ST_WRITE_TRAILER:
-    case ST_DONE:
-    case ST_ERROR:
-        return &session->keyring_trace;
-    default:
-        return NULL;
-    }
+    return NULL;
 }

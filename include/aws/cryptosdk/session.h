@@ -191,7 +191,8 @@ void aws_cryptosdk_session_estimate_buf(
 /**
  * Returns a read-only pointer to the encryption context held by the session.
  * This will return NULL if it is called too early in the decryption process,
- * before the SDK has begun decrypting the body of the message.
+ * before the SDK has finished deserializing and handling the encryption
+ * context from the header of the ciphertext.
  *
  * This may be called at any time during or after the encryption process for
  * read-only access to the encryption context, but for setting the encryption
