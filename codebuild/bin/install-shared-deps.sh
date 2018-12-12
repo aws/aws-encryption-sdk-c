@@ -13,16 +13,13 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script installs non-AWS dependencies. Currently this is openssl, libcurl and json-c.
+# This script installs non-AWS dependencies. Currently this is openssl and libcurl.
 
 # We install openssl primarily to control the version being used, but also to turn on
 # -DPURIFY to silence some valgrind warnings.
 
 # We install libcurl because we need a version that links against the version of openssl
 # in use, to avoid version conflicts.
-
-# We install json-c because we require it to manipulate json objects while running checks  
-# on known good test vectors.
 
 # env variables used:
 # $OPENSSL_PLATFORM: The openssl platform name (e.g. linux-generic32)
@@ -58,16 +55,3 @@ make install
 cd /
 rm -rf /deps/curl
 
-git clone --depth 1 --branch json-c-0.13 https://github.com/json-c/json-c.git /deps/json_c
-mkdir /deps/json_c/build && cd /deps/json_c/build
-export JSON_C_INCLUDE_DIR=/deps/install/include
-export JSON_C_LIBRARY_DIR=/deps/install/lib
-export LD_LIBRARY_PATH=/deps/install 
-cmake -DCMAKE_INSTALL_PREFIX=/deps/install -DCMAKE_BUILD_TYPE=RelWithDebInfo -GNinja \
-      -DCMAKE_PREFIX_PATH=/deps/install \
-      -DCMAKE_C_FLAGS="$CFLAGS" \
-      -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
-      -DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" ..
-cmake --build /deps/json_c/build
-cmake --build /deps/json_c/build --target install
-rm -rf /deps/json_c
