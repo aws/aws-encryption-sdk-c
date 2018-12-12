@@ -31,6 +31,12 @@
 
 #include <aws/common/thread.h>
 
+#include <openssl/err.h>
+#include <openssl/crypto.h>
+
+#include <aws/common/thread.h>
+#include <aws/common/mutex.h>
+
 #include "cache_test_lib.h"
 #include "testutil.h"
 
@@ -74,6 +80,42 @@ struct rand_state {
 #define RNG_MODULUS UINT32_MAX // 2^31 - 1
 #define RNG_GENERATOR 16807
 #define RNG_MAX (RNG_MODULUS - 1)
+
+static unsigned long threadid_get_callback() {
+    return aws_thread_current_thread_id();
+}
+
+static struct aws_mutex *mutex_array = NULL;
+
+static void lock_callback(int mode, int n, const char *file, int line) {
+    int rv;
+    if (mode & CRYPTO_LOCK) {
+        rv = aws_mutex_lock(&mutex_array[n]);
+    } else {
+        rv = aws_mutex_unlock(&mutex_array[n]);
+    }
+
+    if (rv) {
+        abort();
+    }
+}
+
+static void libcrypto_init() {
+    /* None of this is needed in openssl 1.1.0, but we still have to build on older versions... */
+    ERR_load_crypto_strings();
+
+    size_t num_locks = CRYPTO_num_locks();
+    mutex_array = aws_mem_acquire(aws_default_allocator(), sizeof(struct aws_mutex) * num_locks);
+
+    for (size_t i = 0; i < num_locks; i++) {
+        if (aws_mutex_init(&mutex_array[i])) {
+            abort();
+        }
+    }
+
+    CRYPTO_set_id_callback(threadid_get_callback);
+    CRYPTO_set_locking_callback(lock_callback);
+}
 
 static uint32_t get_random(struct rand_state *state) {
     uint32_t val = state->state;
@@ -252,6 +294,8 @@ static void teardown() {
 }
 
 int main() {
+    libcrypto_init();
+
     setup();
 
     struct aws_thread threads[THREAD_COUNT];
