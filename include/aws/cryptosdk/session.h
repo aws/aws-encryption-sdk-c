@@ -16,11 +16,6 @@
 #ifndef AWS_CRYPTOSDK_SESSION_H
 #define AWS_CRYPTOSDK_SESSION_H
 
-#include <stdbool.h>
-
-#include <aws/common/common.h>
-#include <aws/cryptosdk/exports.h>
-#include <aws/cryptosdk/header.h>
 #include <aws/cryptosdk/materials.h>
 
 #ifdef __cplusplus
@@ -199,7 +194,7 @@ void aws_cryptosdk_session_estimate_buf(
  * context, use aws_cryptosdk_get_enc_ctx_ptr_mut instead.
  *
  * The hash table pointed to by this pointer lives until the session is
- * destroyed. If you want a copy of the encryption context that will
+ * reset or destroyed. If you want a copy of the encryption context that will
  * outlive the session, you should duplicate it with
  * aws_cryptosdk_enc_context_clone and then deallocate the copy with
  * aws_cryptosdk_enc_context_clean_up when done with it.
@@ -216,17 +211,17 @@ const struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr(
  *
  * The returned pointer will always point to an already initialized hash
  * table. Callers MUST not clean up or re-initialize the hash table.
- * The encryption context is a aws_hash_table with key and value both
+ * The encryption context is an aws_hash_table with key and value both
  * using the aws_string type.
  *
  * See the interfaces in hash_table.h and string.h in aws-c-common for
  * guidance on how to add elements to the encryption context.
  *
- * For best results, do not reuse this pointer after a call to the session.
- * Updating the encryption context after the session has begun processing
- * will not have the expected effect. See documentation of
- * aws_cryptosdk_session_get_enc_ctx_ptr for how to make your own copy
- * of the encryption context, if desired.
+ * Do not use this pointer across calls to the session. Doing so results
+ * in undefined behavior.
+ *
+ * See documentation of aws_cryptosdk_session_get_enc_ctx_ptr for how to
+ * make your own copy of the encryption context, if desired.
  */
 AWS_CRYPTOSDK_API
 struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr_mut(
@@ -242,11 +237,11 @@ struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr_mut(
  * already initialized aws_array_list with elements of type
  * struct aws_cryptosdk_keyring_trace_record.
  *
- * See keyring_trace.h for information on the format of the trace.
+ * See keyring_trace.h for more information on the format of the trace.
  *
  * The trace pointed to by this pointer lives until the session is
- * destroyed. If you want a copy of the trace that will outlive
- * the session, you should duplicate it with
+ * reset or destroyed. If you want a copy of the trace that will
+ * outlive the session, you should duplicate it with
  * aws_cryptosdk_keyring_trace_copy_all and then deallocate the
  * copy with aws_cryptosdk_keyring_trace_clean_up when done with it.
  */
