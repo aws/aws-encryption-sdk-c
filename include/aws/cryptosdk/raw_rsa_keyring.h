@@ -29,7 +29,7 @@ extern "C" {
  * Here, 'rsa_public_key_pem' is a null terminated C-string containing the public
  * key in PEM format and 'rsa_private_key_pem' is a null terminated C-string
  * containing the private key in PEM format. Note that either argument may be set
- * to NULL. Encryption  is possible only when a public key is provided, and
+ * to NULL. Encryption is possible only when a public key is provided, and
  * decryption is possible only when a private key is provided. 
  * 
  * Key namespace, name, RSA private key and RSA public key provided by the caller
