@@ -78,7 +78,7 @@ namespace KmsKeyring {
          * KmsKeyring will use only this KMS Client. Note that this is only suitable if all
          * KMS keys are in one region. If this is set then the client supplier parameter is ignored.
          */
-        Builder &WithKmsClient(std::shared_ptr<KMS::KMSClient> kms_client);
+        Builder &WithKmsClient(const std::shared_ptr<KMS::KMSClient> &kms_client);
 
         /**
          * Creates a new KmsKeyring object or returns NULL if parameters are invalid.
