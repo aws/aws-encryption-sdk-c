@@ -30,14 +30,15 @@ static int serialize_aad_init(struct aws_allocator *alloc,
                               struct aws_byte_buf *aad,
                               const struct aws_hash_table *enc_context) {
     size_t aad_len;
-
+    // This does not zero out the bytes of the byte buffer.
+    // It assures that the buffer object is in proper uninitialized state.
     memset(aad, 0, sizeof(*aad));
 
-    if (aws_cryptosdk_context_size(&aad_len, enc_context)
-        || aws_byte_buf_init(aad, alloc, aad_len)
-        || aws_cryptosdk_context_serialize(alloc, aad, enc_context)) {
+    if (aws_cryptosdk_context_size(&aad_len, enc_context) ||
+        aws_byte_buf_init(aad, alloc, aad_len) ||
+        aws_cryptosdk_context_serialize(alloc, aad, enc_context))
+    {
         aws_byte_buf_clean_up(aad);
-
         return AWS_OP_ERR;
     }
 
@@ -52,17 +53,16 @@ int aws_cryptosdk_serialize_provider_info_init(struct aws_allocator * alloc,
     if (aws_byte_buf_init(output, alloc, serialized_len)) {
         return AWS_OP_ERR;
     }
-    if (!aws_byte_buf_write_from_whole_string(output, key_name)) goto write_err;
-    if (!aws_byte_buf_write_be32(output, RAW_AES_KR_TAG_LEN * 8)) goto write_err;
-    if (!aws_byte_buf_write_be32(output, RAW_AES_KR_IV_LEN)) goto write_err;
-    if (!aws_byte_buf_write(output, iv, RAW_AES_KR_IV_LEN)) goto write_err;
-
+    if (!aws_byte_buf_write_from_whole_string(output, key_name) ||
+        !aws_byte_buf_write_be32(output, RAW_AES_KR_TAG_LEN * 8) ||
+        !aws_byte_buf_write_be32(output, RAW_AES_KR_IV_LEN) ||
+        !aws_byte_buf_write(output, iv, RAW_AES_KR_IV_LEN))
+    {
+        // We should never get here, because buffer was allocated locally to be long enough.
+        aws_byte_buf_clean_up(output);
+        return aws_raise_error(AWS_ERROR_UNKNOWN);
+    }
     return AWS_OP_SUCCESS;
-
-write_err:
-    // We should never get here, because buffer was allocated locally to be long enough.
-    aws_byte_buf_clean_up(output);
-    return aws_raise_error(AWS_ERROR_UNKNOWN);
 }
 
 bool aws_cryptosdk_parse_provider_info(struct aws_cryptosdk_keyring * kr,
