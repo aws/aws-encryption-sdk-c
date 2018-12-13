@@ -15,6 +15,7 @@
 #include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/raw_rsa_keyring.h>
+#include <aws/cryptosdk/private/utils.h>
 
 #include <aws/common/byte_buf.h>
 #include <aws/common/string.h>
@@ -22,8 +23,8 @@
 struct raw_rsa_keyring {
     struct aws_cryptosdk_keyring base;
     struct aws_allocator *alloc;
-    const struct aws_string *master_key_id;
-    const struct aws_string *provider_id;
+    const struct aws_string *key_namespace;
+    const struct aws_string *key_name;
     const struct aws_string * rsa_private_key_pem;
     const struct aws_string * rsa_public_key_pem;
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode;
@@ -43,13 +44,13 @@ static int encrypt_data_key(struct aws_cryptosdk_keyring *kr,
                                   self->rsa_public_key_pem,
                                   self->rsa_padding_mode)) goto err;
 
-    if (aws_byte_buf_init(&edk.provider_id, request_alloc, self->provider_id->len)) goto err;
+    if (aws_byte_buf_init(&edk.provider_id, request_alloc, self->key_namespace->len)) goto err;
 
-    if (aws_byte_buf_init(&edk.provider_info, request_alloc, self->master_key_id->len)) goto err;
+    if (aws_byte_buf_init(&edk.provider_info, request_alloc, self->key_name->len)) goto err;
 
-    if (!aws_byte_buf_write_from_whole_string(&edk.provider_id, self->provider_id)) goto err;
+    if (!aws_byte_buf_write_from_whole_string(&edk.provider_id, self->key_namespace)) goto err;
 
-    if (!aws_byte_buf_write_from_whole_string(&edk.provider_info, self->master_key_id)) goto err;
+    if (!aws_byte_buf_write_from_whole_string(&edk.provider_info, self->key_name)) goto err;
 
     if (aws_array_list_push_back(edks, &edk)) goto err;
 
@@ -93,8 +94,8 @@ static int raw_rsa_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
         flags |= AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY;
         aws_cryptosdk_keyring_trace_add_record(request_alloc,
                                                keyring_trace,
-                                               self->provider_id,
-                                               self->master_key_id,
+                                               self->key_namespace,
+                                               self->key_name,
                                                flags);
     }
     return ret;
@@ -119,8 +120,8 @@ static int raw_rsa_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
         if (aws_array_list_get_at_ptr(edks, (void **)&edk, edk_idx)) { return AWS_OP_ERR; }
 
         if (!edk->provider_id.len || !edk->provider_info.len || !edk->enc_data_key.len) continue;
-        if (!aws_string_eq_byte_buf(self->provider_id, &edk->provider_id)) continue;
-        if (!aws_string_eq_byte_buf(self->master_key_id, &edk->provider_info)) continue;
+        if (!aws_string_eq_byte_buf(self->key_namespace, &edk->provider_id)) continue;
+        if (!aws_string_eq_byte_buf(self->key_name, &edk->provider_info)) continue;
 
         if (aws_cryptosdk_rsa_decrypt(unencrypted_data_key,
                                       request_alloc,
@@ -135,8 +136,8 @@ static int raw_rsa_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
         } else {
             aws_cryptosdk_keyring_trace_add_record(request_alloc,
                                                    keyring_trace,
-                                                   self->provider_id,
-                                                   self->master_key_id,
+                                                   self->key_namespace,
+                                                   self->key_name,
                                                    AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY);
             return AWS_OP_SUCCESS;
         }
@@ -147,8 +148,8 @@ static int raw_rsa_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
 
 static void raw_rsa_keyring_destroy(struct aws_cryptosdk_keyring *kr) {
     struct raw_rsa_keyring *self = (struct raw_rsa_keyring *)kr;
-    aws_string_destroy((void *)self->master_key_id);
-    aws_string_destroy((void *)self->provider_id);
+    aws_string_destroy((void *)self->key_name);
+    aws_string_destroy((void *)self->key_namespace);
     aws_string_destroy_secure((void *)self->rsa_private_key_pem);
     aws_string_destroy_secure((void *)self->rsa_public_key_pem);
     aws_mem_release(self->alloc, self);
@@ -164,10 +165,8 @@ static const struct aws_cryptosdk_keyring_vt raw_rsa_keyring_vt = {
 
 struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     struct aws_allocator *alloc,
-    const uint8_t *master_key_id,
-    size_t master_key_id_len,
-    const uint8_t *provider_id,
-    size_t provider_id_len,
+    const struct aws_string *key_namespace,
+    const struct aws_string *key_name,
     const char *rsa_private_key_pem,
     const char *rsa_public_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
@@ -175,11 +174,11 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     if (!kr) return NULL;
     memset(kr, 0, sizeof(struct raw_rsa_keyring));
 
-    kr->master_key_id = aws_string_new_from_array(alloc, master_key_id, master_key_id_len);
-    if (!kr->master_key_id) goto err;
+    kr->key_name = aws_cryptosdk_string_dup(alloc, key_name);
+    if (!kr->key_name) goto err;
 
-    kr->provider_id = aws_string_new_from_array(alloc, provider_id, provider_id_len);
-    if (!kr->provider_id) goto err;
+    kr->key_namespace = aws_cryptosdk_string_dup(alloc, key_namespace);
+    if (!kr->key_namespace) goto err;
 
     if (!rsa_private_key_pem && !rsa_public_key_pem)
     {
@@ -207,8 +206,8 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     return (struct aws_cryptosdk_keyring *)kr;
 
 err:
-    aws_string_destroy((void *)kr->master_key_id);
-    aws_string_destroy((void *)kr->provider_id);
+    aws_string_destroy((void *)kr->key_name);
+    aws_string_destroy((void *)kr->key_namespace);
     aws_mem_release(alloc, kr);
     return NULL;
 }
