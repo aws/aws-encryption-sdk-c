@@ -33,6 +33,20 @@ namespace KmsKeyring {
     class ClientSupplier;
 
     /**
+     * @defgroup kms_keyring KMS keyring (AWS SDK for C++)
+     *
+     * We have implemented a keyring on top of KMS, which uses the AWS SDK for C++
+     * as its underlying KMS client.  This is compatible with the Java and Python
+     * KMSMasterKeyProvider.
+     *
+     * Because there is no pure-C AWS KMS client at the moment, C++ is required to
+     * use this keyring. We expect that a parallel pure-C API will be added in the
+     * future when a pure-C KMS client becomes available.
+     *
+     * @{
+     */
+
+    /**
      * Helper class for building a new KmsKeyring object. You cannot construct a KmsKeyring directly
      * and must use this class instead. This class is the only API you need to interact with KmsKeyrings.
      * You will set all of the configuration of the KmsKeyring with this class before calling Build, and
@@ -185,6 +199,9 @@ namespace KmsKeyring {
       private:
         std::shared_ptr<KMS::KMSClient> kms_client;
     };
+
+/** @} */ // doxygen group kms_keyring
+
 }
 
 }  // namespace Cryptosdk

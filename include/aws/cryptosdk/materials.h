@@ -38,44 +38,112 @@ extern "C" {
 #endif
 
 /**
- * Base types for CMM and KR: Concrete implementations will create their own structs, which
- * must have this structure as the first member, and cast pointers accordingly. See
- * default_cmm.[ch] for an example of this.
+ * @defgroup cmm_kr_highlevel Materials providers
+ *
+ * The behavior of the encryption SDK is largely defined by two types of materials providers -
+ * the Crypto Materials Managers (CMMs) and Keyrings. In order to perform an encryption or
+ * decryption operation, the @ref session must be given a CMM, which will typically be configured
+ * to delegate to one or more keyrings to perform the key wrapping or unwrapping operation.
+ *
+ * Broadly speaking, you can think of a keyring as defining the underlying keys used to encrypt
+ * and decrypt (and therefore, who has access to the final message), while CMMs can perform
+ * higher-level manipulations on the overall encrypt/decrypt operation (such as caching the
+ * results of invoking the keyring).
+ *
+ * CMM and keyring objects are reference counted to make it easier to construct higher-level
+ * CMMs or keyrings out of other primitives; in general, functions in the encryption SDK which
+ * take a CMM or keyring as an argument will appropriately increment the reference count (and
+ * decrement it when they no longer have a reference). When this reference count reaches zero,
+ * the CMM or keyring will be destroyed.
+ *
+ * All CMMs and keyrings provided as built-ins are thread-safe with respect to the API they
+ * expose to the session; however, any configuration APIs that are specific to the type of
+ * CMM or keyring in question may not be thread safe (that is, you can't safely change the
+ * configuration while using the CMM or keyring on another thread's session object).
+ */
+
+/**
+ * @defgroup cmm_kr_lowlevel Low-level materials provider APIs
+ *
+ * This section contains low-level APIs of interest to developers of custom keyrings or CMMs.
+ * @{
+ */
+
+// Note: Most of this file will be in the low-level section.
+// To move something to the high-level section, use @ingroup cmm_kr_highlevel
+
+/**
+ * Base type for a Crypto Materials Manager. Unless you are writing your own CMM, you should
+ * not create this struct directly; see @ref aws_cryptosdk_default_cmm_new for a CMM
+ * that will suffice in most situations.
+ *
+ * Implementers of CMMs should embed this struct in their implementation-specific state structure,
+ * and use @ref aws_cryptosdk_cmm_base_init to initialize its contents.
  */
 struct aws_cryptosdk_cmm {
     struct aws_atomic_var refcount;
     const struct aws_cryptosdk_cmm_vt *vtable;
 };
 
+/**
+ * Base type for a keyring. Unless you are writing your own keyrings, you should
+ * not create this struct directly; see @ref kms_keyring or @ref raw_keyring for built-in keyring
+ * implementations.
+ *
+ * Implementers of keyrings should embed this struct in their implementation-specific state structure,
+ * and use @ref aws_cryptosdk_keyring_base_init to initialize its contents.
+ */
 struct aws_cryptosdk_keyring {
     struct aws_atomic_var refcount;
     const struct aws_cryptosdk_keyring_vt *vtable;
 };
 
+/**
+ * Encryption request passed from the session to a CMM
+ */
 struct aws_cryptosdk_encryption_request {
     struct aws_allocator * alloc;
-    // The encryption context for this message. CMMs are permitted to modify this
-    // hash table in order to inject additional keys or otherwise modify the encryption
-    // context.
+    /**
+     * The encryption context for this message. CMMs are permitted to modify this
+     * hash table in order to inject additional keys or otherwise modify the encryption
+     * context.
+     */
     struct aws_hash_table * enc_context;
-    // The session will initially call generate_encryption_materials on the CMM
-    // with a zero requested_alg; it's up to one of the CMMs in the chain to fill
-    // this in before the keyring is invoked. In particular, the default CMM will
-    // fill in the algorithm ID it has been configured with, unless a CMM before
-    // the default CMM filled in a different algorithm ID.
+    /**
+     * The session will initially call generate_encryption_materials on the CMM
+     * with a zero requested_alg; it's up to one of the CMMs in the chain to fill
+     * this in before the keyring is invoked. In particular, the default CMM will
+     * fill in the algorithm ID it has been configured with, unless a CMM before
+     * the default CMM filled in a different algorithm ID.
+     */
     enum aws_cryptosdk_alg_id requested_alg;
+    /**
+     * An upper-bound on the plaintext size to be encrypted (comes from @ref
+     * aws_cryptosdk_session_set_message_bound or @ref
+     * aws_cryptosdk_session_set_message_size). If no bound has been set,
+     * this will be UINT64_MAX.
+     */
     uint64_t plaintext_size;
 };
 
+/**
+ * Materials returned from a CMM generate_encryption_materials operation
+ */
 struct aws_cryptosdk_encryption_materials {
     struct aws_allocator * alloc;
     struct aws_byte_buf unencrypted_data_key;
+    /** Contains a trace of which wrapping keys took which actions in this request */
     struct aws_array_list keyring_trace;
-    struct aws_array_list encrypted_data_keys; // list of struct aws_cryptosdk_edk objects
+    /** List of struct aws_cryptosdk_edk objects */
+    struct aws_array_list encrypted_data_keys;
+    /** Trailing signature context, or NULL if no trailing signature is needed for this algorithm */
     struct aws_cryptosdk_signctx *signctx;
     enum aws_cryptosdk_alg_id alg;
 };
 
+/**
+ * Decryption request passed from session to CMM
+ */
 struct aws_cryptosdk_decryption_request {
     struct aws_allocator * alloc;
     const struct aws_hash_table * enc_context;
@@ -83,13 +151,20 @@ struct aws_cryptosdk_decryption_request {
     enum aws_cryptosdk_alg_id alg;
 };
 
+/**
+ * Decryption materials returned from CMM to session
+ */
 struct aws_cryptosdk_decryption_materials {
     struct aws_allocator * alloc;
     struct aws_byte_buf unencrypted_data_key;
+    /** Contains a trace of which wrapping keys took which actions in this request */
     struct aws_array_list keyring_trace;
+    /** Trailing signature context, or NULL if no trailing signature is needed for this algorithm */
     struct aws_cryptosdk_signctx *signctx;
     enum aws_cryptosdk_alg_id alg;
 };
+
+#ifndef AWS_CRYPTOSDK_DOXYGEN /* do not document internal macros */
 
 /*
  * C99 standard dictates that "..." must have at least one argument behind it. Second arg of
@@ -210,11 +285,11 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_private_refcount_up(struct aws_at
     // Suppress unused variable warning when NDEBUG is set
     (void)old_count;
 }
+#endif // AWS_CRYPTOSDK_DOXYGEN
 
 /**
  * Virtual tables for CMM and keyring. Any implementation should declare a static instance of
- * this, and the first element of the CMM or keyring struct should be a pointer to that static
- *
+ * this, andpass it to @ref aws_cryptosdk_cmm_base_init to initiailze the base struct
  */
 struct aws_cryptosdk_cmm_vt {
     /**
@@ -247,7 +322,7 @@ struct aws_cryptosdk_cmm_vt {
 
 /**
  * Initialize the base structure for a CMM. This should be called by the /implementation/ of a CMM, to set up the
- * vtable and reference count.
+ * vtable and reference count. On return, the reference count is initialized to 1.
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_base_init(struct aws_cryptosdk_cmm * cmm, const struct aws_cryptosdk_cmm_vt *vtable) {
     cmm->vtable = vtable;
@@ -255,6 +330,7 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_base_init(struct aws_cryptosd
 }
 
 /**
+ * @ingroup cmm_kr_highlevel
  * Decrements the reference count on the CMM; if the new reference count is zero, the CMM is destroyed.
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_release(struct aws_cryptosdk_cmm * cmm) {
@@ -264,6 +340,7 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_release(struct aws_cryptosdk_
 }
 
 /**
+ * @ingroup cmm_kr_highlevel
  * Increments the reference count on the cmm.
  */
 AWS_CRYPTOSDK_STATIC_INLINE struct aws_cryptosdk_cmm *aws_cryptosdk_cmm_retain(struct aws_cryptosdk_cmm * cmm) {
@@ -357,7 +434,7 @@ struct aws_cryptosdk_keyring_vt {
 
 /**
  * Initialize the base structure for a keyring. This should be called by the /implementation/ of a keyring, to set up the
- * vtable and reference count.
+ * vtable and reference count. On return, the reference count is initialized to 1.
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_keyring_base_init(struct aws_cryptosdk_keyring * keyring, const struct aws_cryptosdk_keyring_vt *vtable) {
     keyring->vtable = vtable;
@@ -365,6 +442,7 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_keyring_base_init(struct aws_cryp
 }
 
 /**
+ * @ingroup cmm_kr_highlevel
  * Decrements the reference count on the keyring; if the new reference count is zero, the keyring is destroyed.
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_keyring_release(struct aws_cryptosdk_keyring * keyring) {
@@ -374,6 +452,7 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_keyring_release(struct aws_crypto
 }
 
 /**
+ * @ingroup cmm_kr_highlevel
  * Increments the reference count on the keyring.
  */
 AWS_CRYPTOSDK_STATIC_INLINE struct aws_cryptosdk_keyring *aws_cryptosdk_keyring_retain(struct aws_cryptosdk_keyring * keyring) {
@@ -453,9 +532,6 @@ void aws_cryptosdk_encryption_materials_destroy(struct aws_cryptosdk_encryption_
  * the byte buffer for  the unencrypted data key. That will only be allocated when an EDK
  * is decrypted.
  *
- * TODO: Trailing signature key must be implemented, and if any preallocation of memory
- * is needed add it here.
- *
  * On failure, returns NULL and an internal AWS error code is set.
  */
 AWS_CRYPTOSDK_API
@@ -474,5 +550,7 @@ void aws_cryptosdk_decryption_materials_destroy(struct aws_cryptosdk_decryption_
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */ // doxygen group cmm_kr_lowlevel
 
 #endif // AWS_CRYPTOSDK_MATERIALS_H

@@ -21,19 +21,53 @@
 #include <aws/cryptosdk/vtable.h>
 #include <aws/cryptosdk/exports.h>
 
-#define AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES ((uint64_t)1 << 32)
+/**
+ * @defgroup caching Caching APIs
+ *
+ * The Encryption SDK includes a mechanism that can be used to cache the result
+ * of encryption and decryption operations to reduce the number of calls made
+ * to a backing keyring (e.g. KMS).
+ *
+ * To use the caching API, construct a local cache (using @ref
+ * aws_cryptosdk_mat_cache_local_new) and pass it to the constructor of a
+ * caching cmm (@ref aws_cryptosdk_caching_cmm_new), along with a delegate CMM
+ * to use on a cache miss. We recommend additionally setting policy limits using
+ * @ref aws_cryptosdk_caching_cmm_set_limits to ensure that keys expire and are
+ * refreshed periodically.
+ *
+ * As with CMMs and keyrings, the local cache is reference counted. In simple use
+ * cases where there is only one local cache and one CMM, you can immediately call
+ * @ref aws_cryptosdk_mat_cache_release on the local cache after constructing the
+ * CMM.
+ *
+ * Multiple caching CMMs can share the same local cache, but by default will
+ * not use each other's entries (that is, they share the entry count limit, but
+ * otherwise are partitioned from each other). This is to avoid unexpected behavior
+ * in case the cache-miss delegate CMMs are different. If you want two caching CMMs
+ * to share their entries, pass the same partition ID to both calls to @ref
+ * aws_cryptosdk_caching_cmm_new .
+ * @{
+ */
 
-struct aws_cryptosdk_cache_usage_stats {
-    uint64_t bytes_encrypted, messages_encrypted;
-};
+#define AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES ((uint64_t)1 << 32)
 
 /**
  * The backing materials cache that stores the cached materials for one or more caching CMMs.
  */
+#ifdef AWS_CRYPTOSDK_DOXYGEN
+struct aws_cryptosdk_mat_cache;
+#else
 struct aws_cryptosdk_mat_cache {
     struct aws_atomic_var refcount;
     const struct aws_cryptosdk_mat_cache_vt *vt;
 };
+#endif
+
+#ifndef AWS_CRYPTOSDK_DOXYGEN
+/**
+ * NOTE: The extension API for defining new materials cache is currently considered unstable and
+ * may change in the future.
+ */
 
 /**
  * Represents an opaque handle to an entry in the materials cache. These handles are returned
@@ -44,6 +78,10 @@ struct aws_cryptosdk_mat_cache {
  * freeable data structures.
  */
 struct aws_cryptosdk_mat_cache_entry;
+
+struct aws_cryptosdk_cache_usage_stats {
+    uint64_t bytes_encrypted, messages_encrypted;
+};
 
 AWS_CRYPTOSDK_STATIC_INLINE
 void aws_cryptosdk_mat_cache_base_init(
@@ -78,11 +116,11 @@ struct aws_cryptosdk_mat_cache_vt {
      *
      * Parameters:
      *
-     * @param cache - The cache to perform the lookup against
-     * @param entry - Out-parameter that receives a handle to the cache entry, if found
-     * @param is_encrypt - If an entry is found, set to true if the entry is for encryption,
+     * @param cache The cache to perform the lookup against
+     * @param entry Out-parameter that receives a handle to the cache entry, if found
+     * @param is_encrypt If an entry is found, set to true if the entry is for encryption,
      *  or false if for decryption.
-     * @param cache_id - The cache identifier to look up.
+     * @param cache_id The cache identifier to look up.
      */
 
     int (*find_entry)(
@@ -165,15 +203,15 @@ struct aws_cryptosdk_mat_cache_vt {
      * and *entry is set to NULL.
      *
      * Parameters:
-     * @param cache - The cache to insert into
-     * @param entry - Out-parameter which receives a handle to the created cache entry.
+     * @param cache The cache to insert into
+     * @param entry Out-parameter which receives a handle to the created cache entry.
      *                On failure, *entry will be set to NULL.
-     * @param encryption_materials - The encryption materials to insert; a copy will be
+     * @param encryption_materials The encryption materials to insert; a copy will be
      * made using the cache's allocator
-     * @param initial_usage - The usage stats to initially record against this cache entry
-     * @param enc_context - The encryption context associated with the cache entry;
+     * @param initial_usage The usage stats to initially record against this cache entry
+     * @param enc_context The encryption context associated with the cache entry;
      *  a copy will be made using the cache's allocator
-     * @param cache_id - The cache identifier to insert into
+     * @param cache_id The cache identifier to insert into
      */
     void (*put_entry_for_encrypt)(
         struct aws_cryptosdk_mat_cache *cache,
@@ -192,10 +230,10 @@ struct aws_cryptosdk_mat_cache_vt {
      * and *entry is set to NULL.
      *
      * Parameters:
-     * @param cache - The cache to insert into
-     * @param entry - Out-parameter that receives the cache entry, if found
-     * @param cache_id - The cache identifier to insert into
-     * @param decryption_materials - The encryption materials to insert; a copy will be
+     * @param cache The cache to insert into
+     * @param entry Out-parameter that receives the cache entry, if found
+     * @param cache_id The cache identifier to insert into
+     * @param decryption_materials The encryption materials to insert; a copy will be
      * made using the cache's allocator
      */
     void (*put_entry_for_decrypt)(
@@ -213,10 +251,6 @@ struct aws_cryptosdk_mat_cache_vt {
      */
     void (*destroy)(struct aws_cryptosdk_mat_cache *cache);
 
-    /**
-     * Returns an estimate of the number of entries in the cache. If a size estimate is not available,
-     * returns SIZE_MAX.
-     */
     size_t (*entry_count)(const struct aws_cryptosdk_mat_cache *cache);
 
     /**
@@ -257,15 +291,6 @@ struct aws_cryptosdk_mat_cache_vt {
      */
     void (*clear)(struct aws_cryptosdk_mat_cache *cache);
 };
-
-/**
- * Creates a new instance of the built-in local materials cache. This cache is thread safe, and uses a simple
- * LRU policy (with capacity shared between encrypt and decrypt) to evict entries.
- */
-struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_local_new(
-    struct aws_allocator *alloc,
-    size_t capacity
-);
 
 AWS_CRYPTOSDK_STATIC_INLINE
 int aws_cryptosdk_mat_cache_find_entry(
@@ -400,18 +425,6 @@ void aws_cryptosdk_mat_cache_put_entry_for_decrypt(
 }
 
 AWS_CRYPTOSDK_STATIC_INLINE
-size_t aws_cryptosdk_mat_cache_entry_count(const struct aws_cryptosdk_mat_cache *cache) {
-    size_t (*entry_count)(const struct aws_cryptosdk_mat_cache *cache)
-        = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_count);
-
-    if (!entry_count) {
-        return SIZE_MAX;
-    }
-
-    return entry_count(cache);
-}
-
-AWS_CRYPTOSDK_STATIC_INLINE
 void aws_cryptosdk_mat_cache_entry_release(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_cryptosdk_mat_cache_entry *entry,
@@ -462,8 +475,36 @@ void aws_cryptosdk_mat_cache_entry_ttl_hint(
     }
 }
 
+#endif // AWS_CRYPTOSDK_DOXYGEN (unstable APIs excluded from docs)
+
 /**
- * Attempts to clear all entries in the cache
+ * Creates a new instance of the built-in local materials cache. This cache is thread safe, and uses a simple
+ * LRU policy (with capacity shared between encrypt and decrypt) to evict entries.
+ */
+struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_local_new(
+    struct aws_allocator *alloc,
+    size_t capacity
+);
+
+/**
+ * Returns an estimate of the number of entries in the cache. If a size estimate is not available,
+ * returns SIZE_MAX.
+ */
+AWS_CRYPTOSDK_STATIC_INLINE
+size_t aws_cryptosdk_mat_cache_entry_count(const struct aws_cryptosdk_mat_cache *cache) {
+    size_t (*entry_count)(const struct aws_cryptosdk_mat_cache *cache)
+        = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_count);
+
+    if (!entry_count) {
+        return SIZE_MAX;
+    }
+
+    return entry_count(cache);
+}
+
+/**
+ * Attempts to clear all entries in the cache. This method is threadsafe, though any entries
+ * being inserted in parallel with the clear operation may not end up being cleared.
  */
 AWS_CRYPTOSDK_STATIC_INLINE
 void aws_cryptosdk_mat_cache_clear(struct aws_cryptosdk_mat_cache *cache) {
@@ -473,6 +514,14 @@ void aws_cryptosdk_mat_cache_clear(struct aws_cryptosdk_mat_cache *cache) {
     if (clear) {
         clear(cache);
     }
+}
+
+/**
+ * Increments the reference count on the materials cache
+ */
+AWS_CRYPTOSDK_STATIC_INLINE struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_retain(struct aws_cryptosdk_mat_cache * mat_cache) {
+    aws_cryptosdk_private_refcount_up(&mat_cache->refcount);
+    return mat_cache;
 }
 
 /**
@@ -492,14 +541,6 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_mat_cache_release(struct aws_cryp
 }
 
 /**
- * Increments the reference count on the materials cache
- */
-AWS_CRYPTOSDK_STATIC_INLINE struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_retain(struct aws_cryptosdk_mat_cache * mat_cache) {
-    aws_cryptosdk_private_refcount_up(&mat_cache->refcount);
-    return mat_cache;
-}
-
-/**
  * Creates a new instance of the caching crypto materials manager. This CMM will intercept requests for encrypt
  * and decrypt materials, and forward them to the provided materials cache.
  *
@@ -508,10 +549,10 @@ AWS_CRYPTOSDK_STATIC_INLINE struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_ca
  * the caching CMM will internally generate a random partition ID to ensure it does not collide with any other CMM.
  *
  * Parameters:
- * @param alloc - The allocator to use for the caching CMM itself (not for cache entries, however)
- * @param mat_cache - The backing cache
- * @param upstream - The upstream CMM to query on a cache miss
- * @param partition_id - The partition ID to use to avoid collisions with other CMMs. This string need not remain valid
+ * @param alloc The allocator to use for the caching CMM itself (not for cache entries, however)
+ * @param mat_cache The backing cache
+ * @param upstream The upstream CMM to query on a cache miss
+ * @param partition_id The partition ID to use to avoid collisions with other CMMs. This string need not remain valid
  *                       once this function returns. If NULL, a random partition ID will be generated and used.
  */
 struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
@@ -522,8 +563,24 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
 );
 
 enum aws_cryptosdk_caching_cmm_limit_type {
+    /**
+     * Limits the number of messages that can be encrypted by the same data key.
+     * Has no effect when caching the result of decrypt operations.
+     */
     AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES = 0x1000,
+    /**
+     * Limits the number of bytes that can be encrypted by the same data key.
+     * Has no effect when caching the result of decrypt operations.
+     */
     AWS_CRYPTOSDK_CACHE_LIMIT_BYTES,
+    /**
+     * Limits the amount of time that a data key can be used for, in nanoseconds.
+     *
+     * Note that we make a best-effort attempt to remove the data key from memory
+     * after expiration, but this is not guaranteed - in particular, because we do
+     * not currently create a cleanup thread, if no calls are made to the cache, no
+     * cache cleanup will take place.
+     */
     AWS_CRYPTOSDK_CACHE_LIMIT_TTL
 };
 
@@ -549,14 +606,16 @@ enum aws_cryptosdk_caching_cmm_limit_type {
  * it will instead be set to the maximum permitted value.
  *
  * Parameters:
- * @param cmm - The caching CMM to configure.
- * @param type - The type of limit to set
- * @param new_value - The new value of the limit
+ * @param cmm The caching CMM to configure.
+ * @param type The type of limit to set
+ * @param new_value The new value of the limit
  */
 int aws_cryptosdk_caching_cmm_set_limits(
     struct aws_cryptosdk_cmm *cmm,
     enum aws_cryptosdk_caching_cmm_limit_type type,
     uint64_t new_value
 );
+
+/** @} */ // doxygen group caching
 
 #endif

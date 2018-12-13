@@ -23,6 +23,11 @@ extern "C" {
 #endif
 
 /**
+ * @addtogroup cmm_kr_highlevel
+ * @{
+ */
+
+/**
  * Creates a new multi-keyring. This keyring allows you to combine keyrings into
  * a single keyring. When used for encryption, the resulting document can be 
  * decrypted by any of the included keyrings. When used for decryption, the multi-
@@ -106,6 +111,8 @@ int aws_cryptosdk_multi_keyring_set_generator(
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_multi_keyring_add(struct aws_cryptosdk_keyring *multi,
                                     struct aws_cryptosdk_keyring *child);
+
+/** @} */ // doxygen group cmm_kr_highlevel
 
 #ifdef __cplusplus
 }

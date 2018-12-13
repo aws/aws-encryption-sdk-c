@@ -17,6 +17,7 @@
 #define AWS_CRYPTOSDK_HEADER_H
 
 /**
+ * @ingroup session
  * Known algorithm suite names.
  * These follow the format:
  *   [cipher algorithm]_IV[iv length]_AUTH[authtag length]_KD[KDF algorithm]_SIG[Signature algorithm, or NONE]

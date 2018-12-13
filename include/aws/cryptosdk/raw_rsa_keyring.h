@@ -23,6 +23,7 @@ extern "C" {
 #endif
 
 /**
+ * @ingroup raw_keyring
  * A keyring which does local RSA encryption and decryption of data keys using
  * the RSA keys provided as a null terminated C-string in PEM format.
  *

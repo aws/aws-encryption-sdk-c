@@ -18,6 +18,35 @@
 
 #include <aws/cryptosdk/materials.h>
 
+/**
+ * @defgroup session Session APIs
+ * The session is the primary API used to actually perform an encrypt or decrypt operation.
+ * After configuring your CMM, you will create a session object, and process your plaintext
+ * or ciphertext through this session object in order to encrypt and decrypt.
+ *
+ * Typically using a session object will proceed through three phases:
+ *
+ * 1. First, a new session object is created and configured (or an existing one reset and
+ *    configured)
+ * 2. @ref aws_cryptosdk_session_process is invoked in a loop, providing all of the input plaintext
+ *    or ciphertext, and producing some output data
+ * 3. After all input data is presented, if encrypting, @ref aws_cryptosdk_session_set_message_size
+ *    (if it hasn't been called already) to mark the end of the message
+ * 4. @ref aws_cryptosdk_session_process is invoked in a loop with no input data until
+ *    @ref aws_cryptosdk_session_is_done returns true, to process or generate trailing data.
+ *
+ * Most configuration functions will fail if invoked after the first call to @ref aws_cryptosdk_session_process,
+ * as the header is generated (thus committing the session to a particular set of parameters)
+ * at this time.
+ *
+ * The session object does not internally buffer your data; if you pass buffers that are too
+ * small, it may process only a portion of the supplied data, or none at all. The @ref
+ * aws_cryptosdk_session_estimate_buf function can be used to get a more accurate estimate
+ * of the amount of buffer space required to make further progress.
+ *
+ * @{
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -32,14 +61,14 @@ enum aws_cryptosdk_mode {
 /**
  * Creates a new encryption or decryption session.
  *
- * Parameters:
- *   - allocator: The allocator to use for the session object and any temporary
- *                data allocated for the session
- *   - mode: The mode (AWS_CRYPTOSDK_ENCRYPT or AWS_CRYPTOSDK_DECRYPT) to start
- *                 in. This can be changed later with
- *                 aws_cryptosdk_session_reset
- *   - cmm: The crypto material manager which will provide key material for this
- *          session.
+ * @return The new session, or NULL on failure (in which case, an AWS error code is set)
+ *
+ * @param allocator The allocator to use for the session object and any temporary
+ *                  data allocated for the session
+ * @param mode The mode (AWS_CRYPTOSDK_ENCRYPT or AWS_CRYPTOSDK_DECRYPT) to start
+ *             in. This can be changed later with @ref aws_cryptosdk_session_reset
+ * @param cmm The crypto material manager which will provide key material for this
+ *            session.
  */
 AWS_CRYPTOSDK_API
 struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm(
@@ -48,6 +77,7 @@ struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm(
     struct aws_cryptosdk_cmm *cmm
 );
 
+/** Destroys a previously allocated session */
 AWS_CRYPTOSDK_API
 void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);
 
@@ -55,6 +85,9 @@ void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);
  * Resets the session, preparing it for a new message. This function can also change
  * a session from encrypt to decrypt, or vice versa. After reset, the currently
  * configured allocator, CMM, and frame size to use for encryption are preserved.
+ *
+ * @param session The session to reset
+ * @param mode The new mode of the session
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_session_reset(
@@ -64,7 +97,11 @@ int aws_cryptosdk_session_reset(
 
 /**
  * Sets the frame size to use for encryption. If zero is specified, the message
- * will be processed in an unframed mode.
+ * will be processed in an unframed mode. If this function is not called, a
+ * reasonable default will be used.
+ *
+ * This function will fail if invoked in decrypt mode, or if
+ * @ref aws_cryptosdk_session_process has been called.
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_session_set_frame_size(
@@ -107,8 +144,10 @@ int aws_cryptosdk_session_set_message_size(
  * precise message size passed to aws_cryptosdk_session_set_message_size exceeds the
  * bound.
  *
- * It is recommended that the bound be set before invoking aws_cryptosdk_session_process;
+ * It is recommended that the bound be set before invoking @ref aws_cryptosdk_session_process;
  * failing to do so will result in the CMM being passed an unbounded message size.
+ * This is an issue in particular with the caching CMM, which must then assume that
+ * your message will exceed size-based usage limits on cached keys.
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_session_set_message_bound(
@@ -128,7 +167,7 @@ int aws_cryptosdk_session_set_message_bound(
  * be zeroed. The buffer referenced by the input buffer will never be modified.
  *
  * If there is insufficient output space and/or insufficient input
- * data, this method may not make any progress. The aws_cryptosdk_session_estimate_buf
+ * data, this method may not make any progress. The @ref aws_cryptosdk_session_estimate_buf
  * method may be used to determine how much data may be needed at
  * this stage of processing. Note that these estimates may change once
  * the header has been parsed.
@@ -137,7 +176,7 @@ int aws_cryptosdk_session_set_message_bound(
  * of bytes consumed from the output and input buffers, respectively.
  *
  * This method will return successfully unless the session has entered
- * an error state. Use aws_cryptosdk_session_is_done to determine if the
+ * an error state. Use @ref aws_cryptosdk_session_is_done to determine if the
  * entire message has been processed.
  */
 AWS_CRYPTOSDK_API
@@ -149,6 +188,10 @@ int aws_cryptosdk_session_process(
 
 /**
  * Returns true if the session has finished processing the entire message.
+ *
+ * Your application should continue calling @ref aws_cryptosdk_session_process until
+ * this function returns true; trailing signatures require that some ciphertext
+ * data be processed after all plaintext has been consumed or generated.
  */
 AWS_CRYPTOSDK_API
 bool aws_cryptosdk_session_is_done(const struct aws_cryptosdk_session *session);
@@ -157,7 +200,7 @@ bool aws_cryptosdk_session_is_done(const struct aws_cryptosdk_session *session);
  * Returns the algorithm ID in use for this message via *alg_id.
  * Raises AWS_CRYPTOSDK_ERR_BAD_STATE if the algorithm ID has not yet
  * been determined (in this case, the session remains usable and does not
- * enter an error state). Guaranteed to succeed if aws_cryptosdk_session_is_done
+ * enter an error state). Guaranteed to succeed if @ref aws_cryptosdk_session_is_done
  * returns true, but may succeed earlier in the message as well.
  */
 AWS_CRYPTOSDK_API
@@ -168,13 +211,13 @@ int aws_cryptosdk_session_get_algorithm(
 
 /**
  * Estimates the amount of buffer space needed to make forward progress.
- * Supplying the amount of data indicated here to _process guarantees that
- * some kind of progress will be made (if only to enter an error state).
- * Note that these values will change after initial header (de)serialization
- * is completed.
+ * Supplying the amount of data indicated here to @ref aws_cryptosdk_session_process
+ * guarantees that some kind of progress will be made - although this progress
+ * may in some cases only mean that the size estimates are updated with a (larger)
+ * more accurate value.
  *
  * This method never fails, but if the session is in an error state or is
- * only partially initialized, the returned sizes will be 1.
+ * only partially initialized, the returned sizes may not be meaningful.
  */
 AWS_CRYPTOSDK_API
 void aws_cryptosdk_session_estimate_buf(
@@ -253,5 +296,7 @@ const struct aws_array_list *aws_cryptosdk_session_get_keyring_trace_ptr(
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */ // doxygen group session
 
 #endif

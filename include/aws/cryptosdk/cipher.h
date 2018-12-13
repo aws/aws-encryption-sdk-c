@@ -21,24 +21,43 @@
 #include <aws/cryptosdk/header.h>
 #include <aws/cryptosdk/exports.h>
 
+/**
+ * @addtogroup hazmat Low-level cryptographic APIs
+ * These low-level cryptographic APIs should normally only be used by developers of keyrings or CMMs.
+ * @{
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/** @ingroup raw_keyring */
 enum aws_cryptosdk_aes_key_len {
     AWS_CRYPTOSDK_AES_128 = 128/8,
     AWS_CRYPTOSDK_AES_192 = 192/8,
     AWS_CRYPTOSDK_AES_256 = 256/8
 };
 
+/** @ingroup raw_keyring */
 enum aws_cryptosdk_rsa_padding_mode {
     AWS_CRYPTOSDK_RSA_PKCS1,
     AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1,
     AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1,
 };
 
+/**
+ * This structure contains information about a particular algorithm suite used
+ * within the encryption SDK.  In most cases, end-users don't need to
+ * manipulate this structure, but it can occasionally be needed for more
+ * advanced use cases, such as writing keyrings.
+ */
 struct aws_cryptosdk_alg_properties {
-    const char *md_name, *cipher_name, *alg_name;
+    /** The name of the digest algorithm used for the KDF, or NULL if no KDF is used. */
+    const char *md_name;
+    /** The name of the symmetric cipher in use. */
+    const char *cipher_name;
+    /** The name of the overall algorithm suite in use (for debugging purposes) */
+    const char *alg_name;
 
     /**
      * Pointer to a structure containing crypto-backend-specific
@@ -47,16 +66,43 @@ struct aws_cryptosdk_alg_properties {
      */
     const struct aws_cryptosdk_alg_impl *impl;
 
-    size_t data_key_len, content_key_len, iv_len, tag_len, signature_len;
+    /** The length of the data key (that is, the key returned by the keyrings/CMMs) */
+    size_t data_key_len;
+    /**
+     * The length of the key used to actually encrypt/decrypt data. This may differ
+     * if a KDF is in use.
+     */
+    size_t content_key_len;
+    /** The IV length for this algorithm suite */
+    size_t iv_len;
+    /**
+     * The AEAD tag length for this algorithm suite. Note that, currently, we only
+     * support stream-like ciphers that do not require padding, so the ciphertext
+     * size is equal to the plaintext size plus tag (and IV, if you pre/append IV).
+     */
+    size_t tag_len;
+    /**
+     * The length of the trailing signature. Zero if there is no trailing signature
+     * for this algorithm suite.
+     */
+    size_t signature_len;
 
+    /**
+     * The algorithm ID for this algorithm suite
+     */
     enum aws_cryptosdk_alg_id alg_id;
 };
 
+/**
+ * Looks up and returns the algorithm properties for a particular algorithm ID.
+ *
+ * @returns the algorithm properties, or NULL if alg_id is unknown
+ */
 AWS_CRYPTOSDK_API
 const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryptosdk_alg_id alg_id);
 
 /**
- * A structure representing an ongoing sign or verify operation
+ * An opaque structure representing an ongoing sign or verify operation
  */
 struct aws_cryptosdk_signctx;
 
@@ -109,13 +155,12 @@ int aws_cryptosdk_sig_sign_start_keygen(
  * Initializes a new signature context based on a private key serialized using
  * aws_cryptosdk_sig_get_privkey.
  *
- * @param
- *   alloc - the allocator to use
- *   ctx   - a pointer to a variable to receive the signing context
- *   pub_key_buf - a pointer to a buffer that will receive the base-64 public key,
+ * @param alloc the allocator to use
+ * @param ctx a pointer to a variable to receive the signing context
+ * @param pub_key_buf a pointer to a buffer that will receive the base-64 public key,
  *     or NULL if not required
- *   props - algorithm properties for the algorithm suite in use
- *   priv_key - the previously serialized private key
+ * @param props algorithm properties for the algorithm suite in use
+ * @param priv_key the previously serialized private key
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_sign_start(
@@ -130,10 +175,10 @@ int aws_cryptosdk_sig_sign_start(
  * Prepares to validate a signature.
  * If a non-signing algorithm is used, this function returns successfully, and sets *ctx to NULL.
  *
- * @param alloc - the allocator to use
- * @param pctx - a pointer to a variable to receive the context pointer
- * @param props - The algorithm properties for the algorithm to use
- * @param pub_key - A buffer containing the (base64) public key
+ * @param alloc the allocator to use
+ * @param pctx a pointer to a variable to receive the context pointer
+ * @param props The algorithm properties for the algorithm to use
+ * @param pub_key A buffer containing the (base64) public key
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_verify_start(
@@ -196,5 +241,7 @@ void aws_cryptosdk_sig_abort(
 #ifdef __cplusplus
 }
 #endif
+
+/*! @} */ // doxygen group hazmat
 
 #endif // AWS_CRYPTOSDK_CIPHER_H

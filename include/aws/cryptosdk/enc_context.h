@@ -24,12 +24,25 @@ extern "C" {
 #endif
 
 /**
+ * @defgroup enc_context Encryption Context utilities
+ *
+ * The encryption context is a string-to-string map of contextual information
+ * that is cryptographically bound to the message. We represent the encryption
+ * context as an aws_hash_table mapping from aws_string * to aws_string *;
+ * for the most part, aws_hash_table methods are used to manipulate these structures,
+ * but we provide some higher-level helper methods in this section. These helpers
+ * will mostly be of interest to developers of custom CMMs or keyrings.
+ * @{
+ */
+
+/**
  * Initialize an encryption context, which is just an AWS hash table
- * that uses AWS strings as keys and values.
+ * that uses AWS strings as keys and values. The hash table will call
+ * aws_string_destroy to destroy keys and values on destruction of
+ * the hash table itself.
  *
  * See aws/common/hash_table.h for the interface to AWS hash tables,
  * and aws/common/string.h for the interface to AWS strings.
- *
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_enc_context_init(struct aws_allocator *alloc,
@@ -37,6 +50,7 @@ int aws_cryptosdk_enc_context_init(struct aws_allocator *alloc,
 
 /**
  * Clear the elements of an encryption context without deallocating the hash table.
+ * This is equivalent to aws_hash_table_clear, but provided as an alias for clarity.
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_enc_context_clear(struct aws_hash_table *enc_context) {
     aws_hash_table_clear(enc_context);
@@ -44,6 +58,7 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_enc_context_clear(struct aws_hash
 
 /**
  * Deallocate an encryption context.
+ * This is equivalent to aws_hash_table_clean_up, but provided as an alias for clarity.
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_enc_context_clean_up(struct aws_hash_table *enc_context) {
     aws_hash_table_clean_up(enc_context);
@@ -67,6 +82,8 @@ int aws_cryptosdk_enc_context_clone(
     struct aws_hash_table *dest,
     const struct aws_hash_table *src
 );
+
+/** @} */ // doxygen group enc_context
 
 #ifdef __cplusplus
 }

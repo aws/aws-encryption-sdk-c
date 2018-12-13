@@ -24,28 +24,36 @@
 extern "C" {
 #endif
 
-/* 
- * Basic error reporting infrastructure. Much of this will likely move to some shared
- * library later.
+/**
+ * @defgroup error Error codes
+ * @{
  */
 
-/*
- * CryptoSDK specific
+/**
+ * CryptoSDK specific error codes. Note that we also make use of error codes defined in the aws-c-common library
  */
 enum aws_cryptosdk_err {
+    /** The ciphertext was malformed or corrupt */
     AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT = 0x2000,
+    /** An unknown internal error has occurred */
     AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN,
+    /** An unsupported format version was encountered on decrypt */
     AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT,
-    AWS_CRYPTOSDK_ERR_NO_MASTER_KEYS_FOUND,
+    /** KMS returned an error */
     AWS_CRYPTOSDK_ERR_KMS_FAILURE,
+    /** A function was called on an object in the wrong state */
     AWS_CRYPTOSDK_ERR_BAD_STATE,
+    /** The failing call attempted to exceed a hard limit of some sort I*/
     AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED,
+    /** No keyrings were able to decrypt the message in question */
     AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT, // TODO - Rename?
     AWS_CRYPTOSDK_ERR_END_RANGE = 0x2400
 };
 
 /**
- * Register error strings with the core error reporting APIs.
+ * Register error strings with the core error reporting APIs. This function is
+ * threadsafe and idempotent, and should be called at least once on application
+ * startup.
  */
 AWS_CRYPTOSDK_API
 void aws_cryptosdk_load_error_strings();
@@ -53,5 +61,7 @@ void aws_cryptosdk_load_error_strings();
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */ // doxygen group error
 
 #endif
