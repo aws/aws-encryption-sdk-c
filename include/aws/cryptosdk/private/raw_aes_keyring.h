@@ -16,7 +16,6 @@
 #define AWS_CRYPTOSDK_PRIVATE_RAW_AES_KEYRING_H
 
 #include <aws/cryptosdk/raw_aes_keyring.h>
-#include <aws/common/string.h>
 
 /* Raw AES Keyring always uses AES-GCM encryption with 12 byte IV and 16 byte tag.
  * This is only for the encryption OF data keys, and is separate from the algorithm
@@ -24,14 +23,6 @@
  */
 #define RAW_AES_KR_IV_LEN 12
 #define RAW_AES_KR_TAG_LEN 16
-
-struct raw_aes_keyring {
-    struct aws_cryptosdk_keyring base;
-    struct aws_allocator * alloc;
-    const struct aws_string * master_key_id;
-    const struct aws_string * provider_id;
-    const struct aws_string * raw_key;
-};
 
 /**
  * Allocates the output buffer and writes the provider info for an EDK encrypted

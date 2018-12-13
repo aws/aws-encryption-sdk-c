@@ -27,26 +27,34 @@ extern "C" {
  * A keyring which does local RSA encryption and decryption of data keys using
  * the RSA keys provided as a null terminated C-string in PEM format.
  *
- * Here, 'rsa_public_key_pem' is a null terminated C-string containing the public key 
- * in PEM format and 'rsa_private_key_pem' is a null terminated C-string containing the
- * private key in PEM format. Note that either argument may be set to NULL. Encryption 
- * is possible only when a public key is provided, and decryption is possible only when 
- * a private key is provided. 
+ * Here, 'rsa_public_key_pem' is a null terminated C-string containing the public
+ * key in PEM format and 'rsa_private_key_pem' is a null terminated C-string
+ * containing the private key in PEM format. Note that either argument may be set
+ * to NULL. Encryption is possible only when a public key is provided, and
+ * decryption is possible only when a private key is provided. 
  * 
- * Master key ID, provider ID, RSA private key and RSA public key provided by the
- * caller are copied into the state of the KR, so those arrays do not need to be
- * maintained while using the KR. For maximum security, the caller should zero out the
- * arrays of 'rsa_private_key_pem' after creating this object.
+ * Key namespace, name, RSA private key and RSA public key provided by the caller
+ * are copied into the state of the keyring, so those arrays do not need to be
+ * maintained while using the keyring. For maximum security, the caller should
+ * zero out the array of 'rsa_private_key_pem' after creating this object.
+ *
+ * Set your own namespace and name for the wrapping (RSA) key you use, for
+ * bookkeeping purposes. A raw RSA keyring which attempts to decrypt data
+ * previously encrypted by another raw RSA keyring must specify the same name
+ * and namespace.
+ *
+ * Note: when this keyring is used, it generates a trace that includes copies of
+ * the namespace and name strings for each call. If you generate either or both of
+ * the namespace and name strings using the AWS_STATIC_STRING_FROM_LITERAL macro,
+ * all copies of these strings will be optimized out.
  *
  * On failure returns NULL and sets an internal AWS error code.
  */
 AWS_CRYPTOSDK_API
 struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     struct aws_allocator *alloc,
-    const uint8_t *master_key_id,
-    size_t master_key_id_len,
-    const uint8_t *provider_id,
-    size_t provider_id_len,
+    const struct aws_string *key_namespace,
+    const struct aws_string *key_name,
     const char *rsa_private_key_pem,
     const char *rsa_public_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);

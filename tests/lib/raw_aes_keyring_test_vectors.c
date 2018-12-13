@@ -18,8 +18,9 @@
 #include "raw_aes_keyring_test_vectors.h"
 #include "testutil.h"
 
-static const uint8_t raw_aes_keyring_tv_master_key_id[] = "asdfhasiufhiasuhviawurhgiuawrhefiuawhf";
-static const uint8_t raw_aes_keyring_tv_provider_id[] = "static-random";
+AWS_STATIC_STRING_FROM_LITERAL(raw_aes_keyring_tv_provider_id, "static-random");
+AWS_STATIC_STRING_FROM_LITERAL(raw_aes_keyring_tv_master_key_id, "asdfhasiufhiasuhviawurhgiuawrhefiuawhf");
+
 static const uint8_t raw_aes_keyring_tv_wrapping_key[] =
 {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
  0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f};
@@ -27,10 +28,8 @@ static const uint8_t raw_aes_keyring_tv_wrapping_key[] =
 struct aws_cryptosdk_keyring * raw_aes_keyring_tv_new(struct aws_allocator * alloc,
                                                       enum aws_cryptosdk_aes_key_len raw_key_len) {
     return aws_cryptosdk_raw_aes_keyring_new(alloc,
-                                             raw_aes_keyring_tv_master_key_id,
-                                             sizeof(raw_aes_keyring_tv_master_key_id) - 1,
                                              raw_aes_keyring_tv_provider_id,
-                                             sizeof(raw_aes_keyring_tv_provider_id) - 1,
+                                             raw_aes_keyring_tv_master_key_id,
                                              raw_aes_keyring_tv_wrapping_key,
                                              raw_key_len);
 }
@@ -38,8 +37,8 @@ struct aws_cryptosdk_keyring * raw_aes_keyring_tv_new(struct aws_allocator * all
 int raw_aes_keyring_tv_trace_updated_properly(struct aws_array_list *trace, uint32_t flags) {
     return assert_keyring_trace_record(trace,
                                        aws_array_list_length(trace)-1,
-                                       raw_aes_keyring_tv_provider_id,
-                                       raw_aes_keyring_tv_master_key_id,
+                                       raw_aes_keyring_tv_provider_id->bytes,
+                                       raw_aes_keyring_tv_master_key_id->bytes,
                                        flags);
 }
 
@@ -51,7 +50,7 @@ struct aws_cryptosdk_edk build_test_edk_init(const uint8_t * edk_bytes, size_t e
 
     struct aws_cryptosdk_edk edk;
     edk.enc_data_key = aws_byte_buf_from_array(edk_bytes, edk_len);
-    edk.provider_id = aws_byte_buf_from_array(raw_aes_keyring_tv_provider_id, sizeof(raw_aes_keyring_tv_provider_id) - 1);
+    edk.provider_id = aws_byte_buf_from_array(raw_aes_keyring_tv_provider_id->bytes, raw_aes_keyring_tv_provider_id->len);
 
     if (aws_byte_buf_init(&edk.provider_info, aws_default_allocator(), sizeof(edk_provider_prefix) - 1 + RAW_AES_KR_IV_LEN)) {
         fprintf(stderr, "\nTest failed at %s:%d\n", __FILE__, __LINE__);

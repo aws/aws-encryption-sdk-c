@@ -184,27 +184,24 @@ int test_for_null_pem_files_while_setting_up_rsa_kr()
 {
     struct aws_cryptosdk_keyring *kr = NULL;
     alloc = aws_default_allocator();
-    const uint8_t raw_rsa_keyring_tv_master_key_id[] = "master key ID";
-    const uint8_t raw_rsa_keyring_tv_provider_id[] = "provider ID";
-    const char raw_rsa_keyring_tv_public_key[] = "Test not-NULL public key";
-    const char raw_rsa_keyring_tv_private_key[] = "Test not-NULL private key";
+    AWS_STATIC_STRING_FROM_LITERAL(master_key_id, "master key ID");
+    AWS_STATIC_STRING_FROM_LITERAL(provider_id, "provider ID");
+    const char public_key[] = "Test not-NULL public key";
+    const char private_key[] = "Test not-NULL private key";
 
     aws_reset_error();
-    kr = aws_cryptosdk_raw_rsa_keyring_new(alloc, raw_rsa_keyring_tv_master_key_id, strlen((const char *)raw_rsa_keyring_tv_master_key_id),
-                                           raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id),
+    kr = aws_cryptosdk_raw_rsa_keyring_new(alloc, provider_id, master_key_id,
                                            NULL, NULL, AWS_CRYPTOSDK_RSA_PKCS1);
     TEST_ASSERT(aws_last_error() == AWS_CRYPTOSDK_ERR_BAD_STATE);
     TEST_ASSERT_ADDR_NULL(kr);
 
-    kr = aws_cryptosdk_raw_rsa_keyring_new(alloc, raw_rsa_keyring_tv_master_key_id, strlen((const char *)raw_rsa_keyring_tv_master_key_id),
-                                           raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id),
-                                           raw_rsa_keyring_tv_private_key, NULL, AWS_CRYPTOSDK_RSA_PKCS1);
+    kr = aws_cryptosdk_raw_rsa_keyring_new(alloc, provider_id, master_key_id,
+                                           private_key, NULL, AWS_CRYPTOSDK_RSA_PKCS1);
     TEST_ASSERT_ADDR_NOT_NULL(kr);
     aws_cryptosdk_keyring_release(kr);
 
-    kr = aws_cryptosdk_raw_rsa_keyring_new(alloc, raw_rsa_keyring_tv_master_key_id, strlen((const char *)raw_rsa_keyring_tv_master_key_id),
-                                           raw_rsa_keyring_tv_provider_id, strlen((const char *)raw_rsa_keyring_tv_provider_id),
-                                           NULL, raw_rsa_keyring_tv_public_key, AWS_CRYPTOSDK_RSA_PKCS1);
+    kr = aws_cryptosdk_raw_rsa_keyring_new(alloc, provider_id, master_key_id,
+                                           NULL, public_key, AWS_CRYPTOSDK_RSA_PKCS1);
     TEST_ASSERT_ADDR_NOT_NULL(kr);
     aws_cryptosdk_keyring_release(kr);
 
