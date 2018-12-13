@@ -551,6 +551,6 @@ void aws_cryptosdk_decryption_materials_destroy(struct aws_cryptosdk_decryption_
 }
 #endif
 
-/** @} */ // end of doxygen group cmm_kr_lowlevel
+/** @} */ // doxygen group cmm_kr_lowlevel
 
 #endif // AWS_CRYPTOSDK_MATERIALS_H

@@ -297,6 +297,6 @@ const struct aws_array_list *aws_cryptosdk_session_get_keyring_trace_ptr(
 }
 #endif
 
-/** @} */ // End of doxygen group session
+/** @} */ // doxygen group session
 
 #endif

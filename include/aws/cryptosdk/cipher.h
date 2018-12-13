@@ -242,6 +242,6 @@ void aws_cryptosdk_sig_abort(
 }
 #endif
 
-/*! @} */ // closing doxygen group hazmat
+/*! @} */ // doxygen group hazmat
 
 #endif // AWS_CRYPTOSDK_CIPHER_H
