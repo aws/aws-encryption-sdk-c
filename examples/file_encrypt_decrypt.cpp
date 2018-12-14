@@ -26,36 +26,44 @@
 
 #include <aws/core/client/ClientConfiguration.h>
 
-static void resize_buffer(uint8_t ** buffer, size_t desired_capacity, size_t current_capacity, struct aws_allocator * allocator) {
-    int status = aws_mem_realloc(allocator, (void **)buffer, current_capacity, desired_capacity);
-    if (status != AWS_OP_SUCCESS) abort();
-}
+static void process_file(char const * output_filename, char const * input_filename, aws_cryptosdk_mode mode, char const * key_arn, struct aws_allocator * allocator) {
+    FILE * input_fp = fopen(input_filename, "rb");
+    if (!input_fp) {
+        fprintf(stderr, "Could not open input file %s for reading; error %s\n", input_filename, strerror(errno));
+        return;
+    }
 
-static void process_file(FILE * output_fp, FILE * input_fp, aws_cryptosdk_mode mode, char const * key_arn, struct aws_allocator * allocator) {
+    FILE * output_fp = fopen(output_filename, "wb");
+    if (!output_fp) {
+        fprintf(stderr, "Could not open output file %s for writing plaintext; error %s\n", output_filename, strerror(errno));
+        fclose(input_fp);
+        return;
+    }
+
     // Initialize a KMS keyring using the provided ARN.
     auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({key_arn});
 
-    // Initialize the Cryptographic Materials Manager (CMM).  Note that since the CMM holds a
-    //   reference to the keyring, we can release the local reference.
+    // Initialize the Cryptographic Materials Manager (CMM).
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(allocator, kms_keyring);
     if (!cmm) abort();
+    // Since the CMM now holds a reference to the keyring, we can release the local reference.
     aws_cryptosdk_keyring_release(kms_keyring);
 
-    // Initialize the session object.  Note that since the session holds a
-    //   reference to the CMM, we can release the local reference.
+    // Initialize the session object.
     struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(allocator, mode, cmm);
     if (!session) abort();
+    // Since the session now holds a reference to the CMM, we can release the local reference.
     aws_cryptosdk_cmm_release(cmm);
 
     // Allocate buffers for input and output.  Note that the initial size is not critical, as we will resize
     //   and reallocate if more space is needed to make progress.
     const size_t INITIAL_CAPACITY = 16 * 1024;
 
-    uint8_t *input_buffer = (uint8_t *)aws_mem_acquire(allocator, INITIAL_CAPACITY);
+    uint8_t *input_buffer = (uint8_t *)malloc(INITIAL_CAPACITY);
     size_t input_capacity = INITIAL_CAPACITY;
     size_t input_len = 0;
 
-    uint8_t *output_buffer = (uint8_t *)aws_mem_acquire(allocator, INITIAL_CAPACITY);
+    uint8_t *output_buffer = (uint8_t *)malloc(INITIAL_CAPACITY);
     size_t output_capacity = INITIAL_CAPACITY;
     size_t output_len = 0;
 
@@ -72,7 +80,6 @@ static void process_file(FILE * output_fp, FILE * input_fp, aws_cryptosdk_mode m
             size_t num_read = fread(&input_buffer[input_len], 1, input_capacity - input_len,
                                     input_fp);
             if (ferror(input_fp)) break;
-            assert(num_read >= 0);
             input_len += num_read;
         }
 
@@ -110,11 +117,13 @@ static void process_file(FILE * output_fp, FILE * input_fp, aws_cryptosdk_mode m
         aws_cryptosdk_session_estimate_buf(session, &output_needed, &input_needed);
 
         if (output_capacity < output_needed) {
-            resize_buffer(&output_buffer, output_needed, output_capacity, allocator);
+            output_buffer = (uint8_t *)realloc(output_buffer, output_needed);
+            if (!output_buffer) abort();
             output_capacity = output_needed;
         }
         if (input_capacity < input_needed) {
-            resize_buffer(&input_buffer, input_needed, input_capacity, allocator);
+            input_buffer = (uint8_t *)realloc(input_buffer, input_needed);
+            if (!input_buffer) abort();
             input_capacity = input_needed;
         }
     }
@@ -127,42 +136,40 @@ static void process_file(FILE * output_fp, FILE * input_fp, aws_cryptosdk_mode m
                processing_type, (int)total_input_consumed, (int)total_output_produced) ;
     }
 
-    aws_mem_release(allocator, input_buffer);
-    aws_mem_release(allocator, output_buffer);
+    free(input_buffer);
+    free(output_buffer);
+    fclose(input_fp);
+    fclose(output_fp);
 
     aws_cryptosdk_session_destroy(session);
 }
 
-void encrypt_file(FILE * ciphertext_fp, FILE * plaintext_fp, char const * key_arn, struct aws_allocator * allocator) {
-    process_file(ciphertext_fp, plaintext_fp, AWS_CRYPTOSDK_ENCRYPT, key_arn, allocator);
-}
-
-void decrypt_file(FILE * plaintext_fp, FILE * ciphertext_fp, char const * key_arn, struct aws_allocator * allocator) {
-    process_file(plaintext_fp, ciphertext_fp, AWS_CRYPTOSDK_DECRYPT, key_arn, allocator);
-}
-
+/*
+ *  Usage
+ *      $ file_encrypt_decrypt <key_arn> <input_filename>
+ *  where
+ *      <key_arn> is the ARN for a KMS key that will be used for encryption and decryption
+ *      <input_filename> is the source file that will be encrypted and decrypted
+ *  The program will encrypt the given <input_filename> and write the output to
+ *      <input_filename>.encrypted
+ *  It will then decrypt this file and write the output to
+ *      <input_filename>.decrypted
+ *
+ */
 int main(int argc, char * argv[]) {
-    if ((argc != 5) || (strcmp(argv[1], "-e") && strcmp(argv[1], "-d"))) {
-        fprintf(stderr, "Usage: %s [-e|-d] <key_arn> <input_file> <output_file>\n", argv[0]);
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s <key_arn> <input_filename>\n", argv[0]);
         exit(1);
     }
 
-    bool do_encrypt = !strcmp(argv[1], "-e");
+    char const * key_arn = argv[1];
+    char const * input_filename = argv[2];
 
-    char const * key_arn = argv[2];
+    char encrypted_filename[PATH_MAX];
+    snprintf(encrypted_filename, sizeof(encrypted_filename), "%s.encrypted", input_filename);
 
-    FILE * input_fp = fopen(argv[3], "rb");
-    if (!input_fp) {
-        fprintf(stderr, "Could not open input file %s for reading; error %s\n", argv[2], strerror(errno));
-        exit(1);
-    }
-
-    FILE * output_fp = fopen(argv[4], "wb");
-    if (!output_fp) {
-        fprintf(stderr, "Could not open output file %s for writing; error %s\n", argv[3], strerror(errno));
-        fclose(input_fp);
-        exit(1);
-    }
+    char decrypted_filename[PATH_MAX];
+    snprintf(decrypted_filename, sizeof(decrypted_filename), "%s.decrypted", input_filename);
 
     aws_cryptosdk_load_error_strings();
 
@@ -171,14 +178,11 @@ int main(int argc, char * argv[]) {
 
     struct aws_allocator * allocator = aws_default_allocator();
 
-    if (do_encrypt) {
-        encrypt_file(output_fp, input_fp, key_arn, allocator);
-    } else {
-        decrypt_file(output_fp, input_fp, key_arn, allocator);
-    }
+    // Encrypt file
+    process_file(encrypted_filename, input_filename, AWS_CRYPTOSDK_ENCRYPT, key_arn, allocator);
 
-    fclose(input_fp);
-    fclose(output_fp);
+    // Decrypt file
+    process_file(decrypted_filename, encrypted_filename, AWS_CRYPTOSDK_DECRYPT, key_arn, allocator);
 
     Aws::ShutdownAPI(options);
 
