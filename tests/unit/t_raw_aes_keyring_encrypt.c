@@ -64,10 +64,10 @@ static void tear_down_all_the_things() {
     aws_byte_buf_clean_up(&decrypted_data_key);
 }
 
-static enum aws_cryptosdk_aes_key_len raw_key_lens[] = { AWS_CRYPTOSDK_AES_128,
-                                                         AWS_CRYPTOSDK_AES_192,
-                                                         AWS_CRYPTOSDK_AES_256 };
-static enum aws_cryptosdk_alg_id algs[]              = { AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
+static enum aws_cryptosdk_aes_key_len raw_key_lens[] = {
+    AWS_CRYPTOSDK_AES_128, AWS_CRYPTOSDK_AES_192, AWS_CRYPTOSDK_AES_256
+};
+static enum aws_cryptosdk_alg_id algs[] = { AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
                                             AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
                                             AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE };
 
