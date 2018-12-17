@@ -53,7 +53,6 @@ endif()
 
 file(GLOB AWS_CRYPTOSDK_CPP_HEADERS
     # Headers subject to API/ABI stability guarantees
-    "${CMAKE_CURRENT_SOURCE_DIR}/include/aws/cryptosdk/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/include/aws/cryptosdk/cpp/*.h"
 )
 

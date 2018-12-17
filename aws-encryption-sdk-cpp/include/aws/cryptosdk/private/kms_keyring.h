@@ -15,7 +15,7 @@
 #ifndef AWS_ENCRYPTION_SDK_PRIVATE_KMS_KEYRING_H
 #define AWS_ENCRYPTION_SDK_PRIVATE_KMS_KEYRING_H
 
-#include <aws/cryptosdk/kms_keyring.h>
+#include <aws/cryptosdk/cpp/kms_keyring.h>
 
 namespace Aws {
 namespace Cryptosdk {

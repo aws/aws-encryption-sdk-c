@@ -16,8 +16,8 @@
 #include <aws/common/encoding.h>
 #include <aws/core/utils/logging/AWSLogging.h>
 #include <aws/core/utils/logging/ConsoleLogSystem.h>
+#include <aws/cryptosdk/cpp/kms_keyring.h>
 #include <aws/cryptosdk/enc_context.h>
-#include <aws/cryptosdk/kms_keyring.h>
 
 #include "edks_utils.h"
 #include "test_crypto.h"
