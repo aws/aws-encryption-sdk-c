@@ -26,7 +26,11 @@
 
 #include <aws/core/client/ClientConfiguration.h>
 
-static void process_file(char const * output_filename, char const * input_filename, aws_cryptosdk_mode mode, char const * key_arn, struct aws_allocator * allocator) {
+static void process_file(char const * output_filename,
+                         char const * input_filename,
+                         aws_cryptosdk_mode mode,
+                         char const * key_arn,
+                         struct aws_allocator * allocator) {
     FILE * input_fp = fopen(input_filename, "rb");
     if (!input_fp) {
         fprintf(stderr, "Could not open input file %s for reading; error %s\n", input_filename, strerror(errno));
@@ -74,42 +78,42 @@ static void process_file(char const * output_filename, char const * input_filena
     size_t total_output_produced = 0;
 
     int aws_status = AWS_OP_SUCCESS;
-
     while (!aws_cryptosdk_session_is_done(session)) {
         if (!feof(input_fp) && (input_len < input_capacity)) {
             size_t num_read = fread(&input_buffer[input_len], 1, input_capacity - input_len,
                                     input_fp);
-            if (ferror(input_fp)) break;
+            if (ferror(input_fp)) abort();
             input_len += num_read;
         }
 
         if ((mode == AWS_CRYPTOSDK_ENCRYPT) && feof(input_fp)) {
             aws_status = aws_cryptosdk_session_set_message_size(session, total_input_consumed + input_len);
-            if (aws_status != AWS_OP_SUCCESS) break;
+            if (aws_status) break;
         }
 
-        size_t output_done, input_done;
-        aws_status = aws_cryptosdk_session_process(session, output_buffer, output_capacity, &output_done,
-                                                   input_buffer, input_len, &input_done);
-        if (aws_status != AWS_OP_SUCCESS) break;
-        total_input_consumed += input_done;
+        size_t output_produced, input_consumed;
+        aws_status = aws_cryptosdk_session_process(session, output_buffer, output_capacity, &output_produced,
+                                                   input_buffer, input_len, &input_consumed);
+        if (aws_status) break;
+        total_input_consumed += input_consumed;
 
-        if ((input_done > 0) && (input_done < input_len)) {
+        if ((input_consumed > 0) && (input_consumed < input_len)) {
             // If not all input was consumed, move what's left over to the beginning of the buffer
-            memmove(input_buffer, &input_buffer[input_done], input_len - input_done);
+            memmove(input_buffer, &input_buffer[input_consumed], input_len - input_consumed);
         }
-        input_len -= input_done;
+        input_len -= input_consumed;
 
-        if (output_done > 0) {
-            size_t num_written = fwrite(output_buffer, 1, output_done, output_fp);
-            if (ferror(output_fp)) break;
+        if (output_produced > 0) {
+            size_t num_written = fwrite(output_buffer, 1, output_produced, output_fp);
+            if (ferror(output_fp)) abort();
 
-            if (num_written != output_done) abort();
+            if (num_written != output_produced) abort();
             total_output_produced += num_written;
         }
 
-        if (!input_done && !output_done) { // We made no progress; something is wrong
-            break;
+        if (!input_consumed && !output_produced) { // We made no progress; something is wrong
+            fprintf(stderr, "Unexpected error: encryption SDK made no progress.  Please contact the development team.\n");
+            abort();
         }
 
         // Determine how much buffer space we need to make progress, and resize buffers if necessary
@@ -128,12 +132,16 @@ static void process_file(char const * output_filename, char const * input_filena
         }
     }
 
-    const char * processing_type = (mode == AWS_CRYPTOSDK_ENCRYPT) ? "Encryption" : "Decryption";
-    if (!aws_cryptosdk_session_is_done(session)) {
-        printf("%s failed; status %s errno %s\n", processing_type, aws_error_str(aws_status), strerror(errno));
+    if (aws_status) {
+        fprintf(stderr, "%s failed with error %d: %s\n",
+               (mode == AWS_CRYPTOSDK_ENCRYPT) ? "Encryption" : "Decryption",
+               aws_last_error(),
+               aws_error_debug_str(aws_last_error()));
     } else {
         printf("%s succeeded; %d input bytes were consumed; %d output bytes were produced\n",
-               processing_type, (int)total_input_consumed, (int)total_output_produced) ;
+               (mode == AWS_CRYPTOSDK_ENCRYPT) ? "Encryption" : "Decryption",
+               (int)total_input_consumed,
+               (int)total_output_produced) ;
     }
 
     free(input_buffer);
