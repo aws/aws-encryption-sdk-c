@@ -31,7 +31,7 @@
  * We don't use -fvisibility=hidden for the C++ side due to problems
  * where std::basic_string statics are template-expanded multiple times.
  */
-#define AWS_CRYPTOSDK_CPP_API
+#    define AWS_CRYPTOSDK_CPP_API
 
 #endif /* defined (WIN32) */
 

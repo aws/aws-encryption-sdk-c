@@ -15,9 +15,9 @@
 #ifndef AWS_CRYPTOSDK_RAW_AES_KEYRING_H
 #define AWS_CRYPTOSDK_RAW_AES_KEYRING_H
 
+#include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/exports.h>
 #include <aws/cryptosdk/materials.h>
-#include <aws/cryptosdk/cipher.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,10 +61,10 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_aes_keyring_new(
     const uint8_t *key_bytes,
     enum aws_cryptosdk_aes_key_len key_len);
 
-/** @} */ // doxygen group raw_keyring
+/** @} */  // doxygen group raw_keyring
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // AWS_CRYPTOSDK_RAW_AES_KEYRING_H
+#endif  // AWS_CRYPTOSDK_RAW_AES_KEYRING_H

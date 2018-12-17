@@ -16,9 +16,9 @@
 #ifndef AWS_CRYPTOSDK_PRIVATE_FRAMEFMT_H
 #define AWS_CRYPTOSDK_PRIVATE_FRAMEFMT_H
 
-#include <aws/cryptosdk/private/cipher.h>
-#include <aws/cryptosdk/cipher.h>
 #include <aws/common/byte_buf.h>
+#include <aws/cryptosdk/cipher.h>
+#include <aws/cryptosdk/private/cipher.h>
 
 struct aws_cryptosdk_frame {
     /* The type of frame in question */
@@ -32,7 +32,6 @@ struct aws_cryptosdk_frame {
     /* A cursor to space for the AEAD tag in the ciphertext buffer */
     struct aws_byte_buf authtag;
 };
-
 
 /**
  * Performs frame-type-specific work prior to writing a frame; writes out all
@@ -66,12 +65,11 @@ struct aws_cryptosdk_frame {
  */
 int aws_cryptosdk_serialize_frame(
     struct aws_cryptosdk_frame *frame, /* in/out */
-    size_t *ciphertext_size, /* out */
+    size_t *ciphertext_size,           /* out */
     /* in */
     size_t plaintext_size,
     struct aws_byte_buf *ciphertext_buf,
-    const struct aws_cryptosdk_alg_properties *alg_props
-);
+    const struct aws_cryptosdk_alg_properties *alg_props);
 
 /**
  * Attempts to parse a frame into its constituents.
@@ -109,8 +107,6 @@ int aws_cryptosdk_deserialize_frame(
     /* in */
     struct aws_byte_cursor *ciphertext_buf,
     const struct aws_cryptosdk_alg_properties *alg_props,
-    uint64_t max_frame_size
-);
-
+    uint64_t max_frame_size);
 
 #endif

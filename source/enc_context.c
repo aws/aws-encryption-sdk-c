@@ -12,41 +12,33 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/private/enc_context.h>
 #include <aws/cryptosdk/private/utils.h>
-#include <aws/cryptosdk/error.h>
 
 #include <aws/common/byte_buf.h>
 
-int aws_cryptosdk_enc_context_init(struct aws_allocator *alloc,
-                                   struct aws_hash_table *enc_context) {
-    size_t initial_size = 10; //arbitrary starting point, will resize as necessary
-    return aws_hash_table_init(enc_context,
-                               alloc,
-                               initial_size,
-                               aws_hash_string,
-                               aws_string_eq,
-                               aws_string_destroy,
-                               aws_string_destroy);
+int aws_cryptosdk_enc_context_init(struct aws_allocator *alloc, struct aws_hash_table *enc_context) {
+    size_t initial_size = 10;  // arbitrary starting point, will resize as necessary
+    return aws_hash_table_init(
+        enc_context, alloc, initial_size, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy);
 }
 
 int aws_cryptosdk_context_size(size_t *size, const struct aws_hash_table *enc_context) {
-    size_t serialized_len = 2; // First two bytes are the number of k-v pairs
-    size_t entry_count = 0;
+    size_t serialized_len = 2;  // First two bytes are the number of k-v pairs
+    size_t entry_count    = 0;
 
-    for (struct aws_hash_iter iter = aws_hash_iter_begin(enc_context);
-         !aws_hash_iter_done(&iter); aws_hash_iter_next(&iter))
-    {
+    for (struct aws_hash_iter iter = aws_hash_iter_begin(enc_context); !aws_hash_iter_done(&iter);
+         aws_hash_iter_next(&iter)) {
         entry_count++;
 
         if (entry_count > UINT16_MAX) {
             return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
         }
 
-        const struct aws_string *key = iter.element.key;
+        const struct aws_string *key   = iter.element.key;
         const struct aws_string *value = iter.element.value;
-        serialized_len += 2 /* key length */ + key->len +
-            2 /* value length */ + value->len;
+        serialized_len += 2 /* key length */ + key->len + 2 /* value length */ + value->len;
 
         if (serialized_len > UINT16_MAX) {
             return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
@@ -64,9 +56,8 @@ int aws_cryptosdk_context_size(size_t *size, const struct aws_hash_table *enc_co
     return AWS_OP_SUCCESS;
 }
 
-int aws_cryptosdk_context_serialize(struct aws_allocator *alloc,
-                                    struct aws_byte_buf *output,
-                                    const struct aws_hash_table *enc_context) {
+int aws_cryptosdk_context_serialize(
+    struct aws_allocator *alloc, struct aws_byte_buf *output, const struct aws_hash_table *enc_context) {
     size_t length;
     if (aws_cryptosdk_context_size(&length, enc_context)) {
         return AWS_OP_ERR;
@@ -96,8 +87,8 @@ int aws_cryptosdk_context_serialize(struct aws_allocator *alloc,
             aws_array_list_clean_up(&elems);
             return AWS_OP_ERR;
         }
-        const struct aws_string * key = (const struct aws_string *)elem.key;
-        const struct aws_string * value = (const struct aws_string *)elem.value;
+        const struct aws_string *key   = (const struct aws_string *)elem.key;
+        const struct aws_string *value = (const struct aws_string *)elem.value;
         if (!aws_byte_buf_write_be16(output, (uint16_t)key->len)) goto WRITE_ERR;
         if (!aws_byte_buf_write_from_whole_string(output, key)) goto WRITE_ERR;
         if (!aws_byte_buf_write_be16(output, (uint16_t)value->len)) goto WRITE_ERR;
@@ -112,7 +103,8 @@ WRITE_ERR:
     return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 }
 
-int aws_cryptosdk_context_deserialize(struct aws_allocator *alloc, struct aws_hash_table *enc_context, struct aws_byte_cursor *cursor) {
+int aws_cryptosdk_context_deserialize(
+    struct aws_allocator *alloc, struct aws_hash_table *enc_context, struct aws_byte_cursor *cursor) {
     aws_cryptosdk_enc_context_clear(enc_context);
 
     if (cursor->len == 0) {
@@ -166,10 +158,7 @@ static struct aws_string *clone_or_reuse_string(struct aws_allocator *allocator,
 }
 
 int aws_cryptosdk_enc_context_clone(
-    struct aws_allocator *alloc,
-    struct aws_hash_table *dest,
-    const struct aws_hash_table *src
-) {
+    struct aws_allocator *alloc, struct aws_hash_table *dest, const struct aws_hash_table *src) {
     /* First, scan the destination for keys that don't belong, and remove them */
     for (struct aws_hash_iter iter = aws_hash_iter_begin(dest); !aws_hash_iter_done(&iter); aws_hash_iter_next(&iter)) {
         struct aws_hash_element *src_elem = NULL;
@@ -204,7 +193,7 @@ int aws_cryptosdk_enc_context_clone(
             dest_elem->value = value;
         } else if (!dest_elem) {
             /* A new element needs to be created, with a copy of the key and value */
-            struct aws_string *key = clone_or_reuse_string(alloc, iter.element.key);
+            struct aws_string *key   = clone_or_reuse_string(alloc, iter.element.key);
             struct aws_string *value = clone_or_reuse_string(alloc, iter.element.value);
 
             if (!key || !value || aws_hash_table_put(dest, key, value, NULL)) {

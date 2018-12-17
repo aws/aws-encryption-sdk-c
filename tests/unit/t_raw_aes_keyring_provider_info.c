@@ -20,8 +20,7 @@
  */
 
 AWS_STATIC_STRING_FROM_LITERAL(ser_master_key_id, "Master key id");
-static const uint8_t iv[RAW_AES_KR_IV_LEN] =
-{0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb};
+static const uint8_t iv[RAW_AES_KR_IV_LEN] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb };
 
 // clang-format off
 static const uint8_t serialized_provider_info[] = {
@@ -36,14 +35,11 @@ AWS_STATIC_STRING_FROM_LITERAL(ser_provider_id, "Provider id");
 static const uint8_t raw_key_bytes[32];
 
 int serialize_valid_provider_info() {
-
-    struct aws_allocator * alloc = aws_default_allocator();
+    struct aws_allocator *alloc = aws_default_allocator();
     struct aws_byte_buf provider_info;
 
-    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_serialize_provider_info_init(alloc,
-                                                                                  &provider_info,
-                                                                                  ser_master_key_id,
-                                                                                  iv));
+    TEST_ASSERT_INT_EQ(
+        AWS_OP_SUCCESS, aws_cryptosdk_serialize_provider_info_init(alloc, &provider_info, ser_master_key_id, iv));
 
     // clang-format off
     TEST_ASSERT_BUF_EQ(provider_info,
@@ -58,16 +54,13 @@ int serialize_valid_provider_info() {
 }
 
 int parse_valid_provider_info() {
-    struct aws_cryptosdk_keyring * kr = aws_cryptosdk_raw_aes_keyring_new(aws_default_allocator(),
-                                                                          ser_provider_id,
-                                                                          ser_master_key_id,
-                                                                          raw_key_bytes,
-                                                                          AWS_CRYPTOSDK_AES_256);
+    struct aws_cryptosdk_keyring *kr = aws_cryptosdk_raw_aes_keyring_new(
+        aws_default_allocator(), ser_provider_id, ser_master_key_id, raw_key_bytes, AWS_CRYPTOSDK_AES_256);
     TEST_ASSERT_ADDR_NOT_NULL(kr);
 
     struct aws_byte_buf iv_output;
-    struct aws_byte_buf ser_prov_info = aws_byte_buf_from_array(serialized_provider_info,
-                                                                sizeof(serialized_provider_info));
+    struct aws_byte_buf ser_prov_info =
+        aws_byte_buf_from_array(serialized_provider_info, sizeof(serialized_provider_info));
     TEST_ASSERT(aws_cryptosdk_parse_provider_info(kr, &iv_output, &ser_prov_info));
 
     TEST_ASSERT_BUF_EQ(iv_output, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb);

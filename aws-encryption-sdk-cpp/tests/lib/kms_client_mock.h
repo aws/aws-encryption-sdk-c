@@ -16,15 +16,15 @@
 #ifndef AWS_ENCRYPTION_SDK_KMS_CLIENT_MOCK_H
 #define AWS_ENCRYPTION_SDK_KMS_CLIENT_MOCK_H
 
-#include <deque>
+#include <aws/core/utils/Outcome.h>
 #include <aws/kms/KMSClient.h>
-#include <aws/kms/model/EncryptRequest.h>
-#include <aws/kms/model/EncryptResult.h>
 #include <aws/kms/model/DecryptRequest.h>
 #include <aws/kms/model/DecryptResult.h>
+#include <aws/kms/model/EncryptRequest.h>
+#include <aws/kms/model/EncryptResult.h>
 #include <aws/kms/model/GenerateDataKeyRequest.h>
 #include <aws/kms/model/GenerateDataKeyResult.h>
-#include <aws/core/utils/Outcome.h>
+#include <deque>
 
 #include "exports.h"
 
@@ -38,7 +38,7 @@ namespace Model = Aws::KMS::Model;
  * This class simulates a mock for KmsClient. No cpp testing framework is allowed at this time
  */
 class TESTLIB_CPP_API KmsClientMock : public Aws::KMS::KMSClient {
-  public:
+   public:
     KmsClientMock();
     ~KmsClientMock();
 
@@ -49,13 +49,14 @@ class TESTLIB_CPP_API KmsClientMock : public Aws::KMS::KMSClient {
     void ExpectDecryptAccumulator(const Model::DecryptRequest &request, Model::DecryptOutcome decrypt_return);
 
     Model::GenerateDataKeyOutcome GenerateDataKey(const Model::GenerateDataKeyRequest &request) const;
-    void ExpectGenerateDataKey(const Model::GenerateDataKeyRequest &request,
-                               Model::GenerateDataKeyOutcome generate_dk_return);
+    void ExpectGenerateDataKey(
+        const Model::GenerateDataKeyRequest &request, Model::GenerateDataKeyOutcome generate_dk_return);
 
     void ExpectGrantTokens(const Aws::Vector<Aws::String> &grant_tokens);
 
     bool ExpectingOtherCalls();
-  private:
+
+   private:
     struct ExpectedEncryptValues {
         Model::EncryptRequest expected_encrypt_request;
         Model::EncryptOutcome encrypt_return;
@@ -73,11 +74,10 @@ class TESTLIB_CPP_API KmsClientMock : public Aws::KMS::KMSClient {
     Model::GenerateDataKeyOutcome generate_dk_return;
 
     Aws::Vector<Aws::String> grant_tokens;
-
 };
 
 }  // namespace Testing
 }  // namespace Cryptosdk
 }  // namespace Aws
 
-#endif //AWS_ENCRYPTION_SDK_KMS_CLIENT_MOCK_H
+#endif  // AWS_ENCRYPTION_SDK_KMS_CLIENT_MOCK_H

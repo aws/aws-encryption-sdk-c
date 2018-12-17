@@ -17,17 +17,16 @@
 static const struct aws_error_info error_info[] = {
     AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT, "Bad ciphertext", "cryptosdk"),
     AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN, "Unknown error in crypto routines", "cryptosdk"),
-    AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT, "Unsupported format version or bad ciphertext", "cryptosdk"),
+    AWS_DEFINE_ERROR_INFO(
+        AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT, "Unsupported format version or bad ciphertext", "cryptosdk"),
     AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_KMS_FAILURE, "Unexpected failure in KMS Master Key", "cryptosdk"),
     AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_BAD_STATE, "Bad state for operation", "cryptosdk"),
     AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED, "Limit exceeded", "cryptosdk"),
     AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT, "Unable to decrypt", "cryptosdk")
 };
 
-static const struct aws_error_info_list error_info_list = {
-    .error_list = error_info,
-    .count = sizeof(error_info)/sizeof(error_info[0])
-};
+static const struct aws_error_info_list error_info_list = { .error_list = error_info,
+                                                            .count      = sizeof(error_info) / sizeof(error_info[0]) };
 
 void aws_cryptosdk_load_error_strings() {
     aws_load_error_strings();
