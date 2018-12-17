@@ -25,10 +25,9 @@
  *
  * Note: This is is an unstable, internal API. Do not depend on it in your applications.
  */
-#define AWS_CRYPTOSDK_PRIVATE_VT_GET(vt, member, fallback) \
-    (((ptrdiff_t)&((vt)->member) - (ptrdiff_t)(vt)) + sizeof((vt)->member) <= (vt)->vt_size \
-      ? (vt)->member \
-      : (fallback))
+#define AWS_CRYPTOSDK_PRIVATE_VT_GET(vt, member, fallback)                                                   \
+    (((ptrdiff_t) & ((vt)->member) - (ptrdiff_t)(vt)) + sizeof((vt)->member) <= (vt)->vt_size ? (vt)->member \
+                                                                                              : (fallback))
 /**
  * If 'vt->member' falls within vt->vt_size bytes of vt, and vt->member is non-NULL,
  * returns vt->member. Otherwise, returns NULL.

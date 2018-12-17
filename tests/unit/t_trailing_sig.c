@@ -13,14 +13,14 @@
  * limitations under the License.
  */
 
-#include <aws/cryptosdk/session.h>
-#include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/default_cmm.h>
+#include <aws/cryptosdk/private/cipher.h>
+#include <aws/cryptosdk/session.h>
 #include <stdlib.h>
+#include "counting_keyring.h"
 #include "testing.h"
 #include "testutil.h"
 #include "zero_keyring.h"
-#include "counting_keyring.h"
 
 AWS_STATIC_STRING_FROM_LITERAL(EC_PUBLIC_KEY_FIELD, "aws-crypto-public-key");
 
@@ -36,10 +36,9 @@ static void strip_key_destroy(struct aws_cryptosdk_cmm *cmm) {
 static int strip_key_gen_mat(
     struct aws_cryptosdk_cmm *cmm,
     struct aws_cryptosdk_encryption_materials **output,
-    struct aws_cryptosdk_encryption_request *request
-) {
+    struct aws_cryptosdk_encryption_request *request) {
     struct strip_key_cmm *self = (struct strip_key_cmm *)cmm;
-    int rv = aws_cryptosdk_cmm_generate_encryption_materials(self->cmm, output, request);
+    int rv                     = aws_cryptosdk_cmm_generate_encryption_materials(self->cmm, output, request);
 
     if (rv == 0) {
         aws_hash_table_remove(request->enc_context, EC_PUBLIC_KEY_FIELD, NULL, NULL);
@@ -48,22 +47,20 @@ static int strip_key_gen_mat(
     return rv;
 }
 
-static const struct aws_cryptosdk_cmm_vt strip_key_cmm_vt = {
-    .vt_size = sizeof(strip_key_cmm_vt),
-    .name = "strip_key_cmm",
-    .destroy = strip_key_destroy,
-    .generate_encryption_materials = strip_key_gen_mat,
-    .decrypt_materials = NULL
-};
+static const struct aws_cryptosdk_cmm_vt strip_key_cmm_vt = { .vt_size                       = sizeof(strip_key_cmm_vt),
+                                                              .name                          = "strip_key_cmm",
+                                                              .destroy                       = strip_key_destroy,
+                                                              .generate_encryption_materials = strip_key_gen_mat,
+                                                              .decrypt_materials             = NULL };
 
 // Test that the trailing signature logic rejects ciphertexts that claim to have a trailing-signature algorithm suite
 // but where no public key is in the encryption context.
 static int trailing_sig_no_key() {
-    struct aws_byte_buf buf = {0};
+    struct aws_byte_buf buf               = { 0 };
     struct aws_cryptosdk_session *session = NULL;
 
     struct aws_cryptosdk_keyring *kr = aws_cryptosdk_zero_keyring_new(aws_default_allocator());
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
+    struct aws_cryptosdk_cmm *cmm    = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
     aws_cryptosdk_keyring_release(kr);
 
     TEST_ASSERT_ADDR_NOT_NULL(cmm);
@@ -72,8 +69,8 @@ static int trailing_sig_no_key() {
 
     TEST_ASSERT_SUCCESS(aws_byte_buf_init(&buf, aws_default_allocator(), 1024));
 
-    struct strip_key_cmm strip_key_cmm_s = {.cmm = cmm};
-    struct aws_cryptosdk_cmm *enc_cmm = (struct aws_cryptosdk_cmm *)&strip_key_cmm_s;
+    struct strip_key_cmm strip_key_cmm_s = { .cmm = cmm };
+    struct aws_cryptosdk_cmm *enc_cmm    = (struct aws_cryptosdk_cmm *)&strip_key_cmm_s;
     aws_cryptosdk_cmm_base_init(&strip_key_cmm_s.base, &strip_key_cmm_vt);
 
     session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, enc_cmm);
@@ -81,7 +78,8 @@ static int trailing_sig_no_key() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_message_size(session, 1));
 
     size_t ignored;
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process(session, buf.buffer, buf.capacity, &buf.len, (const uint8_t *)"x", 1, &ignored));
+    TEST_ASSERT_SUCCESS(
+        aws_cryptosdk_session_process(session, buf.buffer, buf.capacity, &buf.len, (const uint8_t *)"x", 1, &ignored));
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
 
     aws_cryptosdk_session_destroy(session);
@@ -91,9 +89,9 @@ static int trailing_sig_no_key() {
 
     uint8_t outbuf[256];
     size_t ignored2;
-    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT,
-        aws_cryptosdk_session_process(session, outbuf, sizeof(outbuf), &ignored, buf.buffer, buf.len, &ignored2)
-    );
+    TEST_ASSERT_ERROR(
+        AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT,
+        aws_cryptosdk_session_process(session, outbuf, sizeof(outbuf), &ignored, buf.buffer, buf.len, &ignored2));
 
     aws_cryptosdk_session_destroy(session);
     aws_cryptosdk_cmm_release(cmm);
@@ -103,11 +101,11 @@ static int trailing_sig_no_key() {
 }
 
 static int trailing_sig_no_sig() {
-    struct aws_byte_buf buf = {0};
+    struct aws_byte_buf buf               = { 0 };
     struct aws_cryptosdk_session *session = NULL;
 
     struct aws_cryptosdk_keyring *kr = aws_cryptosdk_zero_keyring_new(aws_default_allocator());
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
+    struct aws_cryptosdk_cmm *cmm    = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
     aws_cryptosdk_keyring_release(kr);
 
     TEST_ASSERT_ADDR_NOT_NULL(cmm);
@@ -120,7 +118,8 @@ static int trailing_sig_no_sig() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_message_size(session, 1));
 
     size_t ignored;
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process(session, buf.buffer, buf.capacity, &buf.len, (const uint8_t *)"x", 1, &ignored));
+    TEST_ASSERT_SUCCESS(
+        aws_cryptosdk_session_process(session, buf.buffer, buf.capacity, &buf.len, (const uint8_t *)"x", 1, &ignored));
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
 
     aws_cryptosdk_session_destroy(session);
@@ -135,8 +134,7 @@ static int trailing_sig_no_sig() {
     uint8_t outbuf[256];
     size_t ignored2;
     TEST_ASSERT_SUCCESS(
-        aws_cryptosdk_session_process(session, outbuf, sizeof(outbuf), &ignored, buf.buffer, buf.len, &ignored2)
-    );
+        aws_cryptosdk_session_process(session, outbuf, sizeof(outbuf), &ignored, buf.buffer, buf.len, &ignored2));
     // Message should be incomplete
     TEST_ASSERT(!aws_cryptosdk_session_is_done(session));
 
@@ -148,11 +146,11 @@ static int trailing_sig_no_sig() {
 }
 
 static int trailing_sig_bad_sig() {
-    struct aws_byte_buf buf = {0};
+    struct aws_byte_buf buf               = { 0 };
     struct aws_cryptosdk_session *session = NULL;
 
     struct aws_cryptosdk_keyring *kr = aws_cryptosdk_zero_keyring_new(aws_default_allocator());
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
+    struct aws_cryptosdk_cmm *cmm    = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
     aws_cryptosdk_keyring_release(kr);
 
     TEST_ASSERT_ADDR_NOT_NULL(cmm);
@@ -165,7 +163,8 @@ static int trailing_sig_bad_sig() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_message_size(session, 1));
 
     size_t ignored;
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process(session, buf.buffer, buf.capacity, &buf.len, (const uint8_t *)"x", 1, &ignored));
+    TEST_ASSERT_SUCCESS(
+        aws_cryptosdk_session_process(session, buf.buffer, buf.capacity, &buf.len, (const uint8_t *)"x", 1, &ignored));
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
 
     aws_cryptosdk_session_destroy(session);
@@ -178,9 +177,9 @@ static int trailing_sig_bad_sig() {
 
     uint8_t outbuf[256];
     size_t ignored2;
-    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT,
-        aws_cryptosdk_session_process(session, outbuf, sizeof(outbuf), &ignored, buf.buffer, buf.len, &ignored2)
-    );
+    TEST_ASSERT_ERROR(
+        AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT,
+        aws_cryptosdk_session_process(session, outbuf, sizeof(outbuf), &ignored, buf.buffer, buf.len, &ignored2));
     // Message should be incomplete
     TEST_ASSERT(!aws_cryptosdk_session_is_done(session));
 
@@ -191,9 +190,7 @@ static int trailing_sig_bad_sig() {
     return 0;
 }
 
-struct test_case trailing_sig_test_cases[] = {
-    { "trailing_sig", "no_key", trailing_sig_no_key },
-    { "trailing_sig", "no_sig", trailing_sig_no_sig },
-    { "trailing_sig", "bad_sig", trailing_sig_bad_sig },
-    { NULL }
-};
+struct test_case trailing_sig_test_cases[] = { { "trailing_sig", "no_key", trailing_sig_no_key },
+                                               { "trailing_sig", "no_sig", trailing_sig_no_sig },
+                                               { "trailing_sig", "bad_sig", trailing_sig_bad_sig },
+                                               { NULL } };

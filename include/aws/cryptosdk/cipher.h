@@ -16,10 +16,10 @@
 #ifndef AWS_CRYPTOSDK_CIPHER_H
 #define AWS_CRYPTOSDK_CIPHER_H
 
-#include <aws/common/string.h>
 #include <aws/common/byte_buf.h>
-#include <aws/cryptosdk/header.h>
+#include <aws/common/string.h>
 #include <aws/cryptosdk/exports.h>
+#include <aws/cryptosdk/header.h>
 
 /**
  * @addtogroup hazmat Low-level cryptographic APIs
@@ -33,9 +33,9 @@ extern "C" {
 
 /** @ingroup raw_keyring */
 enum aws_cryptosdk_aes_key_len {
-    AWS_CRYPTOSDK_AES_128 = 128/8,
-    AWS_CRYPTOSDK_AES_192 = 192/8,
-    AWS_CRYPTOSDK_AES_256 = 256/8
+    AWS_CRYPTOSDK_AES_128 = 128 / 8,
+    AWS_CRYPTOSDK_AES_192 = 192 / 8,
+    AWS_CRYPTOSDK_AES_256 = 256 / 8
 };
 
 /** @ingroup raw_keyring */
@@ -114,10 +114,7 @@ struct aws_cryptosdk_signctx;
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_get_privkey(
-    const struct aws_cryptosdk_signctx *ctx,
-    struct aws_allocator *alloc,
-    struct aws_string **priv_key_buf
-);
+    const struct aws_cryptosdk_signctx *ctx, struct aws_allocator *alloc, struct aws_string **priv_key_buf);
 
 /**
  * Obtains the public key from a signing context, which may be in either sign or verify
@@ -127,10 +124,7 @@ int aws_cryptosdk_sig_get_privkey(
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_get_pubkey(
-    const struct aws_cryptosdk_signctx *ctx,
-    struct aws_allocator *alloc,
-    struct aws_string **pub_key_buf
-);
+    const struct aws_cryptosdk_signctx *ctx, struct aws_allocator *alloc, struct aws_string **pub_key_buf);
 
 /**
  * Generates a new signature keypair, initializes a signing context, and serializes the public key.
@@ -148,8 +142,7 @@ int aws_cryptosdk_sig_sign_start_keygen(
     struct aws_cryptosdk_signctx **pctx,
     struct aws_allocator *alloc,
     struct aws_string **pub_key_buf,
-    const struct aws_cryptosdk_alg_properties *props
-);
+    const struct aws_cryptosdk_alg_properties *props);
 
 /**
  * Initializes a new signature context based on a private key serialized using
@@ -168,8 +161,7 @@ int aws_cryptosdk_sig_sign_start(
     struct aws_allocator *alloc,
     struct aws_string **pub_key_buf,
     const struct aws_cryptosdk_alg_properties *props,
-    const struct aws_string *priv_key
-);
+    const struct aws_string *priv_key);
 
 /**
  * Prepares to validate a signature.
@@ -185,17 +177,13 @@ int aws_cryptosdk_sig_verify_start(
     struct aws_cryptosdk_signctx **pctx,
     struct aws_allocator *alloc,
     const struct aws_string *pub_key,
-    const struct aws_cryptosdk_alg_properties *props
-);
+    const struct aws_cryptosdk_alg_properties *props);
 
 /**
  * Supplies some data to an ongoing sign or verify operation.
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_sig_update(
-    struct aws_cryptosdk_signctx *ctx,
-    const struct aws_byte_cursor buf
-);
+int aws_cryptosdk_sig_update(struct aws_cryptosdk_signctx *ctx, const struct aws_byte_cursor buf);
 
 /**
  * Verifies a signature against the data previously passed to aws_cryptosdk_sig_update.
@@ -208,10 +196,7 @@ int aws_cryptosdk_sig_update(
  * The context is always freed, regardless of success or failure.
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_sig_verify_finish(
-    struct aws_cryptosdk_signctx *ctx,
-    const struct aws_string *signature
-);
+int aws_cryptosdk_sig_verify_finish(struct aws_cryptosdk_signctx *ctx, const struct aws_string *signature);
 
 /**
  * Generates the final signature based on data previously passed to aws_cryptosdk_sig_update.
@@ -224,24 +209,19 @@ int aws_cryptosdk_sig_verify_finish(
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_sign_finish(
-    struct aws_cryptosdk_signctx *ctx,
-    struct aws_allocator *alloc,
-    struct aws_string **signature
-);
+    struct aws_cryptosdk_signctx *ctx, struct aws_allocator *alloc, struct aws_string **signature);
 
 /**
  * Aborts an ongoing sign or verify operation, and destroys the signature context.
  * If ctx is null, this operation is a no-op.
  */
 AWS_CRYPTOSDK_API
-void aws_cryptosdk_sig_abort(
-    struct aws_cryptosdk_signctx *ctx
-);
+void aws_cryptosdk_sig_abort(struct aws_cryptosdk_signctx *ctx);
 
 #ifdef __cplusplus
 }
 #endif
 
-/*! @} */ // doxygen group hazmat
+/*! @} */  // doxygen group hazmat
 
-#endif // AWS_CRYPTOSDK_CIPHER_H
+#endif  // AWS_CRYPTOSDK_CIPHER_H

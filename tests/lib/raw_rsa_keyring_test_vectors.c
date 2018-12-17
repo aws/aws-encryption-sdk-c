@@ -12,8 +12,8 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <aws/cryptosdk/raw_rsa_keyring.h>
 #include "raw_rsa_keyring_test_vectors.h"
+#include <aws/cryptosdk/raw_rsa_keyring.h>
 #include "testutil.h"
 
 AWS_STATIC_STRING_FROM_LITERAL(raw_rsa_keyring_tv_provider_id, "asoghis");
@@ -74,23 +74,32 @@ static const char wrong_raw_rsa_keyring_tv_private_key[] =
 struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new(
     struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
     return aws_cryptosdk_raw_rsa_keyring_new(
-        alloc, raw_rsa_keyring_tv_provider_id, raw_rsa_keyring_tv_master_key_id,
-        raw_rsa_keyring_tv_private_key, raw_rsa_keyring_tv_public_key, rsa_padding_mode);
+        alloc,
+        raw_rsa_keyring_tv_provider_id,
+        raw_rsa_keyring_tv_master_key_id,
+        raw_rsa_keyring_tv_private_key,
+        raw_rsa_keyring_tv_public_key,
+        rsa_padding_mode);
 }
 
 struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new_with_wrong_key(
     struct aws_allocator *alloc, enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
     return aws_cryptosdk_raw_rsa_keyring_new(
-        alloc, raw_rsa_keyring_tv_provider_id, raw_rsa_keyring_tv_master_key_id,
-        wrong_raw_rsa_keyring_tv_private_key, wrong_raw_rsa_keyring_tv_public_key, rsa_padding_mode);
+        alloc,
+        raw_rsa_keyring_tv_provider_id,
+        raw_rsa_keyring_tv_master_key_id,
+        wrong_raw_rsa_keyring_tv_private_key,
+        wrong_raw_rsa_keyring_tv_public_key,
+        rsa_padding_mode);
 }
 
 int raw_rsa_keyring_tv_trace_updated_properly(struct aws_array_list *trace, uint32_t flags) {
-    return assert_keyring_trace_record(trace,
-                                       aws_array_list_length(trace)-1,
-                                       raw_rsa_keyring_tv_provider_id->bytes,
-                                       raw_rsa_keyring_tv_master_key_id->bytes,
-                                       flags);
+    return assert_keyring_trace_record(
+        trace,
+        aws_array_list_length(trace) - 1,
+        raw_rsa_keyring_tv_provider_id->bytes,
+        raw_rsa_keyring_tv_master_key_id->bytes,
+        flags);
 }
 
 struct aws_cryptosdk_edk edk_init(const uint8_t *edk_bytes, size_t edk_len) {
@@ -98,8 +107,8 @@ struct aws_cryptosdk_edk edk_init(const uint8_t *edk_bytes, size_t edk_len) {
     edk.enc_data_key = aws_byte_buf_from_array(edk_bytes, edk_len);
     edk.provider_id =
         aws_byte_buf_from_array(raw_rsa_keyring_tv_provider_id->bytes, raw_rsa_keyring_tv_provider_id->len);
-    edk.provider_info = aws_byte_buf_from_array(
-        raw_rsa_keyring_tv_master_key_id->bytes, raw_rsa_keyring_tv_master_key_id->len);
+    edk.provider_info =
+        aws_byte_buf_from_array(raw_rsa_keyring_tv_master_key_id->bytes, raw_rsa_keyring_tv_master_key_id->len);
     return edk;
 }
 
@@ -239,75 +248,75 @@ static const uint8_t tv_8_edk_bytes[] = {
 struct raw_rsa_keyring_test_vector raw_rsa_keyring_test_vectors[] = {
     {
         .rsa_padding_mode = AWS_CRYPTOSDK_RSA_PKCS1,
-        .alg = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-        .data_key = tv_0_data_key,
-        .data_key_len = sizeof(tv_0_data_key),
-        .edk_bytes = tv_0_edk_bytes,
-        .edk_bytes_len = sizeof(tv_0_edk_bytes),
+        .alg              = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .data_key         = tv_0_data_key,
+        .data_key_len     = sizeof(tv_0_data_key),
+        .edk_bytes        = tv_0_edk_bytes,
+        .edk_bytes_len    = sizeof(tv_0_edk_bytes),
     },
     {
         .rsa_padding_mode = AWS_CRYPTOSDK_RSA_PKCS1,
-        .alg = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-        .data_key = tv_1_data_key,
-        .data_key_len = sizeof(tv_1_data_key),
-        .edk_bytes = tv_1_edk_bytes,
-        .edk_bytes_len = sizeof(tv_1_edk_bytes),
+        .alg              = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .data_key         = tv_1_data_key,
+        .data_key_len     = sizeof(tv_1_data_key),
+        .edk_bytes        = tv_1_edk_bytes,
+        .edk_bytes_len    = sizeof(tv_1_edk_bytes),
     },
     {
         .rsa_padding_mode = AWS_CRYPTOSDK_RSA_PKCS1,
-        .alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-        .data_key = tv_2_data_key,
-        .data_key_len = sizeof(tv_2_data_key),
-        .edk_bytes = tv_2_edk_bytes,
-        .edk_bytes_len = sizeof(tv_2_edk_bytes),
+        .alg              = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .data_key         = tv_2_data_key,
+        .data_key_len     = sizeof(tv_2_data_key),
+        .edk_bytes        = tv_2_edk_bytes,
+        .edk_bytes_len    = sizeof(tv_2_edk_bytes),
     },
     {
         .rsa_padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1,
-        .alg = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-        .data_key = tv_3_data_key,
-        .data_key_len = sizeof(tv_3_data_key),
-        .edk_bytes = tv_3_edk_bytes,
-        .edk_bytes_len = sizeof(tv_3_edk_bytes),
+        .alg              = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .data_key         = tv_3_data_key,
+        .data_key_len     = sizeof(tv_3_data_key),
+        .edk_bytes        = tv_3_edk_bytes,
+        .edk_bytes_len    = sizeof(tv_3_edk_bytes),
     },
     {
         .rsa_padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1,
-        .alg = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-        .data_key = tv_4_data_key,
-        .data_key_len = sizeof(tv_4_data_key),
-        .edk_bytes = tv_4_edk_bytes,
-        .edk_bytes_len = sizeof(tv_4_edk_bytes),
+        .alg              = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .data_key         = tv_4_data_key,
+        .data_key_len     = sizeof(tv_4_data_key),
+        .edk_bytes        = tv_4_edk_bytes,
+        .edk_bytes_len    = sizeof(tv_4_edk_bytes),
     },
     {
         .rsa_padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1,
-        .alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-        .data_key = tv_5_data_key,
-        .data_key_len = sizeof(tv_5_data_key),
-        .edk_bytes = tv_5_edk_bytes,
-        .edk_bytes_len = sizeof(tv_5_edk_bytes),
+        .alg              = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .data_key         = tv_5_data_key,
+        .data_key_len     = sizeof(tv_5_data_key),
+        .edk_bytes        = tv_5_edk_bytes,
+        .edk_bytes_len    = sizeof(tv_5_edk_bytes),
     },
     {
         .rsa_padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1,
-        .alg = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-        .data_key = tv_6_data_key,
-        .data_key_len = sizeof(tv_6_data_key),
-        .edk_bytes = tv_6_edk_bytes,
-        .edk_bytes_len = sizeof(tv_6_edk_bytes),
+        .alg              = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .data_key         = tv_6_data_key,
+        .data_key_len     = sizeof(tv_6_data_key),
+        .edk_bytes        = tv_6_edk_bytes,
+        .edk_bytes_len    = sizeof(tv_6_edk_bytes),
     },
     {
         .rsa_padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1,
-        .alg = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-        .data_key = tv_7_data_key,
-        .data_key_len = sizeof(tv_7_data_key),
-        .edk_bytes = tv_7_edk_bytes,
-        .edk_bytes_len = sizeof(tv_7_edk_bytes),
+        .alg              = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .data_key         = tv_7_data_key,
+        .data_key_len     = sizeof(tv_7_data_key),
+        .edk_bytes        = tv_7_edk_bytes,
+        .edk_bytes_len    = sizeof(tv_7_edk_bytes),
     },
     {
         .rsa_padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1,
-        .alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-        .data_key = tv_8_data_key,
-        .data_key_len = sizeof(tv_8_data_key),
-        .edk_bytes = tv_8_edk_bytes,
-        .edk_bytes_len = sizeof(tv_8_edk_bytes),
+        .alg              = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .data_key         = tv_8_data_key,
+        .data_key_len     = sizeof(tv_8_data_key),
+        .edk_bytes        = tv_8_edk_bytes,
+        .edk_bytes_len    = sizeof(tv_8_edk_bytes),
     },
     { 0 }
 };

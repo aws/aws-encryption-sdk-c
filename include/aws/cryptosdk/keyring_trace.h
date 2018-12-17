@@ -71,12 +71,12 @@ struct aws_cryptosdk_keyring_trace_record {
 /**
  * Bit flag indicating this wrapping key signed the encryption context.
  */
-#define AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX     (1 << 3)
+#define AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX (1 << 3)
 
 /**
  * Bit flag indicating this wrapping key verified signature of encryption context.
  */
-#define AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX   (1 << 4)
+#define AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX (1 << 4)
 
 #ifdef __cplusplus
 extern "C" {
@@ -111,8 +111,7 @@ int aws_cryptosdk_keyring_trace_add_record_c_str(
  * Initialize a keyring trace.
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_keyring_trace_init(struct aws_allocator *alloc,
-                                     struct aws_array_list *trace);
+int aws_cryptosdk_keyring_trace_init(struct aws_allocator *alloc, struct aws_array_list *trace);
 
 /**
  * Deallocate all memory from a keyring trace.
@@ -131,4 +130,4 @@ void aws_cryptosdk_keyring_trace_clear(struct aws_array_list *trace);
 }
 #endif
 
-#endif // AWS_CRYPTOSDK_KEYRING_TRACE_H
+#endif  // AWS_CRYPTOSDK_KEYRING_TRACE_H

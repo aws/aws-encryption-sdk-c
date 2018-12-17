@@ -1,48 +1,48 @@
-/* 
+/*
  * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may not use
  * this file except in compliance with the License. A copy of the License is
  * located at
- * 
+ *
  *     http://aws.amazon.com/apache2.0/
- * 
+ *
  * or in the "license" file accompanying this file. This file is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
- */ 
+ */
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "testing.h"
 
-#include <aws/cryptosdk/error.h>
 #include <aws/common/error.h>
+#include <aws/cryptosdk/error.h>
 
-int pass_fn() { return 0; }
+int pass_fn() {
+    return 0;
+}
 
-struct test_case *test_groups[] = {
-    header_test_cases,
-    cipher_test_cases,
-    materials_test_cases,
-    enc_context_test_cases,
-    encrypt_test_cases,
-    hkdf_test_cases,
-    raw_aes_keyring_decrypt_test_cases,
-    raw_aes_keyring_encrypt_test_cases,
-    raw_aes_keyring_provider_info_test_cases,
-    multi_keyring_test_cases,
-    signature_test_cases,
-    trailing_sig_test_cases,
-    raw_rsa_keyring_decrypt_test_cases,
-    raw_rsa_keyring_encrypt_test_cases,
-    local_cache_test_cases,
-    caching_cmm_test_cases,
-    keyring_trace_test_cases,
-    NULL
-};
+struct test_case *test_groups[] = { header_test_cases,
+                                    cipher_test_cases,
+                                    materials_test_cases,
+                                    enc_context_test_cases,
+                                    encrypt_test_cases,
+                                    hkdf_test_cases,
+                                    raw_aes_keyring_decrypt_test_cases,
+                                    raw_aes_keyring_encrypt_test_cases,
+                                    raw_aes_keyring_provider_info_test_cases,
+                                    multi_keyring_test_cases,
+                                    signature_test_cases,
+                                    trailing_sig_test_cases,
+                                    raw_rsa_keyring_decrypt_test_cases,
+                                    raw_rsa_keyring_encrypt_test_cases,
+                                    local_cache_test_cases,
+                                    caching_cmm_test_cases,
+                                    keyring_trace_test_cases,
+                                    NULL };
 
 struct test_case *test_cases;
 
@@ -61,8 +61,8 @@ static void assemble_test_cases(int enable_all) {
 
     for (struct test_case **group = test_groups; *group; group++) {
         for (struct test_case *pCase = *group; pCase->group; pCase++) {
-            *pCopyTo = *pCase;
-            pCopyTo->result = 0;
+            *pCopyTo         = *pCase;
+            pCopyTo->result  = 0;
             pCopyTo->enabled = enable_all;
             pCopyTo++;
         }
@@ -71,17 +71,18 @@ static void assemble_test_cases(int enable_all) {
 
 static void enable_cases(const char *specifier) {
     if (specifier[0] == '-') {
-        fprintf(stderr, "The test runner does not take option arguments. However, you can pass a list\n"
+        fprintf(
+            stderr,
+            "The test runner does not take option arguments. However, you can pass a list\n"
             "of test cases, e.g.:\n\n"
             "\taws-encryption-sdk-tests 'test_group.*' 'test_group_2.specific_test'\n"
             "\n"
-            "If no options are passed, all tests will be run.\n"
-            );
+            "If no options are passed, all tests will be run.\n");
         exit(1);
     }
 
     const char *dot = strchr(specifier, '.');
-    int groupLen = dot ? (int)(dot - specifier) : (int)strlen(specifier);
+    int groupLen    = dot ? (int)(dot - specifier) : (int)strlen(specifier);
 
     int enabled_ct = 0;
     for (struct test_case *pCase = test_cases; pCase->group; pCase++) {

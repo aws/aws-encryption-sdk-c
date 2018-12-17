@@ -18,15 +18,15 @@
  */
 
 #include "bad_cmm.h"
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #ifdef _MSC_VER
 // We ignore a lot of parameters in this source file.
-#pragma warning(disable: 4100)
+#    pragma warning(disable : 4100)
 #endif
 
-int aws_cryptosdk_cmm_release_with_failed_return_value(struct aws_cryptosdk_cmm * cmm) {
+int aws_cryptosdk_cmm_release_with_failed_return_value(struct aws_cryptosdk_cmm *cmm) {
     aws_reset_error();
     aws_cryptosdk_cmm_release(cmm);
     return AWS_OP_ERR;
@@ -35,37 +35,36 @@ int aws_cryptosdk_cmm_release_with_failed_return_value(struct aws_cryptosdk_cmm 
 /**
  * VFs which will never get called because of the failed check on the vt_size field.
  */
-void destroy_abort(struct aws_cryptosdk_cmm * cmm) {
+void destroy_abort(struct aws_cryptosdk_cmm *cmm) {
     fprintf(stderr, "%s's destroy VF was called when it should not have been\n", cmm->vtable->name);
     abort();
 }
 
-int generate_abort(struct aws_cryptosdk_cmm * cmm,
-                   struct aws_cryptosdk_encryption_materials ** output,
-                   struct aws_cryptosdk_encryption_request * request) {
-    fprintf(stderr, "%s's generate_encryption_materials VF was called when it should not have been\n",
-            cmm->vtable->name);
+int generate_abort(
+    struct aws_cryptosdk_cmm *cmm,
+    struct aws_cryptosdk_encryption_materials **output,
+    struct aws_cryptosdk_encryption_request *request) {
+    fprintf(
+        stderr, "%s's generate_encryption_materials VF was called when it should not have been\n", cmm->vtable->name);
     abort();
 }
 
-int decrypt_abort(struct aws_cryptosdk_cmm * cmm,
-                  struct aws_cryptosdk_decryption_materials ** output,
-                  struct aws_cryptosdk_decryption_request * request) {
-    fprintf(stderr, "%s's decrypt_materials VF was called when it should not have been\n",
-            cmm->vtable->name);
+int decrypt_abort(
+    struct aws_cryptosdk_cmm *cmm,
+    struct aws_cryptosdk_decryption_materials **output,
+    struct aws_cryptosdk_decryption_request *request) {
+    fprintf(stderr, "%s's decrypt_materials VF was called when it should not have been\n", cmm->vtable->name);
     abort();
 }
 
 /**
  * A totally correct VT except for the zero size.
  */
-static const struct aws_cryptosdk_cmm_vt zero_size_cmm_vt = {
-    .vt_size = 0,
-    .name = "zero size cmm",
-    .destroy = destroy_abort,
-    .generate_encryption_materials = generate_abort,
-    .decrypt_materials = decrypt_abort
-};
+static const struct aws_cryptosdk_cmm_vt zero_size_cmm_vt = { .vt_size                       = 0,
+                                                              .name                          = "zero size cmm",
+                                                              .destroy                       = destroy_abort,
+                                                              .generate_encryption_materials = generate_abort,
+                                                              .decrypt_materials             = decrypt_abort };
 
 struct aws_cryptosdk_cmm aws_cryptosdk_zero_size_cmm() {
     struct aws_cryptosdk_cmm cmm;
@@ -75,13 +74,11 @@ struct aws_cryptosdk_cmm aws_cryptosdk_zero_size_cmm() {
     return cmm;
 }
 
-static const struct aws_cryptosdk_cmm_vt null_cmm_vt = {
-    .vt_size = sizeof(struct aws_cryptosdk_cmm_vt),
-    .name = "null cmm",
-    .destroy = NULL,
-    .generate_encryption_materials = NULL,
-    .decrypt_materials = NULL
-};
+static const struct aws_cryptosdk_cmm_vt null_cmm_vt = { .vt_size = sizeof(struct aws_cryptosdk_cmm_vt),
+                                                         .name    = "null cmm",
+                                                         .destroy = NULL,
+                                                         .generate_encryption_materials = NULL,
+                                                         .decrypt_materials             = NULL };
 
 struct aws_cryptosdk_cmm aws_cryptosdk_null_cmm() {
     struct aws_cryptosdk_cmm cmm;
@@ -90,4 +87,3 @@ struct aws_cryptosdk_cmm aws_cryptosdk_null_cmm() {
 
     return cmm;
 }
-

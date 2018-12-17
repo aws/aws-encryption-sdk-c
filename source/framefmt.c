@@ -1,35 +1,35 @@
-/* 
+/*
  * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may not use
  * this file except in compliance with the License. A copy of the License is
  * located at
- * 
+ *
  *     http://aws.amazon.com/apache2.0/
- * 
+ *
  * or in the "license" file accompanying this file. This file is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
- */ 
+ */
 
-#include <aws/cryptosdk/private/framefmt.h>
-#include <aws/cryptosdk/error.h>
 #include <aws/common/error.h>
+#include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/private/framefmt.h>
 
 #define LAST_FRAME_MARK 0xFFFFFFFFu
 
 #ifdef _MSC_VER
 // The macros in this file depend on implicit integer conversions,
 // so suppress the corresponding MSVC warning
-#pragma warning(disable: 4244)
+#    pragma warning(disable : 4244)
 #endif
 
 struct aws_cryptosdk_framestate {
     uint64_t max_frame_size;
     uint64_t plaintext_size;
     uint64_t ciphertext_size;
-    const struct aws_cryptosdk_alg_properties * AWS_RESTRICT alg_props;
+    const struct aws_cryptosdk_alg_properties *AWS_RESTRICT alg_props;
     union {
         // Used when reading
         struct aws_byte_cursor cursor;
@@ -81,18 +81,18 @@ struct aws_cryptosdk_framestate {
  *   fieldptr - a pointer to an integer field that will contain/receive the value to write/read.
  *              This does not need to be of type 'type'.
  */
-#define field_helper(type, suffix, state, fieldptr) do { \
-    (state)->ciphertext_size += sizeof(type); \
-    if ((state)->writing) { \
-        type tmp_field = *(fieldptr); \
-        (state)->too_small = (state)->too_small || !aws_byte_buf_write_##suffix(&(state)->u.buffer, tmp_field); \
-    } else { \
-        type tmp_field = 0; \
-        (state)->too_small = (state)->too_small || !aws_byte_cursor_read_##suffix(&(state)->u.cursor, &tmp_field); \
-        *(fieldptr) = tmp_field; \
-    } \
-} while (0)
-
+#define field_helper(type, suffix, state, fieldptr)                                                                    \
+    do {                                                                                                               \
+        (state)->ciphertext_size += sizeof(type);                                                                      \
+        if ((state)->writing) {                                                                                        \
+            type tmp_field     = *(fieldptr);                                                                          \
+            (state)->too_small = (state)->too_small || !aws_byte_buf_write_##suffix(&(state)->u.buffer, tmp_field);    \
+        } else {                                                                                                       \
+            type tmp_field     = 0;                                                                                    \
+            (state)->too_small = (state)->too_small || !aws_byte_cursor_read_##suffix(&(state)->u.cursor, &tmp_field); \
+            *(fieldptr)        = tmp_field;                                                                            \
+        }                                                                                                              \
+    } while (0)
 
 /*
  * Predefined macros for reading/writing big-endian fields of 32 or 64 bits.
@@ -105,28 +105,27 @@ struct aws_cryptosdk_framestate {
  * the cursor at 'cursorptr' to refer to a block of 'size' bytes within the ciphertext
  * buffer.
  */
-#define field_sized(state, bufptr, size) do { \
-    (state)->ciphertext_size += (size); \
-    memset((bufptr), 0, sizeof(*(bufptr))); \
-    if ((state)->writing) { \
-        if ((state)->u.buffer.capacity - (state)->u.buffer.len >= (size)) { \
-            (bufptr)->buffer = (state)->u.buffer.buffer + (state)->u.buffer.len; \
-            (bufptr)->len = 0; \
-            (bufptr)->capacity = (size); \
-            (state)->u.buffer.len += (size); \
-        } \
-    } else { \
-        struct aws_byte_cursor cursor = aws_byte_cursor_advance(&(state)->u.cursor, (size_t)(size)); \
-        (bufptr)->buffer = cursor.ptr; \
-        (bufptr)->len = (bufptr)->capacity = cursor.len; \
-    } \
-    (state)->too_small = (state)->too_small || !(bufptr)->buffer; \
-} while (0)
+#define field_sized(state, bufptr, size)                                                                 \
+    do {                                                                                                 \
+        (state)->ciphertext_size += (size);                                                              \
+        memset((bufptr), 0, sizeof(*(bufptr)));                                                          \
+        if ((state)->writing) {                                                                          \
+            if ((state)->u.buffer.capacity - (state)->u.buffer.len >= (size)) {                          \
+                (bufptr)->buffer   = (state)->u.buffer.buffer + (state)->u.buffer.len;                   \
+                (bufptr)->len      = 0;                                                                  \
+                (bufptr)->capacity = (size);                                                             \
+                (state)->u.buffer.len += (size);                                                         \
+            }                                                                                            \
+        } else {                                                                                         \
+            struct aws_byte_cursor cursor = aws_byte_cursor_advance(&(state)->u.cursor, (size_t)(size)); \
+            (bufptr)->buffer              = cursor.ptr;                                                  \
+            (bufptr)->len = (bufptr)->capacity = cursor.len;                                             \
+        }                                                                                                \
+        (state)->too_small = (state)->too_small || !(bufptr)->buffer;                                    \
+    } while (0)
 
 static int serde_last_frame(
-    struct aws_cryptosdk_framestate * AWS_RESTRICT state,
-    struct aws_cryptosdk_frame * AWS_RESTRICT frame
-);
+    struct aws_cryptosdk_framestate *AWS_RESTRICT state, struct aws_cryptosdk_frame *AWS_RESTRICT frame);
 
 /*
  * The following serde_ functions both serialize and deserialize various kinds of frames.
@@ -135,9 +134,7 @@ static int serde_last_frame(
  * error code (_without_ raising it).
  */
 static inline int serde_framed(
-    struct aws_cryptosdk_framestate * AWS_RESTRICT state,
-    struct aws_cryptosdk_frame * AWS_RESTRICT frame
-) {
+    struct aws_cryptosdk_framestate *AWS_RESTRICT state, struct aws_cryptosdk_frame *AWS_RESTRICT frame) {
     uint32_t seqno_mark = frame->sequence_number;
 
     if (state->writing) {
@@ -178,9 +175,7 @@ static inline int serde_framed(
 }
 
 static inline int serde_last_frame(
-    struct aws_cryptosdk_framestate * AWS_RESTRICT state,
-    struct aws_cryptosdk_frame * AWS_RESTRICT frame
-) {
+    struct aws_cryptosdk_framestate *AWS_RESTRICT state, struct aws_cryptosdk_frame *AWS_RESTRICT frame) {
     // The final frame mark has already been read when we enter this function
     // from serde_framed.
 
@@ -204,9 +199,7 @@ static inline int serde_last_frame(
 }
 
 static inline int serde_nonframed(
-    struct aws_cryptosdk_framestate * AWS_RESTRICT state,
-    struct aws_cryptosdk_frame * AWS_RESTRICT frame
-) {
+    struct aws_cryptosdk_framestate *AWS_RESTRICT state, struct aws_cryptosdk_frame *AWS_RESTRICT frame) {
     field_sized(state, &frame->iv, state->alg_props->iv_len);
     field_be64(state, &state->plaintext_size);
     field_sized(state, &frame->ciphertext, state->plaintext_size);
@@ -215,7 +208,7 @@ static inline int serde_nonframed(
     // Non-framed bodies don't actually have sequence numbers, but we treat
     // them as having a seqno of 1 for consistency.
     frame->sequence_number = 1;
-    frame->type = FRAME_TYPE_SINGLE;
+    frame->type            = FRAME_TYPE_SINGLE;
 
     return AWS_ERROR_SUCCESS;
 }
@@ -241,8 +234,7 @@ int aws_cryptosdk_serialize_frame(
     /* in */
     size_t plaintext_size,
     struct aws_byte_buf *ciphertext_buf,
-    const struct aws_cryptosdk_alg_properties *alg_props
-) {
+    const struct aws_cryptosdk_alg_properties *alg_props) {
     struct aws_cryptosdk_framestate state;
 
     // We assume that the max frame size is equal to the plaintext size. This
@@ -255,9 +247,9 @@ int aws_cryptosdk_serialize_frame(
     state.ciphertext_size = plaintext_size;
 
     state.alg_props = alg_props;
-    state.u.buffer = *ciphertext_buf;
+    state.u.buffer  = *ciphertext_buf;
 
-    state.writing = true;
+    state.writing   = true;
     state.too_small = false;
 
     int result;
@@ -285,7 +277,7 @@ int aws_cryptosdk_serialize_frame(
 
 /**
  * Attempts to parse a frame into its constituents.
- * 
+ *
  * If there was enough ciphertext to parse the frame, then *frame,
  * *ciphertext_size, and *plaintext_size are initialized with the components
  * and size of the frame accordingly, and the function returns true.
@@ -303,17 +295,16 @@ int aws_cryptosdk_deserialize_frame(
     /* in */
     struct aws_byte_cursor *ciphertext_buf,
     const struct aws_cryptosdk_alg_properties *alg_props,
-    uint64_t max_frame_size
-) {
+    uint64_t max_frame_size) {
     struct aws_cryptosdk_framestate state;
-    state.max_frame_size = max_frame_size;
-    state.plaintext_size = 0;
+    state.max_frame_size  = max_frame_size;
+    state.plaintext_size  = 0;
     state.ciphertext_size = 0;
 
     state.alg_props = alg_props;
-    state.u.cursor = *ciphertext_buf;
+    state.u.cursor  = *ciphertext_buf;
 
-    state.writing = false;
+    state.writing   = false;
     state.too_small = false;
 
     aws_secure_zero(frame, sizeof(*frame));
@@ -337,7 +328,7 @@ int aws_cryptosdk_deserialize_frame(
         result = AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED;
     }
 
-    *plaintext_size = state.plaintext_size;
+    *plaintext_size  = state.plaintext_size;
     *ciphertext_size = state.ciphertext_size;
 
     if (result != AWS_ERROR_SUCCESS) {
@@ -349,5 +340,3 @@ int aws_cryptosdk_deserialize_frame(
         return AWS_OP_SUCCESS;
     }
 }
-
-

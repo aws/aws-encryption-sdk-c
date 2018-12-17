@@ -15,23 +15,20 @@
 #include <aws/cryptosdk/edk.h>
 
 int aws_cryptosdk_edk_list_init(struct aws_allocator *alloc, struct aws_array_list *edk_list) {
-    const int initial_size = 4; // arbitrary starting point, list will resize as necessary
-    return aws_array_list_init_dynamic(edk_list,
-                                       alloc,
-                                       initial_size,
-                                       sizeof(struct aws_cryptosdk_edk));
+    const int initial_size = 4;  // arbitrary starting point, list will resize as necessary
+    return aws_array_list_init_dynamic(edk_list, alloc, initial_size, sizeof(struct aws_cryptosdk_edk));
 }
 
-void aws_cryptosdk_edk_clean_up(struct aws_cryptosdk_edk * edk) {
+void aws_cryptosdk_edk_clean_up(struct aws_cryptosdk_edk *edk) {
     aws_byte_buf_clean_up(&edk->provider_id);
     aws_byte_buf_clean_up(&edk->provider_info);
     aws_byte_buf_clean_up(&edk->enc_data_key);
 }
 
-void aws_cryptosdk_edk_list_clear(struct aws_array_list * edk_list) {
+void aws_cryptosdk_edk_list_clear(struct aws_array_list *edk_list) {
     size_t num_keys = edk_list->length;
-    for (size_t key_idx = 0 ; key_idx < num_keys ; ++key_idx) {
-        struct aws_cryptosdk_edk * edk;
+    for (size_t key_idx = 0; key_idx < num_keys; ++key_idx) {
+        struct aws_cryptosdk_edk *edk;
         if (!aws_array_list_get_at_ptr(edk_list, (void **)&edk, key_idx)) {
             aws_cryptosdk_edk_clean_up(edk);
         }
@@ -39,19 +36,18 @@ void aws_cryptosdk_edk_list_clear(struct aws_array_list * edk_list) {
     aws_array_list_clear(edk_list);
 }
 
-void aws_cryptosdk_edk_list_clean_up(struct aws_array_list * edk_list) {
+void aws_cryptosdk_edk_list_clean_up(struct aws_array_list *edk_list) {
     aws_cryptosdk_edk_list_clear(edk_list);
     aws_array_list_clean_up(edk_list);
 }
 
-int aws_cryptosdk_edk_init_clone(struct aws_allocator *alloc, struct aws_cryptosdk_edk *dest, const struct aws_cryptosdk_edk *src) {
+int aws_cryptosdk_edk_init_clone(
+    struct aws_allocator *alloc, struct aws_cryptosdk_edk *dest, const struct aws_cryptosdk_edk *src) {
     memset(dest, 0, sizeof(*dest));
 
-    if (
-        aws_byte_buf_init_copy(&dest->provider_id, alloc, &src->provider_id)
-     || aws_byte_buf_init_copy(&dest->provider_info, alloc, &src->provider_info)
-     || aws_byte_buf_init_copy(&dest->enc_data_key, alloc, &src->enc_data_key)
-    ) {
+    if (aws_byte_buf_init_copy(&dest->provider_id, alloc, &src->provider_id) ||
+        aws_byte_buf_init_copy(&dest->provider_info, alloc, &src->provider_info) ||
+        aws_byte_buf_init_copy(&dest->enc_data_key, alloc, &src->enc_data_key)) {
         aws_cryptosdk_edk_clean_up(dest);
         memset(dest, 0, sizeof(*dest));
 

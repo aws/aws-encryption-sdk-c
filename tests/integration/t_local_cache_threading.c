@@ -17,32 +17,32 @@
  * This test is fairly slow, and for best coverage should not run at the same time
  * as other threads (we want it to contend with itself heavily, instead of getting a
  * fraction of a core and running effectively single-threaded).
- * 
+ *
  * As such it's not part of the main test suite run by ctest, but is instead a separate
  * target executed during CI.
  */
 
 // TODO: Make TTL expiry happen every once in a while
 
-#include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/cache.h>
 #include <aws/cryptosdk/enc_context.h>
+#include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/private/cipher.h>
 
 #include <aws/common/thread.h>
 
-#include <openssl/err.h>
 #include <openssl/crypto.h>
+#include <openssl/err.h>
 
-#include <aws/common/thread.h>
 #include <aws/common/mutex.h>
+#include <aws/common/thread.h>
 
 #include "cache_test_lib.h"
 #include "testutil.h"
 
 // Number of total distinct cache IDs we'll be working with
-#define N_ENC_ENTRIES    50
-#define N_DEC_ENTRIES    50
+#define N_ENC_ENTRIES 50
+#define N_DEC_ENTRIES 50
 #define N_ENTRIES_TOTAL (N_ENC_ENTRIES + N_DEC_ENTRIES)
 
 // Cache size. This should be smaller than N_ENTRIES_TOTAL in order to test LRU
@@ -77,7 +77,7 @@ struct rand_state {
 };
 
 // MINSTD parameters
-#define RNG_MODULUS UINT32_MAX // 2^31 - 1
+#define RNG_MODULUS UINT32_MAX  // 2^31 - 1
 #define RNG_GENERATOR 16807
 #define RNG_MAX (RNG_MODULUS - 1)
 
@@ -105,7 +105,7 @@ static void libcrypto_init() {
     ERR_load_crypto_strings();
 
     size_t num_locks = CRYPTO_num_locks();
-    mutex_array = aws_mem_acquire(aws_default_allocator(), sizeof(struct aws_mutex) * num_locks);
+    mutex_array      = aws_mem_acquire(aws_default_allocator(), sizeof(struct aws_mutex) * num_locks);
 
     for (size_t i = 0; i < num_locks; i++) {
         if (aws_mutex_init(&mutex_array[i])) {
@@ -136,7 +136,7 @@ static void init_random(struct rand_state *state) {
 static struct aws_cryptosdk_mat_cache_entry *do_enc_operation(uint32_t entry_id, struct aws_hash_table *empty_table) {
     char buf[256];
     struct aws_byte_buf cache_id = aws_byte_buf_from_array((uint8_t *)buf, sizeof(buf));
-    cache_id.len = sprintf(buf, "ENC ENTRY %u", (unsigned int)entry_id);
+    cache_id.len                 = sprintf(buf, "ENC ENTRY %u", (unsigned int)entry_id);
 
     struct aws_cryptosdk_mat_cache_entry *entry;
     bool is_encrypt;
@@ -150,7 +150,8 @@ static struct aws_cryptosdk_mat_cache_entry *do_enc_operation(uint32_t entry_id,
     struct aws_cryptosdk_encryption_materials *materials;
 
     if (entry) {
-        if (aws_cryptosdk_mat_cache_get_encryption_materials(mat_cache, aws_default_allocator(), &materials, empty_table, entry)) {
+        if (aws_cryptosdk_mat_cache_get_encryption_materials(
+                mat_cache, aws_default_allocator(), &materials, empty_table, entry)) {
             // Could have been a race with an invalidation, so ignore
         } else {
             if (!materials_eq(expected_enc_mats[entry_id], materials)) {
@@ -160,8 +161,9 @@ static struct aws_cryptosdk_mat_cache_entry *do_enc_operation(uint32_t entry_id,
             aws_cryptosdk_encryption_materials_destroy(materials);
         }
     } else {
-        struct aws_cryptosdk_cache_usage_stats initial_usage = {0};
-        aws_cryptosdk_mat_cache_put_entry_for_encrypt(mat_cache, &entry, expected_enc_mats[entry_id], initial_usage, empty_table, &cache_id);
+        struct aws_cryptosdk_cache_usage_stats initial_usage = { 0 };
+        aws_cryptosdk_mat_cache_put_entry_for_encrypt(
+            mat_cache, &entry, expected_enc_mats[entry_id], initial_usage, empty_table, &cache_id);
 
         if (!entry) {
             abort();
@@ -174,7 +176,7 @@ static struct aws_cryptosdk_mat_cache_entry *do_enc_operation(uint32_t entry_id,
 static struct aws_cryptosdk_mat_cache_entry *do_dec_operation(uint32_t entry_id, struct aws_hash_table *empty_table) {
     char buf[256];
     struct aws_byte_buf cache_id = aws_byte_buf_from_array((uint8_t *)buf, sizeof(buf));
-    cache_id.len = sprintf(buf, "DEC ENTRY %u", (unsigned int)entry_id);
+    cache_id.len                 = sprintf(buf, "DEC ENTRY %u", (unsigned int)entry_id);
 
     struct aws_cryptosdk_mat_cache_entry *entry;
     bool is_encrypt;
@@ -249,7 +251,7 @@ static void thread_fn(void *ignored) {
     init_random(&state);
     aws_cryptosdk_enc_context_init(aws_default_allocator(), &empty_table);
 
-    while(!aws_atomic_load_int_explicit(&stop_flag, aws_memory_order_relaxed)) {
+    while (!aws_atomic_load_int_explicit(&stop_flag, aws_memory_order_relaxed)) {
         do_one_operation(&state, &empty_table);
     }
 
@@ -260,11 +262,13 @@ static void setup() {
     mat_cache = aws_cryptosdk_mat_cache_local_new(aws_default_allocator(), CACHE_SIZE);
 
     for (int i = 0; i < N_ENC_ENTRIES; i++) {
-        gen_enc_materials(aws_default_allocator(), &expected_enc_mats[i], i, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE, 1);
+        gen_enc_materials(
+            aws_default_allocator(), &expected_enc_mats[i], i, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE, 1);
     }
 
     for (int i = 0; i < N_DEC_ENTRIES; i++) {
-        expected_dec_mats[i] = aws_cryptosdk_decryption_materials_new(aws_default_allocator(), AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE);
+        expected_dec_mats[i] =
+            aws_cryptosdk_decryption_materials_new(aws_default_allocator(), AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE);
 
         expected_dec_mats[i]->signctx = NULL;
         struct aws_byte_buf *data_key = &expected_dec_mats[i]->unencrypted_data_key;

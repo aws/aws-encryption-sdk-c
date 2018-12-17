@@ -20,12 +20,12 @@
 
 /**
  * @defgroup versioning Version constants
- * 
+ *
  * This section defines version macros that can be used to query the current version of the Encryption SDK.
  * For prerelease builds, the version constants will generally contain the anticipated version of the upcoming
  * release; if a git working copy is detected at build time, we will include that revision in the version
  * strings, but not in the numeric version constants.
- * 
+ *
  * @{
  */
 
@@ -33,26 +33,24 @@
 #define AWS_CRYPTOSDK_VERSION_MINOR 0
 #define AWS_CRYPTOSDK_VERSION_PATCH 0
 
-#ifndef AWS_CRYPTOSDK_DOXYGEN // undocumented private helpers
-#  define AWS_CRYPTOSDK_PRIVATE_QUOTEARG(a) #a
-#  define AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE(a) AWS_CRYPTOSDK_PRIVATE_QUOTEARG(a)
+#ifndef AWS_CRYPTOSDK_DOXYGEN  // undocumented private helpers
+#    define AWS_CRYPTOSDK_PRIVATE_QUOTEARG(a) #    a
+#    define AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE(a) AWS_CRYPTOSDK_PRIVATE_QUOTEARG(a)
 #endif
 
 /**
  * A string constant containing version information in a human-readable form.
  */
-#define AWS_CRYPTOSDK_VERSION_STR \
-    AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE(AWS_CRYPTOSDK_VERSION_MAJOR) "." \
-    AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE(AWS_CRYPTOSDK_VERSION_MINOR) "." \
-    AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE(AWS_CRYPTOSDK_VERSION_PATCH) \
-    AWS_CRYPTOSDK_PRIVATE_GITVERSION
+#define AWS_CRYPTOSDK_VERSION_STR                                                                             \
+    AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE(AWS_CRYPTOSDK_VERSION_MAJOR)                                            \
+    "." AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE(AWS_CRYPTOSDK_VERSION_MINOR) "." AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE( \
+        AWS_CRYPTOSDK_VERSION_PATCH) AWS_CRYPTOSDK_PRIVATE_GITVERSION
 
 /**
  * A string constant containing version information in a form suitable for a user-agent string.
  */
-#define AWS_CRYPTOSDK_VERSION_UA \
-    "aws-encryption-sdk-c/" AWS_CRYPTOSDK_VERSION_STR
+#define AWS_CRYPTOSDK_VERSION_UA "aws-encryption-sdk-c/" AWS_CRYPTOSDK_VERSION_STR
 
-/** @} */ // doxygen group versioning
+/** @} */  // doxygen group versioning
 
 #endif
