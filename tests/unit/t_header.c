@@ -152,26 +152,12 @@ void set_aad_tbl(struct aws_cryptosdk_hdr *hdr, struct aws_cryptosdk_hdr_aad *aa
 
 static struct aws_cryptosdk_hdr test_header_1_hdr() {
     struct aws_cryptosdk_hdr test_header_1_hdr = {
-        .alg_id     = AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
-        .frame_len  = 0x1000,
-        .iv         = { .buffer = test_header_1_iv_arr, .len = sizeof(test_header_1_iv_arr) },
-        .auth_tag   = { .buffer = test_header_1_auth_tag_arr, .len = sizeof(test_header_1_auth_tag_arr) },
-        .message_id = { 0x11,
-                        0x22,
-                        0x33,
-                        0x44,
-                        0x55,
-                        0x66,
-                        0x77,
-                        0x88,
-                        0x11,
-                        0x22,
-                        0x33,
-                        0x44,
-                        0x55,
-                        0x66,
-                        0x77,
-                        0x88 },
+        .alg_id    = AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
+        .frame_len = 0x1000,
+        .iv        = { .buffer = test_header_1_iv_arr, .len = sizeof(test_header_1_iv_arr) },
+        .auth_tag  = { .buffer = test_header_1_auth_tag_arr, .len = sizeof(test_header_1_auth_tag_arr) },
+        .message_id =
+            { 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88 },
         //        .aad_tbl = test_header_1_aad_tbl,
         //        .edk_tbl = test_header_1_edk_tbl,
         .auth_len = sizeof(test_header_1) - 29  // not used by aws_cryptosdk_hdr_size/write
@@ -300,12 +286,12 @@ static const uint8_t hdr_with_zero_edk_count[] = {
 };
 // clang-format on
 
-static const uint8_t *bad_headers[]  = { hdr_with_nonzero_reserve_bytes,
-                                        hdr_with_zero_aad_count,
-                                        hdr_with_zero_edk_count };
-static const size_t bad_headers_sz[] = { sizeof(hdr_with_nonzero_reserve_bytes),
-                                         sizeof(hdr_with_zero_aad_count),
-                                         sizeof(hdr_with_zero_edk_count) };
+static const uint8_t *bad_headers[] = {
+    hdr_with_nonzero_reserve_bytes, hdr_with_zero_aad_count, hdr_with_zero_edk_count
+};
+static const size_t bad_headers_sz[] = {
+    sizeof(hdr_with_nonzero_reserve_bytes), sizeof(hdr_with_zero_aad_count), sizeof(hdr_with_zero_edk_count)
+};
 
 struct aws_cryptosdk_hdr test_header_2_hdr() {
     // clang-format off
