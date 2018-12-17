@@ -25,6 +25,6 @@ apt-get -y update
 export DEBIAN_FRONTEND=noninteractive
 
 apt-get -y dist-upgrade
-apt-get -y install xutils-dev wget build-essential cmake git zlib1g-dev awscli valgrind ninja-build $EXTRA_PACKAGES
+apt-get -y install xutils-dev wget build-essential cmake git zlib1g-dev awscli valgrind ninja-build libjson-c-dev clang-format $EXTRA_PACKAGES
 rm -rf /var/cache/apt/* /var/lib/apt/lists/*
 

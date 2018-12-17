@@ -61,9 +61,8 @@ Aws::Map<Aws::String, Aws::String> aws_map_from_c_aws_hash_table(const struct aw
  * Returns AWS_OP_SUCCESS in case of success or AWS_OP_ERR when memory can't be allocated.
  */
 AWS_CRYPTOSDK_CPP_API
-int aws_byte_buf_dup_from_aws_utils(struct aws_allocator *allocator,
-                                    struct aws_byte_buf *dest,
-                                    const Aws::Utils::ByteBuffer &src);
+int aws_byte_buf_dup_from_aws_utils(
+    struct aws_allocator *allocator, struct aws_byte_buf *dest, const Aws::Utils::ByteBuffer &src);
 
 /**
  * Appends a new key to the encrypted_data_keys.
@@ -77,12 +76,12 @@ int aws_byte_buf_dup_from_aws_utils(struct aws_allocator *allocator,
  * @return AWS_OP_SUCCESS in case of success
  */
 AWS_CRYPTOSDK_CPP_API
-int append_key_dup_to_edks(struct aws_allocator *allocator,
-                           struct aws_array_list *encrypted_data_keys,
-                           const Aws::Utils::ByteBuffer *encrypted_data_key,
-                           const Aws::String *data_key_id,
-                           const aws_byte_buf *key_provider);
-
+int append_key_dup_to_edks(
+    struct aws_allocator *allocator,
+    struct aws_array_list *encrypted_data_keys,
+    const Aws::Utils::ByteBuffer *encrypted_data_key,
+    const Aws::String *data_key_id,
+    const aws_byte_buf *key_provider);
 
 /**
  * Extracts region from a KMS Key ARN
@@ -93,7 +92,6 @@ int append_key_dup_to_edks(struct aws_allocator *allocator,
  */
 AWS_CRYPTOSDK_CPP_API
 Aws::String parse_region_from_kms_key_arn(const Aws::String &key_id);
-
 
 }  // namespace Private
 }  // namespace Cryptosdk

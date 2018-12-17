@@ -20,19 +20,19 @@
  * We build a static library for unit tests in order to access some non-exported
  * internal functions for testing.
  */
-#undef AWS_ENCRYPTION_SDK_SHARED
+#    undef AWS_ENCRYPTION_SDK_SHARED
 #endif
 
 #if defined(WIN32)
 #    ifdef AWS_ENCRYPTION_SDK_SHARED
-#        ifdef AWS_ENCRYPTION_SDK_EXPORTS 
+#        ifdef AWS_ENCRYPTION_SDK_EXPORTS
 #            define AWS_CRYPTOSDK_API __declspec(dllexport)
 #        else
 #            define AWS_CRYPTOSDK_API __declspec(dllimport)
 #        endif /* AWS_CRYPTOSDK_EXPORTS */
 #    else
 #        define AWS_CRYPTOSDK_API
-#    endif // USE_IMPORT_EXPORT
+#    endif  // USE_IMPORT_EXPORT
 
 #else /* defined (USE_WINDOWS_DLL_SEMANTICS) || defined (WIN32) */
 
@@ -53,7 +53,7 @@
  * so the code gets generated and included in the final shared library.
  */
 #ifndef AWS_CRYPTOSDK_STATIC_INLINE
-#define AWS_CRYPTOSDK_STATIC_INLINE static inline
+#    define AWS_CRYPTOSDK_STATIC_INLINE static inline
 #endif
 
 /*
@@ -61,7 +61,7 @@
  * to unit tests (but not integration tests) only.
  */
 #ifndef AWS_CRYPTOSDK_TEST_STATIC
-#define AWS_CRYPTOSDK_TEST_STATIC static
+#    define AWS_CRYPTOSDK_TEST_STATIC static
 #endif
 
 #endif /* AWS_CRYPTOSDK_EXPORTS_H */

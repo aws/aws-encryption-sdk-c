@@ -25,10 +25,8 @@
  *
  * On failure, does not allocate any memory.
  */
-int aws_cryptosdk_hash_elems_array_init(struct aws_allocator * alloc,
-                                        struct aws_array_list * elems,
-                                        const struct aws_hash_table * map);
-
+int aws_cryptosdk_hash_elems_array_init(
+    struct aws_allocator *alloc, struct aws_array_list *elems, const struct aws_hash_table *map);
 
 /**
  * For sorting arrays of struct aws_hash_elements by doing string comparison on
@@ -37,8 +35,7 @@ int aws_cryptosdk_hash_elems_array_init(struct aws_allocator * alloc,
  *
  * This is a comparator function that can be used with aws_array_list_sort.
  */
-int aws_cryptosdk_compare_hash_elems_by_key_string(const void * elem_a,
-                                                   const void * elem_b);
+int aws_cryptosdk_compare_hash_elems_by_key_string(const void *elem_a, const void *elem_b);
 
 /**
  * An optimized version of aws_string_new_from_string. It makes a new copy of the
@@ -46,6 +43,5 @@ int aws_cryptosdk_compare_hash_elems_by_key_string(const void * elem_a,
  * in which case it returns a pointer to the same string. This is safe because
  * aws_string_destroy is a no-op for static strings.
  */
-struct aws_string *aws_cryptosdk_string_dup(struct aws_allocator *alloc,
-                                            const struct aws_string *str);
-#endif // AWS_CRYPTOSDK_PRIVATE_UTILS_H
+struct aws_string *aws_cryptosdk_string_dup(struct aws_allocator *alloc, const struct aws_string *str);
+#endif  // AWS_CRYPTOSDK_PRIVATE_UTILS_H

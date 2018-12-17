@@ -48,8 +48,7 @@ extern "C" {
  * On failure returns NULL and sets an internal AWS error code.
  */
 AWS_CRYPTOSDK_API
-struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator * alloc,
-                                                         struct aws_cryptosdk_keyring * kr);
+struct aws_cryptosdk_cmm *aws_cryptosdk_default_cmm_new(struct aws_allocator *alloc, struct aws_cryptosdk_keyring *kr);
 
 /**
  * @ingroup cmm_kr_highlevel
@@ -64,4 +63,4 @@ int aws_cryptosdk_default_cmm_set_alg_id(struct aws_cryptosdk_cmm *cmm, enum aws
 }
 #endif
 
-#endif // AWS_CRYPTOSDK_DEFAULT_CMM_H
+#endif  // AWS_CRYPTOSDK_DEFAULT_CMM_H

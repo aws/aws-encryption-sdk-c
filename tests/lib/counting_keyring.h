@@ -16,8 +16,8 @@
 #ifndef AWS_CRYPTOSDK_TESTS_LIB_COUNTING_KEYRING_H
 #define AWS_CRYPTOSDK_TESTS_LIB_COUNTING_KEYRING_H
 
-#include "testutil.h"
 #include <aws/cryptosdk/materials.h>
+#include "testutil.h"
 
 /**
  * Returns a Keyring for testing. This Keyring uses/"decrypts" data keys

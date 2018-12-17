@@ -53,10 +53,7 @@ extern "C" {
 
 struct aws_cryptosdk_session;
 
-enum aws_cryptosdk_mode {
-    AWS_CRYPTOSDK_ENCRYPT = 0x9000,
-    AWS_CRYPTOSDK_DECRYPT = 0x9001
-};
+enum aws_cryptosdk_mode { AWS_CRYPTOSDK_ENCRYPT = 0x9000, AWS_CRYPTOSDK_DECRYPT = 0x9001 };
 
 /**
  * Creates a new encryption or decryption session.
@@ -72,10 +69,7 @@ enum aws_cryptosdk_mode {
  */
 AWS_CRYPTOSDK_API
 struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm(
-    struct aws_allocator *allocator,
-    enum aws_cryptosdk_mode mode,
-    struct aws_cryptosdk_cmm *cmm
-);
+    struct aws_allocator *allocator, enum aws_cryptosdk_mode mode, struct aws_cryptosdk_cmm *cmm);
 
 /** Destroys a previously allocated session */
 AWS_CRYPTOSDK_API
@@ -90,10 +84,7 @@ void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);
  * @param mode The new mode of the session
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_session_reset(
-    struct aws_cryptosdk_session *session,
-    enum aws_cryptosdk_mode mode
-);
+int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_cryptosdk_mode mode);
 
 /**
  * Sets the frame size to use for encryption. If zero is specified, the message
@@ -104,10 +95,7 @@ int aws_cryptosdk_session_reset(
  * @ref aws_cryptosdk_session_process has been called.
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_session_set_frame_size(
-    struct aws_cryptosdk_session *session,
-    uint32_t frame_size
-);
+int aws_cryptosdk_session_set_frame_size(struct aws_cryptosdk_session *session, uint32_t frame_size);
 
 /**
  * Sets the precise size of the message to encrypt. This function must be
@@ -126,10 +114,7 @@ int aws_cryptosdk_session_set_frame_size(
  * a message size must be set before any input data can be processed.
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_session_set_message_size(
-    struct aws_cryptosdk_session *session,
-    uint64_t message_size
-);
+int aws_cryptosdk_session_set_message_size(struct aws_cryptosdk_session *session, uint64_t message_size);
 
 /**
  * Provides an upper bound on the message size. This hint is useful when the exact
@@ -150,10 +135,7 @@ int aws_cryptosdk_session_set_message_size(
  * your message will exceed size-based usage limits on cached keys.
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_session_set_message_bound(
-    struct aws_cryptosdk_session *session,
-    uint64_t max_message_size
-);
+int aws_cryptosdk_session_set_message_bound(struct aws_cryptosdk_session *session, uint64_t max_message_size);
 
 /**
  * Attempts to process some data through the cryptosdk session.
@@ -182,9 +164,12 @@ int aws_cryptosdk_session_set_message_bound(
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_session_process(
     struct aws_cryptosdk_session *session,
-    uint8_t *outp, size_t outlen, size_t *out_bytes_written,
-    const uint8_t *inp, size_t inlen, size_t *in_bytes_read
-);
+    uint8_t *outp,
+    size_t outlen,
+    size_t *out_bytes_written,
+    const uint8_t *inp,
+    size_t inlen,
+    size_t *in_bytes_read);
 
 /**
  * Returns true if the session has finished processing the entire message.
@@ -204,10 +189,7 @@ bool aws_cryptosdk_session_is_done(const struct aws_cryptosdk_session *session);
  * returns true, but may succeed earlier in the message as well.
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_session_get_algorithm(
-    const struct aws_cryptosdk_session *session,
-    enum aws_cryptosdk_alg_id *alg_id
-);
+int aws_cryptosdk_session_get_algorithm(const struct aws_cryptosdk_session *session, enum aws_cryptosdk_alg_id *alg_id);
 
 /**
  * Estimates the amount of buffer space needed to make forward progress.
@@ -221,10 +203,9 @@ int aws_cryptosdk_session_get_algorithm(
  */
 AWS_CRYPTOSDK_API
 void aws_cryptosdk_session_estimate_buf(
-    const struct aws_cryptosdk_session * AWS_RESTRICT session,
-    size_t * AWS_RESTRICT outbuf_needed,
-    size_t * AWS_RESTRICT inbuf_needed
-);
+    const struct aws_cryptosdk_session *AWS_RESTRICT session,
+    size_t *AWS_RESTRICT outbuf_needed,
+    size_t *AWS_RESTRICT inbuf_needed);
 
 /**
  * Returns a read-only pointer to the encryption context held by the session.
@@ -243,9 +224,7 @@ void aws_cryptosdk_session_estimate_buf(
  * aws_cryptosdk_enc_context_clean_up when done with it.
  */
 AWS_CRYPTOSDK_API
-const struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr(
-    const struct aws_cryptosdk_session *session
-);
+const struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr(const struct aws_cryptosdk_session *session);
 
 /**
  * Returns a mutable pointer to the encryption context held by the session.
@@ -267,8 +246,7 @@ const struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr(
  * make your own copy of the encryption context, if desired.
  */
 AWS_CRYPTOSDK_API
-struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr_mut(
-    struct aws_cryptosdk_session *session);
+struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr_mut(struct aws_cryptosdk_session *session);
 
 /**
  * Returns a read-only pointer to the keyring trace held by the session.
@@ -289,14 +267,12 @@ struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr_mut(
  * copy with aws_cryptosdk_keyring_trace_clean_up when done with it.
  */
 AWS_CRYPTOSDK_API
-const struct aws_array_list *aws_cryptosdk_session_get_keyring_trace_ptr(
-    const struct aws_cryptosdk_session *session
-);
+const struct aws_array_list *aws_cryptosdk_session_get_keyring_trace_ptr(const struct aws_cryptosdk_session *session);
 
 #ifdef __cplusplus
 }
 #endif
 
-/** @} */ // doxygen group session
+/** @} */  // doxygen group session
 
 #endif

@@ -17,28 +17,24 @@
 #include "testutil.h"
 #include "zero_keyring.h"
 
-#include <stdio.h>
 #include <ctype.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <aws/cryptosdk/error.h>
-#include <aws/cryptosdk/session.h>
-#include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/default_cmm.h>
+#include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/private/cipher.h>
+#include <aws/cryptosdk/session.h>
 
 #include <curl/curl.h>
 #include <openssl/rand.h>
 
 static enum aws_cryptosdk_alg_id known_algorithms[] = {
-    AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
-    AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
-    AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
-    AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-    AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-    AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-    AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
-    AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+    AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384, AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
+    AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256, AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
+    AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE,  AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
+    AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,    AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
     AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE
 };
 
@@ -53,11 +49,11 @@ static enum aws_cryptosdk_alg_id alg_to_use;
 
 static const char *apigw_url = "https://yrniiep3a0.execute-api.us-west-2.amazonaws.com/test";
 
-#define TRY_DECRYPT(expect, expect_size, ciphertext, ciphertext_size) \
-    do { \
+#define TRY_DECRYPT(expect, expect_size, ciphertext, ciphertext_size)                            \
+    do {                                                                                         \
         if (try_decrypt(expect, expect_size, ciphertext, ciphertext_size, __FILE__, __LINE__)) { \
-            return 1; \
-        } \
+            return 1;                                                                            \
+        }                                                                                        \
     } while (0)
 
 static uint8_t recv_buf[65536];
@@ -100,7 +96,6 @@ static size_t read_callback(char *buffer, size_t size, size_t nitems, void *inst
     return limit;
 }
 
-
 static CURL *curl;
 static struct curl_slist *headers;
 static char curl_error_buf[CURL_ERROR_SIZE];
@@ -140,13 +135,13 @@ static int try_decrypt(
     const uint8_t *ciphertext,
     size_t ciphertext_size,
     const char *file,
-    int line
-) {
-    (void)line; (void)file;
+    int line) {
+    (void)line;
+    (void)file;
 
-    post_buf = ciphertext;
+    post_buf        = ciphertext;
     post_buf_remain = ciphertext_size;
-    recv_buf_used = 0;
+    recv_buf_used   = 0;
 
     CURLcode result = curl_easy_perform(curl);
 
@@ -182,11 +177,10 @@ static int test_basic() {
 
     size_t pt_consumed, ct_consumed;
 
-
-    struct aws_allocator *alloc = aws_default_allocator();
-    struct aws_cryptosdk_keyring *kr = NULL;
+    struct aws_allocator *alloc           = aws_default_allocator();
+    struct aws_cryptosdk_keyring *kr      = NULL;
     struct aws_cryptosdk_session *session = NULL;
-    struct aws_cryptosdk_cmm *cmm = NULL;
+    struct aws_cryptosdk_cmm *cmm         = NULL;
 
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) abort();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) abort();
@@ -196,11 +190,9 @@ static int test_basic() {
     aws_cryptosdk_cmm_release(cmm);
 
     aws_cryptosdk_session_set_message_size(session, sizeof(plaintext));
-    
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process(session,
-        ciphertext, sizeof(ciphertext), &ct_consumed,
-        plaintext, sizeof(plaintext), &pt_consumed
-    ));
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process(
+        session, ciphertext, sizeof(ciphertext), &ct_consumed, plaintext, sizeof(plaintext), &pt_consumed));
 
     TEST_ASSERT_INT_EQ(pt_consumed, sizeof(plaintext));
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
@@ -218,13 +210,13 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
     uint8_t *plaintext = malloc(plaintext_sz);
     RAND_bytes(plaintext, (int)plaintext_sz);
 
-    uint8_t *ciphertext = malloc(plaintext_sz);
+    uint8_t *ciphertext      = malloc(plaintext_sz);
     size_t ciphertext_buf_sz = plaintext_sz;
 
-    struct aws_allocator *alloc = aws_default_allocator();
-    struct aws_cryptosdk_keyring *kr = NULL;
+    struct aws_allocator *alloc           = aws_default_allocator();
+    struct aws_cryptosdk_keyring *kr      = NULL;
     struct aws_cryptosdk_session *session = NULL;
-    struct aws_cryptosdk_cmm *cmm = NULL;
+    struct aws_cryptosdk_cmm *cmm         = NULL;
 
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) abort();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) abort();
@@ -250,16 +242,14 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
         size_t ct_available = ct_need;
         if (ct_offset + ct_need > ciphertext_buf_sz) {
             ciphertext_buf_sz = ct_offset + ct_need;
-            ciphertext = realloc(ciphertext, ciphertext_buf_sz);
+            ciphertext        = realloc(ciphertext, ciphertext_buf_sz);
         }
         uint8_t *ct_ptr = &ciphertext[ct_offset];
 
         size_t pt_consumed, ct_generated;
 
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process(session,
-            ct_ptr, ct_need, &ct_generated,
-            pt_ptr, pt_available, &pt_consumed
-        ));
+        TEST_ASSERT_SUCCESS(
+            aws_cryptosdk_session_process(session, ct_ptr, ct_need, &ct_generated, pt_ptr, pt_available, &pt_consumed));
 
         // Estimates can be off until the first call to process. We'll check
         // that we're making progress by re-estimating after calling process;
@@ -299,11 +289,9 @@ int main() {
 
     int final_result = 0;
 
-    for (size_t i = 0; i < sizeof(known_algorithms)/sizeof(*known_algorithms); i++) {
+    for (size_t i = 0; i < sizeof(known_algorithms) / sizeof(*known_algorithms); i++) {
         alg_to_use = known_algorithms[i];
-        fprintf(stderr, "Testing algorithm %s...\n",
-            aws_cryptosdk_alg_props(alg_to_use)->alg_name
-        );
+        fprintf(stderr, "Testing algorithm %s...\n", aws_cryptosdk_alg_props(alg_to_use)->alg_name);
 
         RUN_TEST(test_basic());
         RUN_TEST(test_framesize(0, 1024, true));
