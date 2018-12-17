@@ -12,8 +12,8 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <aws/cryptosdk/private/keyring_trace.h>
 #include <aws/cryptosdk/list_utils.h>
+#include <aws/cryptosdk/private/keyring_trace.h>
 #include "testing.h"
 #include "testutil.h"
 
@@ -25,23 +25,21 @@ int keyring_trace_add_record_works() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_init(alloc, &trace));
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_add_record(
-                            alloc,
-                            &trace,
-                            kms_name_space,
-                            kms_key,
-                            AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY |
-                            AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
-                            AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX));
+        alloc,
+        &trace,
+        kms_name_space,
+        kms_key,
+        AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
+            AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX));
 
     TEST_ASSERT_SUCCESS(assert_keyring_trace_record(
-                            &trace,
-                            0,
-                            aws_string_bytes(kms_name_space),
-                            aws_string_bytes(kms_key),
-                            AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY |
-                            AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
-                            AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX));
-    
+        &trace,
+        0,
+        aws_string_bytes(kms_name_space),
+        aws_string_bytes(kms_key),
+        AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
+            AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX));
+
     aws_cryptosdk_keyring_trace_clean_up(&trace);
     return 0;
 }
@@ -55,26 +53,17 @@ int keyring_trace_copy_all_works() {
     }
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_add_record_c_str(
-                            alloc,
-                            &traces[0],
-                            "foo",
-                            "bar",
-                            AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY |
-                            AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY));
+        alloc,
+        &traces[0],
+        "foo",
+        "bar",
+        AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY));
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_add_record_c_str(
-                            alloc,
-                            &traces[0],
-                            "foo",
-                            "baz",
-                            AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
+        alloc, &traces[0], "foo", "baz", AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_add_record_c_str(
-                            alloc,
-                            &traces[0],
-                            "foot",
-                            "bath",
-                            AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX));
+        alloc, &traces[0], "foot", "bath", AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX));
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_copy_all(alloc, &traces[1], &traces[0]));
 
@@ -94,26 +83,17 @@ int keyring_trace_copy_all_works() {
     // each copy of trace has correct parameters
     for (int i = 0; i < 2; ++i) {
         TEST_ASSERT_SUCCESS(assert_keyring_trace_record(
-                                &traces[i],
-                                0,
-                                "foo",
-                                "bar",
-                                AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY |
-                                AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY));
+            &traces[i],
+            0,
+            "foo",
+            "bar",
+            AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY));
 
-        TEST_ASSERT_SUCCESS(assert_keyring_trace_record(
-                                &traces[i],
-                                1,
-                                "foo",
-                                "baz",
-                                AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
+        TEST_ASSERT_SUCCESS(
+            assert_keyring_trace_record(&traces[i], 1, "foo", "baz", AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
 
-        TEST_ASSERT_SUCCESS(assert_keyring_trace_record(
-                                &traces[i],
-                                2,
-                                "foot",
-                                "bath",
-                                AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX));
+        TEST_ASSERT_SUCCESS(
+            assert_keyring_trace_record(&traces[i], 2, "foot", "bath", AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX));
 
         aws_cryptosdk_keyring_trace_clean_up(&traces[i]);
     }
@@ -121,7 +101,7 @@ int keyring_trace_copy_all_works() {
 }
 
 struct test_case keyring_trace_test_cases[] = {
-    { "keyring_trace", "keyring_trace_add_record_works", keyring_trace_add_record_works},
-    { "keyring_trace", "keyring_trace_copy_all_works", keyring_trace_copy_all_works},
+    { "keyring_trace", "keyring_trace_add_record_works", keyring_trace_add_record_works },
+    { "keyring_trace", "keyring_trace_copy_all_works", keyring_trace_copy_all_works },
     { NULL }
 };

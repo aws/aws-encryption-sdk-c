@@ -21,8 +21,7 @@ namespace Cryptosdk {
 namespace Testing {
 using std::logic_error;
 
-KmsClientMock::KmsClientMock()
-    : Aws::KMS::KMSClient(), expect_generate_dk(false) {}
+KmsClientMock::KmsClientMock() : Aws::KMS::KMSClient(), expect_generate_dk(false) {}
 
 KmsClientMock::~KmsClientMock() {
     // there shouldn't be any other expecting calls
@@ -41,15 +40,16 @@ Model::EncryptOutcome KmsClientMock::Encrypt(const Model::EncryptRequest &reques
     expected_encrypt_values.pop_front();
 
     if (request.GetKeyId() != eev.expected_encrypt_request.GetKeyId()) {
-        throw logic_error(std::string("Got :") + request.GetKeyId().c_str() + " expecting: "
-                              + eev.expected_encrypt_request.GetKeyId().c_str());
+        throw logic_error(
+            std::string("Got :") + request.GetKeyId().c_str() +
+            " expecting: " + eev.expected_encrypt_request.GetKeyId().c_str());
     }
 
     if (request.GetPlaintext() != eev.expected_encrypt_request.GetPlaintext()) {
         throw logic_error(
-            std::string("Got :") + reinterpret_cast<const char *>(request.GetPlaintext().GetUnderlyingData())
-                + " expecting: "
-                + reinterpret_cast<const char *>(eev.expected_encrypt_request.GetPlaintext().GetUnderlyingData()));
+            std::string("Got :") + reinterpret_cast<const char *>(request.GetPlaintext().GetUnderlyingData()) +
+            " expecting: " +
+            reinterpret_cast<const char *>(eev.expected_encrypt_request.GetPlaintext().GetUnderlyingData()));
     }
 
     if (request.GetGrantTokens() != grant_tokens) {
@@ -62,7 +62,8 @@ Model::EncryptOutcome KmsClientMock::Encrypt(const Model::EncryptRequest &reques
 
     return eev.encrypt_return;
 }
-void KmsClientMock::ExpectEncryptAccumulator(const Model::EncryptRequest &request, Model::EncryptOutcome encrypt_return) {
+void KmsClientMock::ExpectEncryptAccumulator(
+    const Model::EncryptRequest &request, Model::EncryptOutcome encrypt_return) {
     ExpectedEncryptValues eev = { request, encrypt_return };
     this->expected_encrypt_values.push_back(eev);
 }
@@ -89,9 +90,9 @@ Model::DecryptOutcome KmsClientMock::Decrypt(const Model::DecryptRequest &reques
     return edv.return_decrypt;
 }
 
-void KmsClientMock::ExpectDecryptAccumulator(const Model::DecryptRequest &request,
-                                             Model::DecryptOutcome decrypt_return) {
-    ExpectedDecryptValues edv = {request, decrypt_return};
+void KmsClientMock::ExpectDecryptAccumulator(
+    const Model::DecryptRequest &request, Model::DecryptOutcome decrypt_return) {
+    ExpectedDecryptValues edv = { request, decrypt_return };
     this->expected_decrypt_values.push_back(edv);
 }
 
@@ -120,17 +121,16 @@ Model::GenerateDataKeyOutcome KmsClientMock::GenerateDataKey(const Model::Genera
     return generate_dk_return;
 }
 
-void KmsClientMock::ExpectGenerateDataKey(const Model::GenerateDataKeyRequest &request,
-                                          Model::GenerateDataKeyOutcome generate_dk_return) {
-    expect_generate_dk = true;
+void KmsClientMock::ExpectGenerateDataKey(
+    const Model::GenerateDataKeyRequest &request, Model::GenerateDataKeyOutcome generate_dk_return) {
+    expect_generate_dk           = true;
     expected_generate_dk_request = request;
-    this->generate_dk_return = generate_dk_return;
+    this->generate_dk_return     = generate_dk_return;
 }
 
 bool KmsClientMock::ExpectingOtherCalls() {
     return (expected_decrypt_values.size() != 0) || (expected_encrypt_values.size() != 0) || expect_generate_dk;
 }
-
 
 void KmsClientMock::ExpectGrantTokens(const Aws::Vector<Aws::String> &grant_tokens) {
     this->grant_tokens = grant_tokens;

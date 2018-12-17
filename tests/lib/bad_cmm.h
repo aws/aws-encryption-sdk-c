@@ -16,8 +16,8 @@
 #ifndef AWS_CRYPTOSDK_TESTS_LIB_BAD_CMM_H
 #define AWS_CRYPTOSDK_TESTS_LIB_BAD_CMM_H
 
-#include "testutil.h"
 #include <aws/cryptosdk/materials.h>
+#include "testutil.h"
 
 /**
  * Returns a zero size CMM. This is a CMM with virtual functions implemented but which
@@ -45,6 +45,6 @@ struct aws_cryptosdk_cmm aws_cryptosdk_null_cmm();
  * macro looks for that when checking the error code.
  */
 TESTLIB_API
-int aws_cryptosdk_cmm_release_with_failed_return_value(struct aws_cryptosdk_cmm * cmm);
+int aws_cryptosdk_cmm_release_with_failed_return_value(struct aws_cryptosdk_cmm *cmm);
 
-#endif // AWS_CRYPTOSDK_TESTS_LIB_BAD_CMM_H
+#endif  // AWS_CRYPTOSDK_TESTS_LIB_BAD_CMM_H

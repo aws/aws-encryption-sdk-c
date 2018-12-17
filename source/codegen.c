@@ -17,6 +17,7 @@
 
 /* See comments in export.h regarding AWS_CRYPTOSDK_STATIC_INLINE */
 
+#include <aws/cryptosdk/cache.h>
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/error.h>
@@ -26,4 +27,3 @@
 #include <aws/cryptosdk/multi_keyring.h>
 #include <aws/cryptosdk/raw_aes_keyring.h>
 #include <aws/cryptosdk/session.h>
-#include <aws/cryptosdk/cache.h>

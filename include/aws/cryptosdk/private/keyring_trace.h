@@ -20,19 +20,19 @@
 /**
  * Deallocate memory from a keyring trace record.
  */
-void aws_cryptosdk_keyring_trace_record_clean_up(struct aws_cryptosdk_keyring_trace_record * record);
+void aws_cryptosdk_keyring_trace_record_clean_up(struct aws_cryptosdk_keyring_trace_record *record);
 
 /**
  * Make a deep copy of a keyring trace record.
  */
-int aws_cryptosdk_keyring_trace_record_init_clone(struct aws_allocator *alloc,
-                                                  struct aws_cryptosdk_keyring_trace_record *dest,
-                                                  const struct aws_cryptosdk_keyring_trace_record *src);
+int aws_cryptosdk_keyring_trace_record_init_clone(
+    struct aws_allocator *alloc,
+    struct aws_cryptosdk_keyring_trace_record *dest,
+    const struct aws_cryptosdk_keyring_trace_record *src);
 
 /**
  * Return true if both traces have identical strings and flags, false otherwise.
  */
-bool aws_cryptosdk_keyring_trace_eq(const struct aws_array_list *a,
-                                    const struct aws_array_list *b);
+bool aws_cryptosdk_keyring_trace_eq(const struct aws_array_list *a, const struct aws_array_list *b);
 
-#endif // AWS_CRYPTOSDK_PRIVATE_KEYRING_TRACE_H
+#endif  // AWS_CRYPTOSDK_PRIVATE_KEYRING_TRACE_H

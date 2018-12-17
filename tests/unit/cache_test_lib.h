@@ -21,11 +21,11 @@
 /*
  * This mock materials cache is designed to ease testing the caching CMM
  * by emulating a cache with a single entry.
- * 
+ *
  * When encryption materials are put into the cache, the cache will
  * update its state (enc/dec_materials, encryption_context, usage_stats,
  * last_cache_id) to match the inserted materials.
- * 
+ *
  * When an entry is looked up, the cache will simulate a cache hit if
  * should_hit is true; last_cache_it will be set to the ID that was queried.
  * When the entry is queried for usage stats, creation time, or the
@@ -36,7 +36,7 @@ struct mock_mat_cache {
     struct aws_cryptosdk_mat_cache base;
     struct aws_allocator *alloc;
 
-    /* 
+    /*
      * The entry pointer returned from cache vtable methods points to this
      * entry_marker field. The value of the field is ignored; we just use
      * this to assert that the correct entry pointer is being passed around.
@@ -47,12 +47,12 @@ struct mock_mat_cache {
     /* True if the call should be made to fail */
     bool should_fail;
 
-    /* 
+    /*
      * Encryption materials for the cached entry; updated on put_entry_for_encrypt,
      * read on get_encryption_materials. If NULL, get_encryption_materials fails.
      */
     struct aws_cryptosdk_encryption_materials *enc_materials;
-    /* 
+    /*
      * Encryption materials for the cached entry; updated on put_entry_for_decrypt,
      * read on get_decryption_materials. If NULL, get_decryption_materials fails.
      */
@@ -76,11 +76,11 @@ struct mock_mat_cache {
 
     /*
      * The creation time for the current cache entry. Returned from entry_creation_time.
-     */ 
+     */
     uint64_t entry_creation_time;
     /*
      * The expiration time for the current cache entry. Set by entry_ttl_hint.
-     */ 
+     */
     uint64_t entry_ttl_hint;
     /*
      * True if entry_release has been called with invalidate = true.
@@ -110,10 +110,17 @@ struct mock_upstream_cmm {
     struct aws_cryptosdk_decryption_request *last_dec_request;
 };
 
-void gen_enc_materials(struct aws_allocator *alloc, struct aws_cryptosdk_encryption_materials **p_materials, int index, enum aws_cryptosdk_alg_id alg, int n_edks);
-bool materials_eq(const struct aws_cryptosdk_encryption_materials *a, const struct aws_cryptosdk_encryption_materials *b);
+void gen_enc_materials(
+    struct aws_allocator *alloc,
+    struct aws_cryptosdk_encryption_materials **p_materials,
+    int index,
+    enum aws_cryptosdk_alg_id alg,
+    int n_edks);
+bool materials_eq(
+    const struct aws_cryptosdk_encryption_materials *a, const struct aws_cryptosdk_encryption_materials *b);
 bool same_signing_key(struct aws_cryptosdk_signctx *a, struct aws_cryptosdk_signctx *b);
-bool dec_materials_eq(const struct aws_cryptosdk_decryption_materials *a, const struct aws_cryptosdk_decryption_materials *b);
+bool dec_materials_eq(
+    const struct aws_cryptosdk_decryption_materials *a, const struct aws_cryptosdk_decryption_materials *b);
 
 struct mock_mat_cache *mock_mat_cache_new(struct aws_allocator *alloc);
 struct mock_upstream_cmm *mock_upstream_cmm_new(struct aws_allocator *alloc);
