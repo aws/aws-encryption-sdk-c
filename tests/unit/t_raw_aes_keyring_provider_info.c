@@ -23,11 +23,13 @@ AWS_STATIC_STRING_FROM_LITERAL(ser_master_key_id, "Master key id");
 static const uint8_t iv[RAW_AES_KR_IV_LEN] =
 {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb};
 
+// clang-format off
 static const uint8_t serialized_provider_info[] = {
     'M', 'a', 's', 't', 'e', 'r', ' ', 'k', 'e', 'y', ' ', 'i', 'd',
     0x00, 0x00, 0x00, RAW_AES_KR_TAG_LEN << 3,
     0x00, 0x00, 0x00, RAW_AES_KR_IV_LEN,
     0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb};
+// clang-format on
 
 AWS_STATIC_STRING_FROM_LITERAL(ser_provider_id, "Provider id");
 
@@ -43,11 +45,13 @@ int serialize_valid_provider_info() {
                                                                                   ser_master_key_id,
                                                                                   iv));
 
+    // clang-format off
     TEST_ASSERT_BUF_EQ(provider_info,
                        'M', 'a', 's', 't', 'e', 'r', ' ', 'k', 'e', 'y', ' ', 'i', 'd',
                        0x00, 0x00, 0x00, RAW_AES_KR_TAG_LEN << 3,
                        0x00, 0x00, 0x00, RAW_AES_KR_IV_LEN,
                        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb);
+    // clang-format on
 
     aws_byte_buf_clean_up(&provider_info);
     return 0;
