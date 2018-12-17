@@ -38,6 +38,7 @@ struct aws_cryptosdk_hdr_aad {
     struct aws_byte_buf key, value;
 };
 
+// clang-format off
 static const uint8_t test_header_1[] = {
     //version, type, alg ID
     0x01,  0x80,  0x02,  0x14,
@@ -88,6 +89,7 @@ static const uint8_t test_header_1[] = {
     // extra byte - used to verify that we can parse with extra trailing junk
     0xFF
 };
+// clang-format on
 
 uint8_t test_header_1_aad_key[] = {0x01, 0x02, 0x03, 0x04};
 uint8_t test_header_1_aad_value[] = {0x01, 0x00, 0x01, 0x00, 0x01};
@@ -171,6 +173,7 @@ static struct aws_cryptosdk_hdr test_header_1_hdr() {
     return test_header_1_hdr;
 }
 
+// clang-format off
 static const uint8_t test_header_2[] = { // same as test_header_1 with no AAD section
     //version, type, alg ID
     0x01,  0x80,  0x02,  0x14,
@@ -283,6 +286,7 @@ static const uint8_t hdr_with_zero_edk_count[] = {
     //header auth
     0xde,  0xad,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0x00,  0xbe, 0xef
 };
+// clang-format on
 
 static const uint8_t *bad_headers[] = {hdr_with_nonzero_reserve_bytes,
                                        hdr_with_zero_aad_count,
@@ -292,6 +296,7 @@ static const size_t bad_headers_sz[] = {sizeof(hdr_with_nonzero_reserve_bytes),
                                         sizeof(hdr_with_zero_edk_count)};
 
 struct aws_cryptosdk_hdr test_header_2_hdr() {
+    // clang-format off
     struct aws_cryptosdk_hdr hdr = {
         .alg_id = AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
         .frame_len = 0x1000,
@@ -300,6 +305,7 @@ struct aws_cryptosdk_hdr test_header_2_hdr() {
         .message_id = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88},
         .auth_len = sizeof(test_header_2) - 29 // not used by aws_cryptosdk_hdr_size/write
     };
+    // clang-format on
 
     hdr.alloc = aws_default_allocator();
 

@@ -48,9 +48,11 @@ int default_cmm_zero_keyring_enc_mat() {
     TEST_ASSERT_INT_EQ(enc_mat->alg, AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE);
     TEST_ASSERT_INT_EQ(enc_mat->alg, req.requested_alg);
 
+    // clang-format off
     TEST_ASSERT_BUF_EQ(enc_mat->unencrypted_data_key,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    // clang-format on
 
     TEST_ASSERT_INT_EQ(enc_mat->encrypted_data_keys.length, 1);
     struct aws_cryptosdk_edk * edk;
@@ -87,9 +89,11 @@ int default_cmm_zero_keyring_dec_mat() {
     struct aws_cryptosdk_decryption_materials * dec_mat;
     TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_cmm_decrypt_materials(cmm, &dec_mat, &req));
 
+    // clang-format off
     TEST_ASSERT_BUF_EQ(dec_mat->unencrypted_data_key,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    // clang-format on
 
     aws_cryptosdk_decryption_materials_destroy(dec_mat);
     aws_cryptosdk_cmm_release(cmm);
