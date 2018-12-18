@@ -13,6 +13,13 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -euxo pipefail
+set -euo pipefail
 
-find {.,aws-encryption-sdk-cpp}/{include,source,tests} -name '*.h' -or -name '*.c' -or -name '*.cpp' | xargs clang-format -i
+./reformat.sh
+
+if git diff | grep .; then
+    echo "clang-format reported style issues"
+    exit 1
+fi
+
+exit 0
