@@ -13,20 +13,20 @@
  * limitations under the License.
  */
 
-#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/cache.h>
 #include <aws/cryptosdk/cpp/kms_keyring.h>
+#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/session.h>
 
-#include <aws/common/error.h>
 #include <aws/common/encoding.h>
+#include <aws/common/error.h>
 
-#include <vector>
-#include <string>
 #include <iostream>
+#include <string>
+#include <vector>
 
-#include <aws/core/utils/logging/ConsoleLogSystem.h>
 #include <aws/core/utils/logging/AWSLogging.h>
+#include <aws/core/utils/logging/ConsoleLogSystem.h>
 
 namespace {
 
@@ -40,17 +40,20 @@ std::vector<uint8_t> process_loop(struct aws_cryptosdk_session *session, const u
     size_t out_offset = 0, in_offset = 0;
     std::vector<uint8_t> buffer;
 
-   while (!aws_cryptosdk_session_is_done(session)) {
+    while (!aws_cryptosdk_session_is_done(session)) {
         if (buffer.size() < out_offset + out_needed) {
             buffer.resize(out_needed + out_offset);
         }
 
         size_t bytes_written, bytes_read;
         if (aws_cryptosdk_session_process(
-            session,
-            buffer.data() + out_offset, buffer.size() - out_offset, &bytes_written,
-            input + in_offset, in_len - in_offset, &bytes_read
-        )) {
+                session,
+                buffer.data() + out_offset,
+                buffer.size() - out_offset,
+                &bytes_written,
+                input + in_offset,
+                in_len - in_offset,
+                &bytes_read)) {
             error("session_process");
         }
 
@@ -78,7 +81,8 @@ std::vector<uint8_t> encrypt(struct aws_allocator *alloc, struct aws_cryptosdk_c
     return buffer;
 }
 
-std::string decrypt(struct aws_allocator *alloc, struct aws_cryptosdk_cmm *cmm, const std::vector<uint8_t> &ciphertext) {
+std::string decrypt(
+    struct aws_allocator *alloc, struct aws_cryptosdk_cmm *cmm, const std::vector<uint8_t> &ciphertext) {
     struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm);
     if (!session) abort();
 
@@ -99,7 +103,7 @@ std::string base64_encode(const std::vector<uint8_t> &vec) {
     std::vector<uint8_t> tmp;
     tmp.resize(b64_len);
 
-    auto cursor = aws_byte_cursor_from_array(vec.data(), vec.size());
+    auto cursor  = aws_byte_cursor_from_array(vec.data(), vec.size());
     auto b64_buf = aws_byte_buf_from_array(tmp.data(), tmp.size());
 
     if (aws_base64_encode(&cursor, &b64_buf)) {
@@ -110,8 +114,7 @@ std::string base64_encode(const std::vector<uint8_t> &vec) {
 }
 
 struct aws_cryptosdk_cmm *setup_cmm(struct aws_allocator *alloc, const char *key_arn) {
-    struct aws_cryptosdk_keyring *kms_keyring =
-        Aws::Cryptosdk::KmsKeyring::Builder().Build({key_arn}); 
+    struct aws_cryptosdk_keyring *kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({ key_arn });
     if (!kms_keyring) error("kms_keyring builder");
 
     struct aws_cryptosdk_cmm *default_cmm = aws_cryptosdk_default_cmm_new(alloc, kms_keyring);
@@ -130,10 +133,9 @@ struct aws_cryptosdk_cmm *setup_cmm(struct aws_allocator *alloc, const char *key
     return caching_cmm;
 }
 
-}
+}  // namespace
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     if (argc < 2) {
         printf("Usage: %s key_arn string1 [string2 string3 ...]\n", argv[0]);
         return 1;
@@ -145,10 +147,9 @@ int main(int argc, char **argv)
 
     // Initialize logging to show when KMS calls are made
     Aws::Utils::Logging::InitializeAWSLogging(
-        Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>(
-            "CachingExample", Aws::Utils::Logging::LogLevel::Debug));
+        Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>("CachingExample", Aws::Utils::Logging::LogLevel::Debug));
 
-    struct aws_allocator *alloc = aws_default_allocator();
+    struct aws_allocator *alloc   = aws_default_allocator();
     struct aws_cryptosdk_cmm *cmm = setup_cmm(alloc, argv[1]);
 
     std::vector<std::vector<uint8_t>> ciphertexts;
@@ -157,13 +158,12 @@ int main(int argc, char **argv)
         std::string str(argv[i]);
 
         std::vector<uint8_t> ciphertext = encrypt(alloc, cmm, str);
-        std::cout << "Ciphertext for string \"" << str << "\":\n"
-            << base64_encode(ciphertext) << "\n\n" << std::flush;
+        std::cout << "Ciphertext for string \"" << str << "\":\n" << base64_encode(ciphertext) << "\n\n" << std::flush;
         ciphertexts.push_back(std::move(ciphertext));
     }
 
     std::cout << "\nDecrypting ciphertexts:\n";
-    
+
     for (auto &ciphertext : ciphertexts) {
         auto plaintext = decrypt(alloc, cmm, ciphertext);
 
