@@ -178,17 +178,6 @@ int aws_cryptosdk_session_set_message_bound(struct aws_cryptosdk_session *sessio
     return AWS_OP_SUCCESS;
 }
 
-struct aws_hash_table *aws_cryptosdk_session_get_context(struct aws_cryptosdk_session *session) {
-    if ((session->mode == AWS_CRYPTOSDK_ENCRYPT && session->state == ST_CONFIG) ||
-        (session->mode == AWS_CRYPTOSDK_DECRYPT &&
-         (session->state == ST_DECRYPT_BODY || session->state == ST_CHECK_TRAILER || session->state == ST_DONE))) {
-        return &session->header.enc_context;
-    }
-
-    aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-    return NULL;
-}
-
 int aws_cryptosdk_session_process(
     struct aws_cryptosdk_session *session,
     uint8_t *outp,
