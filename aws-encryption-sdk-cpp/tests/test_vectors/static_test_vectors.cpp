@@ -26,12 +26,10 @@
 #include <aws/cryptosdk/raw_rsa_keyring.h>
 #include <aws/cryptosdk/session.h>
 
-#undef NDEBUG
-#include <assert.h>
-
 #include <json-c/json.h>
 #include <json-c/json_object.h>
 
+#include "testing.h"
 #include "testutil.h"
 
 #define MANIFEST_VERSION 1
@@ -41,7 +39,7 @@ using namespace Aws::Cryptosdk;
 using namespace std;
 using Aws::SDKOptions;
 
-enum aws_cryptosdk_test_type_idx {
+enum test_type {
     AWS_CRYPTOSDK_AES,
     AWS_CRYPTOSDK_RSA,
     AWS_CRYPTOSDK_KMS,
@@ -59,7 +57,7 @@ static int verify_manifest_type_and_version(json_object *manifest_obj) {
     json_object *manifest_version_obj = NULL;
 
     if (!json_object_object_get_ex(manifest_obj, "type", &manifest_type_obj)) return AWS_OP_ERR;
-    if (!cmp_jsonstr_with_cstr(manifest_type_obj, "awses-decrypt")) return AWS_OP_ERR;
+    if (cmp_jsonstr_with_cstr(manifest_type_obj, "awses-decrypt")) return AWS_OP_ERR;
     if (!json_object_object_get_ex(manifest_obj, "version", &manifest_version_obj)) return AWS_OP_ERR;
     if (json_object_get_int(manifest_version_obj) != MANIFEST_VERSION) return AWS_OP_ERR;
 
@@ -71,7 +69,7 @@ static int verify_keys_manifest_type_and_version(json_object *keys_manifest_obj)
     json_object *keys_manifest_version_obj = NULL;
 
     if (!json_object_object_get_ex(keys_manifest_obj, "type", &keys_manifest_type_obj)) return AWS_OP_ERR;
-    if (!cmp_jsonstr_with_cstr(keys_manifest_type_obj, "keys")) return AWS_OP_ERR;
+    if (cmp_jsonstr_with_cstr(keys_manifest_type_obj, "keys")) return AWS_OP_ERR;
     if (!json_object_object_get_ex(keys_manifest_obj, "version", &keys_manifest_version_obj)) return AWS_OP_ERR;
     if (json_object_get_int(keys_manifest_version_obj) != KEYS_MANIFEST_VERSION) return AWS_OP_ERR;
 
@@ -112,14 +110,10 @@ static bool get_padding_mode(
             /* The AWS Encryption SDK for C currently doesn't support SHA384 and SHA512 for
                use with RSA OAEP wrapping algorithms. We will be adding support to this at a
                later stage. For more information refer to issue #187. */
-            not_yet_supported++;
-            passed++;
             fprintf(stderr, "Padding mode not yet supported pending #187\n");
             return false;
         }
     } else {
-        not_yet_supported++;
-        passed++;
         fprintf(stderr, "Padding mode not supported by aws_encryption_sdk\n");
         return false;
     }
@@ -156,12 +150,20 @@ static int process_test_scenarios(
         size_t pt_len                         = 0;
         size_t out_produced                   = 0;
         size_t in_consumed                    = 0;
-        enum aws_cryptosdk_test_type_idx test_type_idx;
+        enum test_type test_type_idx;
 
         json_object *json_obj_mk_obj = json_object_array_get_idx(master_keys_obj, j);
 
-        assert(json_object_object_get_ex(json_obj_mk_obj, "type", &key_type_obj));
-        assert(json_object_object_get_ex(json_obj_mk_obj, "key", &key_obj));
+        if (!json_object_object_get_ex(json_obj_mk_obj, "type", &key_type_obj)) {
+            failed++;
+            fprintf(stderr, "Failed to obtain master-key type\n");
+            goto next_test_scenario;
+        }
+        if (!json_object_object_get_ex(json_obj_mk_obj, "key", &key_obj)) {
+            failed++;
+            fprintf(stderr, "Failed to obtain key\n");
+            goto next_test_scenario;
+        }
 
         json_object_object_get_ex(json_obj_mk_obj, "provider-id", &provider_id_obj);
         if (provider_id_obj) key_namespace = aws_string_new_from_c_str(alloc, json_object_get_string(provider_id_obj));
@@ -171,10 +173,19 @@ static int process_test_scenarios(
         json_object_object_get_ex(key_category_obj, "material", &material_obj);
         json_object_object_get_ex(key_category_obj, "encoding", &encoding_obj);
 
-        assert(json_object_object_get_ex(key_category_obj, "key-id", &key_id_obj));
+        if (!json_object_object_get_ex(key_category_obj, "key-id", &key_id_obj)) {
+            failed++;
+            fprintf(stderr, "Failed to obtain key-id\n");
+            goto next_test_scenario;
+        }
+
         key_name = aws_string_new_from_c_str(alloc, json_object_get_string(key_id_obj));
 
-        assert(json_object_object_get_ex(key_category_obj, "decrypt", &decrypt_obj));
+        if (!json_object_object_get_ex(key_category_obj, "decrypt", &decrypt_obj)) {
+            failed++;
+            fprintf(stderr, "Failed to obtain decrypt flag\n");
+            goto next_test_scenario;
+        }
         /* If the decrypt attribute in the keys manifest is set to false, the corresponding key
            cannot be used to decrypt. In this case, we simply mark the test as passed and skip
            to the next test case scenario. */
@@ -187,7 +198,7 @@ static int process_test_scenarios(
         if (!cmp_jsonstr_with_cstr(key_type_obj, "raw")) {
             if (!key_namespace) {
                 failed++;
-                fprintf(stderr, "Failed to obtain key_namespace \n");
+                fprintf(stderr, "Failed to obtain key_namespace\n");
                 goto next_test_scenario;
             }
 
@@ -205,7 +216,11 @@ static int process_test_scenarios(
                     goto next_test_scenario;
                 }
 
-                assert(!cmp_jsonstr_with_cstr(encoding_obj, "base64"));
+                if (cmp_jsonstr_with_cstr(encoding_obj, "base64")) {
+                    failed++;
+                    fprintf(stderr, "Failed to obtain base64 string\n");
+                    goto next_test_scenario;
+                }
 
                 struct aws_byte_buf decoded_material;
                 if (get_base64_decoded_material(alloc, &decoded_material, material_obj)) {
@@ -235,19 +250,29 @@ static int process_test_scenarios(
                     goto next_test_scenario;
                 }
                 const char *pem_file = json_object_get_string(material_obj);
-                assert(!cmp_jsonstr_with_cstr(encoding_obj, "pem"));
+                if (cmp_jsonstr_with_cstr(encoding_obj, "pem")) {
+                    failed++;
+                    fprintf(stderr, "Failed to obtain rsa pem string\n");
+                    goto next_test_scenario;
+                }
                 json_object *padding_algorithm_obj = NULL, *padding_hash_obj = NULL;
 
                 json_object_object_get_ex(json_obj_mk_obj, "padding-algorithm", &padding_algorithm_obj);
                 const char *padding_algorithm = json_object_get_string(padding_algorithm_obj);
-                assert(padding_algorithm != NULL);
+                if (!padding_algorithm) {
+                    failed++;
+                    fprintf(stderr, "Failed to obtain padding algorithm \n");
+                    goto next_test_scenario;
+                }
 
                 json_object_object_get_ex(json_obj_mk_obj, "padding-hash", &padding_hash_obj);
                 const char *padding_hash = json_object_get_string(padding_hash_obj);
 
                 enum aws_cryptosdk_rsa_padding_mode padding_mode;
-                if (!get_padding_mode(&padding_mode, padding_algorithm, padding_hash)) goto next_test_scenario;
-
+                if (!get_padding_mode(&padding_mode, padding_algorithm, padding_hash)) {
+                    not_yet_supported++;
+                    goto next_test_scenario;
+                }
                 if (!(kr = aws_cryptosdk_raw_rsa_keyring_new(
                           alloc, key_namespace, key_name, pem_file, NULL, padding_mode))) {
                     failed++;
@@ -347,9 +372,7 @@ static int process_test_scenarios(
             failed++;
             fprintf(stderr, "Plaintext mismatch for test case %s\n", ct_filename.c_str());
         } else {
-            if (test_type_idx == AWS_CRYPTOSDK_AES) test_type_passed[0]++;
-            if (test_type_idx == AWS_CRYPTOSDK_RSA) test_type_passed[1]++;
-            if (test_type_idx == AWS_CRYPTOSDK_KMS) test_type_passed[2]++;
+            test_type_passed[test_type_idx]++;
             passed++;
         }
 
@@ -389,29 +412,29 @@ static int test_vector_runner(const char *path) {
     }
     json_object *manifest_jso_obj = json_object_from_file(manifest_filename);
 
-    assert(json_object_object_get_ex(manifest_jso_obj, "manifest", &manifest_obj));
-    assert(verify_manifest_type_and_version(manifest_obj));
-    assert(json_object_object_get_ex(manifest_jso_obj, "tests", &tests_obj));
+    TEST_ASSERT(json_object_object_get_ex(manifest_jso_obj, "manifest", &manifest_obj));
+    TEST_ASSERT_SUCCESS(verify_manifest_type_and_version(manifest_obj));
+    TEST_ASSERT(json_object_object_get_ex(manifest_jso_obj, "tests", &tests_obj));
 
     std::string find_str = "file:/";
 
-    assert(json_object_object_get_ex(manifest_jso_obj, "keys", &keys_obj));
+    TEST_ASSERT(json_object_object_get_ex(manifest_jso_obj, "keys", &keys_obj));
 
     std::string keys_filename = json_object_get_string(keys_obj);
     keys_filename.replace(keys_filename.find(find_str), find_str.length(), path);
 
     json_object *keys_manifest_jso_obj = json_object_from_file(keys_filename.c_str());
-    assert(json_object_object_get_ex(keys_manifest_jso_obj, "keys", &keys_obj));
-    assert(json_object_object_get_ex(keys_manifest_jso_obj, "manifest", &keys_manifest_obj));
+    TEST_ASSERT(json_object_object_get_ex(keys_manifest_jso_obj, "keys", &keys_obj));
+    TEST_ASSERT(json_object_object_get_ex(keys_manifest_jso_obj, "manifest", &keys_manifest_obj));
 
-    assert(verify_keys_manifest_type_and_version(keys_manifest_obj));
+    TEST_ASSERT_SUCCESS(verify_keys_manifest_type_and_version(keys_manifest_obj));
 
     for (entry = json_object_get_object(tests_obj)->head;
          (entry ? (key = (char *)entry->k, val = (struct json_object *)entry->v, entry) : 0);
          entry = entry->next) {
-        assert(json_object_object_get_ex(tests_obj, key, &test_case_obj));
-        assert(json_object_object_get_ex(val, "plaintext", &pt_filename_obj));
-        assert(json_object_object_get_ex(val, "ciphertext", &ct_filename_obj));
+        TEST_ASSERT(json_object_object_get_ex(tests_obj, key, &test_case_obj));
+        TEST_ASSERT(json_object_object_get_ex(val, "plaintext", &pt_filename_obj));
+        TEST_ASSERT(json_object_object_get_ex(val, "ciphertext", &ct_filename_obj));
 
         std::string pt_filename = json_object_get_string(pt_filename_obj);
         std::string ct_filename = json_object_get_string(ct_filename_obj);
@@ -419,8 +442,8 @@ static int test_vector_runner(const char *path) {
         pt_filename.replace(pt_filename.find(find_str), find_str.length(), path);
         ct_filename.replace(ct_filename.find(find_str), find_str.length(), path);
 
-        assert(json_object_object_get_ex(val, "master-keys", &master_keys_obj));
-        assert(process_test_scenarios(alloc, pt_filename, ct_filename, master_keys_obj, keys_obj) == AWS_OP_SUCCESS);
+        TEST_ASSERT(json_object_object_get_ex(val, "master-keys", &master_keys_obj));
+        TEST_ASSERT_SUCCESS(process_test_scenarios(alloc, pt_filename, ct_filename, master_keys_obj, keys_obj));
     }
     printf("Decryption successfully completed for %d test cases and failed for %d.\n", passed, failed);
     printf(

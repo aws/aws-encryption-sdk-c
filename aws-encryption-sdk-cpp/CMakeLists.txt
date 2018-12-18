@@ -130,7 +130,7 @@ if (BUILD_AWS_ENC_SDK_CPP)
     
     file(GLOB TEST_VECTORS "tests/test_vectors/*.cpp")
     add_library(test_vectors EXCLUDE_FROM_ALL ${TEST_VECTORS})
-    target_link_libraries(test_vectors aws-encryption-sdk-cpp testlib json-c)
+    target_link_libraries(test_vectors aws-encryption-sdk-cpp testlibcpp json-c)
     set_target_properties(test_vectors PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
     target_include_directories(test_vectors PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib
             ${PROJECT_SOURCE_DIR}/tests/lib $<INSTALL_INTERFACE:include>)
