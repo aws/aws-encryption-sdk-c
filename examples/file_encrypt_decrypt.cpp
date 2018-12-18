@@ -22,7 +22,7 @@
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/session.h>
-#include <aws/cryptosdk/kms_keyring.h>
+#include <aws/cryptosdk/cpp/kms_keyring.h>
 
 #include <aws/core/client/ClientConfiguration.h>
 
