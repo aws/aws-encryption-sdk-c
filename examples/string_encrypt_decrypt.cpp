@@ -14,7 +14,7 @@
  */
 
 #include <aws/cryptosdk/default_cmm.h>
-#include <aws/cryptosdk/kms_keyring.h>
+#include <aws/cryptosdk/cpp/kms_keyring.h>
 #include <aws/cryptosdk/session.h>
 
 void encrypt_string(struct aws_allocator *alloc,
