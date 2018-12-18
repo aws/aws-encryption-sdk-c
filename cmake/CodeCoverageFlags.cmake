@@ -15,5 +15,6 @@
 option(CODE_COVERAGE_ENABLE "Build unit tests with coverage enabled")
 if (CODE_COVERAGE_ENABLE)
     add_compile_options(--coverage -g)
+    add_link_options(--coverage -g)
 endif()
 
