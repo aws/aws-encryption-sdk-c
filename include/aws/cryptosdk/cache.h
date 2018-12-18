@@ -444,22 +444,6 @@ void aws_cryptosdk_mat_cache_entry_ttl_hint(
 struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_local_new(struct aws_allocator *alloc, size_t capacity);
 
 /**
- * Returns an estimate of the number of entries in the cache. If a size estimate is not available,
- * returns SIZE_MAX.
- */
-AWS_CRYPTOSDK_STATIC_INLINE
-size_t aws_cryptosdk_mat_cache_entry_count(const struct aws_cryptosdk_mat_cache *cache) {
-    size_t (*entry_count)(const struct aws_cryptosdk_mat_cache *cache) =
-        AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_count);
-
-    if (!entry_count) {
-        return SIZE_MAX;
-    }
-
-    return entry_count(cache);
-}
-
-/**
  * Attempts to clear all entries in the cache. This method is threadsafe, though any entries
  * being inserted in parallel with the clear operation may not end up being cleared.
  */
