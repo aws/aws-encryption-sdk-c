@@ -15,9 +15,9 @@
 #ifndef AWS_CRYPTOSDK_TESTS_LIB_RAW_RSA_KR_TEST_VECTORS_H
 #define AWS_CRYPTOSDK_TESTS_LIB_RAW_RSA_KR_TEST_VECTORS_H
 
-#include "testutil.h"
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/materials.h>
+#include "testutil.h"
 
 TESTLIB_API
 struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new(

@@ -30,16 +30,13 @@ int aws_cryptosdk_context_size(size_t *size, const struct aws_hash_table *enc_co
  * The serialized context will be appended to the buffer (failing if it hits the buffer's capacity).
  * The passed allocator is used for temporary working memory only.
  */
-int aws_cryptosdk_context_serialize(struct aws_allocator *alloc,
-                                    struct aws_byte_buf * output,
-                                    const struct aws_hash_table *enc_context);
+int aws_cryptosdk_context_serialize(
+    struct aws_allocator *alloc, struct aws_byte_buf *output, const struct aws_hash_table *enc_context);
 
 /**
  * Deserializes an encryption context from the given cursor, which will be advanced accordingly.
  */
-int aws_cryptosdk_context_deserialize(struct aws_allocator *alloc,
-                                      struct aws_hash_table *enc_context,
-                                      struct aws_byte_cursor *cursor);
+int aws_cryptosdk_context_deserialize(
+    struct aws_allocator *alloc, struct aws_hash_table *enc_context, struct aws_byte_cursor *cursor);
 
-
-#endif // AWS_CRYPTOSDK_PRIVATE_ENC_CONTEXT_H
+#endif  // AWS_CRYPTOSDK_PRIVATE_ENC_CONTEXT_H

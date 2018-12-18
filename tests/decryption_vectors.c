@@ -13,19 +13,19 @@
  * limitations under the License.
  */
 
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 
-#include <aws/cryptosdk/session.h>
-#include <aws/cryptosdk/error.h>
-#include <aws/cryptosdk/default_cmm.h>
-#include <aws/common/common.h>
-#include <aws/common/error.h>
 #include <aws/common/byte_buf.h>
+#include <aws/common/common.h>
 #include <aws/common/encoding.h>
+#include <aws/common/error.h>
+#include <aws/cryptosdk/default_cmm.h>
+#include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/session.h>
 
 #include "testutil.h"
 #include "zero_keyring.h"
@@ -33,20 +33,17 @@
 bool suite_failed = false;
 #define SENTINEL_VALUE ((size_t)0xABCD0123DEADBEEFllu)
 
-#define unexpected_error() do { \
-    int errcode = aws_last_error(); \
-    fprintf(stderr, "Unexpected error at %s:%d: %s (0x%04x)", \
-        __FILE__, __LINE__, aws_error_str(errcode), errcode); \
-    failed = true; \
-    goto error; \
-} while (0)
+#define unexpected_error()                                                                                          \
+    do {                                                                                                            \
+        int errcode = aws_last_error();                                                                             \
+        fprintf(                                                                                                    \
+            stderr, "Unexpected error at %s:%d: %s (0x%04x)", __FILE__, __LINE__, aws_error_str(errcode), errcode); \
+        failed = true;                                                                                              \
+        goto error;                                                                                                 \
+    } while (0)
 
 static void decrypt_test_oneshot(
-    enum aws_cryptosdk_alg_id alg_id,
-    const char *vector_name,
-    struct aws_byte_buf pt,
-    struct aws_byte_buf ct
-) {
+    enum aws_cryptosdk_alg_id alg_id, const char *vector_name, struct aws_byte_buf pt, struct aws_byte_buf ct) {
     bool failed = false;
 
     uint8_t *outbuf = malloc(pt.len);
@@ -55,22 +52,24 @@ static void decrypt_test_oneshot(
         exit(1);
     }
 
-    struct aws_allocator *alloc = aws_default_allocator();
-    struct aws_cryptosdk_keyring *kr = NULL;
+    struct aws_allocator *alloc           = aws_default_allocator();
+    struct aws_cryptosdk_keyring *kr      = NULL;
     struct aws_cryptosdk_session *session = NULL;
-    struct aws_cryptosdk_cmm *cmm = NULL;
+    struct aws_cryptosdk_cmm *cmm         = NULL;
 
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) unexpected_error();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) unexpected_error();
     if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
-    aws_cryptosdk_keyring_release(kr); kr = NULL;
-    aws_cryptosdk_cmm_release(cmm); cmm = NULL;
+    aws_cryptosdk_keyring_release(kr);
+    kr = NULL;
+    aws_cryptosdk_cmm_release(cmm);
+    cmm = NULL;
 
-    uint8_t *outp = outbuf;
+    uint8_t *outp      = outbuf;
     const uint8_t *inp = ct.buffer;
 
     size_t outsz = pt.len;
-    size_t insz = ct.len;
+    size_t insz  = ct.len;
     size_t out_produced, in_consumed;
     out_produced = in_consumed = SENTINEL_VALUE;
 
@@ -86,14 +85,14 @@ static void decrypt_test_oneshot(
     }
 
     if (in_consumed != ct.len) {
-        fprintf(stderr, "Wrong number of bytes consumed. Expected %zu consumed; got %zu consumed\n",
-            ct.len, in_consumed);
+        fprintf(
+            stderr, "Wrong number of bytes consumed. Expected %zu consumed; got %zu consumed\n", ct.len, in_consumed);
         failed = true;
     }
 
     if (out_produced != pt.len) {
-        fprintf(stderr, "Wrong number of bytes produced. Expected %zu produced; got %zu produced\n",
-            pt.len, out_produced);
+        fprintf(
+            stderr, "Wrong number of bytes produced. Expected %zu produced; got %zu produced\n", pt.len, out_produced);
         failed = true;
     }
 
@@ -116,11 +115,7 @@ error:
 }
 
 static void decrypt_test_incremental(
-    enum aws_cryptosdk_alg_id alg_id,
-    const char *vector_name,
-    struct aws_byte_buf pt,
-    struct aws_byte_buf ct
-) {
+    enum aws_cryptosdk_alg_id alg_id, const char *vector_name, struct aws_byte_buf pt, struct aws_byte_buf ct) {
     bool failed = false;
 
     uint8_t *outbuf = malloc(pt.len);
@@ -129,24 +124,26 @@ static void decrypt_test_incremental(
         exit(1);
     }
 
-    struct aws_allocator *alloc = aws_default_allocator();
-    struct aws_cryptosdk_keyring *kr = NULL;
+    struct aws_allocator *alloc           = aws_default_allocator();
+    struct aws_cryptosdk_keyring *kr      = NULL;
     struct aws_cryptosdk_session *session = NULL;
-    struct aws_cryptosdk_cmm *cmm = NULL;
+    struct aws_cryptosdk_cmm *cmm         = NULL;
 
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) unexpected_error();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) unexpected_error();
     if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
-    aws_cryptosdk_keyring_release(kr); kr = NULL;
-    aws_cryptosdk_cmm_release(cmm); cmm = NULL;
+    aws_cryptosdk_keyring_release(kr);
+    kr = NULL;
+    aws_cryptosdk_cmm_release(cmm);
+    cmm = NULL;
 
-    uint8_t *outp = outbuf;
+    uint8_t *outp      = outbuf;
     const uint8_t *inp = ct.buffer;
 
     while (!aws_cryptosdk_session_is_done(session)) {
         size_t est_in = 0, est_out = 0;
-        size_t outsz = 0;
-        size_t insz = 0;
+        size_t outsz     = 0;
+        size_t insz      = 0;
         size_t max_outsz = pt.len - (outp - outbuf);
         size_t out_produced, in_consumed;
 
@@ -163,8 +160,14 @@ static void decrypt_test_incremental(
             // want more data, but failed to make progress with that much data in the last
             // round.
             if (est_in == insz && est_out == outsz) {
-                fprintf(stderr, "Session stuck at input offset %zu, output offset %zu, estimates in %zu out %zu (clamped at %zu)\n",
-                    (size_t)(inp - ct.buffer), (size_t)(outp - outbuf), est_in, est_out, max_outsz);
+                fprintf(
+                    stderr,
+                    "Session stuck at input offset %zu, output offset %zu, estimates in %zu out %zu (clamped at %zu)\n",
+                    (size_t)(inp - ct.buffer),
+                    (size_t)(outp - outbuf),
+                    est_in,
+                    est_out,
+                    max_outsz);
                 failed = true;
                 goto error;
             }
@@ -231,7 +234,7 @@ static void decrypt_test_incremental(
                 }
 
                 // Give it what it wants for the output buffer
-                outsz = est_out;
+                outsz        = est_out;
                 out_produced = in_consumed = SENTINEL_VALUE;
                 rv = aws_cryptosdk_session_process(session, outp, outsz, &out_produced, inp, insz, &in_consumed);
 
@@ -253,11 +256,11 @@ static void decrypt_test_incremental(
                     break;
                 }
             }
-        } // while (true) loop over input sizes
+        }  // while (true) loop over input sizes
 
         inp += in_consumed;
         outp += out_produced;
-    } // outer loop until complete
+    }  // outer loop until complete
 
     enum aws_cryptosdk_alg_id actual_alg_id;
     if (aws_cryptosdk_session_get_algorithm(session, &actual_alg_id)) unexpected_error();
@@ -268,14 +271,20 @@ static void decrypt_test_incremental(
     }
 
     if (inp != ct.buffer + ct.len) {
-        fprintf(stderr, "Wrong number of bytes consumed. Expected %zu consumed; got %zu consumed\n",
-            ct.len, (size_t)(inp - ct.buffer));
+        fprintf(
+            stderr,
+            "Wrong number of bytes consumed. Expected %zu consumed; got %zu consumed\n",
+            ct.len,
+            (size_t)(inp - ct.buffer));
         failed = true;
     }
 
     if (outp != outbuf + pt.len) {
-        fprintf(stderr, "Wrong number of bytes produced. Expected %zu consumed; got %zu consumed\n",
-            pt.len, (size_t)(outp - pt.buffer));
+        fprintf(
+            stderr,
+            "Wrong number of bytes produced. Expected %zu consumed; got %zu consumed\n",
+            pt.len,
+            (size_t)(outp - pt.buffer));
         failed = true;
     }
 
@@ -283,7 +292,6 @@ static void decrypt_test_incremental(
         fprintf(stderr, "Plaintext mismatch\n");
         failed = true;
     }
-
 
 error:
     if (session) aws_cryptosdk_session_destroy(session);
@@ -299,39 +307,37 @@ error:
 }
 
 static void decrypt_test_badciphertext(
-    enum aws_cryptosdk_alg_id alg_id,
-    const char *vector_name,
-    struct aws_byte_buf pt,
-    struct aws_byte_buf ct
-) {
+    enum aws_cryptosdk_alg_id alg_id, const char *vector_name, struct aws_byte_buf pt, struct aws_byte_buf ct) {
     // TODO: Make algorithm ID names consistent with java and use them for error messages
     (void)alg_id;
 
     bool failed = false;
 
-    uint8_t *outbuf = malloc(pt.len);
+    uint8_t *outbuf  = malloc(pt.len);
     uint8_t *zerobuf = calloc(pt.len, 1);
     if (!outbuf || !zerobuf) {
         fprintf(stderr, "Out of memory\n");
         exit(1);
     }
 
-    struct aws_allocator *alloc = aws_default_allocator();
-    struct aws_cryptosdk_keyring *kr = NULL;
+    struct aws_allocator *alloc           = aws_default_allocator();
+    struct aws_cryptosdk_keyring *kr      = NULL;
     struct aws_cryptosdk_session *session = NULL;
-    struct aws_cryptosdk_cmm *cmm = NULL;
+    struct aws_cryptosdk_cmm *cmm         = NULL;
 
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) unexpected_error();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) unexpected_error();
     if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
-    aws_cryptosdk_keyring_release(kr); kr = NULL;
-    aws_cryptosdk_cmm_release(cmm); cmm = NULL;
-    
-    uint8_t *outp = outbuf;
+    aws_cryptosdk_keyring_release(kr);
+    kr = NULL;
+    aws_cryptosdk_cmm_release(cmm);
+    cmm = NULL;
+
+    uint8_t *outp      = outbuf;
     const uint8_t *inp = ct.buffer;
 
     size_t outsz = pt.len;
-    size_t insz = ct.len;
+    size_t insz  = ct.len;
     size_t out_produced, in_consumed;
 
 #ifndef REDUCE_TEST_ITERATIONS
@@ -374,10 +380,15 @@ static void decrypt_test_badciphertext(
         } else if (rv == 0) {
             fprintf(stderr, "Unexpected success after corrupting bit %zu\n", bit);
             failed = true;
-        } else if (lasterror != AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT && lasterror != AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT
-            && lasterror != AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED) {
-            fprintf(stderr, "Incorrect error after corrupting bit %zu: %s (0x%04x)\n",
-                bit, aws_error_str(lasterror), lasterror);
+        } else if (
+            lasterror != AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT && lasterror != AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT &&
+            lasterror != AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED) {
+            fprintf(
+                stderr,
+                "Incorrect error after corrupting bit %zu: %s (0x%04x)\n",
+                bit,
+                aws_error_str(lasterror),
+                lasterror);
             failed = true;
         }
 
@@ -399,11 +410,7 @@ error:
 }
 
 void decrypt_test_vector(
-    enum aws_cryptosdk_alg_id alg_id,
-    const char *vector_name,
-    const char *plaintext_expected,
-    const char *ciphertext
-) {
+    enum aws_cryptosdk_alg_id alg_id, const char *vector_name, const char *plaintext_expected, const char *ciphertext) {
     struct aws_byte_buf pt = easy_b64_decode(plaintext_expected);
     struct aws_byte_buf ct = easy_b64_decode(ciphertext);
 
@@ -418,6 +425,7 @@ void decrypt_test_vector(
 int main() {
     aws_cryptosdk_load_error_strings();
 
+    // clang-format off
     decrypt_test_vector(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE, "ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256 hello empty final frame", "SGVsbG8sIHdvcmxkIQ==", "AYABFO37IzpEmc0FwZTvdUKZNmwAAAABAAh6ZXJvLWtleQANcHJvdmlkZXIgaW5mbwABAAIAAAAADAAAAA0AAAAAAAAAAAAAAACNU9yvQgmpDkhnXnIQNxa2AAAAAQAAAAAAAAAAAAAAASUlloU74HOz+Y1YlYf6Raw/tn/7oSD3tUsfzC8W/////wAAAAIAAAAAAAAAAAAAAAIAAAAAeSAQ6uk0/Gbj1GQb7AXKTw==");
     decrypt_test_vector(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE, "ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256 hello large frames", "SGVsbG8sIHdvcmxkIQ==", "AYABFGFnpBnRQb1tMqjYPdKOqIYACAABAAF4AAF5AAEACHplcm8ta2V5AA1wcm92aWRlciBpbmZvAAEAAgAAAAAMAAAQAAAAAAAAAAAAAAAAAKeI+/USYAoL5xGuEd4UpFD/////AAAAAQAAAAAAAAAAAAAAAQAAAA0lnpNe/RerbazP3UBrbs1eLvoJAJg/KfCMQ8uNng==");
     decrypt_test_vector(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE, "ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256 hello one byte frames", "SGVsbG8sIHdvcmxkIQ==", "AYABFNus0VqHpji+wO7AO5Lp+kkACAABAAF4AAF5AAEACHplcm8ta2V5AA1wcm92aWRlciBpbmZvAAEAAgAAAAAMAAAAAQAAAAAAAAAAAAAAAOvAACrzHn8+Y1k4HGz1rskAAAABAAAAAAAAAAAAAAABVmZY8rCLyome+6bA81VBHrsAAAACAAAAAAAAAAAAAAACgCPkE+LwBm4qqqIoB19eSF8AAAADAAAAAAAAAAAAAAAD0zO/NwrGVbZQYTACuFJhtt4AAAAEAAAAAAAAAAAAAAAEt8kUu4ECVtLVBUifQjiaqzYAAAAFAAAAAAAAAAAAAAAFUGbHLA1l3uhCPbdu4QwP+E8AAAAGAAAAAAAAAAAAAAAGpdLWGzgWkvcmEF0YWcH19WMAAAAHAAAAAAAAAAAAAAAH054BqrmMfoAfQmSjV5IwltQAAAAIAAAAAAAAAAAAAAAI006QgZ/tKDG4otj3UyHnsoEAAAAJAAAAAAAAAAAAAAAJuVkwonf0gIr/8HOUwiDyfBMAAAAKAAAAAAAAAAAAAAAKSv127hhPUWOrNz1usuZ7PdgAAAALAAAAAAAAAAAAAAALk0LycGkVH0qkRZIpIqBwg0wAAAAMAAAAAAAAAAAAAAAMVRRzCYEsJjY6OsvE2uFOtDMAAAANAAAAAAAAAAAAAAAN8cf0AcXPTdDoy6YU4s84NQH/////AAAADgAAAAAAAAAAAAAADgAAAABt8AHcYIqOrDS/AKwwNysy");
@@ -471,6 +479,7 @@ int main() {
     decrypt_test_vector(AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE, "ALG_AES_256_GCM_IV12_TAG16_NO_KDF hello one byte frames", "SGVsbG8sIHdvcmxkIQ==", "AYAAeLjUyiKOtB6T0MVJsRVRvaoACAABAAF4AAF5AAEACHplcm8ta2V5AA1wcm92aWRlciBpbmZvAAEAAgAAAAAMAAAAAQAAAAAAAAAAAAAAANQfrB4zJ2TwGUVbPPbnaHkAAAABAAAAAAAAAAAAAAABYRcnYDR2jRfZGABxTjyQUR0AAAACAAAAAAAAAAAAAAAC2/HDHxmLALwKJLT/gat9Wo8AAAADAAAAAAAAAAAAAAADx4SJyNW/dpbH6U6WKyr2vwgAAAAEAAAAAAAAAAAAAAAEpAnGy/7yfzx3Mlc4qjgGKsEAAAAFAAAAAAAAAAAAAAAFjpHYd/1EHcKjXtG9rJrSEYUAAAAGAAAAAAAAAAAAAAAG+H3ZKnXYnzCbGubBFIYwsToAAAAHAAAAAAAAAAAAAAAHRdZHflDxQqZ5gcAYLLK4x88AAAAIAAAAAAAAAAAAAAAIDGgugpHqWEvuS1wX14WgY8AAAAAJAAAAAAAAAAAAAAAJ3hyms3ACVxj2e+RfAho3yPEAAAAKAAAAAAAAAAAAAAAK0X/5CEzDLf70tbXyVnGjhYsAAAALAAAAAAAAAAAAAAALkcNpbmDmXRxE1hhRJ13DomEAAAAMAAAAAAAAAAAAAAAMyKPNYu6yDkTDN0fpmucqvkEAAAANAAAAAAAAAAAAAAANtPbs2QSYPiaofEWijkhH4l3/////AAAADgAAAAAAAAAAAAAADgAAAACOPBIHSKnA6R8pRzApQ4ph");
     decrypt_test_vector(AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE, "ALG_AES_256_GCM_IV12_TAG16_NO_KDF hello small frames", "SGVsbG8sIHdvcmxkIQ==", "AYAAeK2rYVpanUbpZSQeXXCPSbUACAABAAF4AAF5AAEACHplcm8ta2V5AA1wcm92aWRlciBpbmZvAAEAAgAAAAAMAAAAAgAAAAAAAAAAAAAAADIJySGWeCEKCF1KUDq80bkAAAABAAAAAAAAAAAAAAABYaRtUtoTkqcMtNWVfv9fd6+DAAAAAgAAAAAAAAAAAAAAAtJAmckb5stkVtx3CO+aVrKtkwAAAAMAAAAAAAAAAAAAAAPE4lbg99AfTgKpHyAoCYr0KzkAAAAEAAAAAAAAAAAAAAAE6EnuGyjqHEBoWwwRri6klC7KAAAABQAAAAAAAAAAAAAABY62LvtSnIpTBnFQMUhMms8HHgAAAAYAAAAAAAAAAAAAAAa4uS6sluyqe8OBzexfXZ28raL/////AAAABwAAAAAAAAAAAAAABwAAAAFEe6GTtWFXQpNGRfUH56QbtQ==");
     decrypt_test_vector(AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE, "ALG_AES_256_GCM_IV12_TAG16_NO_KDF hello unframed", "SGVsbG8sIHdvcmxkIQ==", "AYAAeAr8nRUGvvNNJX+9eVc6MYsACAABAAF4AAF5AAEACHplcm8ta2V5AA1wcm92aWRlciBpbmZvAAEAAQAAAAAMAAAAAAAAAAAAAAAAAAAAAFtdCKkG58xv1CAV/uK2QDMAAAAAAAAAAAAAAAEAAAAAAAAADWGkSE6bWkerxnIxxbDDFuvB4V9ED6fQkGBrO1Y3");
+    // clang-format on
 
     return suite_failed;
 }

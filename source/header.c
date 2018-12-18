@@ -12,16 +12,16 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <string.h> // memcpy
-#include <aws/cryptosdk/private/header.h>
-#include <aws/cryptosdk/private/compiler.h>
-#include <aws/cryptosdk/private/enc_context.h>
+#include <aws/common/byte_buf.h>
+#include <aws/common/math.h>
+#include <aws/common/string.h>
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/edk.h>
 #include <aws/cryptosdk/error.h>
-#include <aws/common/byte_buf.h>
-#include <aws/common/string.h>
-#include <aws/common/math.h>
+#include <aws/cryptosdk/private/compiler.h>
+#include <aws/cryptosdk/private/enc_context.h>
+#include <aws/cryptosdk/private/header.h>
+#include <string.h>  // memcpy
 
 static int aws_cryptosdk_algorithm_is_known(uint16_t alg_id) {
     switch (alg_id) {
@@ -33,10 +33,8 @@ static int aws_cryptosdk_algorithm_is_known(uint16_t alg_id) {
         case AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE:
         case AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE:
         case AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE:
-        case AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE:
-            return 1;
-        default:
-            return 0;
+        case AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE: return 1;
+        default: return 0;
     }
 }
 
@@ -58,14 +56,11 @@ int aws_cryptosdk_algorithm_ivlen(uint16_t alg_id) {
     return -1;
 }
 
-
 static int is_known_type(uint8_t content_type) {
     switch (content_type) {
         case AWS_CRYPTOSDK_HEADER_CTYPE_FRAMED:
-        case AWS_CRYPTOSDK_HEADER_CTYPE_NONFRAMED:
-            return 1;
-        default:
-            return 0;
+        case AWS_CRYPTOSDK_HEADER_CTYPE_NONFRAMED: return 1;
+        default: return 0;
     }
 }
 
@@ -88,7 +83,7 @@ int aws_cryptosdk_hdr_init(struct aws_cryptosdk_hdr *hdr, struct aws_allocator *
 
 void aws_cryptosdk_hdr_clear(struct aws_cryptosdk_hdr *hdr) {
     /* hdr->alloc is preserved */
-    hdr->alg_id = 0;
+    hdr->alg_id    = 0;
     hdr->frame_len = 0;
 
     aws_byte_buf_clean_up(&hdr->iv);
@@ -117,7 +112,8 @@ void aws_cryptosdk_hdr_clean_up(struct aws_cryptosdk_hdr *hdr) {
     aws_secure_zero(hdr, sizeof(*hdr));
 }
 
-static inline int parse_edk(struct aws_allocator *allocator, struct aws_cryptosdk_edk *edk, struct aws_byte_cursor *cur) {
+static inline int parse_edk(
+    struct aws_allocator *allocator, struct aws_cryptosdk_edk *edk, struct aws_byte_cursor *cur) {
     uint16_t field_len;
 
     memset(edk, 0, sizeof(*edk));
@@ -197,8 +193,8 @@ int aws_cryptosdk_hdr_parse(struct aws_cryptosdk_hdr *hdr, struct aws_byte_curso
     if (!aws_byte_cursor_read_u8(&cur, &content_type)) goto SHORT_BUF;
 
     if (aws_cryptosdk_unlikely(!is_known_type(content_type))) goto PARSE_ERR;
-    
-    uint32_t reserved; // must be zero
+
+    uint32_t reserved;  // must be zero
     if (!aws_byte_cursor_read_be32(&cur, &reserved)) goto SHORT_BUF;
     if (reserved) goto PARSE_ERR;
 
@@ -211,7 +207,8 @@ int aws_cryptosdk_hdr_parse(struct aws_cryptosdk_hdr *hdr, struct aws_byte_curso
     if (!aws_byte_cursor_read_be32(&cur, &frame_len)) goto SHORT_BUF;
 
     if ((content_type == AWS_CRYPTOSDK_HEADER_CTYPE_NONFRAMED && frame_len != 0) ||
-        (content_type == AWS_CRYPTOSDK_HEADER_CTYPE_FRAMED && frame_len == 0)) goto PARSE_ERR;
+        (content_type == AWS_CRYPTOSDK_HEADER_CTYPE_FRAMED && frame_len == 0))
+        goto PARSE_ERR;
     hdr->frame_len = frame_len;
 
     // cur.ptr now points to end of portion of header that is authenticated
@@ -237,7 +234,7 @@ PARSE_ERR:
 MEM_ERR:
 RETHROW:
     aws_cryptosdk_hdr_clear(hdr);
-    return AWS_OP_ERR; // Error code will already have been raised in aws_mem_acquire
+    return AWS_OP_ERR;  // Error code will already have been raised in aws_mem_acquire
 }
 
 /*
@@ -250,7 +247,7 @@ RETHROW:
 static const union {
     uint8_t bytes[sizeof(struct aws_cryptosdk_hdr)];
     struct aws_cryptosdk_hdr hdr;
-} zero = {{0}};
+} zero = { { 0 } };
 
 static size_t saturating_add(size_t a, size_t b) {
     size_t c = a + b;
@@ -274,7 +271,7 @@ int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr) {
     }
     bytes += aad_len;
 
-    for (idx = 0 ; idx < edk_count ; ++idx) {
+    for (idx = 0; idx < edk_count; ++idx) {
         void *vp_edk = NULL;
         struct aws_cryptosdk_edk *edk;
 
@@ -292,9 +289,10 @@ int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr) {
     return bytes == SIZE_MAX ? 0 : bytes;
 }
 
-int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_written, uint8_t *outbuf, size_t outlen) {
+int aws_cryptosdk_hdr_write(
+    const struct aws_cryptosdk_hdr *hdr, size_t *bytes_written, uint8_t *outbuf, size_t outlen) {
     struct aws_byte_buf output = aws_byte_buf_from_array(outbuf, outlen);
-    output.len = 0;
+    output.len                 = 0;
 
     if (!aws_byte_buf_write_u8(&output, AWS_CRYPTOSDK_HEADER_VERSION_1_0)) goto WRITE_ERR;
     if (!aws_byte_buf_write_u8(&output, AWS_CRYPTOSDK_HEADER_TYPE_CUSTOMER_AED)) goto WRITE_ERR;
@@ -314,7 +312,7 @@ int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t * bytes_
     size_t edk_count = aws_array_list_length(&hdr->edk_list);
     if (!aws_byte_buf_write_be16(&output, (uint16_t)edk_count)) goto WRITE_ERR;
 
-    for (size_t idx = 0 ; idx < edk_count ; ++idx) {
+    for (size_t idx = 0; idx < edk_count; ++idx) {
         void *vp_edk = NULL;
 
         aws_array_list_get_at_ptr(&hdr->edk_list, &vp_edk, idx);

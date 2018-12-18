@@ -28,10 +28,10 @@ extern "C" {
  * @{
  */
 
-enum aws_cryptosdk_sha_version { 
+enum aws_cryptosdk_sha_version {
     AWS_CRYPTOSDK_NOSHA,
-    AWS_CRYPTOSDK_SHA256, 
-    AWS_CRYPTOSDK_SHA384, 
+    AWS_CRYPTOSDK_SHA256,
+    AWS_CRYPTOSDK_SHA384,
 };
 
 /**
@@ -47,7 +47,7 @@ int aws_cryptosdk_hkdf(
     const struct aws_byte_buf *ikm,
     const struct aws_byte_buf *info);
 
-/** @} */ // doxygen group hazmat
+/** @} */  // doxygen group hazmat
 
 #ifdef __cplusplus
 }

@@ -15,11 +15,11 @@
 
 #ifndef AWS_CRYPTOSDK_CACHE_H
 
-#include <aws/common/clock.h>
+#    include <aws/common/clock.h>
 
-#include <aws/cryptosdk/materials.h>
-#include <aws/cryptosdk/vtable.h>
-#include <aws/cryptosdk/exports.h>
+#    include <aws/cryptosdk/exports.h>
+#    include <aws/cryptosdk/materials.h>
+#    include <aws/cryptosdk/vtable.h>
 
 /**
  * @defgroup caching Caching APIs
@@ -49,21 +49,21 @@
  * @{
  */
 
-#define AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES ((uint64_t)1 << 32)
+#    define AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES ((uint64_t)1 << 32)
 
 /**
  * The backing materials cache that stores the cached materials for one or more caching CMMs.
  */
-#ifdef AWS_CRYPTOSDK_DOXYGEN
+#    ifdef AWS_CRYPTOSDK_DOXYGEN
 struct aws_cryptosdk_mat_cache;
-#else
+#    else
 struct aws_cryptosdk_mat_cache {
     struct aws_atomic_var refcount;
     const struct aws_cryptosdk_mat_cache_vt *vt;
 };
-#endif
+#    endif
 
-#ifndef AWS_CRYPTOSDK_DOXYGEN
+#    ifndef AWS_CRYPTOSDK_DOXYGEN
 /**
  * NOTE: The extension API for defining new materials cache is currently considered unstable and
  * may change in the future.
@@ -85,13 +85,10 @@ struct aws_cryptosdk_cache_usage_stats {
 
 AWS_CRYPTOSDK_STATIC_INLINE
 void aws_cryptosdk_mat_cache_base_init(
-    struct aws_cryptosdk_mat_cache *cache,
-    const struct aws_cryptosdk_mat_cache_vt *vt
-) {
+    struct aws_cryptosdk_mat_cache *cache, const struct aws_cryptosdk_mat_cache_vt *vt) {
     cache->vt = vt;
     aws_atomic_init_int(&cache->refcount, 1);
 }
-
 
 struct aws_cryptosdk_mat_cache_vt {
     /**
@@ -127,8 +124,7 @@ struct aws_cryptosdk_mat_cache_vt {
         struct aws_cryptosdk_mat_cache *cache,
         struct aws_cryptosdk_mat_cache_entry **entry,
         bool *is_encrypt,
-        const struct aws_byte_buf *cache_id
-    );
+        const struct aws_byte_buf *cache_id);
 
     /**
      * Performs an atomic add-and-fetch on this entry's usage stats. The value
@@ -143,7 +139,7 @@ struct aws_cryptosdk_mat_cache_vt {
      * for example, if we start with (messages=1, bytes=1), and we have two threads
      * adding (1,1), one thread might observe (3,2) and the other might observe (2,3), but
      * we won't ever have both threads observing the same value.
-     * 
+     *
      * If the cache entry is not an encrypt entry, or if the entry has been invalidated,
      * or if an internal error occurs during processing, the returned value of *usage_stats
      * is unspecified, and an error may be raised (AWS_OP_ERR returned).
@@ -151,16 +147,15 @@ struct aws_cryptosdk_mat_cache_vt {
     int (*update_usage_stats)(
         struct aws_cryptosdk_mat_cache *cache,
         struct aws_cryptosdk_mat_cache_entry *entry,
-        struct aws_cryptosdk_cache_usage_stats *usage_stats
-    );
+        struct aws_cryptosdk_cache_usage_stats *usage_stats);
 
     /**
      * Retrieves the cached encryption materials from the cache.
-     * 
+     *
      * On success, (1) `*materials` is overwritten with a newly allocated encryption
      * materials object, and (2) `enc_context` is updated to match the cached encryption
      * context (adding and removing entries to make it match the cached value).
-     * 
+     *
      * On failure (e.g., out of memory), `*materials` will be set to NULL; `enc_context`
      * remains an allocated encryption context hash table, but the contents of the hash
      * table are unspecified, as we may have been forced to abort partway through updating
@@ -174,8 +169,7 @@ struct aws_cryptosdk_mat_cache_vt {
         struct aws_allocator *allocator,
         struct aws_cryptosdk_encryption_materials **materials,
         struct aws_hash_table *enc_context,
-        struct aws_cryptosdk_mat_cache_entry *entry
-    );
+        struct aws_cryptosdk_mat_cache_entry *entry);
 
     /**
      * Retrieves the cached decryption materials from the cache.
@@ -192,8 +186,7 @@ struct aws_cryptosdk_mat_cache_vt {
         const struct aws_cryptosdk_mat_cache *cache,
         struct aws_allocator *allocator,
         struct aws_cryptosdk_decryption_materials **materials,
-        const struct aws_cryptosdk_mat_cache_entry *entry
-    );
+        const struct aws_cryptosdk_mat_cache_entry *entry);
 
     /**
      * Attempts to put a copy of *encryption_materials into the cache, under the
@@ -219,8 +212,7 @@ struct aws_cryptosdk_mat_cache_vt {
         const struct aws_cryptosdk_encryption_materials *encryption_materials,
         struct aws_cryptosdk_cache_usage_stats initial_usage,
         const struct aws_hash_table *enc_context,
-        const struct aws_byte_buf *cache_id
-    );
+        const struct aws_byte_buf *cache_id);
 
     /**
      * Attempts to put a copy of *decryption_materials into the cache, under the
@@ -240,8 +232,7 @@ struct aws_cryptosdk_mat_cache_vt {
         struct aws_cryptosdk_mat_cache *cache,
         struct aws_cryptosdk_mat_cache_entry **entry,
         const struct aws_cryptosdk_decryption_materials *decryption_materials,
-        const struct aws_byte_buf *cache_id
-    );
+        const struct aws_byte_buf *cache_id);
 
     /**
      * Invoked when the materials cache reference count reaches zero.
@@ -259,19 +250,14 @@ struct aws_cryptosdk_mat_cache_vt {
      * this is not guaranteed to be successful.
      */
     void (*entry_release)(
-        struct aws_cryptosdk_mat_cache *cache,
-        struct aws_cryptosdk_mat_cache_entry *entry,
-        bool invalidate
-    );
+        struct aws_cryptosdk_mat_cache *cache, struct aws_cryptosdk_mat_cache_entry *entry, bool invalidate);
 
     /**
      * Returns the creation time of the given cache entry.
      * If the creation time is unknown or an error occurs, returns 0.
      */
     uint64_t (*entry_get_creation_time)(
-        const struct aws_cryptosdk_mat_cache *cache,
-        const struct aws_cryptosdk_mat_cache_entry *entry
-    );
+        const struct aws_cryptosdk_mat_cache *cache, const struct aws_cryptosdk_mat_cache_entry *entry);
 
     /**
      * Advises the cache that the selected entry is not needed after the specified time.
@@ -279,10 +265,7 @@ struct aws_cryptosdk_mat_cache_vt {
      * time.
      */
     void (*entry_ttl_hint)(
-        struct aws_cryptosdk_mat_cache *cache,
-        struct aws_cryptosdk_mat_cache_entry *entry,
-        uint64_t exp_time
-    );
+        struct aws_cryptosdk_mat_cache *cache, struct aws_cryptosdk_mat_cache_entry *entry, uint64_t exp_time);
 
     /**
      * Attempts to clear all entries in the cache. This method is threadsafe and may be called
@@ -297,14 +280,12 @@ int aws_cryptosdk_mat_cache_find_entry(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_cryptosdk_mat_cache_entry **entry,
     bool *is_encrypt,
-    const struct aws_byte_buf *cache_id
-) {
+    const struct aws_byte_buf *cache_id) {
     int (*find_entry)(
-        struct aws_cryptosdk_mat_cache *cache,
-        struct aws_cryptosdk_mat_cache_entry **entry,
+        struct aws_cryptosdk_mat_cache * cache,
+        struct aws_cryptosdk_mat_cache_entry * *entry,
         bool *is_encrypt,
-        const struct aws_byte_buf *cache_id
-    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, find_entry);
+        const struct aws_byte_buf *cache_id) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, find_entry);
 
     *entry = NULL;
     if (find_entry) {
@@ -318,13 +299,12 @@ AWS_CRYPTOSDK_STATIC_INLINE
 int aws_cryptosdk_mat_cache_update_usage_stats(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_cryptosdk_mat_cache_entry *entry,
-    struct aws_cryptosdk_cache_usage_stats *usage_stats
-) {
+    struct aws_cryptosdk_cache_usage_stats *usage_stats) {
     int (*update_usage_stats)(
-        struct aws_cryptosdk_mat_cache *cache,
-        struct aws_cryptosdk_mat_cache_entry *entry,
-        struct aws_cryptosdk_cache_usage_stats *usage_stats
-    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, update_usage_stats);
+        struct aws_cryptosdk_mat_cache * cache,
+        struct aws_cryptosdk_mat_cache_entry * entry,
+        struct aws_cryptosdk_cache_usage_stats * usage_stats) =
+        AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, update_usage_stats);
 
     if (!update_usage_stats) {
         return aws_raise_error(AWS_ERROR_UNSUPPORTED_OPERATION);
@@ -333,22 +313,20 @@ int aws_cryptosdk_mat_cache_update_usage_stats(
     return update_usage_stats(cache, entry, usage_stats);
 }
 
-
 AWS_CRYPTOSDK_STATIC_INLINE
 int aws_cryptosdk_mat_cache_get_encryption_materials(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_allocator *allocator,
     struct aws_cryptosdk_encryption_materials **materials,
     struct aws_hash_table *enc_context,
-    struct aws_cryptosdk_mat_cache_entry *entry
-) {
+    struct aws_cryptosdk_mat_cache_entry *entry) {
     int (*get_encryption_materials)(
-        struct aws_cryptosdk_mat_cache *cache,
-        struct aws_allocator *allocator,
-        struct aws_cryptosdk_encryption_materials **materials,
-        struct aws_hash_table *enc_context,
-        struct aws_cryptosdk_mat_cache_entry *entry
-    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, get_encryption_materials);
+        struct aws_cryptosdk_mat_cache * cache,
+        struct aws_allocator * allocator,
+        struct aws_cryptosdk_encryption_materials * *materials,
+        struct aws_hash_table * enc_context,
+        struct aws_cryptosdk_mat_cache_entry * entry) =
+        AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, get_encryption_materials);
 
     *materials = NULL;
     if (!get_encryption_materials) {
@@ -363,14 +341,13 @@ int aws_cryptosdk_mat_cache_get_decryption_materials(
     const struct aws_cryptosdk_mat_cache *cache,
     struct aws_allocator *allocator,
     struct aws_cryptosdk_decryption_materials **materials,
-    const struct aws_cryptosdk_mat_cache_entry *entry
-) {
+    const struct aws_cryptosdk_mat_cache_entry *entry) {
     int (*get_decryption_materials)(
         const struct aws_cryptosdk_mat_cache *cache,
         struct aws_allocator *allocator,
         struct aws_cryptosdk_decryption_materials **materials,
-        const struct aws_cryptosdk_mat_cache_entry *entry
-    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, get_decryption_materials);
+        const struct aws_cryptosdk_mat_cache_entry *entry) =
+        AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, get_decryption_materials);
 
     *materials = NULL;
     if (!get_decryption_materials) {
@@ -387,16 +364,14 @@ void aws_cryptosdk_mat_cache_put_entry_for_encrypt(
     const struct aws_cryptosdk_encryption_materials *encryption_materials,
     struct aws_cryptosdk_cache_usage_stats initial_usage,
     const struct aws_hash_table *enc_context,
-    const struct aws_byte_buf *cache_id
-) {
+    const struct aws_byte_buf *cache_id) {
     void (*put_entry_for_encrypt)(
-        struct aws_cryptosdk_mat_cache *cache,
-        struct aws_cryptosdk_mat_cache_entry **entry,
+        struct aws_cryptosdk_mat_cache * cache,
+        struct aws_cryptosdk_mat_cache_entry * *entry,
         const struct aws_cryptosdk_encryption_materials *encryption_materials,
         struct aws_cryptosdk_cache_usage_stats initial_usage,
         const struct aws_hash_table *enc_context,
-        const struct aws_byte_buf *cache_id
-    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, put_entry_for_encrypt);
+        const struct aws_byte_buf *cache_id) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, put_entry_for_encrypt);
 
     *entry = NULL;
     if (put_entry_for_encrypt) {
@@ -409,14 +384,12 @@ void aws_cryptosdk_mat_cache_put_entry_for_decrypt(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_cryptosdk_mat_cache_entry **entry,
     const struct aws_cryptosdk_decryption_materials *decryption_materials,
-    const struct aws_byte_buf *cache_id
-) {
+    const struct aws_byte_buf *cache_id) {
     void (*put_entry_for_decrypt)(
-        struct aws_cryptosdk_mat_cache *cache,
-        struct aws_cryptosdk_mat_cache_entry **entry,
+        struct aws_cryptosdk_mat_cache * cache,
+        struct aws_cryptosdk_mat_cache_entry * *entry,
         const struct aws_cryptosdk_decryption_materials *decryption_materials,
-        const struct aws_byte_buf *cache_id
-    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, put_entry_for_decrypt);
+        const struct aws_byte_buf *cache_id) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, put_entry_for_decrypt);
 
     *entry = NULL;
     if (put_entry_for_decrypt) {
@@ -426,15 +399,10 @@ void aws_cryptosdk_mat_cache_put_entry_for_decrypt(
 
 AWS_CRYPTOSDK_STATIC_INLINE
 void aws_cryptosdk_mat_cache_entry_release(
-    struct aws_cryptosdk_mat_cache *cache,
-    struct aws_cryptosdk_mat_cache_entry *entry,
-    bool invalidate
-) {
+    struct aws_cryptosdk_mat_cache *cache, struct aws_cryptosdk_mat_cache_entry *entry, bool invalidate) {
     void (*entry_release)(
-        struct aws_cryptosdk_mat_cache *cache,
-        struct aws_cryptosdk_mat_cache_entry *entry,
-        bool invalidate
-    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_release);
+        struct aws_cryptosdk_mat_cache * cache, struct aws_cryptosdk_mat_cache_entry * entry, bool invalidate) =
+        AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_release);
 
     if (entry_release) {
         entry_release(cache, entry, invalidate);
@@ -443,13 +411,10 @@ void aws_cryptosdk_mat_cache_entry_release(
 
 AWS_CRYPTOSDK_STATIC_INLINE
 uint64_t aws_cryptosdk_mat_cache_entry_get_creation_time(
-    const struct aws_cryptosdk_mat_cache *cache,
-    const struct aws_cryptosdk_mat_cache_entry *entry
-) {
+    const struct aws_cryptosdk_mat_cache *cache, const struct aws_cryptosdk_mat_cache_entry *entry) {
     uint64_t (*entry_get_creation_time)(
-        const struct aws_cryptosdk_mat_cache *cache,
-        const struct aws_cryptosdk_mat_cache_entry *entry
-    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_get_creation_time);
+        const struct aws_cryptosdk_mat_cache *cache, const struct aws_cryptosdk_mat_cache_entry *entry) =
+        AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_get_creation_time);
 
     if (entry_get_creation_time) {
         return entry_get_creation_time(cache, entry);
@@ -460,31 +425,23 @@ uint64_t aws_cryptosdk_mat_cache_entry_get_creation_time(
 
 AWS_CRYPTOSDK_STATIC_INLINE
 void aws_cryptosdk_mat_cache_entry_ttl_hint(
-    struct aws_cryptosdk_mat_cache *cache,
-    struct aws_cryptosdk_mat_cache_entry *entry,
-    uint64_t exp_time
-) {
+    struct aws_cryptosdk_mat_cache *cache, struct aws_cryptosdk_mat_cache_entry *entry, uint64_t exp_time) {
     void (*entry_ttl_hint)(
-        struct aws_cryptosdk_mat_cache *cache,
-        struct aws_cryptosdk_mat_cache_entry *entry,
-        uint64_t exp_time
-    ) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_ttl_hint);
+        struct aws_cryptosdk_mat_cache * cache, struct aws_cryptosdk_mat_cache_entry * entry, uint64_t exp_time) =
+        AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_ttl_hint);
 
     if (entry_ttl_hint) {
         entry_ttl_hint(cache, entry, exp_time);
     }
 }
 
-#endif // AWS_CRYPTOSDK_DOXYGEN (unstable APIs excluded from docs)
+#    endif  // AWS_CRYPTOSDK_DOXYGEN (unstable APIs excluded from docs)
 
 /**
  * Creates a new instance of the built-in local materials cache. This cache is thread safe, and uses a simple
  * LRU policy (with capacity shared between encrypt and decrypt) to evict entries.
  */
-struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_local_new(
-    struct aws_allocator *alloc,
-    size_t capacity
-);
+struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_local_new(struct aws_allocator *alloc, size_t capacity);
 
 /**
  * Returns an estimate of the number of entries in the cache. If a size estimate is not available,
@@ -492,8 +449,8 @@ struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_local_new(
  */
 AWS_CRYPTOSDK_STATIC_INLINE
 size_t aws_cryptosdk_mat_cache_entry_count(const struct aws_cryptosdk_mat_cache *cache) {
-    size_t (*entry_count)(const struct aws_cryptosdk_mat_cache *cache)
-        = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_count);
+    size_t (*entry_count)(const struct aws_cryptosdk_mat_cache *cache) =
+        AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, entry_count);
 
     if (!entry_count) {
         return SIZE_MAX;
@@ -508,8 +465,7 @@ size_t aws_cryptosdk_mat_cache_entry_count(const struct aws_cryptosdk_mat_cache 
  */
 AWS_CRYPTOSDK_STATIC_INLINE
 void aws_cryptosdk_mat_cache_clear(struct aws_cryptosdk_mat_cache *cache) {
-    void (*clear)(struct aws_cryptosdk_mat_cache *cache)
-        = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, clear);
+    void (*clear)(struct aws_cryptosdk_mat_cache * cache) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, clear);
 
     if (clear) {
         clear(cache);
@@ -519,7 +475,8 @@ void aws_cryptosdk_mat_cache_clear(struct aws_cryptosdk_mat_cache *cache) {
 /**
  * Increments the reference count on the materials cache
  */
-AWS_CRYPTOSDK_STATIC_INLINE struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_retain(struct aws_cryptosdk_mat_cache * mat_cache) {
+AWS_CRYPTOSDK_STATIC_INLINE struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_retain(
+    struct aws_cryptosdk_mat_cache *mat_cache) {
     aws_cryptosdk_private_refcount_up(&mat_cache->refcount);
     return mat_cache;
 }
@@ -529,8 +486,8 @@ AWS_CRYPTOSDK_STATIC_INLINE struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_ca
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_mat_cache_release(struct aws_cryptosdk_mat_cache *mat_cache) {
     if (mat_cache && aws_cryptosdk_private_refcount_down(&mat_cache->refcount)) {
-        void (*destroy)(struct aws_cryptosdk_mat_cache *cache)
-            = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(mat_cache->vt, destroy);
+        void (*destroy)(struct aws_cryptosdk_mat_cache * cache) =
+            AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(mat_cache->vt, destroy);
 
         if (!destroy) {
             abort();
@@ -559,8 +516,7 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
     struct aws_allocator *alloc,
     struct aws_cryptosdk_mat_cache *mat_cache,
     struct aws_cryptosdk_cmm *upstream,
-    const struct aws_byte_buf *partition_id
-);
+    const struct aws_byte_buf *partition_id);
 
 enum aws_cryptosdk_caching_cmm_limit_type {
     /**
@@ -611,11 +567,8 @@ enum aws_cryptosdk_caching_cmm_limit_type {
  * @param new_value The new value of the limit
  */
 int aws_cryptosdk_caching_cmm_set_limits(
-    struct aws_cryptosdk_cmm *cmm,
-    enum aws_cryptosdk_caching_cmm_limit_type type,
-    uint64_t new_value
-);
+    struct aws_cryptosdk_cmm *cmm, enum aws_cryptosdk_caching_cmm_limit_type type, uint64_t new_value);
 
-/** @} */ // doxygen group caching
+/** @} */  // doxygen group caching
 
 #endif

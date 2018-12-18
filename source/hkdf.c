@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 #include <assert.h>
-#include <openssl/evp.h>
-#include <openssl/hmac.h>
-#include <openssl/opensslv.h>
 #include <aws/common/byte_buf.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/hkdf.h>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
+#include <openssl/opensslv.h>
 
 static const EVP_MD *aws_cryptosdk_get_evp_md(enum aws_cryptosdk_sha_version which_sha) {
     switch (which_sha) {
@@ -37,19 +37,18 @@ static int aws_cryptosdk_hkdf_extract(
     enum aws_cryptosdk_sha_version which_sha,
     const struct aws_byte_buf *salt,
     const struct aws_byte_buf *ikm) {
-
     const EVP_MD *evp_md = aws_cryptosdk_get_evp_md(which_sha);
     if (!evp_md) return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
 
     static const uint8_t zeroes[EVP_MAX_MD_SIZE] = { 0 };
-    const uint8_t *mysalt = NULL;
-    size_t mysalt_len = 0;
+    const uint8_t *mysalt                        = NULL;
+    size_t mysalt_len                            = 0;
 
     if (salt->len) {
-        mysalt = (uint8_t *)salt->buffer;
+        mysalt     = (uint8_t *)salt->buffer;
         mysalt_len = salt->len;
     } else {
-        mysalt = zeroes;
+        mysalt     = zeroes;
         mysalt_len = EVP_MD_size(evp_md);
     }
     if (!HMAC(evp_md, mysalt, mysalt_len, ikm->buffer, ikm->len, prk, prk_len) || *prk_len == 0) {
@@ -69,11 +68,11 @@ static int aws_cryptosdk_hkdf_expand(
     if (!evp_md) return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     HMAC_CTX ctx;
     uint8_t t[EVP_MAX_MD_SIZE];
-    size_t n = 0;
+    size_t n           = 0;
     unsigned int t_len = 0;
     size_t bytes_to_write;
     size_t bytes_remaining = okm->len;
-    size_t hash_len = EVP_MD_size(evp_md);
+    size_t hash_len        = EVP_MD_size(evp_md);
     HMAC_CTX_init(&ctx);
     if (!prk || !okm->len || !prk_len) goto err;
     n = (okm->len + hash_len - 1) / hash_len;
@@ -105,7 +104,7 @@ err:
     return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
 }
 #else
-#include <openssl/kdf.h>
+#    include <openssl/kdf.h>
 
 static int aws_cryptosdk_openssl_hkdf_version(
     struct aws_byte_buf *okm,
@@ -118,13 +117,13 @@ static int aws_cryptosdk_openssl_hkdf_version(
     EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
     if (!pctx) return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     static const uint8_t zeroes[EVP_MAX_MD_SIZE] = { 0 };
-    const uint8_t *mysalt = NULL;
-    size_t mysalt_len = 0;
+    const uint8_t *mysalt                        = NULL;
+    size_t mysalt_len                            = 0;
     if (salt->len) {
-        mysalt = (uint8_t *)salt->buffer;
+        mysalt     = (uint8_t *)salt->buffer;
         mysalt_len = salt->len;
     } else {
-        mysalt = zeroes;
+        mysalt     = zeroes;
         mysalt_len = EVP_MD_size(evp_md);
     }
 

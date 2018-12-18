@@ -1,23 +1,23 @@
-/* 
+/*
  * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may not use
  * this file except in compliance with the License. A copy of the License is
  * located at
- * 
+ *
  *     http://aws.amazon.com/apache2.0/
- * 
+ *
  * or in the "license" file accompanying this file. This file is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
- */ 
+ */
 
 #ifndef AWS_CRYPTOSDK_ERROR_H
 #define AWS_CRYPTOSDK_ERROR_H
 
-#include <aws/common/error.h>
 #include <aws/common/common.h>
+#include <aws/common/error.h>
 #include <aws/cryptosdk/exports.h>
 
 #ifdef __cplusplus
@@ -46,7 +46,7 @@ enum aws_cryptosdk_err {
     /** The failing call attempted to exceed a hard limit of some sort I*/
     AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED,
     /** No keyrings were able to decrypt the message in question */
-    AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT, // TODO - Rename?
+    AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT,  // TODO - Rename?
     AWS_CRYPTOSDK_ERR_END_RANGE = 0x2400
 };
 
@@ -62,6 +62,6 @@ void aws_cryptosdk_load_error_strings();
 }
 #endif
 
-/** @} */ // doxygen group error
+/** @} */  // doxygen group error
 
 #endif

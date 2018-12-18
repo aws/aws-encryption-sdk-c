@@ -2,17 +2,17 @@
  * this file except in compliance with the License. A copy of the License is
  * located at
  *
-    *     http://aws.amazon.com/apache2.0/
+ *     http://aws.amazon.com/apache2.0/
  *
  * or in the "license" file accompanying this file. This file is distributed on an
-     * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <aws/cryptosdk/list_utils.h>
-#include <aws/cryptosdk/edk.h>
-#include <aws/cryptosdk/private/keyring_trace.h>
 #include <assert.h>
+#include <aws/cryptosdk/edk.h>
+#include <aws/cryptosdk/list_utils.h>
+#include <aws/cryptosdk/private/keyring_trace.h>
 
 int aws_cryptosdk_transfer_list(struct aws_array_list *dest, struct aws_array_list *src) {
     size_t src_len = aws_array_list_length(src);
@@ -35,15 +35,16 @@ int aws_cryptosdk_transfer_list(struct aws_array_list *dest, struct aws_array_li
 typedef int (*clone_item_fn)(struct aws_allocator *, void *, const void *);
 typedef void (*clean_up_item_fn)(void *);
 
-static int list_copy_all(struct aws_allocator *alloc,
-                         struct aws_array_list *dest,
-                         const struct aws_array_list *src,
-                         clone_item_fn cloner,
-                         clean_up_item_fn cleaner) {
+static int list_copy_all(
+    struct aws_allocator *alloc,
+    struct aws_array_list *dest,
+    const struct aws_array_list *src,
+    clone_item_fn cloner,
+    clean_up_item_fn cleaner) {
     assert(dest->item_size == src->item_size);
 
     size_t initial_length = aws_array_list_length(dest);
-    size_t src_length = aws_array_list_length(src);
+    size_t src_length     = aws_array_list_length(src);
     int lasterr;
 
     /* You can do this with a variable length uint8_t array everywhere except Windows,
@@ -78,9 +79,9 @@ err:
     lasterr = aws_last_error();
 
     while (aws_array_list_length(dest) > initial_length) {
-        void * dest_item_ptr;
+        void *dest_item_ptr;
 
-        if (aws_array_list_get_at_ptr(dest, &dest_item_ptr, aws_array_list_length(dest)-1)) {
+        if (aws_array_list_get_at_ptr(dest, &dest_item_ptr, aws_array_list_length(dest) - 1)) {
             /*
              * We had elements at aws_array_list, but not anymore, it seems.
              * Someone must be mucking with the destination list from another thread;
@@ -95,19 +96,18 @@ err:
     return aws_raise_error(lasterr);
 }
 
-int aws_cryptosdk_edk_list_copy_all(struct aws_allocator *alloc,
-                                    struct aws_array_list *dest,
-                                    const struct aws_array_list *src) {
-    return list_copy_all(alloc, dest, src,
-                         (clone_item_fn)aws_cryptosdk_edk_init_clone,
-                         (clean_up_item_fn)aws_cryptosdk_edk_clean_up);
-
+int aws_cryptosdk_edk_list_copy_all(
+    struct aws_allocator *alloc, struct aws_array_list *dest, const struct aws_array_list *src) {
+    return list_copy_all(
+        alloc, dest, src, (clone_item_fn)aws_cryptosdk_edk_init_clone, (clean_up_item_fn)aws_cryptosdk_edk_clean_up);
 }
 
-int aws_cryptosdk_keyring_trace_copy_all(struct aws_allocator *alloc,
-                                         struct aws_array_list *dest,
-                                         const struct aws_array_list *src) {
-    return list_copy_all(alloc, dest, src,
-                         (clone_item_fn)aws_cryptosdk_keyring_trace_record_init_clone,
-                         (clean_up_item_fn)aws_cryptosdk_keyring_trace_record_clean_up);
+int aws_cryptosdk_keyring_trace_copy_all(
+    struct aws_allocator *alloc, struct aws_array_list *dest, const struct aws_array_list *src) {
+    return list_copy_all(
+        alloc,
+        dest,
+        src,
+        (clone_item_fn)aws_cryptosdk_keyring_trace_record_init_clone,
+        (clean_up_item_fn)aws_cryptosdk_keyring_trace_record_clean_up);
 }

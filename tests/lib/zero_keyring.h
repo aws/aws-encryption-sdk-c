@@ -38,4 +38,4 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_zero_keyring_new(struct aws_allocato
 TESTLIB_API
 void aws_cryptosdk_literally_null_edk(struct aws_cryptosdk_edk *edk);
 
-#endif // AWS_CRYPTOSDK_TESTS_LIB_ZERO_KEYRING_H
+#endif  // AWS_CRYPTOSDK_TESTS_LIB_ZERO_KEYRING_H

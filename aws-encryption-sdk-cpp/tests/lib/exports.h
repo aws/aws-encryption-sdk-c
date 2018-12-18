@@ -16,15 +16,14 @@
  * limitations under the License.
  */
 
-
 #if defined(_MSC_VER) && !defined(AWS_ENCRYPTION_SDK_FORCE_STATIC) && defined(AWS_ENCRYPTION_SDK_SHARED)
-#ifdef IN_TESTLIB_CPP_BUILD
-#define TESTLIB_CPP_API __declspec(dllexport)
+#    ifdef IN_TESTLIB_CPP_BUILD
+#        define TESTLIB_CPP_API __declspec(dllexport)
+#    else
+#        define TESTLIB_CPP_API __declspec(dllimport)
+#    endif
 #else
-#define TESTLIB_CPP_API __declspec(dllimport)
-#endif
-#else
-#define TESTLIB_CPP_API
+#    define TESTLIB_CPP_API
 #endif
 
 #endif

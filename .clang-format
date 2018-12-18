@@ -1,0 +1,30 @@
+---
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 120
+UseTab: Never
+#BreakBeforeBraces: Allman
+---
+Language: Cpp
+PointerAlignment: Right
+DerivePointerAlignment: false
+# Function arguments should either be on one line, or should be each on their own line
+BinPackParameters: false
+BinPackArguments: false
+# Indent nested preprocessor directives
+IndentPPDirectives: AfterHash
+# Short conditionals are allowed:
+# case xyz: blah; break;
+# if (foo) return;
+# while (blah) {}
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+# We'll allow empty functions to be on a single line
+# void noop() {}
+AllowShortFunctionsOnASingleLine: Empty
+Cpp11BracedListStyle: false
+AlignConsecutiveAssignments: true
+AlignAfterOpenBracket: AlwaysBreak
+---

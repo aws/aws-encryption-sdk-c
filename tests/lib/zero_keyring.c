@@ -12,9 +12,9 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <stdbool.h>
 #include "zero_keyring.h"
 #include <aws/cryptosdk/cipher.h>
+#include <stdbool.h>
 
 struct zero_keyring {
     struct aws_cryptosdk_keyring base;
@@ -24,9 +24,9 @@ struct zero_keyring {
 AWS_STATIC_STRING_FROM_LITERAL(literally_null, "null");
 
 void aws_cryptosdk_literally_null_edk(struct aws_cryptosdk_edk *edk) {
-    edk->provider_id = aws_byte_buf_from_c_str(literally_null->bytes);
+    edk->provider_id   = aws_byte_buf_from_c_str(literally_null->bytes);
     edk->provider_info = aws_byte_buf_from_c_str(literally_null->bytes);
-    edk->enc_data_key = aws_byte_buf_from_c_str(literally_null->bytes);
+    edk->enc_data_key  = aws_byte_buf_from_c_str(literally_null->bytes);
 }
 
 static bool buf_equals_c_string(const struct aws_byte_buf *buf, const char *cstr) {
@@ -37,37 +37,38 @@ static bool buf_equals_c_string(const struct aws_byte_buf *buf, const char *cstr
 static inline bool is_literally_null_edk(const struct aws_cryptosdk_edk *edk) {
     if (aws_string_eq_byte_buf(literally_null, &edk->provider_id) &&
         aws_string_eq_byte_buf(literally_null, &edk->provider_info) &&
-        aws_string_eq_byte_buf(literally_null, &edk->enc_data_key)
-        ) return true;
+        aws_string_eq_byte_buf(literally_null, &edk->enc_data_key))
+        return true;
 
     // Some older test vectors use "zero-key" / "provider info" / "\0" as their test data
 
     if (buf_equals_c_string(&edk->provider_id, "zero-key") &&
-        buf_equals_c_string(&edk->provider_info, "provider info") &&
-        edk->enc_data_key.len == 1 && edk->enc_data_key.buffer[0] == 0
-    ) return true;
+        buf_equals_c_string(&edk->provider_info, "provider info") && edk->enc_data_key.len == 1 &&
+        edk->enc_data_key.buffer[0] == 0)
+        return true;
 
     return false;
 }
 
-static int zero_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
-                                   struct aws_allocator *request_alloc,
-                                   struct aws_byte_buf *unencrypted_data_key,
-                                   struct aws_array_list *keyring_trace,
-                                   struct aws_array_list *edks,
-                                   const struct aws_hash_table *enc_context,
-                                   enum aws_cryptosdk_alg_id alg) {
+static int zero_keyring_on_encrypt(
+    struct aws_cryptosdk_keyring *kr,
+    struct aws_allocator *request_alloc,
+    struct aws_byte_buf *unencrypted_data_key,
+    struct aws_array_list *keyring_trace,
+    struct aws_array_list *edks,
+    const struct aws_hash_table *enc_context,
+    enum aws_cryptosdk_alg_id alg) {
     (void)enc_context;
     (void)kr;
-    const struct aws_cryptosdk_alg_properties * props = aws_cryptosdk_alg_props(alg);
-    uint32_t flags = AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY;
+    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
+    uint32_t flags                                   = AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY;
 
     if (unencrypted_data_key->buffer) {
         if (unencrypted_data_key->len != props->data_key_len) {
             // We can't encrypt arbitrary keys with this KR
             return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
         }
-        for (size_t byte_idx = 0 ; byte_idx < unencrypted_data_key->len ; ++byte_idx) {
+        for (size_t byte_idx = 0; byte_idx < unencrypted_data_key->len; ++byte_idx) {
             if (unencrypted_data_key->buffer[byte_idx]) {
                 // Zero KR only encrypts the all zero data key
                 return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
@@ -82,29 +83,26 @@ static int zero_keyring_on_encrypt(struct aws_cryptosdk_keyring *kr,
         flags |= AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY;
     }
 
-    aws_cryptosdk_keyring_trace_add_record(request_alloc,
-                                           keyring_trace,
-                                           literally_null,
-                                           literally_null,
-                                           flags);
+    aws_cryptosdk_keyring_trace_add_record(request_alloc, keyring_trace, literally_null, literally_null, flags);
 
     struct aws_cryptosdk_edk edk;
     aws_cryptosdk_literally_null_edk(&edk);
     return aws_array_list_push_back(edks, &edk);
 }
 
-static int zero_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
-                                   struct aws_allocator *request_alloc,
-                                   struct aws_byte_buf *unencrypted_data_key,
-                                   struct aws_array_list *keyring_trace,
-                                   const struct aws_array_list *edks,
-                                   const struct aws_hash_table *enc_context,
-                                   enum aws_cryptosdk_alg_id alg) {
+static int zero_keyring_on_decrypt(
+    struct aws_cryptosdk_keyring *kr,
+    struct aws_allocator *request_alloc,
+    struct aws_byte_buf *unencrypted_data_key,
+    struct aws_array_list *keyring_trace,
+    const struct aws_array_list *edks,
+    const struct aws_hash_table *enc_context,
+    enum aws_cryptosdk_alg_id alg) {
     (void)enc_context;
     (void)kr;
 
     size_t num_keys = aws_array_list_length(edks);
-    for (size_t key_idx = 0 ; key_idx < num_keys ; ++key_idx) {
+    for (size_t key_idx = 0; key_idx < num_keys; ++key_idx) {
         struct aws_cryptosdk_edk *edk;
         if (aws_array_list_get_at_ptr(edks, (void **)&edk, key_idx)) return AWS_OP_ERR;
         if (is_literally_null_edk(edk)) {
@@ -115,11 +113,12 @@ static int zero_keyring_on_decrypt(struct aws_cryptosdk_keyring *kr,
             aws_byte_buf_secure_zero(unencrypted_data_key);
             unencrypted_data_key->len = unencrypted_data_key->capacity;
 
-            aws_cryptosdk_keyring_trace_add_record(request_alloc,
-                                                   keyring_trace,
-                                                   literally_null,
-                                                   literally_null,
-                                                   AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY);
+            aws_cryptosdk_keyring_trace_add_record(
+                request_alloc,
+                keyring_trace,
+                literally_null,
+                literally_null,
+                AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY);
 
             return AWS_OP_SUCCESS;
         }
@@ -135,14 +134,11 @@ static void zero_keyring_destroy(struct aws_cryptosdk_keyring *kr) {
     aws_mem_release(self->alloc, self);
 }
 
-static const struct aws_cryptosdk_keyring_vt zero_keyring_vt = {
-    .vt_size = sizeof(struct aws_cryptosdk_keyring_vt),
-    .name = "zero keyring",
-    .destroy = zero_keyring_destroy,
-    .on_encrypt = zero_keyring_on_encrypt,
-    .on_decrypt = zero_keyring_on_decrypt
-};
-
+static const struct aws_cryptosdk_keyring_vt zero_keyring_vt = { .vt_size    = sizeof(struct aws_cryptosdk_keyring_vt),
+                                                                 .name       = "zero keyring",
+                                                                 .destroy    = zero_keyring_destroy,
+                                                                 .on_encrypt = zero_keyring_on_encrypt,
+                                                                 .on_decrypt = zero_keyring_on_decrypt };
 
 struct aws_cryptosdk_keyring *aws_cryptosdk_zero_keyring_new(struct aws_allocator *alloc) {
     struct zero_keyring *kr = aws_mem_acquire(alloc, sizeof(struct zero_keyring));
