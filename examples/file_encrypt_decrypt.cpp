@@ -69,7 +69,6 @@ static void process_file(char const * output_filename,
 
     uint8_t *output_buffer = (uint8_t *)malloc(INITIAL_CAPACITY);
     size_t output_capacity = INITIAL_CAPACITY;
-    size_t output_len = 0;
 
     // We use these variables to keep track of the number of bytes of input consumed and output generated.
     //   During encryption, once we know exactly how much plaintext is to be consumed, we call the
