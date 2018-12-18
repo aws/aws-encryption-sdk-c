@@ -138,10 +138,10 @@ static void process_file(char const * output_filename,
                aws_last_error(),
                aws_error_debug_str(aws_last_error()));
     } else {
-        printf("%s succeeded; %d input bytes were consumed; %d output bytes were produced\n",
+        printf("%s succeeded; %lu input bytes were consumed; %lu output bytes were produced\n",
                (mode == AWS_CRYPTOSDK_ENCRYPT) ? "Encryption" : "Decryption",
-               (int)total_input_consumed,
-               (int)total_output_produced) ;
+               total_input_consumed,
+               total_output_produced) ;
     }
 
     free(input_buffer);
