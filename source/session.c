@@ -284,8 +284,8 @@ void aws_cryptosdk_session_estimate_buf(
     const struct aws_cryptosdk_session *AWS_RESTRICT session,
     size_t *AWS_RESTRICT outbuf_needed,
     size_t *AWS_RESTRICT inbuf_needed) {
-    *outbuf_needed = session->output_size_estimate;
-    *inbuf_needed  = session->input_size_estimate;
+    if (outbuf_needed) *outbuf_needed = session->output_size_estimate;
+    if (inbuf_needed)  *inbuf_needed  = session->input_size_estimate;
 }
 
 void aws_cryptosdk_priv_session_change_state(struct aws_cryptosdk_session *session, enum session_state new_state) {
