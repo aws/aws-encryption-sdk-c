@@ -103,8 +103,8 @@ std::string base64_encode(const std::vector<uint8_t> &vec) {
     std::vector<uint8_t> tmp;
     tmp.resize(b64_len);
 
-    auto cursor  = aws_byte_cursor_from_array(vec.data(), vec.size());
-    auto b64_buf = aws_byte_buf_from_array(tmp.data(), tmp.size());
+    struct aws_byte_cursor cursor = aws_byte_cursor_from_array(vec.data(), vec.size());
+    struct aws_byte_buf b64_buf   = aws_byte_buf_from_array(tmp.data(), tmp.size());
 
     if (aws_base64_encode(&cursor, &b64_buf)) {
         error("aws_base64_encode");
@@ -126,6 +126,9 @@ struct aws_cryptosdk_cmm *setup_cmm(struct aws_allocator *alloc, const char *key
     struct aws_cryptosdk_cmm *caching_cmm = aws_cryptosdk_caching_cmm_new(alloc, cache, default_cmm, NULL);
     if (!caching_cmm) error("caching CMM constructor");
 
+    // The caching_cmm object now holds references (directly or indirectly) to all the other objects;
+    // we can now release our references so that the objects will be automatically cleaned up when we
+    // eventually release the caching_cmm itself.
     aws_cryptosdk_keyring_release(kms_keyring);
     aws_cryptosdk_cmm_release(default_cmm);
     aws_cryptosdk_mat_cache_release(cache);
@@ -137,7 +140,7 @@ struct aws_cryptosdk_cmm *setup_cmm(struct aws_allocator *alloc, const char *key
 
 int main(int argc, char **argv) {
     if (argc < 2) {
-        printf("Usage: %s key_arn string1 [string2 string3 ...]\n", argv[0]);
+        std::cerr << "Usage: " << arv[0] << " key_arn string1 [string2 string2 ...]" << std::endl;
         return 1;
     }
 
