@@ -14,15 +14,31 @@ REM limitations under the License.
 rmdir/s/q deps
 mkdir deps
 cd deps
-git clone https://github.com/awslabs/aws-c-common.git || goto error
+git clone --branch v0.2.0 https://github.com/awslabs/aws-c-common.git || goto error
 mkdir c-common-build
 cd c-common-build
 cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_BUILD_TYPE="Release" -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake ../aws-c-common || goto error
 msbuild.exe aws-c-common.vcxproj /p:Configuration=Release || goto error
 msbuild.exe INSTALL.vcxproj /p:Configuration=Release || goto error
+cd ..
 
-cd ..\..
+git clone --branch v0.1.0 https://github.com/awslabs/aws-checksums.git || goto error
+mkdir checksums-build
+cd checksums-build
+cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_BUILD_TYPE="Release" -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake ../aws-checksums || goto error
+msbuild.exe aws-checksums.vcxproj /p:Configuration=Release || goto error
+msbuild.exe INSTALL.vcxproj /p:Configuration=Release || goto error
+cd ..
 
+git clone --branch v0.1.0 https://github.com/awslabs/aws-c-event-stream.git || goto error
+mkdir c-event-stream-build
+cd c-event-stream-build
+cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_BUILD_TYPE="Release" -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake ../aws-c-event-stream || goto error
+msbuild.exe aws-c-event-stream.vcxproj /p:Configuration=Release || goto error
+msbuild.exe INSTALL.vcxproj /p:Configuration=Release || goto error
+cd ..
+
+cd ..
 rmdir/s/q build
 mkdir build
 cd build

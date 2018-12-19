@@ -61,7 +61,9 @@ for libtype in shared static; do
 
     root=/deps/$libtype
 
-    build_pkg $root/install https://github.com/awslabs/aws-c-common.git master $CMAKE_ARGS
-    build_pkg $root/install https://github.com/awslabs/aws-sdk-cpp.git 1.6.35 $CMAKE_ARGS -DBUILD_ONLY=kms -DENABLE_UNITY_BUILD=ON
+    build_pkg $root/install https://github.com/awslabs/aws-c-common.git v0.2.0 $CMAKE_ARGS
+    build_pkg $root/install https://github.com/awslabs/aws-checksums.git v0.1.0 $CMAKE_ARGS
+    build_pkg $root/install https://github.com/awslabs/aws-c-event-stream v0.1.0 $CMAKE_ARGS
+    build_pkg $root/install https://github.com/aws/aws-sdk-cpp.git 1.6.35 $CMAKE_ARGS -DBUILD_ONLY=kms -DENABLE_UNITY_BUILD=ON
 done
 
