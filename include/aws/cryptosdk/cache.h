@@ -14,6 +14,7 @@
  */
 
 #ifndef AWS_CRYPTOSDK_CACHE_H
+#define AWS_CRYPTOSDK_CACHE_H
 
 #    include <aws/common/clock.h>
 
