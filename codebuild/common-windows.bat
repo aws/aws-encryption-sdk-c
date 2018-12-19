@@ -38,6 +38,14 @@ msbuild.exe aws-c-event-stream.vcxproj /p:Configuration=Release || goto error
 msbuild.exe INSTALL.vcxproj /p:Configuration=Release || goto error
 cd ..
 
+git clone --branch 1.7.21 https://github.com/aws/aws-sdk-cpp.git || goto error
+mkdir cpp-sdk-build
+cd cpp-sdk-build
+cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_BUILD_TYPE="Release" -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake ../aws-sdk-cpp || goto error
+msbuild.exe aws-sdk-cpp.vcxproj /p:Configuration=Release || goto error
+msbuild.exe INSTALL.vcxproj /p:Configuration=Release || goto error
+cd ..
+
 cd ..
 rmdir/s/q build
 mkdir build
