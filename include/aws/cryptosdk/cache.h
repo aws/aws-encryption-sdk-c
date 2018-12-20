@@ -14,12 +14,13 @@
  */
 
 #ifndef AWS_CRYPTOSDK_CACHE_H
+#define AWS_CRYPTOSDK_CACHE_H
 
-#    include <aws/common/clock.h>
+#include <aws/common/clock.h>
 
-#    include <aws/cryptosdk/exports.h>
-#    include <aws/cryptosdk/materials.h>
-#    include <aws/cryptosdk/vtable.h>
+#include <aws/cryptosdk/exports.h>
+#include <aws/cryptosdk/materials.h>
+#include <aws/cryptosdk/vtable.h>
 
 AWS_EXTERN_C_BEGIN
 
@@ -51,21 +52,21 @@ AWS_EXTERN_C_BEGIN
  * @{
  */
 
-#    define AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES ((uint64_t)1 << 32)
+#define AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES ((uint64_t)1 << 32)
 
 /**
  * The backing materials cache that stores the cached materials for one or more caching CMMs.
  */
-#    ifdef AWS_CRYPTOSDK_DOXYGEN
+#ifdef AWS_CRYPTOSDK_DOXYGEN
 struct aws_cryptosdk_mat_cache;
-#    else
+#else
 struct aws_cryptosdk_mat_cache {
     struct aws_atomic_var refcount;
     const struct aws_cryptosdk_mat_cache_vt *vt;
 };
-#    endif
+#endif
 
-#    ifndef AWS_CRYPTOSDK_DOXYGEN
+#ifndef AWS_CRYPTOSDK_DOXYGEN
 /**
  * NOTE: The extension API for defining new materials cache is currently considered unstable and
  * may change in the future.
@@ -437,7 +438,7 @@ void aws_cryptosdk_mat_cache_entry_ttl_hint(
     }
 }
 
-#    endif  // AWS_CRYPTOSDK_DOXYGEN (unstable APIs excluded from docs)
+#endif  // AWS_CRYPTOSDK_DOXYGEN (unstable APIs excluded from docs)
 
 /**
  * Creates a new instance of the built-in local materials cache. This cache is thread safe, and uses a simple
