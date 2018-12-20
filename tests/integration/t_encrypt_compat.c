@@ -49,11 +49,15 @@ static enum aws_cryptosdk_alg_id alg_to_use;
 
 static const char *apigw_url = "https://yrniiep3a0.execute-api.us-west-2.amazonaws.com/test";
 
-#define TRY_DECRYPT(expect, expect_size, ciphertext, ciphertext_size)                            \
-    do {                                                                                         \
-        if (try_decrypt(expect, expect_size, ciphertext, ciphertext_size, __FILE__, __LINE__)) { \
-            return 1;                                                                            \
-        }                                                                                        \
+#define TRY_DECRYPT(expect, expect_size, ciphertext, ciphertext_size)                                    \
+    do {                                                                                                 \
+        int num_retries = 0;                                                                             \
+        while (1) {                                                                                      \
+            int ret = try_decrypt(expect, expect_size, ciphertext, ciphertext_size, __FILE__, __LINE__); \
+            if (ret == 0) break;                                                                         \
+            if (ret == 1) return 1;                                                                      \
+            if (++num_retries > 4) return 1;                                                             \
+        }                                                                                                \
     } while (0)
 
 static uint8_t recv_buf[65536];
@@ -156,7 +160,7 @@ static int try_decrypt(
         fprintf(stderr, "Error from server (code %ld):\n", http_code);
         fwrite(recv_buf, recv_buf_used, 1, stderr);
         fprintf(stderr, "\n");
-        return 1;
+        return 2;
     }
 
     if (expected_size != recv_buf_used || memcmp(expected, recv_buf, recv_buf_used)) {
