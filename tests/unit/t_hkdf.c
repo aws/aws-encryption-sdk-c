@@ -195,9 +195,7 @@ struct hkdf_test_vectors tv[] = {
       .okm_desired = tv_5_okm_desired,
       .okm_len     = 42 },
 
-    { .which_sha   = AWS_CRYPTOSDK_NOSHA,
-      .ikm         = tv_6_ikm,
-      .ikm_len     = 10 },
+    { .which_sha = AWS_CRYPTOSDK_NOSHA, .ikm = tv_6_ikm, .ikm_len = 10 },
 };
 
 int test_hkdf() {
@@ -205,7 +203,7 @@ int test_hkdf() {
         struct aws_byte_buf myokm;
         struct aws_allocator *allocator = aws_default_allocator();
         if (aws_byte_buf_init(&myokm, allocator, tv[i].okm_len)) return AWS_OP_ERR;
-        myokm.len = tv[i].okm_len;
+        myokm.len                        = tv[i].okm_len;
         const struct aws_byte_buf mysalt = aws_byte_buf_from_array(tv[i].salt, tv[i].salt_len);
         const struct aws_byte_buf myikm  = aws_byte_buf_from_array(tv[i].ikm, tv[i].ikm_len);
         const struct aws_byte_buf myinfo = aws_byte_buf_from_array(tv[i].info, tv[i].info_len);
@@ -222,7 +220,4 @@ int test_hkdf() {
     return AWS_OP_SUCCESS;
 }
 
-struct test_case hkdf_test_cases[] = { 
-    { "hkdf", "test_hkdf", test_hkdf },
-    { NULL }
-};
+struct test_case hkdf_test_cases[] = { { "hkdf", "test_hkdf", test_hkdf }, { NULL } };

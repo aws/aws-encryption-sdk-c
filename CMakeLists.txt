@@ -85,9 +85,19 @@ if (PERFORM_HEADER_CHECK)
     add_subdirectory(cmake/header-tester)
 endif()
 
-# Generate an includable header file exposing build-time configuration
+# Generate includable header files exposing build-time configuration
 set(GENERATED_INCLUDE "${CMAKE_CURRENT_BINARY_DIR}/generated/include")
 set(GENERATED_CONFIG_HEADER "${GENERATED_INCLUDE}/aws/cryptosdk/private/config.h")
+
+# Also expose git revision information in user-agent
+include(GitRevision)
+FindGitRevision(git_revision)
+if(git_revision STREQUAL "")
+    set(AWS_CRYPTOSDK_PRIVATE_GITVERSION "" CACHE INTERNAL "")
+else()
+    set(AWS_CRYPTOSDK_PRIVATE_GITVERSION "-${git_revision}" CACHE INTERNAL "")
+endif()
+
 
 CHECK_LIBRARY_EXISTS("rt" "clock_gettime" "" HAVE_LIBRT)
 if(HAVE_LIBRT)

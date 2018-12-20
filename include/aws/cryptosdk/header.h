@@ -17,6 +17,7 @@
 #define AWS_CRYPTOSDK_HEADER_H
 
 /**
+ * @ingroup session
  * Known algorithm suite names.
  * These follow the format:
  *   [cipher algorithm]_IV[iv length]_AUTH[authtag length]_KD[KDF algorithm]_SIG[Signature algorithm, or NONE]
@@ -33,4 +34,4 @@ enum aws_cryptosdk_alg_id {
     AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE    = 0x0014
 };
 
-#endif // AWS_CRYPTOSDK_HEADER_H
+#endif  // AWS_CRYPTOSDK_HEADER_H

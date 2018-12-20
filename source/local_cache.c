@@ -15,14 +15,15 @@
 
 #include <aws/cryptosdk/cache.h>
 #include <aws/cryptosdk/cipher.h>
+#include <aws/cryptosdk/enc_context.h>
+#include <aws/cryptosdk/list_utils.h>
 #include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/private/enc_context.h>
-#include <aws/cryptosdk/enc_context.h>
 
-#include <aws/common/linked_list.h>
 #include <aws/common/array_list.h>
-#include <aws/common/priority_queue.h>
+#include <aws/common/linked_list.h>
 #include <aws/common/mutex.h>
+#include <aws/common/priority_queue.h>
 
 #define CACHE_ID_MD_ALG AWS_CRYPTOSDK_MD_SHA512
 #define TTL_EXPIRATION_BATCH_SIZE 8
@@ -137,24 +138,24 @@ static inline int ttl_heap_cmp(const void *vpa, const void *vpb);
  * It follows that these locked_* functions must not reacquire the mutex, as aws-c-common
  * mutexes are not reentrant.
  */
-static void locked_invalidate_entry(struct aws_cryptosdk_local_cache *cache, struct local_cache_entry *entry, bool skip_hash);
+static void locked_invalidate_entry(
+    struct aws_cryptosdk_local_cache *cache, struct local_cache_entry *entry, bool skip_hash);
 static inline void locked_lru_move_to_head(struct aws_linked_list_node *head, struct aws_linked_list_node *entry);
 static int locked_process_ttls(struct aws_cryptosdk_local_cache *cache);
 static bool locked_find_entry(
-    struct aws_cryptosdk_local_cache *cache,
-    struct local_cache_entry **entry,
-    const struct aws_byte_buf *cache_id
-);
-static int locked_insert_entry(
-    struct aws_cryptosdk_local_cache *cache,
-    struct local_cache_entry *entry
-);
-static void locked_release_entry(struct aws_cryptosdk_local_cache *cache, struct local_cache_entry *entry, bool invalidate);
+    struct aws_cryptosdk_local_cache *cache, struct local_cache_entry **entry, const struct aws_byte_buf *cache_id);
+static int locked_insert_entry(struct aws_cryptosdk_local_cache *cache, struct local_cache_entry *entry);
+static void locked_release_entry(
+    struct aws_cryptosdk_local_cache *cache, struct local_cache_entry *entry, bool invalidate);
 
-static struct local_cache_entry *new_entry(struct aws_cryptosdk_local_cache *cache, const struct aws_byte_buf *cache_id);
+static struct local_cache_entry *new_entry(
+    struct aws_cryptosdk_local_cache *cache, const struct aws_byte_buf *cache_id);
 static void destroy_cache_entry(struct local_cache_entry *entry);
 static void destroy_cache_entry_vp(void *vp_entry);
-static int copy_encryption_materials(struct aws_allocator *alloc, struct aws_cryptosdk_encryption_materials *out, const struct aws_cryptosdk_encryption_materials *in);
+static int copy_encryption_materials(
+    struct aws_allocator *alloc,
+    struct aws_cryptosdk_encryption_materials *out,
+    const struct aws_cryptosdk_encryption_materials *in);
 
 AWS_CRYPTOSDK_TEST_STATIC uint64_t hash_cache_id(const void *vp_buf) {
     const struct aws_byte_buf *buf = vp_buf;
@@ -168,7 +169,7 @@ AWS_CRYPTOSDK_TEST_STATIC uint64_t hash_cache_id(const void *vp_buf) {
      * TODO: Should we re-hash to deal with CMMs which don't pre-hash?
      */
     uint64_t hash_code = 0;
-    size_t copylen = buf->len > sizeof(hash_code) ? sizeof(hash_code) : buf->len;
+    size_t copylen     = buf->len > sizeof(hash_code) ? sizeof(hash_code) : buf->len;
     memcpy((char *)&hash_code + sizeof(hash_code) - copylen, buf->buffer, copylen);
 
     /* We placed the hash code at the big-endian LSBs, so convert to host endian now */
@@ -222,7 +223,8 @@ static inline int ttl_heap_cmp(const void *vpa, const void *vpb) {
  * freed upon return. As such, if skip_hash is true, the caller must arrange to remove
  * the hash table's reference to the key without performing a lookup.
  */
-static void locked_invalidate_entry(struct aws_cryptosdk_local_cache *cache, struct local_cache_entry *entry, bool skip_hash) {
+static void locked_invalidate_entry(
+    struct aws_cryptosdk_local_cache *cache, struct local_cache_entry *entry, bool skip_hash) {
     assert(entry->owner == cache);
 
     if (entry->zombie) {
@@ -246,7 +248,7 @@ static void locked_invalidate_entry(struct aws_cryptosdk_local_cache *cache, str
 
     aws_linked_list_remove(&entry->lru_node);
     entry->lru_node.next = entry->lru_node.prev = &entry->lru_node;
-    entry->zombie = true;
+    entry->zombie                               = true;
 
     /* Release the reference count owned by the cache itself */
     locked_release_entry(entry->owner, entry, false);
@@ -268,11 +270,9 @@ static int locked_process_ttls(struct aws_cryptosdk_local_cache *cache) {
         return AWS_OP_ERR;
     }
 
-    while (max_items_to_expire--
-        && aws_priority_queue_size(&cache->ttl_heap)
-        && !aws_priority_queue_top(&cache->ttl_heap, &vp_item)
-        && (entry = *(struct local_cache_entry **)vp_item)->expiry_time <= now
-    ) {
+    while (max_items_to_expire-- && aws_priority_queue_size(&cache->ttl_heap) &&
+           !aws_priority_queue_top(&cache->ttl_heap, &vp_item) &&
+           (entry = *(struct local_cache_entry **)vp_item)->expiry_time <= now) {
         locked_invalidate_entry(cache, entry, false);
     }
 
@@ -280,10 +280,7 @@ static int locked_process_ttls(struct aws_cryptosdk_local_cache *cache) {
 }
 
 static bool locked_find_entry(
-    struct aws_cryptosdk_local_cache *cache,
-    struct local_cache_entry **entry,
-    const struct aws_byte_buf *cache_id
-) {
+    struct aws_cryptosdk_local_cache *cache, struct local_cache_entry **entry, const struct aws_byte_buf *cache_id) {
     struct aws_hash_element *element;
 
     locked_process_ttls(cache);
@@ -299,10 +296,7 @@ static bool locked_find_entry(
     return true;
 }
 
-static int locked_insert_entry(
-    struct aws_cryptosdk_local_cache *cache,
-    struct local_cache_entry *entry
-) {
+static int locked_insert_entry(struct aws_cryptosdk_local_cache *cache, struct local_cache_entry *entry) {
     int was_created = 0;
     struct aws_hash_element *element;
 
@@ -318,7 +312,7 @@ static int locked_insert_entry(
     }
 
     /* Update the key pointer in case we're overwriting an existing entry */
-    element->key = &entry->cache_id;
+    element->key   = &entry->cache_id;
     element->value = entry;
 
     aws_linked_list_insert_after(&cache->lru_head, &entry->lru_node);
@@ -327,17 +321,15 @@ static int locked_insert_entry(
         assert(cache->lru_head.prev != &cache->lru_head);
         assert(cache->lru_head.prev != &entry->lru_node);
 
-        locked_invalidate_entry(cache, AWS_CONTAINER_OF(cache->lru_head.prev, struct local_cache_entry, lru_node), false);
+        locked_invalidate_entry(
+            cache, AWS_CONTAINER_OF(cache->lru_head.prev, struct local_cache_entry, lru_node), false);
     }
 
     return AWS_OP_SUCCESS;
 }
 
 static void locked_release_entry(
-    struct aws_cryptosdk_local_cache *cache,
-    struct local_cache_entry *entry,
-    bool invalidate
-) {
+    struct aws_cryptosdk_local_cache *cache, struct local_cache_entry *entry, bool invalidate) {
     /*
      * We must use release memory order here, to guard against a race condition. Consider the following
      * program order:
@@ -386,7 +378,8 @@ static void locked_release_entry(
     }
 }
 
-static struct local_cache_entry *new_entry(struct aws_cryptosdk_local_cache *cache, const struct aws_byte_buf *cache_id) {
+static struct local_cache_entry *new_entry(
+    struct aws_cryptosdk_local_cache *cache, const struct aws_byte_buf *cache_id) {
     uint64_t now;
 
     if (cache->clock_get_ticks(&now)) {
@@ -409,13 +402,8 @@ static struct local_cache_entry *new_entry(struct aws_cryptosdk_local_cache *cac
     aws_atomic_init_int(&entry->refcount, 1);
     entry->owner = cache;
 
-    size_t id_length = cache_id->len;
-    if (id_length > AWS_CRYPTOSDK_MD_MAX_SIZE) {
-        id_length = AWS_CRYPTOSDK_MD_MAX_SIZE;
-    }
-
     entry->creation_time = now;
-    entry->expiry_time = NO_EXPIRY;
+    entry->expiry_time   = NO_EXPIRY;
 
     entry->lru_node.next = entry->lru_node.prev = &entry->lru_node;
 
@@ -455,32 +443,35 @@ static void destroy_cache_entry_vp(void *vp_entry) {
     destroy_cache_entry(entry);
 }
 
-static int copy_encryption_materials(struct aws_allocator *alloc, struct aws_cryptosdk_encryption_materials *out, const struct aws_cryptosdk_encryption_materials *in) {
-    if (aws_byte_buf_init_copy(&out->unencrypted_data_key, alloc, &in->unencrypted_data_key)) {
-        goto err;
-    }
-
-    if (aws_cryptosdk_edk_list_copy_all(alloc, &out->encrypted_data_keys, &in->encrypted_data_keys)) {
-        goto err;
-    }
-
-    /* We do not clone the signing context itself, but instead we save the public or private keys elsewhere */
-    out->signctx = NULL;
-    out->alg = in->alg;
-
-    return AWS_OP_SUCCESS;
-err:
-    return AWS_OP_ERR;
-}
-
-static int copy_decryption_materials(struct aws_allocator *alloc, struct aws_cryptosdk_decryption_materials *out, const struct aws_cryptosdk_decryption_materials *in) {
-    if (aws_byte_buf_init_copy(&out->unencrypted_data_key, alloc, &in->unencrypted_data_key)) {
+static int copy_encryption_materials(
+    struct aws_allocator *alloc,
+    struct aws_cryptosdk_encryption_materials *out,
+    const struct aws_cryptosdk_encryption_materials *in) {
+    if (aws_byte_buf_init_copy(&out->unencrypted_data_key, alloc, &in->unencrypted_data_key) ||
+        aws_cryptosdk_edk_list_copy_all(alloc, &out->encrypted_data_keys, &in->encrypted_data_keys) ||
+        aws_cryptosdk_keyring_trace_copy_all(alloc, &out->keyring_trace, &in->keyring_trace)) {
         return AWS_OP_ERR;
     }
 
     /* We do not clone the signing context itself, but instead we save the public or private keys elsewhere */
     out->signctx = NULL;
-    out->alg = in->alg;
+    out->alg     = in->alg;
+
+    return AWS_OP_SUCCESS;
+}
+
+static int copy_decryption_materials(
+    struct aws_allocator *alloc,
+    struct aws_cryptosdk_decryption_materials *out,
+    const struct aws_cryptosdk_decryption_materials *in) {
+    if (aws_byte_buf_init_copy(&out->unencrypted_data_key, alloc, &in->unencrypted_data_key) ||
+        aws_cryptosdk_keyring_trace_copy_all(alloc, &out->keyring_trace, &in->keyring_trace)) {
+        return AWS_OP_ERR;
+    }
+
+    /* We do not clone the signing context itself, but instead we save the public or private keys elsewhere */
+    out->signctx = NULL;
+    out->alg     = in->alg;
 
     return AWS_OP_SUCCESS;
 }
@@ -521,13 +512,11 @@ static size_t entry_count(const struct aws_cryptosdk_mat_cache *generic_cache) {
     return entry_count;
 }
 
-
 static int find_entry(
     struct aws_cryptosdk_mat_cache *generic_cache,
     struct aws_cryptosdk_mat_cache_entry **entry,
     bool *is_encrypt,
-    const struct aws_byte_buf *cache_id
-) {
+    const struct aws_byte_buf *cache_id) {
     struct aws_cryptosdk_local_cache *cache = (struct aws_cryptosdk_local_cache *)generic_cache;
 
     *entry = NULL;
@@ -535,8 +524,6 @@ static int find_entry(
     if (aws_mutex_lock(&cache->mutex)) {
         return AWS_OP_ERR;
     }
-
-    int rv = AWS_OP_ERR;
 
     struct local_cache_entry *local_entry;
     if (locked_find_entry(cache, &local_entry, cache_id)) {
@@ -547,20 +534,17 @@ static int find_entry(
         }
     }
 
-    rv = AWS_OP_SUCCESS;
-
     if (aws_mutex_unlock(&cache->mutex)) {
         abort();
     }
 
-    return rv;
+    return AWS_OP_SUCCESS;
 }
 
 static int update_usage_stats(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_cryptosdk_mat_cache_entry *entry,
-    struct aws_cryptosdk_cache_usage_stats *usage_stats
-) {
+    struct aws_cryptosdk_cache_usage_stats *usage_stats) {
     (void)cache;
     struct local_cache_entry *local_entry = (struct local_cache_entry *)entry;
 
@@ -568,11 +552,10 @@ static int update_usage_stats(
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     }
 
-/* TODO: Saturation */
-    usage_stats->bytes_encrypted
-        += aws_atomic_fetch_add(&local_entry->usage_bytes, usage_stats->bytes_encrypted);
-    usage_stats->messages_encrypted
-        += aws_atomic_fetch_add(&local_entry->usage_messages, usage_stats->messages_encrypted);
+    /* TODO: Saturation */
+    usage_stats->bytes_encrypted += aws_atomic_fetch_add(&local_entry->usage_bytes, usage_stats->bytes_encrypted);
+    usage_stats->messages_encrypted +=
+        aws_atomic_fetch_add(&local_entry->usage_messages, usage_stats->messages_encrypted);
 
     return AWS_OP_SUCCESS;
 }
@@ -582,12 +565,11 @@ static int get_encryption_materials(
     struct aws_allocator *allocator,
     struct aws_cryptosdk_encryption_materials **materials_out,
     struct aws_hash_table *enc_context,
-    struct aws_cryptosdk_mat_cache_entry *entry
-) {
+    struct aws_cryptosdk_mat_cache_entry *entry) {
     (void)cache;
-    struct local_cache_entry *local_entry = (struct local_cache_entry *)entry;
+    struct local_cache_entry *local_entry                = (struct local_cache_entry *)entry;
     struct aws_cryptosdk_encryption_materials *materials = NULL;
-    *materials_out = NULL;
+    *materials_out                                       = NULL;
 
     if (!local_entry->enc_materials) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
@@ -605,19 +587,17 @@ static int get_encryption_materials(
         goto out;
     }
 
-    if (local_entry->key_materials
-        && aws_cryptosdk_sig_sign_start(
-            &materials->signctx,
-            allocator,
-            NULL,
-            aws_cryptosdk_alg_props(materials->alg),
-            local_entry->key_materials
-    )) {
+    if (local_entry->key_materials && aws_cryptosdk_sig_sign_start(
+                                          &materials->signctx,
+                                          allocator,
+                                          NULL,
+                                          aws_cryptosdk_alg_props(materials->alg),
+                                          local_entry->key_materials)) {
         goto out;
     }
 
     *materials_out = materials;
-    materials = NULL;
+    materials      = NULL;
 
 out:
     aws_cryptosdk_encryption_materials_destroy(materials);
@@ -628,12 +608,11 @@ static int get_decryption_materials(
     const struct aws_cryptosdk_mat_cache *cache,
     struct aws_allocator *allocator,
     struct aws_cryptosdk_decryption_materials **materials_out,
-    const struct aws_cryptosdk_mat_cache_entry *entry
-) {
+    const struct aws_cryptosdk_mat_cache_entry *entry) {
     (void)cache;
-    struct local_cache_entry *local_entry = (struct local_cache_entry *)entry;
+    struct local_cache_entry *local_entry                = (struct local_cache_entry *)entry;
     struct aws_cryptosdk_decryption_materials *materials = NULL;
-    *materials_out = NULL;
+    *materials_out                                       = NULL;
 
     if (!local_entry->dec_materials) {
         // XXX
@@ -642,22 +621,18 @@ static int get_decryption_materials(
 
     materials = aws_cryptosdk_decryption_materials_new(allocator, local_entry->dec_materials->alg);
 
-    if (copy_decryption_materials(allocator, materials, local_entry->dec_materials)) {
+    if (!materials || copy_decryption_materials(allocator, materials, local_entry->dec_materials)) {
         goto out;
     }
 
-    if (local_entry->key_materials
-        && aws_cryptosdk_sig_verify_start(
-            &materials->signctx,
-            allocator,
-            local_entry->key_materials,
-            aws_cryptosdk_alg_props(materials->alg)
-    )) {
+    if (local_entry->key_materials &&
+        aws_cryptosdk_sig_verify_start(
+            &materials->signctx, allocator, local_entry->key_materials, aws_cryptosdk_alg_props(materials->alg))) {
         goto out;
     }
 
     *materials_out = materials;
-    materials = NULL;
+    materials      = NULL;
 out:
     aws_cryptosdk_decryption_materials_destroy(materials);
 
@@ -670,10 +645,9 @@ static void put_entry_for_encrypt(
     const struct aws_cryptosdk_encryption_materials *materials,
     struct aws_cryptosdk_cache_usage_stats initial_usage,
     const struct aws_hash_table *enc_context,
-    const struct aws_byte_buf *cache_id
-) {
+    const struct aws_byte_buf *cache_id) {
     struct aws_cryptosdk_local_cache *cache = (struct aws_cryptosdk_local_cache *)generic_cache;
-    *ret_entry = NULL;
+    *ret_entry                              = NULL;
 
     if (aws_mutex_lock(&cache->mutex)) {
         return;
@@ -733,10 +707,9 @@ static void put_entry_for_decrypt(
     struct aws_cryptosdk_mat_cache *generic_cache,
     struct aws_cryptosdk_mat_cache_entry **ret_entry,
     const struct aws_cryptosdk_decryption_materials *materials,
-    const struct aws_byte_buf *cache_id
-) {
+    const struct aws_byte_buf *cache_id) {
     struct aws_cryptosdk_local_cache *cache = (struct aws_cryptosdk_local_cache *)generic_cache;
-    *ret_entry = NULL;
+    *ret_entry                              = NULL;
 
     if (aws_mutex_lock(&cache->mutex)) {
         return;
@@ -785,9 +758,7 @@ out:
 }
 
 static uint64_t get_creation_time(
-    const struct aws_cryptosdk_mat_cache *cache,
-    const struct aws_cryptosdk_mat_cache_entry *generic_entry
-) {
+    const struct aws_cryptosdk_mat_cache *cache, const struct aws_cryptosdk_mat_cache_entry *generic_entry) {
     const struct local_cache_entry *entry = (const struct local_cache_entry *)generic_entry;
 
     assert(&entry->owner->base == cache);
@@ -799,9 +770,8 @@ static uint64_t get_creation_time(
 static void set_expiration_hint(
     struct aws_cryptosdk_mat_cache *generic_cache,
     struct aws_cryptosdk_mat_cache_entry *generic_entry,
-    uint64_t expiry_time
-) {
-    struct local_cache_entry *entry = (struct local_cache_entry *)generic_entry;
+    uint64_t expiry_time) {
+    struct local_cache_entry *entry         = (struct local_cache_entry *)generic_entry;
     struct aws_cryptosdk_local_cache *cache = entry->owner;
     assert(&cache->base == generic_cache);
     (void)generic_cache;
@@ -835,7 +805,7 @@ static void set_expiration_hint(
     }
 
     entry->expiry_time = expiry_time;
-    void *vp_entry = entry;
+    void *vp_entry     = entry;
     if (aws_priority_queue_push_ref(&cache->ttl_heap, &vp_entry, &entry->heap_node)) {
         /* Heap insertion failed - should be impossible, but deal with it anyway */
         entry->expiry_time = NO_EXPIRY;
@@ -851,10 +821,9 @@ out:
 static void release_entry(
     struct aws_cryptosdk_mat_cache *generic_cache,
     struct aws_cryptosdk_mat_cache_entry *generic_entry,
-    bool invalidate
-) {
+    bool invalidate) {
     struct aws_cryptosdk_local_cache *cache = (struct aws_cryptosdk_local_cache *)generic_cache;
-    struct local_cache_entry *entry = (struct local_cache_entry *)generic_entry;
+    struct local_cache_entry *entry         = (struct local_cache_entry *)generic_entry;
 
     if (!entry) {
         return;
@@ -865,9 +834,9 @@ static void release_entry(
     if (invalidate && !entry->zombie) {
         if (aws_mutex_lock(&cache->mutex)) {
             /*
-            * If we failed to lock the mutex, we'll end up leaking the entry.
-            * There's no meaningful recovery we can do, so just let it happen.
-            */
+             * If we failed to lock the mutex, we'll end up leaking the entry.
+             * There's no meaningful recovery we can do, so just let it happen.
+             */
             return;
         }
 
@@ -906,10 +875,8 @@ static void clear_cache(struct aws_cryptosdk_mat_cache *generic_cache) {
         return;
     }
 
-    for (struct aws_hash_iter iter = aws_hash_iter_begin(&cache->entries);
-        !aws_hash_iter_done(&iter);
-        aws_hash_iter_next(&iter)
-    ) {
+    for (struct aws_hash_iter iter = aws_hash_iter_begin(&cache->entries); !aws_hash_iter_done(&iter);
+         aws_hash_iter_next(&iter)) {
         struct local_cache_entry *entry = iter.element.value;
 
         /*
@@ -927,38 +894,31 @@ static void clear_cache(struct aws_cryptosdk_mat_cache *generic_cache) {
     }
 }
 
-static const struct aws_cryptosdk_mat_cache_vt local_cache_vt = {
-    .vt_size = sizeof(local_cache_vt),
-    .name = "Local materials cache",
-    .find_entry = find_entry,
-    .update_usage_stats = update_usage_stats,
-    .get_encryption_materials = get_encryption_materials,
-    .get_decryption_materials = get_decryption_materials,
-    .put_entry_for_encrypt = put_entry_for_encrypt,
-    .put_entry_for_decrypt = put_entry_for_decrypt,
-    .destroy = destroy_cache,
-    .entry_count = entry_count,
-    .entry_release = release_entry,
-    .entry_get_creation_time = get_creation_time,
-    .entry_ttl_hint = set_expiration_hint,
-    .clear = clear_cache
-};
+static const struct aws_cryptosdk_mat_cache_vt local_cache_vt = { .vt_size                  = sizeof(local_cache_vt),
+                                                                  .name                     = "Local materials cache",
+                                                                  .find_entry               = find_entry,
+                                                                  .update_usage_stats       = update_usage_stats,
+                                                                  .get_encryption_materials = get_encryption_materials,
+                                                                  .get_decryption_materials = get_decryption_materials,
+                                                                  .put_entry_for_encrypt    = put_entry_for_encrypt,
+                                                                  .put_entry_for_decrypt    = put_entry_for_decrypt,
+                                                                  .destroy                  = destroy_cache,
+                                                                  .entry_count              = entry_count,
+                                                                  .entry_release            = release_entry,
+                                                                  .entry_get_creation_time  = get_creation_time,
+                                                                  .entry_ttl_hint           = set_expiration_hint,
+                                                                  .clear                    = clear_cache };
 
 AWS_CRYPTOSDK_TEST_STATIC
 void aws_cryptosdk_local_cache_set_clock(
-    struct aws_cryptosdk_mat_cache *generic_cache,
-    int (*clock_get_ticks)(uint64_t *timestamp)
-) {
+    struct aws_cryptosdk_mat_cache *generic_cache, int (*clock_get_ticks)(uint64_t *timestamp)) {
     assert(generic_cache->vt == &local_cache_vt);
     struct aws_cryptosdk_local_cache *cache = (struct aws_cryptosdk_local_cache *)generic_cache;
 
     cache->clock_get_ticks = clock_get_ticks;
 }
 
-struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_local_new(
-    struct aws_allocator *alloc,
-    size_t capacity
-) {
+struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_local_new(struct aws_allocator *alloc, size_t capacity) {
     /* Suppress unused static method warnings */
     (void)aws_cryptosdk_local_cache_set_clock;
 
@@ -976,26 +936,22 @@ struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_local_new(
     memset(cache, 0, sizeof(*cache));
 
     aws_cryptosdk_mat_cache_base_init(&cache->base, &local_cache_vt);
-    cache->allocator = alloc;
+    cache->allocator     = alloc;
     cache->lru_head.next = cache->lru_head.prev = &cache->lru_head;
-    cache->capacity = capacity;
-    cache->clock_get_ticks = aws_sys_clock_get_ticks;
+    cache->capacity                             = capacity;
+    cache->clock_get_ticks                      = aws_sys_clock_get_ticks;
 
     if (aws_mutex_init(&cache->mutex)) {
         goto err_mutex;
     }
 
     if (aws_hash_table_init(
-        &cache->entries,
-        alloc,
-        capacity,
-        hash_cache_id, eq_cache_id,
-        NULL, destroy_cache_entry_vp
-    )) {
+            &cache->entries, alloc, capacity, hash_cache_id, eq_cache_id, NULL, destroy_cache_entry_vp)) {
         goto err_hash_table;
     }
 
-    if (aws_priority_queue_init_dynamic(&cache->ttl_heap, alloc, capacity, sizeof(struct local_cache_entry *), ttl_heap_cmp)) {
+    if (aws_priority_queue_init_dynamic(
+            &cache->ttl_heap, alloc, capacity, sizeof(struct local_cache_entry *), ttl_heap_cmp)) {
         goto err_pq;
     }
 

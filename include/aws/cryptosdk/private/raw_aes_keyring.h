@@ -16,7 +16,6 @@
 #define AWS_CRYPTOSDK_PRIVATE_RAW_AES_KEYRING_H
 
 #include <aws/cryptosdk/raw_aes_keyring.h>
-#include <aws/common/string.h>
 
 /* Raw AES Keyring always uses AES-GCM encryption with 12 byte IV and 16 byte tag.
  * This is only for the encryption OF data keys, and is separate from the algorithm
@@ -24,14 +23,6 @@
  */
 #define RAW_AES_KR_IV_LEN 12
 #define RAW_AES_KR_TAG_LEN 16
-
-struct raw_aes_keyring {
-    struct aws_cryptosdk_keyring base;
-    struct aws_allocator * alloc;
-    const struct aws_string * master_key_id;
-    const struct aws_string * provider_id;
-    const struct aws_string * raw_key;
-};
 
 /**
  * Allocates the output buffer and writes the provider info for an EDK encrypted
@@ -42,11 +33,11 @@ struct raw_aes_keyring {
  * IV length (4 bytes, big-endian)
  * IV bytes (length determined by previous field)
  */
-int aws_cryptosdk_serialize_provider_info_init(struct aws_allocator * alloc,
-                                               struct aws_byte_buf * output,
-                                               const struct aws_string * master_key_id,
-                                               const uint8_t * iv);
-
+int aws_cryptosdk_serialize_provider_info_init(
+    struct aws_allocator *alloc,
+    struct aws_byte_buf *output,
+    const struct aws_string *master_key_id,
+    const uint8_t *iv);
 
 /**
  * Checks whether the provider info of a particular EDK is compatible with this KR
@@ -62,9 +53,8 @@ int aws_cryptosdk_serialize_provider_info_init(struct aws_allocator * alloc,
  * No memory is allocated by this function, as the IV buffer does not own its own
  * memory.
  */
-bool aws_cryptosdk_parse_provider_info(struct aws_cryptosdk_keyring * kr,
-                                       struct aws_byte_buf * iv,
-                                       const struct aws_byte_buf * provider_info);
+bool aws_cryptosdk_parse_provider_info(
+    struct aws_cryptosdk_keyring *kr, struct aws_byte_buf *iv, const struct aws_byte_buf *provider_info);
 
 /**
  * Does everything that the raw AES KR's on_encrypt virtual function
@@ -79,4 +69,4 @@ int aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(
     enum aws_cryptosdk_alg_id alg,
     const uint8_t *iv);
 
-#endif // AWS_CRYPTOSDK_PRIVATE_RAW_AES_KEYRING_H
+#endif  // AWS_CRYPTOSDK_PRIVATE_RAW_AES_KEYRING_H

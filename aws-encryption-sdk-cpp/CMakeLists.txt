@@ -53,7 +53,6 @@ endif()
 
 file(GLOB AWS_CRYPTOSDK_CPP_HEADERS
     # Headers subject to API/ABI stability guarantees
-    "${CMAKE_CURRENT_SOURCE_DIR}/include/aws/cryptosdk/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/include/aws/cryptosdk/cpp/*.h"
 )
 
@@ -116,6 +115,35 @@ if (BUILD_AWS_ENC_SDK_CPP)
     else()
         message(STATUS "End to end tests off")
     endif()
+
+    if (AWS_ENC_SDK_KNOWN_GOOD_TESTS)
+    message(STATUS "Static known good tests on")
+    find_path(JSON_C_INCLUDE_DIR json.h
+    HINTS ${JSON_C_INCLUDEDIR} ${JSON_C_INCLUDE_DIR} PATH_SUFFIXES json-c json)
+    find_library(JSON_C_LIBRARY NAMES json-c libjson-c
+    HINTS ${JSON_C_LIBDIR} ${JSON_C_LIBRARY_DIR})
+    set(JSON_C_LIBRARY ${JSON_C_LIBRARY})
+    set(JSON_C_INCLUDE_DIR ${JSON_C_INCLUDE_DIR})
+    include(FindPackageHandleStandardArgs)
+    find_package_handle_standard_args(JSON_C DEFAULT_MSG JSON_C_LIBRARY JSON_C_INCLUDE_DIR)
+    
+    file(GLOB TEST_VECTORS "tests/test_vectors/*.cpp")
+    add_library(test_vectors EXCLUDE_FROM_ALL ${TEST_VECTORS})
+    target_link_libraries(test_vectors aws-encryption-sdk-cpp testlibcpp json-c)
+    set_target_properties(test_vectors PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
+    target_include_directories(test_vectors PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/lib
+            ${PROJECT_SOURCE_DIR}/tests/lib $<INSTALL_INTERFACE:include>)
+    add_executable(static_test_vectors tests/test_vectors/static_test_vectors.cpp ${TEST_VECTORS})
+    target_link_libraries(static_test_vectors test_vectors)
+    set_target_properties(static_test_vectors PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
+    target_include_directories(static_test_vectors PUBLIC ${PROJECT_SOURCE_DIR}/tests/lib
+            ${PROJECT_SOURCE_DIR}/tests/unit
+            ${PROJECT_SOURCE_DIR}/tests/integration
+            $<INSTALL_INTERFACE:include>
+            )
+else()
+    message(STATUS "Static known good tests off")
+endif()
 
     file(GLOB test_sources FOLLOW_SYMLINKS tests/unit/*.cpp)
     foreach(test_cpp ${test_sources})

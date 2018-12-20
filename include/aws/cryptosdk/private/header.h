@@ -19,7 +19,7 @@
 #include <aws/common/byte_buf.h>
 #include <aws/common/hash_table.h>
 #include "aws/cryptosdk/header.h"
-#include "aws/cryptosdk/materials.h" // struct aws_cryptosdk_edk
+#include "aws/cryptosdk/materials.h"  // struct aws_cryptosdk_edk
 
 #define MESSAGE_ID_LEN 16
 struct aws_cryptosdk_hdr {
@@ -54,7 +54,7 @@ enum aws_cryptosdk_hdr_type {
 
 enum aws_cryptosdk_hdr_content_type {
     AWS_CRYPTOSDK_HEADER_CTYPE_NONFRAMED = 0x01,
-    AWS_CRYPTOSDK_HEADER_CTYPE_FRAMED = 0x02
+    AWS_CRYPTOSDK_HEADER_CTYPE_FRAMED    = 0x02
 };
 
 /**
@@ -83,8 +83,7 @@ void aws_cryptosdk_hdr_clear(struct aws_cryptosdk_hdr *hdr);
  * This function will clear the header before parsing, and will leave the header in a cleared
  * state on failure.
  */
-int aws_cryptosdk_hdr_parse(struct aws_cryptosdk_hdr *hdr,
-                            struct aws_byte_cursor *cursor);
+int aws_cryptosdk_hdr_parse(struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *cursor);
 
 /**
  * Reads information from already parsed hdr object and determines how many bytes are
@@ -107,10 +106,7 @@ int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr);
  * Using aws_cryptosdk_hdr_size to determine how much memory to allocate to outbuf ahead
  * of time guarantees that the short buffer error will not occur.
  */
-int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr,
-                            size_t * bytes_written,
-                            uint8_t *outbuf,
-                            size_t outlen);
+int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t *bytes_written, uint8_t *outbuf, size_t outlen);
 
 /**
  * Returns number of bytes in auth tag for known algorithms, -1 for unknown algorithms.
@@ -122,4 +118,4 @@ int aws_cryptosdk_algorithm_taglen(uint16_t alg_id);
  */
 int aws_cryptosdk_algorithm_ivlen(uint16_t alg_id);
 
-#endif // AWS_CRYPTOSDK_PRIVATE_HEADER_H
+#endif  // AWS_CRYPTOSDK_PRIVATE_HEADER_H

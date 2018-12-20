@@ -1,0 +1,6 @@
+echo === Dumping faulted thread ===\n
+bt
+info registers
+disassemble
+echo === Dumping all threads ===\n
+thread apply all bt

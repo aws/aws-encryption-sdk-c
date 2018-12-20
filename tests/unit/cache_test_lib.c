@@ -13,16 +13,24 @@
  * limitations under the License.
  */
 
-#include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/cache.h>
 #include <aws/cryptosdk/enc_context.h>
+#include <aws/cryptosdk/list_utils.h>
+#include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/private/cipher.h>
+#include <aws/cryptosdk/private/keyring_trace.h>
 
 #include "cache_test_lib.h"
 #include "testutil.h"
 
-void gen_enc_materials(struct aws_allocator *alloc, struct aws_cryptosdk_encryption_materials **p_materials, int index, enum aws_cryptosdk_alg_id alg, int n_edks) {
-    struct aws_cryptosdk_encryption_materials *materials = *p_materials = aws_cryptosdk_encryption_materials_new(alloc, alg);
+void gen_enc_materials(
+    struct aws_allocator *alloc,
+    struct aws_cryptosdk_encryption_materials **p_materials,
+    int index,
+    enum aws_cryptosdk_alg_id alg,
+    int n_edks) {
+    struct aws_cryptosdk_encryption_materials *materials = *p_materials =
+        aws_cryptosdk_encryption_materials_new(alloc, alg);
     if (!materials) {
         abort();
     }
@@ -45,10 +53,21 @@ void gen_enc_materials(struct aws_allocator *alloc, struct aws_cryptosdk_encrypt
         if (aws_array_list_push_back(&materials->encrypted_data_keys, &edk)) {
             abort();
         }
+
+        if (aws_cryptosdk_keyring_trace_add_record_c_str(
+                alloc,
+                &materials->keyring_trace,
+                edk.provider_id.buffer,
+                edk.provider_info.buffer,
+                AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
+                    AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX)) {
+            abort();
+        }
     }
 }
 
-bool materials_eq(const struct aws_cryptosdk_encryption_materials *a, const struct aws_cryptosdk_encryption_materials *b) {
+bool materials_eq(
+    const struct aws_cryptosdk_encryption_materials *a, const struct aws_cryptosdk_encryption_materials *b) {
     if (a->alg != b->alg) {
         return false;
     }
@@ -70,8 +89,7 @@ bool materials_eq(const struct aws_cryptosdk_encryption_materials *a, const stru
         void *vp_a, *vp_b;
 
         if (aws_array_list_get_at_ptr(&a->encrypted_data_keys, &vp_a, i) ||
-            aws_array_list_get_at_ptr(&b->encrypted_data_keys, &vp_b, i)
-        ) {
+            aws_array_list_get_at_ptr(&b->encrypted_data_keys, &vp_b, i)) {
             abort();
         }
 
@@ -83,14 +101,14 @@ bool materials_eq(const struct aws_cryptosdk_encryption_materials *a, const stru
         if (!aws_byte_buf_eq(&edk_a->provider_info, &edk_b->provider_info)) return false;
     }
 
-    return true;
+    return aws_cryptosdk_keyring_trace_eq(&a->keyring_trace, &b->keyring_trace);
 }
 
-bool dec_materials_eq(const struct aws_cryptosdk_decryption_materials *a, const struct aws_cryptosdk_decryption_materials *b) {
-    return (a->alg == b->alg)
-        && (aws_byte_buf_eq(&a->unencrypted_data_key, &b->unencrypted_data_key))
-        && (!!a->signctx == !!b->signctx)
-        && (!a->signctx || same_signing_key(a->signctx, b->signctx));
+bool dec_materials_eq(
+    const struct aws_cryptosdk_decryption_materials *a, const struct aws_cryptosdk_decryption_materials *b) {
+    return (a->alg == b->alg) && (aws_byte_buf_eq(&a->unencrypted_data_key, &b->unencrypted_data_key)) &&
+           (!!a->signctx == !!b->signctx) && (!a->signctx || same_signing_key(a->signctx, b->signctx)) &&
+           aws_cryptosdk_keyring_trace_eq(&a->keyring_trace, &b->keyring_trace);
 }
 
 bool same_signing_key(struct aws_cryptosdk_signctx *a, struct aws_cryptosdk_signctx *b) {
@@ -105,9 +123,8 @@ bool same_signing_key(struct aws_cryptosdk_signctx *a, struct aws_cryptosdk_sign
         return true;
     }
 
-    if (aws_cryptosdk_sig_get_pubkey(a, aws_default_allocator(), &pub_a)
-        || aws_cryptosdk_sig_get_pubkey(b, aws_default_allocator(), &pub_b)
-    ) {
+    if (aws_cryptosdk_sig_get_pubkey(a, aws_default_allocator(), &pub_a) ||
+        aws_cryptosdk_sig_get_pubkey(b, aws_default_allocator(), &pub_b)) {
         abort();
     }
 
@@ -119,78 +136,61 @@ bool same_signing_key(struct aws_cryptosdk_signctx *a, struct aws_cryptosdk_sign
     return same;
 }
 
-
 /*** Mock materials cache ***/
 
 static int mock_find_entry(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_cryptosdk_mat_cache_entry **entry,
     bool *is_encrypt,
-    const struct aws_byte_buf *cache_id
-);
+    const struct aws_byte_buf *cache_id);
 static int mock_update_usage_stats(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_cryptosdk_mat_cache_entry *entry,
-    struct aws_cryptosdk_cache_usage_stats *usage_stats
-);
+    struct aws_cryptosdk_cache_usage_stats *usage_stats);
 static int mock_get_encryption_materials(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_allocator *allocator,
     struct aws_cryptosdk_encryption_materials **materials,
     struct aws_hash_table *enc_context,
-    struct aws_cryptosdk_mat_cache_entry *entry
-);
+    struct aws_cryptosdk_mat_cache_entry *entry);
 static int mock_get_decryption_materials(
     const struct aws_cryptosdk_mat_cache *cache,
     struct aws_allocator *allocator,
     struct aws_cryptosdk_decryption_materials **materials,
-    const struct aws_cryptosdk_mat_cache_entry *entry
-);
+    const struct aws_cryptosdk_mat_cache_entry *entry);
 static void mock_put_entry_for_encrypt(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_cryptosdk_mat_cache_entry **entry,
     const struct aws_cryptosdk_encryption_materials *encryption_materials,
     struct aws_cryptosdk_cache_usage_stats initial_usage,
     const struct aws_hash_table *enc_context,
-    const struct aws_byte_buf *cache_id
-);
+    const struct aws_byte_buf *cache_id);
 static void mock_put_entry_for_decrypt(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_cryptosdk_mat_cache_entry **entry,
     const struct aws_cryptosdk_decryption_materials *decryption_materials,
-    const struct aws_byte_buf *cache_id
-);
+    const struct aws_byte_buf *cache_id);
 
 static void mock_mat_cache_destroy(struct aws_cryptosdk_mat_cache *cache);
 static void mock_entry_release(
-    struct aws_cryptosdk_mat_cache *cache,
-    struct aws_cryptosdk_mat_cache_entry *entry,
-    bool invalidate
-);
+    struct aws_cryptosdk_mat_cache *cache, struct aws_cryptosdk_mat_cache_entry *entry, bool invalidate);
 static uint64_t mock_entry_ctime(
-    const struct aws_cryptosdk_mat_cache *cache,
-    const struct aws_cryptosdk_mat_cache_entry *entry
-);
+    const struct aws_cryptosdk_mat_cache *cache, const struct aws_cryptosdk_mat_cache_entry *entry);
 static void mock_entry_ttl_hint(
-    struct aws_cryptosdk_mat_cache *cache,
-    struct aws_cryptosdk_mat_cache_entry *entry,
-    uint64_t exp_time
-);
+    struct aws_cryptosdk_mat_cache *cache, struct aws_cryptosdk_mat_cache_entry *entry, uint64_t exp_time);
 
-const static struct aws_cryptosdk_mat_cache_vt mock_vt = {
-    .vt_size = sizeof(mock_vt),
-    .name = "Mock materials cache",
-    .find_entry = mock_find_entry,
-    .update_usage_stats = mock_update_usage_stats,
-    .get_encryption_materials = mock_get_encryption_materials,
-    .get_decryption_materials = mock_get_decryption_materials,
-    .put_entry_for_encrypt = mock_put_entry_for_encrypt,
-    .put_entry_for_decrypt = mock_put_entry_for_decrypt,
-    .destroy = mock_mat_cache_destroy,
-    .entry_release = mock_entry_release,
-    .entry_get_creation_time = mock_entry_ctime,
-    .entry_ttl_hint = mock_entry_ttl_hint
-};
+const static struct aws_cryptosdk_mat_cache_vt mock_vt = { .vt_size                  = sizeof(mock_vt),
+                                                           .name                     = "Mock materials cache",
+                                                           .find_entry               = mock_find_entry,
+                                                           .update_usage_stats       = mock_update_usage_stats,
+                                                           .get_encryption_materials = mock_get_encryption_materials,
+                                                           .get_decryption_materials = mock_get_decryption_materials,
+                                                           .put_entry_for_encrypt    = mock_put_entry_for_encrypt,
+                                                           .put_entry_for_decrypt    = mock_put_entry_for_decrypt,
+                                                           .destroy                  = mock_mat_cache_destroy,
+                                                           .entry_release            = mock_entry_release,
+                                                           .entry_get_creation_time  = mock_entry_ctime,
+                                                           .entry_ttl_hint           = mock_entry_ttl_hint };
 
 static void check_entry_ptr(const struct mock_mat_cache *cache, const struct aws_cryptosdk_mat_cache_entry *entry) {
     if (!cache->entry_refcount) {
@@ -199,9 +199,11 @@ static void check_entry_ptr(const struct mock_mat_cache *cache, const struct aws
     }
 
     if (entry != (void *)&cache->entry_marker) {
-        fprintf(stderr, "\n mock_mat_cache entry ptr mismatch; expected %p got %p\n",
-            (void *)&cache->entry_marker, (void *)entry
-        );
+        fprintf(
+            stderr,
+            "\n mock_mat_cache entry ptr mismatch; expected %p got %p\n",
+            (void *)&cache->entry_marker,
+            (void *)entry);
         abort();
     }
 }
@@ -234,8 +236,7 @@ static int mock_find_entry(
     struct aws_cryptosdk_mat_cache *generic_cache,
     struct aws_cryptosdk_mat_cache_entry **entry,
     bool *is_encrypt,
-    const struct aws_byte_buf *cache_id
-) {
+    const struct aws_byte_buf *cache_id) {
     struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
 
     aws_byte_buf_clean_up(&cache->last_cache_id);
@@ -252,7 +253,7 @@ static int mock_find_entry(
     }
 
     *is_encrypt = !!cache->enc_materials;
-    *entry = (struct aws_cryptosdk_mat_cache_entry *)&cache->entry_marker;
+    *entry      = (struct aws_cryptosdk_mat_cache_entry *)&cache->entry_marker;
     cache->entry_refcount++;
 
     return AWS_OP_SUCCESS;
@@ -261,10 +262,9 @@ static int mock_find_entry(
 static int mock_update_usage_stats(
     struct aws_cryptosdk_mat_cache *generic_cache,
     struct aws_cryptosdk_mat_cache_entry *entry,
-    struct aws_cryptosdk_cache_usage_stats *usage_stats
-) {
+    struct aws_cryptosdk_cache_usage_stats *usage_stats) {
     struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
-    
+
     check_entry_ptr(cache, entry);
 
     if (cache->should_fail) return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
@@ -278,21 +278,26 @@ static int mock_update_usage_stats(
 }
 
 static struct aws_cryptosdk_encryption_materials *clone_enc_materials(
-    struct aws_allocator *allocator,
-    const struct aws_cryptosdk_encryption_materials *materials
-) {
+    struct aws_allocator *allocator, const struct aws_cryptosdk_encryption_materials *materials) {
     struct aws_cryptosdk_encryption_materials *new_materials;
 
     new_materials = aws_cryptosdk_encryption_materials_new(allocator, materials->alg);
     if (!new_materials) abort();
 
-    if (aws_byte_buf_init_copy(&new_materials->unencrypted_data_key, allocator, &materials->unencrypted_data_key)) abort();
-    if (aws_cryptosdk_edk_list_copy_all(allocator, &new_materials->encrypted_data_keys, &materials->encrypted_data_keys)) abort();
+    if (aws_byte_buf_init_copy(&new_materials->unencrypted_data_key, allocator, &materials->unencrypted_data_key))
+        abort();
+    if (aws_cryptosdk_edk_list_copy_all(
+            allocator, &new_materials->encrypted_data_keys, &materials->encrypted_data_keys))
+        abort();
+    if (aws_cryptosdk_keyring_trace_copy_all(allocator, &new_materials->keyring_trace, &materials->keyring_trace))
+        abort();
 
     if (materials->signctx) {
         struct aws_string *priv_key_buf;
         if (aws_cryptosdk_sig_get_privkey(materials->signctx, allocator, &priv_key_buf)) abort();
-        if (aws_cryptosdk_sig_sign_start(&new_materials->signctx, allocator, NULL, aws_cryptosdk_alg_props(new_materials->alg), priv_key_buf)) abort();
+        if (aws_cryptosdk_sig_sign_start(
+                &new_materials->signctx, allocator, NULL, aws_cryptosdk_alg_props(new_materials->alg), priv_key_buf))
+            abort();
         aws_string_destroy_secure(priv_key_buf);
     }
 
@@ -304,10 +309,9 @@ static int mock_get_encryption_materials(
     struct aws_allocator *allocator,
     struct aws_cryptosdk_encryption_materials **materials,
     struct aws_hash_table *enc_context,
-    struct aws_cryptosdk_mat_cache_entry *entry
-) {
+    struct aws_cryptosdk_mat_cache_entry *entry) {
     struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
-    
+
     check_entry_ptr(cache, entry);
 
     *materials = NULL;
@@ -327,8 +331,10 @@ static int mock_get_encryption_materials(
     return AWS_OP_SUCCESS;
 }
 
-static struct aws_cryptosdk_decryption_materials *clone_dec_materials(struct aws_allocator *allocator, const struct aws_cryptosdk_decryption_materials *input) {
-    struct aws_cryptosdk_decryption_materials *materials = aws_cryptosdk_decryption_materials_new(allocator, input->alg);
+static struct aws_cryptosdk_decryption_materials *clone_dec_materials(
+    struct aws_allocator *allocator, const struct aws_cryptosdk_decryption_materials *input) {
+    struct aws_cryptosdk_decryption_materials *materials =
+        aws_cryptosdk_decryption_materials_new(allocator, input->alg);
 
     if (!materials) {
         abort();
@@ -338,13 +344,17 @@ static struct aws_cryptosdk_decryption_materials *clone_dec_materials(struct aws
         abort();
     }
 
+    if (aws_cryptosdk_keyring_trace_copy_all(allocator, &materials->keyring_trace, &input->keyring_trace)) {
+        abort();
+    }
+
     materials->signctx = NULL;
     if (input->signctx) {
         struct aws_string *pubkey;
         const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(materials->alg);
 
-        if (aws_cryptosdk_sig_get_pubkey(input->signctx, allocator, &pubkey)
-            || aws_cryptosdk_sig_verify_start(&materials->signctx, allocator, pubkey, props)) {
+        if (aws_cryptosdk_sig_get_pubkey(input->signctx, allocator, &pubkey) ||
+            aws_cryptosdk_sig_verify_start(&materials->signctx, allocator, pubkey, props)) {
             abort();
         }
 
@@ -358,8 +368,7 @@ static int mock_get_decryption_materials(
     const struct aws_cryptosdk_mat_cache *generic_cache,
     struct aws_allocator *allocator,
     struct aws_cryptosdk_decryption_materials **materials,
-    const struct aws_cryptosdk_mat_cache_entry *entry
-) {
+    const struct aws_cryptosdk_mat_cache_entry *entry) {
     const struct mock_mat_cache *cache = (const struct mock_mat_cache *)generic_cache;
 
     check_entry_ptr(cache, entry);
@@ -385,8 +394,7 @@ static void mock_put_entry_for_encrypt(
     const struct aws_cryptosdk_encryption_materials *encryption_materials,
     struct aws_cryptosdk_cache_usage_stats initial_usage,
     const struct aws_hash_table *enc_context,
-    const struct aws_byte_buf *cache_id
-) {
+    const struct aws_byte_buf *cache_id) {
     struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
 
     aws_byte_buf_clean_up(&cache->last_cache_id);
@@ -408,7 +416,7 @@ static void mock_put_entry_for_encrypt(
     if (!cache->enc_materials) abort();
 
     cache->usage_stats = initial_usage;
-    *entry = (struct aws_cryptosdk_mat_cache_entry *)&cache->entry_marker;
+    *entry             = (struct aws_cryptosdk_mat_cache_entry *)&cache->entry_marker;
     cache->entry_refcount++;
 }
 
@@ -416,8 +424,7 @@ static void mock_put_entry_for_decrypt(
     struct aws_cryptosdk_mat_cache *generic_cache,
     struct aws_cryptosdk_mat_cache_entry **entry,
     const struct aws_cryptosdk_decryption_materials *decryption_materials,
-    const struct aws_byte_buf *cache_id)
-{
+    const struct aws_byte_buf *cache_id) {
     struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
 
     aws_byte_buf_clean_up(&cache->last_cache_id);
@@ -442,12 +449,9 @@ static void mock_put_entry_for_decrypt(
 }
 
 static void mock_entry_release(
-    struct aws_cryptosdk_mat_cache *generic_cache,
-    struct aws_cryptosdk_mat_cache_entry *entry,
-    bool invalidate
-) {
+    struct aws_cryptosdk_mat_cache *generic_cache, struct aws_cryptosdk_mat_cache_entry *entry, bool invalidate) {
     struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
-    
+
     check_entry_ptr(cache, entry);
 
     cache->invalidated = cache->invalidated || invalidate;
@@ -455,25 +459,20 @@ static void mock_entry_release(
 }
 
 static uint64_t mock_entry_ctime(
-    const struct aws_cryptosdk_mat_cache *generic_cache,
-    const struct aws_cryptosdk_mat_cache_entry *entry
-) {
+    const struct aws_cryptosdk_mat_cache *generic_cache, const struct aws_cryptosdk_mat_cache_entry *entry) {
     struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
-    
+
     check_entry_ptr(cache, entry);
 
     return cache->entry_creation_time;
 }
 
 static void mock_entry_ttl_hint(
-    struct aws_cryptosdk_mat_cache *generic_cache,
-    struct aws_cryptosdk_mat_cache_entry *entry,
-    uint64_t exp_time
-) {
+    struct aws_cryptosdk_mat_cache *generic_cache, struct aws_cryptosdk_mat_cache_entry *entry, uint64_t exp_time) {
     struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
-    
+
     check_entry_ptr(cache, entry);
- 
+
     cache->entry_ttl_hint = exp_time;
 }
 
@@ -487,10 +486,10 @@ static void mock_upstream_cmm_destroy(struct aws_cryptosdk_cmm *cmm) {
     aws_mem_release(mock->alloc, mock);
 }
 
-static int mock_gen_enc_materials(struct aws_cryptosdk_cmm *generic_cmm,
-                           struct aws_cryptosdk_encryption_materials **output,
-                           struct aws_cryptosdk_encryption_request *request
-) {
+static int mock_gen_enc_materials(
+    struct aws_cryptosdk_cmm *generic_cmm,
+    struct aws_cryptosdk_encryption_materials **output,
+    struct aws_cryptosdk_encryption_request *request) {
     struct mock_upstream_cmm *cmm = (struct mock_upstream_cmm *)generic_cmm;
 
     char tmpbuf[256];
@@ -520,13 +519,15 @@ static int mock_gen_enc_materials(struct aws_cryptosdk_cmm *generic_cmm,
 }
 
 /* From caching_cmm.c as a test static */
-int hash_decrypt_request(const struct aws_string *partition_id, struct aws_byte_buf *out, const struct aws_cryptosdk_decryption_request *req);
+int hash_decrypt_request(
+    const struct aws_string *partition_id,
+    struct aws_byte_buf *out,
+    const struct aws_cryptosdk_decryption_request *req);
 
 static int mock_decrypt_materials(
     struct aws_cryptosdk_cmm *generic_cmm,
     struct aws_cryptosdk_decryption_materials **output,
-    struct aws_cryptosdk_decryption_request *request
-) {
+    struct aws_cryptosdk_decryption_request *request) {
     struct mock_upstream_cmm *cmm = (struct mock_upstream_cmm *)generic_cmm;
     AWS_STATIC_STRING_FROM_LITERAL(PARTITION_ID, "mock_decrypt_materials");
 
@@ -540,7 +541,8 @@ static int mock_decrypt_materials(
 
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(request->alg);
 
-    size_t alloc_size = props->data_key_len > AWS_CRYPTOSDK_MD_MAX_SIZE ? props->data_key_len : AWS_CRYPTOSDK_MD_MAX_SIZE;
+    size_t alloc_size =
+        props->data_key_len > AWS_CRYPTOSDK_MD_MAX_SIZE ? props->data_key_len : AWS_CRYPTOSDK_MD_MAX_SIZE;
     if (aws_byte_buf_init(&materials->unencrypted_data_key, request->alloc, alloc_size)) {
         abort();
     }
@@ -554,6 +556,15 @@ static int mock_decrypt_materials(
         abort();
     }
     materials->unencrypted_data_key.len = props->data_key_len;
+
+    if (aws_cryptosdk_keyring_trace_add_record_c_str(
+            request->alloc,
+            &materials->keyring_trace,
+            "namespace",
+            "name",
+            AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX)) {
+        abort();
+    }
 
     aws_string_destroy(cmm->last_pubkey);
     cmm->last_pubkey = NULL;
@@ -576,13 +587,12 @@ static int mock_decrypt_materials(
     return AWS_OP_SUCCESS;
 }
 
-static const struct aws_cryptosdk_cmm_vt mock_upstream_cmm_vt = {
-    .vt_size = sizeof(mock_upstream_cmm_vt),
-    .name = "Mock upstream CMM",
-    .destroy = mock_upstream_cmm_destroy,
-    .generate_encryption_materials = mock_gen_enc_materials,
-    .decrypt_materials = mock_decrypt_materials
-};
+static const struct aws_cryptosdk_cmm_vt mock_upstream_cmm_vt = { .vt_size = sizeof(mock_upstream_cmm_vt),
+                                                                  .name    = "Mock upstream CMM",
+                                                                  .destroy = mock_upstream_cmm_destroy,
+                                                                  .generate_encryption_materials =
+                                                                      mock_gen_enc_materials,
+                                                                  .decrypt_materials = mock_decrypt_materials };
 
 struct mock_upstream_cmm *mock_upstream_cmm_new(struct aws_allocator *alloc) {
     struct mock_upstream_cmm *cmm = aws_mem_acquire(alloc, sizeof(*cmm));

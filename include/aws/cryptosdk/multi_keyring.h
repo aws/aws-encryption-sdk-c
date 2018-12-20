@@ -23,8 +23,13 @@ extern "C" {
 #endif
 
 /**
+ * @addtogroup cmm_kr_highlevel
+ * @{
+ */
+
+/**
  * Creates a new multi-keyring. This keyring allows you to combine keyrings into
- * a single keyring. When used for encryption, the resulting document can be 
+ * a single keyring. When used for encryption, the resulting document can be
  * decrypted by any of the included keyrings. When used for decryption, the multi-
  * keyring will attempt to decrypt using each of the included keyrings.
  *
@@ -68,8 +73,7 @@ extern "C" {
  */
 AWS_CRYPTOSDK_API
 struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(
-    struct aws_allocator *alloc,
-    struct aws_cryptosdk_keyring *generator);
+    struct aws_allocator *alloc, struct aws_cryptosdk_keyring *generator);
 
 /**
  * Sets the generator keyring of this multi-keyring. This will always be the first
@@ -89,8 +93,7 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_multi_keyring_set_generator(
-    struct aws_cryptosdk_keyring *multi,
-    struct aws_cryptosdk_keyring *generator);
+    struct aws_cryptosdk_keyring *multi, struct aws_cryptosdk_keyring *generator);
 
 /**
  * Adds a new child keyring to this multi-keyring. Child keyrings are only used
@@ -104,11 +107,12 @@ int aws_cryptosdk_multi_keyring_set_generator(
  * It is not possible to remove a keyring from the multi-keyring at this time.
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_multi_keyring_add(struct aws_cryptosdk_keyring *multi,
-                                    struct aws_cryptosdk_keyring *child);
+int aws_cryptosdk_multi_keyring_add(struct aws_cryptosdk_keyring *multi, struct aws_cryptosdk_keyring *child);
+
+/** @} */  // doxygen group cmm_kr_highlevel
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // AWS_CRYPTOSDK_MULTI_KEYRING_H
+#endif  // AWS_CRYPTOSDK_MULTI_KEYRING_H

@@ -15,21 +15,21 @@
 #ifndef AWS_ENCRYPTION_SDK_PRIVATE_KMS_KEYRING_H
 #define AWS_ENCRYPTION_SDK_PRIVATE_KMS_KEYRING_H
 
-#include <aws/cryptosdk/kms_keyring.h>
+#include <aws/cryptosdk/cpp/kms_keyring.h>
 
 namespace Aws {
 namespace Cryptosdk {
 namespace Private {
 
 class AWS_CRYPTOSDK_CPP_API KmsKeyringImpl : public aws_cryptosdk_keyring {
-/* This entire class is a private implementation anyway, as users only handle
- * pointers to instances as (struct aws_cryptosdk_keyring *) types.
- * So there is not a strict need to make internal methods and variables private
- * or protected. Furthermore, the keyring virtual functions and unit tests must have
- * access to the internals of this class. The simplest way to do this is just to
- * make everything in the class public visibility.
- */
-  public:
+    /* This entire class is a private implementation anyway, as users only handle
+     * pointers to instances as (struct aws_cryptosdk_keyring *) types.
+     * So there is not a strict need to make internal methods and variables private
+     * or protected. Furthermore, the keyring virtual functions and unit tests must have
+     * access to the internals of this class. The simplest way to do this is just to
+     * make everything in the class public visibility.
+     */
+   public:
     ~KmsKeyringImpl();
     // non-copyable
     KmsKeyringImpl(const KmsKeyringImpl &) = delete;
@@ -63,4 +63,4 @@ class AWS_CRYPTOSDK_CPP_API KmsKeyringImpl : public aws_cryptosdk_keyring {
 }  // namespace Cryptosdk
 }  // namespace Aws
 
-#endif // AWS_ENCRYPTION_SDK_PRIVATE_KMS_KEYRING_H
+#endif  // AWS_ENCRYPTION_SDK_PRIVATE_KMS_KEYRING_H

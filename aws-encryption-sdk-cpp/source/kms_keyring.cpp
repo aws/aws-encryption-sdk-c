@@ -13,11 +13,13 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/private/kms_keyring.h>
+#include <aws/cryptosdk/version.h>
 
 #include <aws/core/utils/Outcome.h>
 #include <aws/core/utils/logging/LogMacros.h>
-#include <aws/core/utils/memory/stl/AWSAllocator.h>
 #include <aws/core/utils/memory/MemorySystemInterface.h>
+#include <aws/core/utils/memory/stl/AWSAllocator.h>
+#include <aws/cryptosdk/list_utils.h>
 #include <aws/cryptosdk/private/cpputils.h>
 #include <aws/kms/model/DecryptRequest.h>
 #include <aws/kms/model/DecryptResult.h>
@@ -29,25 +31,27 @@
 namespace Aws {
 namespace Cryptosdk {
 
-using Private::aws_utils_byte_buffer_from_c_aws_byte_buf;
+using Private::append_key_dup_to_edks;
 using Private::aws_byte_buf_dup_from_aws_utils;
 using Private::aws_map_from_c_aws_hash_table;
-using Private::append_key_dup_to_edks;
+using Private::aws_utils_byte_buffer_from_c_aws_byte_buf;
 
 static const char *AWS_CRYPTO_SDK_KMS_CLASS_TAG = "KmsKeyring";
-static const char *KEY_PROVIDER_STR = "aws-kms";
+static const char *KEY_PROVIDER_STR             = "aws-kms";
 
 static void DestroyKeyring(struct aws_cryptosdk_keyring *keyring) {
     auto keyring_data_ptr = static_cast<Aws::Cryptosdk::Private::KmsKeyringImpl *>(keyring);
     Aws::Delete(keyring_data_ptr);
 }
 
-static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
-                     struct aws_allocator *request_alloc,
-                     struct aws_byte_buf *unencrypted_data_key,
-                     const struct aws_array_list *edks,
-                     const struct aws_hash_table *enc_context,
-                     enum aws_cryptosdk_alg_id alg) {
+static int OnDecrypt(
+    struct aws_cryptosdk_keyring *keyring,
+    struct aws_allocator *request_alloc,
+    struct aws_byte_buf *unencrypted_data_key,
+    struct aws_array_list *keyring_trace,
+    const struct aws_array_list *edks,
+    const struct aws_hash_table *enc_context,
+    enum aws_cryptosdk_alg_id alg) {
     (void)alg;
 
     auto self = static_cast<Aws::Cryptosdk::Private::KmsKeyringImpl *>(keyring);
@@ -61,7 +65,7 @@ static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
     size_t num_elems = aws_array_list_length(edks);
     for (unsigned int idx = 0; idx < num_elems; idx++) {
         struct aws_cryptosdk_edk *edk;
-        int rv = aws_array_list_get_at_ptr(edks, (void **) &edk, idx);
+        int rv = aws_array_list_get_at_ptr(edks, (void **)&edk, idx);
         if (rv != AWS_OP_SUCCESS) {
             continue;
         }
@@ -79,14 +83,15 @@ static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
          * anything other than a CMK ARN format, the SDK will not attempt to decrypt those data keys, because
          * the EDK data format always specifies the CMK with the full (non-alias) ARN.
          */
-        if (self->key_ids.size() && std::find(self->key_ids.begin(), self->key_ids.end(), key_arn) == self->key_ids.end()) {
+        if (self->key_ids.size() &&
+            std::find(self->key_ids.begin(), self->key_ids.end(), key_arn) == self->key_ids.end()) {
             // This keyring does not have access to the CMK used to encrypt this data key. Skip.
             continue;
         }
         Aws::String kms_region = Private::parse_region_from_kms_key_arn(key_arn);
         if (kms_region.empty()) {
-            error_buf << "Error: Malformed ciphertext. Provider ID field of KMS EDK is invalid KMS CMK ARN: " <<
-                key_arn << " ";
+            error_buf << "Error: Malformed ciphertext. Provider ID field of KMS EDK is invalid KMS CMK ARN: " << key_arn
+                      << " ";
             continue;
         }
 
@@ -106,8 +111,8 @@ static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
         if (!outcome.IsSuccess()) {
             // Failing on this call is normal behavior in "discovery" mode, but not in standard mode.
             if (self->key_ids.size()) {
-                    error_buf << "Error: " << outcome.GetError().GetExceptionName() << " Message:"
-                              << outcome.GetError().GetMessage() << " ";
+                error_buf << "Error: " << outcome.GetError().GetExceptionName()
+                          << " Message:" << outcome.GetError().GetMessage() << " ";
             }
             continue;
         }
@@ -115,43 +120,60 @@ static int OnDecrypt(struct aws_cryptosdk_keyring *keyring,
 
         const Aws::String &outcome_key_id = outcome.GetResult().GetKeyId();
         if (outcome_key_id == key_arn) {
-            return aws_byte_buf_dup_from_aws_utils(request_alloc,
-                                                   unencrypted_data_key,
-                                                   outcome.GetResult().GetPlaintext());
+            int ret = aws_byte_buf_dup_from_aws_utils(
+                request_alloc, unencrypted_data_key, outcome.GetResult().GetPlaintext());
+            if (ret == AWS_OP_SUCCESS) {
+                aws_cryptosdk_keyring_trace_add_record_c_str(
+                    request_alloc,
+                    keyring_trace,
+                    KEY_PROVIDER_STR,
+                    key_arn.c_str(),
+                    AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX);
+            }
+            return ret;
         }
     }
 
-    AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG,
-                        "Could not find any data key that can be decrypted by KMS. Errors:" << error_buf.str());
+    AWS_LOGSTREAM_ERROR(
+        AWS_CRYPTO_SDK_KMS_CLASS_TAG,
+        "Could not find any data key that can be decrypted by KMS. Errors:" << error_buf.str());
     // According to materials.h we should return success when no key was found
     return AWS_OP_SUCCESS;
 }
 
-static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
-                     struct aws_allocator *request_alloc,
-                     struct aws_byte_buf *unencrypted_data_key,
-                     struct aws_array_list *edk_list,
-                     const struct aws_hash_table *enc_context,
-                     enum aws_cryptosdk_alg_id alg) {
-    // Class that prevents memory leak of aws_list (even if a function throws)
-    // When the object will be destroyed it will call aws_cryptosdk_edk_list_clean_up
-    class EdksRaii {
-      public:
-        ~EdksRaii() {
-            if (initialized) {
-                aws_cryptosdk_edk_list_clean_up(&aws_list);
-                initialized = false;
-            }
+static int OnEncrypt(
+    struct aws_cryptosdk_keyring *keyring,
+    struct aws_allocator *request_alloc,
+    struct aws_byte_buf *unencrypted_data_key,
+    struct aws_array_list *keyring_trace,
+    struct aws_array_list *edk_list,
+    const struct aws_hash_table *enc_context,
+    enum aws_cryptosdk_alg_id alg) {
+    // Class that prevents memory leak of local array lists (even if a function throws)
+    // When the object is destroyed it will clean up the lists
+    class ListRaii {
+       public:
+        ListRaii(
+            int (*init_fn)(struct aws_allocator *, struct aws_array_list *),
+            void (*clean_up_fn)(struct aws_array_list *))
+            : init_fn(init_fn), clean_up_fn(clean_up_fn) {}
+        ~ListRaii() {
+            if (initialized) clean_up_fn(&list);
         }
         int Create(struct aws_allocator *alloc) {
-            auto rv = aws_cryptosdk_edk_list_init(alloc, &aws_list);
-            initialized = (rv == AWS_OP_SUCCESS);
+            int rv = init_fn(alloc, &list);
+            if (!rv) initialized = true;
             return rv;
         }
-        bool initialized = false;
-        struct aws_array_list aws_list;
+
+        struct aws_array_list list;
+
+       private:
+        int (*init_fn)(struct aws_allocator *, struct aws_array_list *);
+        void (*clean_up_fn)(struct aws_array_list *);
+        bool initialized;
     };
-    
+
     if (!keyring || !request_alloc || !unencrypted_data_key || !edk_list || !enc_context) {
         abort();
     }
@@ -162,9 +184,12 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
         return AWS_OP_SUCCESS;
     }
 
-    EdksRaii edks;
-    int rv = edks.Create(request_alloc);
-    if (rv != AWS_OP_SUCCESS) return rv;
+    ListRaii my_edks(aws_cryptosdk_edk_list_init, aws_cryptosdk_edk_list_clean_up);
+    ListRaii my_keyring_trace(aws_cryptosdk_keyring_trace_init, aws_cryptosdk_keyring_trace_clean_up);
+    int rv = my_edks.Create(request_alloc);
+    if (rv) return rv;
+    rv = my_keyring_trace.Create(request_alloc);
+    if (rv) return rv;
 
     const auto enc_context_cpp = aws_map_from_c_aws_hash_table(enc_context);
 
@@ -201,19 +226,24 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
             return aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
         }
         report_success();
-        rv = append_key_dup_to_edks(request_alloc,
-                                    &edks.aws_list,
-                                    &outcome.GetResult().GetCiphertextBlob(),
-                                    &outcome.GetResult().GetKeyId(),
-                                    &self->key_provider);
+        rv = append_key_dup_to_edks(
+            request_alloc,
+            &my_edks.list,
+            &outcome.GetResult().GetCiphertextBlob(),
+            &outcome.GetResult().GetKeyId(),
+            &self->key_provider);
         if (rv != AWS_OP_SUCCESS) return rv;
 
-        rv = aws_byte_buf_dup_from_aws_utils(request_alloc,
-                                             unencrypted_data_key,
-                                             outcome.GetResult().GetPlaintext());
+        rv = aws_byte_buf_dup_from_aws_utils(request_alloc, unencrypted_data_key, outcome.GetResult().GetPlaintext());
         if (rv != AWS_OP_SUCCESS) return rv;
         generated_new_data_key = true;
-
+        aws_cryptosdk_keyring_trace_add_record_c_str(
+            request_alloc,
+            &my_keyring_trace.list,
+            KEY_PROVIDER_STR,
+            key_id.c_str(),
+            AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
+                AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX);
     }
 
     const auto unencrypted_data_key_cpp = aws_utils_byte_buffer_from_c_aws_byte_buf(unencrypted_data_key);
@@ -243,24 +273,34 @@ static int OnEncrypt(struct aws_cryptosdk_keyring *keyring,
 
         Aws::KMS::Model::EncryptOutcome outcome = kms_client->Encrypt(kms_request);
         if (!outcome.IsSuccess()) {
-            AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG,
-                                "KMS encryption error : " << outcome.GetError().GetExceptionName() << " Message: "
-                                                          << outcome.GetError().GetMessage());
+            AWS_LOGSTREAM_ERROR(
+                AWS_CRYPTO_SDK_KMS_CLASS_TAG,
+                "KMS encryption error : " << outcome.GetError().GetExceptionName()
+                                          << " Message: " << outcome.GetError().GetMessage());
             rv = aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
             goto out;
         }
         report_success();
         rv = append_key_dup_to_edks(
             request_alloc,
-            &edks.aws_list,
+            &my_edks.list,
             &outcome.GetResult().GetCiphertextBlob(),
             &outcome.GetResult().GetKeyId(),
             &self->key_provider);
         if (rv != AWS_OP_SUCCESS) {
             goto out;
         }
+        aws_cryptosdk_keyring_trace_add_record_c_str(
+            request_alloc,
+            &my_keyring_trace.list,
+            KEY_PROVIDER_STR,
+            key_id.c_str(),
+            AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX);
     }
-    rv = aws_cryptosdk_transfer_edk_list(edk_list, &edks.aws_list);
+    rv = aws_cryptosdk_transfer_list(edk_list, &my_edks.list);
+    if (rv == AWS_OP_SUCCESS) {
+        aws_cryptosdk_transfer_list(keyring_trace, &my_keyring_trace.list);
+    }
 out:
     if (rv != AWS_OP_SUCCESS && generated_new_data_key) {
         aws_byte_buf_clean_up(unencrypted_data_key);
@@ -268,23 +308,18 @@ out:
     return rv;
 }
 
-Aws::Cryptosdk::Private::KmsKeyringImpl::~KmsKeyringImpl() {
-}
+Aws::Cryptosdk::Private::KmsKeyringImpl::~KmsKeyringImpl() {}
 
-Aws::Cryptosdk::Private::KmsKeyringImpl::KmsKeyringImpl(const Aws::Vector<Aws::String> &key_ids,
-                                                        const Aws::Vector<Aws::String> &grant_tokens,
-                                                        std::shared_ptr<Aws::Cryptosdk::KmsKeyring::ClientSupplier> client_supplier)
+Aws::Cryptosdk::Private::KmsKeyringImpl::KmsKeyringImpl(
+    const Aws::Vector<Aws::String> &key_ids,
+    const Aws::Vector<Aws::String> &grant_tokens,
+    std::shared_ptr<Aws::Cryptosdk::KmsKeyring::ClientSupplier> client_supplier)
     : key_provider(aws_byte_buf_from_c_str(KEY_PROVIDER_STR)),
       kms_client_supplier(client_supplier),
       grant_tokens(grant_tokens),
       key_ids(key_ids) {
-
     static const aws_cryptosdk_keyring_vt kms_keyring_vt = {
-        sizeof(struct aws_cryptosdk_keyring_vt),
-        KEY_PROVIDER_STR,
-        &DestroyKeyring,
-        &OnEncrypt,
-        &OnDecrypt
+        sizeof(struct aws_cryptosdk_keyring_vt), KEY_PROVIDER_STR, &DestroyKeyring, &OnEncrypt, &OnDecrypt
     };
 
     aws_cryptosdk_keyring_base_init(this, &kms_keyring_vt);
@@ -293,6 +328,7 @@ Aws::Cryptosdk::Private::KmsKeyringImpl::KmsKeyringImpl(const Aws::Vector<Aws::S
 static std::shared_ptr<KMS::KMSClient> CreateDefaultKmsClient(const Aws::String &region) {
     Aws::Client::ClientConfiguration client_configuration;
     client_configuration.region = region;
+    client_configuration.userAgent += " " AWS_CRYPTOSDK_VERSION_UA "/kms-keyring-cpp";
 #ifdef VALGRIND_TESTS
     // When running under valgrind, the default timeouts are too slow
     client_configuration.requestTimeoutMs = 10000;
@@ -301,12 +337,14 @@ static std::shared_ptr<KMS::KMSClient> CreateDefaultKmsClient(const Aws::String 
     return Aws::MakeShared<Aws::KMS::KMSClient>(AWS_CRYPTO_SDK_KMS_CLASS_TAG, client_configuration);
 }
 
-std::shared_ptr<KmsKeyring::SingleClientSupplier> KmsKeyring::SingleClientSupplier::Create(const std::shared_ptr<KMS::KMSClient> &kms_client) {
+std::shared_ptr<KmsKeyring::SingleClientSupplier> KmsKeyring::SingleClientSupplier::Create(
+    const std::shared_ptr<KMS::KMSClient> &kms_client) {
     return Aws::MakeShared<SingleClientSupplier>(AWS_CRYPTO_SDK_KMS_CLASS_TAG, kms_client);
 }
 
-std::shared_ptr<KMS::KMSClient> KmsKeyring::SingleClientSupplier::GetClient(const Aws::String &, std::function<void()> &report_success) {
-    report_success = []{}; // no-op lambda
+std::shared_ptr<KMS::KMSClient> KmsKeyring::SingleClientSupplier::GetClient(
+    const Aws::String &, std::function<void()> &report_success) {
+    report_success = [] {};  // no-op lambda
     return this->kms_client;
 }
 
@@ -314,21 +352,25 @@ std::shared_ptr<KmsKeyring::CachingClientSupplier> KmsKeyring::CachingClientSupp
     return Aws::MakeShared<KmsKeyring::CachingClientSupplier>(AWS_CRYPTO_SDK_KMS_CLASS_TAG);
 }
 
-std::shared_ptr<KMS::KMSClient> KmsKeyring::CachingClientSupplier::GetClient(const Aws::String &region, std::function<void()> &report_success) {
+std::shared_ptr<KMS::KMSClient> KmsKeyring::CachingClientSupplier::GetClient(
+    const Aws::String &region, std::function<void()> &report_success) {
     {
         std::unique_lock<std::mutex> lock(cache_mutex);
         if (cache.find(region) != cache.end()) {
-            report_success = []{}; // no-op lambda
+            report_success = [] {};  // no-op lambda
             return cache.at(region);
         }
     }
-    auto client = CreateDefaultKmsClient(region);
-    report_success = [this,region,client]{std::unique_lock<std::mutex> lock(this->cache_mutex);
-                                          this->cache[region] = client;};
+    auto client    = CreateDefaultKmsClient(region);
+    report_success = [this, region, client] {
+        std::unique_lock<std::mutex> lock(this->cache_mutex);
+        this->cache[region] = client;
+    };
     return client;
 }
 
-std::shared_ptr<KmsKeyring::ClientSupplier> KmsKeyring::Builder::BuildClientSupplier(const Aws::Vector<Aws::String> &key_ids) const {
+std::shared_ptr<KmsKeyring::ClientSupplier> KmsKeyring::Builder::BuildClientSupplier(
+    const Aws::Vector<Aws::String> &key_ids) const {
     if (kms_client) {
         return KmsKeyring::SingleClientSupplier::Create(kms_client);
     }
@@ -338,8 +380,7 @@ std::shared_ptr<KmsKeyring::ClientSupplier> KmsKeyring::Builder::BuildClientSupp
         return KmsKeyring::SingleClientSupplier::Create(CreateDefaultKmsClient(region));
     }
 
-    return client_supplier ? client_supplier :
-        KmsKeyring::CachingClientSupplier::Create();
+    return client_supplier ? client_supplier : KmsKeyring::CachingClientSupplier::Create();
 }
 
 bool KmsKeyring::Builder::ValidParameters(const Aws::Vector<Aws::String> &key_ids) const {
@@ -364,20 +405,16 @@ aws_cryptosdk_keyring *KmsKeyring::Builder::Build(const Aws::Vector<Aws::String>
         return NULL;
     }
 
-    return Aws::New<Private::KmsKeyringImpl>(AWS_CRYPTO_SDK_KMS_CLASS_TAG,
-                                             key_ids,
-                                             grant_tokens,
-                                             BuildClientSupplier(key_ids));
+    return Aws::New<Private::KmsKeyringImpl>(
+        AWS_CRYPTO_SDK_KMS_CLASS_TAG, key_ids, grant_tokens, BuildClientSupplier(key_ids));
 }
 
 aws_cryptosdk_keyring *KmsKeyring::Builder::BuildDiscovery() const {
     Aws::Vector<Aws::String> empty_key_ids_list;
-    return Aws::New<Private::KmsKeyringImpl>(AWS_CRYPTO_SDK_KMS_CLASS_TAG,
-                                             empty_key_ids_list,
-                                             grant_tokens,
-                                             BuildClientSupplier(empty_key_ids_list));
+    return Aws::New<Private::KmsKeyringImpl>(
+        AWS_CRYPTO_SDK_KMS_CLASS_TAG, empty_key_ids_list, grant_tokens, BuildClientSupplier(empty_key_ids_list));
 }
-    
+
 KmsKeyring::Builder &KmsKeyring::Builder::WithGrantTokens(const Aws::Vector<Aws::String> &grant_tokens) {
     this->grant_tokens.insert(this->grant_tokens.end(), grant_tokens.begin(), grant_tokens.end());
     return *this;
@@ -388,12 +425,13 @@ KmsKeyring::Builder &KmsKeyring::Builder::WithGrantToken(const Aws::String &gran
     return *this;
 }
 
-KmsKeyring::Builder &KmsKeyring::Builder::WithClientSupplier(const std::shared_ptr<KmsKeyring::ClientSupplier> &client_supplier) {
+KmsKeyring::Builder &KmsKeyring::Builder::WithClientSupplier(
+    const std::shared_ptr<KmsKeyring::ClientSupplier> &client_supplier) {
     this->client_supplier = client_supplier;
     return *this;
 }
 
-KmsKeyring::Builder &KmsKeyring::Builder::WithKmsClient(std::shared_ptr<KMS::KMSClient> kms_client) {
+KmsKeyring::Builder &KmsKeyring::Builder::WithKmsClient(const std::shared_ptr<KMS::KMSClient> &kms_client) {
     this->kms_client = kms_client;
     return *this;
 }

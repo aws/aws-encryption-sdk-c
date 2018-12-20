@@ -16,9 +16,9 @@
 #ifndef AWS_ENCRYPTION_SDK_TEST_CRYPTO_H
 #define AWS_ENCRYPTION_SDK_TEST_CRYPTO_H
 
-#include <stdlib.h>
-#include <aws/cryptosdk/session.h>
 #include <aws/cryptosdk/default_cmm.h>
+#include <aws/cryptosdk/session.h>
+#include <stdlib.h>
 #include "testing.h"
 
 struct t_aws_cryptosdk_session_cmm_struct {
@@ -29,8 +29,8 @@ struct t_aws_cryptosdk_session_cmm_struct {
 /**
  * Initializes aws_cryptoskd cmm and session
  */
-struct t_aws_cryptosdk_session_cmm_struct t_aws_cryptosdk_all_init(enum aws_cryptosdk_mode mode,
-                                                                   struct aws_cryptosdk_keyring *mk) {
+struct t_aws_cryptosdk_session_cmm_struct t_aws_cryptosdk_all_init(
+    enum aws_cryptosdk_mode mode, struct aws_cryptosdk_keyring *mk) {
     struct t_aws_cryptosdk_session_cmm_struct result;
 
     result.cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), mk);
@@ -59,19 +59,21 @@ void t_aws_cryptosdk_destroy(struct t_aws_cryptosdk_session_cmm_struct result) {
  * @param expected_process_status aws_cryptosdk_session_process expected status
  * @return 0 on success
  */
-int t_aws_cryptosdk_process(struct aws_cryptosdk_keyring *keyring,
-                            enum aws_cryptosdk_mode mode,
-                            const struct aws_byte_buf *in,
-                            struct aws_byte_buf *out,
-                            int expected_process_status = AWS_OP_SUCCESS) {
+int t_aws_cryptosdk_process(
+    struct aws_cryptosdk_keyring *keyring,
+    enum aws_cryptosdk_mode mode,
+    const struct aws_byte_buf *in,
+    struct aws_byte_buf *out,
+    int expected_process_status = AWS_OP_SUCCESS) {
     struct t_aws_cryptosdk_session_cmm_struct aws_crypto_sdk = t_aws_cryptosdk_all_init(mode, keyring);
 
     aws_cryptosdk_session_set_message_size(aws_crypto_sdk.session, in->len);
 
     size_t in_consumed, out_consumed;
-    TEST_ASSERT(aws_cryptosdk_session_process(aws_crypto_sdk.session,
-                                              out->buffer, out->len, &out_consumed,
-                                              in->buffer, in->len, &in_consumed) == expected_process_status);
+    TEST_ASSERT(
+        aws_cryptosdk_session_process(
+            aws_crypto_sdk.session, out->buffer, out->len, &out_consumed, in->buffer, in->len, &in_consumed) ==
+        expected_process_status);
 
     if (expected_process_status != AWS_OP_ERR) {
         TEST_ASSERT_INT_EQ(in_consumed, in->len);
@@ -84,4 +86,4 @@ int t_aws_cryptosdk_process(struct aws_cryptosdk_keyring *keyring,
     return 0;
 }
 
-#endif //AWS_ENCRYPTION_SDK_TEST_CRYPTO_H
+#endif  // AWS_ENCRYPTION_SDK_TEST_CRYPTO_H

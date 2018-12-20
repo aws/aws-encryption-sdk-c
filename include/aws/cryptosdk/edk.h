@@ -28,6 +28,14 @@
  * need to use it and you should not do so.
  */
 
+/**
+ * @addtogroup cmm_kr_lowlevel
+ * @{
+ */
+
+/**
+ * A structure representing a single encrypted data key.
+ */
 struct aws_cryptosdk_edk {
     struct aws_byte_buf provider_id;
     struct aws_byte_buf provider_info;
@@ -68,36 +76,22 @@ void aws_cryptosdk_edk_list_clear(struct aws_array_list *edk_list);
  * Copies the EDK data in src to dest.
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_edk_init_clone(struct aws_allocator *alloc, struct aws_cryptosdk_edk *dest, const struct aws_cryptosdk_edk *src);
-
-/**
- * _Copies_ all EDKs in the list at src, appending the copies to dest. dest must already be initialized.
- *
- * On failure, the destination list is unchanged.
- */
-AWS_CRYPTOSDK_API
-int aws_cryptosdk_edk_list_copy_all(struct aws_allocator *alloc, struct aws_array_list *dest, const struct aws_array_list *src);
+int aws_cryptosdk_edk_init_clone(
+    struct aws_allocator *alloc, struct aws_cryptosdk_edk *dest, const struct aws_cryptosdk_edk *src);
 
 /**
  * Returns true if the contents of all EDK byte buffers are identical, false otherwise.
  */
-AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_edk_eq(const struct aws_cryptosdk_edk *a, const struct aws_cryptosdk_edk *b) {
+AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_edk_eq(
+    const struct aws_cryptosdk_edk *a, const struct aws_cryptosdk_edk *b) {
     return aws_byte_buf_eq(&a->enc_data_key, &b->enc_data_key) &&
-        aws_byte_buf_eq(&a->provider_info, &b->provider_info) &&
-        aws_byte_buf_eq(&a->provider_id, &b->provider_id);
+           aws_byte_buf_eq(&a->provider_info, &b->provider_info) && aws_byte_buf_eq(&a->provider_id, &b->provider_id);
 }
-
-/**
- * Appends the contents of source EDK list to destination EDK list, and clears source list,
- * but does not clean it up. This makes a shallow copy of all EDKs, so byte buffers are not
- * duplicated. Their ownership is just transferred from the source list to the destination.
- */
-AWS_CRYPTOSDK_API
-int aws_cryptosdk_transfer_edk_list(struct aws_array_list *dest, struct aws_array_list *src);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // AWS_CRYPTOSDK_EDK_H
+/** @} */  // doxygen group cmm_kr_lowlevel
 
+#endif  // AWS_CRYPTOSDK_EDK_H

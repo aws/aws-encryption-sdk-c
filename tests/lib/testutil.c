@@ -13,21 +13,22 @@
  * limitations under the License.
  */
 
-#include <stdlib.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <errno.h>
+#include "testutil.h"
 #include <aws/common/common.h>
 #include <aws/common/encoding.h>
 #include <aws/common/hash_table.h>
 #include <aws/common/string.h>
 #include <aws/cryptosdk/enc_context.h>
+#include <aws/cryptosdk/keyring_trace.h>
+#include <ctype.h>
+#include <errno.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "../unit/testing.h"
-#include "testutil.h"
 
 #ifdef _MSC_VER
-#pragma warning(disable: 4774) // printf format string is not a string literal
+#    pragma warning(disable : 4774)  // printf format string is not a string literal
 #endif
 
 TESTLIB_API
@@ -71,13 +72,13 @@ void hexdump(FILE *fd, const uint8_t *buf, size_t size) {
 TESTLIB_API
 int test_loadfile(const char *filename, uint8_t **buf, size_t *datasize) {
     uint8_t *tmpbuf = NULL;
-    FILE *fp = fopen(filename, "rb");
+    FILE *fp        = fopen(filename, "rb");
 
     if (!fp) {
         return 1;
     }
 
-    size_t bufsz = 128;
+    size_t bufsz  = 128;
     size_t offset = 0;
 
     tmpbuf = malloc(bufsz);
@@ -103,7 +104,7 @@ int test_loadfile(const char *filename, uint8_t **buf, size_t *datasize) {
             }
 
             tmpbuf = newptr;
-            bufsz = newsz;
+            bufsz  = newsz;
         }
 
         size_t nread = fread(tmpbuf + offset, 1, bufsz - offset, fp);
@@ -144,18 +145,34 @@ failure:
     return 1;
 }
 
+AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_1, "The night is dark");
+AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_1, "and full of terrors");
+AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_2, "You Know Nothing");
+AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_2, "James Bond");
+
 TESTLIB_API
-int test_enc_context_init_and_fill(struct aws_hash_table *enc_context) {
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(aws_default_allocator(), enc_context));
+int test_enc_context_fill(struct aws_hash_table *enc_context) {
+    TEST_ASSERT_SUCCESS(aws_hash_table_put(enc_context, enc_context_key_1, (void *)enc_context_val_1, NULL));
 
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_1, "The night is dark");
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_1, "and full of terrors");
-    aws_hash_table_put(enc_context, enc_context_key_1, (void *)enc_context_val_1, NULL);
+    TEST_ASSERT_SUCCESS(aws_hash_table_put(enc_context, enc_context_key_2, (void *)enc_context_val_2, NULL));
 
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_2, "You Know Nothing");
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_2, "James Bond");
-    aws_hash_table_put(enc_context, enc_context_key_2, (void *)enc_context_val_2, NULL);
+    return 0;
+}
 
+TESTLIB_API
+int assert_enc_context_fill(const struct aws_hash_table *enc_context) {
+    struct aws_hash_element *elem;
+    const struct aws_string *val;
+
+    TEST_ASSERT_SUCCESS(aws_hash_table_find(enc_context, enc_context_key_1, &elem));
+    TEST_ASSERT_ADDR_NOT_NULL(elem);
+    val = (const struct aws_string *)elem->value;
+    TEST_ASSERT(aws_string_eq(val, enc_context_val_1));
+
+    TEST_ASSERT_SUCCESS(aws_hash_table_find(enc_context, enc_context_key_2, &elem));
+    TEST_ASSERT_ADDR_NOT_NULL(elem);
+    val = (const struct aws_string *)elem->value;
+    TEST_ASSERT(aws_string_eq(val, enc_context_val_2));
     return 0;
 }
 
@@ -165,11 +182,27 @@ struct aws_byte_buf easy_b64_decode(const char *b64_string) {
     struct aws_byte_buf output;
     size_t decoded_len;
 
-    if (aws_base64_compute_decoded_len(&input, &decoded_len)
-        || aws_byte_buf_init(&output, aws_default_allocator(), decoded_len)
-        || aws_base64_decode(&input, &output)) {
+    if (aws_base64_compute_decoded_len(&input, &decoded_len) ||
+        aws_byte_buf_init(&output, aws_default_allocator(), decoded_len) || aws_base64_decode(&input, &output)) {
         abort();
     }
 
     return output;
+}
+
+TESTLIB_API
+int assert_keyring_trace_record(
+    const struct aws_array_list *keyring_trace, size_t idx, const char *name_space, const char *name, uint32_t flags) {
+    struct aws_cryptosdk_keyring_trace_record record;
+    TEST_ASSERT_SUCCESS(aws_array_list_get_at(keyring_trace, (void *)&record, idx));
+    TEST_ASSERT_INT_EQ(record.flags, flags);
+    if (name_space) {
+        const struct aws_byte_cursor ns = aws_byte_cursor_from_c_str(name_space);
+        TEST_ASSERT(aws_string_eq_byte_cursor(record.wrapping_key_namespace, &ns));
+    }
+    if (name) {
+        const struct aws_byte_cursor n = aws_byte_cursor_from_c_str(name);
+        TEST_ASSERT(aws_string_eq_byte_cursor(record.wrapping_key_name, &n));
+    }
+    return 0;
 }

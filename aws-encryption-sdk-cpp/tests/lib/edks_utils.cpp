@@ -15,10 +15,10 @@
 
 #include "edks_utils.h"
 
- /*
-  * On Windows, we can't have classes fully implemented in headers that are dllexported,
-  * so make sure to give the compiler a place to generate the exported symbols.
-  */
+/*
+ * On Windows, we can't have classes fully implemented in headers that are dllexported,
+ * so make sure to give the compiler a place to generate the exported symbols.
+ */
 Aws::Cryptosdk::Testing::Edks::Edks(struct aws_allocator *allocator) {
     aws_cryptosdk_edk_list_init(allocator, &encrypted_data_keys);
 }

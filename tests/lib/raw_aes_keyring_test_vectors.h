@@ -15,15 +15,20 @@
 #ifndef AWS_CRYPTOSDK_TESTS_LIB_RAW_AES_KR_TEST_VECTORS_H
 #define AWS_CRYPTOSDK_TESTS_LIB_RAW_AES_KR_TEST_VECTORS_H
 
-#include "testutil.h"
 #include <aws/cryptosdk/materials.h>
+#include "testutil.h"
 
 /**
  * Instantiate the raw AES KR that was used to generate the test vectors.
  */
-struct aws_cryptosdk_keyring * raw_aes_keyring_tv_new(
-    struct aws_allocator * alloc,
-    enum aws_cryptosdk_aes_key_len raw_key_len);
+struct aws_cryptosdk_keyring *raw_aes_keyring_tv_new(
+    struct aws_allocator *alloc, enum aws_cryptosdk_aes_key_len raw_key_len);
+
+/**
+ * Check that the raw AES KR for test vectors added a new trace record with the
+ * specified flags.
+ */
+int raw_aes_keyring_tv_trace_updated_properly(struct aws_array_list *trace, uint32_t flags);
 
 /**
  * Holds the data for one unencrypted/encrypted data key pair produced by the
@@ -32,13 +37,13 @@ struct aws_cryptosdk_keyring * raw_aes_keyring_tv_new(
 struct raw_aes_keyring_test_vector {
     enum aws_cryptosdk_aes_key_len raw_key_len;
     enum aws_cryptosdk_alg_id alg;
-    const uint8_t * data_key;
+    const uint8_t *data_key;
     size_t data_key_len;
-    const uint8_t * iv;
-    const uint8_t * edk_bytes;
+    const uint8_t *iv;
+    const uint8_t *edk_bytes;
     size_t edk_bytes_len;
-    const char ** ec_keys;
-    const char ** ec_vals;
+    const char **ec_keys;
+    const char **ec_vals;
     size_t num_ec_kv_pairs;
 };
 
@@ -55,9 +60,8 @@ extern struct raw_aes_keyring_test_vector raw_aes_keyring_test_vectors[];
  * this is just test code, Jack.
  */
 TESTLIB_API
-int set_test_vector_encryption_context(struct aws_allocator * alloc,
-                                       struct aws_hash_table * enc_context,
-                                       const struct raw_aes_keyring_test_vector * tv);
+int set_test_vector_encryption_context(
+    struct aws_allocator *alloc, struct aws_hash_table *enc_context, const struct raw_aes_keyring_test_vector *tv);
 
 /**
  * Construct EDK that would be made by the raw AES KR that generated the test
@@ -79,14 +83,14 @@ int set_test_vector_encryption_context(struct aws_allocator * alloc,
  * (3) Deallocate the EDK directly with aws_cryptosdk_edk_clean_up.
  */
 TESTLIB_API
-struct aws_cryptosdk_edk build_test_edk_init(const uint8_t * edk_bytes, size_t edk_len, const uint8_t * iv);
+struct aws_cryptosdk_edk build_test_edk_init(const uint8_t *edk_bytes, size_t edk_len, const uint8_t *iv);
 
 /**
  * Convenience wrappers around build_test_edk_init that give the EDK of any test vector.
  */
 TESTLIB_API
-struct aws_cryptosdk_edk edk_init_from_test_vector(struct raw_aes_keyring_test_vector * tv);
+struct aws_cryptosdk_edk edk_init_from_test_vector(struct raw_aes_keyring_test_vector *tv);
 TESTLIB_API
 struct aws_cryptosdk_edk edk_init_from_test_vector_idx(int idx);
 
-#endif // AWS_CRYPTOSDK_TESTS_LIB_RAW_AES_KR_TEST_VECTORS_H
+#endif  // AWS_CRYPTOSDK_TESTS_LIB_RAW_AES_KR_TEST_VECTORS_H

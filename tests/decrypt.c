@@ -13,17 +13,17 @@
  * limitations under the License.
  */
 
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 
-#include <aws/cryptosdk/session.h>
-#include <aws/cryptosdk/error.h>
-#include <aws/cryptosdk/default_cmm.h>
 #include <aws/common/common.h>
 #include <aws/common/error.h>
+#include <aws/cryptosdk/default_cmm.h>
+#include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/session.h>
 
 #include "testutil.h"
 #include "zero_keyring.h"
@@ -35,11 +35,18 @@ bool expect_failure = false;
 uint8_t *ciphertext, *plaintext;
 size_t ct_size, pt_size;
 
-#define unexpected_error() do { \
-    fprintf(stderr, "Unexpected error return (%d, 0x%04x) at %s:%d: %s\n", \
-        aws_last_error(), aws_last_error(), __FILE__, __LINE__, aws_error_str(aws_last_error())); \
-    return 1; \
-} while(0)
+#define unexpected_error()                                         \
+    do {                                                           \
+        fprintf(                                                   \
+            stderr,                                                \
+            "Unexpected error return (%d, 0x%04x) at %s:%d: %s\n", \
+            aws_last_error(),                                      \
+            aws_last_error(),                                      \
+            __FILE__,                                              \
+            __LINE__,                                              \
+            aws_error_str(aws_last_error()));                      \
+        return 1;                                                  \
+    } while (0)
 
 int test_decrypt() {
     aws_cryptosdk_load_error_strings();
@@ -50,22 +57,22 @@ int test_decrypt() {
         exit(1);
     }
 
-    struct aws_allocator *alloc = aws_default_allocator();
-    struct aws_cryptosdk_keyring *kr = NULL;
+    struct aws_allocator *alloc           = aws_default_allocator();
+    struct aws_cryptosdk_keyring *kr      = NULL;
     struct aws_cryptosdk_session *session = NULL;
-    struct aws_cryptosdk_cmm *cmm = NULL;
+    struct aws_cryptosdk_cmm *cmm         = NULL;
 
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) unexpected_error();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) unexpected_error();
     if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
 
-    uint8_t *outp = output_buf;
+    uint8_t *outp      = output_buf;
     const uint8_t *inp = ciphertext;
 
-    size_t outsz = pt_size;
-    size_t insz = ct_size;
+    size_t outsz        = pt_size;
+    size_t insz         = ct_size;
     size_t out_produced = 0xDEADBEEF;
-    size_t in_consumed = 0xABCD0123;
+    size_t in_consumed  = 0xABCD0123;
 
     int rv = aws_cryptosdk_session_process(session, outp, outsz, &out_produced, inp, insz, &in_consumed);
 
@@ -83,10 +90,13 @@ int test_decrypt() {
         }
 
         if (pt_size != out_produced) {
-            fprintf(stderr, "Wrong output size: Expected %zu got %zu (consumed %zu of %zu)\n",
-                pt_size, (size_t)(outp - output_buf),
-                (size_t)(inp - ciphertext), ct_size
-                );
+            fprintf(
+                stderr,
+                "Wrong output size: Expected %zu got %zu (consumed %zu of %zu)\n",
+                pt_size,
+                (size_t)(outp - output_buf),
+                (size_t)(inp - ciphertext),
+                ct_size);
             return 1;
         }
 
@@ -132,7 +142,7 @@ void parse_args(int argc, char **argv) {
     }
 
     ciphertext_filename = argv[i];
-    plaintext_filename = argv[i+1];
+    plaintext_filename  = argv[i + 1];
 }
 
 int main(int argc, char **argv) {
