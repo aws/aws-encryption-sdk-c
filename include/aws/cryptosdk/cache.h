@@ -14,12 +14,15 @@
  */
 
 #ifndef AWS_CRYPTOSDK_CACHE_H
+#define AWS_CRYPTOSDK_CACHE_H
 
-#    include <aws/common/clock.h>
+#include <aws/common/clock.h>
 
-#    include <aws/cryptosdk/exports.h>
-#    include <aws/cryptosdk/materials.h>
-#    include <aws/cryptosdk/vtable.h>
+#include <aws/cryptosdk/exports.h>
+#include <aws/cryptosdk/materials.h>
+#include <aws/cryptosdk/vtable.h>
+
+AWS_EXTERN_C_BEGIN
 
 /**
  * @defgroup caching Caching APIs
@@ -49,21 +52,21 @@
  * @{
  */
 
-#    define AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES ((uint64_t)1 << 32)
+#define AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES ((uint64_t)1 << 32)
 
 /**
  * The backing materials cache that stores the cached materials for one or more caching CMMs.
  */
-#    ifdef AWS_CRYPTOSDK_DOXYGEN
+#ifdef AWS_CRYPTOSDK_DOXYGEN
 struct aws_cryptosdk_mat_cache;
-#    else
+#else
 struct aws_cryptosdk_mat_cache {
     struct aws_atomic_var refcount;
     const struct aws_cryptosdk_mat_cache_vt *vt;
 };
-#    endif
+#endif
 
-#    ifndef AWS_CRYPTOSDK_DOXYGEN
+#ifndef AWS_CRYPTOSDK_DOXYGEN
 /**
  * NOTE: The extension API for defining new materials cache is currently considered unstable and
  * may change in the future.
@@ -435,12 +438,13 @@ void aws_cryptosdk_mat_cache_entry_ttl_hint(
     }
 }
 
-#    endif  // AWS_CRYPTOSDK_DOXYGEN (unstable APIs excluded from docs)
+#endif  // AWS_CRYPTOSDK_DOXYGEN (unstable APIs excluded from docs)
 
 /**
  * Creates a new instance of the built-in local materials cache. This cache is thread safe, and uses a simple
  * LRU policy (with capacity shared between encrypt and decrypt) to evict entries.
  */
+AWS_CRYPTOSDK_API
 struct aws_cryptosdk_mat_cache *aws_cryptosdk_mat_cache_local_new(struct aws_allocator *alloc, size_t capacity);
 
 /**
@@ -512,6 +516,7 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_mat_cache_release(struct aws_cryp
  * @param partition_id The partition ID to use to avoid collisions with other CMMs. This string need not remain valid
  *                       once this function returns. If NULL, a random partition ID will be generated and used.
  */
+AWS_CRYPTOSDK_API
 struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
     struct aws_allocator *alloc,
     struct aws_cryptosdk_mat_cache *mat_cache,
@@ -566,8 +571,11 @@ enum aws_cryptosdk_caching_cmm_limit_type {
  * @param type The type of limit to set
  * @param new_value The new value of the limit
  */
+AWS_CRYPTOSDK_API
 int aws_cryptosdk_caching_cmm_set_limits(
     struct aws_cryptosdk_cmm *cmm, enum aws_cryptosdk_caching_cmm_limit_type type, uint64_t new_value);
+
+AWS_EXTERN_C_END
 
 /** @} */  // doxygen group caching
 

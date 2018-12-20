@@ -387,11 +387,22 @@ int test_algorithm_override() {
            test_algorithm_override_once(AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE);
 }
 
+int test_null_estimates() {
+    create_session(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_counting_keyring_new(aws_default_allocator()));
+
+    aws_cryptosdk_session_estimate_buf(session, NULL, NULL);
+
+    free_bufs();
+
+    return 0;
+}
+
 struct test_case encrypt_test_cases[] = {
     { "encrypt", "test_simple_roundtrip", test_simple_roundtrip },
     { "encrypt", "test_small_buffers", test_small_buffers },
     { "encrypt", "test_different_keyring_cant_decrypt", &test_different_keyring_cant_decrypt },
     { "encrypt", "test_changed_keyring_can_decrypt", &test_changed_keyring_can_decrypt },
     { "encrypt", "test_algorithm_override", &test_algorithm_override },
+    { "encrypt", "test_null_estimates", &test_null_estimates },
     { NULL }
 };

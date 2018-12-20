@@ -178,17 +178,6 @@ int aws_cryptosdk_session_set_message_bound(struct aws_cryptosdk_session *sessio
     return AWS_OP_SUCCESS;
 }
 
-struct aws_hash_table *aws_cryptosdk_session_get_context(struct aws_cryptosdk_session *session) {
-    if ((session->mode == AWS_CRYPTOSDK_ENCRYPT && session->state == ST_CONFIG) ||
-        (session->mode == AWS_CRYPTOSDK_DECRYPT &&
-         (session->state == ST_DECRYPT_BODY || session->state == ST_CHECK_TRAILER || session->state == ST_DONE))) {
-        return &session->header.enc_context;
-    }
-
-    aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-    return NULL;
-}
-
 int aws_cryptosdk_session_process(
     struct aws_cryptosdk_session *session,
     uint8_t *outp,
@@ -295,8 +284,8 @@ void aws_cryptosdk_session_estimate_buf(
     const struct aws_cryptosdk_session *AWS_RESTRICT session,
     size_t *AWS_RESTRICT outbuf_needed,
     size_t *AWS_RESTRICT inbuf_needed) {
-    *outbuf_needed = session->output_size_estimate;
-    *inbuf_needed  = session->input_size_estimate;
+    if (outbuf_needed) *outbuf_needed = session->output_size_estimate;
+    if (inbuf_needed) *inbuf_needed = session->input_size_estimate;
 }
 
 void aws_cryptosdk_priv_session_change_state(struct aws_cryptosdk_session *session, enum session_state new_state) {
