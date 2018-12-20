@@ -16,16 +16,12 @@ option(AWS_ENC_SDK_EXAMPLES "Enable building of examples")
 
 if (AWS_ENC_SDK_EXAMPLES)
     message(STATUS "Building code examples")
+    find_package(AWSSDK QUIET COMPONENTS core kms)
     file(GLOB example_sources FOLLOW_SYMLINKS *.cpp)
     foreach (source ${example_sources})
         get_filename_component(EXAMPLE_NAME ${source} NAME_WE)
         add_executable(${EXAMPLE_NAME} ${source})
-        target_include_directories(${EXAMPLE_NAME} PUBLIC
-                ${PROJECT_SOURCE_DIR}/include
-                ${PROJECT_SOURCE_DIR}/aws-encryption-sdk-cpp/include
-                $<INSTALL_INTERFACE:include>
-                )
-        target_link_libraries(${EXAMPLE_NAME} AWS::aws-c-common aws-cpp-sdk-kms aws-cpp-sdk-core aws-encryption-sdk aws-encryption-sdk-cpp)
+        target_link_libraries(${EXAMPLE_NAME} PRIVATE AWS::aws-c-common aws-cpp-sdk-kms aws-cpp-sdk-core aws-encryption-sdk aws-encryption-sdk-cpp)
         set_target_properties(${EXAMPLE_NAME} PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
     endforeach ()
 else ()

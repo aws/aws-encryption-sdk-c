@@ -13,39 +13,44 @@
  * limitations under the License.
  */
 
-#include <string.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <aws/core/Aws.h>
 
-#include <aws/cryptosdk/error.h>
-#include <aws/cryptosdk/default_cmm.h>
-#include <aws/cryptosdk/session.h>
 #include <aws/cryptosdk/cpp/kms_keyring.h>
+#include <aws/cryptosdk/default_cmm.h>
+#include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/session.h>
 
 #include <aws/core/client/ClientConfiguration.h>
 
-static void process_file(char const * output_filename,
-                         char const * input_filename,
-                         aws_cryptosdk_mode mode,
-                         char const * key_arn,
-                         struct aws_allocator * allocator) {
-    FILE * input_fp = fopen(input_filename, "rb");
+static void process_file(
+    char const *output_filename,
+    char const *input_filename,
+    aws_cryptosdk_mode mode,
+    char const *key_arn,
+    struct aws_allocator *allocator) {
+    FILE *input_fp = fopen(input_filename, "rb");
     if (!input_fp) {
         fprintf(stderr, "Could not open input file %s for reading; error %s\n", input_filename, strerror(errno));
         return;
     }
 
-    FILE * output_fp = fopen(output_filename, "wb");
+    FILE *output_fp = fopen(output_filename, "wb");
     if (!output_fp) {
-        fprintf(stderr, "Could not open output file %s for writing plaintext; error %s\n", output_filename, strerror(errno));
+        fprintf(
+            stderr,
+            "Could not open output file %s for writing plaintext; error %s\n",
+            output_filename,
+            strerror(errno));
         fclose(input_fp);
         return;
     }
 
     // Initialize a KMS keyring using the provided ARN.
-    auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({key_arn});
+    auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({ key_arn });
 
     // Initialize the Cryptographic Materials Manager (CMM).
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(allocator, kms_keyring);
@@ -65,7 +70,7 @@ static void process_file(char const * output_filename,
 
     uint8_t *input_buffer = (uint8_t *)malloc(INITIAL_CAPACITY);
     size_t input_capacity = INITIAL_CAPACITY;
-    size_t input_len = 0;
+    size_t input_len      = 0;
 
     uint8_t *output_buffer = (uint8_t *)malloc(INITIAL_CAPACITY);
     size_t output_capacity = INITIAL_CAPACITY;
@@ -73,14 +78,13 @@ static void process_file(char const * output_filename,
     // We use these variables to keep track of the number of bytes of input consumed and output generated.
     //   During encryption, once we know exactly how much plaintext is to be consumed, we call the
     //   set_message_size() function with the exact input size so that the session can be finished.
-    size_t total_input_consumed = 0;
+    size_t total_input_consumed  = 0;
     size_t total_output_produced = 0;
 
     int aws_status = AWS_OP_SUCCESS;
     while (!aws_cryptosdk_session_is_done(session)) {
         if (!feof(input_fp) && (input_len < input_capacity)) {
-            size_t num_read = fread(&input_buffer[input_len], 1, input_capacity - input_len,
-                                    input_fp);
+            size_t num_read = fread(&input_buffer[input_len], 1, input_capacity - input_len, input_fp);
             if (ferror(input_fp)) abort();
             input_len += num_read;
         }
@@ -91,8 +95,8 @@ static void process_file(char const * output_filename,
         }
 
         size_t output_produced, input_consumed;
-        aws_status = aws_cryptosdk_session_process(session, output_buffer, output_capacity, &output_produced,
-                                                   input_buffer, input_len, &input_consumed);
+        aws_status = aws_cryptosdk_session_process(
+            session, output_buffer, output_capacity, &output_produced, input_buffer, input_len, &input_consumed);
         if (aws_status) break;
         total_input_consumed += input_consumed;
 
@@ -110,8 +114,9 @@ static void process_file(char const * output_filename,
             total_output_produced += num_written;
         }
 
-        if (!input_consumed && !output_produced) { // We made no progress; something is wrong
-            fprintf(stderr, "Unexpected error: encryption SDK made no progress.  Please contact the development team.\n");
+        if (!input_consumed && !output_produced) {  // We made no progress; something is wrong
+            fprintf(
+                stderr, "Unexpected error: encryption SDK made no progress.  Please contact the development team.\n");
             abort();
         }
 
@@ -132,15 +137,18 @@ static void process_file(char const * output_filename,
     }
 
     if (aws_status) {
-        fprintf(stderr, "%s failed with error %d: %s\n",
-               (mode == AWS_CRYPTOSDK_ENCRYPT) ? "Encryption" : "Decryption",
-               aws_last_error(),
-               aws_error_debug_str(aws_last_error()));
+        fprintf(
+            stderr,
+            "%s failed with error %d: %s\n",
+            (mode == AWS_CRYPTOSDK_ENCRYPT) ? "Encryption" : "Decryption",
+            aws_last_error(),
+            aws_error_debug_str(aws_last_error()));
     } else {
-        printf("%s succeeded; %zu input bytes were consumed; %zu output bytes were produced\n",
-               (mode == AWS_CRYPTOSDK_ENCRYPT) ? "Encryption" : "Decryption",
-               total_input_consumed,
-               total_output_produced) ;
+        printf(
+            "%s succeeded; %zu input bytes were consumed; %zu output bytes were produced\n",
+            (mode == AWS_CRYPTOSDK_ENCRYPT) ? "Encryption" : "Decryption",
+            total_input_consumed,
+            total_output_produced);
     }
 
     free(input_buffer);
@@ -163,14 +171,14 @@ static void process_file(char const * output_filename,
  *      <input_filename>.decrypted
  *
  */
-int main(int argc, char * argv[]) {
+int main(int argc, char *argv[]) {
     if (argc != 3) {
         fprintf(stderr, "Usage: %s <key_arn> <input_filename>\n", argv[0]);
         exit(1);
     }
 
-    char const * key_arn = argv[1];
-    char const * input_filename = argv[2];
+    char const *key_arn        = argv[1];
+    char const *input_filename = argv[2];
 
     char encrypted_filename[PATH_MAX];
     snprintf(encrypted_filename, sizeof(encrypted_filename), "%s.encrypted", input_filename);
@@ -183,7 +191,7 @@ int main(int argc, char * argv[]) {
     Aws::SDKOptions options;
     Aws::InitAPI(options);
 
-    struct aws_allocator * allocator = aws_default_allocator();
+    struct aws_allocator *allocator = aws_default_allocator();
 
     // Encrypt file
     process_file(encrypted_filename, input_filename, AWS_CRYPTOSDK_ENCRYPT, key_arn, allocator);

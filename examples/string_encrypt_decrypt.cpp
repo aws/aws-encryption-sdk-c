@@ -13,20 +13,19 @@
  * limitations under the License.
  */
 
-#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/cpp/kms_keyring.h>
+#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/session.h>
 
-void encrypt_string(struct aws_allocator *alloc,
-                    const char *key_arn,
-                    uint8_t *ciphertext,
-                    size_t ciphertext_buf_sz,
-                    size_t *ciphertext_len,
-                    const uint8_t *plaintext,
-                    size_t plaintext_len)
-{
-    struct aws_cryptosdk_keyring *kms_keyring =
-        Aws::Cryptosdk::KmsKeyring::Builder().Build({key_arn});
+void encrypt_string(
+    struct aws_allocator *alloc,
+    const char *key_arn,
+    uint8_t *ciphertext,
+    size_t ciphertext_buf_sz,
+    size_t *ciphertext_len,
+    const uint8_t *plaintext,
+    size_t plaintext_len) {
+    struct aws_cryptosdk_keyring *kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({ key_arn });
     if (!kms_keyring) {
         printf("Failed to build KMS Keyring. Did you specify a valid KMS CMK ARN?\n");
         abort();
@@ -36,42 +35,34 @@ void encrypt_string(struct aws_allocator *alloc,
     if (!cmm) abort();
     aws_cryptosdk_keyring_release(kms_keyring);
 
-    struct aws_cryptosdk_session *session =
-	aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_ENCRYPT, cmm);
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_ENCRYPT, cmm);
     if (!session) abort();
     aws_cryptosdk_cmm_release(cmm);
 
-    if (AWS_OP_SUCCESS != aws_cryptosdk_session_set_message_size(session,
-                                                                 plaintext_len)) {
-	abort();
+    if (AWS_OP_SUCCESS != aws_cryptosdk_session_set_message_size(session, plaintext_len)) {
+        abort();
     }
 
     size_t plaintext_consumed;
-    if (AWS_OP_SUCCESS != aws_cryptosdk_session_process(session,
-                                                        ciphertext,
-                                                        ciphertext_buf_sz,
-                                                        ciphertext_len,
-                                                        plaintext,
-                                                        plaintext_len,
-                                                        &plaintext_consumed)) {
-	abort();
+    if (AWS_OP_SUCCESS !=
+        aws_cryptosdk_session_process(
+            session, ciphertext, ciphertext_buf_sz, ciphertext_len, plaintext, plaintext_len, &plaintext_consumed)) {
+        abort();
     }
     assert(aws_cryptosdk_session_is_done(session));
     assert(plaintext_consumed == plaintext_len);
     aws_cryptosdk_session_destroy(session);
-
 }
 
-void decrypt_string(struct aws_allocator *alloc,
-                    const char *key_arn,
-                    uint8_t *plaintext,
-                    size_t plaintext_buf_sz,
-                    size_t *plaintext_len,
-                    const uint8_t *ciphertext,
-                    size_t ciphertext_len)
-{
-    struct aws_cryptosdk_keyring *kms_keyring =
-        Aws::Cryptosdk::KmsKeyring::Builder().Build({key_arn});
+void decrypt_string(
+    struct aws_allocator *alloc,
+    const char *key_arn,
+    uint8_t *plaintext,
+    size_t plaintext_buf_sz,
+    size_t *plaintext_len,
+    const uint8_t *ciphertext,
+    size_t ciphertext_len) {
+    struct aws_cryptosdk_keyring *kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({ key_arn });
     if (!kms_keyring) {
         printf("Failed to build KMS Keyring. Did you specify a valid KMS CMK ARN?\n");
         abort();
@@ -81,19 +72,14 @@ void decrypt_string(struct aws_allocator *alloc,
     if (!cmm) abort();
     aws_cryptosdk_keyring_release(kms_keyring);
 
-    struct aws_cryptosdk_session *session =
-        aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm);
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm);
     if (!session) abort();
     aws_cryptosdk_cmm_release(cmm);
 
     size_t ciphertext_consumed;
-    if (AWS_OP_SUCCESS != aws_cryptosdk_session_process(session,
-                                                        plaintext,
-                                                        plaintext_buf_sz,
-                                                        plaintext_len,
-                                                        ciphertext,
-                                                        ciphertext_len,
-                                                        &ciphertext_consumed)) {
+    if (AWS_OP_SUCCESS !=
+        aws_cryptosdk_session_process(
+            session, plaintext, plaintext_buf_sz, plaintext_len, ciphertext, ciphertext_len, &ciphertext_consumed)) {
         abort();
     }
     assert(aws_cryptosdk_session_is_done(session));
@@ -101,15 +87,14 @@ void decrypt_string(struct aws_allocator *alloc,
     aws_cryptosdk_session_destroy(session);
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     if (argc < 2) {
         printf("Usage: %s key_arn\n", argv[0]);
         return 1;
     }
 
-    struct aws_allocator *alloc = aws_default_allocator();
-    const char *plaintext_original = "Hello world!";
+    struct aws_allocator *alloc         = aws_default_allocator();
+    const char *plaintext_original      = "Hello world!";
     const size_t plaintext_original_len = strlen(plaintext_original);
 
     const size_t BUFFER_SIZE = 1024;
@@ -122,12 +107,17 @@ int main(int argc, char **argv)
     Aws::SDKOptions options;
     Aws::InitAPI(options);
 
-    encrypt_string(alloc, argv[1], ciphertext, BUFFER_SIZE, &ciphertext_len,
-                   (const uint8_t *)plaintext_original, plaintext_original_len);
+    encrypt_string(
+        alloc,
+        argv[1],
+        ciphertext,
+        BUFFER_SIZE,
+        &ciphertext_len,
+        (const uint8_t *)plaintext_original,
+        plaintext_original_len);
     printf(">> Encrypted to ciphertext of length %ld\n", ciphertext_len);
 
-    decrypt_string(alloc, argv[1], plaintext_result, BUFFER_SIZE, &plaintext_result_len,
-                   ciphertext, ciphertext_len);
+    decrypt_string(alloc, argv[1], plaintext_result, BUFFER_SIZE, &plaintext_result_len, ciphertext, ciphertext_len);
     printf(">> Decrypted to plaintext of length %ld\n", plaintext_result_len);
 
     assert(plaintext_original_len == plaintext_result_len);
