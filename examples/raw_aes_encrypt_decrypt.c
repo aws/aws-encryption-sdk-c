@@ -81,17 +81,9 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    struct aws_allocator *alloc         = aws_default_allocator();
-    const char *plaintext_original      = "Hello world!";
-    const size_t plaintext_original_len = strlen(plaintext_original);
+    struct aws_allocator *alloc = aws_default_allocator();
 
-    const size_t BUFFER_SIZE = 1024;
-    uint8_t ciphertext[BUFFER_SIZE];
-    uint8_t plaintext_result[BUFFER_SIZE];
-    size_t ciphertext_len;
-    size_t plaintext_result_len;
-
-    uint8_t wrapping_key[32] = { 0 };
+    uint8_t wrapping_key[32];
 
     FILE *key_file = fopen(argv[1], "rb");
     assert(key_file);
@@ -176,6 +168,15 @@ int main(int argc, char **argv) {
      * CMM is destroyed. The CMM will be used for both encrypt and decrypt.
      */
     aws_cryptosdk_keyring_release(keyring);
+
+    const char *plaintext_original      = "Hello world!";
+    const size_t plaintext_original_len = strlen(plaintext_original);
+
+    const size_t BUFFER_SIZE = 1024;
+    uint8_t ciphertext[BUFFER_SIZE];
+    uint8_t plaintext_result[BUFFER_SIZE];
+    size_t ciphertext_len;
+    size_t plaintext_result_len;
 
     encrypt_or_decrypt(
         alloc,
