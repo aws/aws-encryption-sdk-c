@@ -98,12 +98,13 @@ std::shared_ptr<Aws::KMS::KMSClient> create_kms_client(const Aws::String &region
     return Aws::MakeShared<Aws::KMS::KMSClient>("AWS_SAMPLE_CODE", client_config);
 }
 
+#define BUFFER_SIZE 1024
+
 int main(int argc, char **argv) {
     struct aws_allocator *alloc         = aws_default_allocator();
     const char *plaintext_original      = "Hello world!";
     const size_t plaintext_original_len = strlen(plaintext_original);
 
-    const size_t BUFFER_SIZE = 1024;
     uint8_t ciphertext[BUFFER_SIZE];
     size_t ciphertext_len;
 
@@ -118,7 +119,7 @@ int main(int argc, char **argv) {
      */
     encrypt_string(
         alloc, ciphertext, BUFFER_SIZE, &ciphertext_len, (const uint8_t *)plaintext_original, plaintext_original_len);
-    printf(">> Encrypted to ciphertext of length %ld\n", ciphertext_len);
+    printf(">> Encrypted to ciphertext of length %zu\n", ciphertext_len);
 
     /* We will decrypt the same encrypted text repeatedly with several
      * different keyrings. All of these keyrings will do so successfully.
@@ -179,7 +180,7 @@ int main(int argc, char **argv) {
         size_t plaintext_result_len;
         decrypt_string(
             alloc, keyring, plaintext_result, BUFFER_SIZE, &plaintext_result_len, ciphertext, ciphertext_len);
-        printf(">> Decrypted to plaintext of length %ld\n", plaintext_result_len);
+        printf(">> Decrypted to plaintext of length %zu\n", plaintext_result_len);
 
         assert(plaintext_original_len == plaintext_result_len);
         assert(!memcmp(plaintext_original, plaintext_result, plaintext_result_len));

@@ -87,6 +87,8 @@ void decrypt_string(
     aws_cryptosdk_session_destroy(session);
 }
 
+#define BUFFER_SIZE 1024
+
 int main(int argc, char **argv) {
     if (argc < 2) {
         printf("Usage: %s key_arn\n", argv[0]);
@@ -97,7 +99,6 @@ int main(int argc, char **argv) {
     const char *plaintext_original      = "Hello world!";
     const size_t plaintext_original_len = strlen(plaintext_original);
 
-    const size_t BUFFER_SIZE = 1024;
     uint8_t ciphertext[BUFFER_SIZE];
     uint8_t plaintext_result[BUFFER_SIZE];
     size_t ciphertext_len;
@@ -115,10 +116,10 @@ int main(int argc, char **argv) {
         &ciphertext_len,
         (const uint8_t *)plaintext_original,
         plaintext_original_len);
-    printf(">> Encrypted to ciphertext of length %ld\n", ciphertext_len);
+    printf(">> Encrypted to ciphertext of length %zu\n", ciphertext_len);
 
     decrypt_string(alloc, argv[1], plaintext_result, BUFFER_SIZE, &plaintext_result_len, ciphertext, ciphertext_len);
-    printf(">> Decrypted to plaintext of length %ld\n", plaintext_result_len);
+    printf(">> Decrypted to plaintext of length %zu\n", plaintext_result_len);
 
     assert(plaintext_original_len == plaintext_result_len);
     assert(!memcmp(plaintext_original, plaintext_result, plaintext_result_len));
