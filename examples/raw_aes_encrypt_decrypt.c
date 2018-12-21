@@ -146,13 +146,13 @@ int main(int argc, char **argv) {
      * during the use of the keyring.
      */
     AWS_STATIC_STRING_FROM_LITERAL(wrapping_key_namespace, "my master keys");
-    /* Defines struct aws_string *wrapping_key_namespace, which does not need
-     * to be destroyed.
+    /* Defines static struct aws_string *wrapping_key_namespace, which does not
+     * need to be deallocated. (Calling aws_string_destroy on it is a no-op.)
      */
 
     struct aws_string *wrapping_key_name = aws_string_new_from_c_str(alloc, "key #1");
-    /* This will need to be destroyed. Suitable for use for C-strings that are
-     * created at runtime.
+    /* This will need to be deallocated by a call to aws_string_destroy.
+     * Suitable for use for C-strings that are created at runtime.
      */
 
     struct aws_cryptosdk_keyring *keyring = aws_cryptosdk_raw_aes_keyring_new(
