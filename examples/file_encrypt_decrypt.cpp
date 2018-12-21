@@ -180,11 +180,13 @@ int main(int argc, char *argv[]) {
     char const *key_arn        = argv[1];
     char const *input_filename = argv[2];
 
-    char encrypted_filename[PATH_MAX];
-    snprintf(encrypted_filename, sizeof(encrypted_filename), "%s.encrypted", input_filename);
+    size_t filename_len = strlen(input_filename) + 11;
+    char *encrypted_filename = (char *)malloc(filename_len);
+    char *decrypted_filename = (char *)malloc(filename_len);
+    if (!encrypted_filename || !decrypted_filename) abort();
 
-    char decrypted_filename[PATH_MAX];
-    snprintf(decrypted_filename, sizeof(decrypted_filename), "%s.decrypted", input_filename);
+    snprintf(encrypted_filename, filename_len, "%s.encrypted", input_filename);
+    snprintf(decrypted_filename, filename_len, "%s.decrypted", input_filename);
 
     aws_cryptosdk_load_error_strings();
 
@@ -201,5 +203,7 @@ int main(int argc, char *argv[]) {
 
     Aws::ShutdownAPI(options);
 
+    free(encrypted_filename);
+    free(decrypted_filename);
     return 0;
 }
