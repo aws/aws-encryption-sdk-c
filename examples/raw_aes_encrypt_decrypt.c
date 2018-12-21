@@ -63,8 +63,7 @@ void encrypt_or_decrypt(
  */
 int main(int argc, char **argv) {
     if (argc < 2) {
-        /*
-         * To run this test just generate a file of 128, 192, or 256 random bits
+        /* To run this test just generate a file of 128, 192, or 256 random bits
          * to use as your encryption key and give the filename as the argument.
          *
          * Here are example command lines on Mac/UNIX-like systems that will
@@ -76,8 +75,8 @@ int main(int argc, char **argv) {
          */
         fprintf(
             stderr,
-            "Usage: %s key_file\nKey file is a raw binary file "
-            "of 128, 192, or 256 bits.\n",
+            "Usage: %s key_file\n"
+            "Key file is a raw binary file of 128, 192, or 256 bits.\n",
             argv[0]);
         return 1;
     }
