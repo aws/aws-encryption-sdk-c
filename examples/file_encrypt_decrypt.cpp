@@ -180,7 +180,7 @@ int main(int argc, char *argv[]) {
     char const *key_arn        = argv[1];
     char const *input_filename = argv[2];
 
-    size_t filename_len = strlen(input_filename) + 11;
+    size_t filename_len      = strlen(input_filename) + 11;
     char *encrypted_filename = (char *)malloc(filename_len);
     char *decrypted_filename = (char *)malloc(filename_len);
     if (!encrypted_filename || !decrypted_filename) abort();
