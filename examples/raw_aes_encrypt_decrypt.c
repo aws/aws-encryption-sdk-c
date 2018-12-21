@@ -47,14 +47,15 @@ void encrypt_or_decrypt(
     aws_cryptosdk_session_destroy(session);
 }
 
-/* This example does a simple string encryption using the "raw" AES keyring.
- * This is a keyring which does its data key encryption using a wrapping key
- * (i.e., master key) which is locally in memory. We recommend using a service
- * like AWS KMS or a secure device like an HSM to protect your master encryption
- * keys, but if you have a use case for doing encryption using local master
- * encryption keys, the AWS Encryption SDK for C supports doing so with AES-GCM
- * wrapping keys which are ingested as simple byte arrays. The raw AES keyring
- * accepts AES-128, AES-192, and AES-256 keys.
+/* This example does a simple string encryption using the raw AES keyring.
+ * This keyring does local encryption and decryption of data keys using a
+ * wrapping key (i.e., master key) provided as a simple byte array. We
+ * recommend using a service such as AWS KMS or a secure device such as a
+ * hardware security module (HSM) that does not expose wrapping keys and
+ * performs data key encryption within a secure boundary. However, if you
+ * have a use case for doing encryption using local wrapping keys, the raw
+ * AES keyring will do AES-GCM encryption of data keys with the AES-128,
+ * AES-192, or AES-256 wrapping key that you provide.
  *
  * The raw AES keyring does the equivalent encryption and decryption as the
  * AWS Encryption SDK for Java's JceMasterKey when used with a secret key
