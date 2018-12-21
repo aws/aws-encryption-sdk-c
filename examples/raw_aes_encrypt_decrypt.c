@@ -49,13 +49,12 @@ void encrypt_or_decrypt(
 
 /* This example does a simple string encryption using the "raw" AES keyring.
  * This is a keyring which does its data key encryption using a wrapping key
- * (i.e., master key) which is locally in memory, which is not a recommended
- * best security practice. It is safer to maintain your master encryption keys
- * in a service like AWS KMS or in an HSM. Nonetheless, for users who want
- * to do encryption using local master encryption keys, the AWS Encryption SDK
- * for C supports doing so with AES-GCM wrapping keys which are ingested as
- * simple byte arrays. The raw AES keyring accepts AES-128, AES-192, and
- * AES-256 keys.
+ * (i.e., master key) which is locally in memory. We recommend using a service
+ * like AWS KMS or a secure device like an HSM to protect your master encryption
+ * keys, but if you have a use case for doing encryption using local master
+ * encryption keys, the AWS Encryption SDK for C supports doing so with AES-GCM
+ * wrapping keys which are ingested as simple byte arrays. The raw AES keyring
+ * accepts AES-128, AES-192, and AES-256 keys.
  *
  * The raw AES keyring does the equivalent encryption and decryption as the
  * AWS Encryption SDK for Java's JceMasterKey when used with a secret key
@@ -74,6 +73,9 @@ int main(int argc, char **argv) {
          * dd bs=16 count=1 < /dev/random > aes_128_key
          * dd bs=24 count=1 < /dev/random > aes_192_key
          * dd bs=32 count=1 < /dev/random > aes_256_key
+         *
+         * Warning: keeping your master encryption key on disk unencrypted is
+         * not recommended in a production setting.
          */
         fprintf(
             stderr,
@@ -125,7 +127,7 @@ int main(int argc, char **argv) {
      * When attempting to decrypt ciphertexts, the keyring will compare the
      * namespace and name in the ciphertext message format with those
      * configured in your keyring to determine whether to even attempt
-     * decryption, so the keyring uses for decryption must be configured with
+     * decryption, so the keyring used for decryption must be configured with
      * not only the same wrapping key but also the same namespace and name
      * in order to decrypt successfully.
      *
@@ -138,7 +140,7 @@ int main(int argc, char **argv) {
      * name as the AWS String type from the aws-c-common library. You can
      * do this using one of the aws_string_new_from_* functions in that library
      * or using the following static string macro. The macro can only be used
-     * for a string literal hard coded in your source code. Using it enables an
+     * for a string literal hard-coded in your source code. Using it enables an
      * optimization in which no extra copies of it are created in memory
      * during the use of the keyring.
      */
