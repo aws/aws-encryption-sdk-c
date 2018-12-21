@@ -66,7 +66,7 @@ void encrypt_or_decrypt(
 int main(int argc, char **argv) {
     if (argc < 2) {
         /* To run this test just generate a file of 128, 192, or 256 random bits
-         * to use as your encryption key and give the filename as the argument.
+         * to use as your wrapping key and give the filename as the argument.
          *
          * Here are example command lines on Mac/UNIX-like systems that will
          * generate key files:
@@ -93,13 +93,14 @@ int main(int argc, char **argv) {
     FILE *key_file = fopen(argv[1], "rb");
     assert(key_file);
 
-    /* Read in up to 256 bits from the key file. AWS_CRYPTOSDK_AES_256/192/128
-     * are equal to the appropriate AES key length in *bytes*.
-     */
+    /* Read in up to 256 bits from the key file. */
     size_t wrapping_key_len = fread(wrapping_key, 1, 32, key_file);
 
     /* Check if key file was wrong size. We need to read one more byte before
-     * feof(keyfile) will be true for a file of exactly 256 bits. */
+     * feof(keyfile) will be true for a file of exactly 256 bits.
+     * AWS_CRYPTOSDK_AES_256/192/128 are equal to the appropriate AES key
+     * lengths in *bytes*.
+     */
     uint8_t throwaway;
     fread(&throwaway, 1, 1, key_file);
     if (!feof(key_file) || !(wrapping_key_len == AWS_CRYPTOSDK_AES_256 || wrapping_key_len == AWS_CRYPTOSDK_AES_192 ||
@@ -110,7 +111,7 @@ int main(int argc, char **argv) {
         /* When handling secret keys, it is always a good practice to zero
          * them out when you are finished.
          */
-        aws_secure_zero(wrapping_key, AWS_CRYPTOSDK_AES_256);
+        aws_secure_zero(wrapping_key, wrapping_key_len);
         return 2;
     }
     fclose(key_file);
