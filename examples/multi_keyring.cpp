@@ -30,7 +30,6 @@ void encrypt_or_decrypt(
     size_t *output_len,
     const uint8_t *input,
     size_t input_len) {
-
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(alloc, keyring);
     assert(cmm);
     struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(alloc, mode, cmm);
@@ -108,8 +107,7 @@ int main(int argc, char **argv) {
      * be able to use it for decryption until you set a generator by calling
      * aws_cryptosdk_multi_keyring_set_generator on it.
      */
-    struct aws_cryptosdk_keyring *multi_keyring = aws_cryptosdk_multi_keyring_new(
-        alloc, kms_keyring);
+    struct aws_cryptosdk_keyring *multi_keyring = aws_cryptosdk_multi_keyring_new(alloc, kms_keyring);
     assert(multi_keyring);
 
     /* We add the escrow keyring as a child keyring to the multi-keyring.
