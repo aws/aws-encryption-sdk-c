@@ -442,6 +442,17 @@ static int t_get_pubkey() {
     return 0;
 }
 
+static int t_trailing_garbage_with_o2i_ECPublicKey() {
+    struct aws_cryptosdk_signctx *ctx;
+    // There is an extra 0x01 appended to this public key (prior to base64 encoding)
+    AWS_STATIC_STRING_FROM_LITERAL(pubkey, "A1nbipeiCH+CJBAyCixjMpmpFVoBSaXN2LsuIWR4cqrAQ==");
+    const struct aws_cryptosdk_alg_properties *props =
+        aws_cryptosdk_alg_props(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
+    TEST_ASSERT_ERROR(
+        AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT, aws_cryptosdk_sig_verify_start(&ctx, aws_default_allocator(), pubkey, props));
+    return 0;
+}
+
 struct test_case signature_test_cases[] = {
     { "signature", "t_basic_signature_sign_verify", t_basic_signature_sign_verify },
     { "signature", "t_signature_length", t_signature_length },
@@ -455,5 +466,6 @@ struct test_case signature_test_cases[] = {
     { "signature", "t_test_vectors", t_test_vectors },
     { "signature", "t_trailing_garbage", t_trailing_garbage },
     { "signature", "t_get_pubkey", t_get_pubkey },
+    { "signature", "t_trailing_garbage_with_o2i_ECPublicKey", t_trailing_garbage_with_o2i_ECPublicKey },
     { NULL }
 };
