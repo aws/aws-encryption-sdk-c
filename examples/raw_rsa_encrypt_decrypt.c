@@ -22,15 +22,15 @@
 #define BUFFER_SIZE 4096
 
 /* Encrypts/decrypts the entire input buffer using the CMM provided. */
-void encrypt_or_decrypt(
+void encrypt_or_decrypt_with_cmm(
     struct aws_allocator *alloc,
-    struct aws_cryptosdk_cmm *cmm,
-    enum aws_cryptosdk_mode mode,
     uint8_t *output,
     size_t output_buf_sz,
     size_t *output_len,
     const uint8_t *input,
-    size_t input_len) {
+    size_t input_len,
+    enum aws_cryptosdk_mode mode,
+    struct aws_cryptosdk_cmm *cmm) {
     struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(alloc, mode, cmm);
     assert(session);
 
@@ -47,23 +47,24 @@ void encrypt_or_decrypt(
     aws_cryptosdk_session_destroy(session);
 }
 
+/* Allocates an array with the contents of the file and one null byte at the end. */
 char *read_file_into_buffer(const char *filename) {
-    FILE *fp = fopen(filename, "rb");
-    if (!fp) return NULL;
+    FILE *in_file = fopen(filename, "rb");
+    if (!in_file) return NULL;
 
-    fseek(fp, 0L, SEEK_END);
-    size_t sz = ftell(fp);
-    rewind(fp);
+    fseek(in_file, 0L, SEEK_END);
+    size_t file_size = ftell(in_file);
+    rewind(in_file);
 
-    char *data = (char *)malloc(sz + 1);
+    char *data = (char *)malloc(file_size + 1);
     if (data) {
-        data[sz] = '\0';
-        if (sz != fread(data, 1, sz, fp)) {
+        data[file_size] = '\0';
+        if (file_size != fread(data, 1, file_size, in_file)) {
             free(data);
             data = NULL;
         }
     }
-    fclose(fp);
+    fclose(in_file);
     return data;
 }
 
@@ -156,26 +157,26 @@ int main(int argc, char **argv) {
     size_t ciphertext_len;
     size_t plaintext_result_len;
 
-    encrypt_or_decrypt(
+    encrypt_or_decrypt_with_cmm(
         alloc,
-        cmm,
-        AWS_CRYPTOSDK_ENCRYPT,
         ciphertext,
         BUFFER_SIZE,
         &ciphertext_len,
         (const uint8_t *)plaintext_original,
-        plaintext_original_len);
+        plaintext_original_len,
+        AWS_CRYPTOSDK_ENCRYPT,
+        cmm);
     printf(">> Encrypted to ciphertext of length %zu\n", ciphertext_len);
 
-    encrypt_or_decrypt(
+    encrypt_or_decrypt_with_cmm(
         alloc,
-        cmm,
-        AWS_CRYPTOSDK_DECRYPT,
         plaintext_result,
         BUFFER_SIZE,
         &plaintext_result_len,
         ciphertext,
-        ciphertext_len);
+        ciphertext_len,
+        AWS_CRYPTOSDK_DECRYPT,
+        cmm);
     printf(">> Decrypted to plaintext of length %zu\n", plaintext_result_len);
 
     assert(plaintext_original_len == plaintext_result_len);
