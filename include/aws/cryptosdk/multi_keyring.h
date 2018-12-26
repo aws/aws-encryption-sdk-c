@@ -89,7 +89,7 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(
  *
  * The generator of a multi-keyring cannot be changed. Multiple calls to this
  * function, or calling it after setting the generator upon construction, will
- * fail with a AWS_ERROR_UNIMPLEMENTED error code.
+ * fail with a AWS_ERROR_UNSUPPORTED_OPERATION error code.
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_multi_keyring_set_generator(

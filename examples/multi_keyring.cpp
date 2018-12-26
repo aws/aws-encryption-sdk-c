@@ -62,8 +62,9 @@ int main(int argc, char **argv) {
         printf("Usage: %s key_arn aes_256_key_file\n", argv[0]);
         return 1;
     }
-    struct aws_allocator *alloc = aws_default_allocator();
 
+    Aws::SDKOptions options;
+    Aws::InitAPI(options);
     /* We will create two different keyrings and link them together with a multi-keyring.
      * The first is a KMS keyring, the same as used in the string and file examples.
      */
@@ -72,6 +73,8 @@ int main(int argc, char **argv) {
         fprintf(stderr, "KMS keyring not created. Did you provide a valid KMS CMK ARN?\n");
         return 2;
     }
+
+    struct aws_allocator *alloc = aws_default_allocator();
 
     /* The second keyring is a raw AES keyring that will hold an escrow key.
      * See the AES keyring example for more explanation of the creation of this keyring.
@@ -174,5 +177,6 @@ int main(int argc, char **argv) {
         aws_cryptosdk_keyring_release(decrypting_keyrings[kr_idx]);
     }
 
+    Aws::ShutdownAPI(options);
     return 0;
 }
