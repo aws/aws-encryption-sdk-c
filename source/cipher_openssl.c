@@ -625,12 +625,6 @@ static int load_pubkey(
         goto out;
     }
 
-    if (pBuf != b64_decode_buf.buffer + b64_decode_buf.len) {
-        // Trailing garbage in the serialized public key
-        result = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
-        goto out;
-    }
-
     result = AWS_OP_SUCCESS;
 out:
     // The EC_KEY_set_group method copies the provided group.
