@@ -22,15 +22,15 @@
 #define BUFFER_SIZE 1024
 
 /* Encrypts/decrypts the entire input buffer using the CMM provided. */
-void encrypt_or_decrypt(
+void encrypt_or_decrypt_with_cmm(
     struct aws_allocator *alloc,
-    struct aws_cryptosdk_cmm *cmm,
-    enum aws_cryptosdk_mode mode,
     uint8_t *output,
     size_t output_buf_sz,
     size_t *output_len,
     const uint8_t *input,
-    size_t input_len) {
+    size_t input_len,
+    enum aws_cryptosdk_mode mode,
+    struct aws_cryptosdk_cmm *cmm) {
     struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(alloc, mode, cmm);
     assert(session);
 
@@ -183,26 +183,26 @@ int main(int argc, char **argv) {
     size_t ciphertext_len;
     size_t plaintext_result_len;
 
-    encrypt_or_decrypt(
+    encrypt_or_decrypt_with_cmm(
         alloc,
-        cmm,
-        AWS_CRYPTOSDK_ENCRYPT,
         ciphertext,
         BUFFER_SIZE,
         &ciphertext_len,
         (const uint8_t *)plaintext_original,
-        plaintext_original_len);
+        plaintext_original_len,
+        AWS_CRYPTOSDK_ENCRYPT,
+        cmm);
     printf(">> Encrypted to ciphertext of length %zu\n", ciphertext_len);
 
-    encrypt_or_decrypt(
+    encrypt_or_decrypt_with_cmm(
         alloc,
-        cmm,
-        AWS_CRYPTOSDK_DECRYPT,
         plaintext_result,
         BUFFER_SIZE,
         &plaintext_result_len,
         ciphertext,
-        ciphertext_len);
+        ciphertext_len,
+        AWS_CRYPTOSDK_DECRYPT,
+        cmm);
     printf(">> Decrypted to plaintext of length %zu\n", plaintext_result_len);
 
     assert(plaintext_original_len == plaintext_result_len);
