@@ -443,13 +443,50 @@ static int t_get_pubkey() {
 }
 
 static int t_trailing_garbage_with_o2i_ECPublicKey() {
+    struct aws_allocator *alloc = aws_default_allocator();
     struct aws_cryptosdk_signctx *ctx;
-    // There is an extra 0x01 appended to this public key (prior to base64 encoding)
-    AWS_STATIC_STRING_FROM_LITERAL(pubkey, "A1nbipeiCH+CJBAyCixjMpmpFVoBSaXN2LsuIWR4cqrAQ==");
     const struct aws_cryptosdk_alg_properties *props =
-        aws_cryptosdk_alg_props(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
+        aws_cryptosdk_alg_props(AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384);
+    AWS_STATIC_STRING_FROM_LITERAL(pubkey_b64, "Am3kG3teaHDujrKkQkAWc+sSAzDg6/ityncubZJbck6QuyhGZaIxsW+Wsuk6xK82sA==");
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_start(&ctx, alloc, pubkey_b64, props));
+
+    // Base64 decode the public key, append some trailing garbage, then Base64 encode the public key
+    // with the trailing garbage.
+
+    struct aws_byte_buf pubkey_decoded  = easy_b64_decode((const char *)pubkey_b64->bytes);
+    uint8_t trailing_bytes[]            = { 0x01 };
+    struct aws_byte_buf extra_bytes_buf = aws_byte_buf_from_array(trailing_bytes, sizeof(trailing_bytes));
+
+    struct aws_byte_buf pubkey_decoded_with_trailing_garbage;
+    TEST_ASSERT_SUCCESS(
+        aws_byte_buf_init(&pubkey_decoded_with_trailing_garbage, alloc, pubkey_decoded.len + extra_bytes_buf.len));
+
+    TEST_ASSERT_SUCCESS(aws_byte_buf_cat(&pubkey_decoded_with_trailing_garbage, 2, &pubkey_decoded, &extra_bytes_buf));
+
+    size_t encoded_len;
+    TEST_ASSERT_SUCCESS(aws_base64_compute_encoded_len(pubkey_decoded_with_trailing_garbage.len, &encoded_len));
+
+    struct aws_byte_buf pubkey_with_trailing_garbage_b64;
+    TEST_ASSERT_SUCCESS(aws_byte_buf_init(&pubkey_with_trailing_garbage_b64, alloc, encoded_len));
+    struct aws_byte_cursor pubkey_decoded_with_trailing_garbage_cur =
+        aws_byte_cursor_from_buf(&pubkey_decoded_with_trailing_garbage);
+    TEST_ASSERT_SUCCESS(
+        aws_base64_encode(&pubkey_decoded_with_trailing_garbage_cur, &pubkey_with_trailing_garbage_b64));
+
+    aws_cryptosdk_sig_abort(ctx);
+
+    struct aws_string *pubkey_with_trailing_garbage_b64_s =
+        aws_string_new_from_c_str(alloc, (const char *)pubkey_with_trailing_garbage_b64.buffer);
+    ctx = NULL;
     TEST_ASSERT_ERROR(
-        AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT, aws_cryptosdk_sig_verify_start(&ctx, aws_default_allocator(), pubkey, props));
+        AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT,
+        aws_cryptosdk_sig_verify_start(&ctx, alloc, pubkey_with_trailing_garbage_b64_s, props));
+
+    aws_byte_buf_clean_up(&pubkey_with_trailing_garbage_b64);
+    aws_byte_buf_clean_up(&pubkey_decoded_with_trailing_garbage);
+    aws_string_destroy((void *)pubkey_with_trailing_garbage_b64_s);
+    aws_cryptosdk_sig_abort(ctx);
     return 0;
 }
 
