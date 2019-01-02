@@ -166,8 +166,9 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(
 
     aws_cryptosdk_keyring_base_init(&multi->base, &vt);
 
-    multi->alloc     = alloc;
+    if (generator) aws_cryptosdk_keyring_retain(generator);
     multi->generator = generator;
+    multi->alloc     = alloc;
     return (struct aws_cryptosdk_keyring *)multi;
 }
 
@@ -175,7 +176,7 @@ int aws_cryptosdk_multi_keyring_set_generator(
     struct aws_cryptosdk_keyring *multi, struct aws_cryptosdk_keyring *generator) {
     struct multi_keyring *self = (struct multi_keyring *)multi;
 
-    if (self->generator) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    if (self->generator) return aws_raise_error(AWS_ERROR_UNSUPPORTED_OPERATION);
     self->generator = aws_cryptosdk_keyring_retain(generator);
 
     return AWS_OP_SUCCESS;

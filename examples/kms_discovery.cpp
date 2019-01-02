@@ -94,7 +94,7 @@ void decrypt_string(
 
 std::shared_ptr<Aws::KMS::KMSClient> create_kms_client(const Aws::String &region) {
     Aws::Client::ClientConfiguration client_config;
-    client_config.region = Aws::Region::US_WEST_2;
+    client_config.region = region;
     return Aws::MakeShared<Aws::KMS::KMSClient>("AWS_SAMPLE_CODE", client_config);
 }
 
