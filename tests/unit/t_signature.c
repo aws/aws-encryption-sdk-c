@@ -447,14 +447,16 @@ static int t_trailing_garbage_with_o2i_ECPublicKey() {
     struct aws_cryptosdk_signctx *ctx;
     const struct aws_cryptosdk_alg_properties *props =
         aws_cryptosdk_alg_props(AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384);
-    AWS_STATIC_STRING_FROM_LITERAL(pubkey_b64, "Am3kG3teaHDujrKkQkAWc+sSAzDg6/ityncubZJbck6QuyhGZaIxsW+Wsuk6xK82sA==");
+    AWS_STATIC_STRING_FROM_LITERAL(pubkey_b64_s, "Am3kG3teaHDujrKkQkAWc+sSAzDg6/ityncubZJbck6QuyhGZaIxsW+Wsuk6xK82sA==");
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_start(&ctx, alloc, pubkey_b64, props));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_start(&ctx, alloc, pubkey_b64_s, props));
+    aws_cryptosdk_sig_abort(ctx);
+    ctx = NULL;
 
     // Base64 decode the public key, append some trailing garbage, then Base64 encode the public key
     // with the trailing garbage.
 
-    struct aws_byte_buf pubkey_decoded  = easy_b64_decode((const char *)pubkey_b64->bytes);
+    struct aws_byte_buf pubkey_decoded  = easy_b64_decode((const char *)pubkey_b64_s->bytes);
     uint8_t trailing_bytes[]            = { 0x01 };
     struct aws_byte_buf extra_bytes_buf = aws_byte_buf_from_array(trailing_bytes, sizeof(trailing_bytes));
 
@@ -474,11 +476,9 @@ static int t_trailing_garbage_with_o2i_ECPublicKey() {
     TEST_ASSERT_SUCCESS(
         aws_base64_encode(&pubkey_decoded_with_trailing_garbage_cur, &pubkey_with_trailing_garbage_b64));
 
-    aws_cryptosdk_sig_abort(ctx);
-
     struct aws_string *pubkey_with_trailing_garbage_b64_s =
         aws_string_new_from_c_str(alloc, (const char *)pubkey_with_trailing_garbage_b64.buffer);
-    ctx = NULL;
+    
     TEST_ASSERT_ERROR(
         AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT,
         aws_cryptosdk_sig_verify_start(&ctx, alloc, pubkey_with_trailing_garbage_b64_s, props));
