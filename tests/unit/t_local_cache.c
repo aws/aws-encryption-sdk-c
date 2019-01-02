@@ -546,7 +546,7 @@ static int test_mat_cache_entry_count() {
     TEST_ASSERT_INT_EQ(24, aws_cryptosdk_mat_cache_entry_count(cache));
 
     // cache_hit
-    for (int i = 0; i < 8; i++) {
+    for (int i = 8; i < 16; i++) {
         sprintf(buf, "%d", i);
         byte_buf_printf(&cache_id_2[i], alloc, buf);
         aws_cryptosdk_mat_cache_put_entry_for_encrypt(
