@@ -32,23 +32,19 @@ void encrypt_string(
     }
 
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(alloc, kms_keyring);
-    if (!cmm) abort();
+    assert(cmm);
     aws_cryptosdk_keyring_release(kms_keyring);
 
     struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_ENCRYPT, cmm);
-    if (!session) abort();
+    assert(session);
     aws_cryptosdk_cmm_release(cmm);
 
-    if (AWS_OP_SUCCESS != aws_cryptosdk_session_set_message_size(session, plaintext_len)) {
-        abort();
-    }
+    assert(AWS_OP_SUCCESS == aws_cryptosdk_session_set_message_size(session, plaintext_len));
 
     size_t plaintext_consumed;
-    if (AWS_OP_SUCCESS !=
-        aws_cryptosdk_session_process(
-            session, ciphertext, ciphertext_buf_sz, ciphertext_len, plaintext, plaintext_len, &plaintext_consumed)) {
-        abort();
-    }
+    assert(AWS_OP_SUCCESS == aws_cryptosdk_session_process(
+               session, ciphertext, ciphertext_buf_sz, ciphertext_len, plaintext, plaintext_len, &plaintext_consumed));
+
     assert(aws_cryptosdk_session_is_done(session));
     assert(plaintext_consumed == plaintext_len);
     aws_cryptosdk_session_destroy(session);
@@ -69,19 +65,17 @@ void decrypt_string(
     }
 
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(alloc, kms_keyring);
-    if (!cmm) abort();
+    assert(cmm);
     aws_cryptosdk_keyring_release(kms_keyring);
 
     struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm);
-    if (!session) abort();
+    assert(session);
     aws_cryptosdk_cmm_release(cmm);
 
     size_t ciphertext_consumed;
-    if (AWS_OP_SUCCESS !=
-        aws_cryptosdk_session_process(
-            session, plaintext, plaintext_buf_sz, plaintext_len, ciphertext, ciphertext_len, &ciphertext_consumed)) {
-        abort();
-    }
+    assert(AWS_OP_SUCCESS == aws_cryptosdk_session_process(
+               session, plaintext, plaintext_buf_sz, plaintext_len, ciphertext, ciphertext_len, &ciphertext_consumed));
+
     assert(aws_cryptosdk_session_is_done(session));
     assert(ciphertext_consumed == ciphertext_len);
     aws_cryptosdk_session_destroy(session);
