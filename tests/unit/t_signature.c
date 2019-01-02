@@ -442,6 +442,56 @@ static int t_get_pubkey() {
     return 0;
 }
 
+static int t_trailing_garbage_with_o2i_ECPublicKey() {
+    struct aws_allocator *alloc = aws_default_allocator();
+    struct aws_cryptosdk_signctx *ctx;
+    const struct aws_cryptosdk_alg_properties *props =
+        aws_cryptosdk_alg_props(AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384);
+    AWS_STATIC_STRING_FROM_LITERAL(
+        pubkey_b64_s, "Am3kG3teaHDujrKkQkAWc+sSAzDg6/ityncubZJbck6QuyhGZaIxsW+Wsuk6xK82sA==");
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_start(&ctx, alloc, pubkey_b64_s, props));
+    aws_cryptosdk_sig_abort(ctx);
+    ctx = NULL;
+
+    // Base64 decode the public key, append some trailing garbage, then Base64 encode the public key
+    // with the trailing garbage.
+
+    struct aws_byte_buf pubkey_decoded  = easy_b64_decode((const char *)pubkey_b64_s->bytes);
+    uint8_t trailing_bytes[]            = { 0x01 };
+    struct aws_byte_buf extra_bytes_buf = aws_byte_buf_from_array(trailing_bytes, sizeof(trailing_bytes));
+
+    struct aws_byte_buf pubkey_decoded_with_trailing_garbage;
+    TEST_ASSERT_SUCCESS(
+        aws_byte_buf_init(&pubkey_decoded_with_trailing_garbage, alloc, pubkey_decoded.len + extra_bytes_buf.len));
+
+    TEST_ASSERT_SUCCESS(aws_byte_buf_cat(&pubkey_decoded_with_trailing_garbage, 2, &pubkey_decoded, &extra_bytes_buf));
+
+    size_t encoded_len;
+    TEST_ASSERT_SUCCESS(aws_base64_compute_encoded_len(pubkey_decoded_with_trailing_garbage.len, &encoded_len));
+
+    struct aws_byte_buf pubkey_with_trailing_garbage_b64;
+    TEST_ASSERT_SUCCESS(aws_byte_buf_init(&pubkey_with_trailing_garbage_b64, alloc, encoded_len));
+    struct aws_byte_cursor pubkey_decoded_with_trailing_garbage_cur =
+        aws_byte_cursor_from_buf(&pubkey_decoded_with_trailing_garbage);
+    TEST_ASSERT_SUCCESS(
+        aws_base64_encode(&pubkey_decoded_with_trailing_garbage_cur, &pubkey_with_trailing_garbage_b64));
+
+    struct aws_string *pubkey_with_trailing_garbage_b64_s =
+        aws_string_new_from_c_str(alloc, (const char *)pubkey_with_trailing_garbage_b64.buffer);
+
+    TEST_ASSERT_ERROR(
+        AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT,
+        aws_cryptosdk_sig_verify_start(&ctx, alloc, pubkey_with_trailing_garbage_b64_s, props));
+
+    aws_byte_buf_clean_up(&pubkey_decoded);
+    aws_byte_buf_clean_up(&pubkey_with_trailing_garbage_b64);
+    aws_byte_buf_clean_up(&pubkey_decoded_with_trailing_garbage);
+    aws_string_destroy((void *)pubkey_with_trailing_garbage_b64_s);
+    aws_cryptosdk_sig_abort(ctx);
+    return 0;
+}
+
 struct test_case signature_test_cases[] = {
     { "signature", "t_basic_signature_sign_verify", t_basic_signature_sign_verify },
     { "signature", "t_signature_length", t_signature_length },
@@ -455,5 +505,6 @@ struct test_case signature_test_cases[] = {
     { "signature", "t_test_vectors", t_test_vectors },
     { "signature", "t_trailing_garbage", t_trailing_garbage },
     { "signature", "t_get_pubkey", t_get_pubkey },
+    { "signature", "t_trailing_garbage_with_o2i_ECPublicKey", t_trailing_garbage_with_o2i_ECPublicKey },
     { NULL }
 };
