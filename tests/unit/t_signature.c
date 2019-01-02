@@ -483,6 +483,7 @@ static int t_trailing_garbage_with_o2i_ECPublicKey() {
         AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT,
         aws_cryptosdk_sig_verify_start(&ctx, alloc, pubkey_with_trailing_garbage_b64_s, props));
 
+    aws_byte_buf_clean_up(&pubkey_decoded);
     aws_byte_buf_clean_up(&pubkey_with_trailing_garbage_b64);
     aws_byte_buf_clean_up(&pubkey_decoded_with_trailing_garbage);
     aws_string_destroy((void *)pubkey_with_trailing_garbage_b64_s);
