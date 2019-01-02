@@ -447,7 +447,8 @@ static int t_trailing_garbage_with_o2i_ECPublicKey() {
     struct aws_cryptosdk_signctx *ctx;
     const struct aws_cryptosdk_alg_properties *props =
         aws_cryptosdk_alg_props(AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384);
-    AWS_STATIC_STRING_FROM_LITERAL(pubkey_b64_s, "Am3kG3teaHDujrKkQkAWc+sSAzDg6/ityncubZJbck6QuyhGZaIxsW+Wsuk6xK82sA==");
+    AWS_STATIC_STRING_FROM_LITERAL(
+        pubkey_b64_s, "Am3kG3teaHDujrKkQkAWc+sSAzDg6/ityncubZJbck6QuyhGZaIxsW+Wsuk6xK82sA==");
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_start(&ctx, alloc, pubkey_b64_s, props));
     aws_cryptosdk_sig_abort(ctx);
@@ -478,7 +479,7 @@ static int t_trailing_garbage_with_o2i_ECPublicKey() {
 
     struct aws_string *pubkey_with_trailing_garbage_b64_s =
         aws_string_new_from_c_str(alloc, (const char *)pubkey_with_trailing_garbage_b64.buffer);
-    
+
     TEST_ASSERT_ERROR(
         AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT,
         aws_cryptosdk_sig_verify_start(&ctx, alloc, pubkey_with_trailing_garbage_b64_s, props));
