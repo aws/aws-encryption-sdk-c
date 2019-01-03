@@ -511,14 +511,11 @@ static int test_decrypt_entries() {
 static int test_mat_cache_entry_count() {
     struct aws_allocator *alloc                        = aws_default_allocator();
     struct aws_cryptosdk_mat_cache *cache              = aws_cryptosdk_mat_cache_local_new(alloc, 24);
-    struct aws_cryptosdk_encryption_materials *enc_mat = { NULL };
-    struct aws_hash_table enc_context                  = { NULL };
-    struct aws_cryptosdk_mat_cache_entry *entry_1[16]  = { NULL };
-    struct aws_byte_buf cache_id_1[16]                 = { 0 };
-    struct aws_cryptosdk_mat_cache_entry *entry_2[16]  = { NULL };
-    struct aws_byte_buf cache_id_2[16]                 = { 0 };
+    struct aws_cryptosdk_encryption_materials *enc_mat = NULL;
+    struct aws_cryptosdk_mat_cache_entry *entry        = NULL;
+    struct aws_hash_table enc_context;
+    struct aws_byte_buf cache_id;
     struct aws_cryptosdk_cache_usage_stats usage_stats;
-    char buf[8];
 
     usage_stats.bytes_encrypted    = 1234;
     usage_stats.messages_encrypted = 5678;
@@ -529,45 +526,34 @@ static int test_mat_cache_entry_count() {
     gen_enc_materials(alloc, &enc_mat, 1, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256, 2);
 
     for (int i = 0; i < 16; i++) {
-        sprintf(buf, "%d", i);
-        byte_buf_printf(&cache_id_1[i], alloc, buf);
-        aws_cryptosdk_mat_cache_put_entry_for_encrypt(
-            cache, &entry_1[i], enc_mat, usage_stats, &enc_context, &cache_id_1[i]);
+        byte_buf_printf(&cache_id, alloc, "%d", i);
+        aws_cryptosdk_mat_cache_put_entry_for_encrypt(cache, &entry, enc_mat, usage_stats, &enc_context, &cache_id);
+        aws_byte_buf_clean_up(&cache_id);
+        aws_cryptosdk_mat_cache_entry_release(cache, entry, false);
     }
     TEST_ASSERT_INT_EQ(16, aws_cryptosdk_mat_cache_entry_count(cache));
 
     // cache_miss
-    for (int i = 0; i < 8; i++) {
-        sprintf(buf, "%d", i + 99);
-        byte_buf_printf(&cache_id_2[i], alloc, buf);
-        aws_cryptosdk_mat_cache_put_entry_for_encrypt(
-            cache, &entry_2[i], enc_mat, usage_stats, &enc_context, &cache_id_2[i]);
+    for (int i = 16; i < 24; i++) {
+        byte_buf_printf(&cache_id, alloc, "%d", i);
+        aws_cryptosdk_mat_cache_put_entry_for_encrypt(cache, &entry, enc_mat, usage_stats, &enc_context, &cache_id);
+        aws_byte_buf_clean_up(&cache_id);
+        aws_cryptosdk_mat_cache_entry_release(cache, entry, false);
     }
     TEST_ASSERT_INT_EQ(24, aws_cryptosdk_mat_cache_entry_count(cache));
 
     // cache_hit
-    for (int i = 8; i < 16; i++) {
-        sprintf(buf, "%d", i);
-        byte_buf_printf(&cache_id_2[i], alloc, buf);
-        aws_cryptosdk_mat_cache_put_entry_for_encrypt(
-            cache, &entry_2[i], enc_mat, usage_stats, &enc_context, &cache_id_2[i]);
+    for (int i = 0; i < 8; i++) {
+        byte_buf_printf(&cache_id, alloc, "%d", i);
+        aws_cryptosdk_mat_cache_put_entry_for_encrypt(cache, &entry, enc_mat, usage_stats, &enc_context, &cache_id);
+        aws_byte_buf_clean_up(&cache_id);
+        aws_cryptosdk_mat_cache_entry_release(cache, entry, false);
     }
     TEST_ASSERT_INT_EQ(24, aws_cryptosdk_mat_cache_entry_count(cache));
-
-    // remove 8 entries from the cache
-    for (int i = 0; i < 8; i++) {
-        aws_cryptosdk_mat_cache_entry_release(cache, entry_2[i], true);
-    }
-    TEST_ASSERT_INT_EQ(16, aws_cryptosdk_mat_cache_entry_count(cache));
 
     // clear all the cache entries
     aws_cryptosdk_mat_cache_clear(cache);
     TEST_ASSERT_INT_EQ(0, aws_cryptosdk_mat_cache_entry_count(cache));
-
-    for (int i = 0; i < 16; i++) {
-        aws_byte_buf_clean_up(&cache_id_1[i]);
-        aws_byte_buf_clean_up(&cache_id_2[i]);
-    }
 
     aws_cryptosdk_encryption_materials_destroy(enc_mat);
     aws_cryptosdk_enc_context_clean_up(&enc_context);
