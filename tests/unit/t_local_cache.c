@@ -96,7 +96,7 @@ static int single_put() {
     TEST_ASSERT_INT_EQ(stats_2.messages_encrypted, 84567);
 
     TEST_ASSERT(materials_eq(enc_mat_1, enc_mat_2));
-    TEST_ASSERT(aws_hash_table_eq(&enc_context_1, &enc_context_2, aws_string_eq));
+    TEST_ASSERT(aws_hash_table_eq(&enc_context_1, &enc_context_2, (aws_hash_element_eq_fn)aws_string_eq));
 
     aws_cryptosdk_mat_cache_entry_release(cache, entry, true);
     aws_cryptosdk_encryption_materials_destroy(enc_mat_2);
@@ -248,7 +248,7 @@ static int check_enc_entry(
         TEST_ASSERT_ADDR_NOT_NULL(entry);
 
         TEST_ASSERT(materials_eq(enc_mat, cached_materials));
-        TEST_ASSERT(aws_hash_table_eq(&enc_context, &cached_context, aws_string_eq));
+        TEST_ASSERT(aws_hash_table_eq(&enc_context, &cached_context, (aws_hash_element_eq_fn)aws_string_eq));
         TEST_ASSERT_INT_EQ(index, stats.bytes_encrypted);
         TEST_ASSERT_INT_EQ(index, stats.messages_encrypted);
     }

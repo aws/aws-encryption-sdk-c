@@ -55,7 +55,8 @@ int get_sorted_elems_array_test() {
 
     struct aws_hash_table map;
     TEST_ASSERT_INT_EQ(
-        aws_hash_table_init(&map, alloc, 10, aws_hash_string, aws_string_eq, NULL, NULL), AWS_OP_SUCCESS);
+        aws_hash_table_init(&map, alloc, 10, aws_hash_string, (aws_hash_element_eq_fn)aws_string_eq, NULL, NULL),
+        AWS_OP_SUCCESS);
 
     for (int idx = 0; idx < num_elems; ++idx) {
         struct aws_hash_element *elem;
@@ -84,7 +85,9 @@ int serialize_empty_enc_context() {
 
     struct aws_hash_table enc_context;
     TEST_ASSERT_INT_EQ(
-        aws_hash_table_init(&enc_context, alloc, 10, aws_hash_string, aws_string_eq, NULL, NULL), AWS_OP_SUCCESS);
+        aws_hash_table_init(
+            &enc_context, alloc, 10, aws_hash_string, (aws_hash_element_eq_fn)aws_string_eq, NULL, NULL),
+        AWS_OP_SUCCESS);
 
     struct aws_byte_buf output = { 0 };
     size_t len;
@@ -127,7 +130,9 @@ int serialize_valid_enc_context() {
 
     struct aws_hash_table enc_context;
     TEST_ASSERT_INT_EQ(
-        aws_hash_table_init(&enc_context, alloc, 10, aws_hash_string, aws_string_eq, NULL, NULL), AWS_OP_SUCCESS);
+        aws_hash_table_init(
+            &enc_context, alloc, 10, aws_hash_string, (aws_hash_element_eq_fn)aws_string_eq, NULL, NULL),
+        AWS_OP_SUCCESS);
 
     for (int idx = 0; idx < num_elems; ++idx) {
         struct aws_hash_element *elem;
@@ -169,7 +174,9 @@ int serialize_valid_enc_context_unsigned_comparison() {
 
     struct aws_hash_table enc_context;
     TEST_ASSERT_INT_EQ(
-        aws_hash_table_init(&enc_context, alloc, 10, aws_hash_string, aws_string_eq, NULL, NULL), AWS_OP_SUCCESS);
+        aws_hash_table_init(
+            &enc_context, alloc, 10, aws_hash_string, (aws_hash_element_eq_fn)aws_string_eq, NULL, NULL),
+        AWS_OP_SUCCESS);
 
     for (int idx = 0; idx < num_elems; ++idx) {
         struct aws_hash_element *elem;
@@ -196,7 +203,14 @@ int serialize_error_when_element_too_long() {
 
     struct aws_hash_table enc_context;
     TEST_ASSERT_INT_EQ(
-        aws_hash_table_init(&enc_context, alloc, 10, aws_hash_string, aws_string_eq, NULL, aws_string_destroy),
+        aws_hash_table_init(
+            &enc_context,
+            alloc,
+            10,
+            aws_hash_string,
+            (aws_hash_element_eq_fn)aws_string_eq,
+            NULL,
+            (aws_hash_element_destroy_fn)aws_string_destroy),
         AWS_OP_SUCCESS);
 
     struct aws_hash_element *elem;
@@ -220,7 +234,14 @@ int serialize_error_when_serialized_len_too_long() {
     struct aws_hash_table enc_context;
     // only setting destroy function on value so it doesn't try to destroy same string twice
     TEST_ASSERT_INT_EQ(
-        aws_hash_table_init(&enc_context, alloc, 10, aws_hash_string, aws_string_eq, NULL, aws_string_destroy),
+        aws_hash_table_init(
+            &enc_context,
+            alloc,
+            10,
+            aws_hash_string,
+            (aws_hash_element_eq_fn)aws_string_eq,
+            NULL,
+            (aws_hash_element_destroy_fn)aws_string_destroy),
         AWS_OP_SUCCESS);
 
     struct aws_hash_element *elem;
@@ -269,7 +290,13 @@ int serialize_error_when_too_many_elements() {
     struct aws_hash_table enc_context;
     TEST_ASSERT_INT_EQ(
         aws_hash_table_init(
-            &enc_context, alloc, (size_t)UINT16_MAX + 10, aws_hash_string, aws_string_eq, aws_string_destroy, NULL),
+            &enc_context,
+            alloc,
+            (size_t)UINT16_MAX + 10,
+            aws_hash_string,
+            (aws_hash_element_eq_fn)aws_string_eq,
+            (aws_hash_element_destroy_fn)aws_string_destroy,
+            NULL),
         AWS_OP_SUCCESS);
 
     char buf[6] = { 0 };
@@ -335,7 +362,7 @@ int enc_context_clone_test() {
         &context_dst, checked_aws_str_dup(alloc, "excess key"), checked_aws_str_dup(alloc, "excess value"), NULL));
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_clone(alloc, &context_dst, &context_src));
-    TEST_ASSERT(aws_hash_table_eq(&context_src, &context_dst, aws_string_eq));
+    TEST_ASSERT(aws_hash_table_eq(&context_src, &context_dst, (aws_hash_element_eq_fn)aws_string_eq));
 
     /* Verify that things were/weren't allocated as appropriate */
     struct aws_hash_element *src_element, *dst_element;

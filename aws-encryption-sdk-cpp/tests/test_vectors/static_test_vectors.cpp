@@ -377,8 +377,8 @@ static int process_test_scenarios(
         }
 
     next_test_scenario:
-        if (key_namespace) aws_string_destroy((void *)key_namespace);
-        if (key_name) aws_string_destroy((void *)key_name);
+        if (key_namespace) aws_string_destroy(key_namespace);
+        if (key_name) aws_string_destroy(key_name);
         if (output_buffer) free(output_buffer);
         if (ciphertext) free(ciphertext);
         if (plaintext) free(plaintext);

@@ -21,9 +21,9 @@
 struct raw_aes_keyring {
     struct aws_cryptosdk_keyring base;
     struct aws_allocator *alloc;
-    const struct aws_string *key_namespace;
-    const struct aws_string *key_name;
-    const struct aws_string *raw_key;
+    struct aws_string *key_namespace;
+    struct aws_string *key_name;
+    struct aws_string *raw_key;
 };
 
 static int serialize_aad_init(
@@ -259,9 +259,9 @@ success:
 
 static void raw_aes_keyring_destroy(struct aws_cryptosdk_keyring *kr) {
     struct raw_aes_keyring *self = (struct raw_aes_keyring *)kr;
-    aws_string_destroy((void *)self->key_name);
-    aws_string_destroy((void *)self->key_namespace);
-    aws_string_destroy_secure((void *)self->raw_key);
+    aws_string_destroy(self->key_name);
+    aws_string_destroy(self->key_namespace);
+    aws_string_destroy_secure(self->raw_key);
     aws_mem_release(self->alloc, self);
 }
 
@@ -296,8 +296,8 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_aes_keyring_new(
     return (struct aws_cryptosdk_keyring *)kr;
 
 oom_err:
-    aws_string_destroy((void *)kr->key_name);
-    aws_string_destroy((void *)kr->key_namespace);
+    aws_string_destroy(kr->key_name);
+    aws_string_destroy(kr->key_namespace);
     aws_mem_release(alloc, kr);
     return NULL;
 }

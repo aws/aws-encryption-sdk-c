@@ -21,7 +21,13 @@
 int aws_cryptosdk_enc_context_init(struct aws_allocator *alloc, struct aws_hash_table *enc_context) {
     size_t initial_size = 10;  // arbitrary starting point, will resize as necessary
     return aws_hash_table_init(
-        enc_context, alloc, initial_size, aws_hash_string, aws_string_eq, aws_string_destroy, aws_string_destroy);
+        enc_context,
+        alloc,
+        initial_size,
+        aws_hash_string,
+        (aws_hash_element_eq_fn)aws_string_eq,
+        (aws_hash_element_destroy_fn)aws_string_destroy,
+        (aws_hash_element_destroy_fn)aws_string_destroy);
 }
 
 int aws_cryptosdk_context_size(size_t *size, const struct aws_hash_table *enc_context) {
@@ -126,12 +132,12 @@ int aws_cryptosdk_context_deserialize(
         struct aws_byte_cursor v_cursor = aws_byte_cursor_advance_nospec(cursor, len);
         if (!v_cursor.ptr) goto SHORT_BUF;
 
-        const struct aws_string *k = aws_string_new_from_array(alloc, k_cursor.ptr, k_cursor.len);
-        const struct aws_string *v = aws_string_new_from_array(alloc, v_cursor.ptr, v_cursor.len);
+        struct aws_string *k = aws_string_new_from_array(alloc, k_cursor.ptr, k_cursor.len);
+        struct aws_string *v = aws_string_new_from_array(alloc, v_cursor.ptr, v_cursor.len);
 
         if (!k || !v || aws_hash_table_put(enc_context, k, (void *)v, NULL)) {
-            aws_string_destroy((void *)k);
-            aws_string_destroy((void *)v);
+            aws_string_destroy(k);
+            aws_string_destroy(v);
             goto RETHROW;
         }
     }

@@ -58,10 +58,10 @@ int awsUtilsByteBufferFromCAwsByteBuf_validInputs_returnAwsUtils() {
 
 int awsStringFromCAwsString_validInputs_returnAwsString() {
     struct aws_allocator *allocator = aws_default_allocator();
-    const struct aws_string *b      = aws_string_new_from_c_str(allocator, TEST_STRING);
+    struct aws_string *b            = aws_string_new_from_c_str(allocator, TEST_STRING);
     Aws::String b_string            = aws_string_from_c_aws_string(b);
     TEST_ASSERT(b_string == TEST_STRING);
-    aws_string_destroy((void *)b);
+    aws_string_destroy(b);
     return 0;
 }
 

@@ -23,10 +23,10 @@
 struct raw_rsa_keyring {
     struct aws_cryptosdk_keyring base;
     struct aws_allocator *alloc;
-    const struct aws_string *key_namespace;
-    const struct aws_string *key_name;
-    const struct aws_string *rsa_private_key_pem;
-    const struct aws_string *rsa_public_key_pem;
+    struct aws_string *key_namespace;
+    struct aws_string *key_name;
+    struct aws_string *rsa_private_key_pem;
+    struct aws_string *rsa_public_key_pem;
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode;
 };
 
@@ -154,10 +154,10 @@ static int raw_rsa_keyring_on_decrypt(
 
 static void raw_rsa_keyring_destroy(struct aws_cryptosdk_keyring *kr) {
     struct raw_rsa_keyring *self = (struct raw_rsa_keyring *)kr;
-    aws_string_destroy((void *)self->key_name);
-    aws_string_destroy((void *)self->key_namespace);
-    aws_string_destroy_secure((void *)self->rsa_private_key_pem);
-    aws_string_destroy_secure((void *)self->rsa_public_key_pem);
+    aws_string_destroy(self->key_name);
+    aws_string_destroy(self->key_namespace);
+    aws_string_destroy_secure(self->rsa_private_key_pem);
+    aws_string_destroy_secure(self->rsa_public_key_pem);
     aws_mem_release(self->alloc, self);
 }
 
@@ -207,8 +207,8 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     return (struct aws_cryptosdk_keyring *)kr;
 
 err:
-    aws_string_destroy((void *)kr->key_name);
-    aws_string_destroy((void *)kr->key_namespace);
+    aws_string_destroy(kr->key_name);
+    aws_string_destroy(kr->key_namespace);
     aws_mem_release(alloc, kr);
     return NULL;
 }
