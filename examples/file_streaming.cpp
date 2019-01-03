@@ -50,23 +50,24 @@ static void process_file(
         return;
     }
 
-    // Initialize a KMS keyring using the provided ARN.
+    /* Initialize a KMS keyring using the provided ARN. */
     auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({ key_arn });
 
-    // Initialize the Cryptographic Materials Manager (CMM).
+    /* Initialize the Cryptographic Materials Manager (CMM). */
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(allocator, kms_keyring);
     if (!cmm) abort();
-    // Since the CMM now holds a reference to the keyring, we can release the local reference.
+    /* Since the CMM now holds a reference to the keyring, we can release the local reference. */
     aws_cryptosdk_keyring_release(kms_keyring);
 
-    // Initialize the session object.
+    /* Initialize the session object. */
     struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(allocator, mode, cmm);
     if (!session) abort();
-    // Since the session now holds a reference to the CMM, we can release the local reference.
+    /* Since the session now holds a reference to the CMM, we can release the local reference. */
     aws_cryptosdk_cmm_release(cmm);
 
-    // Allocate buffers for input and output.  Note that the initial size is not critical, as we will resize
-    // and reallocate if more space is needed to make progress.
+    /* Allocate buffers for input and output.  Note that the initial size is not critical, as we will resize
+     * and reallocate if more space is needed to make progress.
+     */
     const size_t INITIAL_CAPACITY = 16 * 1024;
 
     uint8_t *input_buffer = (uint8_t *)malloc(INITIAL_CAPACITY);
@@ -76,9 +77,10 @@ static void process_file(
     uint8_t *output_buffer = (uint8_t *)malloc(INITIAL_CAPACITY);
     size_t output_capacity = INITIAL_CAPACITY;
 
-    // These variables keep a running total of the number of bytes of input consumed and output produced,
-    // while the similarly named variables without "total_" measure the bytes consumed and produced in
-    // a single iteration of the loop.
+    /* These variables keep a running total of the number of bytes of input consumed and output produced,
+     * while the similarly named variables without "total_" measure the bytes consumed and produced in
+     * a single iteration of the loop.
+     */
     size_t total_input_consumed  = 0;
     size_t total_output_produced = 0;
 
@@ -90,8 +92,9 @@ static void process_file(
             input_len += num_read;
         }
 
-        // During encryption, once we know exactly how much plaintext is to be consumed, we call the
-        // set_message_size() function with the exact input size so that the session can be finished.
+        /* During encryption, once we know exactly how much plaintext is to be consumed, we call the
+         * set_message_size() function with the exact input size so that the session can be finished.
+         */
         if ((mode == AWS_CRYPTOSDK_ENCRYPT) && feof(input_fp)) {
             aws_status = aws_cryptosdk_session_set_message_size(session, total_input_consumed + input_len);
             if (aws_status) break;
@@ -104,7 +107,7 @@ static void process_file(
         total_input_consumed += input_consumed;
 
         if ((input_consumed > 0) && (input_consumed < input_len)) {
-            // If not all input was consumed, move what's left over to the beginning of the buffer
+            /* If not all input was consumed, move what's left over to the beginning of the buffer. */
             memmove(input_buffer, &input_buffer[input_consumed], input_len - input_consumed);
         }
         input_len -= input_consumed;
@@ -117,15 +120,16 @@ static void process_file(
             total_output_produced += num_written;
         }
 
-        if (!input_consumed && !output_produced) {  // We made no progress; something is wrong
+        /* Determine how much buffer space we need to make progress, and resize buffers if necessary. */
+        size_t input_needed, output_needed;
+        aws_cryptosdk_session_estimate_buf(session, &output_needed, &input_needed);
+
+        if (!input_consumed && !output_produced && input_capacity >= input_needed && output_capacity >= output_needed) {
+            /* This should be impossible. */
             fprintf(
                 stderr, "Unexpected error: encryption SDK made no progress.  Please contact the development team.\n");
             abort();
         }
-
-        // Determine how much buffer space we need to make progress, and resize buffers if necessary
-        size_t input_needed, output_needed;
-        aws_cryptosdk_session_estimate_buf(session, &output_needed, &input_needed);
 
         if (output_capacity < output_needed) {
             output_buffer = (uint8_t *)realloc(output_buffer, output_needed);
