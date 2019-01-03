@@ -23,5 +23,6 @@ void harness()
 {
   struct aws_allocator* alloc = can_fail_allocator();
   struct aws_cryptosdk_keyring generator;
+  aws_cryptosdk_keyring_base_init(&generator, NULL);
   struct aws_cryptosdk_keyring *result = aws_cryptosdk_multi_keyring_new(alloc, &generator);
 }
