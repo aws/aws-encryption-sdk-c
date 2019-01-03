@@ -24,8 +24,9 @@
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/session.h>
 
-#include <aws/core/client/ClientConfiguration.h>
-
+/* Encrypts or decrypts a file in a streaming way. This is suitable
+ * for large files that cannot be held in a single memory buffer.
+ */
 static void process_file(
     char const *output_filename,
     char const *input_filename,
@@ -65,7 +66,7 @@ static void process_file(
     aws_cryptosdk_cmm_release(cmm);
 
     // Allocate buffers for input and output.  Note that the initial size is not critical, as we will resize
-    //   and reallocate if more space is needed to make progress.
+    // and reallocate if more space is needed to make progress.
     const size_t INITIAL_CAPACITY = 16 * 1024;
 
     uint8_t *input_buffer = (uint8_t *)malloc(INITIAL_CAPACITY);
@@ -75,9 +76,9 @@ static void process_file(
     uint8_t *output_buffer = (uint8_t *)malloc(INITIAL_CAPACITY);
     size_t output_capacity = INITIAL_CAPACITY;
 
-    // We use these variables to keep track of the number of bytes of input consumed and output generated.
-    //   During encryption, once we know exactly how much plaintext is to be consumed, we call the
-    //   set_message_size() function with the exact input size so that the session can be finished.
+    // These variables keep a running total of the number of bytes of input consumed and output produced,
+    // while the similarly named variables without "total_" measure the bytes consumed and produced in
+    // a single iteration of the loop.
     size_t total_input_consumed  = 0;
     size_t total_output_produced = 0;
 
@@ -89,6 +90,8 @@ static void process_file(
             input_len += num_read;
         }
 
+        // During encryption, once we know exactly how much plaintext is to be consumed, we call the
+        // set_message_size() function with the exact input size so that the session can be finished.
         if ((mode == AWS_CRYPTOSDK_ENCRYPT) && feof(input_fp)) {
             aws_status = aws_cryptosdk_session_set_message_size(session, total_input_consumed + input_len);
             if (aws_status) break;
@@ -145,10 +148,12 @@ static void process_file(
             aws_error_debug_str(aws_last_error()));
     } else {
         printf(
-            "%s succeeded; %zu input bytes were consumed; %zu output bytes were produced\n",
+            "%s succeeded; %zu input bytes consumed from %s; %zu output bytes written to %s\n",
             (mode == AWS_CRYPTOSDK_ENCRYPT) ? "Encryption" : "Decryption",
             total_input_consumed,
-            total_output_produced);
+            input_filename,
+            total_output_produced,
+            output_filename);
     }
 
     free(input_buffer);
@@ -159,21 +164,14 @@ static void process_file(
     aws_cryptosdk_session_destroy(session);
 }
 
-/*
- *  Usage
- *      $ file_encrypt_decrypt <key_arn> <input_filename>
- *  where
- *      <key_arn> is the ARN for a KMS key that will be used for encryption and decryption
- *      <input_filename> is the source file that will be encrypted and decrypted
- *  The program will encrypt the given <input_filename> and write the output to
- *      <input_filename>.encrypted
- *  It will then decrypt this file and write the output to
- *      <input_filename>.decrypted
- *
- */
 int main(int argc, char *argv[]) {
     if (argc != 3) {
-        fprintf(stderr, "Usage: %s <key_arn> <input_filename>\n", argv[0]);
+        fprintf(
+            stderr,
+            "Usage: %s <key_arn> <input_filename>\n"
+            "Encrypts <input_filename> to <input_filename>.encrypted and\n"
+            "decrypts it to <input_filename>.decrypted\n",
+            argv[0]);
         exit(1);
     }
 
@@ -195,10 +193,8 @@ int main(int argc, char *argv[]) {
 
     struct aws_allocator *allocator = aws_default_allocator();
 
-    // Encrypt file
     process_file(encrypted_filename, input_filename, AWS_CRYPTOSDK_ENCRYPT, key_arn, allocator);
 
-    // Decrypt file
     process_file(decrypted_filename, encrypted_filename, AWS_CRYPTOSDK_DECRYPT, key_arn, allocator);
 
     Aws::ShutdownAPI(options);
