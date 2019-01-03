@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
     size_t ciphertext_len;
     size_t plaintext_result_len;
 
-    /* Needed so that aws_error_debug_str will work properly. */
+    /* Needed so that aws_error_str will work properly. */
     aws_cryptosdk_load_error_strings();
 
     Aws::SDKOptions options;
@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
         plaintext_original_len);
 
     if (ret) {
-        fprintf(stderr, "Error on encrypt: %s\n", aws_error_debug_str(aws_last_error()));
+        fprintf(stderr, "Error on encrypt: %s\n", aws_error_str(aws_last_error()));
         Aws::ShutdownAPI(options);
         return ret;
     }

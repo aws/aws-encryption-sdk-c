@@ -401,7 +401,7 @@ bool KmsKeyring::Builder::ValidParameters(const Aws::Vector<Aws::String> &key_id
 
 aws_cryptosdk_keyring *KmsKeyring::Builder::Build(const Aws::Vector<Aws::String> &key_ids) const {
     if (!ValidParameters(key_ids)) {
-        aws_raise_error(AWS_CRYPTOSDK_ERR_KMS_FAILURE);
+        aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
         return NULL;
     }
 
