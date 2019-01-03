@@ -19,7 +19,9 @@
 
 /* Declares AWS strings of type (static const struct aws_string *)
  *
- * This strings will be the key-value pair used in the encryption context.
+ * These strings will be the key-value pair used in the encryption context.
+ * For more information on the encryption context, see
+ * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/concepts.html#encryption-context
  */
 AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_key, "Example");
 AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_value, "String");
