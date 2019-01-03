@@ -34,7 +34,7 @@ int encrypt_string(
     size_t plaintext_len) {
     struct aws_cryptosdk_keyring *kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({ key_arn });
     if (!kms_keyring) {
-        printf("Failed to build KMS Keyring. Did you specify a valid KMS CMK ARN?\n");
+        fprintf(stderr, "Failed to build KMS Keyring. Did you specify a valid KMS CMK ARN?\n");
         return 2;
     }
 
@@ -117,7 +117,7 @@ int decrypt_string(
     size_t ciphertext_len) {
     struct aws_cryptosdk_keyring *kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({ key_arn });
     if (!kms_keyring) {
-        printf("Failed to build KMS Keyring. Did you specify a valid KMS CMK ARN?\n");
+        fprintf(stderr, "Failed to build KMS Keyring. Did you specify a valid KMS CMK ARN?\n");
         return 8;
     }
 
