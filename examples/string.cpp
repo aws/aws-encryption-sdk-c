@@ -15,16 +15,8 @@
 
 #include <aws/cryptosdk/cpp/kms_keyring.h>
 #include <aws/cryptosdk/default_cmm.h>
+#include <aws/cryptosdk/enc_context.h>
 #include <aws/cryptosdk/session.h>
-
-/* Declares AWS strings of type (static const struct aws_string *)
- *
- * These strings will be the key-value pair used in the encryption context.
- * For more information on the encryption context, see
- * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/concepts.html#encryption-context
- */
-AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_key, "Example");
-AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_value, "String");
 
 int encrypt_string(
     struct aws_allocator *alloc,
@@ -33,7 +25,8 @@ int encrypt_string(
     size_t ciphertext_buf_sz,
     size_t *ciphertext_len,
     const uint8_t *plaintext,
-    size_t plaintext_len) {
+    size_t plaintext_len,
+    struct aws_hash_table *my_enc_ctx) {
     struct aws_cryptosdk_keyring *kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({ key_arn });
     if (!kms_keyring) {
         fprintf(stderr, "Failed to build KMS Keyring. Did you specify a valid KMS CMK ARN?\n");
@@ -78,19 +71,16 @@ int encrypt_string(
      * us to add or modify items. It only works for encrypt sessions and only
      * before aws_cryptosdk_session_process is called. At other times, it returns NULL.
      */
-    struct aws_hash_table *enc_ctx = aws_cryptosdk_session_get_enc_ctx_ptr_mut(session);
-    assert(enc_ctx);
+    struct aws_hash_table *session_enc_ctx = aws_cryptosdk_session_get_enc_ctx_ptr_mut(session);
+    assert(session_enc_ctx);
 
-    /* We add the key-value string pair defined at the top of this file to the
-     * encryption context.
-     */
-    int was_created;
-    if (AWS_OP_SUCCESS != aws_hash_table_put(enc_ctx, (const void *)enc_ctx_key, (void *)enc_ctx_value, &was_created)) {
+    /* We copy the contents of our own encryption context into the session's. */
+    if (AWS_OP_SUCCESS != aws_cryptosdk_enc_context_clone(alloc, session_enc_ctx, my_enc_ctx)) {
         aws_cryptosdk_session_destroy(session);
         return 6;
     }
-    assert(was_created == 1);
 
+    /* We encrypt the data. */
     size_t plaintext_consumed;
     if (AWS_OP_SUCCESS !=
         aws_cryptosdk_session_process(
@@ -109,14 +99,15 @@ int encrypt_string(
     return 0;
 }
 
-int decrypt_string(
+int decrypt_string_and_verify_encryption_context(
     struct aws_allocator *alloc,
     const char *key_arn,
     uint8_t *plaintext,
     size_t plaintext_buf_sz,
     size_t *plaintext_len,
     const uint8_t *ciphertext,
-    size_t ciphertext_len) {
+    size_t ciphertext_len,
+    struct aws_hash_table *my_enc_ctx) {
     struct aws_cryptosdk_keyring *kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({ key_arn });
     if (!kms_keyring) {
         fprintf(stderr, "Failed to build KMS Keyring. Did you specify a valid KMS CMK ARN?\n");
@@ -150,26 +141,62 @@ int decrypt_string(
     assert(aws_cryptosdk_session_is_done(session));
     assert(ciphertext_consumed == ciphertext_len);
 
-    /* The encryption context is stored in plaintext in the ciphertext format, and the
+    /* The encryption context is stored in plaintext in the encrypted message, and the
      * AWS Encryption SDK detects it and uses it for decryption, so there is no need to
-     * provide it at decrypt time. After decryption is done, you can get a read-only
-     * pointer to the encryption context using this function.
+     * provide it at decrypt time. After decryption is done, use this function to get a
+     * read-only pointer to the encryption context.
      */
-    const struct aws_hash_table *enc_ctx = aws_cryptosdk_session_get_enc_ctx_ptr(session);
-    assert(enc_ctx);
+    const struct aws_hash_table *session_enc_ctx = aws_cryptosdk_session_get_enc_ctx_ptr(session);
+    assert(session_enc_ctx);
 
-    /* We retrieve the value associated with our known key. */
-    struct aws_hash_element *enc_ctx_kv_pair;
-    if (AWS_OP_SUCCESS != aws_hash_table_find(enc_ctx, (const void *)enc_ctx_key, &enc_ctx_kv_pair)) {
-        aws_cryptosdk_session_destroy(session);
-        return 12;
+    /* Because the CMM can add new entries to the encryption context, we do not
+     * require that the encryption context matches, but only that the entries we
+     * put in are there.
+     */
+    for (struct aws_hash_iter iter = aws_hash_iter_begin(my_enc_ctx); !aws_hash_iter_done(&iter);
+         aws_hash_iter_next(&iter)) {
+        struct aws_hash_element *session_enc_ctx_kv_pair;
+        if (AWS_OP_SUCCESS != aws_hash_table_find(session_enc_ctx, iter.element.key, &session_enc_ctx_kv_pair)) {
+            aws_cryptosdk_session_destroy(session);
+            return 12;
+        }
+        if (!session_enc_ctx_kv_pair || !aws_string_eq(iter.element.value, session_enc_ctx_kv_pair->value)) {
+            fprintf(stderr, "Wrong encryption context!\n");
+            abort();
+        }
     }
-    assert(enc_ctx_kv_pair);
-    const struct aws_string *enc_ctx_value_decrypt = (const struct aws_string *)enc_ctx_kv_pair->value;
 
-    /* We verify that the encryption context value is what we expect. */
-    assert(aws_string_eq((const void *)enc_ctx_value, (const void *)enc_ctx_value_decrypt));
     aws_cryptosdk_session_destroy(session);
+    return 0;
+}
+
+/* Allocates a hash table for holding the encryption context and puts a few sample values in it. */
+int set_up_enc_ctx(struct aws_allocator *alloc, struct aws_hash_table *enc_ctx) {
+    if (AWS_OP_SUCCESS != aws_cryptosdk_enc_context_init(alloc, enc_ctx)) return 12;
+
+    /* Declares AWS strings of type (static const struct aws_string *)
+     *
+     * These strings will be the key-value pair used in the encryption context.
+     * For more information on the encryption context, see
+     * https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/concepts.html#encryption-context
+     */
+    AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_key1, "Example");
+    AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_value1, "String");
+    AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_key2, "Company");
+    AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_value2, "MyCryptoCorp");
+
+    int was_created;
+    if (AWS_OP_SUCCESS != aws_hash_table_put(enc_ctx, enc_ctx_key1, (void *)enc_ctx_value1, &was_created)) {
+        aws_cryptosdk_enc_context_clean_up(enc_ctx);
+        return 13;
+    }
+    assert(was_created == 1);
+    if (AWS_OP_SUCCESS != aws_hash_table_put(enc_ctx, enc_ctx_key2, (void *)enc_ctx_value2, &was_created)) {
+        aws_cryptosdk_enc_context_clean_up(enc_ctx);
+        return 14;
+    }
+    assert(was_created == 1);
+    return 0;
 }
 
 #define BUFFER_SIZE 1024
@@ -180,7 +207,22 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    struct aws_allocator *alloc         = aws_default_allocator();
+    /* Needed so that aws_error_str will work properly. */
+    aws_cryptosdk_load_error_strings();
+
+    struct aws_allocator *alloc = aws_default_allocator();
+
+    struct aws_hash_table enc_ctx;
+    int ret = set_up_enc_ctx(alloc, &enc_ctx);
+    if (ret) {
+        fprintf(stderr, "Error on encryption context setup: %s\n", aws_error_str(aws_last_error()));
+        return ret;
+    }
+
+    /* We need to intialize the AWS SDK for C++ when we use the C++ KMS keyring. */
+    Aws::SDKOptions options;
+    Aws::InitAPI(options);
+
     const char *plaintext_original      = "Hello world!";
     const size_t plaintext_original_len = strlen(plaintext_original);
 
@@ -189,35 +231,28 @@ int main(int argc, char **argv) {
     size_t ciphertext_len;
     size_t plaintext_result_len;
 
-    /* Needed so that aws_error_str will work properly. */
-    aws_cryptosdk_load_error_strings();
-
-    Aws::SDKOptions options;
-    Aws::InitAPI(options);
-
-    int ret = encrypt_string(
+    ret = encrypt_string(
         alloc,
         argv[1],
         ciphertext,
         BUFFER_SIZE,
         &ciphertext_len,
         (const uint8_t *)plaintext_original,
-        plaintext_original_len);
+        plaintext_original_len,
+        &enc_ctx);
 
     if (ret) {
         fprintf(stderr, "Error on encrypt: %s\n", aws_error_str(aws_last_error()));
-        Aws::ShutdownAPI(options);
-        return ret;
+        goto done;
     }
     printf(">> Encrypted to ciphertext of length %zu\n", ciphertext_len);
 
-    ret = decrypt_string(
-        alloc, argv[1], plaintext_result, BUFFER_SIZE, &plaintext_result_len, ciphertext, ciphertext_len);
+    ret = decrypt_string_and_verify_encryption_context(
+        alloc, argv[1], plaintext_result, BUFFER_SIZE, &plaintext_result_len, ciphertext, ciphertext_len, &enc_ctx);
 
     if (ret) {
-        fprintf(stderr, "Error on decrypt: %s\n", aws_error_debug_str(aws_last_error()));
-        Aws::ShutdownAPI(options);
-        return ret;
+        fprintf(stderr, "Error on decrypt: %s\n", aws_error_str(aws_last_error()));
+        goto done;
     }
     printf(">> Decrypted to plaintext of length %zu\n", plaintext_result_len);
 
@@ -225,6 +260,8 @@ int main(int argc, char **argv) {
     assert(!memcmp(plaintext_original, plaintext_result, plaintext_result_len));
     printf(">> Decrypted plaintext matches original!\n");
 
+done:
     Aws::ShutdownAPI(options);
-    return 0;
+    aws_cryptosdk_enc_context_clean_up(&enc_ctx);
+    return ret;
 }
