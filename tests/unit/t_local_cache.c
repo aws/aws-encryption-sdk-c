@@ -508,6 +508,60 @@ static int test_decrypt_entries() {
     return 0;
 }
 
+static int test_mat_cache_entry_count() {
+    struct aws_allocator *alloc                        = aws_default_allocator();
+    struct aws_cryptosdk_mat_cache *cache              = aws_cryptosdk_mat_cache_local_new(alloc, 16);
+    struct aws_cryptosdk_encryption_materials *enc_mat = NULL;
+    struct aws_cryptosdk_mat_cache_entry *entry        = NULL;
+    struct aws_hash_table enc_context;
+    struct aws_byte_buf cache_id;
+    struct aws_cryptosdk_cache_usage_stats usage_stats;
+
+    usage_stats.bytes_encrypted    = 1234;
+    usage_stats.messages_encrypted = 5678;
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, &enc_context));
+    TEST_ASSERT_SUCCESS(aws_hash_table_put(
+        &enc_context, aws_string_new_from_c_str(alloc, "Hello"), aws_string_new_from_c_str(alloc, "World"), NULL));
+    gen_enc_materials(alloc, &enc_mat, 1, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256, 2);
+
+    // cache_miss
+    for (int i = 0; i < 16; i++) {
+        byte_buf_printf(&cache_id, alloc, "%d", i);
+        aws_cryptosdk_mat_cache_put_entry_for_encrypt(cache, &entry, enc_mat, usage_stats, &enc_context, &cache_id);
+        aws_byte_buf_clean_up(&cache_id);
+        aws_cryptosdk_mat_cache_entry_release(cache, entry, false);
+        TEST_ASSERT_INT_EQ(i + 1, aws_cryptosdk_mat_cache_entry_count(cache));
+    }
+    TEST_ASSERT_INT_EQ(16, aws_cryptosdk_mat_cache_entry_count(cache));
+
+    // cache_hit
+    for (int i = 0, j = 16; i < 8; i++) {
+        byte_buf_printf(&cache_id, alloc, "%d", i);
+        aws_cryptosdk_mat_cache_put_entry_for_encrypt(cache, &entry, enc_mat, usage_stats, &enc_context, &cache_id);
+        aws_byte_buf_clean_up(&cache_id);
+        if (i % 2) {
+            // invalidate 4 cache entries
+            aws_cryptosdk_mat_cache_entry_release(cache, entry, true);
+            TEST_ASSERT_INT_EQ(--j, aws_cryptosdk_mat_cache_entry_count(cache));
+        } else {
+            aws_cryptosdk_mat_cache_entry_release(cache, entry, false);
+            TEST_ASSERT_INT_EQ(j, aws_cryptosdk_mat_cache_entry_count(cache));
+        }
+    }
+    TEST_ASSERT_INT_EQ(12, aws_cryptosdk_mat_cache_entry_count(cache));
+
+    // clear all the cache entries
+    aws_cryptosdk_mat_cache_clear(cache);
+    TEST_ASSERT_INT_EQ(0, aws_cryptosdk_mat_cache_entry_count(cache));
+
+    aws_cryptosdk_encryption_materials_destroy(enc_mat);
+    aws_cryptosdk_enc_context_clean_up(&enc_context);
+    aws_cryptosdk_mat_cache_release(cache);
+
+    return 0;
+}
+
 #define TEST_CASE(name) \
     { "local_cache", #name, name }
 struct test_case local_cache_test_cases[] = { TEST_CASE(create_destroy),
@@ -519,4 +573,5 @@ struct test_case local_cache_test_cases[] = { TEST_CASE(create_destroy),
                                               TEST_CASE(clear_cache),
                                               TEST_CASE(hash_truncation),
                                               TEST_CASE(test_decrypt_entries),
+                                              TEST_CASE(test_mat_cache_entry_count),
                                               { NULL } };
