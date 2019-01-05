@@ -85,13 +85,12 @@ static int enc_cache_miss() {
 
     /* Materials should match those returned from the upstream */
     TEST_ASSERT(materials_eq(output, expected));
-    TEST_ASSERT(aws_hash_table_eq(&req_context, &expect_context, (aws_hash_element_eq_fn)aws_string_eq));
+    TEST_ASSERT(aws_hash_table_eq(&req_context, &expect_context, aws_hash_callback_string_eq));
     /* The upstream CMM should see the original request */
     TEST_ASSERT_ADDR_EQ(mock_upstream_cmm->last_enc_request, &request);
     /* We should have inserted the result into the cache */
     TEST_ASSERT(materials_eq(output, mock_mat_cache->enc_materials));
-    TEST_ASSERT(
-        aws_hash_table_eq(&req_context, &mock_mat_cache->encryption_context, (aws_hash_element_eq_fn)aws_string_eq));
+    TEST_ASSERT(aws_hash_table_eq(&req_context, &mock_mat_cache->encryption_context, aws_hash_callback_string_eq));
     TEST_ASSERT_INT_EQ(request.plaintext_size, mock_mat_cache->usage_stats.bytes_encrypted);
     TEST_ASSERT_INT_EQ(1, mock_mat_cache->usage_stats.messages_encrypted);
 
@@ -148,7 +147,7 @@ static int enc_cache_hit() {
 
     /* Materials should match those returned from the upstream */
     TEST_ASSERT(materials_eq(output, expected));
-    TEST_ASSERT(aws_hash_table_eq(&req_context, &expect_context, (aws_hash_element_eq_fn)aws_string_eq));
+    TEST_ASSERT(aws_hash_table_eq(&req_context, &expect_context, aws_hash_callback_string_eq));
 
     /* The upstream CMM should not see the original request */
     TEST_ASSERT_ADDR_EQ(mock_upstream_cmm->last_enc_request, NULL);
@@ -187,8 +186,8 @@ static int enc_cache_unique_ids() {
         aws_default_allocator(),
         16,
         aws_hash_string,
-        (aws_hash_element_eq_fn)aws_string_eq,
-        (aws_hash_element_destroy_fn)aws_string_destroy,
+        aws_hash_callback_string_eq,
+        aws_hash_callback_string_destroy,
         NULL));
 
     struct aws_cryptosdk_encryption_request request;

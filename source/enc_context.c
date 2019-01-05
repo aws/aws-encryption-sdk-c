@@ -25,9 +25,9 @@ int aws_cryptosdk_enc_context_init(struct aws_allocator *alloc, struct aws_hash_
         alloc,
         initial_size,
         aws_hash_string,
-        (aws_hash_element_eq_fn)aws_string_eq,
-        (aws_hash_element_destroy_fn)aws_string_destroy,
-        (aws_hash_element_destroy_fn)aws_string_destroy);
+        aws_hash_callback_string_eq,
+        aws_hash_callback_string_destroy,
+        aws_hash_callback_string_destroy);
 }
 
 int aws_cryptosdk_context_size(size_t *size, const struct aws_hash_table *enc_context) {
