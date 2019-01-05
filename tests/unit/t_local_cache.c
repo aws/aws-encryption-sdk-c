@@ -531,7 +531,7 @@ static int test_mat_cache_entry_count() {
         aws_cryptosdk_mat_cache_put_entry_for_encrypt(cache, &entry, enc_mat, usage_stats, &enc_context, &cache_id);
         aws_byte_buf_clean_up(&cache_id);
         aws_cryptosdk_mat_cache_entry_release(cache, entry, false);
-        TEST_ASSERT_INT_EQ(i+1, aws_cryptosdk_mat_cache_entry_count(cache));
+        TEST_ASSERT_INT_EQ(i + 1, aws_cryptosdk_mat_cache_entry_count(cache));
     }
     TEST_ASSERT_INT_EQ(16, aws_cryptosdk_mat_cache_entry_count(cache));
 
