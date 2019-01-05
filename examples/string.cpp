@@ -160,7 +160,10 @@ int decrypt_string_and_verify_encryption_context(
             aws_cryptosdk_session_destroy(session);
             return 12;
         }
-        if (!session_enc_ctx_kv_pair || !aws_string_eq(iter.element.value, session_enc_ctx_kv_pair->value)) {
+
+        if (!session_enc_ctx_kv_pair ||
+            !aws_string_eq(
+                (struct aws_string *)iter.element.value, (struct aws_string *)session_enc_ctx_kv_pair->value)) {
             fprintf(stderr, "Wrong encryption context!\n");
             abort();
         }
