@@ -22,7 +22,8 @@ static const struct aws_error_info error_info[] = {
     AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_KMS_FAILURE, "Unexpected failure from KMS", "cryptosdk"),
     AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_BAD_STATE, "Bad state for operation", "cryptosdk"),
     AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED, "Limit exceeded", "cryptosdk"),
-    AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT, "Unable to decrypt", "cryptosdk")
+    AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT, "Unable to decrypt", "cryptosdk"),
+    AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_RESERVED_FIELD, "Contains reserved field", "cryptosdk")
 };
 
 static const struct aws_error_info_list error_info_list = { .error_list = error_info,

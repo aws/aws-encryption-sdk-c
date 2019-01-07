@@ -214,6 +214,35 @@ int default_cmm_context_presence() {
     return 0;
 }
 
+int default_cmm_signer_key_in_enc_context() {
+    struct aws_hash_table enc_context;
+    struct aws_cryptosdk_encryption_request req;
+    struct aws_cryptosdk_encryption_materials *enc_mat;
+    struct aws_allocator *alloc      = aws_default_allocator();
+    struct aws_cryptosdk_keyring *kr = aws_cryptosdk_zero_keyring_new(alloc);
+    struct aws_cryptosdk_cmm *cmm    = aws_cryptosdk_default_cmm_new(alloc, kr);
+    struct aws_string *pubkey        = NULL;
+
+    aws_cryptosdk_enc_context_init(alloc, &enc_context);
+    req.enc_context = &enc_context;
+    AWS_STATIC_STRING_FROM_LITERAL(EC_PUBLIC_KEY_FIELD, "aws-crypto-public-key");
+    TEST_ASSERT_SUCCESS(aws_hash_table_put(req.enc_context, EC_PUBLIC_KEY_FIELD, pubkey, NULL));
+    req.requested_alg = 0;
+    req.alloc         = aws_default_allocator();
+    aws_cryptosdk_default_cmm_set_alg_id(cmm, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
+
+    TEST_ASSERT_ERROR(
+        AWS_CRYPTOSDK_ERR_RESERVED_FIELD, aws_cryptosdk_cmm_generate_encryption_materials(cmm, &enc_mat, &req));
+
+    if (pubkey) aws_string_destroy(pubkey);
+    if (enc_mat) aws_cryptosdk_encryption_materials_destroy(enc_mat);
+    if (cmm) aws_cryptosdk_cmm_release(cmm);
+    if (kr) aws_cryptosdk_keyring_release(kr);
+    if (&enc_context) aws_cryptosdk_enc_context_clean_up(&enc_context);
+
+    return 0;
+}
+
 int zero_size_cmm_does_not_run_vfs() {
     struct aws_cryptosdk_cmm cmm = aws_cryptosdk_zero_size_cmm();
     TEST_ASSERT_ERROR(AWS_ERROR_UNIMPLEMENTED, aws_cryptosdk_cmm_generate_encryption_materials(&cmm, NULL, NULL));
@@ -436,6 +465,7 @@ struct test_case materials_test_cases[] = {
     { "materials", "default_cmm_alg_mismatch", default_cmm_alg_mismatch },
     { "materials", "default_cmm_alg_match", default_cmm_alg_match },
     { "materials", "default_cmm_context_presence", default_cmm_context_presence },
+    { "materials", "default_cmm_signer_key_in_enc_context", default_cmm_signer_key_in_enc_context },
     { "materials", "zero_size_cmm_does_not_run_vfs", zero_size_cmm_does_not_run_vfs },
     { "materials", "null_cmm_fails_vf_calls_cleanly", null_cmm_fails_vf_calls_cleanly },
     { "materials", "null_materials_release_is_noop", null_materials_release_is_noop },
@@ -446,5 +476,5 @@ struct test_case materials_test_cases[] = {
     { "materials", "on_encrypt_postcondition_violation", on_encrypt_postcondition_violation },
     { "materials", "on_decrypt_precondition_violation", on_decrypt_precondition_violation },
     { "materials", "on_decrypt_postcondition_violation", on_decrypt_postcondition_violation },
-    { NULL }
+    { NULL } 
 };
