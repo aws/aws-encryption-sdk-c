@@ -487,7 +487,7 @@ static int t_trailing_garbage_with_o2i_ECPublicKey() {
     aws_byte_buf_clean_up(&pubkey_decoded);
     aws_byte_buf_clean_up(&pubkey_with_trailing_garbage_b64);
     aws_byte_buf_clean_up(&pubkey_decoded_with_trailing_garbage);
-    aws_string_destroy((void *)pubkey_with_trailing_garbage_b64_s);
+    aws_string_destroy(pubkey_with_trailing_garbage_b64_s);
     aws_cryptosdk_sig_abort(ctx);
     return 0;
 }

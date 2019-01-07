@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
     /* The keyring holds its own copy of the strings and key, so we destroy the string
      * we created and zero out the bytes of the key.
      */
-    aws_string_destroy((void *)wrapping_key_name);
+    aws_string_destroy(wrapping_key_name);
     aws_secure_zero(wrapping_key, wrapping_key_len);
 
     /* We create a default Cryptographic Materials Manager (CMM) using this keyring. */
