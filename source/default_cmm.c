@@ -42,18 +42,18 @@ static int default_cmm_generate_encryption_materials(
         request->requested_alg = props->alg_id;
     }
 
+    aws_hash_table_find(request->enc_context, EC_PUBLIC_KEY_FIELD, &pElement);
+    if (pElement) {
+        aws_raise_error(AWS_CRYPTOSDK_ERR_RESERVED_FIELD);
+        goto err;
+    }
+
     enc_mat = aws_cryptosdk_encryption_materials_new(request->alloc, request->requested_alg);
     if (!enc_mat) goto err;
 
     if (props->signature_len) {
         struct aws_string *pubkey = NULL;
         if (aws_cryptosdk_sig_sign_start_keygen(&enc_mat->signctx, request->alloc, &pubkey, props)) {
-            goto err;
-        }
-
-        aws_hash_table_find(request->enc_context, EC_PUBLIC_KEY_FIELD, &pElement);
-        if (pElement) {
-            aws_raise_error(AWS_CRYPTOSDK_ERR_RESERVED_FIELD);
             goto err;
         }
 
