@@ -167,9 +167,7 @@ struct GenerateDataKeyValues : public TestValues {
     struct aws_byte_buf unencrypted_data_key;
 
     GenerateDataKeyValues(const Aws::Vector<Aws::String> &grant_tokens = {})
-        : TestValues({ key_id }, grant_tokens),
-          alg(ALG_AES128_GCM_IV12_TAG16_NO_KDF),
-          unencrypted_data_key({ 0 }) {
+        : TestValues({ key_id }, grant_tokens), alg(ALG_AES128_GCM_IV12_TAG16_NO_KDF), unencrypted_data_key({ 0 }) {
         generate_result.SetPlaintext(pt_bb);
         generate_result.SetCiphertextBlob(ct_bb);
         generate_result.SetKeyId(key_id);

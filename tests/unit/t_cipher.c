@@ -470,8 +470,7 @@ static int test_verify_header() {
                                            0x73, 0x32, 0x2b, 0x1e, 0x27, 0x6c, 0x39, 0x25 };
         static const uint8_t key[MAX_DATA_KEY_SIZE] = { 0x62, 0x96, 0xd9, 0x52, 0x67, 0x10, 0xfd, 0xc7,
                                                         0xa1, 0xb7, 0xa5, 0xcd, 0xe4, 0xe0, 0x76, 0x4c };
-        if (testHeaderAuth(
-                header, sizeof(header), authtag, sizeof(authtag), key, ALG_AES128_GCM_IV12_TAG16_NO_KDF))
+        if (testHeaderAuth(header, sizeof(header), authtag, sizeof(authtag), key, ALG_AES128_GCM_IV12_TAG16_NO_KDF))
             return 1;
     }
     {
@@ -485,8 +484,7 @@ static int test_verify_header() {
         static const uint8_t key[MAX_DATA_KEY_SIZE] = { 0x3c, 0x5c, 0xae, 0xc5, 0x38, 0xcf, 0x0a, 0x06,
                                                         0x13, 0x01, 0x11, 0x0e, 0x4d, 0x66, 0xda, 0xff,
                                                         0xf0, 0x2a, 0xbd, 0x55, 0x2c, 0xbc, 0xa9, 0xa5 };
-        if (testHeaderAuth(
-                header, sizeof(header), authtag, sizeof(authtag), key, ALG_AES192_GCM_IV12_TAG16_NO_KDF))
+        if (testHeaderAuth(header, sizeof(header), authtag, sizeof(authtag), key, ALG_AES192_GCM_IV12_TAG16_NO_KDF))
             return 1;
     }
     {
@@ -501,8 +499,7 @@ static int test_verify_header() {
                                                         0x27, 0xbc, 0x87, 0x7b, 0xcf, 0x80, 0x94, 0xe5,
                                                         0x9f, 0x14, 0x54, 0x8d, 0xd3, 0x4b, 0x67, 0xc2,
                                                         0x5e, 0x0b, 0xcb, 0xad, 0xa1, 0x30, 0xa2, 0xe8 };
-        if (testHeaderAuth(
-                header, sizeof(header), authtag, sizeof(authtag), key, ALG_AES256_GCM_IV12_TAG16_NO_KDF))
+        if (testHeaderAuth(header, sizeof(header), authtag, sizeof(authtag), key, ALG_AES256_GCM_IV12_TAG16_NO_KDF))
             return 1;
     }
     {
@@ -566,7 +563,12 @@ static int test_verify_header() {
         static const uint8_t key[MAX_DATA_KEY_SIZE] = { 0x51, 0x31, 0x83, 0xbe, 0xf7, 0xb7, 0x21, 0xaa,
                                                         0x40, 0x01, 0x79, 0xb6, 0x28, 0x9d, 0x6b, 0x49 };
         if (testHeaderAuth(
-                header, sizeof(header), authtag, sizeof(authtag), key, ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256))
+                header,
+                sizeof(header),
+                authtag,
+                sizeof(authtag),
+                key,
+                ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256))
             return 1;
     }
     {
@@ -587,7 +589,12 @@ static int test_verify_header() {
                                                         0xd1, 0x7c, 0xee, 0xd1, 0x1c, 0xf5, 0xc7, 0xa9,
                                                         0x6d, 0x02, 0x43, 0xb2, 0x64, 0x84, 0xc0, 0x62 };
         if (testHeaderAuth(
-                header, sizeof(header), authtag, sizeof(authtag), key, ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384))
+                header,
+                sizeof(header),
+                authtag,
+                sizeof(authtag),
+                key,
+                ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384))
             return 1;
     }
     {
@@ -609,7 +616,12 @@ static int test_verify_header() {
                                                         0x51, 0x9a, 0x9f, 0x36, 0xa3, 0x58, 0x0b, 0x27,
                                                         0x3d, 0x10, 0xdd, 0xc8, 0xa4, 0xda, 0x2f, 0x63 };
         if (testHeaderAuth(
-                header, sizeof(header), authtag, sizeof(authtag), key, ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384))
+                header,
+                sizeof(header),
+                authtag,
+                sizeof(authtag),
+                key,
+                ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384))
             return 1;
     }
     return 0;
@@ -629,10 +641,14 @@ static int test_random() {
 }
 
 static const enum aws_cryptosdk_alg_id known_algorithms[] = {
-    ALG_AES128_GCM_IV12_TAG16_NO_KDF,    ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256,
-    ALG_AES192_GCM_IV12_TAG16_NO_KDF,    ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256,
-    ALG_AES256_GCM_IV12_TAG16_NO_KDF,    ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256,
-    ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256, ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+    ALG_AES128_GCM_IV12_TAG16_NO_KDF,
+    ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256,
+    ALG_AES192_GCM_IV12_TAG16_NO_KDF,
+    ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256,
+    ALG_AES256_GCM_IV12_TAG16_NO_KDF,
+    ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256,
+    ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
+    ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
     ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
 };
 

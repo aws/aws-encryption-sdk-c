@@ -61,9 +61,12 @@ const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryp
         STATIC_ALG_PROPS(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256, sha256, aes_256_gcm, 256, 12, 16, 0, NULL);
         // secp256r1 aka prime256v1 aka P-256
         // openssl does not define the 'secp256r1' alias however
-        STATIC_ALG_PROPS(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256, sha256, aes_128_gcm, 128, 12, 16, 71, "prime256v1");
-        STATIC_ALG_PROPS(ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384, sha384, aes_192_gcm, 192, 12, 16, 103, "secp384r1");
-        STATIC_ALG_PROPS(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384, sha384, aes_256_gcm, 256, 12, 16, 103, "secp384r1");
+        STATIC_ALG_PROPS(
+            ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256, sha256, aes_128_gcm, 128, 12, 16, 71, "prime256v1");
+        STATIC_ALG_PROPS(
+            ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384, sha384, aes_192_gcm, 192, 12, 16, 103, "secp384r1");
+        STATIC_ALG_PROPS(
+            ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384, sha384, aes_256_gcm, 256, 12, 16, 103, "secp384r1");
         default: return NULL;
     }
 #undef STATIC_ALG_PROPS

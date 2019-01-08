@@ -456,8 +456,8 @@ static int test_decrypt_entries() {
     struct aws_cryptosdk_mat_cache *cache = aws_cryptosdk_mat_cache_local_new(aws_default_allocator(), 16);
     struct aws_byte_buf cache_id          = aws_byte_buf_from_c_str("Hello, world!");
     struct aws_byte_buf expected_key      = aws_byte_buf_from_c_str("THE MAGIC WORDS ARE SQUEAMISH OSSIFRAGE");
-    struct aws_cryptosdk_decryption_materials *dec_mat_in =
-        aws_cryptosdk_decryption_materials_new(aws_default_allocator(), ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384);
+    struct aws_cryptosdk_decryption_materials *dec_mat_in = aws_cryptosdk_decryption_materials_new(
+        aws_default_allocator(), ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384);
     AWS_STATIC_STRING_FROM_LITERAL(pubkey, "AoZ0mPKrKqcCyWlF47FYUrk4as696N4WUmv+54kp58hBiGJ22Fm+g4esiICWcOrgfQ==");
 
     TEST_ASSERT_SUCCESS(

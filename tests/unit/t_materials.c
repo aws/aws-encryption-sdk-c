@@ -158,13 +158,15 @@ int default_cmm_alg_match() {
     return 0;
 }
 
-static enum aws_cryptosdk_alg_id known_algorithms[] = {
-    ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384, ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
-    ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256, ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256,
-    ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256,  ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256,
-    ALG_AES256_GCM_IV12_TAG16_NO_KDF,    ALG_AES192_GCM_IV12_TAG16_NO_KDF,
-    ALG_AES128_GCM_IV12_TAG16_NO_KDF
-};
+static enum aws_cryptosdk_alg_id known_algorithms[] = { ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+                                                        ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+                                                        ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
+                                                        ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256,
+                                                        ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256,
+                                                        ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256,
+                                                        ALG_AES256_GCM_IV12_TAG16_NO_KDF,
+                                                        ALG_AES192_GCM_IV12_TAG16_NO_KDF,
+                                                        ALG_AES128_GCM_IV12_TAG16_NO_KDF };
 
 int default_cmm_context_presence() {
     AWS_STATIC_STRING_FROM_LITERAL(EC_PUBLIC_KEY_FIELD, "aws-crypto-public-key");
@@ -417,7 +419,13 @@ int on_encrypt_postcondition_violation() {
     TEST_ASSERT_ERROR(
         AWS_CRYPTOSDK_ERR_BAD_STATE,
         aws_cryptosdk_keyring_on_encrypt(
-            kr, alloc, &unencrypted_data_key, &keyring_trace, &edks, NULL, ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));
+            kr,
+            alloc,
+            &unencrypted_data_key,
+            &keyring_trace,
+            &edks,
+            NULL,
+            ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));
 
     TEST_ASSERT(test_kr.on_encrypt_called);
 
@@ -451,7 +459,13 @@ int on_decrypt_postcondition_violation() {
     TEST_ASSERT_ERROR(
         AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT,
         aws_cryptosdk_keyring_on_decrypt(
-            kr, alloc, &unencrypted_data_key, &keyring_trace, &edks, NULL, ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));
+            kr,
+            alloc,
+            &unencrypted_data_key,
+            &keyring_trace,
+            &edks,
+            NULL,
+            ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));
 
     teardown_condition_violation_test();
     return 0;

@@ -262,8 +262,7 @@ static void setup() {
     mat_cache = aws_cryptosdk_mat_cache_local_new(aws_default_allocator(), CACHE_SIZE);
 
     for (int i = 0; i < N_ENC_ENTRIES; i++) {
-        gen_enc_materials(
-            aws_default_allocator(), &expected_enc_mats[i], i, ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256, 1);
+        gen_enc_materials(aws_default_allocator(), &expected_enc_mats[i], i, ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256, 1);
     }
 
     for (int i = 0; i < N_DEC_ENTRIES; i++) {
