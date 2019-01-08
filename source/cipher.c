@@ -23,8 +23,8 @@
 
 #include <aws/common/byte_order.h>
 #include <aws/cryptosdk/error.h>
-#include <aws/cryptosdk/hkdf.h>
 #include <aws/cryptosdk/private/cipher.h>
+#include <aws/cryptosdk/private/hkdf.h>
 
 #define MSG_ID_LEN 16
 

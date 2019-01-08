@@ -13,20 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#ifndef AWS_CRYPTOSDK_HKDF_H
-#define AWS_CRYPTOSDK_HKDF_H
+#ifndef AWS_CRYPTOSDK_PRIVATE_HKDF_H
+#define AWS_CRYPTOSDK_PRIVATE_HKDF_H
 
 #include <aws/common/byte_buf.h>
-#include <aws/cryptosdk/exports.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/**
- * @ingroup hazmat
- * @{
- */
 
 enum aws_cryptosdk_sha_version {
     AWS_CRYPTOSDK_NOSHA,
@@ -34,12 +24,11 @@ enum aws_cryptosdk_sha_version {
     AWS_CRYPTOSDK_SHA384,
 };
 
-/**
+/*
  * This function performs the HKDF extract then expand steps as described in
  * RFC-5869. The length of the okm (output keying material) is required to be
  * set by the user ahead of time and must be less than or equal to 255*HashLen.
  */
-AWS_CRYPTOSDK_API
 int aws_cryptosdk_hkdf(
     struct aws_byte_buf *okm,
     enum aws_cryptosdk_sha_version which_sha,
@@ -47,10 +36,4 @@ int aws_cryptosdk_hkdf(
     const struct aws_byte_buf *ikm,
     const struct aws_byte_buf *info);
 
-/** @} */  // doxygen group hazmat
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+#endif  // AWS_CRYPTOSDK_PRIVATE_HKDF_H

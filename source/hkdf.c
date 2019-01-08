@@ -15,7 +15,7 @@
 #include <assert.h>
 #include <aws/common/byte_buf.h>
 #include <aws/cryptosdk/error.h>
-#include <aws/cryptosdk/hkdf.h>
+#include <aws/cryptosdk/private/hkdf.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/opensslv.h>
