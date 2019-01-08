@@ -38,14 +38,14 @@ static int default_cmm_generate_encryption_materials(
     const struct aws_cryptosdk_alg_properties *props   = self->alg_props;
     struct aws_hash_element *pElement                  = NULL;
     *output                                            = NULL;
-    if (!request->requested_alg) {
-        request->requested_alg = props->alg_id;
-    }
 
     aws_hash_table_find(request->enc_context, EC_PUBLIC_KEY_FIELD, &pElement);
     if (pElement) {
-        aws_raise_error(AWS_CRYPTOSDK_ERR_RESERVED_FIELD);
-        goto err;
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_RESERVED_FIELD);
+    }
+
+    if (!request->requested_alg) {
+        request->requested_alg = props->alg_id;
     }
 
     enc_mat = aws_cryptosdk_encryption_materials_new(request->alloc, request->requested_alg);
