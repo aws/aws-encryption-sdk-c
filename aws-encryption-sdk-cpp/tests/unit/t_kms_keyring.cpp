@@ -120,7 +120,7 @@ struct EncryptTestValues : public TestValues {
     EncryptTestValues() : EncryptTestValues({ key_id }) {}
     EncryptTestValues(const Aws::Vector<Aws::String> &key_ids, const Aws::Vector<Aws::String> &grant_tokens = {})
         : TestValues(key_ids, grant_tokens),
-          alg(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE),
+          alg(ALG_AES128_GCM_IV12_TAG16_NO_KDF),
           unencrypted_data_key(aws_byte_buf_from_c_str(pt)) {}
 
     Model::EncryptResult GetResult() {
@@ -168,7 +168,7 @@ struct GenerateDataKeyValues : public TestValues {
 
     GenerateDataKeyValues(const Aws::Vector<Aws::String> &grant_tokens = {})
         : TestValues({ key_id }, grant_tokens),
-          alg(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE),
+          alg(ALG_AES128_GCM_IV12_TAG16_NO_KDF),
           unencrypted_data_key({ 0 }) {
         generate_result.SetPlaintext(pt_bb);
         generate_result.SetCiphertextBlob(ct_bb);
@@ -219,13 +219,13 @@ class DecryptValues : public TestValues {
     DecryptValues()
         : decrypt_result(MakeDecryptResult(key_id, pt)),
           edks(allocator),
-          alg(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE),
+          alg(ALG_AES128_GCM_IV12_TAG16_NO_KDF),
           unencrypted_data_key({ 0 }) {}
 
     DecryptValues(const Aws::Vector<Aws::String> &key_ids, const Aws::Vector<Aws::String> &grant_tokens = {})
         : TestValues(key_ids, grant_tokens),
           edks(allocator),
-          alg(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE),
+          alg(ALG_AES128_GCM_IV12_TAG16_NO_KDF),
           unencrypted_data_key({ 0 }) {}
 
     Model::DecryptRequest GetRequest() {

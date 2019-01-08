@@ -224,7 +224,7 @@ static int test_assert_edk_provider_id_and_info(
     return 0;
 }
 
-static const auto alg = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE;
+static const auto alg = ALG_AES128_GCM_IV12_TAG16_NO_KDF;
 static aws_allocator *alloc;
 static struct aws_hash_table enc_context;
 static struct aws_array_list keyring_trace;
@@ -314,7 +314,7 @@ static const char *edk_bytes[2] = {
 
 int dataKeyDecrypt_discoveryKeyringHandlesKeyItCannotAccess_returnSuccess() {
     TEST_ASSERT_SUCCESS(setup_dataKeyEncryptAndDecrypt_tests(false));
-    const auto my_alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE;
+    const auto my_alg = ALG_AES256_GCM_IV12_TAG16_NO_KDF;
     Testing::Edks edks(alloc);
 
     for (int i = 0; i < 2; ++i) {
@@ -334,7 +334,7 @@ int dataKeyDecrypt_discoveryKeyringHandlesKeyItCannotAccess_returnSuccess() {
 
 int dataKeyDecrypt_doNotReturnDataKeyWhenKeyIdMismatchFromKms_returnSuccess() {
     TEST_ASSERT_SUCCESS(setup_dataKeyEncryptAndDecrypt_tests(false));
-    const auto my_alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE;
+    const auto my_alg = ALG_AES256_GCM_IV12_TAG16_NO_KDF;
     Testing::Edks edks(alloc);
 
     // Use real key bytes that will decrypt, but for a different ARN

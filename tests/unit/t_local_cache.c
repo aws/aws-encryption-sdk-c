@@ -65,7 +65,7 @@ static int single_put() {
     TEST_ASSERT_SUCCESS(aws_hash_table_put(
         &enc_context_1, aws_string_new_from_c_str(alloc, "foo"), aws_string_new_from_c_str(alloc, "bar"), NULL));
 
-    gen_enc_materials(alloc, &enc_mat_1, 1, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256, 3);
+    gen_enc_materials(alloc, &enc_mat_1, 1, ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256, 3);
     byte_buf_printf(&cache_id, alloc, "Cache ID 1");
 
     aws_cryptosdk_mat_cache_put_entry_for_encrypt(cache, &entry, enc_mat_1, stats_1, &enc_context_1, &cache_id);
@@ -132,7 +132,7 @@ static int entry_refcount() {
     TEST_ASSERT_SUCCESS(aws_hash_table_put(
         &enc_context_1, aws_string_new_from_c_str(alloc, "foo"), aws_string_new_from_c_str(alloc, "bar"), NULL));
 
-    gen_enc_materials(alloc, &enc_mat_1, 1, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256, 3);
+    gen_enc_materials(alloc, &enc_mat_1, 1, ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256, 3);
     byte_buf_printf(&cache_id, alloc, "Cache ID 1");
 
     aws_cryptosdk_mat_cache_put_entry_for_encrypt(cache, &entry_1, enc_mat_1, stats_1, &enc_context_1, &cache_id);
@@ -180,7 +180,7 @@ static int setup_enc_params(
     TEST_ASSERT_SUCCESS(aws_hash_table_put(enc_context, key, enc_context_val, NULL));
 
     gen_enc_materials(
-        aws_default_allocator(), enc_mat, index, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256, 1 + (index % 4));
+        aws_default_allocator(), enc_mat, index, ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256, 1 + (index % 4));
     byte_buf_printf(cache_id, aws_default_allocator(), "ID %d", index);
 
     return 0;
@@ -457,7 +457,7 @@ static int test_decrypt_entries() {
     struct aws_byte_buf cache_id          = aws_byte_buf_from_c_str("Hello, world!");
     struct aws_byte_buf expected_key      = aws_byte_buf_from_c_str("THE MAGIC WORDS ARE SQUEAMISH OSSIFRAGE");
     struct aws_cryptosdk_decryption_materials *dec_mat_in =
-        aws_cryptosdk_decryption_materials_new(aws_default_allocator(), AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384);
+        aws_cryptosdk_decryption_materials_new(aws_default_allocator(), ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384);
     AWS_STATIC_STRING_FROM_LITERAL(pubkey, "AoZ0mPKrKqcCyWlF47FYUrk4as696N4WUmv+54kp58hBiGJ22Fm+g4esiICWcOrgfQ==");
 
     TEST_ASSERT_SUCCESS(
@@ -523,7 +523,7 @@ static int test_mat_cache_entry_count() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, &enc_context));
     TEST_ASSERT_SUCCESS(aws_hash_table_put(
         &enc_context, aws_string_new_from_c_str(alloc, "Hello"), aws_string_new_from_c_str(alloc, "World"), NULL));
-    gen_enc_materials(alloc, &enc_mat, 1, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256, 2);
+    gen_enc_materials(alloc, &enc_mat, 1, ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256, 2);
 
     // cache_miss
     for (int i = 0; i < 16; i++) {

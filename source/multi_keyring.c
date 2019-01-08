@@ -182,7 +182,7 @@ int aws_cryptosdk_multi_keyring_set_generator(
     return AWS_OP_SUCCESS;
 }
 
-int aws_cryptosdk_multi_keyring_add(struct aws_cryptosdk_keyring *multi, struct aws_cryptosdk_keyring *child) {
+int aws_cryptosdk_multi_keyring_add_child(struct aws_cryptosdk_keyring *multi, struct aws_cryptosdk_keyring *child) {
     struct multi_keyring *self = (struct multi_keyring *)multi;
 
     aws_cryptosdk_keyring_retain(child);

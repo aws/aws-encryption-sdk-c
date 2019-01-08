@@ -75,7 +75,7 @@ static int enc_cache_miss() {
     struct aws_cryptosdk_encryption_materials *output, *expected;
 
     mock_upstream_cmm->n_edks       = 5;
-    mock_upstream_cmm->returned_alg = AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384;
+    mock_upstream_cmm->returned_alg = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
 
     request.enc_context = &expect_context;
     TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_encryption_materials(&mock_upstream_cmm->base, &expected, &request));
@@ -123,7 +123,7 @@ static int enc_cache_hit() {
     struct aws_cryptosdk_encryption_materials *output, *expected;
 
     mock_upstream_cmm->n_edks       = 5;
-    mock_upstream_cmm->returned_alg = AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384;
+    mock_upstream_cmm->returned_alg = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
 
     request.enc_context = &expect_context;
     TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_encryption_materials(&mock_upstream_cmm->base, &expected, &request));
@@ -197,7 +197,7 @@ static int enc_cache_unique_ids() {
     request.enc_context    = &req_context;
 
     mock_upstream_cmm->n_edks       = 1;
-    mock_upstream_cmm->returned_alg = AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384;
+    mock_upstream_cmm->returned_alg = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
 
 #define ASSERT_UNIQUE_ID(is_unique)                                                                                   \
     do {                                                                                                              \
@@ -215,10 +215,10 @@ static int enc_cache_unique_ids() {
 
     ASSERT_UNIQUE_ID(true);
 
-    request.requested_alg = AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384;
+    request.requested_alg = ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
     ASSERT_UNIQUE_ID(true);
 
-    request.requested_alg = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE;
+    request.requested_alg = ALG_AES256_GCM_IV12_TAG16_NO_KDF;
     ASSERT_UNIQUE_ID(true);
 
     // Changing the plaintext size should not change the cache ID
@@ -325,7 +325,7 @@ static int enc_cache_id_test_vecs() {
         0 == encrypt_id_vector(
                  "3icBIkLK4V3fVwbm3zSxUdUQV6ZvZYUOLl8buN36g6gDMqAkghcGryxX7QiVABkW1JhB6GRp5z+bzbiuciBcKQ==",
                  partition_name,
-                 AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
+                 ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
                  NULL));
 
 #define CONTEXT_FULL "this", "is", "a", "non-empty", "encryption", "context", NULL
@@ -341,7 +341,7 @@ static int enc_cache_id_test_vecs() {
         0 == encrypt_id_vector(
                  "mRNK7qhTb/kJiiyGPgAevp0gwFRcET4KeeNYwZHhoEDvSUzQiDgl8Of+YRDaVzKxAqpNBgcAuFXde9JlaRRsmw==",
                  partition_name,
-                 AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
+                 ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
                  CONTEXT_FULL));
 
     return 0;
@@ -353,7 +353,7 @@ static int access_cache(
     bool *was_hit,
     struct aws_cryptosdk_cache_usage_stats usag) {
     mock_upstream_cmm->n_edks       = 1;
-    mock_upstream_cmm->returned_alg = AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE;
+    mock_upstream_cmm->returned_alg = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256;
     mock_mat_cache->should_hit      = mock_mat_cache->enc_materials != NULL;
 
     mock_upstream_cmm->last_enc_request = NULL;
@@ -575,7 +575,7 @@ static int dec_cache_id_test_vecs() {
         0,
         dec_test_vector(
             "c15b9079-6d0e-42b6-8784-5e804b025692",
-            AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
+            ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256,
             &test_edks[0],
             1,
             &enc_context,
@@ -596,7 +596,7 @@ static int dec_cache_id_test_vecs() {
         0,
         dec_test_vector(
             "c15b9079-6d0e-42b6-8784-5e804b025692",
-            AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
+            ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
             &test_edks[0],
             2,
             &enc_context,
@@ -625,7 +625,7 @@ static int dec_cache_id_test_vecs() {
         0,
         dec_test_vector(
             "partition ID",
-            AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
+            ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
             test_edks,
             4,
             &enc_context,
@@ -652,7 +652,7 @@ static int dec_materials() {
 
     struct aws_cryptosdk_decryption_request dec_request = { 0 };
     dec_request.alloc                                   = aws_default_allocator();
-    dec_request.alg                                     = AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384;
+    dec_request.alg                                     = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
     dec_request.enc_context                             = &enc_context;
     aws_array_list_init_static(&dec_request.encrypted_data_keys, &edk, 1, sizeof(edk));
 
@@ -725,7 +725,7 @@ static int cache_miss_failed_put() {
 
     struct aws_cryptosdk_decryption_request dec_request = { 0 };
     dec_request.alloc                                   = aws_default_allocator();
-    dec_request.alg                                     = AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384;
+    dec_request.alg                                     = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
     dec_request.enc_context                             = &enc_context;
     aws_array_list_init_static(&dec_request.encrypted_data_keys, &edk, 1, sizeof(edk));
 
@@ -736,7 +736,7 @@ static int cache_miss_failed_put() {
     enc_request.enc_context    = &enc_context;
 
     mock_mat_cache->should_fail     = true;
-    mock_upstream_cmm->returned_alg = AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE;
+    mock_upstream_cmm->returned_alg = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256;
 
     struct aws_cryptosdk_encryption_materials *enc_materials;
     TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_encryption_materials(cmm, &enc_materials, &enc_request));
@@ -771,7 +771,7 @@ static bool partitions_match_on_enc(
     enc_request.plaintext_size = 32768;
     enc_request.enc_context    = &enc_context;
 
-    mock_upstream_cmm->returned_alg = AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE;
+    mock_upstream_cmm->returned_alg = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256;
 
     struct aws_cryptosdk_encryption_materials *materials;
     if (aws_cryptosdk_cmm_generate_encryption_materials(cmm_a, &materials, &enc_request)) {
@@ -817,7 +817,7 @@ static bool partitions_match_on_dec(
 
     struct aws_cryptosdk_decryption_request dec_request = { 0 };
     dec_request.alloc                                   = aws_default_allocator();
-    dec_request.alg                                     = AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384;
+    dec_request.alg                                     = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
     dec_request.enc_context                             = &enc_context;
     aws_array_list_init_static(&dec_request.encrypted_data_keys, &edk, 1, sizeof(edk));
 

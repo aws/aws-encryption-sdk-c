@@ -33,9 +33,9 @@ static struct aws_byte_cursor cursor_from_c_string(const char *str) {
 static const char test_data[]                   = "Hello, world!";
 static const struct aws_byte_cursor test_cursor = { .ptr = (uint8_t *)test_data, .len = sizeof(test_data) - 1 };
 
-static const enum aws_cryptosdk_alg_id SIG_ALGORITHMS[] = { AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
-                                                            AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
-                                                            AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384 };
+static const enum aws_cryptosdk_alg_id SIG_ALGORITHMS[] = { ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
+                                                            ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+                                                            ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384 };
 
 #define FOREACH_ALGORITHM(props)                                                                 \
     const struct aws_cryptosdk_alg_properties *props;                                            \
@@ -371,14 +371,14 @@ static int testVector(const char *algName, enum aws_cryptosdk_alg_id alg_id, con
 static int t_test_vectors() {
     if (testVector(
             "ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256",
-            AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
+            ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
             "AsPvc4yRhLSzEbcIMQFT5aAG8naQl8y/0IdFNn6fvVtL",
             "MEUCIQDcsouTt0S3LyrtSb2m/zNHaq1ftxBrsvtQ/coYVW3gEwIgYMkVF/0VR7Ld6daZBRIv2ElRvTIEtRFcg5vNYT3yH38=")) {
         return 1;
     }
     if (testVector(
             "ALG_AES_192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384",
-            AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
+            ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
             "AoZ0mPKrKqcCyWlF47FYUrk4as696N4WUmv+54kp58hBiGJ22Fm+g4esiICWcOrgfQ==",
             "MGUCMBR4nYG2FBx1RLAPbCdCueFIPVTzmLvr+8OQktUtwDEEsKYQfwvyWe+"
             "Kq75QalfYBAIxALpk21eyDgo5xD7nUr6fxsOCYICBd11nLavbdjrQDlDIKZQXIpNHI+/omcZ/y1NGPw==")) {
@@ -386,7 +386,7 @@ static int t_test_vectors() {
     }
     if (testVector(
             "ALG_AES_256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384",
-            AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
+            ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
             "AoSuBn3WFhsz0A+wDLFIz0u3xC78A6kLqjeXsLtgQC1+o9687i9Xz5v1doJqjBbmQw==",
             "MGYCMQDBx0arx1QluNYOsmZQRrhv2Lc+BDTIbMPDeLHCtZH1ah3VkbYxBBIrr3X4QhJVFSsCMQDbUrtTnKf8+"
             "C4aDMiBzMVOLjUlKYc2jxlr245DatQ5HqLBS9inTFNMruUQBF/GEyI=")) {
@@ -411,7 +411,7 @@ static int t_trailing_garbage() {
     struct aws_string *sig = aws_string_new_from_array(aws_default_allocator(), tmpbuf.buffer, tmpbuf.len);
 
     TEST_ASSERT_SUCCESS(check_signature(
-        aws_cryptosdk_alg_props(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256), false, pubkey, sig, &test_cursor));
+        aws_cryptosdk_alg_props(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256), false, pubkey, sig, &test_cursor));
 
     aws_string_destroy(sig);
 
@@ -422,7 +422,7 @@ static int t_get_pubkey() {
     struct aws_string *pub_key, *pub_key_2;
     struct aws_cryptosdk_signctx *ctx;
     const struct aws_cryptosdk_alg_properties *props =
-        aws_cryptosdk_alg_props(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
+        aws_cryptosdk_alg_props(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256);
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_start_keygen(&ctx, aws_default_allocator(), &pub_key, props));
     TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_get_pubkey(ctx, aws_default_allocator(), &pub_key_2));
@@ -446,7 +446,7 @@ static int t_trailing_garbage_with_o2i_ECPublicKey() {
     struct aws_allocator *alloc = aws_default_allocator();
     struct aws_cryptosdk_signctx *ctx;
     const struct aws_cryptosdk_alg_properties *props =
-        aws_cryptosdk_alg_props(AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384);
+        aws_cryptosdk_alg_props(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384);
     AWS_STATIC_STRING_FROM_LITERAL(
         pubkey_b64_s, "Am3kG3teaHDujrKkQkAWc+sSAzDg6/ityncubZJbck6QuyhGZaIxsW+Wsuk6xK82sA==");
 

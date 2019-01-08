@@ -35,27 +35,28 @@ extern "C" {
 enum aws_cryptosdk_err {
     /** The ciphertext was malformed or corrupt */
     AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT = 0x2000,
-    /** An unknown internal error has occurred */
-    AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN,
-    /** An unsupported format version was encountered on decrypt */
-    AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT,
-    /** KMS returned an error */
-    AWS_CRYPTOSDK_ERR_KMS_FAILURE,
     /** A function was called on an object in the wrong state */
     AWS_CRYPTOSDK_ERR_BAD_STATE,
-    /** The failing call attempted to exceed a hard limit of some sort I*/
-    AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED,
     /** No keyrings were able to decrypt the message in question */
-    AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT,  // TODO - Rename?
-    /* A reserved field has been utilized */
+    AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT,
+    /** An unknown internal error has occurred */
+    AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN,
+    /** KMS returned an error */
+    AWS_CRYPTOSDK_ERR_KMS_FAILURE,
+    /** Caller attempted to exceed a hard limit */
+    AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED,
+    /** Caller attempted to use a reserved field */
     AWS_CRYPTOSDK_ERR_RESERVED_FIELD,
+    /** An unsupported format version was encountered on decrypt */
+    AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT,
     AWS_CRYPTOSDK_ERR_END_RANGE = 0x2400
 };
 
 /**
  * Register error strings with the core error reporting APIs. This function is
- * threadsafe and idempotent, and should be called at least once on application
- * startup.
+ * threadsafe and idempotent, and should be called at on application startup.
+ * There is no need to make an additional call to the analogous aws-c-common
+ * function aws_load_error_strings. This call does that for you.
  */
 AWS_CRYPTOSDK_API
 void aws_cryptosdk_load_error_strings();

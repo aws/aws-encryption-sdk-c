@@ -263,12 +263,12 @@ static void setup() {
 
     for (int i = 0; i < N_ENC_ENTRIES; i++) {
         gen_enc_materials(
-            aws_default_allocator(), &expected_enc_mats[i], i, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE, 1);
+            aws_default_allocator(), &expected_enc_mats[i], i, ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256, 1);
     }
 
     for (int i = 0; i < N_DEC_ENTRIES; i++) {
         expected_dec_mats[i] =
-            aws_cryptosdk_decryption_materials_new(aws_default_allocator(), AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE);
+            aws_cryptosdk_decryption_materials_new(aws_default_allocator(), ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256);
 
         expected_dec_mats[i]->signctx = NULL;
         struct aws_byte_buf *data_key = &expected_dec_mats[i]->unencrypted_data_key;

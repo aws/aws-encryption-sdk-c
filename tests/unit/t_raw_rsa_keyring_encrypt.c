@@ -27,9 +27,9 @@ static struct aws_byte_buf unencrypted_data_key = { 0 };
 // same key, after it has been encrypted and then decrypted
 static struct aws_byte_buf decrypted_data_key = { 0 };
 
-static enum aws_cryptosdk_alg_id alg_ids[] = { AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-                                               AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-                                               AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE };
+static enum aws_cryptosdk_alg_id alg_ids[] = { ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256,
+                                               ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256,
+                                               ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256 };
 
 static enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode[] = {
     AWS_CRYPTOSDK_RSA_PKCS1, AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1, AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1

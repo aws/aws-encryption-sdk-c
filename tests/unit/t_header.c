@@ -152,7 +152,7 @@ void set_aad_tbl(struct aws_cryptosdk_hdr *hdr, struct aws_cryptosdk_hdr_aad *aa
 
 static struct aws_cryptosdk_hdr test_header_1_hdr() {
     struct aws_cryptosdk_hdr test_header_1_hdr = {
-        .alg_id    = AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
+        .alg_id    = ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
         .frame_len = 0x1000,
         .iv        = { .buffer = test_header_1_iv_arr, .len = sizeof(test_header_1_iv_arr) },
         .auth_tag  = { .buffer = test_header_1_auth_tag_arr, .len = sizeof(test_header_1_auth_tag_arr) },
@@ -296,7 +296,7 @@ static const size_t bad_headers_sz[] = {
 struct aws_cryptosdk_hdr test_header_2_hdr() {
     // clang-format off
     struct aws_cryptosdk_hdr hdr = {
-        .alg_id = AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
+        .alg_id = ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
         .frame_len = 0x1000,
         .iv = {.buffer = test_header_1_iv_arr, .len = sizeof(test_header_1_iv_arr)},
         .auth_tag = {.buffer = test_header_1_auth_tag_arr, .len = sizeof(test_header_1_auth_tag_arr)},
@@ -323,7 +323,7 @@ int simple_header_parse() {
     TEST_ASSERT_ADDR_EQ(cursor.ptr, test_header_1 + sizeof(test_header_1) - 1);
 
     // Known answer tests
-    TEST_ASSERT_INT_EQ(hdr.alg_id, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
+    TEST_ASSERT_INT_EQ(hdr.alg_id, ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256);
 
     struct aws_byte_cursor message_id = { .ptr = hdr.message_id, .len = MESSAGE_ID_LEN };
     TEST_ASSERT_CUR_EQ(
@@ -388,7 +388,7 @@ int simple_header_parse2() {
     TEST_ASSERT_INT_EQ(cursor.len, 1);
 
     // Known answer tests
-    TEST_ASSERT_INT_EQ(hdr.alg_id, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
+    TEST_ASSERT_INT_EQ(hdr.alg_id, ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256);
 
     struct aws_byte_cursor message_id = { .ptr = hdr.message_id, .len = MESSAGE_ID_LEN };
     TEST_ASSERT_CUR_EQ(

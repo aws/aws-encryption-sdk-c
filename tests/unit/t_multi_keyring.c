@@ -26,7 +26,7 @@ static struct aws_cryptosdk_keyring *multi;
 static struct aws_array_list edks;
 static struct aws_array_list keyring_trace;
 // doesn't matter here, just picking one
-static enum aws_cryptosdk_alg_id alg = AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384;
+static enum aws_cryptosdk_alg_id alg = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
 
 static char test_data_key[] = "datakey|datakey|datakey|datakey|";
 
@@ -44,7 +44,7 @@ static int set_up_all_the_things(bool include_generator) {
 
         if (kr_idx) {
             TEST_ASSERT_SUCCESS(
-                aws_cryptosdk_multi_keyring_add(multi, (struct aws_cryptosdk_keyring *)(test_keyrings + kr_idx)));
+                aws_cryptosdk_multi_keyring_add_child(multi, (struct aws_cryptosdk_keyring *)(test_keyrings + kr_idx)));
         } else if (include_generator) {
             TEST_ASSERT_SUCCESS(
                 aws_cryptosdk_multi_keyring_set_generator(multi, (struct aws_cryptosdk_keyring *)(test_keyrings)));

@@ -283,7 +283,7 @@ int decrypt_data_key_with_sig() {
         &keyring_trace,
         &edks,
         &enc_context,
-        AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
+        ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));
 
     TEST_ASSERT_ADDR_NOT_NULL(unencrypted_data_key.buffer);
     // clang-format off
@@ -338,7 +338,7 @@ int decrypt_data_key_with_sig_and_enc_context() {
         &keyring_trace,
         &edks,
         &enc_context,
-        AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
+        ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));
 
     TEST_ASSERT_ADDR_NOT_NULL(unencrypted_data_key.buffer);
     // clang-format off

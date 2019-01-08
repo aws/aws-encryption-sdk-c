@@ -376,15 +376,15 @@ static int test_algorithm_override_once(enum aws_cryptosdk_alg_id alg_id) {
 }
 
 int test_algorithm_override() {
-    return test_algorithm_override_once(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE) ||
-           test_algorithm_override_once(AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE) ||
-           test_algorithm_override_once(AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE) ||
-           test_algorithm_override_once(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256) ||
-           test_algorithm_override_once(AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384) ||
-           test_algorithm_override_once(AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384) ||
-           test_algorithm_override_once(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE) ||
-           test_algorithm_override_once(AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE) ||
-           test_algorithm_override_once(AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE);
+    return test_algorithm_override_once(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256) ||
+           test_algorithm_override_once(ALG_AES192_GCM_IV12_TAG16_NO_KDF) ||
+           test_algorithm_override_once(ALG_AES256_GCM_IV12_TAG16_NO_KDF) ||
+           test_algorithm_override_once(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256) ||
+           test_algorithm_override_once(ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384) ||
+           test_algorithm_override_once(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384) ||
+           test_algorithm_override_once(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256) ||
+           test_algorithm_override_once(ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256) ||
+           test_algorithm_override_once(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256);
 }
 
 int test_null_estimates() {

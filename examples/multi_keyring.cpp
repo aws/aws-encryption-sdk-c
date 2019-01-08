@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
      * Any data encrypted with the multi-keyring will be decryptable by
      * either the KMS keyring or by the escrow keyring.
      */
-    assert(AWS_OP_SUCCESS == aws_cryptosdk_multi_keyring_add(multi_keyring, escrow_keyring));
+    assert(AWS_OP_SUCCESS == aws_cryptosdk_multi_keyring_add_child(multi_keyring, escrow_keyring));
 
     /*
      * The multi-keyring holds references to the other two keyrings, so we
