@@ -229,7 +229,6 @@ int default_cmm_signer_key_in_enc_context() {
     TEST_ASSERT_SUCCESS(aws_hash_table_put(req.enc_context, EC_PUBLIC_KEY_FIELD, (void *)EC_PUBLIC_VALUE_FIELD, NULL));
     req.requested_alg = 0;
     req.alloc         = alloc;
-    aws_cryptosdk_default_cmm_set_alg_id(cmm, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
 
     TEST_ASSERT_ERROR(
         AWS_CRYPTOSDK_ERR_RESERVED_FIELD, aws_cryptosdk_cmm_generate_encryption_materials(cmm, &enc_mat, &req));
