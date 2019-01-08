@@ -47,9 +47,9 @@ enum aws_cryptosdk_err {
     AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED,
     /** No keyrings were able to decrypt the message in question */
     AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT,  // TODO - Rename?
+    /* A reserved field has been utilized */
     AWS_CRYPTOSDK_ERR_RESERVED_FIELD,
     AWS_CRYPTOSDK_ERR_END_RANGE = 0x2400
-    /* A reserved field has been utilized */
 };
 
 /**
