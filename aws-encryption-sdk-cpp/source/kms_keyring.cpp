@@ -104,7 +104,7 @@ static int OnDecrypt(
 
         Aws::KMS::Model::DecryptRequest kms_request;
         kms_request.WithGrantTokens(self->grant_tokens)
-            .WithCiphertextBlob(aws_utils_byte_buffer_from_c_aws_byte_buf(&edk->enc_data_key))
+            .WithCiphertextBlob(aws_utils_byte_buffer_from_c_aws_byte_buf(&edk->ciphertext))
             .WithEncryptionContext(enc_ctx_cpp);
 
         Aws::KMS::Model::DecryptOutcome outcome = kms_client->Decrypt(kms_request);

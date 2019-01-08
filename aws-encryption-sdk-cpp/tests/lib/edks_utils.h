@@ -49,10 +49,10 @@ static inline int t_assert_edk_contains_expected_values(
     const char *expected_key_id,
     const char *expected_provider_id,
     struct aws_allocator *allocator) {
-    TEST_ASSERT(string(expected_ct) == string((char *)edk->enc_data_key.buffer, edk->enc_data_key.len));
+    TEST_ASSERT(string(expected_ct) == string((char *)edk->ciphertext.buffer, edk->ciphertext.len));
     TEST_ASSERT(string(expected_key_id) == string((char *)edk->provider_info.buffer, edk->provider_info.len));
     TEST_ASSERT(string(expected_provider_id) == string((char *)edk->provider_id.buffer, edk->provider_id.len));
-    TEST_ASSERT_ADDR_EQ(allocator, edk->enc_data_key.allocator);
+    TEST_ASSERT_ADDR_EQ(allocator, edk->ciphertext.allocator);
     return 0;
 }
 

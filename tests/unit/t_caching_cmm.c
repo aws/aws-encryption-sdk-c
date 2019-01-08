@@ -563,10 +563,10 @@ static int dec_cache_id_test_vecs() {
 
     test_edks[0].provider_id   = aws_byte_buf_from_c_str("this is a provider ID");
     test_edks[0].provider_info = aws_byte_buf_from_c_str("this is some key info");
-    test_edks[0].enc_data_key  = aws_byte_buf_from_c_str("super secret key, now with encryption!");
+    test_edks[0].ciphertext    = aws_byte_buf_from_c_str("super secret key, now with encryption!");
     test_edks[1].provider_id   = aws_byte_buf_from_c_str("another provider ID!");
     test_edks[1].provider_info = aws_byte_buf_from_c_str("this is some different key info");
-    test_edks[1].enc_data_key  = aws_byte_buf_from_c_str("better super secret key, now with encryption!");
+    test_edks[1].ciphertext    = aws_byte_buf_from_c_str("better super secret key, now with encryption!");
 
     struct aws_hash_table enc_ctx;
     TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &enc_ctx));
@@ -604,16 +604,16 @@ static int dec_cache_id_test_vecs() {
 
     test_edks[0].provider_id   = aws_byte_buf_from_array((const uint8_t *)"", 0);
     test_edks[0].provider_info = aws_byte_buf_from_array((const uint8_t *)"", 0);
-    test_edks[0].enc_data_key  = aws_byte_buf_from_array((const uint8_t *)"", 0);
+    test_edks[0].ciphertext    = aws_byte_buf_from_array((const uint8_t *)"", 0);
     test_edks[1].provider_id   = aws_byte_buf_from_array((const uint8_t *)"\0", 1);
     test_edks[1].provider_info = aws_byte_buf_from_array((const uint8_t *)"\0", 1);
-    test_edks[1].enc_data_key  = aws_byte_buf_from_array((const uint8_t *)"\0", 1);
+    test_edks[1].ciphertext    = aws_byte_buf_from_array((const uint8_t *)"\0", 1);
     test_edks[2].provider_id   = aws_byte_buf_from_c_str("\xc2\x81");
     test_edks[2].provider_info = aws_byte_buf_from_c_str("\x81");
-    test_edks[2].enc_data_key  = aws_byte_buf_from_c_str("\x81");
+    test_edks[2].ciphertext    = aws_byte_buf_from_c_str("\x81");
     test_edks[3].provider_id   = aws_byte_buf_from_c_str("abc");
     test_edks[3].provider_info = aws_byte_buf_from_c_str("\xde\xad\xbe\xef");
-    test_edks[3].enc_data_key  = aws_byte_buf_from_c_str("\xba\xd0\xca\xfe");
+    test_edks[3].ciphertext    = aws_byte_buf_from_c_str("\xba\xd0\xca\xfe");
 
     aws_hash_table_clear(&enc_ctx);
 
@@ -648,7 +648,7 @@ static int dec_materials() {
     struct aws_cryptosdk_edk edk;
     edk.provider_id   = aws_byte_buf_from_c_str("provider_id");
     edk.provider_info = aws_byte_buf_from_c_str("provider_info");
-    edk.enc_data_key  = aws_byte_buf_from_c_str("enc_data_key");
+    edk.ciphertext    = aws_byte_buf_from_c_str("enc_data_key");
 
     struct aws_cryptosdk_decryption_request dec_request = { 0 };
     dec_request.alloc                                   = aws_default_allocator();
@@ -721,7 +721,7 @@ static int cache_miss_failed_put() {
     struct aws_cryptosdk_edk edk;
     edk.provider_id   = aws_byte_buf_from_c_str("provider_id");
     edk.provider_info = aws_byte_buf_from_c_str("provider_info");
-    edk.enc_data_key  = aws_byte_buf_from_c_str("enc_data_key");
+    edk.ciphertext    = aws_byte_buf_from_c_str("enc_data_key");
 
     struct aws_cryptosdk_decryption_request dec_request = { 0 };
     dec_request.alloc                                   = aws_default_allocator();
@@ -813,7 +813,7 @@ static bool partitions_match_on_dec(
     struct aws_cryptosdk_edk edk;
     edk.provider_id   = aws_byte_buf_from_c_str("provider_id");
     edk.provider_info = aws_byte_buf_from_c_str("provider_info");
-    edk.enc_data_key  = aws_byte_buf_from_c_str("enc_data_key");
+    edk.ciphertext    = aws_byte_buf_from_c_str("enc_data_key");
 
     struct aws_cryptosdk_decryption_request dec_request = { 0 };
     dec_request.alloc                                   = aws_default_allocator();

@@ -46,7 +46,7 @@ void gen_enc_materials(
 
     for (int i = 0; i < n_edks; i++) {
         struct aws_cryptosdk_edk edk;
-        byte_buf_printf(&edk.enc_data_key, alloc, "EDK #%d.%d", index, i);
+        byte_buf_printf(&edk.ciphertext, alloc, "EDK #%d.%d", index, i);
         byte_buf_printf(&edk.provider_id, alloc, "Provider ID #%d.%d", index, i);
         byte_buf_printf(&edk.provider_info, alloc, "Provider info #%d.%d", index, i);
 
@@ -96,7 +96,7 @@ bool materials_eq(
         struct aws_cryptosdk_edk *edk_a = vp_a;
         struct aws_cryptosdk_edk *edk_b = vp_b;
 
-        if (!aws_byte_buf_eq(&edk_a->enc_data_key, &edk_b->enc_data_key)) return false;
+        if (!aws_byte_buf_eq(&edk_a->ciphertext, &edk_b->ciphertext)) return false;
         if (!aws_byte_buf_eq(&edk_a->provider_id, &edk_b->provider_id)) return false;
         if (!aws_byte_buf_eq(&edk_a->provider_info, &edk_b->provider_info)) return false;
     }

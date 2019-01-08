@@ -52,7 +52,7 @@ static int fill_request(struct aws_cryptosdk_decryption_request *request, struct
         // Because the session header owns the EDKs, clear the allocators to avoid any unfortunate double frees
         edk.provider_id.allocator   = NULL;
         edk.provider_info.allocator = NULL;
-        edk.enc_data_key.allocator  = NULL;
+        edk.ciphertext.allocator    = NULL;
 
         if (aws_array_list_push_back(&request->encrypted_data_keys, &edk)) {
             goto UNEXPECTED_ERROR;

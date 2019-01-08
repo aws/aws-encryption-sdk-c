@@ -39,7 +39,7 @@ static struct aws_cryptosdk_edk wrong_provider_id_edk() {
 
 static struct aws_cryptosdk_edk wrong_edk_bytes_len_edk() {
     struct aws_cryptosdk_edk edk = good_edk();
-    edk.enc_data_key.len--;
+    edk.ciphertext.len--;
     return edk;
 }
 
@@ -91,7 +91,7 @@ static struct aws_cryptosdk_edk wrong_edk_bytes() {
                                          0xa6, 0xbf, 0x11, 0xed, 0x45, 0x40, 0x97, 0xfd, 0xb8, 0xe3, 0x36, 0x75,
                                          0x5c, 0x03, 0xbb, 0x9f, 0xa4, 0x42, 0x9e, 0x66, 0x44, 0x7c, 0x39, 0xf7,
                                          0x7f, 0xfe, 0xbc, 0xa5, 0x98, 0x70, 0xe9, 0xa8, 0xc9, 0xb5, 0x7f, 0x6f };
-    edk.enc_data_key                 = aws_byte_buf_from_array(edk_bytes, sizeof(edk_bytes));
+    edk.ciphertext                   = aws_byte_buf_from_array(edk_bytes, sizeof(edk_bytes));
     return edk;
 }
 

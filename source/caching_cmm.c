@@ -306,7 +306,7 @@ int hash_edk_for_decrypt(
     }
 
     if (hash_edk_field(md_context, &edk->provider_id) || hash_edk_field(md_context, &edk->provider_info) ||
-        hash_edk_field(md_context, &edk->enc_data_key)) {
+        hash_edk_field(md_context, &edk->ciphertext)) {
         aws_cryptosdk_md_abort(md_context);
         return AWS_OP_ERR;
     }

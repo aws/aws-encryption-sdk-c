@@ -298,7 +298,7 @@ static aws_cryptosdk_edk create_kms_edk(struct aws_allocator *alloc, const char 
     aws_cryptosdk_edk edk;
     edk.provider_id   = aws_byte_buf_from_c_str("aws-kms");
     edk.provider_info = aws_byte_buf_from_c_str(key_arn);
-    edk.enc_data_key  = easy_b64_decode(b64);
+    edk.ciphertext    = easy_b64_decode(b64);
     return edk;
 }
 

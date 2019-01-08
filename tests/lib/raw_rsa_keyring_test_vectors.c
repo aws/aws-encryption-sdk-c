@@ -104,7 +104,7 @@ int raw_rsa_keyring_tv_trace_updated_properly(struct aws_array_list *trace, uint
 
 struct aws_cryptosdk_edk edk_init(const uint8_t *edk_bytes, size_t edk_len) {
     struct aws_cryptosdk_edk edk;
-    edk.enc_data_key = aws_byte_buf_from_array(edk_bytes, edk_len);
+    edk.ciphertext = aws_byte_buf_from_array(edk_bytes, edk_len);
     edk.provider_id =
         aws_byte_buf_from_array(raw_rsa_keyring_tv_provider_id->bytes, raw_rsa_keyring_tv_provider_id->len);
     edk.provider_info =

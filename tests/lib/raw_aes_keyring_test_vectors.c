@@ -52,7 +52,7 @@ struct aws_cryptosdk_edk build_test_edk_init(const uint8_t *edk_bytes, size_t ed
         "\x00\x00\x00\x0c";                       // IV length in bytes
 
     struct aws_cryptosdk_edk edk;
-    edk.enc_data_key = aws_byte_buf_from_array(edk_bytes, edk_len);
+    edk.ciphertext = aws_byte_buf_from_array(edk_bytes, edk_len);
     edk.provider_id =
         aws_byte_buf_from_array(raw_aes_keyring_tv_provider_id->bytes, raw_aes_keyring_tv_provider_id->len);
 

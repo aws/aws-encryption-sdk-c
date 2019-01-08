@@ -127,8 +127,8 @@ static inline int parse_edk(
     if (!aws_byte_cursor_read_and_fill_buffer(cur, &edk->provider_info)) goto SHORT_BUF;
 
     if (!aws_byte_cursor_read_be16(cur, &field_len)) goto SHORT_BUF;
-    if (aws_byte_buf_init(&edk->enc_data_key, allocator, field_len)) goto MEM_ERR;
-    if (!aws_byte_cursor_read_and_fill_buffer(cur, &edk->enc_data_key)) goto SHORT_BUF;
+    if (aws_byte_buf_init(&edk->ciphertext, allocator, field_len)) goto MEM_ERR;
+    if (!aws_byte_cursor_read_and_fill_buffer(cur, &edk->ciphertext)) goto SHORT_BUF;
 
     return AWS_OP_SUCCESS;
 
@@ -283,7 +283,7 @@ int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr) {
         bytes = saturating_add(bytes, 6);
         bytes = saturating_add(bytes, edk->provider_id.len);
         bytes = saturating_add(bytes, edk->provider_info.len);
-        bytes = saturating_add(bytes, edk->enc_data_key.len);
+        bytes = saturating_add(bytes, edk->ciphertext.len);
     }
 
     return bytes == SIZE_MAX ? 0 : bytes;
@@ -326,8 +326,8 @@ int aws_cryptosdk_hdr_write(
         if (!aws_byte_buf_write_be16(&output, (uint16_t)edk->provider_info.len)) goto WRITE_ERR;
         if (!aws_byte_buf_write_from_whole_buffer(&output, edk->provider_info)) goto WRITE_ERR;
 
-        if (!aws_byte_buf_write_be16(&output, (uint16_t)edk->enc_data_key.len)) goto WRITE_ERR;
-        if (!aws_byte_buf_write_from_whole_buffer(&output, edk->enc_data_key)) goto WRITE_ERR;
+        if (!aws_byte_buf_write_be16(&output, (uint16_t)edk->ciphertext.len)) goto WRITE_ERR;
+        if (!aws_byte_buf_write_from_whole_buffer(&output, edk->ciphertext)) goto WRITE_ERR;
     }
 
     if (!aws_byte_buf_write_u8(

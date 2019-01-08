@@ -40,7 +40,7 @@ static int encrypt_data_key(
     struct aws_cryptosdk_edk edk = { { 0 } };
 
     if (aws_cryptosdk_rsa_encrypt(
-            &edk.enc_data_key,
+            &edk.ciphertext,
             request_alloc,
             aws_byte_cursor_from_buf(unencrypted_data_key),
             self->rsa_public_key_pem,
@@ -123,14 +123,14 @@ static int raw_rsa_keyring_on_decrypt(
             return AWS_OP_ERR;
         }
 
-        if (!edk->provider_id.len || !edk->provider_info.len || !edk->enc_data_key.len) continue;
+        if (!edk->provider_id.len || !edk->provider_info.len || !edk->ciphertext.len) continue;
         if (!aws_string_eq_byte_buf(self->key_namespace, &edk->provider_id)) continue;
         if (!aws_string_eq_byte_buf(self->key_name, &edk->provider_info)) continue;
 
         if (aws_cryptosdk_rsa_decrypt(
                 unencrypted_data_key,
                 request_alloc,
-                aws_byte_cursor_from_buf(&edk->enc_data_key),
+                aws_byte_cursor_from_buf(&edk->ciphertext),
                 self->rsa_private_key_pem,
                 self->rsa_padding_mode)) {
             /* We are here either because of a ciphertext mismatch

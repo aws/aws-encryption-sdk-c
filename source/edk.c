@@ -22,7 +22,7 @@ int aws_cryptosdk_edk_list_init(struct aws_allocator *alloc, struct aws_array_li
 void aws_cryptosdk_edk_clean_up(struct aws_cryptosdk_edk *edk) {
     aws_byte_buf_clean_up(&edk->provider_id);
     aws_byte_buf_clean_up(&edk->provider_info);
-    aws_byte_buf_clean_up(&edk->enc_data_key);
+    aws_byte_buf_clean_up(&edk->ciphertext);
 }
 
 void aws_cryptosdk_edk_list_clear(struct aws_array_list *edk_list) {
@@ -47,7 +47,7 @@ int aws_cryptosdk_edk_init_clone(
 
     if (aws_byte_buf_init_copy(&dest->provider_id, alloc, &src->provider_id) ||
         aws_byte_buf_init_copy(&dest->provider_info, alloc, &src->provider_info) ||
-        aws_byte_buf_init_copy(&dest->enc_data_key, alloc, &src->enc_data_key)) {
+        aws_byte_buf_init_copy(&dest->ciphertext, alloc, &src->ciphertext)) {
         aws_cryptosdk_edk_clean_up(dest);
         memset(dest, 0, sizeof(*dest));
 
