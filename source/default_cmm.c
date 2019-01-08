@@ -39,7 +39,7 @@ static int default_cmm_generate_encryption_materials(
     struct aws_hash_element *pElement                  = NULL;
     *output                                            = NULL;
 
-    aws_hash_table_find(request->enc_context, EC_PUBLIC_KEY_FIELD, &pElement);
+    aws_hash_table_find(request->enc_ctx, EC_PUBLIC_KEY_FIELD, &pElement);
     if (pElement) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_RESERVED_FIELD);
     }
@@ -57,7 +57,7 @@ static int default_cmm_generate_encryption_materials(
             goto err;
         }
 
-        if (aws_hash_table_put(request->enc_context, EC_PUBLIC_KEY_FIELD, pubkey, NULL)) {
+        if (aws_hash_table_put(request->enc_ctx, EC_PUBLIC_KEY_FIELD, pubkey, NULL)) {
             aws_string_destroy(pubkey);
             goto err;
         }
@@ -69,7 +69,7 @@ static int default_cmm_generate_encryption_materials(
             &enc_mat->unencrypted_data_key,
             &enc_mat->keyring_trace,
             &enc_mat->encrypted_data_keys,
-            request->enc_context,
+            request->enc_ctx,
             request->requested_alg))
         goto err;
 
@@ -97,7 +97,7 @@ static int default_cmm_decrypt_materials(
             &dec_mat->unencrypted_data_key,
             &dec_mat->keyring_trace,
             &request->encrypted_data_keys,
-            request->enc_context,
+            request->enc_ctx,
             request->alg))
         goto err;
 
@@ -110,7 +110,7 @@ static int default_cmm_decrypt_materials(
     if (props->signature_len) {
         struct aws_hash_element *pElement = NULL;
 
-        if (aws_hash_table_find(request->enc_context, EC_PUBLIC_KEY_FIELD, &pElement) || !pElement || !pElement->key) {
+        if (aws_hash_table_find(request->enc_ctx, EC_PUBLIC_KEY_FIELD, &pElement) || !pElement || !pElement->key) {
             aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
             goto err;
         }

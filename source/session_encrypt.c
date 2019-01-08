@@ -53,8 +53,8 @@ int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
     struct data_key data_key;
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
 
-    request.alloc       = session->alloc;
-    request.enc_context = &session->header.enc_context;
+    request.alloc   = session->alloc;
+    request.enc_ctx = &session->header.enc_ctx;
     // The default CMM will fill this in.
     request.requested_alg  = 0;
     request.plaintext_size = session->precise_size_known ? session->precise_size : UINT64_MAX;

@@ -50,17 +50,17 @@ static int OnDecrypt(
     struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *keyring_trace,
     const struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
     (void)alg;
 
     auto self = static_cast<Aws::Cryptosdk::Private::KmsKeyringImpl *>(keyring);
-    if (!self || !request_alloc || !unencrypted_data_key || !edks || !enc_context) {
+    if (!self || !request_alloc || !unencrypted_data_key || !edks || !enc_ctx) {
         abort();
     }
 
     Aws::StringStream error_buf;
-    const auto enc_context_cpp = aws_map_from_c_aws_hash_table(enc_context);
+    const auto enc_ctx_cpp = aws_map_from_c_aws_hash_table(enc_ctx);
 
     size_t num_elems = aws_array_list_length(edks);
     for (unsigned int idx = 0; idx < num_elems; idx++) {
@@ -105,7 +105,7 @@ static int OnDecrypt(
         Aws::KMS::Model::DecryptRequest kms_request;
         kms_request.WithGrantTokens(self->grant_tokens)
             .WithCiphertextBlob(aws_utils_byte_buffer_from_c_aws_byte_buf(&edk->enc_data_key))
-            .WithEncryptionContext(enc_context_cpp);
+            .WithEncryptionContext(enc_ctx_cpp);
 
         Aws::KMS::Model::DecryptOutcome outcome = kms_client->Decrypt(kms_request);
         if (!outcome.IsSuccess()) {
@@ -147,7 +147,7 @@ static int OnEncrypt(
     struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *keyring_trace,
     struct aws_array_list *edk_list,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
     // Class that prevents memory leak of local array lists (even if a function throws)
     // When the object is destroyed it will clean up the lists
@@ -174,7 +174,7 @@ static int OnEncrypt(
         bool initialized;
     };
 
-    if (!keyring || !request_alloc || !unencrypted_data_key || !edk_list || !enc_context) {
+    if (!keyring || !request_alloc || !unencrypted_data_key || !edk_list || !enc_ctx) {
         abort();
     }
     auto self = static_cast<Aws::Cryptosdk::Private::KmsKeyringImpl *>(keyring);
@@ -191,7 +191,7 @@ static int OnEncrypt(
     rv = my_keyring_trace.Create(request_alloc);
     if (rv) return rv;
 
-    const auto enc_context_cpp = aws_map_from_c_aws_hash_table(enc_context);
+    const auto enc_ctx_cpp = aws_map_from_c_aws_hash_table(enc_ctx);
 
     bool generated_new_data_key = false;
     if (!unencrypted_data_key->buffer) {
@@ -218,7 +218,7 @@ static int OnEncrypt(
         kms_request.WithKeyId(key_id)
             .WithGrantTokens(self->grant_tokens)
             .WithNumberOfBytes((int)alg_prop->data_key_len)
-            .WithEncryptionContext(enc_context_cpp);
+            .WithEncryptionContext(enc_ctx_cpp);
 
         Aws::KMS::Model::GenerateDataKeyOutcome outcome = kms_client->GenerateDataKey(kms_request);
         if (!outcome.IsSuccess()) {
@@ -269,7 +269,7 @@ static int OnEncrypt(
         kms_request.WithKeyId(key_id)
             .WithGrantTokens(self->grant_tokens)
             .WithPlaintext(unencrypted_data_key_cpp)
-            .WithEncryptionContext(enc_context_cpp);
+            .WithEncryptionContext(enc_ctx_cpp);
 
         Aws::KMS::Model::EncryptOutcome outcome = kms_client->Encrypt(kms_request);
         if (!outcome.IsSuccess()) {

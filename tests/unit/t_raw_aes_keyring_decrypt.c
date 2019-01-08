@@ -12,7 +12,7 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <aws/cryptosdk/enc_context.h>
+#include <aws/cryptosdk/enc_ctx.h>
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/private/raw_aes_keyring.h>
 #include <stdlib.h>
@@ -109,7 +109,7 @@ static struct aws_cryptosdk_edk wrong_iv_bytes() {
 
 static struct aws_allocator *alloc;
 static struct aws_cryptosdk_keyring *kr;
-static struct aws_hash_table enc_context;
+static struct aws_hash_table enc_ctx;
 static struct aws_array_list keyring_trace;
 static struct aws_array_list edks;
 static struct aws_byte_buf unencrypted_data_key = { 0 };
@@ -123,12 +123,12 @@ static int set_up_all_the_things(
     kr    = raw_aes_keyring_tv_new(alloc, raw_key_len);
     TEST_ASSERT_ADDR_NOT_NULL(kr);
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, &enc_context));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_ctx_init(alloc, &enc_ctx));
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_init(alloc, &keyring_trace));
 
     for (size_t key_idx = 0; key_idx < num_kv_pairs; ++key_idx) {
         struct aws_hash_element *elem;
-        TEST_ASSERT_SUCCESS(aws_hash_table_create(&enc_context, (void *)keys[key_idx], &elem, NULL));
+        TEST_ASSERT_SUCCESS(aws_hash_table_create(&enc_ctx, (void *)keys[key_idx], &elem, NULL));
         elem->value = (void *)vals[key_idx];
     }
     TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &edks));
@@ -138,7 +138,7 @@ static int set_up_all_the_things(
 
 static void tear_down_all_the_things() {
     aws_cryptosdk_edk_list_clean_up(&edks);
-    aws_cryptosdk_enc_context_clean_up(&enc_context);
+    aws_cryptosdk_enc_ctx_clean_up(&enc_ctx);
     aws_cryptosdk_keyring_trace_clean_up(&keyring_trace);
     aws_cryptosdk_keyring_release(kr);
     aws_byte_buf_clean_up(&unencrypted_data_key);
@@ -151,16 +151,16 @@ static void tear_down_all_the_things() {
  * Also verifies that decryption does not work when encryption context is altered.
  */
 int decrypt_data_key_test_vectors() {
-    for (int corrupt_enc_context = 0; corrupt_enc_context < 2; ++corrupt_enc_context) {
+    for (int corrupt_enc_ctx = 0; corrupt_enc_ctx < 2; ++corrupt_enc_ctx) {
         for (struct raw_aes_keyring_test_vector *tv = raw_aes_keyring_test_vectors; tv->data_key; ++tv) {
             TEST_ASSERT_SUCCESS(set_up_all_the_things(NULL, NULL, 0, tv->raw_key_len));
-            TEST_ASSERT_SUCCESS(set_test_vector_encryption_context(alloc, &enc_context, tv));
+            TEST_ASSERT_SUCCESS(set_test_vector_encryption_context(alloc, &enc_ctx, tv));
 
-            if (corrupt_enc_context) {
+            if (corrupt_enc_ctx) {
                 AWS_STATIC_STRING_FROM_LITERAL(key, "RFC 3514");
                 AWS_STATIC_STRING_FROM_LITERAL(val, "setting the evil bit to 1");
                 struct aws_hash_element *elem;
-                TEST_ASSERT_SUCCESS(aws_hash_table_create(&enc_context, (void *)key, &elem, NULL));
+                TEST_ASSERT_SUCCESS(aws_hash_table_create(&enc_ctx, (void *)key, &elem, NULL));
                 elem->value = (void *)val;
             }
 
@@ -168,9 +168,9 @@ int decrypt_data_key_test_vectors() {
             aws_array_list_push_back(&edks, (void *)&edk);
 
             TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(
-                kr, alloc, &unencrypted_data_key, &keyring_trace, &edks, &enc_context, tv->alg));
+                kr, alloc, &unencrypted_data_key, &keyring_trace, &edks, &enc_ctx, tv->alg));
 
-            if (corrupt_enc_context) {
+            if (corrupt_enc_ctx) {
                 TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
             } else {
                 TEST_ASSERT_ADDR_NOT_NULL(unencrypted_data_key.buffer);
@@ -216,8 +216,7 @@ int decrypt_data_key_multiple_edks() {
 
     TEST_ASSERT_INT_EQ(
         AWS_OP_SUCCESS,
-        aws_cryptosdk_keyring_on_decrypt(
-            kr, alloc, &unencrypted_data_key, &keyring_trace, &edks, &enc_context, tv.alg));
+        aws_cryptosdk_keyring_on_decrypt(kr, alloc, &unencrypted_data_key, &keyring_trace, &edks, &enc_ctx, tv.alg));
     TEST_ASSERT_ADDR_NOT_NULL(unencrypted_data_key.buffer);
 
     struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv.data_key, tv.data_key_len);
@@ -243,8 +242,7 @@ int decrypt_data_key_no_good_edk() {
 
     TEST_ASSERT_INT_EQ(
         AWS_OP_SUCCESS,
-        aws_cryptosdk_keyring_on_decrypt(
-            kr, alloc, &unencrypted_data_key, &keyring_trace, &edks, &enc_context, tv.alg));
+        aws_cryptosdk_keyring_on_decrypt(kr, alloc, &unencrypted_data_key, &keyring_trace, &edks, &enc_ctx, tv.alg));
     TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
     TEST_ASSERT(!aws_array_list_length(&keyring_trace));
 
@@ -257,11 +255,10 @@ int decrypt_data_key_no_good_edk() {
  * public key.
  */
 int decrypt_data_key_with_sig() {
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_key, "aws-crypto-public-key");
-    AWS_STATIC_STRING_FROM_LITERAL(
-        enc_context_val, "AguATtjJFzJnlpNXdyDG7e8bfLZYRx+vxdAmYz+ztVBYyFhsMpchjz9ev3MdXQMD9Q==");
+    AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_key, "aws-crypto-public-key");
+    AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_val, "AguATtjJFzJnlpNXdyDG7e8bfLZYRx+vxdAmYz+ztVBYyFhsMpchjz9ev3MdXQMD9Q==");
 
-    TEST_ASSERT_SUCCESS(set_up_all_the_things(&enc_context_key, &enc_context_val, 1, AWS_CRYPTOSDK_AES_256));
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(&enc_ctx_key, &enc_ctx_val, 1, AWS_CRYPTOSDK_AES_256));
 
     // first 32 bytes encrypted data key, last 16 bytes GCM tag
     // clang-format off
@@ -282,7 +279,7 @@ int decrypt_data_key_with_sig() {
         &unencrypted_data_key,
         &keyring_trace,
         &edks,
-        &enc_context,
+        &enc_ctx,
         ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));
 
     TEST_ASSERT_ADDR_NOT_NULL(unencrypted_data_key.buffer);
@@ -303,17 +300,17 @@ int decrypt_data_key_with_sig() {
  * Same as the last test but with more stuff in the encryption context to verify that sorting and
  * serialization of encryption context works properly vis a vis decrypting data keys.
  */
-int decrypt_data_key_with_sig_and_enc_context() {
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_1, "aws-crypto-public-key");
+int decrypt_data_key_with_sig_and_enc_ctx() {
+    AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_key_1, "aws-crypto-public-key");
     AWS_STATIC_STRING_FROM_LITERAL(
-        enc_context_val_1, "A/f8U0IfPC5vseQ13rHlkbPjK6c0jikfvY7F+I2PZxVI9ZHW38lbxMUabbPZdIgMOg==");
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_2, "aaaaaaaa");
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_2, "AAAAAAAA");
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_3, "bbbbbbbb");
-    AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_3, "BBBBBBBB");
+        enc_ctx_val_1, "A/f8U0IfPC5vseQ13rHlkbPjK6c0jikfvY7F+I2PZxVI9ZHW38lbxMUabbPZdIgMOg==");
+    AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_key_2, "aaaaaaaa");
+    AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_val_2, "AAAAAAAA");
+    AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_key_3, "bbbbbbbb");
+    AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_val_3, "BBBBBBBB");
 
-    const struct aws_string *keys[] = { enc_context_key_1, enc_context_key_2, enc_context_key_3 };
-    const struct aws_string *vals[] = { enc_context_val_1, enc_context_val_2, enc_context_val_3 };
+    const struct aws_string *keys[] = { enc_ctx_key_1, enc_ctx_key_2, enc_ctx_key_3 };
+    const struct aws_string *vals[] = { enc_ctx_val_1, enc_ctx_val_2, enc_ctx_val_3 };
 
     TEST_ASSERT_SUCCESS(
         set_up_all_the_things(keys, vals, sizeof(keys) / sizeof(const struct aws_string *), AWS_CRYPTOSDK_AES_256));
@@ -337,7 +334,7 @@ int decrypt_data_key_with_sig_and_enc_context() {
         &unencrypted_data_key,
         &keyring_trace,
         &edks,
-        &enc_context,
+        &enc_ctx,
         ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));
 
     TEST_ASSERT_ADDR_NOT_NULL(unencrypted_data_key.buffer);
@@ -360,6 +357,6 @@ struct test_case raw_aes_keyring_decrypt_test_cases[] = {
     { "raw_aes_keyring", "decrypt_data_key_multiple_edks", decrypt_data_key_multiple_edks },
     { "raw_aes_keyring", "decrypt_data_key_no_good_edk", decrypt_data_key_no_good_edk },
     { "raw_aes_keyring", "decrypt_data_key_with_sig", decrypt_data_key_with_sig },
-    { "raw_aes_keyring", "decrypt_data_key_with_sig_and_enc_context", decrypt_data_key_with_sig_and_enc_context },
+    { "raw_aes_keyring", "decrypt_data_key_with_sig_and_enc_ctx", decrypt_data_key_with_sig_and_enc_ctx },
     { NULL }
 };

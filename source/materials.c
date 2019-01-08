@@ -84,7 +84,7 @@ int aws_cryptosdk_keyring_on_encrypt(
     struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *keyring_trace,
     struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
     /* Shallow copy of byte buffer: does NOT duplicate key bytes */
     const struct aws_byte_buf precall_data_key_buf = *unencrypted_data_key;
@@ -97,7 +97,7 @@ int aws_cryptosdk_keyring_on_encrypt(
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
 
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(
-        on_encrypt, keyring, request_alloc, unencrypted_data_key, keyring_trace, edks, enc_context, alg);
+        on_encrypt, keyring, request_alloc, unencrypted_data_key, keyring_trace, edks, enc_ctx, alg);
 
     /* Postcondition: If this keyring generated data key, it must be the right length. */
     if (!precall_data_key_buf.buffer && unencrypted_data_key->buffer) {
@@ -123,12 +123,12 @@ int aws_cryptosdk_keyring_on_decrypt(
     struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *keyring_trace,
     const struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
     /* Precondition: data key buffer must be unset. */
     if (unencrypted_data_key->buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(
-        on_decrypt, keyring, request_alloc, unencrypted_data_key, keyring_trace, edks, enc_context, alg);
+        on_decrypt, keyring, request_alloc, unencrypted_data_key, keyring_trace, edks, enc_ctx, alg);
 
     /* Postcondition: if data key was decrypted, its length must agree with algorithm
      * specification. If this is not the case, it either means ciphertext was tampered

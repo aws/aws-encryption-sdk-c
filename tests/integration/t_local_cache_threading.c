@@ -25,7 +25,7 @@
 // TODO: Make TTL expiry happen every once in a while
 
 #include <aws/cryptosdk/cache.h>
-#include <aws/cryptosdk/enc_context.h>
+#include <aws/cryptosdk/enc_ctx.h>
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/private/cipher.h>
 
@@ -249,13 +249,13 @@ static void thread_fn(void *ignored) {
     struct aws_hash_table empty_table;
 
     init_random(&state);
-    aws_cryptosdk_enc_context_init(aws_default_allocator(), &empty_table);
+    aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &empty_table);
 
     while (!aws_atomic_load_int_explicit(&stop_flag, aws_memory_order_relaxed)) {
         do_one_operation(&state, &empty_table);
     }
 
-    aws_cryptosdk_enc_context_clean_up(&empty_table);
+    aws_cryptosdk_enc_ctx_clean_up(&empty_table);
 }
 
 static void setup() {

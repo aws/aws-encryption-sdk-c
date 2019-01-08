@@ -61,7 +61,7 @@ extern struct raw_aes_keyring_test_vector raw_aes_keyring_test_vectors[];
  */
 TESTLIB_API
 int set_test_vector_encryption_context(
-    struct aws_allocator *alloc, struct aws_hash_table *enc_context, const struct raw_aes_keyring_test_vector *tv);
+    struct aws_allocator *alloc, struct aws_hash_table *enc_ctx, const struct raw_aes_keyring_test_vector *tv);
 
 /**
  * Construct EDK that would be made by the raw AES KR that generated the test

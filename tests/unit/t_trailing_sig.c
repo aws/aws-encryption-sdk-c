@@ -41,7 +41,7 @@ static int strip_key_gen_mat(
     int rv                     = aws_cryptosdk_cmm_generate_encryption_materials(self->cmm, output, request);
 
     if (rv == 0) {
-        aws_hash_table_remove(request->enc_context, EC_PUBLIC_KEY_FIELD, NULL, NULL);
+        aws_hash_table_remove(request->enc_ctx, EC_PUBLIC_KEY_FIELD, NULL, NULL);
     }
 
     return rv;

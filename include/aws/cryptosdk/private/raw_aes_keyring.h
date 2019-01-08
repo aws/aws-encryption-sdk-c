@@ -65,7 +65,7 @@ int aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(
     struct aws_allocator *request_alloc,
     const struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg,
     const uint8_t *iv);
 

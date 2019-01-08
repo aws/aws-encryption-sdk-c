@@ -41,7 +41,7 @@ static int fill_request(struct aws_cryptosdk_decryption_request *request, struct
         return AWS_OP_ERR;
     }
 
-    request->enc_context = &session->header.enc_context;
+    request->enc_ctx = &session->header.enc_ctx;
 
     for (size_t i = 0; i < n_keys; i++) {
         struct aws_cryptosdk_edk edk;

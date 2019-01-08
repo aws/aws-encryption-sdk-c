@@ -19,7 +19,7 @@
 #include <aws/cryptosdk/edk.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/private/compiler.h>
-#include <aws/cryptosdk/private/enc_context.h>
+#include <aws/cryptosdk/private/enc_ctx.h>
 #include <aws/cryptosdk/private/header.h>
 #include <string.h>  // memcpy
 
@@ -67,12 +67,12 @@ static int is_known_type(uint8_t content_type) {
 int aws_cryptosdk_hdr_init(struct aws_cryptosdk_hdr *hdr, struct aws_allocator *alloc) {
     aws_secure_zero(hdr, sizeof(*hdr));
 
-    if (aws_cryptosdk_enc_context_init(alloc, &hdr->enc_context)) {
+    if (aws_cryptosdk_enc_ctx_init(alloc, &hdr->enc_ctx)) {
         return AWS_OP_ERR;
     }
 
     if (aws_cryptosdk_edk_list_init(alloc, &hdr->edk_list)) {
-        aws_cryptosdk_enc_context_clean_up(&hdr->enc_context);
+        aws_cryptosdk_enc_ctx_clean_up(&hdr->enc_ctx);
         return AWS_OP_ERR;
     }
 
@@ -92,7 +92,7 @@ void aws_cryptosdk_hdr_clear(struct aws_cryptosdk_hdr *hdr) {
     memset(&hdr->message_id, 0, sizeof(hdr->message_id));
 
     aws_cryptosdk_edk_list_clear(&hdr->edk_list);
-    aws_cryptosdk_enc_context_clear(&hdr->enc_context);
+    aws_cryptosdk_enc_ctx_clear(&hdr->enc_ctx);
 
     hdr->auth_len = 0;
 }
@@ -107,7 +107,7 @@ void aws_cryptosdk_hdr_clean_up(struct aws_cryptosdk_hdr *hdr) {
     aws_byte_buf_clean_up(&hdr->auth_tag);
 
     aws_cryptosdk_edk_list_clean_up(&hdr->edk_list);
-    aws_cryptosdk_enc_context_clean_up(&hdr->enc_context);
+    aws_cryptosdk_enc_ctx_clean_up(&hdr->enc_ctx);
 
     aws_secure_zero(hdr, sizeof(*hdr));
 }
@@ -168,7 +168,7 @@ int aws_cryptosdk_hdr_parse(struct aws_cryptosdk_hdr *hdr, struct aws_byte_curso
 
         // Note that, even if this fails with SHORT_BUF, we report a parse error, since we know we
         // have enough data (according to the aad length field).
-        if (aws_cryptosdk_context_deserialize(hdr->alloc, &hdr->enc_context, &aad)) goto PARSE_ERR;
+        if (aws_cryptosdk_context_deserialize(hdr->alloc, &hdr->enc_ctx, &aad)) goto PARSE_ERR;
         if (aad.len) {
             // trailing garbage after the aad block
             goto PARSE_ERR;
@@ -266,7 +266,7 @@ int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr) {
     size_t bytes = 18 + MESSAGE_ID_LEN + hdr->iv.len + hdr->auth_tag.len;
     size_t aad_len;
 
-    if (aws_cryptosdk_context_size(&aad_len, &hdr->enc_context)) {
+    if (aws_cryptosdk_context_size(&aad_len, &hdr->enc_ctx)) {
         return 0;
     }
     bytes += aad_len;
@@ -305,7 +305,7 @@ int aws_cryptosdk_hdr_write(
     if (!aws_byte_buf_advance(&output, &aad_length_field, 2)) goto WRITE_ERR;
 
     size_t old_len = output.len;
-    if (aws_cryptosdk_context_serialize(aws_default_allocator(), &output, &hdr->enc_context)) goto WRITE_ERR;
+    if (aws_cryptosdk_context_serialize(aws_default_allocator(), &output, &hdr->enc_ctx)) goto WRITE_ERR;
 
     if (!aws_byte_buf_write_be16(&aad_length_field, (uint16_t)(output.len - old_len))) goto WRITE_ERR;
 

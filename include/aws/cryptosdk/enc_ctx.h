@@ -12,8 +12,8 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef AWS_CRYPTOSDK_ENC_CONTEXT_H
-#define AWS_CRYPTOSDK_ENC_CONTEXT_H
+#ifndef AWS_CRYPTOSDK_ENC_CTX_H
+#define AWS_CRYPTOSDK_ENC_CTX_H
 
 #include <aws/cryptosdk/exports.h>
 
@@ -24,7 +24,7 @@ extern "C" {
 #endif
 
 /**
- * @defgroup enc_context Encryption Context utilities
+ * @defgroup enc_ctx Encryption Context utilities
  *
  * The encryption context is a string-to-string map of contextual information
  * that is cryptographically bound to the message. We represent the encryption
@@ -45,22 +45,22 @@ extern "C" {
  * and aws/common/string.h for the interface to AWS strings.
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_enc_context_init(struct aws_allocator *alloc, struct aws_hash_table *enc_context);
+int aws_cryptosdk_enc_ctx_init(struct aws_allocator *alloc, struct aws_hash_table *enc_ctx);
 
 /**
  * Clear the elements of an encryption context without deallocating the hash table.
  * This is equivalent to aws_hash_table_clear, but provided as an alias for clarity.
  */
-AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_enc_context_clear(struct aws_hash_table *enc_context) {
-    aws_hash_table_clear(enc_context);
+AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_enc_ctx_clear(struct aws_hash_table *enc_ctx) {
+    aws_hash_table_clear(enc_ctx);
 }
 
 /**
  * Deallocate an encryption context.
  * This is equivalent to aws_hash_table_clean_up, but provided as an alias for clarity.
  */
-AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_enc_context_clean_up(struct aws_hash_table *enc_context) {
-    aws_hash_table_clean_up(enc_context);
+AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_enc_ctx_clean_up(struct aws_hash_table *enc_ctx) {
+    aws_hash_table_clean_up(enc_ctx);
 }
 
 /**
@@ -72,17 +72,17 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_enc_context_clean_up(struct aws_h
  * into newly allocated memory using the given allocator.
  *
  * If this function returns an error, the contents of dest are unspecified, but are in a state
- * where aws_cryptosdk_enc_context_clear or aws_cryptosdk_enc_context_clean_up can be safely
+ * where aws_cryptosdk_enc_ctx_clear or aws_cryptosdk_enc_ctx_clean_up can be safely
  * used without leaking memory.
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_enc_context_clone(
+int aws_cryptosdk_enc_ctx_clone(
     struct aws_allocator *alloc, struct aws_hash_table *dest, const struct aws_hash_table *src);
 
-/** @} */  // doxygen group enc_context
+/** @} */  // doxygen group enc_ctx
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  // AWS_CRYPTOSDK_ENC_CONTEXT_H
+#endif  // AWS_CRYPTOSDK_ENC_CTX_H

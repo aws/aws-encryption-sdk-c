@@ -14,7 +14,7 @@
  */
 
 #include <aws/cryptosdk/cache.h>
-#include <aws/cryptosdk/enc_context.h>
+#include <aws/cryptosdk/enc_ctx.h>
 #include <aws/cryptosdk/list_utils.h>
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/private/cipher.h>
@@ -151,7 +151,7 @@ static int mock_get_encryption_materials(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_allocator *allocator,
     struct aws_cryptosdk_encryption_materials **materials,
-    struct aws_hash_table *enc_context,
+    struct aws_hash_table *enc_ctx,
     struct aws_cryptosdk_mat_cache_entry *entry);
 static int mock_get_decryption_materials(
     const struct aws_cryptosdk_mat_cache *cache,
@@ -163,7 +163,7 @@ static void mock_put_entry_for_encrypt(
     struct aws_cryptosdk_mat_cache_entry **entry,
     const struct aws_cryptosdk_encryption_materials *encryption_materials,
     struct aws_cryptosdk_cache_usage_stats initial_usage,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     const struct aws_byte_buf *cache_id);
 static void mock_put_entry_for_decrypt(
     struct aws_cryptosdk_mat_cache *cache,
@@ -213,7 +213,7 @@ static void mock_mat_cache_destroy(struct aws_cryptosdk_mat_cache *generic_cache
 
     aws_cryptosdk_encryption_materials_destroy(cache->enc_materials);
     aws_cryptosdk_decryption_materials_destroy(cache->dec_materials);
-    aws_cryptosdk_enc_context_clean_up(&cache->encryption_context);
+    aws_cryptosdk_enc_ctx_clean_up(&cache->encryption_context);
     aws_byte_buf_clean_up(&cache->last_cache_id);
 
     aws_mem_release(cache->alloc, cache);
@@ -227,7 +227,7 @@ struct mock_mat_cache *mock_mat_cache_new(struct aws_allocator *alloc) {
     cache->alloc = alloc;
 
     aws_cryptosdk_mat_cache_base_init(&cache->base, &mock_vt);
-    if (aws_cryptosdk_enc_context_init(alloc, &cache->encryption_context)) abort();
+    if (aws_cryptosdk_enc_ctx_init(alloc, &cache->encryption_context)) abort();
 
     return cache;
 }
@@ -308,7 +308,7 @@ static int mock_get_encryption_materials(
     struct aws_cryptosdk_mat_cache *generic_cache,
     struct aws_allocator *allocator,
     struct aws_cryptosdk_encryption_materials **materials,
-    struct aws_hash_table *enc_context,
+    struct aws_hash_table *enc_ctx,
     struct aws_cryptosdk_mat_cache_entry *entry) {
     struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
 
@@ -326,7 +326,7 @@ static int mock_get_encryption_materials(
 
     *materials = clone_enc_materials(allocator, cache->enc_materials);
 
-    if (aws_cryptosdk_enc_context_clone(allocator, enc_context, &cache->encryption_context)) abort();
+    if (aws_cryptosdk_enc_ctx_clone(allocator, enc_ctx, &cache->encryption_context)) abort();
 
     return AWS_OP_SUCCESS;
 }
@@ -393,7 +393,7 @@ static void mock_put_entry_for_encrypt(
     struct aws_cryptosdk_mat_cache_entry **entry,
     const struct aws_cryptosdk_encryption_materials *encryption_materials,
     struct aws_cryptosdk_cache_usage_stats initial_usage,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     const struct aws_byte_buf *cache_id) {
     struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
 
@@ -411,7 +411,7 @@ static void mock_put_entry_for_encrypt(
     cache->enc_materials = NULL;
     cache->dec_materials = NULL;
 
-    if (aws_cryptosdk_enc_context_clone(cache->alloc, &cache->encryption_context, enc_context)) abort();
+    if (aws_cryptosdk_enc_ctx_clone(cache->alloc, &cache->encryption_context, enc_ctx)) abort();
     cache->enc_materials = clone_enc_materials(cache->alloc, encryption_materials);
     if (!cache->enc_materials) abort();
 
@@ -500,7 +500,7 @@ static int mock_gen_enc_materials(
     v = aws_string_new_from_c_str(request->alloc, tmpbuf);
     if (!v) return AWS_OP_ERR;
 
-    if (aws_hash_table_put(request->enc_context, context_key, v, NULL)) {
+    if (aws_hash_table_put(request->enc_ctx, context_key, v, NULL)) {
         aws_string_destroy(v);
         return AWS_OP_ERR;
     }

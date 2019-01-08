@@ -156,10 +156,10 @@ struct aws_cryptosdk_mat_cache_vt {
      * Retrieves the cached encryption materials from the cache.
      *
      * On success, (1) `*materials` is overwritten with a newly allocated encryption
-     * materials object, and (2) `enc_context` is updated to match the cached encryption
+     * materials object, and (2) `enc_ctx` is updated to match the cached encryption
      * context (adding and removing entries to make it match the cached value).
      *
-     * On failure (e.g., out of memory), `*materials` will be set to NULL; `enc_context`
+     * On failure (e.g., out of memory), `*materials` will be set to NULL; `enc_ctx`
      * remains an allocated encryption context hash table, but the contents of the hash
      * table are unspecified, as we may have been forced to abort partway through updating
      * the contents of the hash table.
@@ -171,7 +171,7 @@ struct aws_cryptosdk_mat_cache_vt {
         struct aws_cryptosdk_mat_cache *cache,
         struct aws_allocator *allocator,
         struct aws_cryptosdk_encryption_materials **materials,
-        struct aws_hash_table *enc_context,
+        struct aws_hash_table *enc_ctx,
         struct aws_cryptosdk_mat_cache_entry *entry);
 
     /**
@@ -205,7 +205,7 @@ struct aws_cryptosdk_mat_cache_vt {
      * @param encryption_materials The encryption materials to insert; a copy will be
      * made using the cache's allocator
      * @param initial_usage The usage stats to initially record against this cache entry
-     * @param enc_context The encryption context associated with the cache entry;
+     * @param enc_ctx The encryption context associated with the cache entry;
      *  a copy will be made using the cache's allocator
      * @param cache_id The cache identifier to insert into
      */
@@ -214,7 +214,7 @@ struct aws_cryptosdk_mat_cache_vt {
         struct aws_cryptosdk_mat_cache_entry **entry,
         const struct aws_cryptosdk_encryption_materials *encryption_materials,
         struct aws_cryptosdk_cache_usage_stats initial_usage,
-        const struct aws_hash_table *enc_context,
+        const struct aws_hash_table *enc_ctx,
         const struct aws_byte_buf *cache_id);
 
     /**
@@ -321,13 +321,13 @@ int aws_cryptosdk_mat_cache_get_encryption_materials(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_allocator *allocator,
     struct aws_cryptosdk_encryption_materials **materials,
-    struct aws_hash_table *enc_context,
+    struct aws_hash_table *enc_ctx,
     struct aws_cryptosdk_mat_cache_entry *entry) {
     int (*get_encryption_materials)(
         struct aws_cryptosdk_mat_cache * cache,
         struct aws_allocator * allocator,
         struct aws_cryptosdk_encryption_materials * *materials,
-        struct aws_hash_table * enc_context,
+        struct aws_hash_table * enc_ctx,
         struct aws_cryptosdk_mat_cache_entry * entry) =
         AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, get_encryption_materials);
 
@@ -336,7 +336,7 @@ int aws_cryptosdk_mat_cache_get_encryption_materials(
         return aws_raise_error(AWS_ERROR_UNSUPPORTED_OPERATION);
     }
 
-    return get_encryption_materials(cache, allocator, materials, enc_context, entry);
+    return get_encryption_materials(cache, allocator, materials, enc_ctx, entry);
 }
 
 AWS_CRYPTOSDK_STATIC_INLINE
@@ -366,19 +366,19 @@ void aws_cryptosdk_mat_cache_put_entry_for_encrypt(
     struct aws_cryptosdk_mat_cache_entry **entry,
     const struct aws_cryptosdk_encryption_materials *encryption_materials,
     struct aws_cryptosdk_cache_usage_stats initial_usage,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     const struct aws_byte_buf *cache_id) {
     void (*put_entry_for_encrypt)(
         struct aws_cryptosdk_mat_cache * cache,
         struct aws_cryptosdk_mat_cache_entry * *entry,
         const struct aws_cryptosdk_encryption_materials *encryption_materials,
         struct aws_cryptosdk_cache_usage_stats initial_usage,
-        const struct aws_hash_table *enc_context,
+        const struct aws_hash_table *enc_ctx,
         const struct aws_byte_buf *cache_id) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, put_entry_for_encrypt);
 
     *entry = NULL;
     if (put_entry_for_encrypt) {
-        put_entry_for_encrypt(cache, entry, encryption_materials, initial_usage, enc_context, cache_id);
+        put_entry_for_encrypt(cache, entry, encryption_materials, initial_usage, enc_ctx, cache_id);
     }
 }
 

@@ -13,15 +13,15 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/error.h>
-#include <aws/cryptosdk/private/enc_context.h>
+#include <aws/cryptosdk/private/enc_ctx.h>
 #include <aws/cryptosdk/private/utils.h>
 
 #include <aws/common/byte_buf.h>
 
-int aws_cryptosdk_enc_context_init(struct aws_allocator *alloc, struct aws_hash_table *enc_context) {
+int aws_cryptosdk_enc_ctx_init(struct aws_allocator *alloc, struct aws_hash_table *enc_ctx) {
     size_t initial_size = 10;  // arbitrary starting point, will resize as necessary
     return aws_hash_table_init(
-        enc_context,
+        enc_ctx,
         alloc,
         initial_size,
         aws_hash_string,
@@ -30,11 +30,11 @@ int aws_cryptosdk_enc_context_init(struct aws_allocator *alloc, struct aws_hash_
         aws_hash_callback_string_destroy);
 }
 
-int aws_cryptosdk_context_size(size_t *size, const struct aws_hash_table *enc_context) {
+int aws_cryptosdk_context_size(size_t *size, const struct aws_hash_table *enc_ctx) {
     size_t serialized_len = 2;  // First two bytes are the number of k-v pairs
     size_t entry_count    = 0;
 
-    for (struct aws_hash_iter iter = aws_hash_iter_begin(enc_context); !aws_hash_iter_done(&iter);
+    for (struct aws_hash_iter iter = aws_hash_iter_begin(enc_ctx); !aws_hash_iter_done(&iter);
          aws_hash_iter_next(&iter)) {
         entry_count++;
 
@@ -63,9 +63,9 @@ int aws_cryptosdk_context_size(size_t *size, const struct aws_hash_table *enc_co
 }
 
 int aws_cryptosdk_context_serialize(
-    struct aws_allocator *alloc, struct aws_byte_buf *output, const struct aws_hash_table *enc_context) {
+    struct aws_allocator *alloc, struct aws_byte_buf *output, const struct aws_hash_table *enc_ctx) {
     size_t length;
-    if (aws_cryptosdk_context_size(&length, enc_context)) {
+    if (aws_cryptosdk_context_size(&length, enc_ctx)) {
         return AWS_OP_ERR;
     }
 
@@ -78,10 +78,10 @@ int aws_cryptosdk_context_serialize(
         return AWS_OP_SUCCESS;
     }
 
-    size_t num_elems = aws_hash_table_get_entry_count(enc_context);
+    size_t num_elems = aws_hash_table_get_entry_count(enc_ctx);
 
     struct aws_array_list elems;
-    if (aws_cryptosdk_hash_elems_array_init(alloc, &elems, enc_context)) return AWS_OP_ERR;
+    if (aws_cryptosdk_hash_elems_array_init(alloc, &elems, enc_ctx)) return AWS_OP_ERR;
 
     aws_array_list_sort(&elems, aws_cryptosdk_compare_hash_elems_by_key_string);
 
@@ -110,8 +110,8 @@ WRITE_ERR:
 }
 
 int aws_cryptosdk_context_deserialize(
-    struct aws_allocator *alloc, struct aws_hash_table *enc_context, struct aws_byte_cursor *cursor) {
-    aws_cryptosdk_enc_context_clear(enc_context);
+    struct aws_allocator *alloc, struct aws_hash_table *enc_ctx, struct aws_byte_cursor *cursor) {
+    aws_cryptosdk_enc_ctx_clear(enc_ctx);
 
     if (cursor->len == 0) {
         return AWS_OP_SUCCESS;
@@ -135,7 +135,7 @@ int aws_cryptosdk_context_deserialize(
         struct aws_string *k = aws_string_new_from_array(alloc, k_cursor.ptr, k_cursor.len);
         struct aws_string *v = aws_string_new_from_array(alloc, v_cursor.ptr, v_cursor.len);
 
-        if (!k || !v || aws_hash_table_put(enc_context, k, (void *)v, NULL)) {
+        if (!k || !v || aws_hash_table_put(enc_ctx, k, (void *)v, NULL)) {
             aws_string_destroy(k);
             aws_string_destroy(v);
             goto RETHROW;
@@ -147,7 +147,7 @@ int aws_cryptosdk_context_deserialize(
 SHORT_BUF:
     aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 RETHROW:
-    aws_cryptosdk_enc_context_clear(enc_context);
+    aws_cryptosdk_enc_ctx_clear(enc_ctx);
     return AWS_OP_ERR;
 }
 
@@ -163,7 +163,7 @@ static struct aws_string *clone_or_reuse_string(struct aws_allocator *allocator,
     return aws_string_new_from_array(allocator, aws_string_bytes(str), str->len);
 }
 
-int aws_cryptosdk_enc_context_clone(
+int aws_cryptosdk_enc_ctx_clone(
     struct aws_allocator *alloc, struct aws_hash_table *dest, const struct aws_hash_table *src) {
     /* First, scan the destination for keys that don't belong, and remove them */
     for (struct aws_hash_iter iter = aws_hash_iter_begin(dest); !aws_hash_iter_done(&iter); aws_hash_iter_next(&iter)) {

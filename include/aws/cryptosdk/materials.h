@@ -108,7 +108,7 @@ struct aws_cryptosdk_encryption_request {
      * hash table in order to inject additional keys or otherwise modify the encryption
      * context.
      */
-    struct aws_hash_table *enc_context;
+    struct aws_hash_table *enc_ctx;
     /**
      * The session will initially call generate_encryption_materials on the CMM
      * with a zero requested_alg; it's up to one of the CMMs in the chain to fill
@@ -146,7 +146,7 @@ struct aws_cryptosdk_encryption_materials {
  */
 struct aws_cryptosdk_decryption_request {
     struct aws_allocator *alloc;
-    const struct aws_hash_table *enc_context;
+    const struct aws_hash_table *enc_ctx;
     struct aws_array_list encrypted_data_keys;
     enum aws_cryptosdk_alg_id alg;
 };
@@ -418,7 +418,7 @@ struct aws_cryptosdk_keyring_vt {
         struct aws_byte_buf *unencrypted_data_key,
         struct aws_array_list *keyring_trace,
         struct aws_array_list *edks,
-        const struct aws_hash_table *enc_context,
+        const struct aws_hash_table *enc_ctx,
         enum aws_cryptosdk_alg_id alg);
 
     /**
@@ -435,7 +435,7 @@ struct aws_cryptosdk_keyring_vt {
         struct aws_byte_buf *unencrypted_data_key,
         struct aws_array_list *keyring_trace,
         const struct aws_array_list *edks,
-        const struct aws_hash_table *enc_context,
+        const struct aws_hash_table *enc_ctx,
         enum aws_cryptosdk_alg_id alg);
 };
 
@@ -492,7 +492,7 @@ int aws_cryptosdk_keyring_on_encrypt(
     struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *keyring_trace,
     struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg);
 
 /**
@@ -514,7 +514,7 @@ int aws_cryptosdk_keyring_on_decrypt(
     struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *keyring_trace,
     const struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg);
 
 /**

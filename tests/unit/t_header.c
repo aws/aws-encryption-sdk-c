@@ -16,7 +16,7 @@
 #include <aws/common/hash_table.h>
 #include <aws/common/string.h>
 #include <aws/cryptosdk/edk.h>
-#include <aws/cryptosdk/enc_context.h>
+#include <aws/cryptosdk/enc_ctx.h>
 #include <aws/cryptosdk/private/header.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -135,7 +135,7 @@ void set_edk_tbl(struct aws_cryptosdk_hdr *hdr, struct aws_cryptosdk_edk *edks, 
 }
 
 void set_aad_tbl(struct aws_cryptosdk_hdr *hdr, struct aws_cryptosdk_hdr_aad *aads, size_t count) {
-    if (aws_cryptosdk_enc_context_init(aws_default_allocator(), &hdr->enc_context)) {
+    if (aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &hdr->enc_ctx)) {
         abort();
     }
 
@@ -144,7 +144,7 @@ void set_aad_tbl(struct aws_cryptosdk_hdr *hdr, struct aws_cryptosdk_hdr_aad *aa
         k = aws_string_new_from_array(aws_default_allocator(), aads[i].key.buffer, aads[i].key.len);
         v = aws_string_new_from_array(aws_default_allocator(), aads[i].value.buffer, aads[i].value.len);
 
-        if (!k || !v || aws_hash_table_put(&hdr->enc_context, k, (void *)v, NULL)) {
+        if (!k || !v || aws_hash_table_put(&hdr->enc_ctx, k, (void *)v, NULL)) {
             abort();
         }
     }
@@ -335,7 +335,7 @@ int simple_header_parse() {
         hdr.auth_tag, 0xde, 0xad, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xbe, 0xef);
 
     // Misc values
-    TEST_ASSERT_INT_EQ(2, aws_hash_table_get_entry_count(&hdr.enc_context));
+    TEST_ASSERT_INT_EQ(2, aws_hash_table_get_entry_count(&hdr.enc_ctx));
     TEST_ASSERT_INT_EQ(3, aws_array_list_length(&hdr.edk_list));
     TEST_ASSERT_INT_EQ(0x1000, hdr.frame_len);
     TEST_ASSERT_INT_EQ(hdr.auth_len, sizeof(test_header_1) - 29);  // 1 junk byte, 12 IV bytes, 16 auth tag bytes
@@ -345,13 +345,13 @@ int simple_header_parse() {
     AWS_STATIC_STRING_FROM_LITERAL(v1, "\x01\x00\x01\x00\x01");
 
     struct aws_hash_element *pElem;
-    TEST_ASSERT_SUCCESS(aws_hash_table_find(&hdr.enc_context, k1, &pElem));
+    TEST_ASSERT_SUCCESS(aws_hash_table_find(&hdr.enc_ctx, k1, &pElem));
     TEST_ASSERT_ADDR_NOT_NULL(pElem);
     TEST_ASSERT(aws_string_eq(pElem->value, v1));
 
     AWS_STATIC_STRING_FROM_LITERAL(empty, "");
 
-    TEST_ASSERT_SUCCESS(aws_hash_table_find(&hdr.enc_context, empty, &pElem));
+    TEST_ASSERT_SUCCESS(aws_hash_table_find(&hdr.enc_ctx, empty, &pElem));
     TEST_ASSERT_ADDR_NOT_NULL(pElem);
     TEST_ASSERT(aws_string_eq(pElem->value, empty));
 
@@ -400,7 +400,7 @@ int simple_header_parse2() {
         hdr.auth_tag, 0xde, 0xad, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xbe, 0xef);
 
     // Misc values
-    TEST_ASSERT_INT_EQ(0, aws_hash_table_get_entry_count(&hdr.enc_context));
+    TEST_ASSERT_INT_EQ(0, aws_hash_table_get_entry_count(&hdr.enc_ctx));
     TEST_ASSERT_INT_EQ(3, aws_array_list_length(&hdr.edk_list));
     TEST_ASSERT_INT_EQ(0x1000, hdr.frame_len);
     TEST_ASSERT_INT_EQ(hdr.auth_len, sizeof(test_header_2) - 29);  // 1 junk byte, 12 IV bytes, 16 auth tag bytes

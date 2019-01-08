@@ -15,10 +15,10 @@
 
 #include <aws/cryptosdk/cache.h>
 #include <aws/cryptosdk/cipher.h>
-#include <aws/cryptosdk/enc_context.h>
+#include <aws/cryptosdk/enc_ctx.h>
 #include <aws/cryptosdk/list_utils.h>
 #include <aws/cryptosdk/private/cipher.h>
-#include <aws/cryptosdk/private/enc_context.h>
+#include <aws/cryptosdk/private/enc_ctx.h>
 
 #include <aws/common/array_list.h>
 #include <aws/common/linked_list.h>
@@ -59,7 +59,7 @@ struct local_cache_entry {
     struct aws_cryptosdk_decryption_materials *dec_materials;
 
     /* Initialized for encrypt-mode entries only */
-    struct aws_hash_table enc_context;
+    struct aws_hash_table enc_ctx;
 
     /*
      * we extract the public or private key out of the enc/dec materials and store it
@@ -86,7 +86,7 @@ struct local_cache_entry {
      *
      * When the zombie flag is set:
      *   * The dec/enc_materials structures are cleaned up
-     *   * enc_context is cleaned up
+     *   * enc_ctx is cleaned up
      *   * The entry is not in the TTL heap (expiry_time = NO_EXPIRY)
      *   * lru_node is not in the LRU list
      */
@@ -422,7 +422,7 @@ static void destroy_cache_entry(struct local_cache_entry *entry) {
     entry->dec_materials = NULL;
 
     aws_string_destroy_secure(entry->key_materials);
-    aws_cryptosdk_enc_context_clean_up(&entry->enc_context);
+    aws_cryptosdk_enc_ctx_clean_up(&entry->enc_ctx);
 
     aws_byte_buf_clean_up(&entry->cache_id);
 
@@ -564,7 +564,7 @@ static int get_encryption_materials(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_allocator *allocator,
     struct aws_cryptosdk_encryption_materials **materials_out,
-    struct aws_hash_table *enc_context,
+    struct aws_hash_table *enc_ctx,
     struct aws_cryptosdk_mat_cache_entry *entry) {
     (void)cache;
     struct local_cache_entry *local_entry                = (struct local_cache_entry *)entry;
@@ -583,7 +583,7 @@ static int get_encryption_materials(
         goto out;
     }
 
-    if (aws_cryptosdk_enc_context_clone(allocator, enc_context, &local_entry->enc_context)) {
+    if (aws_cryptosdk_enc_ctx_clone(allocator, enc_ctx, &local_entry->enc_ctx)) {
         goto out;
     }
 
@@ -644,7 +644,7 @@ static void put_entry_for_encrypt(
     struct aws_cryptosdk_mat_cache_entry **ret_entry,
     const struct aws_cryptosdk_encryption_materials *materials,
     struct aws_cryptosdk_cache_usage_stats initial_usage,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     const struct aws_byte_buf *cache_id) {
     struct aws_cryptosdk_local_cache *cache = (struct aws_cryptosdk_local_cache *)generic_cache;
     *ret_entry                              = NULL;
@@ -669,11 +669,11 @@ static void put_entry_for_encrypt(
         goto out;
     }
 
-    if (aws_cryptosdk_enc_context_init(cache->allocator, &entry->enc_context)) {
+    if (aws_cryptosdk_enc_ctx_init(cache->allocator, &entry->enc_ctx)) {
         goto out;
     }
 
-    if (aws_cryptosdk_enc_context_clone(cache->allocator, &entry->enc_context, enc_context)) {
+    if (aws_cryptosdk_enc_ctx_clone(cache->allocator, &entry->enc_ctx, enc_ctx)) {
         goto out;
     }
 

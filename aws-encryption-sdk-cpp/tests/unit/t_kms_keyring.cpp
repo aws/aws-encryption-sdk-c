@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include <aws/cryptosdk/enc_context.h>
+#include <aws/cryptosdk/enc_ctx.h>
 #include <aws/cryptosdk/private/cpputils.h>
 #include <aws/cryptosdk/private/kms_keyring.h>
 
@@ -76,7 +76,7 @@ struct TestValues {
           ct_bb((unsigned char *)ct, strlen(ct)),
           pt_aws_byte(aws_byte_buf_from_c_str(pt)),
           grant_tokens(grant_tokens) {
-        if (aws_cryptosdk_enc_context_init(allocator, &encryption_context)) abort();
+        if (aws_cryptosdk_enc_ctx_init(allocator, &encryption_context)) abort();
         if (aws_cryptosdk_keyring_trace_init(allocator, &keyring_trace)) abort();
         if (aws_cryptosdk_edk_list_init(allocator, &edks)) abort();
     }
@@ -105,7 +105,7 @@ struct TestValues {
 
     ~TestValues() {
         aws_cryptosdk_keyring_release(kms_keyring);
-        aws_cryptosdk_enc_context_clean_up(&encryption_context);
+        aws_cryptosdk_enc_ctx_clean_up(&encryption_context);
         aws_cryptosdk_keyring_trace_clean_up(&keyring_trace);
         aws_cryptosdk_edk_list_clean_up(&edks);
     }
@@ -343,11 +343,11 @@ int encrypt_validInputsMultipleKeys_returnSuccess() {
 }
 
 int encrypt_validInputsMultipleKeysWithGrantTokensAndEncContext_returnSuccess() {
-    Aws::Map<Aws::String, Aws::String> enc_context = { { "k1", "v1" }, { "k2", "v2" } };
-    Aws::Vector<Aws::String> grant_tokens          = { "gt1", "gt2" };
+    Aws::Map<Aws::String, Aws::String> enc_ctx = { { "k1", "v1" }, { "k2", "v2" } };
+    Aws::Vector<Aws::String> grant_tokens      = { "gt1", "gt2" };
 
     EncryptTestValues ev(fake_arns, grant_tokens);
-    ev.SetEncryptionContext(enc_context);
+    ev.SetEncryptionContext(enc_ctx);
 
     struct aws_array_list expected_edks;
     TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(ev.allocator, &expected_edks));
@@ -580,8 +580,8 @@ int decrypt_validInputsWithMultipleEdksWithGrantTokensAndEncContext_returnSucces
     Aws::Vector<Aws::String> grant_tokens = { "gt1", "gt2" };
     DecryptValues dv({ TestValues::key_id }, grant_tokens);
 
-    Aws::Map<Aws::String, Aws::String> enc_context = { { "k1", "v1" }, { "k2", "v2" } };
-    dv.SetEncryptionContext(enc_context);
+    Aws::Map<Aws::String, Aws::String> enc_ctx = { { "k1", "v1" }, { "k2", "v2" } };
+    dv.SetEncryptionContext(enc_ctx);
 
     build_multiple_edks(dv);
 
@@ -626,8 +626,8 @@ int generateDataKey_validInputsWithGrantTokensAndEncContext_returnSuccess() {
     GenerateDataKeyValues gv(grant_tokens);
     Model::GenerateDataKeyOutcome return_generate(gv.generate_result);
 
-    Aws::Map<Aws::String, Aws::String> enc_context = { { "k1", "v1" }, { "k2", "v2" } };
-    gv.SetEncryptionContext(enc_context);
+    Aws::Map<Aws::String, Aws::String> enc_ctx = { { "k1", "v1" }, { "k2", "v2" } };
+    gv.SetEncryptionContext(enc_ctx);
 
     gv.kms_client_mock->ExpectGenerateDataKey(gv.GetRequest(), return_generate);
     gv.kms_client_mock->ExpectGrantTokens(grant_tokens);

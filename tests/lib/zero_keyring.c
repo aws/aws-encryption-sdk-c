@@ -56,9 +56,9 @@ static int zero_keyring_on_encrypt(
     struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *keyring_trace,
     struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
-    (void)enc_context;
+    (void)enc_ctx;
     (void)kr;
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
     uint32_t flags                                   = AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY;
@@ -96,9 +96,9 @@ static int zero_keyring_on_decrypt(
     struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *keyring_trace,
     const struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
-    (void)enc_context;
+    (void)enc_ctx;
     (void)kr;
 
     size_t num_keys = aws_array_list_length(edks);

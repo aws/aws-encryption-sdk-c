@@ -17,9 +17,9 @@
 #include <aws/common/linked_list.h> /* AWS_CONTAINER_OF */
 #include <aws/common/math.h>
 #include <aws/cryptosdk/cache.h>
-#include <aws/cryptosdk/enc_context.h>
+#include <aws/cryptosdk/enc_ctx.h>
 #include <aws/cryptosdk/private/cipher.h>
-#include <aws/cryptosdk/private/enc_context.h>
+#include <aws/cryptosdk/private/enc_ctx.h>
 
 struct caching_cmm {
     struct aws_cryptosdk_cmm base;
@@ -216,12 +216,12 @@ int hash_encrypt_request(
         return aws_raise_error(AWS_ERROR_INVALID_BUFFER_SIZE);
     }
 
-    struct aws_cryptosdk_md_context *md_context, *enc_context_md;
+    struct aws_cryptosdk_md_context *md_context, *enc_ctx_md;
     if (aws_cryptosdk_md_init(req->alloc, &md_context, AWS_CRYPTOSDK_MD_SHA512)) {
         return AWS_OP_ERR;
     }
 
-    if (aws_cryptosdk_md_init(req->alloc, &enc_context_md, AWS_CRYPTOSDK_MD_SHA512)) {
+    if (aws_cryptosdk_md_init(req->alloc, &enc_ctx_md, AWS_CRYPTOSDK_MD_SHA512)) {
         return AWS_OP_ERR;
     }
 
@@ -242,21 +242,21 @@ int hash_encrypt_request(
     }
 
     size_t context_size;
-    if (aws_cryptosdk_context_size(&context_size, req->enc_context) ||
+    if (aws_cryptosdk_context_size(&context_size, req->enc_ctx) ||
         aws_byte_buf_init(&context_buf, req->alloc, context_size) ||
-        aws_cryptosdk_context_serialize(req->alloc, &context_buf, req->enc_context) ||
-        aws_cryptosdk_md_update(enc_context_md, context_buf.buffer, context_buf.len)) {
+        aws_cryptosdk_context_serialize(req->alloc, &context_buf, req->enc_ctx) ||
+        aws_cryptosdk_md_update(enc_ctx_md, context_buf.buffer, context_buf.len)) {
         goto md_err;
     }
 
-    size_t enc_context_digest_len;
-    if (aws_cryptosdk_md_finish(enc_context_md, digestbuf, &enc_context_digest_len)) {
-        enc_context_md = NULL;
+    size_t enc_ctx_digest_len;
+    if (aws_cryptosdk_md_finish(enc_ctx_md, digestbuf, &enc_ctx_digest_len)) {
+        enc_ctx_md = NULL;
         goto md_err;
     }
-    enc_context_md = NULL;
+    enc_ctx_md = NULL;
 
-    if (aws_cryptosdk_md_update(md_context, digestbuf, enc_context_digest_len)) {
+    if (aws_cryptosdk_md_update(md_context, digestbuf, enc_ctx_digest_len)) {
         goto md_err;
     }
 
@@ -266,7 +266,7 @@ int hash_encrypt_request(
 md_err:
     aws_byte_buf_clean_up(&context_buf);
     aws_cryptosdk_md_abort(md_context);
-    aws_cryptosdk_md_abort(enc_context_md);
+    aws_cryptosdk_md_abort(enc_ctx_md);
 
     return AWS_OP_ERR;
 }
@@ -348,9 +348,9 @@ int hash_decrypt_request(
 
     size_t context_size;
     if (aws_cryptosdk_md_init(req->alloc, &md_context, AWS_CRYPTOSDK_MD_SHA512) ||
-        aws_cryptosdk_context_size(&context_size, req->enc_context) ||
+        aws_cryptosdk_context_size(&context_size, req->enc_ctx) ||
         aws_byte_buf_init(&context_buf, req->alloc, context_size) ||
-        aws_cryptosdk_context_serialize(req->alloc, &context_buf, req->enc_context) ||
+        aws_cryptosdk_context_serialize(req->alloc, &context_buf, req->enc_ctx) ||
         aws_cryptosdk_md_update(md_context, context_buf.buffer, context_buf.len)) {
         goto err;
     }
@@ -490,7 +490,7 @@ static int generate_enc_materials(
     }
 
     if (aws_cryptosdk_mat_cache_get_encryption_materials(
-            cmm->mat_cache, request->alloc, output, request->enc_context, entry)) {
+            cmm->mat_cache, request->alloc, output, request->enc_ctx, entry)) {
         goto cache_miss;
     }
 
@@ -513,7 +513,7 @@ cache_miss:
 
     if (can_cache_algorithm((*output)->alg)) {
         aws_cryptosdk_mat_cache_put_entry_for_encrypt(
-            cmm->mat_cache, &entry, *output, delta_usage, request->enc_context, &hash_buf);
+            cmm->mat_cache, &entry, *output, delta_usage, request->enc_ctx, &hash_buf);
 
         set_ttl_on_miss(cmm, entry);
 
