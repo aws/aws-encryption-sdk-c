@@ -221,12 +221,12 @@ int default_cmm_signer_key_in_enc_context() {
     struct aws_allocator *alloc      = aws_default_allocator();
     struct aws_cryptosdk_keyring *kr = aws_cryptosdk_zero_keyring_new(alloc);
     struct aws_cryptosdk_cmm *cmm    = aws_cryptosdk_default_cmm_new(alloc, kr);
-    struct aws_string *pubkey        = NULL;
 
     aws_cryptosdk_enc_context_init(alloc, &enc_context);
     req.enc_context = &enc_context;
     AWS_STATIC_STRING_FROM_LITERAL(EC_PUBLIC_KEY_FIELD, "aws-crypto-public-key");
-    TEST_ASSERT_SUCCESS(aws_hash_table_put(req.enc_context, EC_PUBLIC_KEY_FIELD, pubkey, NULL));
+    AWS_STATIC_STRING_FROM_LITERAL(EC_PUBLIC_VALUE_FIELD, "aws-crypto-public-value");
+    TEST_ASSERT_SUCCESS(aws_hash_table_put(req.enc_context, EC_PUBLIC_KEY_FIELD, (void *)EC_PUBLIC_VALUE_FIELD, NULL));
     req.requested_alg = 0;
     req.alloc         = aws_default_allocator();
     aws_cryptosdk_default_cmm_set_alg_id(cmm, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
@@ -234,11 +234,10 @@ int default_cmm_signer_key_in_enc_context() {
     TEST_ASSERT_ERROR(
         AWS_CRYPTOSDK_ERR_RESERVED_FIELD, aws_cryptosdk_cmm_generate_encryption_materials(cmm, &enc_mat, &req));
 
-    if (pubkey) aws_string_destroy(pubkey);
-    if (enc_mat) aws_cryptosdk_encryption_materials_destroy(enc_mat);
-    if (cmm) aws_cryptosdk_cmm_release(cmm);
-    if (kr) aws_cryptosdk_keyring_release(kr);
-    if (&enc_context) aws_cryptosdk_enc_context_clean_up(&enc_context);
+    aws_cryptosdk_enc_context_clean_up(&enc_context);
+    aws_cryptosdk_encryption_materials_destroy(enc_mat);
+    aws_cryptosdk_cmm_release(cmm);
+    aws_cryptosdk_keyring_release(kr);
 
     return 0;
 }
