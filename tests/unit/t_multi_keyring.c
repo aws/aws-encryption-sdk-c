@@ -37,18 +37,20 @@ static int set_up_all_the_things(bool include_generator) {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_init(alloc, &keyring_trace));
 
     memset(test_keyrings, 0, sizeof(test_keyrings));
-    multi = aws_cryptosdk_multi_keyring_new(alloc, NULL);
+    struct aws_cryptosdk_keyring *generator = NULL;
+    if (include_generator) {
+        generator = (struct aws_cryptosdk_keyring *)&test_keyrings[0];
+        aws_cryptosdk_keyring_base_init(&test_keyrings[0].base, &test_keyring_vt);
+        TEST_ASSERT(!test_keyrings[0].on_encrypt_called);
+        TEST_ASSERT(!test_keyrings[0].on_decrypt_called);
+    }
+    multi = aws_cryptosdk_multi_keyring_new(alloc, generator);
     TEST_ASSERT_ADDR_NOT_NULL(multi);
-    for (size_t kr_idx = 0; kr_idx < num_test_keyrings; ++kr_idx) {
+    for (size_t kr_idx = 1; kr_idx < num_test_keyrings; ++kr_idx) {
         aws_cryptosdk_keyring_base_init(&test_keyrings[kr_idx].base, &test_keyring_vt);
 
-        if (kr_idx) {
-            TEST_ASSERT_SUCCESS(
-                aws_cryptosdk_multi_keyring_add_child(multi, (struct aws_cryptosdk_keyring *)(test_keyrings + kr_idx)));
-        } else if (include_generator) {
-            TEST_ASSERT_SUCCESS(
-                aws_cryptosdk_multi_keyring_set_generator(multi, (struct aws_cryptosdk_keyring *)(test_keyrings)));
-        }
+        TEST_ASSERT_SUCCESS(
+            aws_cryptosdk_multi_keyring_add_child(multi, (struct aws_cryptosdk_keyring *)(test_keyrings + kr_idx)));
 
         // all flags have been reset
         TEST_ASSERT(!test_keyrings[kr_idx].on_encrypt_called);

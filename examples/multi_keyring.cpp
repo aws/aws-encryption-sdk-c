@@ -104,8 +104,7 @@ int main(int argc, char **argv) {
      * attempts with the multi-keyring, and it is expected to do the data key
      * generation. Alternatively, you can create a multi-keyring without a
      * generator by passing in NULL as the second argument, but you will only
-     * be able to use it for decryption until you set a generator by calling
-     * aws_cryptosdk_multi_keyring_set_generator on it.
+     * be able to use it for decryption.
      */
     struct aws_cryptosdk_keyring *multi_keyring = aws_cryptosdk_multi_keyring_new(alloc, kms_keyring);
     assert(multi_keyring);
