@@ -30,7 +30,7 @@ int aws_cryptosdk_enc_ctx_init(struct aws_allocator *alloc, struct aws_hash_tabl
         aws_hash_callback_string_destroy);
 }
 
-int aws_cryptosdk_context_size(size_t *size, const struct aws_hash_table *enc_ctx) {
+int aws_cryptosdk_enc_ctx_size(size_t *size, const struct aws_hash_table *enc_ctx) {
     size_t serialized_len = 2;  // First two bytes are the number of k-v pairs
     size_t entry_count    = 0;
 
@@ -62,10 +62,10 @@ int aws_cryptosdk_context_size(size_t *size, const struct aws_hash_table *enc_ct
     return AWS_OP_SUCCESS;
 }
 
-int aws_cryptosdk_context_serialize(
+int aws_cryptosdk_enc_ctx_serialize(
     struct aws_allocator *alloc, struct aws_byte_buf *output, const struct aws_hash_table *enc_ctx) {
     size_t length;
-    if (aws_cryptosdk_context_size(&length, enc_ctx)) {
+    if (aws_cryptosdk_enc_ctx_size(&length, enc_ctx)) {
         return AWS_OP_ERR;
     }
 
@@ -109,7 +109,7 @@ WRITE_ERR:
     return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 }
 
-int aws_cryptosdk_context_deserialize(
+int aws_cryptosdk_enc_ctx_deserialize(
     struct aws_allocator *alloc, struct aws_hash_table *enc_ctx, struct aws_byte_cursor *cursor) {
     aws_cryptosdk_enc_ctx_clear(enc_ctx);
 

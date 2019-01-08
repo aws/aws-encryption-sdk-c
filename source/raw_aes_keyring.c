@@ -33,8 +33,8 @@ static int serialize_aad_init(
     // It assures that the buffer object is in proper uninitialized state.
     memset(aad, 0, sizeof(*aad));
 
-    if (aws_cryptosdk_context_size(&aad_len, enc_ctx) || aws_byte_buf_init(aad, alloc, aad_len) ||
-        aws_cryptosdk_context_serialize(alloc, aad, enc_ctx)) {
+    if (aws_cryptosdk_enc_ctx_size(&aad_len, enc_ctx) || aws_byte_buf_init(aad, alloc, aad_len) ||
+        aws_cryptosdk_enc_ctx_serialize(alloc, aad, enc_ctx)) {
         aws_byte_buf_clean_up(aad);
         return AWS_OP_ERR;
     }

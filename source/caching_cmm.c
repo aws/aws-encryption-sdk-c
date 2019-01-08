@@ -242,9 +242,9 @@ int hash_encrypt_request(
     }
 
     size_t context_size;
-    if (aws_cryptosdk_context_size(&context_size, req->enc_ctx) ||
+    if (aws_cryptosdk_enc_ctx_size(&context_size, req->enc_ctx) ||
         aws_byte_buf_init(&context_buf, req->alloc, context_size) ||
-        aws_cryptosdk_context_serialize(req->alloc, &context_buf, req->enc_ctx) ||
+        aws_cryptosdk_enc_ctx_serialize(req->alloc, &context_buf, req->enc_ctx) ||
         aws_cryptosdk_md_update(enc_ctx_md, context_buf.buffer, context_buf.len)) {
         goto md_err;
     }
@@ -348,9 +348,9 @@ int hash_decrypt_request(
 
     size_t context_size;
     if (aws_cryptosdk_md_init(req->alloc, &md_context, AWS_CRYPTOSDK_MD_SHA512) ||
-        aws_cryptosdk_context_size(&context_size, req->enc_ctx) ||
+        aws_cryptosdk_enc_ctx_size(&context_size, req->enc_ctx) ||
         aws_byte_buf_init(&context_buf, req->alloc, context_size) ||
-        aws_cryptosdk_context_serialize(req->alloc, &context_buf, req->enc_ctx) ||
+        aws_cryptosdk_enc_ctx_serialize(req->alloc, &context_buf, req->enc_ctx) ||
         aws_cryptosdk_md_update(md_context, context_buf.buffer, context_buf.len)) {
         goto err;
     }

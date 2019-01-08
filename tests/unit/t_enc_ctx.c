@@ -36,10 +36,10 @@ AWS_STATIC_STRING_FROM_LITERAL(bar_null_back, "bar\0back");
 static int serialize_init(struct aws_allocator *alloc, struct aws_byte_buf *buf, const struct aws_hash_table *enc_ctx) {
     size_t len;
 
-    if (aws_cryptosdk_context_size(&len, enc_ctx)) return AWS_OP_ERR;
+    if (aws_cryptosdk_enc_ctx_size(&len, enc_ctx)) return AWS_OP_ERR;
     if (aws_byte_buf_init(buf, alloc, len)) return AWS_OP_ERR;
 
-    return aws_cryptosdk_context_serialize(alloc, buf, enc_ctx);
+    return aws_cryptosdk_enc_ctx_serialize(alloc, buf, enc_ctx);
 }
 
 int get_sorted_elems_array_test() {
@@ -88,10 +88,10 @@ int serialize_empty_enc_ctx() {
 
     struct aws_byte_buf output = { 0 };
     size_t len;
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_context_size(&len, &enc_ctx));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_ctx_size(&len, &enc_ctx));
     TEST_ASSERT_INT_EQ(len, 0);
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_context_serialize(alloc, &output, &enc_ctx));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_ctx_serialize(alloc, &output, &enc_ctx));
     TEST_ASSERT_INT_EQ(output.len, 0);
 
     aws_byte_buf_clean_up(&output);

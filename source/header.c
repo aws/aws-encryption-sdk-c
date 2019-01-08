@@ -168,7 +168,7 @@ int aws_cryptosdk_hdr_parse(struct aws_cryptosdk_hdr *hdr, struct aws_byte_curso
 
         // Note that, even if this fails with SHORT_BUF, we report a parse error, since we know we
         // have enough data (according to the aad length field).
-        if (aws_cryptosdk_context_deserialize(hdr->alloc, &hdr->enc_ctx, &aad)) goto PARSE_ERR;
+        if (aws_cryptosdk_enc_ctx_deserialize(hdr->alloc, &hdr->enc_ctx, &aad)) goto PARSE_ERR;
         if (aad.len) {
             // trailing garbage after the aad block
             goto PARSE_ERR;
@@ -266,7 +266,7 @@ int aws_cryptosdk_hdr_size(const struct aws_cryptosdk_hdr *hdr) {
     size_t bytes = 18 + MESSAGE_ID_LEN + hdr->iv.len + hdr->auth_tag.len;
     size_t aad_len;
 
-    if (aws_cryptosdk_context_size(&aad_len, &hdr->enc_ctx)) {
+    if (aws_cryptosdk_enc_ctx_size(&aad_len, &hdr->enc_ctx)) {
         return 0;
     }
     bytes += aad_len;
@@ -305,7 +305,7 @@ int aws_cryptosdk_hdr_write(
     if (!aws_byte_buf_advance(&output, &aad_length_field, 2)) goto WRITE_ERR;
 
     size_t old_len = output.len;
-    if (aws_cryptosdk_context_serialize(aws_default_allocator(), &output, &hdr->enc_ctx)) goto WRITE_ERR;
+    if (aws_cryptosdk_enc_ctx_serialize(aws_default_allocator(), &output, &hdr->enc_ctx)) goto WRITE_ERR;
 
     if (!aws_byte_buf_write_be16(&aad_length_field, (uint16_t)(output.len - old_len))) goto WRITE_ERR;
 
