@@ -475,5 +475,5 @@ struct test_case materials_test_cases[] = {
     { "materials", "on_encrypt_postcondition_violation", on_encrypt_postcondition_violation },
     { "materials", "on_decrypt_precondition_violation", on_decrypt_precondition_violation },
     { "materials", "on_decrypt_postcondition_violation", on_decrypt_postcondition_violation },
-    { NULL } 
+    { NULL }
 };
