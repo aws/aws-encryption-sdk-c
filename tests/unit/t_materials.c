@@ -232,7 +232,7 @@ int default_cmm_signer_key_in_enc_ctx() {
     req.requested_alg = 0;
     req.alloc         = alloc;
 
-    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_RESERVED_FIELD, aws_cryptosdk_cmm_generate_enc_materials(cmm, &enc_mat, &req));
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_RESERVED_NAME, aws_cryptosdk_cmm_generate_enc_materials(cmm, &enc_mat, &req));
 
     aws_cryptosdk_enc_ctx_clean_up(&enc_ctx);
     aws_cryptosdk_enc_materials_destroy(enc_mat);

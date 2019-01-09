@@ -45,8 +45,8 @@ enum aws_cryptosdk_err {
     AWS_CRYPTOSDK_ERR_KMS_FAILURE,
     /** Caller attempted to exceed a hard limit */
     AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED,
-    /** Caller attempted to use a reserved field */
-    AWS_CRYPTOSDK_ERR_RESERVED_FIELD,
+    /** Caller attempted to use a name reserved by AWS */
+    AWS_CRYPTOSDK_ERR_RESERVED_NAME,
     /** An unsupported format version was encountered on decrypt */
     AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT,
     AWS_CRYPTOSDK_ERR_END_RANGE = 0x2400
@@ -55,8 +55,7 @@ enum aws_cryptosdk_err {
 /**
  * Register error strings with the core error reporting APIs. This function is
  * threadsafe and idempotent, and should be called at on application startup.
- * There is no need to make an additional call to the analogous aws-c-common
- * function aws_load_error_strings. This call does that for you.
+ * Implicitly registers error strings for aws-c-common as well.
  */
 AWS_CRYPTOSDK_API
 void aws_cryptosdk_load_error_strings();

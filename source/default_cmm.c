@@ -41,7 +41,7 @@ static int default_cmm_generate_enc_materials(
 
     aws_hash_table_find(request->enc_ctx, EC_PUBLIC_KEY_FIELD, &pElement);
     if (pElement) {
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_RESERVED_FIELD);
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_RESERVED_NAME);
     }
 
     if (!request->requested_alg) {

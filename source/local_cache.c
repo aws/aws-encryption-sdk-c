@@ -85,8 +85,6 @@ struct local_cache_entry {
      * flag.
      *
      * When the zombie flag is set:
-     *   * The dec/enc_materials structures are cleaned up
-     *   * enc_ctx is cleaned up
      *   * The entry is not in the TTL heap (expiry_time = NO_EXPIRY)
      *   * lru_node is not in the LRU list
      */
