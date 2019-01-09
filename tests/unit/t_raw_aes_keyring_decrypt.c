@@ -258,7 +258,7 @@ int decrypt_data_key_with_sig() {
     AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_key, "aws-crypto-public-key");
     AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_val, "AguATtjJFzJnlpNXdyDG7e8bfLZYRx+vxdAmYz+ztVBYyFhsMpchjz9ev3MdXQMD9Q==");
 
-    TEST_ASSERT_SUCCESS(set_up_all_the_things(&enc_ctx_key, &enc_ctx_val, 1, AWS_CRYPTOSDK_AES_256));
+    TEST_ASSERT_SUCCESS(set_up_all_the_things(&enc_ctx_key, &enc_ctx_val, 1, AWS_CRYPTOSDK_AES256));
 
     // first 32 bytes encrypted data key, last 16 bytes GCM tag
     // clang-format off
@@ -313,7 +313,7 @@ int decrypt_data_key_with_sig_and_enc_ctx() {
     const struct aws_string *vals[] = { enc_ctx_val_1, enc_ctx_val_2, enc_ctx_val_3 };
 
     TEST_ASSERT_SUCCESS(
-        set_up_all_the_things(keys, vals, sizeof(keys) / sizeof(const struct aws_string *), AWS_CRYPTOSDK_AES_256));
+        set_up_all_the_things(keys, vals, sizeof(keys) / sizeof(const struct aws_string *), AWS_CRYPTOSDK_AES256));
 
     // first 32 bytes encrypted data key, last 16 bytes GCM tag
     // clang-format off

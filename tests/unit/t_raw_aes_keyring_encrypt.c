@@ -65,7 +65,7 @@ static void tear_down_all_the_things() {
 }
 
 static enum aws_cryptosdk_aes_key_len raw_key_lens[] = {
-    AWS_CRYPTOSDK_AES_128, AWS_CRYPTOSDK_AES_192, AWS_CRYPTOSDK_AES_256
+    AWS_CRYPTOSDK_AES128, AWS_CRYPTOSDK_AES192, AWS_CRYPTOSDK_AES256
 };
 static enum aws_cryptosdk_alg_id algs[] = {
     ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256, ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256, ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256

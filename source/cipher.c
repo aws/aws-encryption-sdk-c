@@ -439,9 +439,9 @@ int aws_cryptosdk_genrandom(uint8_t *buf, size_t len) {
 
 static const EVP_CIPHER *get_alg_from_key_size(size_t key_len) {
     switch (key_len) {
-        case AWS_CRYPTOSDK_AES_128: return EVP_aes_128_gcm();
-        case AWS_CRYPTOSDK_AES_192: return EVP_aes_192_gcm();
-        case AWS_CRYPTOSDK_AES_256: return EVP_aes_256_gcm();
+        case AWS_CRYPTOSDK_AES128: return EVP_aes_128_gcm();
+        case AWS_CRYPTOSDK_AES192: return EVP_aes_192_gcm();
+        case AWS_CRYPTOSDK_AES256: return EVP_aes_256_gcm();
         default: return NULL;
     }
 }

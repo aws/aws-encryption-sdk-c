@@ -33,9 +33,9 @@ extern "C" {
 
 /** @ingroup raw_keyring */
 enum aws_cryptosdk_aes_key_len {
-    AWS_CRYPTOSDK_AES_128 = 128 / 8,
-    AWS_CRYPTOSDK_AES_192 = 192 / 8,
-    AWS_CRYPTOSDK_AES_256 = 256 / 8
+    AWS_CRYPTOSDK_AES128 = 128 / 8,
+    AWS_CRYPTOSDK_AES192 = 192 / 8,
+    AWS_CRYPTOSDK_AES256 = 256 / 8
 };
 
 /** @ingroup raw_keyring */
