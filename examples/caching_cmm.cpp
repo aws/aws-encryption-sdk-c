@@ -120,7 +120,7 @@ struct aws_cryptosdk_cmm *setup_cmm(struct aws_allocator *alloc, const char *key
     struct aws_cryptosdk_cmm *default_cmm = aws_cryptosdk_default_cmm_new(alloc, kms_keyring);
     if (!default_cmm) error("default_cmm constructor");
 
-    struct aws_cryptosdk_mat_cache *cache = aws_cryptosdk_mat_cache_local_new(alloc, 8);
+    struct aws_cryptosdk_materials_cache *cache = aws_cryptosdk_materials_cache_local_new(alloc, 8);
     if (!cache) error("local cache constructor");
 
     struct aws_cryptosdk_cmm *caching_cmm = aws_cryptosdk_caching_cmm_new(alloc, cache, default_cmm, NULL);
@@ -131,7 +131,7 @@ struct aws_cryptosdk_cmm *setup_cmm(struct aws_allocator *alloc, const char *key
     // eventually release the caching_cmm itself.
     aws_cryptosdk_keyring_release(kms_keyring);
     aws_cryptosdk_cmm_release(default_cmm);
-    aws_cryptosdk_mat_cache_release(cache);
+    aws_cryptosdk_materials_cache_release(cache);
 
     return caching_cmm;
 }

@@ -63,7 +63,7 @@
 // Total running time, in milliseconds
 #define RUN_TIME_MS 60000
 
-static struct aws_cryptosdk_mat_cache *mat_cache;
+static struct aws_cryptosdk_materials_cache *materials_cache;
 static struct aws_atomic_var stop_flag;
 
 static struct aws_cryptosdk_enc_materials *expected_enc_mats[N_ENC_ENTRIES];
@@ -133,14 +133,15 @@ static void init_random(struct rand_state *state) {
     } while (state->state >= RNG_MODULUS || !state->state);
 }
 
-static struct aws_cryptosdk_mat_cache_entry *do_enc_operation(uint32_t entry_id, struct aws_hash_table *empty_table) {
+static struct aws_cryptosdk_materials_cache_entry *do_enc_operation(
+    uint32_t entry_id, struct aws_hash_table *empty_table) {
     char buf[256];
     struct aws_byte_buf cache_id = aws_byte_buf_from_array((uint8_t *)buf, sizeof(buf));
     cache_id.len                 = sprintf(buf, "ENC ENTRY %u", (unsigned int)entry_id);
 
-    struct aws_cryptosdk_mat_cache_entry *entry;
+    struct aws_cryptosdk_materials_cache_entry *entry;
     bool is_encrypt;
-    if (aws_cryptosdk_mat_cache_find_entry(mat_cache, &entry, &is_encrypt, &cache_id)) {
+    if (aws_cryptosdk_materials_cache_find_entry(materials_cache, &entry, &is_encrypt, &cache_id)) {
         abort();
     }
     if (entry && !is_encrypt) {
@@ -150,8 +151,8 @@ static struct aws_cryptosdk_mat_cache_entry *do_enc_operation(uint32_t entry_id,
     struct aws_cryptosdk_enc_materials *materials;
 
     if (entry) {
-        if (aws_cryptosdk_mat_cache_get_enc_materials(
-                mat_cache, aws_default_allocator(), &materials, empty_table, entry)) {
+        if (aws_cryptosdk_materials_cache_get_enc_materials(
+                materials_cache, aws_default_allocator(), &materials, empty_table, entry)) {
             // Could have been a race with an invalidation, so ignore
         } else {
             if (!materials_eq(expected_enc_mats[entry_id], materials)) {
@@ -162,8 +163,8 @@ static struct aws_cryptosdk_mat_cache_entry *do_enc_operation(uint32_t entry_id,
         }
     } else {
         struct aws_cryptosdk_cache_usage_stats initial_usage = { 0 };
-        aws_cryptosdk_mat_cache_put_entry_for_encrypt(
-            mat_cache, &entry, expected_enc_mats[entry_id], initial_usage, empty_table, &cache_id);
+        aws_cryptosdk_materials_cache_put_entry_for_encrypt(
+            materials_cache, &entry, expected_enc_mats[entry_id], initial_usage, empty_table, &cache_id);
 
         if (!entry) {
             abort();
@@ -173,15 +174,16 @@ static struct aws_cryptosdk_mat_cache_entry *do_enc_operation(uint32_t entry_id,
     return entry;
 }
 
-static struct aws_cryptosdk_mat_cache_entry *do_dec_operation(uint32_t entry_id, struct aws_hash_table *empty_table) {
+static struct aws_cryptosdk_materials_cache_entry *do_dec_operation(
+    uint32_t entry_id, struct aws_hash_table *empty_table) {
     char buf[256];
     struct aws_byte_buf cache_id = aws_byte_buf_from_array((uint8_t *)buf, sizeof(buf));
     cache_id.len                 = sprintf(buf, "DEC ENTRY %u", (unsigned int)entry_id);
 
-    struct aws_cryptosdk_mat_cache_entry *entry;
+    struct aws_cryptosdk_materials_cache_entry *entry;
     bool is_encrypt;
 
-    if (aws_cryptosdk_mat_cache_find_entry(mat_cache, &entry, &is_encrypt, &cache_id)) {
+    if (aws_cryptosdk_materials_cache_find_entry(materials_cache, &entry, &is_encrypt, &cache_id)) {
         abort();
     }
 
@@ -191,7 +193,8 @@ static struct aws_cryptosdk_mat_cache_entry *do_dec_operation(uint32_t entry_id,
 
     if (entry) {
         struct aws_cryptosdk_dec_materials *materials;
-        if (aws_cryptosdk_mat_cache_get_dec_materials(mat_cache, aws_default_allocator(), &materials, entry)) {
+        if (aws_cryptosdk_materials_cache_get_dec_materials(
+                materials_cache, aws_default_allocator(), &materials, entry)) {
             // Could be a race with invalidate, ignore
         } else {
             if (!dec_materials_eq(materials, expected_dec_mats[entry_id])) {
@@ -200,7 +203,8 @@ static struct aws_cryptosdk_mat_cache_entry *do_dec_operation(uint32_t entry_id,
             aws_cryptosdk_dec_materials_destroy(materials);
         }
     } else {
-        aws_cryptosdk_mat_cache_put_entry_for_decrypt(mat_cache, &entry, expected_dec_mats[entry_id], &cache_id);
+        aws_cryptosdk_materials_cache_put_entry_for_decrypt(
+            materials_cache, &entry, expected_dec_mats[entry_id], &cache_id);
 
         if (!entry) {
             abort();
@@ -219,7 +223,7 @@ static void do_one_operation(struct rand_state *state, struct aws_hash_table *em
 
     uint32_t op_probability = get_random(state);
 
-    struct aws_cryptosdk_mat_cache_entry *entry;
+    struct aws_cryptosdk_materials_cache_entry *entry;
 
     if (entry_id < N_ENC_ENTRIES) {
         entry = do_enc_operation(entry_id, empty_table);
@@ -228,15 +232,15 @@ static void do_one_operation(struct rand_state *state, struct aws_hash_table *em
     }
 
     if (op_probability < P_INT_INVALIDATE) {
-        aws_cryptosdk_mat_cache_entry_release(mat_cache, entry, true);
+        aws_cryptosdk_materials_cache_entry_release(materials_cache, entry, true);
     } else {
         if (op_probability < P_INT_UPDATE_TTL) {
             // This might be above or below any prior TTL value
             uint64_t new_expiry = ((uint64_t)get_random(state) << 31) | get_random(state);
-            aws_cryptosdk_mat_cache_entry_ttl_hint(mat_cache, entry, new_expiry);
+            aws_cryptosdk_materials_cache_entry_ttl_hint(materials_cache, entry, new_expiry);
         }
 
-        aws_cryptosdk_mat_cache_entry_release(mat_cache, entry, false);
+        aws_cryptosdk_materials_cache_entry_release(materials_cache, entry, false);
     }
 
     aws_hash_table_clear(empty_table);
@@ -259,7 +263,7 @@ static void thread_fn(void *ignored) {
 }
 
 static void setup() {
-    mat_cache = aws_cryptosdk_mat_cache_local_new(aws_default_allocator(), CACHE_SIZE);
+    materials_cache = aws_cryptosdk_materials_cache_local_new(aws_default_allocator(), CACHE_SIZE);
 
     for (int i = 0; i < N_ENC_ENTRIES; i++) {
         gen_enc_materials(aws_default_allocator(), &expected_enc_mats[i], i, ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256, 1);
@@ -283,7 +287,7 @@ static void setup() {
 }
 
 static void teardown() {
-    aws_cryptosdk_mat_cache_release(mat_cache);
+    aws_cryptosdk_materials_cache_release(materials_cache);
 
     for (int i = 0; i < N_ENC_ENTRIES; i++) {
         aws_cryptosdk_enc_materials_destroy(expected_enc_mats[i]);

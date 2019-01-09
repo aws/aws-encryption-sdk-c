@@ -136,77 +136,78 @@ bool same_signing_key(struct aws_cryptosdk_signctx *a, struct aws_cryptosdk_sign
 /*** Mock materials cache ***/
 
 static int mock_find_entry(
-    struct aws_cryptosdk_mat_cache *cache,
-    struct aws_cryptosdk_mat_cache_entry **entry,
+    struct aws_cryptosdk_materials_cache *cache,
+    struct aws_cryptosdk_materials_cache_entry **entry,
     bool *is_encrypt,
     const struct aws_byte_buf *cache_id);
 static int mock_update_usage_stats(
-    struct aws_cryptosdk_mat_cache *cache,
-    struct aws_cryptosdk_mat_cache_entry *entry,
+    struct aws_cryptosdk_materials_cache *cache,
+    struct aws_cryptosdk_materials_cache_entry *entry,
     struct aws_cryptosdk_cache_usage_stats *usage_stats);
 static int mock_get_enc_materials(
-    struct aws_cryptosdk_mat_cache *cache,
+    struct aws_cryptosdk_materials_cache *cache,
     struct aws_allocator *allocator,
     struct aws_cryptosdk_enc_materials **materials,
     struct aws_hash_table *enc_ctx,
-    struct aws_cryptosdk_mat_cache_entry *entry);
+    struct aws_cryptosdk_materials_cache_entry *entry);
 static int mock_get_dec_materials(
-    const struct aws_cryptosdk_mat_cache *cache,
+    const struct aws_cryptosdk_materials_cache *cache,
     struct aws_allocator *allocator,
     struct aws_cryptosdk_dec_materials **materials,
-    const struct aws_cryptosdk_mat_cache_entry *entry);
+    const struct aws_cryptosdk_materials_cache_entry *entry);
 static void mock_put_entry_for_encrypt(
-    struct aws_cryptosdk_mat_cache *cache,
-    struct aws_cryptosdk_mat_cache_entry **entry,
+    struct aws_cryptosdk_materials_cache *cache,
+    struct aws_cryptosdk_materials_cache_entry **entry,
     const struct aws_cryptosdk_enc_materials *enc_materials,
     struct aws_cryptosdk_cache_usage_stats initial_usage,
     const struct aws_hash_table *enc_ctx,
     const struct aws_byte_buf *cache_id);
 static void mock_put_entry_for_decrypt(
-    struct aws_cryptosdk_mat_cache *cache,
-    struct aws_cryptosdk_mat_cache_entry **entry,
+    struct aws_cryptosdk_materials_cache *cache,
+    struct aws_cryptosdk_materials_cache_entry **entry,
     const struct aws_cryptosdk_dec_materials *dec_materials,
     const struct aws_byte_buf *cache_id);
 
-static void mock_mat_cache_destroy(struct aws_cryptosdk_mat_cache *cache);
+static void mock_materials_cache_destroy(struct aws_cryptosdk_materials_cache *cache);
 static void mock_entry_release(
-    struct aws_cryptosdk_mat_cache *cache, struct aws_cryptosdk_mat_cache_entry *entry, bool invalidate);
+    struct aws_cryptosdk_materials_cache *cache, struct aws_cryptosdk_materials_cache_entry *entry, bool invalidate);
 static uint64_t mock_entry_ctime(
-    const struct aws_cryptosdk_mat_cache *cache, const struct aws_cryptosdk_mat_cache_entry *entry);
+    const struct aws_cryptosdk_materials_cache *cache, const struct aws_cryptosdk_materials_cache_entry *entry);
 static void mock_entry_ttl_hint(
-    struct aws_cryptosdk_mat_cache *cache, struct aws_cryptosdk_mat_cache_entry *entry, uint64_t exp_time);
+    struct aws_cryptosdk_materials_cache *cache, struct aws_cryptosdk_materials_cache_entry *entry, uint64_t exp_time);
 
-const static struct aws_cryptosdk_mat_cache_vt mock_vt = { .vt_size                 = sizeof(mock_vt),
-                                                           .name                    = "Mock materials cache",
-                                                           .find_entry              = mock_find_entry,
-                                                           .update_usage_stats      = mock_update_usage_stats,
-                                                           .get_enc_materials       = mock_get_enc_materials,
-                                                           .get_dec_materials       = mock_get_dec_materials,
-                                                           .put_entry_for_encrypt   = mock_put_entry_for_encrypt,
-                                                           .put_entry_for_decrypt   = mock_put_entry_for_decrypt,
-                                                           .destroy                 = mock_mat_cache_destroy,
-                                                           .entry_release           = mock_entry_release,
-                                                           .entry_get_creation_time = mock_entry_ctime,
-                                                           .entry_ttl_hint          = mock_entry_ttl_hint };
+const static struct aws_cryptosdk_materials_cache_vt mock_vt = { .vt_size               = sizeof(mock_vt),
+                                                                 .name                  = "Mock materials cache",
+                                                                 .find_entry            = mock_find_entry,
+                                                                 .update_usage_stats    = mock_update_usage_stats,
+                                                                 .get_enc_materials     = mock_get_enc_materials,
+                                                                 .get_dec_materials     = mock_get_dec_materials,
+                                                                 .put_entry_for_encrypt = mock_put_entry_for_encrypt,
+                                                                 .put_entry_for_decrypt = mock_put_entry_for_decrypt,
+                                                                 .destroy               = mock_materials_cache_destroy,
+                                                                 .entry_release         = mock_entry_release,
+                                                                 .entry_get_creation_time = mock_entry_ctime,
+                                                                 .entry_ttl_hint          = mock_entry_ttl_hint };
 
-static void check_entry_ptr(const struct mock_mat_cache *cache, const struct aws_cryptosdk_mat_cache_entry *entry) {
+static void check_entry_ptr(
+    const struct mock_materials_cache *cache, const struct aws_cryptosdk_materials_cache_entry *entry) {
     if (!cache->entry_refcount) {
-        fprintf(stderr, "\n mock_mat_cache entry refcount underflow\n");
+        fprintf(stderr, "\n mock_materials_cache entry refcount underflow\n");
         abort();
     }
 
     if (entry != (void *)&cache->entry_marker) {
         fprintf(
             stderr,
-            "\n mock_mat_cache entry ptr mismatch; expected %p got %p\n",
+            "\n mock_materials_cache entry ptr mismatch; expected %p got %p\n",
             (void *)&cache->entry_marker,
             (void *)entry);
         abort();
     }
 }
 
-static void mock_mat_cache_destroy(struct aws_cryptosdk_mat_cache *generic_cache) {
-    struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
+static void mock_materials_cache_destroy(struct aws_cryptosdk_materials_cache *generic_cache) {
+    struct mock_materials_cache *cache = (struct mock_materials_cache *)generic_cache;
 
     aws_cryptosdk_enc_materials_destroy(cache->enc_materials);
     aws_cryptosdk_dec_materials_destroy(cache->dec_materials);
@@ -216,25 +217,25 @@ static void mock_mat_cache_destroy(struct aws_cryptosdk_mat_cache *generic_cache
     aws_mem_release(cache->alloc, cache);
 }
 
-struct mock_mat_cache *mock_mat_cache_new(struct aws_allocator *alloc) {
-    struct mock_mat_cache *cache = aws_mem_acquire(alloc, sizeof(*cache));
+struct mock_materials_cache *mock_materials_cache_new(struct aws_allocator *alloc) {
+    struct mock_materials_cache *cache = aws_mem_acquire(alloc, sizeof(*cache));
     if (!cache) abort();
 
     memset(cache, 0, sizeof(*cache));
     cache->alloc = alloc;
 
-    aws_cryptosdk_mat_cache_base_init(&cache->base, &mock_vt);
+    aws_cryptosdk_materials_cache_base_init(&cache->base, &mock_vt);
     if (aws_cryptosdk_enc_ctx_init(alloc, &cache->encryption_context)) abort();
 
     return cache;
 }
 
 static int mock_find_entry(
-    struct aws_cryptosdk_mat_cache *generic_cache,
-    struct aws_cryptosdk_mat_cache_entry **entry,
+    struct aws_cryptosdk_materials_cache *generic_cache,
+    struct aws_cryptosdk_materials_cache_entry **entry,
     bool *is_encrypt,
     const struct aws_byte_buf *cache_id) {
-    struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
+    struct mock_materials_cache *cache = (struct mock_materials_cache *)generic_cache;
 
     aws_byte_buf_clean_up(&cache->last_cache_id);
     if (aws_byte_buf_init_copy(&cache->last_cache_id, cache->alloc, cache_id)) abort();
@@ -250,17 +251,17 @@ static int mock_find_entry(
     }
 
     *is_encrypt = !!cache->enc_materials;
-    *entry      = (struct aws_cryptosdk_mat_cache_entry *)&cache->entry_marker;
+    *entry      = (struct aws_cryptosdk_materials_cache_entry *)&cache->entry_marker;
     cache->entry_refcount++;
 
     return AWS_OP_SUCCESS;
 }
 
 static int mock_update_usage_stats(
-    struct aws_cryptosdk_mat_cache *generic_cache,
-    struct aws_cryptosdk_mat_cache_entry *entry,
+    struct aws_cryptosdk_materials_cache *generic_cache,
+    struct aws_cryptosdk_materials_cache_entry *entry,
     struct aws_cryptosdk_cache_usage_stats *usage_stats) {
-    struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
+    struct mock_materials_cache *cache = (struct mock_materials_cache *)generic_cache;
 
     check_entry_ptr(cache, entry);
 
@@ -302,12 +303,12 @@ static struct aws_cryptosdk_enc_materials *clone_enc_materials(
 }
 
 static int mock_get_enc_materials(
-    struct aws_cryptosdk_mat_cache *generic_cache,
+    struct aws_cryptosdk_materials_cache *generic_cache,
     struct aws_allocator *allocator,
     struct aws_cryptosdk_enc_materials **materials,
     struct aws_hash_table *enc_ctx,
-    struct aws_cryptosdk_mat_cache_entry *entry) {
-    struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
+    struct aws_cryptosdk_materials_cache_entry *entry) {
+    struct mock_materials_cache *cache = (struct mock_materials_cache *)generic_cache;
 
     check_entry_ptr(cache, entry);
 
@@ -361,11 +362,11 @@ static struct aws_cryptosdk_dec_materials *clone_dec_materials(
 }
 
 static int mock_get_dec_materials(
-    const struct aws_cryptosdk_mat_cache *generic_cache,
+    const struct aws_cryptosdk_materials_cache *generic_cache,
     struct aws_allocator *allocator,
     struct aws_cryptosdk_dec_materials **materials,
-    const struct aws_cryptosdk_mat_cache_entry *entry) {
-    const struct mock_mat_cache *cache = (const struct mock_mat_cache *)generic_cache;
+    const struct aws_cryptosdk_materials_cache_entry *entry) {
+    const struct mock_materials_cache *cache = (const struct mock_materials_cache *)generic_cache;
 
     check_entry_ptr(cache, entry);
 
@@ -385,13 +386,13 @@ static int mock_get_dec_materials(
 }
 
 static void mock_put_entry_for_encrypt(
-    struct aws_cryptosdk_mat_cache *generic_cache,
-    struct aws_cryptosdk_mat_cache_entry **entry,
+    struct aws_cryptosdk_materials_cache *generic_cache,
+    struct aws_cryptosdk_materials_cache_entry **entry,
     const struct aws_cryptosdk_enc_materials *enc_materials,
     struct aws_cryptosdk_cache_usage_stats initial_usage,
     const struct aws_hash_table *enc_ctx,
     const struct aws_byte_buf *cache_id) {
-    struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
+    struct mock_materials_cache *cache = (struct mock_materials_cache *)generic_cache;
 
     aws_byte_buf_clean_up(&cache->last_cache_id);
     if (aws_byte_buf_init_copy(&cache->last_cache_id, cache->alloc, cache_id)) abort();
@@ -412,16 +413,16 @@ static void mock_put_entry_for_encrypt(
     if (!cache->enc_materials) abort();
 
     cache->usage_stats = initial_usage;
-    *entry             = (struct aws_cryptosdk_mat_cache_entry *)&cache->entry_marker;
+    *entry             = (struct aws_cryptosdk_materials_cache_entry *)&cache->entry_marker;
     cache->entry_refcount++;
 }
 
 static void mock_put_entry_for_decrypt(
-    struct aws_cryptosdk_mat_cache *generic_cache,
-    struct aws_cryptosdk_mat_cache_entry **entry,
+    struct aws_cryptosdk_materials_cache *generic_cache,
+    struct aws_cryptosdk_materials_cache_entry **entry,
     const struct aws_cryptosdk_dec_materials *dec_materials,
     const struct aws_byte_buf *cache_id) {
-    struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
+    struct mock_materials_cache *cache = (struct mock_materials_cache *)generic_cache;
 
     aws_byte_buf_clean_up(&cache->last_cache_id);
     if (aws_byte_buf_init_copy(&cache->last_cache_id, cache->alloc, cache_id)) abort();
@@ -440,13 +441,15 @@ static void mock_put_entry_for_decrypt(
     cache->dec_materials = clone_dec_materials(cache->alloc, dec_materials);
     if (!cache->dec_materials) abort();
 
-    *entry = (struct aws_cryptosdk_mat_cache_entry *)&cache->entry_marker;
+    *entry = (struct aws_cryptosdk_materials_cache_entry *)&cache->entry_marker;
     cache->entry_refcount++;
 }
 
 static void mock_entry_release(
-    struct aws_cryptosdk_mat_cache *generic_cache, struct aws_cryptosdk_mat_cache_entry *entry, bool invalidate) {
-    struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
+    struct aws_cryptosdk_materials_cache *generic_cache,
+    struct aws_cryptosdk_materials_cache_entry *entry,
+    bool invalidate) {
+    struct mock_materials_cache *cache = (struct mock_materials_cache *)generic_cache;
 
     check_entry_ptr(cache, entry);
 
@@ -455,8 +458,9 @@ static void mock_entry_release(
 }
 
 static uint64_t mock_entry_ctime(
-    const struct aws_cryptosdk_mat_cache *generic_cache, const struct aws_cryptosdk_mat_cache_entry *entry) {
-    struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
+    const struct aws_cryptosdk_materials_cache *generic_cache,
+    const struct aws_cryptosdk_materials_cache_entry *entry) {
+    struct mock_materials_cache *cache = (struct mock_materials_cache *)generic_cache;
 
     check_entry_ptr(cache, entry);
 
@@ -464,8 +468,10 @@ static uint64_t mock_entry_ctime(
 }
 
 static void mock_entry_ttl_hint(
-    struct aws_cryptosdk_mat_cache *generic_cache, struct aws_cryptosdk_mat_cache_entry *entry, uint64_t exp_time) {
-    struct mock_mat_cache *cache = (struct mock_mat_cache *)generic_cache;
+    struct aws_cryptosdk_materials_cache *generic_cache,
+    struct aws_cryptosdk_materials_cache_entry *entry,
+    uint64_t exp_time) {
+    struct mock_materials_cache *cache = (struct mock_materials_cache *)generic_cache;
 
     check_entry_ptr(cache, entry);
 

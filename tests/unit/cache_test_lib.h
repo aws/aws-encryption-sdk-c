@@ -32,8 +32,8 @@
  * actual materials, the appropriate fields from the mock cache will be
  * returned and/or updated.
  */
-struct mock_mat_cache {
-    struct aws_cryptosdk_mat_cache base;
+struct mock_materials_cache {
+    struct aws_cryptosdk_materials_cache base;
     struct aws_allocator *alloc;
 
     /*
@@ -120,7 +120,7 @@ bool materials_eq(const struct aws_cryptosdk_enc_materials *a, const struct aws_
 bool same_signing_key(struct aws_cryptosdk_signctx *a, struct aws_cryptosdk_signctx *b);
 bool dec_materials_eq(const struct aws_cryptosdk_dec_materials *a, const struct aws_cryptosdk_dec_materials *b);
 
-struct mock_mat_cache *mock_mat_cache_new(struct aws_allocator *alloc);
+struct mock_materials_cache *mock_materials_cache_new(struct aws_allocator *alloc);
 struct mock_upstream_cmm *mock_upstream_cmm_new(struct aws_allocator *alloc);
 
 #endif
