@@ -16,10 +16,12 @@ SHELL=/bin/bash
 default: report
 
 ################################################################
+# Helper-inc must go first, so it can override other includes.
 INC += \
-	-I$(SRCDIR)/c-common-inc \
+	-I$(SRCDIR)/helper-inc \
 	-I$(SRCDIR)/c-enc-sdk-inc \
-	-I$(SRCDIR)/helper-inc 
+	-I$(SRCDIR)/c-common-inc 
+	 
 
 DEF += -DCBMC=1
 
