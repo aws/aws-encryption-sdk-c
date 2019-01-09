@@ -29,15 +29,15 @@ struct default_cmm {
     const struct aws_cryptosdk_alg_properties *alg_props;
 };
 
-static int default_cmm_generate_encryption_materials(
+static int default_cmm_generate_enc_materials(
     struct aws_cryptosdk_cmm *cmm,
-    struct aws_cryptosdk_encryption_materials **output,
-    struct aws_cryptosdk_encryption_request *request) {
-    struct aws_cryptosdk_encryption_materials *enc_mat = NULL;
-    struct default_cmm *self                           = (struct default_cmm *)cmm;
-    const struct aws_cryptosdk_alg_properties *props   = self->alg_props;
-    struct aws_hash_element *pElement                  = NULL;
-    *output                                            = NULL;
+    struct aws_cryptosdk_enc_materials **output,
+    struct aws_cryptosdk_enc_request *request) {
+    struct aws_cryptosdk_enc_materials *enc_mat      = NULL;
+    struct default_cmm *self                         = (struct default_cmm *)cmm;
+    const struct aws_cryptosdk_alg_properties *props = self->alg_props;
+    struct aws_hash_element *pElement                = NULL;
+    *output                                          = NULL;
 
     aws_hash_table_find(request->enc_ctx, EC_PUBLIC_KEY_FIELD, &pElement);
     if (pElement) {
@@ -48,7 +48,7 @@ static int default_cmm_generate_encryption_materials(
         request->requested_alg = props->alg_id;
     }
 
-    enc_mat = aws_cryptosdk_encryption_materials_new(request->alloc, request->requested_alg);
+    enc_mat = aws_cryptosdk_enc_materials_new(request->alloc, request->requested_alg);
     if (!enc_mat) goto err;
 
     if (props->signature_len) {
@@ -77,18 +77,18 @@ static int default_cmm_generate_encryption_materials(
     return AWS_OP_SUCCESS;
 
 err:
-    aws_cryptosdk_encryption_materials_destroy(enc_mat);
+    aws_cryptosdk_enc_materials_destroy(enc_mat);
     return AWS_OP_ERR;
 }
 
 static int default_cmm_decrypt_materials(
     struct aws_cryptosdk_cmm *cmm,
-    struct aws_cryptosdk_decryption_materials **output,
-    struct aws_cryptosdk_decryption_request *request) {
-    struct aws_cryptosdk_decryption_materials *dec_mat;
+    struct aws_cryptosdk_dec_materials **output,
+    struct aws_cryptosdk_dec_request *request) {
+    struct aws_cryptosdk_dec_materials *dec_mat;
     struct default_cmm *self = (struct default_cmm *)cmm;
 
-    dec_mat = aws_cryptosdk_decryption_materials_new(request->alloc, request->alg);
+    dec_mat = aws_cryptosdk_dec_materials_new(request->alloc, request->alg);
     if (!dec_mat) goto err;
 
     if (aws_cryptosdk_keyring_on_decrypt(
@@ -125,7 +125,7 @@ static int default_cmm_decrypt_materials(
 
 err:
     *output = NULL;
-    aws_cryptosdk_decryption_materials_destroy(dec_mat);
+    aws_cryptosdk_dec_materials_destroy(dec_mat);
     return AWS_OP_ERR;
 }
 
@@ -138,8 +138,8 @@ static void default_cmm_destroy(struct aws_cryptosdk_cmm *cmm) {
 static const struct aws_cryptosdk_cmm_vt default_cmm_vt = { .vt_size = sizeof(struct aws_cryptosdk_cmm_vt),
                                                             .name    = "default cmm",
                                                             .destroy = default_cmm_destroy,
-                                                            .generate_encryption_materials =
-                                                                default_cmm_generate_encryption_materials,
+                                                            .generate_enc_materials =
+                                                                default_cmm_generate_enc_materials,
                                                             .decrypt_materials = default_cmm_decrypt_materials };
 
 struct aws_cryptosdk_cmm *aws_cryptosdk_default_cmm_new(struct aws_allocator *alloc, struct aws_cryptosdk_keyring *kr) {

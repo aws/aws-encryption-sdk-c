@@ -27,7 +27,7 @@
 #include <aws/cryptosdk/private/session.h>
 #include <aws/cryptosdk/session.h>
 
-static int build_header(struct aws_cryptosdk_session *session, struct aws_cryptosdk_encryption_materials *materials);
+static int build_header(struct aws_cryptosdk_session *session, struct aws_cryptosdk_enc_materials *materials);
 static int sign_header(struct aws_cryptosdk_session *session);
 
 /* Session encrypt path routines */
@@ -48,8 +48,8 @@ void aws_cryptosdk_priv_encrypt_compute_body_estimate(struct aws_cryptosdk_sessi
 }
 
 int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
-    struct aws_cryptosdk_encryption_request request;
-    struct aws_cryptosdk_encryption_materials *materials = NULL;
+    struct aws_cryptosdk_enc_request request;
+    struct aws_cryptosdk_enc_materials *materials = NULL;
     struct data_key data_key;
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
 
@@ -59,7 +59,7 @@ int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
     request.requested_alg  = 0;
     request.plaintext_size = session->precise_size_known ? session->precise_size : UINT64_MAX;
 
-    if (aws_cryptosdk_cmm_generate_encryption_materials(session->cmm, &materials, &request)) {
+    if (aws_cryptosdk_cmm_generate_enc_materials(session->cmm, &materials, &request)) {
         goto rethrow;
     }
 
@@ -109,7 +109,7 @@ rethrow:
 cleanup:
     if (materials) {
         aws_byte_buf_secure_zero(&materials->unencrypted_data_key);
-        aws_cryptosdk_encryption_materials_destroy(materials);
+        aws_cryptosdk_enc_materials_destroy(materials);
     }
 
     aws_secure_zero(&data_key, sizeof(data_key));
@@ -117,7 +117,7 @@ cleanup:
     return result;
 }
 
-static int build_header(struct aws_cryptosdk_session *session, struct aws_cryptosdk_encryption_materials *materials) {
+static int build_header(struct aws_cryptosdk_session *session, struct aws_cryptosdk_enc_materials *materials) {
     session->header.alg_id = session->alg_props->alg_id;
     if (session->frame_size > UINT32_MAX) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);

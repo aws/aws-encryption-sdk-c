@@ -167,10 +167,10 @@ struct aws_cryptosdk_mat_cache_vt {
      * This function will always fail if called on cached decryption materials. It MAY fail
      * when called on an invalidated entry, but this is not guaranteed.
      */
-    int (*get_encryption_materials)(
+    int (*get_enc_materials)(
         struct aws_cryptosdk_mat_cache *cache,
         struct aws_allocator *allocator,
-        struct aws_cryptosdk_encryption_materials **materials,
+        struct aws_cryptosdk_enc_materials **materials,
         struct aws_hash_table *enc_ctx,
         struct aws_cryptosdk_mat_cache_entry *entry);
 
@@ -185,14 +185,14 @@ struct aws_cryptosdk_mat_cache_vt {
      * This function will always fail if called on cached encryption materials. It MAY fail
      * when called on an invalidated entry, but this is not guaranteed.
      */
-    int (*get_decryption_materials)(
+    int (*get_dec_materials)(
         const struct aws_cryptosdk_mat_cache *cache,
         struct aws_allocator *allocator,
-        struct aws_cryptosdk_decryption_materials **materials,
+        struct aws_cryptosdk_dec_materials **materials,
         const struct aws_cryptosdk_mat_cache_entry *entry);
 
     /**
-     * Attempts to put a copy of *encryption_materials into the cache, under the
+     * Attempts to put a copy of *enc_materials into the cache, under the
      * given cache ID, and with the specified initial usage.
      *
      * If this method fails for any reason, the entry is simply not added to the cache,
@@ -202,7 +202,7 @@ struct aws_cryptosdk_mat_cache_vt {
      * @param cache The cache to insert into
      * @param entry Out-parameter which receives a handle to the created cache entry.
      *                On failure, *entry will be set to NULL.
-     * @param encryption_materials The encryption materials to insert; a copy will be
+     * @param enc_materials The encryption materials to insert; a copy will be
      * made using the cache's allocator
      * @param initial_usage The usage stats to initially record against this cache entry
      * @param enc_ctx The encryption context associated with the cache entry;
@@ -212,13 +212,13 @@ struct aws_cryptosdk_mat_cache_vt {
     void (*put_entry_for_encrypt)(
         struct aws_cryptosdk_mat_cache *cache,
         struct aws_cryptosdk_mat_cache_entry **entry,
-        const struct aws_cryptosdk_encryption_materials *encryption_materials,
+        const struct aws_cryptosdk_enc_materials *enc_materials,
         struct aws_cryptosdk_cache_usage_stats initial_usage,
         const struct aws_hash_table *enc_ctx,
         const struct aws_byte_buf *cache_id);
 
     /**
-     * Attempts to put a copy of *decryption_materials into the cache, under the
+     * Attempts to put a copy of *dec_materials into the cache, under the
      * given cache ID.
      *
      * If this method fails for any reason, the entry is simply not added to the cache,
@@ -228,13 +228,13 @@ struct aws_cryptosdk_mat_cache_vt {
      * @param cache The cache to insert into
      * @param entry Out-parameter that receives the cache entry, if found
      * @param cache_id The cache identifier to insert into
-     * @param decryption_materials The encryption materials to insert; a copy will be
+     * @param dec_materials The encryption materials to insert; a copy will be
      * made using the cache's allocator
      */
     void (*put_entry_for_decrypt)(
         struct aws_cryptosdk_mat_cache *cache,
         struct aws_cryptosdk_mat_cache_entry **entry,
-        const struct aws_cryptosdk_decryption_materials *decryption_materials,
+        const struct aws_cryptosdk_dec_materials *dec_materials,
         const struct aws_byte_buf *cache_id);
 
     /**
@@ -317,68 +317,67 @@ int aws_cryptosdk_mat_cache_update_usage_stats(
 }
 
 AWS_CRYPTOSDK_STATIC_INLINE
-int aws_cryptosdk_mat_cache_get_encryption_materials(
+int aws_cryptosdk_mat_cache_get_enc_materials(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_allocator *allocator,
-    struct aws_cryptosdk_encryption_materials **materials,
+    struct aws_cryptosdk_enc_materials **materials,
     struct aws_hash_table *enc_ctx,
     struct aws_cryptosdk_mat_cache_entry *entry) {
-    int (*get_encryption_materials)(
+    int (*get_enc_materials)(
         struct aws_cryptosdk_mat_cache * cache,
         struct aws_allocator * allocator,
-        struct aws_cryptosdk_encryption_materials * *materials,
+        struct aws_cryptosdk_enc_materials * *materials,
         struct aws_hash_table * enc_ctx,
-        struct aws_cryptosdk_mat_cache_entry * entry) =
-        AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, get_encryption_materials);
+        struct aws_cryptosdk_mat_cache_entry * entry) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, get_enc_materials);
 
     *materials = NULL;
-    if (!get_encryption_materials) {
+    if (!get_enc_materials) {
         return aws_raise_error(AWS_ERROR_UNSUPPORTED_OPERATION);
     }
 
-    return get_encryption_materials(cache, allocator, materials, enc_ctx, entry);
+    return get_enc_materials(cache, allocator, materials, enc_ctx, entry);
 }
 
 AWS_CRYPTOSDK_STATIC_INLINE
-int aws_cryptosdk_mat_cache_get_decryption_materials(
+int aws_cryptosdk_mat_cache_get_dec_materials(
     const struct aws_cryptosdk_mat_cache *cache,
     struct aws_allocator *allocator,
-    struct aws_cryptosdk_decryption_materials **materials,
+    struct aws_cryptosdk_dec_materials **materials,
     const struct aws_cryptosdk_mat_cache_entry *entry) {
-    int (*get_decryption_materials)(
+    int (*get_dec_materials)(
         const struct aws_cryptosdk_mat_cache *cache,
         struct aws_allocator *allocator,
-        struct aws_cryptosdk_decryption_materials **materials,
+        struct aws_cryptosdk_dec_materials **materials,
         const struct aws_cryptosdk_mat_cache_entry *entry) =
-        AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, get_decryption_materials);
+        AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, get_dec_materials);
 
     *materials = NULL;
-    if (!get_decryption_materials) {
+    if (!get_dec_materials) {
         return aws_raise_error(AWS_ERROR_UNSUPPORTED_OPERATION);
     }
 
-    return get_decryption_materials(cache, allocator, materials, entry);
+    return get_dec_materials(cache, allocator, materials, entry);
 }
 
 AWS_CRYPTOSDK_STATIC_INLINE
 void aws_cryptosdk_mat_cache_put_entry_for_encrypt(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_cryptosdk_mat_cache_entry **entry,
-    const struct aws_cryptosdk_encryption_materials *encryption_materials,
+    const struct aws_cryptosdk_enc_materials *enc_materials,
     struct aws_cryptosdk_cache_usage_stats initial_usage,
     const struct aws_hash_table *enc_ctx,
     const struct aws_byte_buf *cache_id) {
     void (*put_entry_for_encrypt)(
         struct aws_cryptosdk_mat_cache * cache,
         struct aws_cryptosdk_mat_cache_entry * *entry,
-        const struct aws_cryptosdk_encryption_materials *encryption_materials,
+        const struct aws_cryptosdk_enc_materials *enc_materials,
         struct aws_cryptosdk_cache_usage_stats initial_usage,
         const struct aws_hash_table *enc_ctx,
         const struct aws_byte_buf *cache_id) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, put_entry_for_encrypt);
 
     *entry = NULL;
     if (put_entry_for_encrypt) {
-        put_entry_for_encrypt(cache, entry, encryption_materials, initial_usage, enc_ctx, cache_id);
+        put_entry_for_encrypt(cache, entry, enc_materials, initial_usage, enc_ctx, cache_id);
     }
 }
 
@@ -386,17 +385,17 @@ AWS_CRYPTOSDK_STATIC_INLINE
 void aws_cryptosdk_mat_cache_put_entry_for_decrypt(
     struct aws_cryptosdk_mat_cache *cache,
     struct aws_cryptosdk_mat_cache_entry **entry,
-    const struct aws_cryptosdk_decryption_materials *decryption_materials,
+    const struct aws_cryptosdk_dec_materials *dec_materials,
     const struct aws_byte_buf *cache_id) {
     void (*put_entry_for_decrypt)(
         struct aws_cryptosdk_mat_cache * cache,
         struct aws_cryptosdk_mat_cache_entry * *entry,
-        const struct aws_cryptosdk_decryption_materials *decryption_materials,
+        const struct aws_cryptosdk_dec_materials *dec_materials,
         const struct aws_byte_buf *cache_id) = AWS_CRYPTOSDK_PRIVATE_VT_GET_NULL(cache->vt, put_entry_for_decrypt);
 
     *entry = NULL;
     if (put_entry_for_decrypt) {
-        put_entry_for_decrypt(cache, entry, decryption_materials, cache_id);
+        put_entry_for_decrypt(cache, entry, dec_materials, cache_id);
     }
 }
 

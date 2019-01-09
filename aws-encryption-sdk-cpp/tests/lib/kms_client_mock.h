@@ -58,13 +58,13 @@ class TESTLIB_CPP_API KmsClientMock : public Aws::KMS::KMSClient {
 
    private:
     struct ExpectedEncryptValues {
-        Model::EncryptRequest expected_encrypt_request;
+        Model::EncryptRequest expected_enc_request;
         Model::EncryptOutcome encrypt_return;
     };
     mutable std::deque<ExpectedEncryptValues> expected_encrypt_values;
 
     struct ExpectedDecryptValues {
-        Model::DecryptRequest expected_decrypt_request;
+        Model::DecryptRequest expected_dec_request;
         Model::DecryptOutcome return_decrypt;
     };
     mutable std::deque<ExpectedDecryptValues> expected_decrypt_values;

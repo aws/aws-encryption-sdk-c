@@ -101,7 +101,7 @@ struct aws_cryptosdk_keyring {
 /**
  * Encryption request passed from the session to a CMM
  */
-struct aws_cryptosdk_encryption_request {
+struct aws_cryptosdk_enc_request {
     struct aws_allocator *alloc;
     /**
      * The encryption context for this message. CMMs are permitted to modify this
@@ -110,7 +110,7 @@ struct aws_cryptosdk_encryption_request {
      */
     struct aws_hash_table *enc_ctx;
     /**
-     * The session will initially call generate_encryption_materials on the CMM
+     * The session will initially call generate_enc_materials on the CMM
      * with a zero requested_alg; it's up to one of the CMMs in the chain to fill
      * this in before the keyring is invoked. In particular, the default CMM will
      * fill in the algorithm ID it has been configured with, unless a CMM before
@@ -127,9 +127,9 @@ struct aws_cryptosdk_encryption_request {
 };
 
 /**
- * Materials returned from a CMM generate_encryption_materials operation
+ * Materials returned from a CMM generate_enc_materials operation
  */
-struct aws_cryptosdk_encryption_materials {
+struct aws_cryptosdk_enc_materials {
     struct aws_allocator *alloc;
     struct aws_byte_buf unencrypted_data_key;
     /** Contains a trace of which wrapping keys took which actions in this request */
@@ -144,7 +144,7 @@ struct aws_cryptosdk_encryption_materials {
 /**
  * Decryption request passed from session to CMM
  */
-struct aws_cryptosdk_decryption_request {
+struct aws_cryptosdk_dec_request {
     struct aws_allocator *alloc;
     const struct aws_hash_table *enc_ctx;
     struct aws_array_list encrypted_data_keys;
@@ -154,7 +154,7 @@ struct aws_cryptosdk_decryption_request {
 /**
  * Decryption materials returned from CMM to session
  */
-struct aws_cryptosdk_decryption_materials {
+struct aws_cryptosdk_dec_materials {
     struct aws_allocator *alloc;
     struct aws_byte_buf unencrypted_data_key;
     /** Contains a trace of which wrapping keys took which actions in this request */
@@ -311,17 +311,17 @@ struct aws_cryptosdk_cmm_vt {
     /**
      * VIRTUAL FUNCTION: must implement if used for encryption.
      */
-    int (*generate_encryption_materials)(
+    int (*generate_enc_materials)(
         struct aws_cryptosdk_cmm *cmm,
-        struct aws_cryptosdk_encryption_materials **output,
-        struct aws_cryptosdk_encryption_request *request);
+        struct aws_cryptosdk_enc_materials **output,
+        struct aws_cryptosdk_enc_request *request);
     /**
      * VIRTUAL FUNCTION: must implement if used for decryption.
      */
     int (*decrypt_materials)(
         struct aws_cryptosdk_cmm *cmm,
-        struct aws_cryptosdk_decryption_materials **output,
-        struct aws_cryptosdk_decryption_request *request);
+        struct aws_cryptosdk_dec_materials **output,
+        struct aws_cryptosdk_dec_request *request);
 };
 
 /**
@@ -363,11 +363,11 @@ AWS_CRYPTOSDK_STATIC_INLINE struct aws_cryptosdk_cmm *aws_cryptosdk_cmm_retain(s
  * On failure returns AWS_OP_ERR, sets address pointed to by output to NULL, and sets
  * internal AWS error code.
  */
-AWS_CRYPTOSDK_STATIC_INLINE int aws_cryptosdk_cmm_generate_encryption_materials(
+AWS_CRYPTOSDK_STATIC_INLINE int aws_cryptosdk_cmm_generate_enc_materials(
     struct aws_cryptosdk_cmm *cmm,
-    struct aws_cryptosdk_encryption_materials **output,
-    struct aws_cryptosdk_encryption_request *request) {
-    AWS_CRYPTOSDK_PRIVATE_VF_CALL(generate_encryption_materials, cmm, output, request);
+    struct aws_cryptosdk_enc_materials **output,
+    struct aws_cryptosdk_enc_request *request) {
+    AWS_CRYPTOSDK_PRIVATE_VF_CALL(generate_enc_materials, cmm, output, request);
     return ret;
 }
 
@@ -382,8 +382,8 @@ AWS_CRYPTOSDK_STATIC_INLINE int aws_cryptosdk_cmm_generate_encryption_materials(
  */
 AWS_CRYPTOSDK_STATIC_INLINE int aws_cryptosdk_cmm_decrypt_materials(
     struct aws_cryptosdk_cmm *cmm,
-    struct aws_cryptosdk_decryption_materials **output,
-    struct aws_cryptosdk_decryption_request *request) {
+    struct aws_cryptosdk_dec_materials **output,
+    struct aws_cryptosdk_dec_request *request) {
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_materials, cmm, output, request);
     return ret;
 }
@@ -525,7 +525,7 @@ int aws_cryptosdk_keyring_on_decrypt(
  * On failure, returns NULL and an error code will be set.
  */
 AWS_CRYPTOSDK_API
-struct aws_cryptosdk_encryption_materials *aws_cryptosdk_encryption_materials_new(
+struct aws_cryptosdk_enc_materials *aws_cryptosdk_enc_materials_new(
     struct aws_allocator *alloc, enum aws_cryptosdk_alg_id alg);
 
 /**
@@ -535,7 +535,7 @@ struct aws_cryptosdk_encryption_materials *aws_cryptosdk_encryption_materials_ne
  * on aws_cryptosdk_keyring_generate_data_key.
  */
 AWS_CRYPTOSDK_API
-void aws_cryptosdk_encryption_materials_destroy(struct aws_cryptosdk_encryption_materials *enc_mat);
+void aws_cryptosdk_enc_materials_destroy(struct aws_cryptosdk_enc_materials *enc_mat);
 
 /**
  * Allocates a new decryption materials object. Note that no memory will be allocated to
@@ -545,7 +545,7 @@ void aws_cryptosdk_encryption_materials_destroy(struct aws_cryptosdk_encryption_
  * On failure, returns NULL and an internal AWS error code is set.
  */
 AWS_CRYPTOSDK_API
-struct aws_cryptosdk_decryption_materials *aws_cryptosdk_decryption_materials_new(
+struct aws_cryptosdk_dec_materials *aws_cryptosdk_dec_materials_new(
     struct aws_allocator *alloc, enum aws_cryptosdk_alg_id alg);
 
 /**
@@ -554,7 +554,7 @@ struct aws_cryptosdk_decryption_materials *aws_cryptosdk_decryption_materials_ne
  * successfully.
  */
 AWS_CRYPTOSDK_API
-void aws_cryptosdk_decryption_materials_destroy(struct aws_cryptosdk_decryption_materials *dec_mat);
+void aws_cryptosdk_dec_materials_destroy(struct aws_cryptosdk_dec_materials *dec_mat);
 
 #ifdef __cplusplus
 }

@@ -67,21 +67,21 @@ static int enc_cache_miss() {
     aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &req_context);
     aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &expect_context);
 
-    struct aws_cryptosdk_encryption_request request;
+    struct aws_cryptosdk_enc_request request;
     request.alloc          = aws_default_allocator();
     request.requested_alg  = 0;
     request.plaintext_size = 32768;
 
-    struct aws_cryptosdk_encryption_materials *output, *expected;
+    struct aws_cryptosdk_enc_materials *output, *expected;
 
     mock_upstream_cmm->n_edks       = 5;
     mock_upstream_cmm->returned_alg = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
 
     request.enc_ctx = &expect_context;
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_encryption_materials(&mock_upstream_cmm->base, &expected, &request));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_enc_materials(&mock_upstream_cmm->base, &expected, &request));
 
     request.enc_ctx = &req_context;
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_encryption_materials(cmm, &output, &request));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_enc_materials(cmm, &output, &request));
 
     /* Materials should match those returned from the upstream */
     TEST_ASSERT(materials_eq(output, expected));
@@ -96,8 +96,8 @@ static int enc_cache_miss() {
 
     aws_cryptosdk_enc_ctx_clean_up(&req_context);
     aws_cryptosdk_enc_ctx_clean_up(&expect_context);
-    aws_cryptosdk_encryption_materials_destroy(output);
-    aws_cryptosdk_encryption_materials_destroy(expected);
+    aws_cryptosdk_enc_materials_destroy(output);
+    aws_cryptosdk_enc_materials_destroy(expected);
 
     aws_cryptosdk_cmm_release(cmm);
     teardown();
@@ -115,25 +115,25 @@ static int enc_cache_hit() {
     aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &req_context);
     aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &expect_context);
 
-    struct aws_cryptosdk_encryption_request request;
+    struct aws_cryptosdk_enc_request request;
     request.alloc          = aws_default_allocator();
     request.requested_alg  = 0;
     request.plaintext_size = 32768;
 
-    struct aws_cryptosdk_encryption_materials *output, *expected;
+    struct aws_cryptosdk_enc_materials *output, *expected;
 
     mock_upstream_cmm->n_edks       = 5;
     mock_upstream_cmm->returned_alg = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
 
     request.enc_ctx = &expect_context;
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_encryption_materials(&mock_upstream_cmm->base, &expected, &request));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_enc_materials(&mock_upstream_cmm->base, &expected, &request));
 
     /* Perform a cache miss to initialize things... */
     request.enc_ctx = &req_context;
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_encryption_materials(cmm, &output, &request));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_enc_materials(cmm, &output, &request));
     mock_mat_cache->usage_stats.bytes_encrypted = 42;
     mock_mat_cache->should_hit                  = true;
-    aws_cryptosdk_encryption_materials_destroy(output);
+    aws_cryptosdk_enc_materials_destroy(output);
 
     struct aws_byte_buf cache_id_buf;
     TEST_ASSERT_SUCCESS(aws_byte_buf_init_copy(&cache_id_buf, aws_default_allocator(), &mock_mat_cache->last_cache_id));
@@ -143,7 +143,7 @@ static int enc_cache_hit() {
     aws_hash_table_clear(&req_context);
 
     /* This should be a hit */
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_encryption_materials(cmm, &output, &request));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_enc_materials(cmm, &output, &request));
 
     /* Materials should match those returned from the upstream */
     TEST_ASSERT(materials_eq(output, expected));
@@ -161,8 +161,8 @@ static int enc_cache_hit() {
 
     aws_cryptosdk_enc_ctx_clean_up(&req_context);
     aws_cryptosdk_enc_ctx_clean_up(&expect_context);
-    aws_cryptosdk_encryption_materials_destroy(output);
-    aws_cryptosdk_encryption_materials_destroy(expected);
+    aws_cryptosdk_enc_materials_destroy(output);
+    aws_cryptosdk_enc_materials_destroy(expected);
     aws_byte_buf_clean_up(&cache_id_buf);
 
     aws_cryptosdk_cmm_release(cmm);
@@ -190,7 +190,7 @@ static int enc_cache_unique_ids() {
         aws_hash_callback_string_destroy,
         NULL));
 
-    struct aws_cryptosdk_encryption_request request;
+    struct aws_cryptosdk_enc_request request;
     request.alloc          = aws_default_allocator();
     request.requested_alg  = 0;
     request.plaintext_size = 32768;
@@ -203,9 +203,9 @@ static int enc_cache_unique_ids() {
     do {                                                                                                          \
         TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_ctx_clone(aws_default_allocator(), &output_context, &req_context)); \
         if (request.requested_alg) mock_upstream_cmm->returned_alg = request.requested_alg;                       \
-        struct aws_cryptosdk_encryption_materials *materials = NULL;                                              \
-        TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_encryption_materials(cmm, &materials, &request));          \
-        aws_cryptosdk_encryption_materials_destroy(materials);                                                    \
+        struct aws_cryptosdk_enc_materials *materials = NULL;                                                     \
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_enc_materials(cmm, &materials, &request));                 \
+        aws_cryptosdk_enc_materials_destroy(materials);                                                           \
         struct aws_string *cache_id = aws_string_new_from_array(                                                  \
             aws_default_allocator(), mock_mat_cache->last_cache_id.buffer, mock_mat_cache->last_cache_id.len);    \
         int was_created;                                                                                          \
@@ -258,8 +258,8 @@ static int enc_cache_unique_ids() {
 }
 
 struct aws_string *hash_or_generate_partition_id(struct aws_allocator *alloc, const struct aws_byte_buf *partition_id);
-int hash_encrypt_request(
-    struct aws_string *partition_id, struct aws_byte_buf *out, const struct aws_cryptosdk_encryption_request *req);
+int hash_enc_request(
+    struct aws_string *partition_id, struct aws_byte_buf *out, const struct aws_cryptosdk_enc_request *req);
 
 static int encrypt_id_vector(
     const char *expected_b64,
@@ -275,7 +275,7 @@ static int encrypt_id_vector(
     expected = easy_b64_decode(expected_b64);
     TEST_ASSERT_SUCCESS(aws_byte_buf_init(&actual, aws_default_allocator(), expected.len));
 
-    struct aws_cryptosdk_encryption_request request;
+    struct aws_cryptosdk_enc_request request;
     struct aws_hash_table encryption_context;
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &encryption_context));
@@ -300,7 +300,7 @@ static int encrypt_id_vector(
         TEST_ASSERT_SUCCESS(aws_hash_table_put(&encryption_context, sk, sv, NULL));
     }
 
-    TEST_ASSERT_SUCCESS(hash_encrypt_request(partition_id, &actual, &request));
+    TEST_ASSERT_SUCCESS(hash_enc_request(partition_id, &actual, &request));
 
     TEST_ASSERT(aws_byte_buf_eq(&expected, &actual));
 
@@ -349,7 +349,7 @@ static int enc_cache_id_test_vecs() {
 
 static int access_cache(
     struct aws_cryptosdk_cmm *cmm,
-    struct aws_cryptosdk_encryption_request *request,
+    struct aws_cryptosdk_enc_request *request,
     bool *was_hit,
     struct aws_cryptosdk_cache_usage_stats usag) {
     mock_upstream_cmm->n_edks       = 1;
@@ -359,13 +359,13 @@ static int access_cache(
     mock_upstream_cmm->last_enc_request = NULL;
     mock_mat_cache->invalidated         = false;
 
-    struct aws_cryptosdk_encryption_materials *output;
+    struct aws_cryptosdk_enc_materials *output;
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_encryption_materials(cmm, &output, request));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_enc_materials(cmm, &output, request));
 
     *was_hit = !mock_upstream_cmm->last_enc_request;
 
-    aws_cryptosdk_encryption_materials_destroy(output);
+    aws_cryptosdk_enc_materials_destroy(output);
 
     return 0;
 }
@@ -397,7 +397,7 @@ static int limits_test() {
     struct aws_hash_table req_context;
     aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &req_context);
 
-    struct aws_cryptosdk_encryption_request request;
+    struct aws_cryptosdk_enc_request request;
     request.alloc          = aws_default_allocator();
     request.requested_alg  = 0;
     request.plaintext_size = 32768;
@@ -520,10 +520,8 @@ static int limits_test() {
     return 0;
 }
 
-int hash_decrypt_request(
-    const struct aws_string *partition_id,
-    struct aws_byte_buf *out,
-    const struct aws_cryptosdk_decryption_request *req);
+int hash_dec_request(
+    const struct aws_string *partition_id, struct aws_byte_buf *out, const struct aws_cryptosdk_dec_request *req);
 
 static int dec_test_vector(
     const char *partition_name,
@@ -540,7 +538,7 @@ static int dec_test_vector(
     expected = easy_b64_decode(expected_b64);
     TEST_ASSERT_SUCCESS(aws_byte_buf_init(&actual, aws_default_allocator(), expected.len));
 
-    struct aws_cryptosdk_decryption_request request;
+    struct aws_cryptosdk_dec_request request;
     request.alloc   = aws_default_allocator();
     request.alg     = alg;
     request.enc_ctx = enc_ctx;
@@ -548,7 +546,7 @@ static int dec_test_vector(
     aws_array_list_init_static(&request.encrypted_data_keys, (void *)edk_list, n_edks, sizeof(*edk_list));
     request.encrypted_data_keys.length = n_edks;
 
-    TEST_ASSERT_SUCCESS(hash_decrypt_request(partition_id, &actual, &request));
+    TEST_ASSERT_SUCCESS(hash_dec_request(partition_id, &actual, &request));
     TEST_ASSERT(aws_byte_buf_eq(&expected, &actual));
 
     aws_byte_buf_clean_up(&expected);
@@ -650,13 +648,13 @@ static int dec_materials() {
     edk.provider_info = aws_byte_buf_from_c_str("provider_info");
     edk.ciphertext    = aws_byte_buf_from_c_str("enc_data_key");
 
-    struct aws_cryptosdk_decryption_request dec_request = { 0 };
-    dec_request.alloc                                   = aws_default_allocator();
-    dec_request.alg                                     = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
-    dec_request.enc_ctx                                 = &enc_ctx;
+    struct aws_cryptosdk_dec_request dec_request = { 0 };
+    dec_request.alloc                            = aws_default_allocator();
+    dec_request.alg                              = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
+    dec_request.enc_ctx                          = &enc_ctx;
     aws_array_list_init_static(&dec_request.encrypted_data_keys, &edk, 1, sizeof(edk));
 
-    struct aws_cryptosdk_decryption_materials *miss_materials = NULL, *hit_materials = NULL;
+    struct aws_cryptosdk_dec_materials *miss_materials = NULL, *hit_materials = NULL;
 
     mock_clock_time                     = 0;
     mock_mat_cache->entry_ttl_hint      = 0x424242;
@@ -678,14 +676,14 @@ static int dec_materials() {
     /* Hit; TTL OK */
     aws_cryptosdk_caching_cmm_set_limits(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_TTL, 100);
     mock_clock_time = 99;
-    aws_cryptosdk_decryption_materials_destroy(hit_materials);
+    aws_cryptosdk_dec_materials_destroy(hit_materials);
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_decrypt_materials(cmm, &hit_materials, &dec_request));
     TEST_ASSERT(dec_materials_eq(miss_materials, hit_materials));
     TEST_ASSERT_ADDR_NULL(mock_upstream_cmm->last_dec_request);
 
     /* Miss; TTL expired */
-    aws_cryptosdk_decryption_materials_destroy(miss_materials);
+    aws_cryptosdk_dec_materials_destroy(miss_materials);
     mock_clock_time = 101;
     TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_decrypt_materials(cmm, &miss_materials, &dec_request));
     /* signature key should have changed due to behavior of the mock upstream cmm */
@@ -699,8 +697,8 @@ static int dec_materials() {
     TEST_ASSERT_INT_EQ(mock_mat_cache->entry_ttl_hint, 100);
     TEST_ASSERT(!same_signing_key(miss_materials->signctx, hit_materials->signctx));
 
-    aws_cryptosdk_decryption_materials_destroy(miss_materials);
-    aws_cryptosdk_decryption_materials_destroy(hit_materials);
+    aws_cryptosdk_dec_materials_destroy(miss_materials);
+    aws_cryptosdk_dec_materials_destroy(hit_materials);
 
     aws_cryptosdk_enc_ctx_clean_up(&enc_ctx);
     aws_cryptosdk_cmm_release(cmm);
@@ -723,13 +721,13 @@ static int cache_miss_failed_put() {
     edk.provider_info = aws_byte_buf_from_c_str("provider_info");
     edk.ciphertext    = aws_byte_buf_from_c_str("enc_data_key");
 
-    struct aws_cryptosdk_decryption_request dec_request = { 0 };
-    dec_request.alloc                                   = aws_default_allocator();
-    dec_request.alg                                     = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
-    dec_request.enc_ctx                                 = &enc_ctx;
+    struct aws_cryptosdk_dec_request dec_request = { 0 };
+    dec_request.alloc                            = aws_default_allocator();
+    dec_request.alg                              = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
+    dec_request.enc_ctx                          = &enc_ctx;
     aws_array_list_init_static(&dec_request.encrypted_data_keys, &edk, 1, sizeof(edk));
 
-    struct aws_cryptosdk_encryption_request enc_request;
+    struct aws_cryptosdk_enc_request enc_request;
     enc_request.alloc          = aws_default_allocator();
     enc_request.requested_alg  = 0;
     enc_request.plaintext_size = 32768;
@@ -738,13 +736,13 @@ static int cache_miss_failed_put() {
     mock_mat_cache->should_fail     = true;
     mock_upstream_cmm->returned_alg = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256;
 
-    struct aws_cryptosdk_encryption_materials *enc_materials;
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_encryption_materials(cmm, &enc_materials, &enc_request));
-    aws_cryptosdk_encryption_materials_destroy(enc_materials);
+    struct aws_cryptosdk_enc_materials *enc_materials;
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_generate_enc_materials(cmm, &enc_materials, &enc_request));
+    aws_cryptosdk_enc_materials_destroy(enc_materials);
 
-    struct aws_cryptosdk_decryption_materials *dec_materials;
+    struct aws_cryptosdk_dec_materials *dec_materials;
     TEST_ASSERT_SUCCESS(aws_cryptosdk_cmm_decrypt_materials(cmm, &dec_materials, &dec_request));
-    aws_cryptosdk_decryption_materials_destroy(dec_materials);
+    aws_cryptosdk_dec_materials_destroy(dec_materials);
 
     aws_cryptosdk_enc_ctx_clean_up(&enc_ctx);
     aws_cryptosdk_cmm_release(cmm);
@@ -765,7 +763,7 @@ static bool partitions_match_on_enc(
         abort();
     }
 
-    struct aws_cryptosdk_encryption_request enc_request;
+    struct aws_cryptosdk_enc_request enc_request;
     enc_request.alloc          = aws_default_allocator();
     enc_request.requested_alg  = 0;
     enc_request.plaintext_size = 32768;
@@ -773,21 +771,21 @@ static bool partitions_match_on_enc(
 
     mock_upstream_cmm->returned_alg = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256;
 
-    struct aws_cryptosdk_encryption_materials *materials;
-    if (aws_cryptosdk_cmm_generate_encryption_materials(cmm_a, &materials, &enc_request)) {
+    struct aws_cryptosdk_enc_materials *materials;
+    if (aws_cryptosdk_cmm_generate_enc_materials(cmm_a, &materials, &enc_request)) {
         abort();
     }
-    aws_cryptosdk_encryption_materials_destroy(materials);
+    aws_cryptosdk_enc_materials_destroy(materials);
 
     struct aws_byte_buf cache_id_a = mock_mat_cache->last_cache_id;
     // Prevent the cache ID from being freed on the next call
     mock_mat_cache->last_cache_id = aws_byte_buf_from_c_str("");
 
     aws_hash_table_clear(&enc_ctx);
-    if (aws_cryptosdk_cmm_generate_encryption_materials(cmm_b, &materials, &enc_request)) {
+    if (aws_cryptosdk_cmm_generate_enc_materials(cmm_b, &materials, &enc_request)) {
         abort();
     }
-    aws_cryptosdk_encryption_materials_destroy(materials);
+    aws_cryptosdk_enc_materials_destroy(materials);
 
     aws_cryptosdk_cmm_release(cmm_a);
     aws_cryptosdk_cmm_release(cmm_b);
@@ -815,17 +813,17 @@ static bool partitions_match_on_dec(
     edk.provider_info = aws_byte_buf_from_c_str("provider_info");
     edk.ciphertext    = aws_byte_buf_from_c_str("enc_data_key");
 
-    struct aws_cryptosdk_decryption_request dec_request = { 0 };
-    dec_request.alloc                                   = aws_default_allocator();
-    dec_request.alg                                     = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
-    dec_request.enc_ctx                                 = &enc_ctx;
+    struct aws_cryptosdk_dec_request dec_request = { 0 };
+    dec_request.alloc                            = aws_default_allocator();
+    dec_request.alg                              = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
+    dec_request.enc_ctx                          = &enc_ctx;
     aws_array_list_init_static(&dec_request.encrypted_data_keys, &edk, 1, sizeof(edk));
 
-    struct aws_cryptosdk_decryption_materials *materials;
+    struct aws_cryptosdk_dec_materials *materials;
     if (aws_cryptosdk_cmm_decrypt_materials(cmm_a, &materials, &dec_request)) {
         abort();
     }
-    aws_cryptosdk_decryption_materials_destroy(materials);
+    aws_cryptosdk_dec_materials_destroy(materials);
 
     struct aws_byte_buf cache_id_a = mock_mat_cache->last_cache_id;
     // Prevent the cache ID from being freed on the next call
@@ -834,7 +832,7 @@ static bool partitions_match_on_dec(
     if (aws_cryptosdk_cmm_decrypt_materials(cmm_b, &materials, &dec_request)) {
         abort();
     }
-    aws_cryptosdk_decryption_materials_destroy(materials);
+    aws_cryptosdk_dec_materials_destroy(materials);
 
     aws_cryptosdk_cmm_release(cmm_a);
     aws_cryptosdk_cmm_release(cmm_b);

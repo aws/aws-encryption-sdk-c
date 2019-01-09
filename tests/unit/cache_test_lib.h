@@ -49,17 +49,17 @@ struct mock_mat_cache {
 
     /*
      * Encryption materials for the cached entry; updated on put_entry_for_encrypt,
-     * read on get_encryption_materials. If NULL, get_encryption_materials fails.
+     * read on get_enc_materials. If NULL, get_enc_materials fails.
      */
-    struct aws_cryptosdk_encryption_materials *enc_materials;
+    struct aws_cryptosdk_enc_materials *enc_materials;
     /*
      * Encryption materials for the cached entry; updated on put_entry_for_decrypt,
-     * read on get_decryption_materials. If NULL, get_decryption_materials fails.
+     * read on get_dec_materials. If NULL, get_dec_materials fails.
      */
-    struct aws_cryptosdk_decryption_materials *dec_materials;
+    struct aws_cryptosdk_dec_materials *dec_materials;
     /*
      * Encryption context for the cached entry; updated on put_entry_for_encrypt,
-     * read on get_encryption_materials.
+     * read on get_enc_materials.
      * TODO: Does this need to be used for decrypt entries as well?
      */
     struct aws_hash_table encryption_context;
@@ -106,21 +106,19 @@ struct mock_upstream_cmm {
     struct aws_string *last_pubkey;
 
     /* Last request pointer passed in */
-    struct aws_cryptosdk_encryption_request *last_enc_request;
-    struct aws_cryptosdk_decryption_request *last_dec_request;
+    struct aws_cryptosdk_enc_request *last_enc_request;
+    struct aws_cryptosdk_dec_request *last_dec_request;
 };
 
 void gen_enc_materials(
     struct aws_allocator *alloc,
-    struct aws_cryptosdk_encryption_materials **p_materials,
+    struct aws_cryptosdk_enc_materials **p_materials,
     int index,
     enum aws_cryptosdk_alg_id alg,
     int n_edks);
-bool materials_eq(
-    const struct aws_cryptosdk_encryption_materials *a, const struct aws_cryptosdk_encryption_materials *b);
+bool materials_eq(const struct aws_cryptosdk_enc_materials *a, const struct aws_cryptosdk_enc_materials *b);
 bool same_signing_key(struct aws_cryptosdk_signctx *a, struct aws_cryptosdk_signctx *b);
-bool dec_materials_eq(
-    const struct aws_cryptosdk_decryption_materials *a, const struct aws_cryptosdk_decryption_materials *b);
+bool dec_materials_eq(const struct aws_cryptosdk_dec_materials *a, const struct aws_cryptosdk_dec_materials *b);
 
 struct mock_mat_cache *mock_mat_cache_new(struct aws_allocator *alloc);
 struct mock_upstream_cmm *mock_upstream_cmm_new(struct aws_allocator *alloc);

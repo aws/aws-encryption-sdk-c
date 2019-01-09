@@ -30,7 +30,7 @@
 
 /** Session decrypt path routines **/
 
-static int fill_request(struct aws_cryptosdk_decryption_request *request, struct aws_cryptosdk_session *session) {
+static int fill_request(struct aws_cryptosdk_dec_request *request, struct aws_cryptosdk_session *session) {
     request->alloc = session->alloc;
     request->alg   = session->alg_props->alg_id;
 
@@ -66,8 +66,7 @@ UNEXPECTED_ERROR:
     return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
 }
 
-static int derive_data_key(
-    struct aws_cryptosdk_session *session, struct aws_cryptosdk_decryption_materials *materials) {
+static int derive_data_key(struct aws_cryptosdk_session *session, struct aws_cryptosdk_dec_materials *materials) {
     if (materials->unencrypted_data_key.len != session->alg_props->data_key_len) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
@@ -101,8 +100,8 @@ static int validate_header(struct aws_cryptosdk_session *session) {
 }
 
 int aws_cryptosdk_priv_unwrap_keys(struct aws_cryptosdk_session *AWS_RESTRICT session) {
-    struct aws_cryptosdk_decryption_request request;
-    struct aws_cryptosdk_decryption_materials *materials = NULL;
+    struct aws_cryptosdk_dec_request request;
+    struct aws_cryptosdk_dec_materials *materials = NULL;
 
     session->alg_props = aws_cryptosdk_alg_props(session->header.alg_id);
 
@@ -145,7 +144,7 @@ int aws_cryptosdk_priv_unwrap_keys(struct aws_cryptosdk_session *AWS_RESTRICT se
 
     rv = AWS_OP_SUCCESS;
 out:
-    if (materials) aws_cryptosdk_decryption_materials_destroy(materials);
+    if (materials) aws_cryptosdk_dec_materials_destroy(materials);
     aws_array_list_clean_up(&request.encrypted_data_keys);
 
     return rv;

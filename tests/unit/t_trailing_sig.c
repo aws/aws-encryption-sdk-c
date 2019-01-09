@@ -35,10 +35,10 @@ static void strip_key_destroy(struct aws_cryptosdk_cmm *cmm) {
 
 static int strip_key_gen_mat(
     struct aws_cryptosdk_cmm *cmm,
-    struct aws_cryptosdk_encryption_materials **output,
-    struct aws_cryptosdk_encryption_request *request) {
+    struct aws_cryptosdk_enc_materials **output,
+    struct aws_cryptosdk_enc_request *request) {
     struct strip_key_cmm *self = (struct strip_key_cmm *)cmm;
-    int rv                     = aws_cryptosdk_cmm_generate_encryption_materials(self->cmm, output, request);
+    int rv                     = aws_cryptosdk_cmm_generate_enc_materials(self->cmm, output, request);
 
     if (rv == 0) {
         aws_hash_table_remove(request->enc_ctx, EC_PUBLIC_KEY_FIELD, NULL, NULL);
@@ -47,11 +47,11 @@ static int strip_key_gen_mat(
     return rv;
 }
 
-static const struct aws_cryptosdk_cmm_vt strip_key_cmm_vt = { .vt_size                       = sizeof(strip_key_cmm_vt),
-                                                              .name                          = "strip_key_cmm",
-                                                              .destroy                       = strip_key_destroy,
-                                                              .generate_encryption_materials = strip_key_gen_mat,
-                                                              .decrypt_materials             = NULL };
+static const struct aws_cryptosdk_cmm_vt strip_key_cmm_vt = { .vt_size                = sizeof(strip_key_cmm_vt),
+                                                              .name                   = "strip_key_cmm",
+                                                              .destroy                = strip_key_destroy,
+                                                              .generate_enc_materials = strip_key_gen_mat,
+                                                              .decrypt_materials      = NULL };
 
 // Test that the trailing signature logic rejects ciphertexts that claim to have a trailing-signature algorithm suite
 // but where no public key is in the encryption context.

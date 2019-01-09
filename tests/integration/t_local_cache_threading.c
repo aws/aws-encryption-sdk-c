@@ -66,8 +66,8 @@
 static struct aws_cryptosdk_mat_cache *mat_cache;
 static struct aws_atomic_var stop_flag;
 
-static struct aws_cryptosdk_encryption_materials *expected_enc_mats[N_ENC_ENTRIES];
-static struct aws_cryptosdk_decryption_materials *expected_dec_mats[N_DEC_ENTRIES];
+static struct aws_cryptosdk_enc_materials *expected_enc_mats[N_ENC_ENTRIES];
+static struct aws_cryptosdk_dec_materials *expected_dec_mats[N_DEC_ENTRIES];
 
 // Avoid contention on the RNG state by using a custom linear congruential PRNG.
 // We don't need anything particularly fancy or good, we're just looking to generate
@@ -147,10 +147,10 @@ static struct aws_cryptosdk_mat_cache_entry *do_enc_operation(uint32_t entry_id,
         abort();
     }
 
-    struct aws_cryptosdk_encryption_materials *materials;
+    struct aws_cryptosdk_enc_materials *materials;
 
     if (entry) {
-        if (aws_cryptosdk_mat_cache_get_encryption_materials(
+        if (aws_cryptosdk_mat_cache_get_enc_materials(
                 mat_cache, aws_default_allocator(), &materials, empty_table, entry)) {
             // Could have been a race with an invalidation, so ignore
         } else {
@@ -158,7 +158,7 @@ static struct aws_cryptosdk_mat_cache_entry *do_enc_operation(uint32_t entry_id,
                 abort();
             }
 
-            aws_cryptosdk_encryption_materials_destroy(materials);
+            aws_cryptosdk_enc_materials_destroy(materials);
         }
     } else {
         struct aws_cryptosdk_cache_usage_stats initial_usage = { 0 };
@@ -190,14 +190,14 @@ static struct aws_cryptosdk_mat_cache_entry *do_dec_operation(uint32_t entry_id,
     }
 
     if (entry) {
-        struct aws_cryptosdk_decryption_materials *materials;
-        if (aws_cryptosdk_mat_cache_get_decryption_materials(mat_cache, aws_default_allocator(), &materials, entry)) {
+        struct aws_cryptosdk_dec_materials *materials;
+        if (aws_cryptosdk_mat_cache_get_dec_materials(mat_cache, aws_default_allocator(), &materials, entry)) {
             // Could be a race with invalidate, ignore
         } else {
             if (!dec_materials_eq(materials, expected_dec_mats[entry_id])) {
                 abort();
             }
-            aws_cryptosdk_decryption_materials_destroy(materials);
+            aws_cryptosdk_dec_materials_destroy(materials);
         }
     } else {
         aws_cryptosdk_mat_cache_put_entry_for_decrypt(mat_cache, &entry, expected_dec_mats[entry_id], &cache_id);
@@ -267,7 +267,7 @@ static void setup() {
 
     for (int i = 0; i < N_DEC_ENTRIES; i++) {
         expected_dec_mats[i] =
-            aws_cryptosdk_decryption_materials_new(aws_default_allocator(), ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256);
+            aws_cryptosdk_dec_materials_new(aws_default_allocator(), ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256);
 
         expected_dec_mats[i]->signctx = NULL;
         struct aws_byte_buf *data_key = &expected_dec_mats[i]->unencrypted_data_key;
@@ -286,12 +286,12 @@ static void teardown() {
     aws_cryptosdk_mat_cache_release(mat_cache);
 
     for (int i = 0; i < N_ENC_ENTRIES; i++) {
-        aws_cryptosdk_encryption_materials_destroy(expected_enc_mats[i]);
+        aws_cryptosdk_enc_materials_destroy(expected_enc_mats[i]);
         expected_enc_mats[i] = NULL;
     }
 
     for (int i = 0; i < N_DEC_ENTRIES; i++) {
-        aws_cryptosdk_decryption_materials_destroy(expected_dec_mats[i]);
+        aws_cryptosdk_dec_materials_destroy(expected_dec_mats[i]);
         expected_dec_mats[i] = NULL;
     }
 }

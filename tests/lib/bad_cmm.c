@@ -42,17 +42,16 @@ void destroy_abort(struct aws_cryptosdk_cmm *cmm) {
 
 int generate_abort(
     struct aws_cryptosdk_cmm *cmm,
-    struct aws_cryptosdk_encryption_materials **output,
-    struct aws_cryptosdk_encryption_request *request) {
-    fprintf(
-        stderr, "%s's generate_encryption_materials VF was called when it should not have been\n", cmm->vtable->name);
+    struct aws_cryptosdk_enc_materials **output,
+    struct aws_cryptosdk_enc_request *request) {
+    fprintf(stderr, "%s's generate_enc_materials VF was called when it should not have been\n", cmm->vtable->name);
     abort();
 }
 
 int decrypt_abort(
     struct aws_cryptosdk_cmm *cmm,
-    struct aws_cryptosdk_decryption_materials **output,
-    struct aws_cryptosdk_decryption_request *request) {
+    struct aws_cryptosdk_dec_materials **output,
+    struct aws_cryptosdk_dec_request *request) {
     fprintf(stderr, "%s's decrypt_materials VF was called when it should not have been\n", cmm->vtable->name);
     abort();
 }
@@ -60,11 +59,11 @@ int decrypt_abort(
 /**
  * A totally correct VT except for the zero size.
  */
-static const struct aws_cryptosdk_cmm_vt zero_size_cmm_vt = { .vt_size                       = 0,
-                                                              .name                          = "zero size cmm",
-                                                              .destroy                       = destroy_abort,
-                                                              .generate_encryption_materials = generate_abort,
-                                                              .decrypt_materials             = decrypt_abort };
+static const struct aws_cryptosdk_cmm_vt zero_size_cmm_vt = { .vt_size                = 0,
+                                                              .name                   = "zero size cmm",
+                                                              .destroy                = destroy_abort,
+                                                              .generate_enc_materials = generate_abort,
+                                                              .decrypt_materials      = decrypt_abort };
 
 struct aws_cryptosdk_cmm aws_cryptosdk_zero_size_cmm() {
     struct aws_cryptosdk_cmm cmm;
@@ -74,11 +73,11 @@ struct aws_cryptosdk_cmm aws_cryptosdk_zero_size_cmm() {
     return cmm;
 }
 
-static const struct aws_cryptosdk_cmm_vt null_cmm_vt = { .vt_size = sizeof(struct aws_cryptosdk_cmm_vt),
-                                                         .name    = "null cmm",
-                                                         .destroy = NULL,
-                                                         .generate_encryption_materials = NULL,
-                                                         .decrypt_materials             = NULL };
+static const struct aws_cryptosdk_cmm_vt null_cmm_vt = { .vt_size                = sizeof(struct aws_cryptosdk_cmm_vt),
+                                                         .name                   = "null cmm",
+                                                         .destroy                = NULL,
+                                                         .generate_enc_materials = NULL,
+                                                         .decrypt_materials      = NULL };
 
 struct aws_cryptosdk_cmm aws_cryptosdk_null_cmm() {
     struct aws_cryptosdk_cmm cmm;

@@ -49,7 +49,7 @@ endif()
 
 # This is in the integration tree so its "main" entry point won't clash with the test runner
 # Ideally we'd put the cache_test_lib.c file in lib/ as well, but we currently access some
-# private symbols (hash_decrypt_request) from caching_cmm.c, so it can't be linked into
+# private symbols (hash_dec_request) from caching_cmm.c, so it can't be linked into
 # e.g. tests/decrypt, which deliberately uses the "public" version of the library (which
 # hides private symbols like this).
 add_executable(test_local_cache_threading "integration/t_local_cache_threading.c" "unit/cache_test_lib.c")
