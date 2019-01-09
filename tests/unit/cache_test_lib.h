@@ -117,7 +117,7 @@ void gen_enc_materials(
     enum aws_cryptosdk_alg_id alg,
     int n_edks);
 bool materials_eq(const struct aws_cryptosdk_enc_materials *a, const struct aws_cryptosdk_enc_materials *b);
-bool same_signing_key(struct aws_cryptosdk_signctx *a, struct aws_cryptosdk_signctx *b);
+bool same_signing_key(struct aws_cryptosdk_sig_ctx *a, struct aws_cryptosdk_sig_ctx *b);
 bool dec_materials_eq(const struct aws_cryptosdk_dec_materials *a, const struct aws_cryptosdk_dec_materials *b);
 
 struct mock_materials_cache *mock_materials_cache_new(struct aws_allocator *alloc);

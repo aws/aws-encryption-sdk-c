@@ -137,7 +137,7 @@ struct aws_cryptosdk_enc_materials {
     /** List of struct aws_cryptosdk_edk objects */
     struct aws_array_list encrypted_data_keys;
     /** Trailing signature context, or NULL if no trailing signature is needed for this algorithm */
-    struct aws_cryptosdk_signctx *signctx;
+    struct aws_cryptosdk_sig_ctx *signctx;
     enum aws_cryptosdk_alg_id alg;
 };
 
@@ -160,7 +160,7 @@ struct aws_cryptosdk_dec_materials {
     /** Contains a trace of which wrapping keys took which actions in this request */
     struct aws_array_list keyring_trace;
     /** Trailing signature context, or NULL if no trailing signature is needed for this algorithm */
-    struct aws_cryptosdk_signctx *signctx;
+    struct aws_cryptosdk_sig_ctx *signctx;
     enum aws_cryptosdk_alg_id alg;
 };
 

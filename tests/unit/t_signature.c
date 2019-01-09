@@ -49,7 +49,7 @@ static int sign_message(
     struct aws_string **pubkey,
     struct aws_string **sig,
     const struct aws_byte_cursor *data) {
-    struct aws_cryptosdk_signctx *ctx;
+    struct aws_cryptosdk_sig_ctx *ctx;
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_start_keygen(&ctx, aws_default_allocator(), pubkey, props));
 
@@ -68,7 +68,7 @@ static int check_signature(
     const struct aws_string *pubkey,
     const struct aws_string *sig,
     const struct aws_byte_cursor *data) {
-    struct aws_cryptosdk_signctx *ctx;
+    struct aws_cryptosdk_sig_ctx *ctx;
 
     if (expect_valid) {
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_verify_start(&ctx, aws_default_allocator(), pubkey, props));
@@ -279,7 +279,7 @@ static int t_partial_update() {
         struct aws_byte_cursor d_2_1   = cursor_from_c_string("Hello, world");
         struct aws_byte_cursor d_2_2   = cursor_from_c_string("!");
 
-        struct aws_cryptosdk_signctx *ctx;
+        struct aws_cryptosdk_sig_ctx *ctx;
 
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_start_keygen(&ctx, aws_default_allocator(), &pub_key, props));
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_update(ctx, d_1_1));
@@ -304,7 +304,7 @@ static int t_partial_update() {
 static int t_serialize_privkey() {
     FOREACH_ALGORITHM(props) {
         struct aws_string *pub_key, *pub_key_2, *priv_key, *sig;
-        struct aws_cryptosdk_signctx *ctx;
+        struct aws_cryptosdk_sig_ctx *ctx;
 
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_start_keygen(&ctx, aws_default_allocator(), &pub_key, props));
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_get_privkey(ctx, aws_default_allocator(), &priv_key));
@@ -331,7 +331,7 @@ static int t_empty_signature() {
         struct aws_string *pub_key, *sig;
         struct aws_byte_cursor d_empty = aws_byte_cursor_from_array("", 0);
 
-        struct aws_cryptosdk_signctx *ctx;
+        struct aws_cryptosdk_sig_ctx *ctx;
 
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_start_keygen(&ctx, aws_default_allocator(), &pub_key, props));
         TEST_ASSERT_SUCCESS(aws_cryptosdk_sig_sign_finish(ctx, aws_default_allocator(), &sig));
@@ -420,7 +420,7 @@ static int t_trailing_garbage() {
 
 static int t_get_pubkey() {
     struct aws_string *pub_key, *pub_key_2;
-    struct aws_cryptosdk_signctx *ctx;
+    struct aws_cryptosdk_sig_ctx *ctx;
     const struct aws_cryptosdk_alg_properties *props =
         aws_cryptosdk_alg_props(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256);
 
@@ -444,7 +444,7 @@ static int t_get_pubkey() {
 
 static int t_trailing_garbage_with_o2i_ECPublicKey() {
     struct aws_allocator *alloc = aws_default_allocator();
-    struct aws_cryptosdk_signctx *ctx;
+    struct aws_cryptosdk_sig_ctx *ctx;
     const struct aws_cryptosdk_alg_properties *props =
         aws_cryptosdk_alg_props(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384);
     AWS_STATIC_STRING_FROM_LITERAL(

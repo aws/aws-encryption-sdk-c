@@ -108,7 +108,7 @@ bool dec_materials_eq(const struct aws_cryptosdk_dec_materials *a, const struct 
            aws_cryptosdk_keyring_trace_eq(&a->keyring_trace, &b->keyring_trace);
 }
 
-bool same_signing_key(struct aws_cryptosdk_signctx *a, struct aws_cryptosdk_signctx *b) {
+bool same_signing_key(struct aws_cryptosdk_sig_ctx *a, struct aws_cryptosdk_sig_ctx *b) {
     struct aws_string *pub_a, *pub_b;
 
     if (!!a != !!b) {
@@ -570,7 +570,7 @@ static int mock_decrypt_materials(
     cmm->last_pubkey = NULL;
 
     if (props->signature_len) {
-        struct aws_cryptosdk_signctx *priv_ctx;
+        struct aws_cryptosdk_sig_ctx *priv_ctx;
 
         if (aws_cryptosdk_sig_sign_start_keygen(&priv_ctx, request->alloc, &cmm->last_pubkey, props)) {
             abort();
