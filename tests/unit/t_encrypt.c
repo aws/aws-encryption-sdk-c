@@ -260,11 +260,11 @@ int test_simple_roundtrip() {
 
     /* We can get mutable pointer to encryption context before processing data. */
     TEST_ASSERT_ADDR_NOT_NULL(aws_cryptosdk_session_get_enc_ctx_ptr(session));
-    struct aws_hash_table *enc_context = aws_cryptosdk_session_get_enc_ctx_ptr_mut(session);
-    TEST_ASSERT_ADDR_NOT_NULL(enc_context);
+    struct aws_hash_table *enc_ctx = aws_cryptosdk_session_get_enc_ctx_ptr_mut(session);
+    TEST_ASSERT_ADDR_NOT_NULL(enc_ctx);
 
     /* Put something in the encryption context. */
-    TEST_ASSERT_SUCCESS(test_enc_context_fill(enc_context));
+    TEST_ASSERT_SUCCESS(test_enc_ctx_fill(enc_ctx));
 
     /* We cannot get access to trace before processing data. */
     TEST_ASSERT_ADDR_NULL(aws_cryptosdk_session_get_keyring_trace_ptr(session));
@@ -280,9 +280,9 @@ int test_simple_roundtrip() {
     if (check_ciphertext_and_trace(true)) return 1;
 
     /* Verify encryption context from decrypt session contains the entries added to encrypt session. */
-    const struct aws_hash_table *enc_context_after_decrypt = aws_cryptosdk_session_get_enc_ctx_ptr(session);
-    TEST_ASSERT_ADDR_NOT_NULL(enc_context_after_decrypt);
-    TEST_ASSERT_SUCCESS(assert_enc_context_fill(enc_context_after_decrypt));
+    const struct aws_hash_table *enc_ctx_after_decrypt = aws_cryptosdk_session_get_enc_ctx_ptr(session);
+    TEST_ASSERT_ADDR_NOT_NULL(enc_ctx_after_decrypt);
+    TEST_ASSERT_SUCCESS(assert_enc_ctx_fill(enc_ctx_after_decrypt));
 
     free_bufs();
     return 0;
@@ -376,15 +376,15 @@ static int test_algorithm_override_once(enum aws_cryptosdk_alg_id alg_id) {
 }
 
 int test_algorithm_override() {
-    return test_algorithm_override_once(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE) ||
-           test_algorithm_override_once(AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE) ||
-           test_algorithm_override_once(AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE) ||
-           test_algorithm_override_once(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256) ||
-           test_algorithm_override_once(AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384) ||
-           test_algorithm_override_once(AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384) ||
-           test_algorithm_override_once(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE) ||
-           test_algorithm_override_once(AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE) ||
-           test_algorithm_override_once(AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE);
+    return test_algorithm_override_once(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256) ||
+           test_algorithm_override_once(ALG_AES192_GCM_IV12_TAG16_NO_KDF) ||
+           test_algorithm_override_once(ALG_AES256_GCM_IV12_TAG16_NO_KDF) ||
+           test_algorithm_override_once(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256) ||
+           test_algorithm_override_once(ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384) ||
+           test_algorithm_override_once(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384) ||
+           test_algorithm_override_once(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256) ||
+           test_algorithm_override_once(ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256) ||
+           test_algorithm_override_once(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256);
 }
 
 int test_null_estimates() {

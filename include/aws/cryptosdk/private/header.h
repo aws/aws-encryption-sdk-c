@@ -34,7 +34,7 @@ struct aws_cryptosdk_hdr {
     uint8_t message_id[MESSAGE_ID_LEN];
 
     // aws_string * -> aws_string *
-    struct aws_hash_table enc_context;
+    struct aws_hash_table enc_ctx;
     struct aws_array_list edk_list;
 
     // number of bytes of header except for IV and auth tag,
@@ -59,7 +59,7 @@ enum aws_cryptosdk_hdr_content_type {
 
 /**
  * Initializes the header datastructure; on return, all fields are zeroed,
- * except for enc_context and edk_tbl, which are empty.
+ * except for enc_ctx and edk_tbl, which are empty.
  */
 int aws_cryptosdk_hdr_init(struct aws_cryptosdk_hdr *hdr, struct aws_allocator *alloc);
 

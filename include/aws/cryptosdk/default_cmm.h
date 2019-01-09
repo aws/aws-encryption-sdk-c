@@ -39,7 +39,7 @@ extern "C" {
  *
  * If a CMM that delegates to the default CMM selects an algorithm suite, that algorithm
  * suite will be used. Otherwise, the default CMM will select a default algorithm suite.
- * This is initially AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384, but can be overridden using
+ * This is initially ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384, but can be overridden using
  * aws_cryptosdk_default_cmm_set_alg_id.
  *
  * On success allocates a CMM and returns its address. Be sure to deallocate it later

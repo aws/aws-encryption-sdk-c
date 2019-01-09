@@ -35,23 +35,23 @@ static void strip_key_destroy(struct aws_cryptosdk_cmm *cmm) {
 
 static int strip_key_gen_mat(
     struct aws_cryptosdk_cmm *cmm,
-    struct aws_cryptosdk_encryption_materials **output,
-    struct aws_cryptosdk_encryption_request *request) {
+    struct aws_cryptosdk_enc_materials **output,
+    struct aws_cryptosdk_enc_request *request) {
     struct strip_key_cmm *self = (struct strip_key_cmm *)cmm;
-    int rv                     = aws_cryptosdk_cmm_generate_encryption_materials(self->cmm, output, request);
+    int rv                     = aws_cryptosdk_cmm_generate_enc_materials(self->cmm, output, request);
 
     if (rv == 0) {
-        aws_hash_table_remove(request->enc_context, EC_PUBLIC_KEY_FIELD, NULL, NULL);
+        aws_hash_table_remove(request->enc_ctx, EC_PUBLIC_KEY_FIELD, NULL, NULL);
     }
 
     return rv;
 }
 
-static const struct aws_cryptosdk_cmm_vt strip_key_cmm_vt = { .vt_size                       = sizeof(strip_key_cmm_vt),
-                                                              .name                          = "strip_key_cmm",
-                                                              .destroy                       = strip_key_destroy,
-                                                              .generate_encryption_materials = strip_key_gen_mat,
-                                                              .decrypt_materials             = NULL };
+static const struct aws_cryptosdk_cmm_vt strip_key_cmm_vt = { .vt_size                = sizeof(strip_key_cmm_vt),
+                                                              .name                   = "strip_key_cmm",
+                                                              .destroy                = strip_key_destroy,
+                                                              .generate_enc_materials = strip_key_gen_mat,
+                                                              .decrypt_materials      = NULL };
 
 // Test that the trailing signature logic rejects ciphertexts that claim to have a trailing-signature algorithm suite
 // but where no public key is in the encryption context.
@@ -65,7 +65,7 @@ static int trailing_sig_no_key() {
 
     TEST_ASSERT_ADDR_NOT_NULL(cmm);
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));
 
     TEST_ASSERT_SUCCESS(aws_byte_buf_init(&buf, aws_default_allocator(), 1024));
 
@@ -110,7 +110,7 @@ static int trailing_sig_no_sig() {
 
     TEST_ASSERT_ADDR_NOT_NULL(cmm);
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));
     TEST_ASSERT_SUCCESS(aws_byte_buf_init(&buf, aws_default_allocator(), 1024));
 
     session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm);
@@ -126,7 +126,7 @@ static int trailing_sig_no_sig() {
 
     // Strip off the trailing signature; we know that it has a size of two bytes plus the hard-coded
     // signature length.
-    buf.len -= aws_cryptosdk_alg_props(AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384)->signature_len + 2;
+    buf.len -= aws_cryptosdk_alg_props(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384)->signature_len + 2;
 
     session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm);
     TEST_ASSERT_ADDR_NOT_NULL(session);
@@ -155,7 +155,7 @@ static int trailing_sig_bad_sig() {
 
     TEST_ASSERT_ADDR_NOT_NULL(cmm);
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));
     TEST_ASSERT_SUCCESS(aws_byte_buf_init(&buf, aws_default_allocator(), 1024));
 
     session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm);

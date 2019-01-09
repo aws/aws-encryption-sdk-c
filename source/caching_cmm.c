@@ -17,15 +17,15 @@
 #include <aws/common/linked_list.h> /* AWS_CONTAINER_OF */
 #include <aws/common/math.h>
 #include <aws/cryptosdk/cache.h>
-#include <aws/cryptosdk/enc_context.h>
+#include <aws/cryptosdk/enc_ctx.h>
 #include <aws/cryptosdk/private/cipher.h>
-#include <aws/cryptosdk/private/enc_context.h>
+#include <aws/cryptosdk/private/enc_ctx.h>
 
 struct caching_cmm {
     struct aws_cryptosdk_cmm base;
     struct aws_allocator *alloc;
     struct aws_cryptosdk_cmm *upstream;
-    struct aws_cryptosdk_mat_cache *mat_cache;
+    struct aws_cryptosdk_materials_cache *materials_cache;
     struct aws_string *partition_id;
 
     int (*clock_get_ticks)(uint64_t *now);
@@ -36,23 +36,23 @@ struct caching_cmm {
 static void destroy_caching_cmm(struct aws_cryptosdk_cmm *generic_cmm);
 static int generate_enc_materials(
     struct aws_cryptosdk_cmm *cmm,
-    struct aws_cryptosdk_encryption_materials **output,
-    struct aws_cryptosdk_encryption_request *request);
+    struct aws_cryptosdk_enc_materials **output,
+    struct aws_cryptosdk_enc_request *request);
 static int decrypt_materials(
     struct aws_cryptosdk_cmm *cmm,
-    struct aws_cryptosdk_decryption_materials **output,
-    struct aws_cryptosdk_decryption_request *request);
-static const struct aws_cryptosdk_cmm_vt caching_cmm_vt = { .vt_size                       = sizeof(caching_cmm_vt),
-                                                            .name                          = "Caching CMM",
-                                                            .destroy                       = destroy_caching_cmm,
-                                                            .generate_encryption_materials = generate_enc_materials,
-                                                            .decrypt_materials             = decrypt_materials };
+    struct aws_cryptosdk_dec_materials **output,
+    struct aws_cryptosdk_dec_request *request);
+static const struct aws_cryptosdk_cmm_vt caching_cmm_vt = { .vt_size                = sizeof(caching_cmm_vt),
+                                                            .name                   = "Caching CMM",
+                                                            .destroy                = destroy_caching_cmm,
+                                                            .generate_enc_materials = generate_enc_materials,
+                                                            .decrypt_materials      = decrypt_materials };
 
 static void destroy_caching_cmm(struct aws_cryptosdk_cmm *generic_cmm) {
     struct caching_cmm *cmm = AWS_CONTAINER_OF(generic_cmm, struct caching_cmm, base);
 
     aws_string_destroy(cmm->partition_id);
-    aws_cryptosdk_mat_cache_release(cmm->mat_cache);
+    aws_cryptosdk_materials_cache_release(cmm->materials_cache);
     aws_cryptosdk_cmm_release(cmm->upstream);
     aws_mem_release(cmm->alloc, cmm);
 }
@@ -106,7 +106,7 @@ void caching_cmm_set_clock(struct aws_cryptosdk_cmm *generic_cmm, int (*clock_ge
 
 struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
     struct aws_allocator *alloc,
-    struct aws_cryptosdk_mat_cache *mat_cache,
+    struct aws_cryptosdk_materials_cache *materials_cache,
     struct aws_cryptosdk_cmm *upstream,
     const struct aws_byte_buf *partition_name) {
     struct aws_string *partition_id_str = hash_or_generate_partition_id(alloc, partition_name);
@@ -122,10 +122,10 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
 
     aws_cryptosdk_cmm_base_init(&cmm->base, &caching_cmm_vt);
 
-    cmm->alloc        = alloc;
-    cmm->upstream     = aws_cryptosdk_cmm_retain(upstream);
-    cmm->mat_cache    = aws_cryptosdk_mat_cache_retain(mat_cache);
-    cmm->partition_id = partition_id_str;
+    cmm->alloc           = alloc;
+    cmm->upstream        = aws_cryptosdk_cmm_retain(upstream);
+    cmm->materials_cache = aws_cryptosdk_materials_cache_retain(materials_cache);
+    cmm->partition_id    = partition_id_str;
 
     // We use the test helper here just to ensure we don't get unused static function warnings
     caching_cmm_set_clock(&cmm->base, aws_sys_clock_get_ticks);
@@ -169,13 +169,13 @@ int aws_cryptosdk_caching_cmm_set_limits(
  * Checks the TTL on the entry given. Returns true if the TTL has not yet expired, or false if it has expired.
  * Additionally, sets the TTL hint on the entry if it has not expired.
  */
-static bool check_ttl(struct caching_cmm *cmm, struct aws_cryptosdk_mat_cache_entry *entry) {
+static bool check_ttl(struct caching_cmm *cmm, struct aws_cryptosdk_materials_cache_entry *entry) {
     if (cmm->ttl == UINT64_MAX) {
         /* Entries never expire, because their expiration time is beyond the maximum time we can represent */
         return true;
     }
 
-    uint64_t creation_time = aws_cryptosdk_mat_cache_entry_get_creation_time(cmm->mat_cache, entry);
+    uint64_t creation_time = aws_cryptosdk_materials_cache_entry_get_creation_time(cmm->materials_cache, entry);
     uint64_t expiration    = creation_time + cmm->ttl;
     uint64_t now;
 
@@ -191,14 +191,14 @@ static bool check_ttl(struct caching_cmm *cmm, struct aws_cryptosdk_mat_cache_en
         return false;
     }
 
-    aws_cryptosdk_mat_cache_entry_ttl_hint(cmm->mat_cache, entry, expiration);
+    aws_cryptosdk_materials_cache_entry_ttl_hint(cmm->materials_cache, entry, expiration);
 
     return true;
 }
 
 AWS_CRYPTOSDK_TEST_STATIC
-int hash_encrypt_request(
-    struct aws_string *partition_id, struct aws_byte_buf *out, const struct aws_cryptosdk_encryption_request *req) {
+int hash_enc_request(
+    struct aws_string *partition_id, struct aws_byte_buf *out, const struct aws_cryptosdk_enc_request *req) {
     /*
      * Here, we hash the relevant aspects of the request structure to use as a cache identifier.
      * The hash is intended to match Java and Python, but since we've not yet committed to maintaining
@@ -216,12 +216,12 @@ int hash_encrypt_request(
         return aws_raise_error(AWS_ERROR_INVALID_BUFFER_SIZE);
     }
 
-    struct aws_cryptosdk_md_context *md_context, *enc_context_md;
+    struct aws_cryptosdk_md_context *md_context, *enc_ctx_md;
     if (aws_cryptosdk_md_init(req->alloc, &md_context, AWS_CRYPTOSDK_MD_SHA512)) {
         return AWS_OP_ERR;
     }
 
-    if (aws_cryptosdk_md_init(req->alloc, &enc_context_md, AWS_CRYPTOSDK_MD_SHA512)) {
+    if (aws_cryptosdk_md_init(req->alloc, &enc_ctx_md, AWS_CRYPTOSDK_MD_SHA512)) {
         return AWS_OP_ERR;
     }
 
@@ -242,21 +242,21 @@ int hash_encrypt_request(
     }
 
     size_t context_size;
-    if (aws_cryptosdk_context_size(&context_size, req->enc_context) ||
+    if (aws_cryptosdk_enc_ctx_size(&context_size, req->enc_ctx) ||
         aws_byte_buf_init(&context_buf, req->alloc, context_size) ||
-        aws_cryptosdk_context_serialize(req->alloc, &context_buf, req->enc_context) ||
-        aws_cryptosdk_md_update(enc_context_md, context_buf.buffer, context_buf.len)) {
+        aws_cryptosdk_enc_ctx_serialize(req->alloc, &context_buf, req->enc_ctx) ||
+        aws_cryptosdk_md_update(enc_ctx_md, context_buf.buffer, context_buf.len)) {
         goto md_err;
     }
 
-    size_t enc_context_digest_len;
-    if (aws_cryptosdk_md_finish(enc_context_md, digestbuf, &enc_context_digest_len)) {
-        enc_context_md = NULL;
+    size_t enc_ctx_digest_len;
+    if (aws_cryptosdk_md_finish(enc_ctx_md, digestbuf, &enc_ctx_digest_len)) {
+        enc_ctx_md = NULL;
         goto md_err;
     }
-    enc_context_md = NULL;
+    enc_ctx_md = NULL;
 
-    if (aws_cryptosdk_md_update(md_context, digestbuf, enc_context_digest_len)) {
+    if (aws_cryptosdk_md_update(md_context, digestbuf, enc_ctx_digest_len)) {
         goto md_err;
     }
 
@@ -266,7 +266,7 @@ int hash_encrypt_request(
 md_err:
     aws_byte_buf_clean_up(&context_buf);
     aws_cryptosdk_md_abort(md_context);
-    aws_cryptosdk_md_abort(enc_context_md);
+    aws_cryptosdk_md_abort(enc_ctx_md);
 
     return AWS_OP_ERR;
 }
@@ -306,7 +306,7 @@ int hash_edk_for_decrypt(
     }
 
     if (hash_edk_field(md_context, &edk->provider_id) || hash_edk_field(md_context, &edk->provider_info) ||
-        hash_edk_field(md_context, &edk->enc_data_key)) {
+        hash_edk_field(md_context, &edk->ciphertext)) {
         aws_cryptosdk_md_abort(md_context);
         return AWS_OP_ERR;
     }
@@ -318,10 +318,8 @@ int hash_edk_for_decrypt(
 }
 
 AWS_CRYPTOSDK_TEST_STATIC
-int hash_decrypt_request(
-    const struct aws_string *partition_id,
-    struct aws_byte_buf *out,
-    const struct aws_cryptosdk_decryption_request *req) {
+int hash_dec_request(
+    const struct aws_string *partition_id, struct aws_byte_buf *out, const struct aws_cryptosdk_dec_request *req) {
     static const struct edk_hash_entry zero_entry = { { 0 } };
 
     int rv             = AWS_OP_ERR;
@@ -348,9 +346,9 @@ int hash_decrypt_request(
 
     size_t context_size;
     if (aws_cryptosdk_md_init(req->alloc, &md_context, AWS_CRYPTOSDK_MD_SHA512) ||
-        aws_cryptosdk_context_size(&context_size, req->enc_context) ||
+        aws_cryptosdk_enc_ctx_size(&context_size, req->enc_ctx) ||
         aws_byte_buf_init(&context_buf, req->alloc, context_size) ||
-        aws_cryptosdk_context_serialize(req->alloc, &context_buf, req->enc_context) ||
+        aws_cryptosdk_enc_ctx_serialize(req->alloc, &context_buf, req->enc_ctx) ||
         aws_cryptosdk_md_update(md_context, context_buf.buffer, context_buf.len)) {
         goto err;
     }
@@ -425,25 +423,25 @@ err:
     return rv;
 }
 
-static void set_ttl_on_miss(struct caching_cmm *cmm, struct aws_cryptosdk_mat_cache_entry *entry) {
+static void set_ttl_on_miss(struct caching_cmm *cmm, struct aws_cryptosdk_materials_cache_entry *entry) {
     if (entry && cmm->ttl != UINT64_MAX) {
-        uint64_t creation_time = aws_cryptosdk_mat_cache_entry_get_creation_time(cmm->mat_cache, entry);
+        uint64_t creation_time = aws_cryptosdk_materials_cache_entry_get_creation_time(cmm->materials_cache, entry);
         uint64_t exp_time      = creation_time + cmm->ttl;
 
         if (exp_time > creation_time) {
-            aws_cryptosdk_mat_cache_entry_ttl_hint(cmm->mat_cache, entry, exp_time);
+            aws_cryptosdk_materials_cache_entry_ttl_hint(cmm->materials_cache, entry, exp_time);
         }
     }
 }
 
 static int generate_enc_materials(
     struct aws_cryptosdk_cmm *generic_cmm,
-    struct aws_cryptosdk_encryption_materials **output,
-    struct aws_cryptosdk_encryption_request *request) {
+    struct aws_cryptosdk_enc_materials **output,
+    struct aws_cryptosdk_enc_request *request) {
     struct caching_cmm *cmm = AWS_CONTAINER_OF(generic_cmm, struct caching_cmm, base);
 
     bool is_encrypt, should_invalidate = false;
-    struct aws_cryptosdk_mat_cache_entry *entry = NULL;
+    struct aws_cryptosdk_materials_cache_entry *entry = NULL;
     struct aws_cryptosdk_cache_usage_stats delta_usage;
 
     delta_usage.bytes_encrypted    = request->plaintext_size;
@@ -459,16 +457,17 @@ static int generate_enc_materials(
 
     if (delta_usage.bytes_encrypted >= cmm->limit_bytes ||
         (request->requested_alg && !can_cache_algorithm(request->requested_alg))) {
-        return aws_cryptosdk_cmm_generate_encryption_materials(cmm->upstream, output, request);
+        return aws_cryptosdk_cmm_generate_enc_materials(cmm->upstream, output, request);
     }
 
     uint8_t hash_arr[AWS_CRYPTOSDK_MD_MAX_SIZE];
     struct aws_byte_buf hash_buf = aws_byte_buf_from_array(hash_arr, sizeof(hash_arr));
-    if (hash_encrypt_request(cmm->partition_id, &hash_buf, request)) {
+    if (hash_enc_request(cmm->partition_id, &hash_buf, request)) {
         return AWS_OP_ERR;
     }
 
-    if (aws_cryptosdk_mat_cache_find_entry(cmm->mat_cache, &entry, &is_encrypt, &hash_buf) || !entry || !is_encrypt) {
+    if (aws_cryptosdk_materials_cache_find_entry(cmm->materials_cache, &entry, &is_encrypt, &hash_buf) || !entry ||
+        !is_encrypt) {
         goto cache_miss;
     }
 
@@ -477,7 +476,7 @@ static int generate_enc_materials(
     }
 
     struct aws_cryptosdk_cache_usage_stats stats = delta_usage;
-    if (aws_cryptosdk_mat_cache_update_usage_stats(cmm->mat_cache, entry, &stats)) {
+    if (aws_cryptosdk_materials_cache_update_usage_stats(cmm->materials_cache, entry, &stats)) {
         goto cache_miss;
     }
 
@@ -489,12 +488,12 @@ static int generate_enc_materials(
         should_invalidate = true;
     }
 
-    if (aws_cryptosdk_mat_cache_get_encryption_materials(
-            cmm->mat_cache, request->alloc, output, request->enc_context, entry)) {
+    if (aws_cryptosdk_materials_cache_get_enc_materials(
+            cmm->materials_cache, request->alloc, output, request->enc_ctx, entry)) {
         goto cache_miss;
     }
 
-    aws_cryptosdk_mat_cache_entry_release(cmm->mat_cache, entry, should_invalidate);
+    aws_cryptosdk_materials_cache_entry_release(cmm->materials_cache, entry, should_invalidate);
 
     return AWS_OP_SUCCESS;
 cache_miss:
@@ -503,22 +502,22 @@ cache_miss:
          * If we found the entry but then did a cache miss, it must have been unusable for some reason,
          * and we should invalidate.
          */
-        aws_cryptosdk_mat_cache_entry_release(cmm->mat_cache, entry, true);
+        aws_cryptosdk_materials_cache_entry_release(cmm->materials_cache, entry, true);
         entry = NULL;
     }
 
-    if (aws_cryptosdk_cmm_generate_encryption_materials(cmm->upstream, output, request)) {
+    if (aws_cryptosdk_cmm_generate_enc_materials(cmm->upstream, output, request)) {
         return AWS_OP_ERR;
     }
 
     if (can_cache_algorithm((*output)->alg)) {
-        aws_cryptosdk_mat_cache_put_entry_for_encrypt(
-            cmm->mat_cache, &entry, *output, delta_usage, request->enc_context, &hash_buf);
+        aws_cryptosdk_materials_cache_put_entry_for_encrypt(
+            cmm->materials_cache, &entry, *output, delta_usage, request->enc_ctx, &hash_buf);
 
         set_ttl_on_miss(cmm, entry);
 
         if (entry) {
-            aws_cryptosdk_mat_cache_entry_release(cmm->mat_cache, entry, false);
+            aws_cryptosdk_materials_cache_entry_release(cmm->materials_cache, entry, false);
         }
     }
 
@@ -527,12 +526,12 @@ cache_miss:
 
 static int decrypt_materials(
     struct aws_cryptosdk_cmm *generic_cmm,
-    struct aws_cryptosdk_decryption_materials **output,
-    struct aws_cryptosdk_decryption_request *request) {
+    struct aws_cryptosdk_dec_materials **output,
+    struct aws_cryptosdk_dec_request *request) {
     struct caching_cmm *cmm = AWS_CONTAINER_OF(generic_cmm, struct caching_cmm, base);
 
     bool is_encrypt;
-    struct aws_cryptosdk_mat_cache_entry *entry = NULL;
+    struct aws_cryptosdk_materials_cache_entry *entry = NULL;
 
     if (!can_cache_algorithm(request->alg)) {
         /* The algorithm used for the ciphertext is not cachable, so bypass the cache entirely */
@@ -542,11 +541,12 @@ static int decrypt_materials(
     uint8_t hash_arr[AWS_CRYPTOSDK_MD_MAX_SIZE];
     struct aws_byte_buf hash_buf = aws_byte_buf_from_array(hash_arr, sizeof(hash_arr));
 
-    if (hash_decrypt_request(cmm->partition_id, &hash_buf, request)) {
+    if (hash_dec_request(cmm->partition_id, &hash_buf, request)) {
         return AWS_OP_ERR;
     }
 
-    if (aws_cryptosdk_mat_cache_find_entry(cmm->mat_cache, &entry, &is_encrypt, &hash_buf) || !entry || is_encrypt) {
+    if (aws_cryptosdk_materials_cache_find_entry(cmm->materials_cache, &entry, &is_encrypt, &hash_buf) || !entry ||
+        is_encrypt) {
         /*
          * If we got an encrypt entry, we'll invalidate it, since we're about to replace it anyway.
          * (This is unlikely to happen anyway, unless our hash function is broken)
@@ -558,11 +558,11 @@ static int decrypt_materials(
         goto cache_miss;
     }
 
-    if (aws_cryptosdk_mat_cache_get_decryption_materials(cmm->mat_cache, request->alloc, output, entry)) {
+    if (aws_cryptosdk_materials_cache_get_dec_materials(cmm->materials_cache, request->alloc, output, entry)) {
         goto cache_miss;
     }
 
-    aws_cryptosdk_mat_cache_entry_release(cmm->mat_cache, entry, false);
+    aws_cryptosdk_materials_cache_entry_release(cmm->materials_cache, entry, false);
 
     return AWS_OP_SUCCESS;
 
@@ -572,19 +572,19 @@ cache_miss:
          * If we found the entry but then did a cache miss, it must have been unusable for some reason,
          * and we should invalidate.
          */
-        aws_cryptosdk_mat_cache_entry_release(cmm->mat_cache, entry, true);
+        aws_cryptosdk_materials_cache_entry_release(cmm->materials_cache, entry, true);
     }
 
     if (aws_cryptosdk_cmm_decrypt_materials(cmm->upstream, output, request)) {
         return AWS_OP_ERR;
     }
 
-    aws_cryptosdk_mat_cache_put_entry_for_decrypt(cmm->mat_cache, &entry, *output, &hash_buf);
+    aws_cryptosdk_materials_cache_put_entry_for_decrypt(cmm->materials_cache, &entry, *output, &hash_buf);
 
     set_ttl_on_miss(cmm, entry);
 
     if (entry) {
-        aws_cryptosdk_mat_cache_entry_release(cmm->mat_cache, entry, false);
+        aws_cryptosdk_materials_cache_entry_release(cmm->materials_cache, entry, false);
     }
 
     return AWS_OP_SUCCESS;

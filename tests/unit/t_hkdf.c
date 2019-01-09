@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 #include <aws/cryptosdk/error.h>
-#include <aws/cryptosdk/hkdf.h>
+#include <aws/cryptosdk/private/hkdf.h>
 #include "testing.h"
 struct hkdf_test_vectors {
     enum aws_cryptosdk_sha_version which_sha;

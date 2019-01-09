@@ -26,7 +26,7 @@ static struct aws_cryptosdk_keyring *multi;
 static struct aws_array_list edks;
 static struct aws_array_list keyring_trace;
 // doesn't matter here, just picking one
-static enum aws_cryptosdk_alg_id alg = AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384;
+static enum aws_cryptosdk_alg_id alg = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384;
 
 static char test_data_key[] = "datakey|datakey|datakey|datakey|";
 
@@ -37,18 +37,20 @@ static int set_up_all_the_things(bool include_generator) {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_init(alloc, &keyring_trace));
 
     memset(test_keyrings, 0, sizeof(test_keyrings));
-    multi = aws_cryptosdk_multi_keyring_new(alloc, NULL);
+    struct aws_cryptosdk_keyring *generator = NULL;
+    if (include_generator) {
+        generator = (struct aws_cryptosdk_keyring *)&test_keyrings[0];
+        aws_cryptosdk_keyring_base_init(&test_keyrings[0].base, &test_keyring_vt);
+        TEST_ASSERT(!test_keyrings[0].on_encrypt_called);
+        TEST_ASSERT(!test_keyrings[0].on_decrypt_called);
+    }
+    multi = aws_cryptosdk_multi_keyring_new(alloc, generator);
     TEST_ASSERT_ADDR_NOT_NULL(multi);
-    for (size_t kr_idx = 0; kr_idx < num_test_keyrings; ++kr_idx) {
+    for (size_t kr_idx = 1; kr_idx < num_test_keyrings; ++kr_idx) {
         aws_cryptosdk_keyring_base_init(&test_keyrings[kr_idx].base, &test_keyring_vt);
 
-        if (kr_idx) {
-            TEST_ASSERT_SUCCESS(
-                aws_cryptosdk_multi_keyring_add(multi, (struct aws_cryptosdk_keyring *)(test_keyrings + kr_idx)));
-        } else if (include_generator) {
-            TEST_ASSERT_SUCCESS(
-                aws_cryptosdk_multi_keyring_set_generator(multi, (struct aws_cryptosdk_keyring *)(test_keyrings)));
-        }
+        TEST_ASSERT_SUCCESS(
+            aws_cryptosdk_multi_keyring_add_child(multi, (struct aws_cryptosdk_keyring *)(test_keyrings + kr_idx)));
 
         // all flags have been reset
         TEST_ASSERT(!test_keyrings[kr_idx].on_encrypt_called);
@@ -220,7 +222,7 @@ int fail_on_failed_encrypt_and_stop() {
 static size_t already_there_list_len = 7;
 static struct aws_cryptosdk_edk already_there_edk;
 static int put_stuff_in_edk_list() {
-    already_there_edk.enc_data_key  = aws_byte_buf_from_c_str("already there edk");
+    already_there_edk.ciphertext    = aws_byte_buf_from_c_str("already there edk");
     already_there_edk.provider_id   = aws_byte_buf_from_c_str("already there provider id");
     already_there_edk.provider_info = aws_byte_buf_from_c_str("already there provider info");
     for (size_t idx = 0; idx < already_there_list_len; ++idx) {

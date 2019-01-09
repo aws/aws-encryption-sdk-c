@@ -23,8 +23,8 @@
 
 #include <aws/common/byte_order.h>
 #include <aws/cryptosdk/error.h>
-#include <aws/cryptosdk/hkdf.h>
 #include <aws/cryptosdk/private/cipher.h>
+#include <aws/cryptosdk/private/hkdf.h>
 
 #define MSG_ID_LEN 16
 
@@ -53,17 +53,20 @@ const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryp
         return &props;                                                                                         \
     }
     switch (alg_id) {
-        STATIC_ALG_PROPS(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE, NULL, aes_128_gcm, 128, 12, 16, 0, NULL);
-        STATIC_ALG_PROPS(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE, sha256, aes_128_gcm, 128, 12, 16, 0, NULL);
-        STATIC_ALG_PROPS(AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE, NULL, aes_192_gcm, 192, 12, 16, 0, NULL);
-        STATIC_ALG_PROPS(AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE, sha256, aes_192_gcm, 192, 12, 16, 0, NULL);
-        STATIC_ALG_PROPS(AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE, NULL, aes_256_gcm, 256, 12, 16, 0, NULL);
-        STATIC_ALG_PROPS(AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE, sha256, aes_256_gcm, 256, 12, 16, 0, NULL);
+        STATIC_ALG_PROPS(ALG_AES128_GCM_IV12_TAG16_NO_KDF, NULL, aes_128_gcm, 128, 12, 16, 0, NULL);
+        STATIC_ALG_PROPS(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256, sha256, aes_128_gcm, 128, 12, 16, 0, NULL);
+        STATIC_ALG_PROPS(ALG_AES192_GCM_IV12_TAG16_NO_KDF, NULL, aes_192_gcm, 192, 12, 16, 0, NULL);
+        STATIC_ALG_PROPS(ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256, sha256, aes_192_gcm, 192, 12, 16, 0, NULL);
+        STATIC_ALG_PROPS(ALG_AES256_GCM_IV12_TAG16_NO_KDF, NULL, aes_256_gcm, 256, 12, 16, 0, NULL);
+        STATIC_ALG_PROPS(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256, sha256, aes_256_gcm, 256, 12, 16, 0, NULL);
         // secp256r1 aka prime256v1 aka P-256
         // openssl does not define the 'secp256r1' alias however
-        STATIC_ALG_PROPS(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256, sha256, aes_128_gcm, 128, 12, 16, 71, "prime256v1");
-        STATIC_ALG_PROPS(AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384, sha384, aes_192_gcm, 192, 12, 16, 103, "secp384r1");
-        STATIC_ALG_PROPS(AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384, sha384, aes_256_gcm, 256, 12, 16, 103, "secp384r1");
+        STATIC_ALG_PROPS(
+            ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256, sha256, aes_128_gcm, 128, 12, 16, 71, "prime256v1");
+        STATIC_ALG_PROPS(
+            ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384, sha384, aes_192_gcm, 192, 12, 16, 103, "secp384r1");
+        STATIC_ALG_PROPS(
+            ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384, sha384, aes_256_gcm, 256, 12, 16, 103, "secp384r1");
         default: return NULL;
     }
 #undef STATIC_ALG_PROPS
@@ -72,15 +75,15 @@ const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryp
 
 static enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id alg_id) {
     switch (alg_id) {
-        case AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384:
-        case AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384: return AWS_CRYPTOSDK_SHA384;
-        case AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256:
-        case AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE:
-        case AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE:
-        case AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE: return AWS_CRYPTOSDK_SHA256;
-        case AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE:
-        case AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE:
-        case AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE:
+        case ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384:
+        case ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384: return AWS_CRYPTOSDK_SHA384;
+        case ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256:
+        case ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256:
+        case ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256:
+        case ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256: return AWS_CRYPTOSDK_SHA256;
+        case ALG_AES256_GCM_IV12_TAG16_NO_KDF:
+        case ALG_AES192_GCM_IV12_TAG16_NO_KDF:
+        case ALG_AES128_GCM_IV12_TAG16_NO_KDF:
         default: return AWS_CRYPTOSDK_NOSHA;
     }
 }
@@ -436,9 +439,9 @@ int aws_cryptosdk_genrandom(uint8_t *buf, size_t len) {
 
 static const EVP_CIPHER *get_alg_from_key_size(size_t key_len) {
     switch (key_len) {
-        case AWS_CRYPTOSDK_AES_128: return EVP_aes_128_gcm();
-        case AWS_CRYPTOSDK_AES_192: return EVP_aes_192_gcm();
-        case AWS_CRYPTOSDK_AES_256: return EVP_aes_256_gcm();
+        case AWS_CRYPTOSDK_AES128: return EVP_aes_128_gcm();
+        case AWS_CRYPTOSDK_AES192: return EVP_aes_192_gcm();
+        case AWS_CRYPTOSDK_AES256: return EVP_aes_256_gcm();
         default: return NULL;
     }
 }

@@ -70,7 +70,7 @@ static void ECDSA_SIG_set0(ECDSA_SIG *sig, BIGNUM *r, BIGNUM *s) {
 
 #endif
 
-struct aws_cryptosdk_signctx {
+struct aws_cryptosdk_sig_ctx {
     struct aws_allocator *alloc;
     const struct aws_cryptosdk_alg_properties *props;
     EC_KEY *keypair;
@@ -185,9 +185,9 @@ static EC_GROUP *group_for_props(const struct aws_cryptosdk_alg_properties *prop
  * Set up a signing context using a previously prepared EC_KEY. This will take a reference on keypair, so the caller
  * should dispose of its own reference on keypair.
  */
-static struct aws_cryptosdk_signctx *sign_start(
+static struct aws_cryptosdk_sig_ctx *sign_start(
     struct aws_allocator *alloc, EC_KEY *keypair, const struct aws_cryptosdk_alg_properties *props) {
-    struct aws_cryptosdk_signctx *ctx = aws_mem_acquire(alloc, sizeof(*ctx));
+    struct aws_cryptosdk_sig_ctx *ctx = aws_mem_acquire(alloc, sizeof(*ctx));
 
     if (!ctx) {
         aws_raise_error(AWS_ERROR_OOM);
@@ -287,12 +287,12 @@ err:
 }
 
 int aws_cryptosdk_sig_get_pubkey(
-    const struct aws_cryptosdk_signctx *ctx, struct aws_allocator *alloc, struct aws_string **pub_key_buf) {
+    const struct aws_cryptosdk_sig_ctx *ctx, struct aws_allocator *alloc, struct aws_string **pub_key_buf) {
     return serialize_pubkey(alloc, ctx->keypair, pub_key_buf);
 }
 
 int aws_cryptosdk_sig_get_privkey(
-    const struct aws_cryptosdk_signctx *ctx, struct aws_allocator *alloc, struct aws_string **priv_key) {
+    const struct aws_cryptosdk_sig_ctx *ctx, struct aws_allocator *alloc, struct aws_string **priv_key) {
     /*
      * When serializing private keys we use this ad-hoc format:
      *
@@ -397,7 +397,7 @@ err:
 }
 
 int aws_cryptosdk_sig_sign_start_keygen(
-    struct aws_cryptosdk_signctx **pctx,
+    struct aws_cryptosdk_sig_ctx **pctx,
     struct aws_allocator *alloc,
     struct aws_string **pub_key,
     const struct aws_cryptosdk_alg_properties *props) {
@@ -459,7 +459,7 @@ rethrow:
     return AWS_OP_ERR;
 }
 
-void aws_cryptosdk_sig_abort(struct aws_cryptosdk_signctx *ctx) {
+void aws_cryptosdk_sig_abort(struct aws_cryptosdk_sig_ctx *ctx) {
     if (!ctx) {
         return;
     }
@@ -472,7 +472,7 @@ void aws_cryptosdk_sig_abort(struct aws_cryptosdk_signctx *ctx) {
 }
 
 int aws_cryptosdk_sig_sign_start(
-    struct aws_cryptosdk_signctx **ctx,
+    struct aws_cryptosdk_sig_ctx **ctx,
     struct aws_allocator *alloc,
     struct aws_string **pub_key_str,
     const struct aws_cryptosdk_alg_properties *props,
@@ -640,12 +640,12 @@ out:
 }
 
 int aws_cryptosdk_sig_verify_start(
-    struct aws_cryptosdk_signctx **pctx,
+    struct aws_cryptosdk_sig_ctx **pctx,
     struct aws_allocator *alloc,
     const struct aws_string *pub_key,
     const struct aws_cryptosdk_alg_properties *props) {
     EC_KEY *key                       = NULL;
-    struct aws_cryptosdk_signctx *ctx = NULL;
+    struct aws_cryptosdk_sig_ctx *ctx = NULL;
 
     *pctx = NULL;
 
@@ -701,7 +701,7 @@ rethrow:
     return AWS_OP_ERR;
 }
 
-int aws_cryptosdk_sig_update(struct aws_cryptosdk_signctx *ctx, const struct aws_byte_cursor cursor) {
+int aws_cryptosdk_sig_update(struct aws_cryptosdk_sig_ctx *ctx, const struct aws_byte_cursor cursor) {
     if (EVP_DigestUpdate(ctx->ctx, cursor.ptr, cursor.len) != 1) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
@@ -709,7 +709,7 @@ int aws_cryptosdk_sig_update(struct aws_cryptosdk_signctx *ctx, const struct aws
     return AWS_OP_SUCCESS;
 }
 
-int aws_cryptosdk_sig_verify_finish(struct aws_cryptosdk_signctx *ctx, const struct aws_string *signature) {
+int aws_cryptosdk_sig_verify_finish(struct aws_cryptosdk_sig_ctx *ctx, const struct aws_string *signature) {
     assert(!ctx->is_sign);
     bool ok = EVP_DigestVerifyFinal(ctx->ctx, aws_string_bytes(signature), signature->len) == 1;
 
@@ -719,7 +719,7 @@ int aws_cryptosdk_sig_verify_finish(struct aws_cryptosdk_signctx *ctx, const str
 }
 
 int aws_cryptosdk_sig_sign_finish(
-    struct aws_cryptosdk_signctx *ctx, struct aws_allocator *alloc, struct aws_string **signature) {
+    struct aws_cryptosdk_sig_ctx *ctx, struct aws_allocator *alloc, struct aws_string **signature) {
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     /* This needs to be big enough for all digest algorithms in use */
     uint8_t digestbuf[64];

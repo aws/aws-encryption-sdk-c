@@ -220,8 +220,8 @@ void aws_cryptosdk_session_estimate_buf(
  * The hash table pointed to by this pointer lives until the session is
  * reset or destroyed. If you want a copy of the encryption context that will
  * outlive the session, you should duplicate it with
- * aws_cryptosdk_enc_context_clone and then deallocate the copy with
- * aws_cryptosdk_enc_context_clean_up when done with it.
+ * aws_cryptosdk_enc_ctx_clone and then deallocate the copy with
+ * aws_cryptosdk_enc_ctx_clean_up when done with it.
  */
 AWS_CRYPTOSDK_API
 const struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr(const struct aws_cryptosdk_session *session);

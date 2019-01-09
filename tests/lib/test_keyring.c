@@ -30,9 +30,9 @@ static int test_keyring_on_encrypt(
     struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *keyring_trace,
     struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
-    (void)enc_context;
+    (void)enc_ctx;
     struct test_keyring *self = (struct test_keyring *)kr;
 
     if (!self->ret && !self->skip_output) {
@@ -43,7 +43,7 @@ static int test_keyring_on_encrypt(
         }
 
         static struct aws_cryptosdk_edk edk;
-        edk.enc_data_key  = aws_byte_buf_from_c_str("test keyring generate edk");
+        edk.ciphertext    = aws_byte_buf_from_c_str("test keyring generate edk");
         edk.provider_id   = aws_byte_buf_from_c_str("test keyring generate provider id");
         edk.provider_info = aws_byte_buf_from_c_str("test keyring generate provider info");
         aws_array_list_push_back(edks, &edk);
@@ -66,10 +66,10 @@ static int test_keyring_on_decrypt(
     struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *keyring_trace,
     const struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
     (void)edks;
-    (void)enc_context;
+    (void)enc_ctx;
     (void)alg;
     struct test_keyring *self = (struct test_keyring *)kr;
     if (!self->ret && !self->skip_output) {

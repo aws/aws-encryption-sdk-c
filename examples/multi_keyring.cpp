@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     size_t wrapping_key_len = fread(wrapping_key, 1, 32, key_file);
     uint8_t throwaway;
     fread(&throwaway, 1, 1, key_file);
-    if (!feof(key_file) || !(wrapping_key_len == AWS_CRYPTOSDK_AES_256)) {
+    if (!feof(key_file) || !(wrapping_key_len == AWS_CRYPTOSDK_AES256)) {
         fclose(key_file);
         fprintf(stderr, "Key file must be 256 bits only.\n");
         aws_secure_zero(wrapping_key, wrapping_key_len);
@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
     AWS_STATIC_STRING_FROM_LITERAL(wrapping_key_namespace, "my master keys");
     AWS_STATIC_STRING_FROM_LITERAL(wrapping_key_name, "escrow key #1");
     struct aws_cryptosdk_keyring *escrow_keyring = aws_cryptosdk_raw_aes_keyring_new(
-        alloc, wrapping_key_namespace, wrapping_key_name, wrapping_key, AWS_CRYPTOSDK_AES_256);
+        alloc, wrapping_key_namespace, wrapping_key_name, wrapping_key, AWS_CRYPTOSDK_AES256);
     assert(escrow_keyring);
 
     /* We create a multi-keyring. The first keyring specified on creation is the
@@ -104,8 +104,7 @@ int main(int argc, char **argv) {
      * attempts with the multi-keyring, and it is expected to do the data key
      * generation. Alternatively, you can create a multi-keyring without a
      * generator by passing in NULL as the second argument, but you will only
-     * be able to use it for decryption until you set a generator by calling
-     * aws_cryptosdk_multi_keyring_set_generator on it.
+     * be able to use it for decryption.
      */
     struct aws_cryptosdk_keyring *multi_keyring = aws_cryptosdk_multi_keyring_new(alloc, kms_keyring);
     assert(multi_keyring);
@@ -114,7 +113,7 @@ int main(int argc, char **argv) {
      * Any data encrypted with the multi-keyring will be decryptable by
      * either the KMS keyring or by the escrow keyring.
      */
-    assert(AWS_OP_SUCCESS == aws_cryptosdk_multi_keyring_add(multi_keyring, escrow_keyring));
+    assert(AWS_OP_SUCCESS == aws_cryptosdk_multi_keyring_add_child(multi_keyring, escrow_keyring));
 
     /*
      * The multi-keyring holds references to the other two keyrings, so we

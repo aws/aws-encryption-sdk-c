@@ -15,10 +15,10 @@
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/materials.h>
 
-struct aws_cryptosdk_encryption_materials *aws_cryptosdk_encryption_materials_new(
+struct aws_cryptosdk_enc_materials *aws_cryptosdk_enc_materials_new(
     struct aws_allocator *alloc, enum aws_cryptosdk_alg_id alg) {
-    struct aws_cryptosdk_encryption_materials *enc_mat;
-    enc_mat = aws_mem_acquire(alloc, sizeof(struct aws_cryptosdk_encryption_materials));
+    struct aws_cryptosdk_enc_materials *enc_mat;
+    enc_mat = aws_mem_acquire(alloc, sizeof(struct aws_cryptosdk_enc_materials));
 
     if (!enc_mat) return NULL;
     enc_mat->alloc = alloc;
@@ -40,7 +40,7 @@ struct aws_cryptosdk_encryption_materials *aws_cryptosdk_encryption_materials_ne
     return enc_mat;
 }
 
-void aws_cryptosdk_encryption_materials_destroy(struct aws_cryptosdk_encryption_materials *enc_mat) {
+void aws_cryptosdk_enc_materials_destroy(struct aws_cryptosdk_enc_materials *enc_mat) {
     if (enc_mat) {
         aws_cryptosdk_sig_abort(enc_mat->signctx);
         aws_byte_buf_clean_up_secure(&enc_mat->unencrypted_data_key);
@@ -51,10 +51,10 @@ void aws_cryptosdk_encryption_materials_destroy(struct aws_cryptosdk_encryption_
 }
 
 // TODO: initialization for trailing signature key, if necessary
-struct aws_cryptosdk_decryption_materials *aws_cryptosdk_decryption_materials_new(
+struct aws_cryptosdk_dec_materials *aws_cryptosdk_dec_materials_new(
     struct aws_allocator *alloc, enum aws_cryptosdk_alg_id alg) {
-    struct aws_cryptosdk_decryption_materials *dec_mat;
-    dec_mat = aws_mem_acquire(alloc, sizeof(struct aws_cryptosdk_decryption_materials));
+    struct aws_cryptosdk_dec_materials *dec_mat;
+    dec_mat = aws_mem_acquire(alloc, sizeof(struct aws_cryptosdk_dec_materials));
     if (!dec_mat) return NULL;
     dec_mat->alloc                          = alloc;
     dec_mat->unencrypted_data_key.buffer    = NULL;
@@ -69,7 +69,7 @@ struct aws_cryptosdk_decryption_materials *aws_cryptosdk_decryption_materials_ne
     return dec_mat;
 }
 
-void aws_cryptosdk_decryption_materials_destroy(struct aws_cryptosdk_decryption_materials *dec_mat) {
+void aws_cryptosdk_dec_materials_destroy(struct aws_cryptosdk_dec_materials *dec_mat) {
     if (dec_mat) {
         aws_cryptosdk_sig_abort(dec_mat->signctx);
         aws_byte_buf_clean_up_secure(&dec_mat->unencrypted_data_key);
@@ -84,7 +84,7 @@ int aws_cryptosdk_keyring_on_encrypt(
     struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *keyring_trace,
     struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
     /* Shallow copy of byte buffer: does NOT duplicate key bytes */
     const struct aws_byte_buf precall_data_key_buf = *unencrypted_data_key;
@@ -97,7 +97,7 @@ int aws_cryptosdk_keyring_on_encrypt(
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
 
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(
-        on_encrypt, keyring, request_alloc, unencrypted_data_key, keyring_trace, edks, enc_context, alg);
+        on_encrypt, keyring, request_alloc, unencrypted_data_key, keyring_trace, edks, enc_ctx, alg);
 
     /* Postcondition: If this keyring generated data key, it must be the right length. */
     if (!precall_data_key_buf.buffer && unencrypted_data_key->buffer) {
@@ -123,12 +123,12 @@ int aws_cryptosdk_keyring_on_decrypt(
     struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *keyring_trace,
     const struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
     /* Precondition: data key buffer must be unset. */
     if (unencrypted_data_key->buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(
-        on_decrypt, keyring, request_alloc, unencrypted_data_key, keyring_trace, edks, enc_context, alg);
+        on_decrypt, keyring, request_alloc, unencrypted_data_key, keyring_trace, edks, enc_ctx, alg);
 
     /* Postcondition: if data key was decrypted, its length must agree with algorithm
      * specification. If this is not the case, it either means ciphertext was tampered

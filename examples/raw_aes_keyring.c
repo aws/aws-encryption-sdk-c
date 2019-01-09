@@ -98,13 +98,13 @@ int main(int argc, char **argv) {
 
     /* Check if key file was wrong size. We need to read one more byte before
      * feof(keyfile) will be true for a file of exactly 256 bits.
-     * AWS_CRYPTOSDK_AES_256/192/128 are equal to the appropriate AES key
+     * AWS_CRYPTOSDK_AES256/192/128 are equal to the appropriate AES key
      * lengths in *bytes*.
      */
     uint8_t throwaway;
     fread(&throwaway, 1, 1, key_file);
-    if (!feof(key_file) || !(wrapping_key_len == AWS_CRYPTOSDK_AES_256 || wrapping_key_len == AWS_CRYPTOSDK_AES_192 ||
-                             wrapping_key_len == AWS_CRYPTOSDK_AES_128)) {
+    if (!feof(key_file) || !(wrapping_key_len == AWS_CRYPTOSDK_AES256 || wrapping_key_len == AWS_CRYPTOSDK_AES192 ||
+                             wrapping_key_len == AWS_CRYPTOSDK_AES128)) {
         fclose(key_file);
         fprintf(stderr, "Key file must be 128, 192, or 256 bits only.\n");
 

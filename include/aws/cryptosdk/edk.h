@@ -39,7 +39,7 @@
 struct aws_cryptosdk_edk {
     struct aws_byte_buf provider_id;
     struct aws_byte_buf provider_info;
-    struct aws_byte_buf enc_data_key;
+    struct aws_byte_buf ciphertext;
 };
 
 #ifdef __cplusplus
@@ -84,8 +84,8 @@ int aws_cryptosdk_edk_init_clone(
  */
 AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_edk_eq(
     const struct aws_cryptosdk_edk *a, const struct aws_cryptosdk_edk *b) {
-    return aws_byte_buf_eq(&a->enc_data_key, &b->enc_data_key) &&
-           aws_byte_buf_eq(&a->provider_info, &b->provider_info) && aws_byte_buf_eq(&a->provider_id, &b->provider_id);
+    return aws_byte_buf_eq(&a->ciphertext, &b->ciphertext) && aws_byte_buf_eq(&a->provider_info, &b->provider_info) &&
+           aws_byte_buf_eq(&a->provider_id, &b->provider_id);
 }
 
 #ifdef __cplusplus

@@ -16,7 +16,7 @@
 #include <aws/common/hash_table.h>
 #include <aws/common/string.h>
 #include <aws/cryptosdk/edk.h>
-#include <aws/cryptosdk/enc_context.h>
+#include <aws/cryptosdk/enc_ctx.h>
 #include <aws/cryptosdk/private/header.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -106,7 +106,7 @@ struct aws_cryptosdk_edk test_header_1_edk_tbl[] = {
     { { 0 } },
     { .provider_id   = { .len = sizeof(test_header_1_edk_provider_id), .buffer = test_header_1_edk_provider_id },
       .provider_info = { .len = sizeof(test_header_1_edk_provider_info), .buffer = test_header_1_edk_provider_info },
-      .enc_data_key  = { .len = sizeof(test_header_1_edk_enc_data_key), .buffer = test_header_1_edk_enc_data_key } },
+      .ciphertext    = { .len = sizeof(test_header_1_edk_enc_data_key), .buffer = test_header_1_edk_enc_data_key } },
     { { 0 } }
 };
 
@@ -135,7 +135,7 @@ void set_edk_tbl(struct aws_cryptosdk_hdr *hdr, struct aws_cryptosdk_edk *edks, 
 }
 
 void set_aad_tbl(struct aws_cryptosdk_hdr *hdr, struct aws_cryptosdk_hdr_aad *aads, size_t count) {
-    if (aws_cryptosdk_enc_context_init(aws_default_allocator(), &hdr->enc_context)) {
+    if (aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &hdr->enc_ctx)) {
         abort();
     }
 
@@ -144,7 +144,7 @@ void set_aad_tbl(struct aws_cryptosdk_hdr *hdr, struct aws_cryptosdk_hdr_aad *aa
         k = aws_string_new_from_array(aws_default_allocator(), aads[i].key.buffer, aads[i].key.len);
         v = aws_string_new_from_array(aws_default_allocator(), aads[i].value.buffer, aads[i].value.len);
 
-        if (!k || !v || aws_hash_table_put(&hdr->enc_context, k, (void *)v, NULL)) {
+        if (!k || !v || aws_hash_table_put(&hdr->enc_ctx, k, (void *)v, NULL)) {
             abort();
         }
     }
@@ -152,7 +152,7 @@ void set_aad_tbl(struct aws_cryptosdk_hdr *hdr, struct aws_cryptosdk_hdr_aad *aa
 
 static struct aws_cryptosdk_hdr test_header_1_hdr() {
     struct aws_cryptosdk_hdr test_header_1_hdr = {
-        .alg_id    = AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
+        .alg_id    = ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
         .frame_len = 0x1000,
         .iv        = { .buffer = test_header_1_iv_arr, .len = sizeof(test_header_1_iv_arr) },
         .auth_tag  = { .buffer = test_header_1_auth_tag_arr, .len = sizeof(test_header_1_auth_tag_arr) },
@@ -296,7 +296,7 @@ static const size_t bad_headers_sz[] = {
 struct aws_cryptosdk_hdr test_header_2_hdr() {
     // clang-format off
     struct aws_cryptosdk_hdr hdr = {
-        .alg_id = AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
+        .alg_id = ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
         .frame_len = 0x1000,
         .iv = {.buffer = test_header_1_iv_arr, .len = sizeof(test_header_1_iv_arr)},
         .auth_tag = {.buffer = test_header_1_auth_tag_arr, .len = sizeof(test_header_1_auth_tag_arr)},
@@ -323,7 +323,7 @@ int simple_header_parse() {
     TEST_ASSERT_ADDR_EQ(cursor.ptr, test_header_1 + sizeof(test_header_1) - 1);
 
     // Known answer tests
-    TEST_ASSERT_INT_EQ(hdr.alg_id, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
+    TEST_ASSERT_INT_EQ(hdr.alg_id, ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256);
 
     struct aws_byte_cursor message_id = { .ptr = hdr.message_id, .len = MESSAGE_ID_LEN };
     TEST_ASSERT_CUR_EQ(
@@ -335,7 +335,7 @@ int simple_header_parse() {
         hdr.auth_tag, 0xde, 0xad, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xbe, 0xef);
 
     // Misc values
-    TEST_ASSERT_INT_EQ(2, aws_hash_table_get_entry_count(&hdr.enc_context));
+    TEST_ASSERT_INT_EQ(2, aws_hash_table_get_entry_count(&hdr.enc_ctx));
     TEST_ASSERT_INT_EQ(3, aws_array_list_length(&hdr.edk_list));
     TEST_ASSERT_INT_EQ(0x1000, hdr.frame_len);
     TEST_ASSERT_INT_EQ(hdr.auth_len, sizeof(test_header_1) - 29);  // 1 junk byte, 12 IV bytes, 16 auth tag bytes
@@ -345,13 +345,13 @@ int simple_header_parse() {
     AWS_STATIC_STRING_FROM_LITERAL(v1, "\x01\x00\x01\x00\x01");
 
     struct aws_hash_element *pElem;
-    TEST_ASSERT_SUCCESS(aws_hash_table_find(&hdr.enc_context, k1, &pElem));
+    TEST_ASSERT_SUCCESS(aws_hash_table_find(&hdr.enc_ctx, k1, &pElem));
     TEST_ASSERT_ADDR_NOT_NULL(pElem);
     TEST_ASSERT(aws_string_eq(pElem->value, v1));
 
     AWS_STATIC_STRING_FROM_LITERAL(empty, "");
 
-    TEST_ASSERT_SUCCESS(aws_hash_table_find(&hdr.enc_context, empty, &pElem));
+    TEST_ASSERT_SUCCESS(aws_hash_table_find(&hdr.enc_ctx, empty, &pElem));
     TEST_ASSERT_ADDR_NOT_NULL(pElem);
     TEST_ASSERT(aws_string_eq(pElem->value, empty));
 
@@ -360,17 +360,17 @@ int simple_header_parse() {
     TEST_ASSERT_SUCCESS(aws_array_list_get_at(&hdr.edk_list, &edk, 0));
     TEST_ASSERT_INT_EQ(0, edk.provider_id.len);
     TEST_ASSERT_INT_EQ(0, edk.provider_info.len);
-    TEST_ASSERT_INT_EQ(0, edk.enc_data_key.len);
+    TEST_ASSERT_INT_EQ(0, edk.ciphertext.len);
 
     TEST_ASSERT_SUCCESS(aws_array_list_get_at(&hdr.edk_list, &edk, 2));
     TEST_ASSERT_INT_EQ(0, edk.provider_id.len);
     TEST_ASSERT_INT_EQ(0, edk.provider_info.len);
-    TEST_ASSERT_INT_EQ(0, edk.enc_data_key.len);
+    TEST_ASSERT_INT_EQ(0, edk.ciphertext.len);
 
     TEST_ASSERT_SUCCESS(aws_array_list_get_at(&hdr.edk_list, &edk, 1));
     TEST_ASSERT_BUF_EQ(edk.provider_id, 0x10, 0x11, 0x12, 0x00);
     TEST_ASSERT_BUF_EQ(edk.provider_info, 0x01, 0x02, 0x03, 0x04);
-    TEST_ASSERT_BUF_EQ(edk.enc_data_key, 0x11, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x88);
+    TEST_ASSERT_BUF_EQ(edk.ciphertext, 0x11, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x88);
 
     TEST_ASSERT_INT_EQ(aws_cryptosdk_hdr_size(&hdr), hdr.auth_len + hdr.auth_tag.len + hdr.iv.len);
 
@@ -388,7 +388,7 @@ int simple_header_parse2() {
     TEST_ASSERT_INT_EQ(cursor.len, 1);
 
     // Known answer tests
-    TEST_ASSERT_INT_EQ(hdr.alg_id, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256);
+    TEST_ASSERT_INT_EQ(hdr.alg_id, ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256);
 
     struct aws_byte_cursor message_id = { .ptr = hdr.message_id, .len = MESSAGE_ID_LEN };
     TEST_ASSERT_CUR_EQ(
@@ -400,7 +400,7 @@ int simple_header_parse2() {
         hdr.auth_tag, 0xde, 0xad, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xbe, 0xef);
 
     // Misc values
-    TEST_ASSERT_INT_EQ(0, aws_hash_table_get_entry_count(&hdr.enc_context));
+    TEST_ASSERT_INT_EQ(0, aws_hash_table_get_entry_count(&hdr.enc_ctx));
     TEST_ASSERT_INT_EQ(3, aws_array_list_length(&hdr.edk_list));
     TEST_ASSERT_INT_EQ(0x1000, hdr.frame_len);
     TEST_ASSERT_INT_EQ(hdr.auth_len, sizeof(test_header_2) - 29);  // 1 junk byte, 12 IV bytes, 16 auth tag bytes
@@ -410,17 +410,17 @@ int simple_header_parse2() {
     TEST_ASSERT_SUCCESS(aws_array_list_get_at(&hdr.edk_list, &edk, 0));
     TEST_ASSERT_INT_EQ(0, edk.provider_id.len);
     TEST_ASSERT_INT_EQ(0, edk.provider_info.len);
-    TEST_ASSERT_INT_EQ(0, edk.enc_data_key.len);
+    TEST_ASSERT_INT_EQ(0, edk.ciphertext.len);
 
     TEST_ASSERT_SUCCESS(aws_array_list_get_at(&hdr.edk_list, &edk, 2));
     TEST_ASSERT_INT_EQ(0, edk.provider_id.len);
     TEST_ASSERT_INT_EQ(0, edk.provider_info.len);
-    TEST_ASSERT_INT_EQ(0, edk.enc_data_key.len);
+    TEST_ASSERT_INT_EQ(0, edk.ciphertext.len);
 
     TEST_ASSERT_SUCCESS(aws_array_list_get_at(&hdr.edk_list, &edk, 1));
     TEST_ASSERT_BUF_EQ(edk.provider_id, 0x10, 0x11, 0x12, 0x00);
     TEST_ASSERT_BUF_EQ(edk.provider_info, 0x01, 0x02, 0x03, 0x04);
-    TEST_ASSERT_BUF_EQ(edk.enc_data_key, 0x11, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x88);
+    TEST_ASSERT_BUF_EQ(edk.ciphertext, 0x11, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x88);
 
     TEST_ASSERT_INT_EQ(aws_cryptosdk_hdr_size(&hdr), hdr.auth_len + hdr.auth_tag.len + hdr.iv.len);
 
@@ -544,7 +544,7 @@ int header_size() {
         struct aws_cryptosdk_edk edk;
         TEST_ASSERT_SUCCESS(aws_array_list_get_at(&hdr.edk_list, &edk, i));
 
-        edk.enc_data_key.len  = SIZE_MAX >> 1;
+        edk.ciphertext.len    = SIZE_MAX >> 1;
         edk.provider_id.len   = SIZE_MAX >> 1;
         edk.provider_info.len = SIZE_MAX >> 1;
 

@@ -460,12 +460,12 @@ const struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr(const struct 
          */
         return NULL;
     }
-    return &session->header.enc_context;
+    return &session->header.enc_ctx;
 }
 
 struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr_mut(struct aws_cryptosdk_session *session) {
     if (session->mode == AWS_CRYPTOSDK_ENCRYPT && session->state == ST_CONFIG) {
-        return &session->header.enc_context;
+        return &session->header.enc_ctx;
     }
     return NULL;
 }

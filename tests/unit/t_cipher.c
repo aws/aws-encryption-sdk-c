@@ -40,23 +40,23 @@ static int test_kdf() {
     } while (0)
 
     // clang-format off
-    ASSERT_KDF(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+    ASSERT_KDF(ALG_AES128_GCM_IV12_TAG16_NO_KDF,
                      0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f );
-    ASSERT_KDF(AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+    ASSERT_KDF(ALG_AES192_GCM_IV12_TAG16_NO_KDF,
                      0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17 );
-    ASSERT_KDF(AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+    ASSERT_KDF(ALG_AES256_GCM_IV12_TAG16_NO_KDF,
                      0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f );
-    ASSERT_KDF(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
+    ASSERT_KDF(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256,
                      0xb0, 0xaf, 0xe9, 0xc5, 0x02, 0xb1, 0xf5, 0xe4, 0x52, 0x42, 0xf9, 0xc4, 0x0a, 0xaa, 0x96, 0x66 );
-    ASSERT_KDF(AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
+    ASSERT_KDF(ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256,
                      0x8d, 0x5c, 0xd4, 0x89, 0x05, 0xb2, 0x78, 0x19, 0x74, 0xc0, 0x0a, 0xa4, 0x10, 0x28, 0xc9, 0x36, 0xfe, 0x5c, 0xe8, 0xc0, 0xb0, 0x47, 0x38, 0x8d );
-    ASSERT_KDF(AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
+    ASSERT_KDF(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256,
                      0xca, 0x63, 0x33, 0x7e, 0x0f, 0x1b, 0x51, 0xe6, 0xd8, 0xea, 0x2b, 0xba, 0x47, 0x68, 0x51, 0xaf, 0x81, 0xb9, 0xa1, 0xab, 0x61, 0x10, 0x65, 0x88, 0xa3, 0x68, 0xde, 0xbf, 0xde, 0x28, 0x15, 0x95 );
-    ASSERT_KDF(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256,
+    ASSERT_KDF(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
                      0xab, 0x7b, 0xa1, 0x53, 0x57, 0xc9, 0x60, 0x93, 0x12, 0x20, 0x05, 0x47, 0x6a, 0xdd, 0x8d, 0x20 );
-    ASSERT_KDF(AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
+    ASSERT_KDF(ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
                      0x84, 0x28, 0xbd, 0x00, 0xaa, 0x47, 0xa0, 0x8d, 0xee, 0x53, 0x14, 0x58, 0x42, 0x7d, 0xd1, 0xa3, 0x31, 0x36, 0x67, 0xad, 0x0a, 0xeb, 0x06, 0xdf );
-    ASSERT_KDF(AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
+    ASSERT_KDF(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
                      0x9d, 0x46, 0xe2, 0x70, 0x9e, 0x59, 0x3e, 0xba, 0xae, 0x81, 0x70, 0x44, 0x16, 0xaf, 0x5d, 0xf9, 0x0c, 0x57, 0x5f, 0xa4, 0xdc, 0xf0, 0xda, 0x78, 0x11, 0x6b, 0x6b, 0x6d, 0x59, 0x9d, 0xe6, 0x2c );
     // clang-format on
 
@@ -85,7 +85,7 @@ static int test_decrypt_frame_aad() {
         TEST_ASSERT_INT_EQ(
             AWS_OP_SUCCESS,
             aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE),
+                aws_cryptosdk_alg_props(ALG_AES128_GCM_IV12_TAG16_NO_KDF),
                 &out,
                 &in,
                 messageId,
@@ -102,7 +102,7 @@ static int test_decrypt_frame_aad() {
         TEST_ASSERT_INT_EQ(
             AWS_OP_ERR,
             aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE),
+                aws_cryptosdk_alg_props(ALG_AES128_GCM_IV12_TAG16_NO_KDF),
                 &out,
                 &in,
                 messageId,
@@ -119,7 +119,7 @@ static int test_decrypt_frame_aad() {
         TEST_ASSERT_INT_EQ(
             AWS_OP_ERR,
             aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE),
+                aws_cryptosdk_alg_props(ALG_AES128_GCM_IV12_TAG16_NO_KDF),
                 &out,
                 &in,
                 messageId,
@@ -155,7 +155,7 @@ static int test_decrypt_frame_all_algos() {
         TEST_ASSERT_INT_EQ(
             AWS_OP_SUCCESS,
             aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE),
+                aws_cryptosdk_alg_props(ALG_AES128_GCM_IV12_TAG16_NO_KDF),
                 &out,
                 &in,
                 messageId,
@@ -185,7 +185,7 @@ static int test_decrypt_frame_all_algos() {
         TEST_ASSERT_INT_EQ(
             AWS_OP_SUCCESS,
             aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE),
+                aws_cryptosdk_alg_props(ALG_AES192_GCM_IV12_TAG16_NO_KDF),
                 &out,
                 &in,
                 messageId,
@@ -216,7 +216,7 @@ static int test_decrypt_frame_all_algos() {
         TEST_ASSERT_INT_EQ(
             AWS_OP_SUCCESS,
             aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE),
+                aws_cryptosdk_alg_props(ALG_AES256_GCM_IV12_TAG16_NO_KDF),
                 &out,
                 &in,
                 messageId,
@@ -246,7 +246,7 @@ static int test_decrypt_frame_all_algos() {
         TEST_ASSERT_INT_EQ(
             AWS_OP_SUCCESS,
             aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE),
+                aws_cryptosdk_alg_props(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256),
                 &out,
                 &in,
                 messageId,
@@ -277,7 +277,7 @@ static int test_decrypt_frame_all_algos() {
         TEST_ASSERT_INT_EQ(
             AWS_OP_SUCCESS,
             aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE),
+                aws_cryptosdk_alg_props(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256),
                 &out,
                 &in,
                 messageId,
@@ -307,7 +307,7 @@ static int test_decrypt_frame_all_algos() {
         TEST_ASSERT_INT_EQ(
             AWS_OP_SUCCESS,
             aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE),
+                aws_cryptosdk_alg_props(ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256),
                 &out,
                 &in,
                 messageId,
@@ -337,7 +337,7 @@ static int test_decrypt_frame_all_algos() {
         TEST_ASSERT_INT_EQ(
             AWS_OP_SUCCESS,
             aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384),
+                aws_cryptosdk_alg_props(ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384),
                 &out,
                 &in,
                 messageId,
@@ -367,7 +367,7 @@ static int test_decrypt_frame_all_algos() {
         TEST_ASSERT_INT_EQ(
             AWS_OP_SUCCESS,
             aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256),
+                aws_cryptosdk_alg_props(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256),
                 &out,
                 &in,
                 messageId,
@@ -398,7 +398,7 @@ static int test_decrypt_frame_all_algos() {
         TEST_ASSERT_INT_EQ(
             AWS_OP_SUCCESS,
             aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384),
+                aws_cryptosdk_alg_props(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384),
                 &out,
                 &in,
                 messageId,
@@ -470,8 +470,7 @@ static int test_verify_header() {
                                            0x73, 0x32, 0x2b, 0x1e, 0x27, 0x6c, 0x39, 0x25 };
         static const uint8_t key[MAX_DATA_KEY_SIZE] = { 0x62, 0x96, 0xd9, 0x52, 0x67, 0x10, 0xfd, 0xc7,
                                                         0xa1, 0xb7, 0xa5, 0xcd, 0xe4, 0xe0, 0x76, 0x4c };
-        if (testHeaderAuth(
-                header, sizeof(header), authtag, sizeof(authtag), key, AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE))
+        if (testHeaderAuth(header, sizeof(header), authtag, sizeof(authtag), key, ALG_AES128_GCM_IV12_TAG16_NO_KDF))
             return 1;
     }
     {
@@ -485,8 +484,7 @@ static int test_verify_header() {
         static const uint8_t key[MAX_DATA_KEY_SIZE] = { 0x3c, 0x5c, 0xae, 0xc5, 0x38, 0xcf, 0x0a, 0x06,
                                                         0x13, 0x01, 0x11, 0x0e, 0x4d, 0x66, 0xda, 0xff,
                                                         0xf0, 0x2a, 0xbd, 0x55, 0x2c, 0xbc, 0xa9, 0xa5 };
-        if (testHeaderAuth(
-                header, sizeof(header), authtag, sizeof(authtag), key, AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE))
+        if (testHeaderAuth(header, sizeof(header), authtag, sizeof(authtag), key, ALG_AES192_GCM_IV12_TAG16_NO_KDF))
             return 1;
     }
     {
@@ -501,8 +499,7 @@ static int test_verify_header() {
                                                         0x27, 0xbc, 0x87, 0x7b, 0xcf, 0x80, 0x94, 0xe5,
                                                         0x9f, 0x14, 0x54, 0x8d, 0xd3, 0x4b, 0x67, 0xc2,
                                                         0x5e, 0x0b, 0xcb, 0xad, 0xa1, 0x30, 0xa2, 0xe8 };
-        if (testHeaderAuth(
-                header, sizeof(header), authtag, sizeof(authtag), key, AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE))
+        if (testHeaderAuth(header, sizeof(header), authtag, sizeof(authtag), key, ALG_AES256_GCM_IV12_TAG16_NO_KDF))
             return 1;
     }
     {
@@ -516,7 +513,7 @@ static int test_verify_header() {
         static const uint8_t key[MAX_DATA_KEY_SIZE] = { 0xeb, 0x70, 0x9d, 0xf0, 0x34, 0x8a, 0x04, 0x09,
                                                         0x14, 0x33, 0x5d, 0x9e, 0x48, 0x75, 0xec, 0xaa };
         if (testHeaderAuth(
-                header, sizeof(header), authtag, sizeof(authtag), key, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE))
+                header, sizeof(header), authtag, sizeof(authtag), key, ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256))
             return 1;
     }
     {
@@ -531,7 +528,7 @@ static int test_verify_header() {
                                                         0xdb, 0x42, 0xdb, 0xa9, 0xbc, 0xdc, 0xac, 0x63,
                                                         0xf3, 0x31, 0x7b, 0xb7, 0xd9, 0xce, 0xc7, 0xf8 };
         if (testHeaderAuth(
-                header, sizeof(header), authtag, sizeof(authtag), key, AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE))
+                header, sizeof(header), authtag, sizeof(authtag), key, ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256))
             return 1;
     }
     {
@@ -547,7 +544,7 @@ static int test_verify_header() {
                                                         0x0f, 0xa9, 0x5e, 0xea, 0x97, 0xa7, 0x19, 0xf0,
                                                         0x42, 0xef, 0x50, 0x95, 0x58, 0x95, 0xd6, 0x5d };
         if (testHeaderAuth(
-                header, sizeof(header), authtag, sizeof(authtag), key, AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE))
+                header, sizeof(header), authtag, sizeof(authtag), key, ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256))
             return 1;
     }
     {
@@ -566,7 +563,12 @@ static int test_verify_header() {
         static const uint8_t key[MAX_DATA_KEY_SIZE] = { 0x51, 0x31, 0x83, 0xbe, 0xf7, 0xb7, 0x21, 0xaa,
                                                         0x40, 0x01, 0x79, 0xb6, 0x28, 0x9d, 0x6b, 0x49 };
         if (testHeaderAuth(
-                header, sizeof(header), authtag, sizeof(authtag), key, AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256))
+                header,
+                sizeof(header),
+                authtag,
+                sizeof(authtag),
+                key,
+                ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256))
             return 1;
     }
     {
@@ -587,7 +589,12 @@ static int test_verify_header() {
                                                         0xd1, 0x7c, 0xee, 0xd1, 0x1c, 0xf5, 0xc7, 0xa9,
                                                         0x6d, 0x02, 0x43, 0xb2, 0x64, 0x84, 0xc0, 0x62 };
         if (testHeaderAuth(
-                header, sizeof(header), authtag, sizeof(authtag), key, AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384))
+                header,
+                sizeof(header),
+                authtag,
+                sizeof(authtag),
+                key,
+                ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384))
             return 1;
     }
     {
@@ -609,7 +616,12 @@ static int test_verify_header() {
                                                         0x51, 0x9a, 0x9f, 0x36, 0xa3, 0x58, 0x0b, 0x27,
                                                         0x3d, 0x10, 0xdd, 0xc8, 0xa4, 0xda, 0x2f, 0x63 };
         if (testHeaderAuth(
-                header, sizeof(header), authtag, sizeof(authtag), key, AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384))
+                header,
+                sizeof(header),
+                authtag,
+                sizeof(authtag),
+                key,
+                ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384))
             return 1;
     }
     return 0;
@@ -629,11 +641,15 @@ static int test_random() {
 }
 
 static const enum aws_cryptosdk_alg_id known_algorithms[] = {
-    AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,    AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-    AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,    AES_192_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-    AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,    AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
-    AES_128_GCM_IV12_AUTH16_KDSHA256_SIGEC256, AES_192_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
-    AES_256_GCM_IV12_AUTH16_KDSHA384_SIGEC384,
+    ALG_AES128_GCM_IV12_TAG16_NO_KDF,
+    ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256,
+    ALG_AES192_GCM_IV12_TAG16_NO_KDF,
+    ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256,
+    ALG_AES256_GCM_IV12_TAG16_NO_KDF,
+    ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256,
+    ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
+    ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+    ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
 };
 
 static const size_t test_sizes[] = {

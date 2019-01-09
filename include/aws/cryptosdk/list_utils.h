@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 /**
- * Appends the contents of source list to destination list, and clears source list, but
+ * Appends the contents of source list to destination list, and clears source list but
  * does not clean it up. This makes shallow copies of all pointers in the source list, so
  * for example byte buffers and strings are not duplicated. Their ownership is just
  * transferred from the source list to the destination.

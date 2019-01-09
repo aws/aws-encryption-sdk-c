@@ -52,7 +52,7 @@ struct aws_cryptosdk_edk build_test_edk_init(const uint8_t *edk_bytes, size_t ed
         "\x00\x00\x00\x0c";                       // IV length in bytes
 
     struct aws_cryptosdk_edk edk;
-    edk.enc_data_key = aws_byte_buf_from_array(edk_bytes, edk_len);
+    edk.ciphertext = aws_byte_buf_from_array(edk_bytes, edk_len);
     edk.provider_id =
         aws_byte_buf_from_array(raw_aes_keyring_tv_provider_id->bytes, raw_aes_keyring_tv_provider_id->len);
 
@@ -68,12 +68,12 @@ struct aws_cryptosdk_edk build_test_edk_init(const uint8_t *edk_bytes, size_t ed
 }
 
 int set_test_vector_encryption_context(
-    struct aws_allocator *alloc, struct aws_hash_table *enc_context, const struct raw_aes_keyring_test_vector *tv) {
+    struct aws_allocator *alloc, struct aws_hash_table *enc_ctx, const struct raw_aes_keyring_test_vector *tv) {
     for (size_t idx = 0; idx < tv->num_ec_kv_pairs; ++idx) {
         struct aws_hash_element *elem;
         struct aws_string *key = aws_string_new_from_c_str(alloc, tv->ec_keys[idx]);
         struct aws_string *val = aws_string_new_from_c_str(alloc, tv->ec_vals[idx]);
-        if (!key || !val || aws_hash_table_create(enc_context, (void *)key, &elem, NULL)) {
+        if (!key || !val || aws_hash_table_create(enc_ctx, (void *)key, &elem, NULL)) {
             aws_string_destroy(key);
             aws_string_destroy(val);
             return AWS_OP_ERR;
@@ -127,8 +127,8 @@ static const char *tv_2_ec_keys[] = { "correct" };
 static const char *tv_2_ec_vals[] = { "context" };
 
 struct raw_aes_keyring_test_vector raw_aes_keyring_test_vectors[] = {
-    { .raw_key_len     = AWS_CRYPTOSDK_AES_256,
-      .alg             = AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
+    { .raw_key_len     = AWS_CRYPTOSDK_AES256,
+      .alg             = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256,
       .data_key        = tv_0_data_key,
       .data_key_len    = sizeof(tv_0_data_key),
       .iv              = tv_0_iv,
@@ -137,8 +137,8 @@ struct raw_aes_keyring_test_vector raw_aes_keyring_test_vectors[] = {
       .ec_keys         = NULL,
       .ec_vals         = NULL,
       .num_ec_kv_pairs = 0 },
-    { .raw_key_len     = AWS_CRYPTOSDK_AES_192,
-      .alg             = AES_256_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
+    { .raw_key_len     = AWS_CRYPTOSDK_AES192,
+      .alg             = ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256,
       .data_key        = tv_1_data_key,
       .data_key_len    = sizeof(tv_1_data_key),
       .iv              = tv_1_iv,
@@ -147,8 +147,8 @@ struct raw_aes_keyring_test_vector raw_aes_keyring_test_vectors[] = {
       .ec_keys         = tv_1_ec_keys,
       .ec_vals         = tv_1_ec_vals,
       .num_ec_kv_pairs = sizeof(tv_1_ec_keys) / sizeof(const uint8_t *) },
-    { .raw_key_len     = AWS_CRYPTOSDK_AES_128,
-      .alg             = AES_128_GCM_IV12_AUTH16_KDSHA256_SIGNONE,
+    { .raw_key_len     = AWS_CRYPTOSDK_AES128,
+      .alg             = ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256,
       .data_key        = tv_2_data_key,
       .data_key_len    = sizeof(tv_2_data_key),
       .iv              = tv_2_iv,

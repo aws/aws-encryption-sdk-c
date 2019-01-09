@@ -22,7 +22,6 @@
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/header.h>
-#include <aws/cryptosdk/hkdf.h>
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/multi_keyring.h>
 #include <aws/cryptosdk/raw_aes_keyring.h>

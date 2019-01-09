@@ -39,7 +39,7 @@ static int set_edk(struct aws_allocator *alloc, struct aws_cryptosdk_edk *edk) {
     src = aws_string_to_buf(prov_info);
     if (aws_byte_buf_init_copy(&edk->provider_info, alloc, &src)) return AWS_OP_ERR;
     src = aws_string_to_buf(expected_edk);
-    if (aws_byte_buf_init_copy(&edk->enc_data_key, alloc, &src)) return AWS_OP_ERR;
+    if (aws_byte_buf_init_copy(&edk->ciphertext, alloc, &src)) return AWS_OP_ERR;
 
     return AWS_OP_SUCCESS;
 }
@@ -48,7 +48,7 @@ static inline bool is_counting_edk(const struct aws_cryptosdk_edk *edk) {
     return (
         aws_string_eq_byte_buf(prov_name, &edk->provider_id) &&
         aws_string_eq_byte_buf(prov_info, &edk->provider_info) &&
-        aws_string_eq_byte_buf(expected_edk, &edk->enc_data_key));
+        aws_string_eq_byte_buf(expected_edk, &edk->ciphertext));
 }
 
 static int counting_keyring_on_encrypt(
@@ -57,9 +57,9 @@ static int counting_keyring_on_encrypt(
     struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *keyring_trace,
     struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
-    (void)enc_context;
+    (void)enc_ctx;
     (void)kr;
 
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
@@ -103,9 +103,9 @@ static int counting_keyring_on_decrypt(
     struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *keyring_trace,
     const struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
-    (void)enc_context;
+    (void)enc_ctx;
     (void)kr;
 
     // verify there is at least one EDK with the right signature present

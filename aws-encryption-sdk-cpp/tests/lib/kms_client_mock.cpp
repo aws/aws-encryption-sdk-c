@@ -39,24 +39,24 @@ Model::EncryptOutcome KmsClientMock::Encrypt(const Model::EncryptRequest &reques
     ExpectedEncryptValues eev = expected_encrypt_values.front();
     expected_encrypt_values.pop_front();
 
-    if (request.GetKeyId() != eev.expected_encrypt_request.GetKeyId()) {
+    if (request.GetKeyId() != eev.expected_enc_request.GetKeyId()) {
         throw logic_error(
             std::string("Got :") + request.GetKeyId().c_str() +
-            " expecting: " + eev.expected_encrypt_request.GetKeyId().c_str());
+            " expecting: " + eev.expected_enc_request.GetKeyId().c_str());
     }
 
-    if (request.GetPlaintext() != eev.expected_encrypt_request.GetPlaintext()) {
+    if (request.GetPlaintext() != eev.expected_enc_request.GetPlaintext()) {
         throw logic_error(
             std::string("Got :") + reinterpret_cast<const char *>(request.GetPlaintext().GetUnderlyingData()) +
             " expecting: " +
-            reinterpret_cast<const char *>(eev.expected_encrypt_request.GetPlaintext().GetUnderlyingData()));
+            reinterpret_cast<const char *>(eev.expected_enc_request.GetPlaintext().GetUnderlyingData()));
     }
 
     if (request.GetGrantTokens() != grant_tokens) {
         throw logic_error("Got other grant tokens than expected");
     }
 
-    if (request.GetEncryptionContext() != eev.expected_encrypt_request.GetEncryptionContext()) {
+    if (request.GetEncryptionContext() != eev.expected_enc_request.GetEncryptionContext()) {
         throw logic_error("Got other encryption context than expected");
     }
 
@@ -75,7 +75,7 @@ Model::DecryptOutcome KmsClientMock::Decrypt(const Model::DecryptRequest &reques
     ExpectedDecryptValues edv = expected_decrypt_values.front();
     expected_decrypt_values.pop_front();
 
-    if (edv.expected_decrypt_request.GetCiphertextBlob() != request.GetCiphertextBlob()) {
+    if (edv.expected_dec_request.GetCiphertextBlob() != request.GetCiphertextBlob()) {
         throw std::exception();
     }
 
@@ -83,7 +83,7 @@ Model::DecryptOutcome KmsClientMock::Decrypt(const Model::DecryptRequest &reques
         throw logic_error("Got other grant tokens than expected");
     }
 
-    if (request.GetEncryptionContext() != edv.expected_decrypt_request.GetEncryptionContext()) {
+    if (request.GetEncryptionContext() != edv.expected_dec_request.GetEncryptionContext()) {
         throw logic_error("Got other encryption context than expected");
     }
 

@@ -61,7 +61,7 @@ extern struct raw_aes_keyring_test_vector raw_aes_keyring_test_vectors[];
  */
 TESTLIB_API
 int set_test_vector_encryption_context(
-    struct aws_allocator *alloc, struct aws_hash_table *enc_context, const struct raw_aes_keyring_test_vector *tv);
+    struct aws_allocator *alloc, struct aws_hash_table *enc_ctx, const struct raw_aes_keyring_test_vector *tv);
 
 /**
  * Construct EDK that would be made by the raw AES KR that generated the test
@@ -74,8 +74,8 @@ int set_test_vector_encryption_context(
  * This function does initialize memory to one of the byte buffers, so it should be
  * released afterward in one of three ways:
  *
- * (1) Push the EDK onto the list of EDKs in a struct aws_cryptosdk_encryption_materials.
- *     Then a call to aws_cryptosdk_encryption_materials_destroy will release it.
+ * (1) Push the EDK onto the list of EDKs in a struct aws_cryptosdk_enc_materials.
+ *     Then a call to aws_cryptosdk_enc_materials_destroy will release it.
  *
  * (2) Push the EDK onto your own struct aws_array_list that holds EDKs, and then use
  *     aws_cryptosdk_edk_list_clean_up to release the list.

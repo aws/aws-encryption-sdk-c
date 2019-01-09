@@ -33,9 +33,9 @@ extern "C" {
 
 /** @ingroup raw_keyring */
 enum aws_cryptosdk_aes_key_len {
-    AWS_CRYPTOSDK_AES_128 = 128 / 8,
-    AWS_CRYPTOSDK_AES_192 = 192 / 8,
-    AWS_CRYPTOSDK_AES_256 = 256 / 8
+    AWS_CRYPTOSDK_AES128 = 128 / 8,
+    AWS_CRYPTOSDK_AES192 = 192 / 8,
+    AWS_CRYPTOSDK_AES256 = 256 / 8
 };
 
 /** @ingroup raw_keyring */
@@ -104,7 +104,7 @@ const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryp
 /**
  * An opaque structure representing an ongoing sign or verify operation
  */
-struct aws_cryptosdk_signctx;
+struct aws_cryptosdk_sig_ctx;
 
 /**
  * Obtains the private key from a signing context, and serializes it to a byte buffer.
@@ -114,7 +114,7 @@ struct aws_cryptosdk_signctx;
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_get_privkey(
-    const struct aws_cryptosdk_signctx *ctx, struct aws_allocator *alloc, struct aws_string **priv_key_buf);
+    const struct aws_cryptosdk_sig_ctx *ctx, struct aws_allocator *alloc, struct aws_string **priv_key_buf);
 
 /**
  * Obtains the public key from a signing context, which may be in either sign or verify
@@ -124,22 +124,22 @@ int aws_cryptosdk_sig_get_privkey(
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_get_pubkey(
-    const struct aws_cryptosdk_signctx *ctx, struct aws_allocator *alloc, struct aws_string **pub_key_buf);
+    const struct aws_cryptosdk_sig_ctx *ctx, struct aws_allocator *alloc, struct aws_string **pub_key_buf);
 
 /**
  * Generates a new signature keypair, initializes a signing context, and serializes the public key.
  * If a non-signing algorithm is used, this function returns successfully, sets *ctx to NULL,
  * and zeroes pub_key_buf.
  *
+ * @param ctx - a pointer to a variable to receive the context pointer
  * @param alloc - the allocator to use
- * @param pctx - a pointer to a variable to receive the context pointer
- * @param props - The algorithm properties for the algorithm to use
  * @param pub_key_buf - A buffer that will receive the public key (in base64 format).
  *   This buffer will be allocated as part of this call, and does not need to be pre-initialized.
+ * @param props - The algorithm properties for the algorithm to use
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_sign_start_keygen(
-    struct aws_cryptosdk_signctx **pctx,
+    struct aws_cryptosdk_sig_ctx **ctx,
     struct aws_allocator *alloc,
     struct aws_string **pub_key_buf,
     const struct aws_cryptosdk_alg_properties *props);
@@ -148,8 +148,8 @@ int aws_cryptosdk_sig_sign_start_keygen(
  * Initializes a new signature context based on a private key serialized using
  * aws_cryptosdk_sig_get_privkey.
  *
- * @param alloc the allocator to use
  * @param ctx a pointer to a variable to receive the signing context
+ * @param alloc the allocator to use
  * @param pub_key_buf a pointer to a buffer that will receive the base-64 public key,
  *     or NULL if not required
  * @param props algorithm properties for the algorithm suite in use
@@ -157,7 +157,7 @@ int aws_cryptosdk_sig_sign_start_keygen(
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_sign_start(
-    struct aws_cryptosdk_signctx **ctx,
+    struct aws_cryptosdk_sig_ctx **ctx,
     struct aws_allocator *alloc,
     struct aws_string **pub_key_buf,
     const struct aws_cryptosdk_alg_properties *props,
@@ -167,14 +167,14 @@ int aws_cryptosdk_sig_sign_start(
  * Prepares to validate a signature.
  * If a non-signing algorithm is used, this function returns successfully, and sets *ctx to NULL.
  *
+ * @param ctx a pointer to a variable to receive the context pointer
  * @param alloc the allocator to use
- * @param pctx a pointer to a variable to receive the context pointer
- * @param props The algorithm properties for the algorithm to use
  * @param pub_key A buffer containing the (base64) public key
+ * @param props The algorithm properties for the algorithm to use
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_verify_start(
-    struct aws_cryptosdk_signctx **pctx,
+    struct aws_cryptosdk_sig_ctx **ctx,
     struct aws_allocator *alloc,
     const struct aws_string *pub_key,
     const struct aws_cryptosdk_alg_properties *props);
@@ -183,7 +183,7 @@ int aws_cryptosdk_sig_verify_start(
  * Supplies some data to an ongoing sign or verify operation.
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_sig_update(struct aws_cryptosdk_signctx *ctx, const struct aws_byte_cursor buf);
+int aws_cryptosdk_sig_update(struct aws_cryptosdk_sig_ctx *ctx, const struct aws_byte_cursor buf);
 
 /**
  * Verifies a signature against the data previously passed to aws_cryptosdk_sig_update.
@@ -196,7 +196,7 @@ int aws_cryptosdk_sig_update(struct aws_cryptosdk_signctx *ctx, const struct aws
  * The context is always freed, regardless of success or failure.
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_sig_verify_finish(struct aws_cryptosdk_signctx *ctx, const struct aws_string *signature);
+int aws_cryptosdk_sig_verify_finish(struct aws_cryptosdk_sig_ctx *ctx, const struct aws_string *signature);
 
 /**
  * Generates the final signature based on data previously passed to aws_cryptosdk_sig_update.
@@ -209,14 +209,14 @@ int aws_cryptosdk_sig_verify_finish(struct aws_cryptosdk_signctx *ctx, const str
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_sig_sign_finish(
-    struct aws_cryptosdk_signctx *ctx, struct aws_allocator *alloc, struct aws_string **signature);
+    struct aws_cryptosdk_sig_ctx *ctx, struct aws_allocator *alloc, struct aws_string **signature);
 
 /**
  * Aborts an ongoing sign or verify operation, and destroys the signature context.
  * If ctx is null, this operation is a no-op.
  */
 AWS_CRYPTOSDK_API
-void aws_cryptosdk_sig_abort(struct aws_cryptosdk_signctx *ctx);
+void aws_cryptosdk_sig_abort(struct aws_cryptosdk_sig_ctx *ctx);
 
 #ifdef __cplusplus
 }

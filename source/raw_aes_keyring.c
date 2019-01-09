@@ -14,7 +14,7 @@
  */
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/private/cipher.h>
-#include <aws/cryptosdk/private/enc_context.h>
+#include <aws/cryptosdk/private/enc_ctx.h>
 #include <aws/cryptosdk/private/raw_aes_keyring.h>
 #include <aws/cryptosdk/private/utils.h>
 
@@ -27,14 +27,14 @@ struct raw_aes_keyring {
 };
 
 static int serialize_aad_init(
-    struct aws_allocator *alloc, struct aws_byte_buf *aad, const struct aws_hash_table *enc_context) {
+    struct aws_allocator *alloc, struct aws_byte_buf *aad, const struct aws_hash_table *enc_ctx) {
     size_t aad_len;
     // This does not zero out the bytes of the byte buffer.
     // It assures that the buffer object is in proper uninitialized state.
     memset(aad, 0, sizeof(*aad));
 
-    if (aws_cryptosdk_context_size(&aad_len, enc_context) || aws_byte_buf_init(aad, alloc, aad_len) ||
-        aws_cryptosdk_context_serialize(alloc, aad, enc_context)) {
+    if (aws_cryptosdk_enc_ctx_size(&aad_len, enc_ctx) || aws_byte_buf_init(aad, alloc, aad_len) ||
+        aws_cryptosdk_enc_ctx_serialize(alloc, aad, enc_ctx)) {
         aws_byte_buf_clean_up(aad);
         return AWS_OP_ERR;
     }
@@ -92,7 +92,7 @@ int aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(
     struct aws_allocator *request_alloc,
     const struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg,
     const uint8_t *iv) {
     struct raw_aes_keyring *self = (struct raw_aes_keyring *)kr;
@@ -101,7 +101,7 @@ int aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(
     size_t data_key_len                              = props->data_key_len;
 
     struct aws_byte_buf aad;
-    if (serialize_aad_init(request_alloc, &aad, enc_context)) {
+    if (serialize_aad_init(request_alloc, &aad, enc_ctx)) {
         return AWS_OP_ERR;
     }
 
@@ -109,12 +109,12 @@ int aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(
     /* Encrypted data key bytes same length as unencrypted data key in GCM.
      * enc_data_key field also includes tag afterward.
      */
-    if (aws_byte_buf_init(&edk.enc_data_key, request_alloc, data_key_len + RAW_AES_KR_TAG_LEN)) {
+    if (aws_byte_buf_init(&edk.ciphertext, request_alloc, data_key_len + RAW_AES_KR_TAG_LEN)) {
         aws_byte_buf_clean_up(&aad);
         return AWS_OP_ERR;
     }
-    struct aws_byte_buf edk_bytes = aws_byte_buf_from_array(edk.enc_data_key.buffer, data_key_len);
-    struct aws_byte_buf tag       = aws_byte_buf_from_array(edk.enc_data_key.buffer + data_key_len, RAW_AES_KR_TAG_LEN);
+    struct aws_byte_buf edk_bytes = aws_byte_buf_from_array(edk.ciphertext.buffer, data_key_len);
+    struct aws_byte_buf tag       = aws_byte_buf_from_array(edk.ciphertext.buffer + data_key_len, RAW_AES_KR_TAG_LEN);
     if (aws_cryptosdk_aes_gcm_encrypt(
             &edk_bytes,
             &tag,
@@ -123,7 +123,7 @@ int aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(
             aws_byte_cursor_from_buf(&aad),
             self->raw_key))
         goto err;
-    edk.enc_data_key.len = edk.enc_data_key.capacity;
+    edk.ciphertext.len = edk.ciphertext.capacity;
 
     if (aws_cryptosdk_serialize_provider_info_init(request_alloc, &edk.provider_info, self->key_name, iv)) goto err;
 
@@ -147,7 +147,7 @@ static int raw_aes_keyring_on_encrypt(
     struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *keyring_trace,
     struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
     size_t data_key_len                              = props->data_key_len;
@@ -168,7 +168,7 @@ static int raw_aes_keyring_on_encrypt(
     }
 
     int ret = aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(
-        kr, request_alloc, unencrypted_data_key, edks, enc_context, alg, iv);
+        kr, request_alloc, unencrypted_data_key, edks, enc_ctx, alg, iv);
     if (ret && flags) {
         aws_byte_buf_clean_up(unencrypted_data_key);
     }
@@ -188,12 +188,12 @@ static int raw_aes_keyring_on_decrypt(
     struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *keyring_trace,
     const struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
     struct raw_aes_keyring *self = (struct raw_aes_keyring *)kr;
 
     struct aws_byte_buf aad;
-    if (serialize_aad_init(request_alloc, &aad, enc_context)) {
+    if (serialize_aad_init(request_alloc, &aad, enc_ctx)) {
         return AWS_OP_ERR;
     }
 
@@ -213,14 +213,14 @@ static int raw_aes_keyring_on_decrypt(
             aws_byte_buf_clean_up(&aad);
             return AWS_OP_ERR;
         }
-        if (!edk->provider_id.len || !edk->provider_info.len || !edk->enc_data_key.len) continue;
+        if (!edk->provider_id.len || !edk->provider_info.len || !edk->ciphertext.len) continue;
 
         if (!aws_string_eq_byte_buf(self->key_namespace, &edk->provider_id)) continue;
 
         struct aws_byte_buf iv;
         if (!aws_cryptosdk_parse_provider_info(kr, &iv, &edk->provider_info)) continue;
 
-        const struct aws_byte_buf *edk_bytes = &edk->enc_data_key;
+        const struct aws_byte_buf *edk_bytes = &edk->ciphertext;
 
         /* Using GCM, so encrypted and unencrypted data key have same length, i.e. data_key_len.
          * edk_bytes->buffer holds encrypted data key followed by GCM tag.

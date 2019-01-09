@@ -18,7 +18,7 @@
 #include <aws/common/encoding.h>
 #include <aws/common/hash_table.h>
 #include <aws/common/string.h>
-#include <aws/cryptosdk/enc_context.h>
+#include <aws/cryptosdk/enc_ctx.h>
 #include <aws/cryptosdk/keyring_trace.h>
 #include <ctype.h>
 #include <errno.h>
@@ -145,34 +145,34 @@ failure:
     return 1;
 }
 
-AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_1, "The night is dark");
-AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_1, "and full of terrors");
-AWS_STATIC_STRING_FROM_LITERAL(enc_context_key_2, "You Know Nothing");
-AWS_STATIC_STRING_FROM_LITERAL(enc_context_val_2, "James Bond");
+AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_key_1, "The night is dark");
+AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_val_1, "and full of terrors");
+AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_key_2, "You Know Nothing");
+AWS_STATIC_STRING_FROM_LITERAL(enc_ctx_val_2, "James Bond");
 
 TESTLIB_API
-int test_enc_context_fill(struct aws_hash_table *enc_context) {
-    TEST_ASSERT_SUCCESS(aws_hash_table_put(enc_context, enc_context_key_1, (void *)enc_context_val_1, NULL));
+int test_enc_ctx_fill(struct aws_hash_table *enc_ctx) {
+    TEST_ASSERT_SUCCESS(aws_hash_table_put(enc_ctx, enc_ctx_key_1, (void *)enc_ctx_val_1, NULL));
 
-    TEST_ASSERT_SUCCESS(aws_hash_table_put(enc_context, enc_context_key_2, (void *)enc_context_val_2, NULL));
+    TEST_ASSERT_SUCCESS(aws_hash_table_put(enc_ctx, enc_ctx_key_2, (void *)enc_ctx_val_2, NULL));
 
     return 0;
 }
 
 TESTLIB_API
-int assert_enc_context_fill(const struct aws_hash_table *enc_context) {
+int assert_enc_ctx_fill(const struct aws_hash_table *enc_ctx) {
     struct aws_hash_element *elem;
     const struct aws_string *val;
 
-    TEST_ASSERT_SUCCESS(aws_hash_table_find(enc_context, enc_context_key_1, &elem));
+    TEST_ASSERT_SUCCESS(aws_hash_table_find(enc_ctx, enc_ctx_key_1, &elem));
     TEST_ASSERT_ADDR_NOT_NULL(elem);
     val = (const struct aws_string *)elem->value;
-    TEST_ASSERT(aws_string_eq(val, enc_context_val_1));
+    TEST_ASSERT(aws_string_eq(val, enc_ctx_val_1));
 
-    TEST_ASSERT_SUCCESS(aws_hash_table_find(enc_context, enc_context_key_2, &elem));
+    TEST_ASSERT_SUCCESS(aws_hash_table_find(enc_ctx, enc_ctx_key_2, &elem));
     TEST_ASSERT_ADDR_NOT_NULL(elem);
     val = (const struct aws_string *)elem->value;
-    TEST_ASSERT(aws_string_eq(val, enc_context_val_2));
+    TEST_ASSERT(aws_string_eq(val, enc_ctx_val_2));
     return 0;
 }
 

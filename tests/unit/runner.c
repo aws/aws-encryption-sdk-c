@@ -28,7 +28,7 @@ int pass_fn() {
 struct test_case *test_groups[] = { header_test_cases,
                                     cipher_test_cases,
                                     materials_test_cases,
-                                    enc_context_test_cases,
+                                    enc_ctx_test_cases,
                                     encrypt_test_cases,
                                     hkdf_test_cases,
                                     raw_aes_keyring_decrypt_test_cases,

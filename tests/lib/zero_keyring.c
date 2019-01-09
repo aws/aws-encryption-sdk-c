@@ -26,7 +26,7 @@ AWS_STATIC_STRING_FROM_LITERAL(literally_null, "null");
 void aws_cryptosdk_literally_null_edk(struct aws_cryptosdk_edk *edk) {
     edk->provider_id   = aws_byte_buf_from_c_str(literally_null->bytes);
     edk->provider_info = aws_byte_buf_from_c_str(literally_null->bytes);
-    edk->enc_data_key  = aws_byte_buf_from_c_str(literally_null->bytes);
+    edk->ciphertext    = aws_byte_buf_from_c_str(literally_null->bytes);
 }
 
 static bool buf_equals_c_string(const struct aws_byte_buf *buf, const char *cstr) {
@@ -37,14 +37,14 @@ static bool buf_equals_c_string(const struct aws_byte_buf *buf, const char *cstr
 static inline bool is_literally_null_edk(const struct aws_cryptosdk_edk *edk) {
     if (aws_string_eq_byte_buf(literally_null, &edk->provider_id) &&
         aws_string_eq_byte_buf(literally_null, &edk->provider_info) &&
-        aws_string_eq_byte_buf(literally_null, &edk->enc_data_key))
+        aws_string_eq_byte_buf(literally_null, &edk->ciphertext))
         return true;
 
     // Some older test vectors use "zero-key" / "provider info" / "\0" as their test data
 
     if (buf_equals_c_string(&edk->provider_id, "zero-key") &&
-        buf_equals_c_string(&edk->provider_info, "provider info") && edk->enc_data_key.len == 1 &&
-        edk->enc_data_key.buffer[0] == 0)
+        buf_equals_c_string(&edk->provider_info, "provider info") && edk->ciphertext.len == 1 &&
+        edk->ciphertext.buffer[0] == 0)
         return true;
 
     return false;
@@ -56,9 +56,9 @@ static int zero_keyring_on_encrypt(
     struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *keyring_trace,
     struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
-    (void)enc_context;
+    (void)enc_ctx;
     (void)kr;
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
     uint32_t flags                                   = AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY;
@@ -96,9 +96,9 @@ static int zero_keyring_on_decrypt(
     struct aws_byte_buf *unencrypted_data_key,
     struct aws_array_list *keyring_trace,
     const struct aws_array_list *edks,
-    const struct aws_hash_table *enc_context,
+    const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
-    (void)enc_context;
+    (void)enc_ctx;
     (void)kr;
 
     size_t num_keys = aws_array_list_length(edks);

@@ -59,14 +59,14 @@ void hexdump(FILE *fd, const uint8_t *buf, size_t size);
  * Adds a few fixed strings to an already initialized encryption context.
  */
 TESTLIB_API
-int test_enc_context_fill(struct aws_hash_table *enc_context);
+int test_enc_ctx_fill(struct aws_hash_table *enc_ctx);
 
 /**
- * Checks whether the same fixed strings used by test_enc_context_fill are
+ * Checks whether the same fixed strings used by test_enc_ctx_fill are
  * in the encryption context.
  */
 TESTLIB_API
-int assert_enc_context_fill(const struct aws_hash_table *enc_context);
+int assert_enc_ctx_fill(const struct aws_hash_table *enc_ctx);
 
 /**
  * Decodes base64 in a C string into a newly allocated aws_byte_buf.

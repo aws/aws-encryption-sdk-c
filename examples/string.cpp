@@ -15,7 +15,7 @@
 
 #include <aws/cryptosdk/cpp/kms_keyring.h>
 #include <aws/cryptosdk/default_cmm.h>
-#include <aws/cryptosdk/enc_context.h>
+#include <aws/cryptosdk/enc_ctx.h>
 #include <aws/cryptosdk/session.h>
 
 int encrypt_string(
@@ -75,7 +75,7 @@ int encrypt_string(
     assert(session_enc_ctx);
 
     /* We copy the contents of our own encryption context into the session's. */
-    if (AWS_OP_SUCCESS != aws_cryptosdk_enc_context_clone(alloc, session_enc_ctx, my_enc_ctx)) {
+    if (AWS_OP_SUCCESS != aws_cryptosdk_enc_ctx_clone(alloc, session_enc_ctx, my_enc_ctx)) {
         aws_cryptosdk_session_destroy(session);
         return 6;
     }
@@ -175,7 +175,7 @@ int decrypt_string_and_verify_encryption_context(
 
 /* Allocates a hash table for holding the encryption context and puts a few sample values in it. */
 int set_up_enc_ctx(struct aws_allocator *alloc, struct aws_hash_table *enc_ctx) {
-    if (AWS_OP_SUCCESS != aws_cryptosdk_enc_context_init(alloc, enc_ctx)) return 12;
+    if (AWS_OP_SUCCESS != aws_cryptosdk_enc_ctx_init(alloc, enc_ctx)) return 12;
 
     /* Declares AWS strings of type (static const struct aws_string *)
      *
@@ -190,12 +190,12 @@ int set_up_enc_ctx(struct aws_allocator *alloc, struct aws_hash_table *enc_ctx) 
 
     int was_created;
     if (AWS_OP_SUCCESS != aws_hash_table_put(enc_ctx, enc_ctx_key1, (void *)enc_ctx_value1, &was_created)) {
-        aws_cryptosdk_enc_context_clean_up(enc_ctx);
+        aws_cryptosdk_enc_ctx_clean_up(enc_ctx);
         return 13;
     }
     assert(was_created == 1);
     if (AWS_OP_SUCCESS != aws_hash_table_put(enc_ctx, enc_ctx_key2, (void *)enc_ctx_value2, &was_created)) {
-        aws_cryptosdk_enc_context_clean_up(enc_ctx);
+        aws_cryptosdk_enc_ctx_clean_up(enc_ctx);
         return 14;
     }
     assert(was_created == 1);
@@ -265,6 +265,6 @@ int main(int argc, char **argv) {
 
 done:
     Aws::ShutdownAPI(options);
-    aws_cryptosdk_enc_context_clean_up(&enc_ctx);
+    aws_cryptosdk_enc_ctx_clean_up(&enc_ctx);
     return ret;
 }

@@ -13,12 +13,12 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/error.h>
-#include <aws/cryptosdk/private/enc_context.h>
+#include <aws/cryptosdk/private/enc_ctx.h>
 #include <aws/cryptosdk/private/utils.h>
 #include "testing.h"
 
 /*
- * Warning: this file uses aws_hash_table_init instead of aws_cryptosdk_enc_context_init
+ * Warning: this file uses aws_hash_table_init instead of aws_cryptosdk_enc_ctx_init
  * in many places because it does a few tricky things, including disabling some of the
  * destructors to avoid double frees and setting up a very large table to avoid
  * reallocations.
@@ -33,14 +33,13 @@ AWS_STATIC_STRING_FROM_LITERAL(bar_food, "bar food");
 AWS_STATIC_STRING_FROM_LITERAL(bar_null_food, "bar\0food");
 AWS_STATIC_STRING_FROM_LITERAL(bar_null_back, "bar\0back");
 
-static int serialize_init(
-    struct aws_allocator *alloc, struct aws_byte_buf *buf, const struct aws_hash_table *enc_context) {
+static int serialize_init(struct aws_allocator *alloc, struct aws_byte_buf *buf, const struct aws_hash_table *enc_ctx) {
     size_t len;
 
-    if (aws_cryptosdk_context_size(&len, enc_context)) return AWS_OP_ERR;
+    if (aws_cryptosdk_enc_ctx_size(&len, enc_ctx)) return AWS_OP_ERR;
     if (aws_byte_buf_init(buf, alloc, len)) return AWS_OP_ERR;
 
-    return aws_cryptosdk_context_serialize(alloc, buf, enc_context);
+    return aws_cryptosdk_enc_ctx_serialize(alloc, buf, enc_ctx);
 }
 
 int get_sorted_elems_array_test() {
@@ -75,32 +74,32 @@ int get_sorted_elems_array_test() {
         TEST_ASSERT(aws_string_eq((const struct aws_string *)elem.value, sorted_vals[idx]));
     }
     aws_array_list_clean_up(&elems);
-    aws_cryptosdk_enc_context_clean_up(&map);
+    aws_cryptosdk_enc_ctx_clean_up(&map);
     return 0;
 }
 
-int serialize_empty_enc_context() {
+int serialize_empty_enc_ctx() {
     struct aws_allocator *alloc = aws_default_allocator();
 
-    struct aws_hash_table enc_context;
+    struct aws_hash_table enc_ctx;
     TEST_ASSERT_INT_EQ(
-        aws_hash_table_init(&enc_context, alloc, 10, aws_hash_string, aws_hash_callback_string_eq, NULL, NULL),
+        aws_hash_table_init(&enc_ctx, alloc, 10, aws_hash_string, aws_hash_callback_string_eq, NULL, NULL),
         AWS_OP_SUCCESS);
 
     struct aws_byte_buf output = { 0 };
     size_t len;
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_context_size(&len, &enc_context));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_ctx_size(&len, &enc_ctx));
     TEST_ASSERT_INT_EQ(len, 0);
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_context_serialize(alloc, &output, &enc_context));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_ctx_serialize(alloc, &output, &enc_ctx));
     TEST_ASSERT_INT_EQ(output.len, 0);
 
     aws_byte_buf_clean_up(&output);
-    aws_cryptosdk_enc_context_clean_up(&enc_context);
+    aws_cryptosdk_enc_ctx_clean_up(&enc_ctx);
     return 0;
 }
 
-int serialize_valid_enc_context() {
+int serialize_valid_enc_ctx() {
     const uint8_t serialized_ctx[] =
         "\x00\x04"
         "\x00\x15"
@@ -126,27 +125,27 @@ int serialize_valid_enc_context() {
 
     struct aws_allocator *alloc = aws_default_allocator();
 
-    struct aws_hash_table enc_context;
+    struct aws_hash_table enc_ctx;
     TEST_ASSERT_INT_EQ(
-        aws_hash_table_init(&enc_context, alloc, 10, aws_hash_string, aws_hash_callback_string_eq, NULL, NULL),
+        aws_hash_table_init(&enc_ctx, alloc, 10, aws_hash_string, aws_hash_callback_string_eq, NULL, NULL),
         AWS_OP_SUCCESS);
 
     for (int idx = 0; idx < num_elems; ++idx) {
         struct aws_hash_element *elem;
-        TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_context, (void *)keys[idx], &elem, NULL), AWS_OP_SUCCESS);
+        TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_ctx, (void *)keys[idx], &elem, NULL), AWS_OP_SUCCESS);
         elem->value = (void *)vals[idx];
     }
 
     struct aws_byte_buf output;
-    TEST_ASSERT_INT_EQ(serialize_init(alloc, &output, &enc_context), AWS_OP_SUCCESS);
+    TEST_ASSERT_INT_EQ(serialize_init(alloc, &output, &enc_ctx), AWS_OP_SUCCESS);
     TEST_ASSERT_INT_EQ(output.len, sizeof(serialized_ctx) - 1);
     TEST_ASSERT_INT_EQ(0, memcmp(output.buffer, serialized_ctx, output.len));
     aws_byte_buf_clean_up(&output);
-    aws_cryptosdk_enc_context_clean_up(&enc_context);
+    aws_cryptosdk_enc_ctx_clean_up(&enc_ctx);
     return 0;
 }
 
-int serialize_valid_enc_context_unsigned_comparison() {
+int serialize_valid_enc_ctx_unsigned_comparison() {
     const uint8_t serialized_ctx[] =
         "\x00\x02"
         "\x00\x09"
@@ -169,24 +168,24 @@ int serialize_valid_enc_context_unsigned_comparison() {
 
     struct aws_allocator *alloc = aws_default_allocator();
 
-    struct aws_hash_table enc_context;
+    struct aws_hash_table enc_ctx;
     TEST_ASSERT_INT_EQ(
-        aws_hash_table_init(&enc_context, alloc, 10, aws_hash_string, aws_hash_callback_string_eq, NULL, NULL),
+        aws_hash_table_init(&enc_ctx, alloc, 10, aws_hash_string, aws_hash_callback_string_eq, NULL, NULL),
         AWS_OP_SUCCESS);
 
     for (int idx = 0; idx < num_elems; ++idx) {
         struct aws_hash_element *elem;
-        TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_context, (void *)keys[idx], &elem, NULL), AWS_OP_SUCCESS);
+        TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_ctx, (void *)keys[idx], &elem, NULL), AWS_OP_SUCCESS);
         elem->value = (void *)vals[idx];
     }
 
     struct aws_byte_buf output;
-    TEST_ASSERT_INT_EQ(serialize_init(alloc, &output, &enc_context), AWS_OP_SUCCESS);
+    TEST_ASSERT_INT_EQ(serialize_init(alloc, &output, &enc_ctx), AWS_OP_SUCCESS);
     TEST_ASSERT_INT_EQ(output.len, sizeof(serialized_ctx) - 1);
     TEST_ASSERT_INT_EQ(0, memcmp(output.buffer, serialized_ctx, output.len));
 
     aws_byte_buf_clean_up(&output);
-    aws_cryptosdk_enc_context_clean_up(&enc_context);
+    aws_cryptosdk_enc_ctx_clean_up(&enc_ctx);
     return 0;
 }
 
@@ -197,26 +196,20 @@ int serialize_error_when_element_too_long() {
     const struct aws_string *str  = aws_string_new_from_array(alloc, bytes, UINT16_MAX + 1);
     TEST_ASSERT_ADDR_NOT_NULL(str);
 
-    struct aws_hash_table enc_context;
+    struct aws_hash_table enc_ctx;
     TEST_ASSERT_INT_EQ(
         aws_hash_table_init(
-            &enc_context,
-            alloc,
-            10,
-            aws_hash_string,
-            aws_hash_callback_string_eq,
-            NULL,
-            aws_hash_callback_string_destroy),
+            &enc_ctx, alloc, 10, aws_hash_string, aws_hash_callback_string_eq, NULL, aws_hash_callback_string_destroy),
         AWS_OP_SUCCESS);
 
     struct aws_hash_element *elem;
-    TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_context, (void *)empty, &elem, NULL), AWS_OP_SUCCESS);
+    TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_ctx, (void *)empty, &elem, NULL), AWS_OP_SUCCESS);
     elem->value = (void *)str;
 
     struct aws_byte_buf output;
-    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED, serialize_init(alloc, &output, &enc_context));
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED, serialize_init(alloc, &output, &enc_ctx));
 
-    aws_cryptosdk_enc_context_clean_up(&enc_context);
+    aws_cryptosdk_enc_ctx_clean_up(&enc_ctx);
     return 0;
 }
 
@@ -227,34 +220,28 @@ int serialize_error_when_serialized_len_too_long() {
     const struct aws_string *str        = aws_string_new_from_array(alloc, bytes, TWO_TO_THE_FIFTEENTH);
     TEST_ASSERT_ADDR_NOT_NULL(str);
 
-    struct aws_hash_table enc_context;
+    struct aws_hash_table enc_ctx;
     // only setting destroy function on value so it doesn't try to destroy same string twice
     TEST_ASSERT_INT_EQ(
         aws_hash_table_init(
-            &enc_context,
-            alloc,
-            10,
-            aws_hash_string,
-            aws_hash_callback_string_eq,
-            NULL,
-            aws_hash_callback_string_destroy),
+            &enc_ctx, alloc, 10, aws_hash_string, aws_hash_callback_string_eq, NULL, aws_hash_callback_string_destroy),
         AWS_OP_SUCCESS);
 
     struct aws_hash_element *elem;
-    TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_context, (void *)str, &elem, NULL), AWS_OP_SUCCESS);
+    TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_ctx, (void *)str, &elem, NULL), AWS_OP_SUCCESS);
     elem->value = (void *)str;
 
     struct aws_byte_buf output;
-    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED, serialize_init(alloc, &output, &enc_context));
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED, serialize_init(alloc, &output, &enc_ctx));
 
-    aws_cryptosdk_enc_context_clean_up(&enc_context);
+    aws_cryptosdk_enc_ctx_clean_up(&enc_ctx);
     return 0;
 }
 
-int serialize_valid_enc_context_max_length() {
+int serialize_valid_enc_ctx_max_length() {
     struct aws_allocator *alloc = aws_default_allocator();
-    struct aws_hash_table enc_context;
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, &enc_context));
+    struct aws_hash_table enc_ctx;
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_ctx_init(alloc, &enc_ctx));
 
     /* 2 bytes: key-value count
        2 bytes: key length (=UINT16_MAX - 6)
@@ -269,24 +256,24 @@ int serialize_valid_enc_context_max_length() {
 
     int was_created = 0;
     struct aws_hash_element *elem;
-    TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_context, (void *)key, &elem, &was_created), AWS_OP_SUCCESS);
+    TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_ctx, (void *)key, &elem, &was_created), AWS_OP_SUCCESS);
     TEST_ASSERT_INT_EQ(was_created, 1);
     elem->value = (void *)empty;
 
     struct aws_byte_buf output;
-    TEST_ASSERT_INT_EQ(serialize_init(alloc, &output, &enc_context), AWS_OP_SUCCESS);
+    TEST_ASSERT_INT_EQ(serialize_init(alloc, &output, &enc_ctx), AWS_OP_SUCCESS);
     TEST_ASSERT_INT_EQ(output.len, UINT16_MAX);
     aws_byte_buf_clean_up(&output);
-    aws_cryptosdk_enc_context_clean_up(&enc_context);
+    aws_cryptosdk_enc_ctx_clean_up(&enc_ctx);
     return 0;
 }
 
 int serialize_error_when_too_many_elements() {
     struct aws_allocator *alloc = aws_default_allocator();
-    struct aws_hash_table enc_context;
+    struct aws_hash_table enc_ctx;
     TEST_ASSERT_INT_EQ(
         aws_hash_table_init(
-            &enc_context,
+            &enc_ctx,
             alloc,
             (size_t)UINT16_MAX + 10,
             aws_hash_string,
@@ -301,14 +288,14 @@ int serialize_error_when_too_many_elements() {
         struct aws_hash_element *elem;
         snprintf(buf, sizeof(buf), "%zu", idx);
         const struct aws_string *str = aws_string_new_from_c_str(alloc, buf);
-        TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_context, (void *)str, &elem, &was_created), AWS_OP_SUCCESS);
+        TEST_ASSERT_INT_EQ(aws_hash_table_create(&enc_ctx, (void *)str, &elem, &was_created), AWS_OP_SUCCESS);
         TEST_ASSERT_INT_EQ(was_created, 1);
         elem->value = (void *)str;
     }
 
     struct aws_byte_buf output;
-    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED, serialize_init(alloc, &output, &enc_context));
-    aws_cryptosdk_enc_context_clean_up(&enc_context);
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED, serialize_init(alloc, &output, &enc_ctx));
+    aws_cryptosdk_enc_ctx_clean_up(&enc_ctx);
     return 0;
 }
 
@@ -321,12 +308,12 @@ static void *checked_aws_str_dup(struct aws_allocator *alloc, const char *str) {
     return val;
 }
 
-int enc_context_clone_test() {
+int enc_ctx_clone_test() {
     struct aws_allocator *alloc = aws_default_allocator();
     struct aws_hash_table context_src, context_dst;
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, &context_src));
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_init(alloc, &context_dst));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_ctx_init(alloc, &context_src));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_ctx_init(alloc, &context_dst));
 
     AWS_STATIC_STRING_FROM_LITERAL(static_val, "static value");
     AWS_STATIC_STRING_FROM_LITERAL(static_key, "static key");
@@ -357,7 +344,7 @@ int enc_context_clone_test() {
     TEST_ASSERT_SUCCESS(aws_hash_table_put(
         &context_dst, checked_aws_str_dup(alloc, "excess key"), checked_aws_str_dup(alloc, "excess value"), NULL));
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_context_clone(alloc, &context_dst, &context_src));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_ctx_clone(alloc, &context_dst, &context_src));
     TEST_ASSERT(aws_hash_table_eq(&context_src, &context_dst, aws_hash_callback_string_eq));
 
     /* Verify that things were/weren't allocated as appropriate */
@@ -395,17 +382,15 @@ int enc_context_clone_test() {
     return 0;
 }
 
-struct test_case enc_context_test_cases[] = {
-    { "enc_context", "get_sorted_elems_array_test", get_sorted_elems_array_test },
-    { "enc_context", "serialize_empty_enc_context", serialize_empty_enc_context },
-    { "enc_context", "serialize_valid_enc_context", serialize_valid_enc_context },
-    { "enc_context",
-      "serialize_valid_enc_context_unsigned_comparison",
-      serialize_valid_enc_context_unsigned_comparison },
-    { "enc_context", "serialize_error_when_element_too_long", serialize_error_when_element_too_long },
-    { "enc_context", "serialize_error_when_serialized_len_too_long", serialize_error_when_serialized_len_too_long },
-    { "enc_context", "serialize_valid_enc_context_max_length", serialize_valid_enc_context_max_length },
-    { "enc_context", "serialize_error_when_too_many_elements", serialize_error_when_too_many_elements },
-    { "enc_context", "clone_test", enc_context_clone_test },
+struct test_case enc_ctx_test_cases[] = {
+    { "enc_ctx", "get_sorted_elems_array_test", get_sorted_elems_array_test },
+    { "enc_ctx", "serialize_empty_enc_ctx", serialize_empty_enc_ctx },
+    { "enc_ctx", "serialize_valid_enc_ctx", serialize_valid_enc_ctx },
+    { "enc_ctx", "serialize_valid_enc_ctx_unsigned_comparison", serialize_valid_enc_ctx_unsigned_comparison },
+    { "enc_ctx", "serialize_error_when_element_too_long", serialize_error_when_element_too_long },
+    { "enc_ctx", "serialize_error_when_serialized_len_too_long", serialize_error_when_serialized_len_too_long },
+    { "enc_ctx", "serialize_valid_enc_ctx_max_length", serialize_valid_enc_ctx_max_length },
+    { "enc_ctx", "serialize_error_when_too_many_elements", serialize_error_when_too_many_elements },
+    { "enc_ctx", "clone_test", enc_ctx_clone_test },
     { NULL }
 };

@@ -84,7 +84,7 @@ struct aws_cryptosdk_session {
     struct content_key content_key;
 
     /* In-progress trailing signature context (if applicable) */
-    struct aws_cryptosdk_signctx *signctx;
+    struct aws_cryptosdk_sig_ctx *signctx;
 
     /* Set to true after successful call to CMM to indicate availability
      * of keyring trace and--in the case of decryption--the encryption context.

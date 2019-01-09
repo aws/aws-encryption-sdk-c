@@ -104,7 +104,7 @@ int raw_rsa_keyring_tv_trace_updated_properly(struct aws_array_list *trace, uint
 
 struct aws_cryptosdk_edk edk_init(const uint8_t *edk_bytes, size_t edk_len) {
     struct aws_cryptosdk_edk edk;
-    edk.enc_data_key = aws_byte_buf_from_array(edk_bytes, edk_len);
+    edk.ciphertext = aws_byte_buf_from_array(edk_bytes, edk_len);
     edk.provider_id =
         aws_byte_buf_from_array(raw_rsa_keyring_tv_provider_id->bytes, raw_rsa_keyring_tv_provider_id->len);
     edk.provider_info =
@@ -248,7 +248,7 @@ static const uint8_t tv_8_edk_bytes[] = {
 struct raw_rsa_keyring_test_vector raw_rsa_keyring_test_vectors[] = {
     {
         .rsa_padding_mode = AWS_CRYPTOSDK_RSA_PKCS1,
-        .alg              = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .alg              = ALG_AES128_GCM_IV12_TAG16_NO_KDF,
         .data_key         = tv_0_data_key,
         .data_key_len     = sizeof(tv_0_data_key),
         .edk_bytes        = tv_0_edk_bytes,
@@ -256,7 +256,7 @@ struct raw_rsa_keyring_test_vector raw_rsa_keyring_test_vectors[] = {
     },
     {
         .rsa_padding_mode = AWS_CRYPTOSDK_RSA_PKCS1,
-        .alg              = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .alg              = ALG_AES192_GCM_IV12_TAG16_NO_KDF,
         .data_key         = tv_1_data_key,
         .data_key_len     = sizeof(tv_1_data_key),
         .edk_bytes        = tv_1_edk_bytes,
@@ -264,7 +264,7 @@ struct raw_rsa_keyring_test_vector raw_rsa_keyring_test_vectors[] = {
     },
     {
         .rsa_padding_mode = AWS_CRYPTOSDK_RSA_PKCS1,
-        .alg              = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .alg              = ALG_AES256_GCM_IV12_TAG16_NO_KDF,
         .data_key         = tv_2_data_key,
         .data_key_len     = sizeof(tv_2_data_key),
         .edk_bytes        = tv_2_edk_bytes,
@@ -272,7 +272,7 @@ struct raw_rsa_keyring_test_vector raw_rsa_keyring_test_vectors[] = {
     },
     {
         .rsa_padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1,
-        .alg              = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .alg              = ALG_AES128_GCM_IV12_TAG16_NO_KDF,
         .data_key         = tv_3_data_key,
         .data_key_len     = sizeof(tv_3_data_key),
         .edk_bytes        = tv_3_edk_bytes,
@@ -280,7 +280,7 @@ struct raw_rsa_keyring_test_vector raw_rsa_keyring_test_vectors[] = {
     },
     {
         .rsa_padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1,
-        .alg              = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .alg              = ALG_AES192_GCM_IV12_TAG16_NO_KDF,
         .data_key         = tv_4_data_key,
         .data_key_len     = sizeof(tv_4_data_key),
         .edk_bytes        = tv_4_edk_bytes,
@@ -288,7 +288,7 @@ struct raw_rsa_keyring_test_vector raw_rsa_keyring_test_vectors[] = {
     },
     {
         .rsa_padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA1_MGF1,
-        .alg              = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .alg              = ALG_AES256_GCM_IV12_TAG16_NO_KDF,
         .data_key         = tv_5_data_key,
         .data_key_len     = sizeof(tv_5_data_key),
         .edk_bytes        = tv_5_edk_bytes,
@@ -296,7 +296,7 @@ struct raw_rsa_keyring_test_vector raw_rsa_keyring_test_vectors[] = {
     },
     {
         .rsa_padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1,
-        .alg              = AES_128_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .alg              = ALG_AES128_GCM_IV12_TAG16_NO_KDF,
         .data_key         = tv_6_data_key,
         .data_key_len     = sizeof(tv_6_data_key),
         .edk_bytes        = tv_6_edk_bytes,
@@ -304,7 +304,7 @@ struct raw_rsa_keyring_test_vector raw_rsa_keyring_test_vectors[] = {
     },
     {
         .rsa_padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1,
-        .alg              = AES_192_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .alg              = ALG_AES192_GCM_IV12_TAG16_NO_KDF,
         .data_key         = tv_7_data_key,
         .data_key_len     = sizeof(tv_7_data_key),
         .edk_bytes        = tv_7_edk_bytes,
@@ -312,7 +312,7 @@ struct raw_rsa_keyring_test_vector raw_rsa_keyring_test_vectors[] = {
     },
     {
         .rsa_padding_mode = AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1,
-        .alg              = AES_256_GCM_IV12_AUTH16_KDNONE_SIGNONE,
+        .alg              = ALG_AES256_GCM_IV12_TAG16_NO_KDF,
         .data_key         = tv_8_data_key,
         .data_key_len     = sizeof(tv_8_data_key),
         .edk_bytes        = tv_8_edk_bytes,

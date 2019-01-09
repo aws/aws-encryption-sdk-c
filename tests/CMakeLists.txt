@@ -49,7 +49,7 @@ endif()
 
 # This is in the integration tree so its "main" entry point won't clash with the test runner
 # Ideally we'd put the cache_test_lib.c file in lib/ as well, but we currently access some
-# private symbols (hash_decrypt_request) from caching_cmm.c, so it can't be linked into
+# private symbols (hash_dec_request) from caching_cmm.c, so it can't be linked into
 # e.g. tests/decrypt, which deliberately uses the "public" version of the library (which
 # hides private symbols like this).
 add_executable(test_local_cache_threading "integration/t_local_cache_threading.c" "unit/cache_test_lib.c")
@@ -86,7 +86,7 @@ endif(CURL_FOUND)
 aws_add_test(cipher ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite cipher)
 aws_add_test(header ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite header)
 aws_add_test(materials ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite materials)
-aws_add_test(enc_context ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite enc_context)
+aws_add_test(enc_ctx ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite enc_ctx)
 aws_add_test(encrypt ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite encrypt)
 aws_add_test(hkdf ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite hkdf)
 aws_add_test(raw_aes_keyring ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite raw_aes_keyring)

@@ -33,10 +33,15 @@ extern "C" {
  * decrypted by any of the included keyrings. When used for decryption, the multi-
  * keyring will attempt to decrypt using each of the included keyrings.
  *
- * A generator keyring is needed for generating a data key, but not for calls
- * to decrypt a data key. It can be set as the second argument of this function,
- * or caller may make that argument NULL to not set a generator. It can later be
- * set by calling aws_cryptosdk_multi_keyring_set_generator.
+ * The second argument provided to the constructor is this multi-keyring's
+ * generator keyring, which is the first keyring it will call on encryption and
+ * decryption attempts, when it is set.
+ *
+ * You may create a multi-keyring with no generator by setting the argument to NULL.
+ * If a generator is not set, the multi-keyring may be used for decryption or for
+ * encryption after another keyring has already generated a data key, (for example,
+ * as a child keyring of another multi-keyring.) However, a multi-keyring with no
+ * generator is not usable for encryption on its own.
  *
  * Calling the multi-keyring's On Encrypt method without a provided unencrypted
  * data key will cause it to do the following:
@@ -54,7 +59,7 @@ extern "C" {
  * delegated call failing, it will not set an error code, so as not to overwrite
  * the error code of the failing keyring.
  *
- * If the multi-keyring's On Encrypt methods is called WITH a provided unencrypted
+ * If the multi-keyring's On Encrypt method is called WITH a provided unencrypted
  * data key, it will skip directly to step (3) above, meaning that the generator
  * will never be called.
  *
@@ -66,34 +71,10 @@ extern "C" {
  * AWS_OP_SUCCESS if there were no errors, and AWS_OP_ERR if there were errors.
  * As with all On Decrypt calls, check unencrypted_data_key.buffer to see
  * whether an EDK was decrypted.
- *
- * Initially the multi keyring has no included child keyrings. In this state,
- * calls to On Encrypt with an unencrypted data key provided and calls to
- * On Decrypt will trivially succeed without modifying any materials.
  */
 AWS_CRYPTOSDK_API
 struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(
     struct aws_allocator *alloc, struct aws_cryptosdk_keyring *generator);
-
-/**
- * Sets the generator keyring of this multi-keyring. This will always be the first
- * keyring on which On Encrypt or On Decrypt is called, before the child keyrings.
- * The generator keyring MUST generate an unencrypted data key as part of its
- * On Encrypt call in order for the multi-keyring to function properly. If it
- * does not, the multi-keyring will raise an AWS_CRYPTOSDK_ERR_BAD_STATE code.
- * The generator keyring functions the same way as the child keyrings on calls
- * to On Decrypt. See above for more details.
- *
- * This operation is not threadsafe. If this is called at the same time as the
- * multi-keyring is used for encrypt or decrypt, it results in undefined behavior.
- *
- * The generator of a multi-keyring cannot be changed. Multiple calls to this
- * function, or calling it after setting the generator upon construction, will
- * fail with a AWS_ERROR_UNSUPPORTED_OPERATION error code.
- */
-AWS_CRYPTOSDK_API
-int aws_cryptosdk_multi_keyring_set_generator(
-    struct aws_cryptosdk_keyring *multi, struct aws_cryptosdk_keyring *generator);
 
 /**
  * Adds a new child keyring to this multi-keyring. Child keyrings are only used
@@ -107,7 +88,7 @@ int aws_cryptosdk_multi_keyring_set_generator(
  * It is not possible to remove a keyring from the multi-keyring at this time.
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_multi_keyring_add(struct aws_cryptosdk_keyring *multi, struct aws_cryptosdk_keyring *child);
+int aws_cryptosdk_multi_keyring_add_child(struct aws_cryptosdk_keyring *multi, struct aws_cryptosdk_keyring *child);
 
 /** @} */  // doxygen group cmm_kr_highlevel
 
