@@ -98,6 +98,8 @@ int main(int argc, char **argv) {
     struct aws_cryptosdk_keyring *escrow_keyring = aws_cryptosdk_raw_aes_keyring_new(
         alloc, wrapping_key_namespace, wrapping_key_name, wrapping_key, AWS_CRYPTOSDK_AES256);
     assert(escrow_keyring);
+    /* Zero out our copy of the escrow key now that it is stored in the keyring. */
+    aws_secure_zero(wrapping_key, wrapping_key_len);
 
     /* We create a multi-keyring. The first keyring specified on creation is the
      * generator keyring. This will be the first keyring called on encryption
