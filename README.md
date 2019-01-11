@@ -16,29 +16,22 @@ The only direct dependencies of this code are OpenSSL 1.0.2 or higher and
 a C compiler and CMake 3.9 or higher.
 
 In order for the AWS Encryption SDK for C to work with [KMS](https://aws.amazon.com/kms/)
-you will also need a direct dependency on [aws-sdk-cpp](https://github.com/aws/aws-sdk-cpp).
-This will also require a C++ compiler. aws-sdk-cpp has dependencies on libcurl, aws-c-common,
-[aws-checksums](https://github.com/awslabs/aws-checksums), and
-[aws-c-event-stream](https://github.com/awslabs/aws-c-event-stream). Those three
-AWS libraries must be built in exactly that order.
+you will also need the [AWS SDK for C++](https://github.com/aws/aws-sdk-cpp).
+This will require a C++ compiler and libcurl.
 
-You need to compile the dependencies as either all shared or all static libraries.
-The C libraries default to static library builds and the aws-sdk-cpp defaults to
-a shared library build. We will use all shared library builds in our examples, by
-using the cmake argument `-DBUILD_SHARED_LIBS=ON`. You can change them to static library builds
-by just changing `ON` to `OFF`.
+For best results when doing a C++ build, do not install aws-c-common directly, but simply
+build and install the AWS SDK for C++, which will build and install aws-c-common for you.
+If you install aws-c-common before building the AWS SDK for C++, this will fool the
+AWS SDK for C++ install logic, and you will be forced to install several other dependencies
+manually. The minimum supported version of the AWS SDK for C++ is 1.7.31.
+
+You need to compile both the AWS Encryption SDK for C and its dependencies as either all
+shared or all static libraries. We will use all shared library builds in our examples, by
+using the cmake argument `-DBUILD_SHARED_LIBS=ON`. You can change them to static library
+builds by just changing `ON` to `OFF`.
 
 Once you have built each dependency, you should `make install` it so it can be picked
-up by the next build. If desired, you can set the installation to happen in an arbitrary
-directory with `-DCMAKE_INSTALL_PREFIX=[path to install to]` as an argument to cmake,
-and then later builds will need `-DCMAKE_PREFIX_PATH=[path dependencies were installed in]`.
-
-You can also use `-DOPENSSL_ROOT_DIR=[path to where openssl was installed]` to make
-the build use a particular installation of OpenSSL.
-
-If these dependencies were installed in the default location for library
-installations on your system, cmake may be able to find them without these
-defines.
+up by the next build.
 
 ## Building on Amazon Linux
 
@@ -57,39 +50,31 @@ Start by installing a few basic dependencies:
 The yum repo has an old version of CMake, so download CMake 3.9 or later from [their
 website](https://cmake.org/) and make sure cmake is in your path.
 
-The following is a bash command to download, build, and install the C library
-dependencies in the correct order. We are pinning to known working versions of
-each of the libraries. Run from the directory you want to do the build in.
-
-    for i in aws-c-common,v0.2.0 aws-checksums,v0.1.0 aws-c-event-stream,v0.1.0 ;
-    do IFS=',' read dep ver <<< "$i" ;
-    git clone --branch $ver git@github.com:awslabs/${dep}.git ;
-    mkdir ${dep}/build ; cd ${dep}/build ;
-    cmake -DBUILD_SHARED_LIBS=ON .. ;
-    make && sudo make install ; cd ../.. ; done
-
-Now you should be able to build aws-sdk-cpp:
+Do a KMS-only build of the AWS SDK for C++:
 
     git clone git@github.com:aws/aws-sdk-cpp.git
-    mkdir aws-sdk-cpp/build ; cd aws-sdk-cpp/build
-    cmake -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="kms" ..
-    make && sudo make install ; cd ../..
+    mkdir build-aws-sdk-cpp && cd build-aws-sdk-cpp
+    cmake -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="kms" ../aws-sdk-cpp
+    make && sudo make install ; cd ..
 
-Finally, you can build this package. We give one extra argument to compile the examples.
+Now you can build the AWS Encryption SDK for C.
 
     git clone git@github.com:awslabs/aws-encryption-sdk-c.git
-    mkdir aws-encryption-sdk-c/build ; cd aws-encryption-sdk-c/build
-    cmake -DBUILD_SHARED_LIBS=ON -DAWS_ENC_SDK_EXAMPLES=1 ..
-    make && sudo make install
+    mkdir build-aws-encryption-sdk-c && cd build-aws-encryption-sdk-c
+    cmake -DBUILD_SHARED_LIBS=ON ../aws-encryption-sdk-c
+    make && sudo make install ; cd ..
 
-If you have gotten this far, you should be in the build directory with a working
-build of the AWS Encryption SDK for C. Run `make test` to run the tests,
-or run `examples/string_encrypt_decrypt` with an argument of the ARN of your
-KMS CMK in order to run a small piece of example code. You can see the source code
-of the example in the examples subdirectory of the main aws-encryption-sdk-c
-directory, one level up from where you are now.
+## Building on Ubuntu
 
-### Tips and tricks
+Install the needed dependencies with:
+
+    sudo apt-get update
+    sudo apt-get install -y libssl-dev cmake g++ libcurl4-openssl-dev zlib1g-dev
+
+Then just follow the Amazon Linux installation instructions above, starting with
+the AWS SDK for C++ build.
+
+## Tips and tricks
 
 When building aws-sdk-cpp, you can save time by only building the subcomponents we need:
 
@@ -97,6 +82,15 @@ When building aws-sdk-cpp, you can save time by only building the subcomponents 
 
 To enable debug symbols, set `-DCMAKE_BUILD_TYPE=Debug` at initial cmake time,
 or use `ccmake .` to update the configuration after the fact.
+
+If desired, you can set the installations to happen in an arbitrary
+directory with `-DCMAKE_INSTALL_PREFIX=[path to install to]` as an argument to cmake.
+`-DCMAKE_PREFIX_PATH` will cause a cmake package to look for dependencies in the
+directory you specify, but `-DCMAKE_INSTALL_PREFIX` will also set the prefix path,
+so there is no need to use both of these arguments.
+
+You can also use `-DOPENSSL_ROOT_DIR=[path to where openssl was installed]` to make
+the build use a particular installation of OpenSSL.
 
 ## License
 
