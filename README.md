@@ -53,15 +53,15 @@ website](https://cmake.org/) and make sure cmake is in your path.
 Do a KMS-only build of the AWS SDK for C++:
 
     git clone git@github.com:aws/aws-sdk-cpp.git
-    mkdir build-aws-sdk-cpp ; cd build-aws-sdk-cpp
+    mkdir build-aws-sdk-cpp && cd build-aws-sdk-cpp
     cmake -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="kms" ../aws-sdk-cpp
     make && sudo make install ; cd ..
 
 Now you can build the AWS Encryption SDK for C.
 
     git clone git@github.com:awslabs/aws-encryption-sdk-c.git
-    mkdir aws-encryption-sdk-c/build ; cd aws-encryption-sdk-c/build
-    cmake -DBUILD_SHARED_LIBS=ON ..
+    mkdir build-aws-encryption-sdk-c && cd build-aws-encryption-sdk-c
+    cmake -DBUILD_SHARED_LIBS=ON ../aws-encryption-sdk-c
     make && sudo make install ; cd ..
 
 ## Building on Ubuntu
