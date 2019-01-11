@@ -269,6 +269,14 @@ int aws_cryptosdk_priv_try_decrypt_body(
 
 int aws_cryptosdk_priv_check_trailer(
     struct aws_cryptosdk_session *AWS_RESTRICT session, struct aws_byte_cursor *AWS_RESTRICT input) {
+    /* By the time we're here, we're not going to provide any more output.
+     * We might need more input, and if so we'll update input_size_estimate
+     * below. For now we'll set it to zero so that when session is
+     * done both estimates will be zero.
+     */
+    session->output_size_estimate = 0;
+    session->input_size_estimate  = 0;
+
     struct aws_byte_cursor initial_input = *input;
     if (session->signctx == NULL) {
         aws_cryptosdk_priv_session_change_state(session, ST_DONE);
