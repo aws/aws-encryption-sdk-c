@@ -139,7 +139,7 @@ struct aws_cryptosdk_cmm *setup_cmm(struct aws_allocator *alloc, const char *key
 }  // namespace
 
 int main(int argc, char **argv) {
-    if (argc < 2) {
+    if (argc < 3) {
         std::cerr << "Usage: " << argv[0] << " key_arn string1 [string2 string3 ...]" << std::endl;
         return 1;
     }

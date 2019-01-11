@@ -337,6 +337,14 @@ int aws_cryptosdk_priv_try_encrypt_body(
 
 int aws_cryptosdk_priv_write_trailer(
     struct aws_cryptosdk_session *AWS_RESTRICT session, struct aws_byte_buf *AWS_RESTRICT poutput) {
+    /* We definitely do not need any more input at this point.
+     * We might need more output space, and if so we will update the
+     * output estimate below. For now we set it to zero so that when
+     * session is done both estimates will be zero.
+     */
+    session->input_size_estimate  = 0;
+    session->output_size_estimate = 0;
+
     if (session->alg_props->signature_len == 0) {
         aws_cryptosdk_priv_session_change_state(session, ST_DONE);
         return AWS_OP_SUCCESS;
@@ -348,7 +356,6 @@ int aws_cryptosdk_priv_write_trailer(
     size_t size_needed = 2 + session->alg_props->signature_len;
     if (poutput->capacity - poutput->len < size_needed) {
         session->output_size_estimate = size_needed;
-        session->input_size_estimate  = 0;
         return AWS_OP_SUCCESS;
     }
 

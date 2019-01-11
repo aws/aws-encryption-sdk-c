@@ -202,13 +202,13 @@ int aws_cryptosdk_priv_try_decrypt_body(
     // need to roll back and un-consume the ciphertext.
     struct aws_byte_cursor input_rollback = *pinput;
 
-    size_t ciphertext_size;
-    size_t plaintext_size;
-
     if (aws_cryptosdk_deserialize_frame(
-            &frame, &ciphertext_size, &plaintext_size, pinput, session->alg_props, session->frame_size)) {
-        session->output_size_estimate = plaintext_size;
-        session->input_size_estimate  = ciphertext_size;
+            &frame,
+            &session->input_size_estimate,
+            &session->output_size_estimate,
+            pinput,
+            session->alg_props,
+            session->frame_size)) {
         if (aws_last_error() == AWS_ERROR_SHORT_BUFFER) {
             // Not actually an error. We've updated the estimates, so move on.
             return AWS_OP_SUCCESS;
@@ -227,7 +227,7 @@ int aws_cryptosdk_priv_try_decrypt_body(
 
     // Before we go further, do we have enough room to place the plaintext?
     struct aws_byte_buf output;
-    if (!aws_byte_buf_advance(poutput, &output, plaintext_size)) {
+    if (!aws_byte_buf_advance(poutput, &output, session->output_size_estimate)) {
         *pinput = input_rollback;
         // No progress due to not enough plaintext output space.
         return AWS_OP_SUCCESS;
@@ -269,6 +269,14 @@ int aws_cryptosdk_priv_try_decrypt_body(
 
 int aws_cryptosdk_priv_check_trailer(
     struct aws_cryptosdk_session *AWS_RESTRICT session, struct aws_byte_cursor *AWS_RESTRICT input) {
+    /* By the time we're here, we're not going to provide any more output.
+     * We might need more input, and if so we'll update input_size_estimate
+     * below. For now we'll set it to zero so that when session is
+     * done both estimates will be zero.
+     */
+    session->output_size_estimate = 0;
+    session->input_size_estimate  = 0;
+
     struct aws_byte_cursor initial_input = *input;
     if (session->signctx == NULL) {
         aws_cryptosdk_priv_session_change_state(session, ST_DONE);

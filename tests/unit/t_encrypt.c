@@ -306,19 +306,9 @@ int test_different_keyring_cant_decrypt() {
     create_session(AWS_CRYPTOSDK_DECRYPT, zero_kr);
     hexdump(stderr, ct_buf, ct_size);
 
-#if 0
-    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_NO_MASTER_KEYS_FOUND,
-        aws_cryptosdk_session_process(session,
-            pt_buf, pt_size, &pt_consumed,
-            ct_buf, ct_size, &ct_consumed
-        )
-    );
-#else
-    // We don't yet return the correct error, but we can check that -some- error is returned.
     TEST_ASSERT_ERROR(
         AWS_CRYPTOSDK_ERR_CANNOT_DECRYPT,
         aws_cryptosdk_session_process(session, pt_buf, pt_size, &pt_consumed, ct_buf, ct_size, &ct_consumed));
-#endif
 
     free_bufs();
 
@@ -397,6 +387,108 @@ int test_null_estimates() {
     return 0;
 }
 
+/* Allocates a new output buffer and places its address at *output_buf */
+static int process_loop(
+    struct aws_allocator *alloc,
+    uint8_t **output_buf,
+    size_t *output_len,
+    const uint8_t *const input_buf,
+    const size_t input_len) {
+    size_t total_input_read = 0;
+    size_t input_window     = 1;
+
+    /* how much memory is allocated to output buffer, not the same as length of output */
+    size_t output_size          = 1;
+    *output_buf                 = aws_mem_acquire(alloc, output_size);
+    size_t total_output_written = 0;
+    size_t output_needed        = 1;
+
+    /* The entire input is already in the input buffer and we just expand the window into it as needed.
+     * The entire output will eventually be put into a single buffer. This is not a realistic streaming
+     * use case as we cannot handle more data than fits in memory, but it keeps things simple for testing.
+     */
+    while (1) {
+        size_t input_read, output_written;
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process(
+            session,
+            *output_buf + total_output_written,
+            output_size - total_output_written,
+            &output_written,
+            input_buf + total_input_read,
+            input_window,
+            &input_read));
+
+        total_output_written += output_written;
+        total_input_read += input_read;
+
+        if (aws_cryptosdk_session_is_done(session)) break;
+
+        aws_cryptosdk_session_estimate_buf(session, &output_needed, &input_window);
+        if (input_window > input_len - total_input_read) {
+            /* There are some scenarios where our input estimates are larger than needed.
+             * If that happens, we shrink the input window to the rest of the buffer.
+             */
+            input_window = input_len - total_input_read;
+        }
+
+        size_t output_size_needed = output_needed + total_output_written;
+        if (output_size < output_size_needed) {
+            TEST_ASSERT_SUCCESS(aws_mem_realloc(alloc, (void **)output_buf, output_size, output_size_needed));
+            output_size = output_size_needed;
+        }
+    }
+    *output_len = total_output_written;
+    return 0;
+}
+
+/* We test that, with both input and output buffers set to a minimum size to start and always
+ * following the buffer estimates provided, we will successfully do both encryption and decryption.
+ * We do this for the default frame size, unframed data, and a variety of other frame sizes,
+ * with messages that are a bit more, a bit less, and exactly at a 2 frame length.
+ */
+int test_using_estimates() {
+    struct aws_allocator *alloc = aws_default_allocator();
+
+    // first one we won't set frame size (uses default), last one for unframed data
+    uint32_t frame_sizes[] = { 0, 1536, 1537, 1538, 1539, 1540, 0 };
+    for (size_t frame_idx = 0; frame_idx < sizeof(frame_sizes) / sizeof(uint32_t); ++frame_idx) {
+        for (size_t plaintext_len = 2 * 1530; plaintext_len < 2 * 1545; plaintext_len++) {
+            struct aws_cryptosdk_keyring *keyring = aws_cryptosdk_counting_keyring_new(alloc);
+            create_session(AWS_CRYPTOSDK_ENCRYPT, keyring);
+
+            if (frame_idx) {
+                TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_frame_size(session, frame_sizes[frame_idx]));
+            }
+
+            uint8_t *plaintext_buf = aws_mem_acquire(alloc, plaintext_len);
+            TEST_ASSERT_ADDR_NOT_NULL(plaintext_buf);
+            TEST_ASSERT_SUCCESS(aws_cryptosdk_genrandom(plaintext_buf, plaintext_len));
+
+            TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_message_size(session, plaintext_len));
+
+            uint8_t *ciphertext_buf;
+            size_t ciphertext_len;
+            TEST_ASSERT_SUCCESS(process_loop(alloc, &ciphertext_buf, &ciphertext_len, plaintext_buf, plaintext_len));
+
+            TEST_ASSERT_SUCCESS(aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT));
+
+            uint8_t *decrypted_plaintext_buf;
+            size_t decrypted_plaintext_len;
+            TEST_ASSERT_SUCCESS(process_loop(
+                alloc, &decrypted_plaintext_buf, &decrypted_plaintext_len, ciphertext_buf, ciphertext_len));
+
+            TEST_ASSERT_INT_EQ(plaintext_len, decrypted_plaintext_len);
+            TEST_ASSERT(!memcmp(plaintext_buf, decrypted_plaintext_buf, plaintext_len));
+
+            free_bufs();
+            aws_mem_release(alloc, plaintext_buf);
+            aws_mem_release(alloc, ciphertext_buf);
+            aws_mem_release(alloc, decrypted_plaintext_buf);
+        }
+    }
+    return 0;
+}
+
 struct test_case encrypt_test_cases[] = {
     { "encrypt", "test_simple_roundtrip", test_simple_roundtrip },
     { "encrypt", "test_small_buffers", test_small_buffers },
@@ -404,5 +496,6 @@ struct test_case encrypt_test_cases[] = {
     { "encrypt", "test_changed_keyring_can_decrypt", &test_changed_keyring_can_decrypt },
     { "encrypt", "test_algorithm_override", &test_algorithm_override },
     { "encrypt", "test_null_estimates", &test_null_estimates },
+    { "encrypt", "test_using_estimates", &test_using_estimates },
     { NULL }
 };
