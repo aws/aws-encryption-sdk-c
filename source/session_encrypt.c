@@ -57,7 +57,7 @@ int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
     request.enc_ctx = &session->header.enc_ctx;
     // The default CMM will fill this in.
     request.requested_alg  = 0;
-    request.plaintext_size = session->precise_size_known ? session->precise_size : UINT64_MAX;
+    request.plaintext_size = session->precise_size_known ? session->precise_size : session->size_bound;
 
     if (aws_cryptosdk_cmm_generate_enc_materials(session->cmm, &materials, &request)) {
         goto rethrow;

@@ -18,6 +18,7 @@
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/edk.h>
 #include <aws/cryptosdk/enc_ctx.h>
+#include <aws/cryptosdk/session.h>
 
 #include <aws/common/encoding.h>
 
@@ -27,6 +28,7 @@
 #include "counting_keyring.h"
 #include "testing.h"
 #include "testutil.h"
+#include "zero_keyring.h"
 
 /*
  * Pointers to the underlying mocks set up by setup_mocks.
@@ -929,6 +931,58 @@ static void teardown() {
     mock_upstream_cmm    = NULL;
 }
 
+int set_message_bound() {
+    uint8_t plaintext[] = "Hello World";
+    uint8_t ciphertext[1024];
+    size_t pt_consumed, ct_consumed;
+
+    struct aws_allocator *alloc                 = aws_default_allocator();
+    struct aws_cryptosdk_keyring *kr            = NULL;
+    struct aws_cryptosdk_cmm *default_cmm       = NULL;
+    struct aws_cryptosdk_materials_cache *cache = NULL;
+    struct aws_cryptosdk_cmm *caching_cmm       = NULL;
+    struct aws_cryptosdk_session *session       = NULL;
+
+    kr = aws_cryptosdk_zero_keyring_new(alloc);
+    TEST_ASSERT_ADDR_NOT_NULL(kr);
+
+    default_cmm = aws_cryptosdk_default_cmm_new(alloc, kr);
+    TEST_ASSERT_ADDR_NOT_NULL(default_cmm);
+    TEST_ASSERT_SUCCESS(
+        aws_cryptosdk_default_cmm_set_alg_id(default_cmm, ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));
+
+    cache = aws_cryptosdk_materials_cache_local_new(alloc, 8);
+    TEST_ASSERT_ADDR_NOT_NULL(cache);
+
+    caching_cmm = aws_cryptosdk_caching_cmm_new(alloc, cache, default_cmm, NULL);
+    TEST_ASSERT_ADDR_NOT_NULL(caching_cmm);
+
+    aws_cryptosdk_keyring_release(kr);
+    aws_cryptosdk_cmm_release(default_cmm);
+    aws_cryptosdk_materials_cache_release(cache);
+
+    session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_ENCRYPT, caching_cmm);
+    TEST_ASSERT_ADDR_NOT_NULL(session);
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_message_bound(session, sizeof(plaintext)));
+
+    /* Since we are setting the message_size value to be greater that the message_bound value set
+    we expect a AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED error thrown. */
+
+    TEST_ASSERT_ERROR(
+        AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED, aws_cryptosdk_session_set_message_size(session, 2 * sizeof(plaintext)));
+
+    TEST_ASSERT_ERROR(
+        AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED,
+        aws_cryptosdk_session_process(
+            session, ciphertext, sizeof(ciphertext), &ct_consumed, plaintext, sizeof(plaintext), &pt_consumed));
+
+    aws_cryptosdk_cmm_release(caching_cmm);
+    aws_cryptosdk_session_destroy(session);
+
+    return 0;
+}
+
 #define TEST_CASE(name) \
     { "caching_cmm", #name, name }
 struct test_case caching_cmm_test_cases[] = { TEST_CASE(create_destroy),
@@ -944,6 +998,7 @@ struct test_case caching_cmm_test_cases[] = { TEST_CASE(create_destroy),
                                               TEST_CASE(static_and_null_partition_id_dont_match),
                                               TEST_CASE(two_null_partition_ids_dont_match),
                                               TEST_CASE(two_different_static_partition_ids_dont_match),
+                                              TEST_CASE(set_message_bound),
                                               { NULL } };
 
 // TEST TODO: Threadstorm
