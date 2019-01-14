@@ -54,6 +54,18 @@ static int record_init_from_strings(
     return record_init_check(record);
 }
 
+static int record_init_from_bufs(
+    struct aws_allocator *alloc,
+    struct aws_cryptosdk_keyring_trace_record *record,
+    const struct aws_byte_buf *wk_namespace,
+    const struct aws_byte_buf *wk_name,
+    uint32_t flags) {
+    record->flags                  = flags;
+    record->wrapping_key_namespace = aws_string_new_from_array(alloc, wk_namespace->buffer, wk_namespace->len);
+    record->wrapping_key_name      = aws_string_new_from_array(alloc, wk_name->buffer, wk_name->len);
+    return record_init_check(record);
+}
+
 static inline int push_record_onto_trace(
     struct aws_array_list *trace, struct aws_cryptosdk_keyring_trace_record *record) {
     int ret = aws_array_list_push_back(trace, (void *)record);
@@ -83,6 +95,19 @@ int aws_cryptosdk_keyring_trace_add_record_c_str(
     uint32_t flags) {
     struct aws_cryptosdk_keyring_trace_record record;
     int ret = record_init_from_c_strs(alloc, &record, wk_namespace, wk_name, flags);
+    if (ret) return ret;
+
+    return push_record_onto_trace(trace, &record);
+}
+
+int aws_cryptosdk_keyring_trace_add_record_buf(
+    struct aws_allocator *alloc,
+    struct aws_array_list *trace,
+    const struct aws_byte_buf *wk_namespace,
+    const struct aws_byte_buf *wk_name,
+    uint32_t flags) {
+    struct aws_cryptosdk_keyring_trace_record record;
+    int ret = record_init_from_bufs(alloc, &record, wk_namespace, wk_name, flags);
     if (ret) return ret;
 
     return push_record_onto_trace(trace, &record);

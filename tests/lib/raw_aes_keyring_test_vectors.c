@@ -40,8 +40,8 @@ int raw_aes_keyring_tv_trace_updated_properly(struct aws_array_list *trace, uint
     return assert_keyring_trace_record(
         trace,
         aws_array_list_length(trace) - 1,
-        raw_aes_keyring_tv_provider_id->bytes,
-        raw_aes_keyring_tv_master_key_id->bytes,
+        (const char *)raw_aes_keyring_tv_provider_id->bytes,
+        (const char *)raw_aes_keyring_tv_master_key_id->bytes,
         flags);
 }
 
