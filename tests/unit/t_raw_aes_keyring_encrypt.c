@@ -71,7 +71,7 @@ static enum aws_cryptosdk_alg_id algs[] = {
     ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256, ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256, ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256
 };
 
-int encrypt_decrypt_data_key() {
+static int encrypt_decrypt_data_key() {
     for (int fill_enc_ctx = 0; fill_enc_ctx < 2; ++fill_enc_ctx) {
         for (int key_len_idx = 0; key_len_idx < sizeof(raw_key_lens) / sizeof(enum aws_cryptosdk_aes_key_len);
              ++key_len_idx) {
@@ -104,7 +104,7 @@ int encrypt_decrypt_data_key() {
     return 0;
 }
 
-int generate_decrypt_data_key() {
+static int generate_decrypt_data_key() {
     for (int fill_enc_ctx = 0; fill_enc_ctx < 2; ++fill_enc_ctx) {
         for (int key_len_idx = 0; key_len_idx < sizeof(raw_key_lens) / sizeof(enum aws_cryptosdk_aes_key_len);
              ++key_len_idx) {
@@ -141,7 +141,7 @@ int generate_decrypt_data_key() {
  * Data key encryption with set of known test vectors. This set includes wrapping keys of
  * 256, 192, and 128 bits. Same vectors as used in decrypt_data_key_test_vectors.
  */
-int encrypt_data_key_test_vectors() {
+static int encrypt_data_key_test_vectors() {
     uint8_t data_key_dup[32];  // 32 = max data key length
 
     for (struct raw_aes_keyring_test_vector *tv = raw_aes_keyring_test_vectors; tv->data_key; ++tv) {
@@ -172,9 +172,17 @@ int encrypt_data_key_test_vectors() {
     return 0;
 }
 
+static int fail_on_disallowed_namespace() {
+    AWS_STATIC_STRING_FROM_LITERAL(key_namespace, "aws-kms");
+    TEST_ASSERT_ADDR_NULL(aws_cryptosdk_raw_aes_keyring_new(NULL, key_namespace, NULL, NULL, 0));
+    TEST_ASSERT_INT_EQ(aws_last_error(), AWS_CRYPTOSDK_ERR_RESERVED_NAME);
+    return 0;
+}
+
 struct test_case raw_aes_keyring_encrypt_test_cases[] = {
     { "raw_aes_keyring", "encrypt_decrypt_data_key", encrypt_decrypt_data_key },
     { "raw_aes_keyring", "generate_decrypt_data_key", generate_decrypt_data_key },
     { "raw_aes_keyring", "encrypt_data_key_test_vectors", encrypt_data_key_test_vectors },
+    { "raw_aes_keyring", "fail_on_disallowed_namespace", fail_on_disallowed_namespace },
     { NULL }
 };

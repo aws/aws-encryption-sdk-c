@@ -75,7 +75,7 @@ static void tear_down_encrypt_decrypt() {
 /**
  * Testing generate and decrypt functions for all of the supported RSA padding modes.
  */
-int generate_decrypt_from_data_key() {
+static int generate_decrypt_from_data_key() {
     for (int wrap_idx = 0; wrap_idx < sizeof(rsa_padding_mode) / sizeof(*rsa_padding_mode); ++wrap_idx) {
         for (int alg_idx = 0; alg_idx < sizeof(alg_ids) / sizeof(enum aws_cryptosdk_alg_id); ++alg_idx) {
             TEST_ASSERT_SUCCESS(set_up_encrypt_decrypt(rsa_padding_mode[wrap_idx]));
@@ -105,7 +105,7 @@ int generate_decrypt_from_data_key() {
 /**
  * RSA Data key encryption and decryption with set of known test vectors.
  */
-int encrypt_decrypt_data_key_from_test_vectors() {
+static int encrypt_decrypt_data_key_from_test_vectors() {
     uint8_t data_key_dup[32];
     for (struct raw_rsa_keyring_test_vector *tv = raw_rsa_keyring_test_vectors; tv->data_key; ++tv) {
         TEST_ASSERT_SUCCESS(set_up_encrypt_decrypt(tv->rsa_padding_mode));
@@ -133,7 +133,7 @@ int encrypt_decrypt_data_key_from_test_vectors() {
 /**
  * Test to check for encryption failure of an unencrypted data key with an incorrect rsa public key.
  */
-int encrypt_data_key_from_bad_rsa_public_key() {
+static int encrypt_data_key_from_bad_rsa_public_key() {
     uint8_t data_key_dup[32];
     struct raw_rsa_keyring_test_vector tv = raw_rsa_keyring_test_vectors[0];
     TEST_ASSERT_SUCCESS(set_up_encrypt_with_wrong_key(tv.rsa_padding_mode));
@@ -151,7 +151,7 @@ int encrypt_data_key_from_bad_rsa_public_key() {
 /**
  * Test to check for cases when either or both the private and public rsa pem files are NULL
  */
-int test_for_null_pem_files_while_setting_up_rsa_kr() {
+static int test_for_null_pem_files_while_setting_up_rsa_kr() {
     struct aws_cryptosdk_keyring *kr = NULL;
     alloc                            = aws_default_allocator();
     AWS_STATIC_STRING_FROM_LITERAL(master_key_id, "master key ID");
@@ -176,6 +176,14 @@ int test_for_null_pem_files_while_setting_up_rsa_kr() {
 
     return 0;
 }
+
+static int fail_on_disallowed_namespace() {
+    AWS_STATIC_STRING_FROM_LITERAL(key_namespace, "aws-kms");
+    TEST_ASSERT_ADDR_NULL(aws_cryptosdk_raw_rsa_keyring_new(NULL, key_namespace, NULL, NULL, NULL, 0));
+    TEST_ASSERT_INT_EQ(aws_last_error(), AWS_CRYPTOSDK_ERR_RESERVED_NAME);
+    return 0;
+}
+
 struct test_case raw_rsa_keyring_encrypt_test_cases[] = {
     { "raw_rsa_keyring", "generate_decrypt_from_data_key", generate_decrypt_from_data_key },
     { "raw_rsa_keyring", "encrypt_decrypt_data_key_from_test_vectors", encrypt_decrypt_data_key_from_test_vectors },
@@ -183,5 +191,6 @@ struct test_case raw_rsa_keyring_encrypt_test_cases[] = {
     { "raw_rsa_keyring",
       "test_for_null_pem_files_while_setting_up_rsa_kr",
       test_for_null_pem_files_while_setting_up_rsa_kr },
+    { "raw_rsa_keyring", "fail_on_disallowed_namespace", fail_on_disallowed_namespace },
     { NULL }
 };
