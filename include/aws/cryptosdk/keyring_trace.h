@@ -108,6 +108,18 @@ int aws_cryptosdk_keyring_trace_add_record_c_str(
     uint32_t flags);
 
 /**
+ * Same as aws_cryptosdk_keyring_trace_add_record except it takes byte buffers
+ * instead of AWS strings.
+ */
+AWS_CRYPTOSDK_API
+int aws_cryptosdk_keyring_trace_add_record_buf(
+    struct aws_allocator *alloc,
+    struct aws_array_list *trace,
+    const struct aws_byte_buf *wrapping_key_namespace,
+    const struct aws_byte_buf *wrapping_key_name,
+    uint32_t flags);
+
+/**
  * Initialize a keyring trace.
  */
 AWS_CRYPTOSDK_API
