@@ -277,6 +277,12 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_aes_keyring_new(
     const struct aws_string *key_name,
     const uint8_t *raw_key_bytes,
     enum aws_cryptosdk_aes_key_len key_len) {
+    AWS_STATIC_STRING_FROM_LITERAL(disallowed, "aws-kms");
+    if (aws_string_eq(disallowed, key_namespace)) {
+        aws_raise_error(AWS_CRYPTOSDK_ERR_RESERVED_NAME);
+        return NULL;
+    }
+
     struct raw_aes_keyring *kr = aws_mem_acquire(alloc, sizeof(struct raw_aes_keyring));
     if (!kr) return NULL;
     memset(kr, 0, sizeof(struct raw_aes_keyring));

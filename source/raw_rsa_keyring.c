@@ -174,6 +174,12 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_raw_rsa_keyring_new(
     const char *rsa_private_key_pem,
     const char *rsa_public_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
+    AWS_STATIC_STRING_FROM_LITERAL(disallowed, "aws-kms");
+    if (aws_string_eq(disallowed, key_namespace)) {
+        aws_raise_error(AWS_CRYPTOSDK_ERR_RESERVED_NAME);
+        return NULL;
+    }
+
     struct raw_rsa_keyring *kr = aws_mem_acquire(alloc, sizeof(struct raw_rsa_keyring));
     if (!kr) return NULL;
     memset(kr, 0, sizeof(struct raw_rsa_keyring));
