@@ -24,9 +24,9 @@ struct zero_keyring {
 AWS_STATIC_STRING_FROM_LITERAL(literally_null, "null");
 
 void aws_cryptosdk_literally_null_edk(struct aws_cryptosdk_edk *edk) {
-    edk->provider_id   = aws_byte_buf_from_c_str(literally_null->bytes);
-    edk->provider_info = aws_byte_buf_from_c_str(literally_null->bytes);
-    edk->ciphertext    = aws_byte_buf_from_c_str(literally_null->bytes);
+    edk->provider_id   = aws_byte_buf_from_c_str((const char *)literally_null->bytes);
+    edk->provider_info = aws_byte_buf_from_c_str((const char *)literally_null->bytes);
+    edk->ciphertext    = aws_byte_buf_from_c_str((const char *)literally_null->bytes);
 }
 
 static bool buf_equals_c_string(const struct aws_byte_buf *buf, const char *cstr) {

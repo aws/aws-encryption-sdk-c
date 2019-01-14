@@ -53,11 +53,11 @@ void gen_enc_materials(
             abort();
         }
 
-        if (aws_cryptosdk_keyring_trace_add_record_c_str(
+        if (aws_cryptosdk_keyring_trace_add_record_buf(
                 alloc,
                 &materials->keyring_trace,
-                edk.provider_id.buffer,
-                edk.provider_info.buffer,
+                &edk.provider_id,
+                &edk.provider_info,
                 AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
                     AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX)) {
             abort();

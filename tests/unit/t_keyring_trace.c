@@ -35,8 +35,8 @@ int keyring_trace_add_record_works() {
     TEST_ASSERT_SUCCESS(assert_keyring_trace_record(
         &trace,
         0,
-        aws_string_bytes(kms_name_space),
-        aws_string_bytes(kms_key),
+        (const char *)aws_string_bytes(kms_name_space),
+        (const char *)aws_string_bytes(kms_key),
         AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
             AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX));
 
