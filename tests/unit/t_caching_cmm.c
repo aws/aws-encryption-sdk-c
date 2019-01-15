@@ -14,10 +14,11 @@
  */
 
 #include <aws/cryptosdk/cache.h>
-#include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/edk.h>
 #include <aws/cryptosdk/enc_ctx.h>
+#include <aws/cryptosdk/private/cipher.h>
+#include <aws/cryptosdk/session.h>
 
 #include <aws/common/encoding.h>
 
@@ -27,6 +28,7 @@
 #include "counting_keyring.h"
 #include "testing.h"
 #include "testutil.h"
+#include "zero_keyring.h"
 
 /*
  * Pointers to the underlying mocks set up by setup_mocks.
@@ -929,6 +931,137 @@ static void teardown() {
     mock_upstream_cmm    = NULL;
 }
 
+static int process_loop(
+    struct aws_allocator *alloc,
+    uint8_t **output_buf,
+    size_t *output_len,
+    struct aws_cryptosdk_session *session,
+    const uint8_t *const input_buf,
+    const size_t input_len) {
+    size_t total_input_read = 0;
+    size_t input_window     = 1;
+
+    size_t output_size          = 1;
+    *output_buf                 = aws_mem_acquire(alloc, output_size);
+    size_t total_output_written = 0;
+    size_t output_needed        = 1;
+    bool set_message_size       = true;
+
+    /* The entire input is already in the input buffer and we just expand the window into it as needed.
+     * The entire output will eventually be put into a single buffer. This is not a realistic streaming
+     * use case as we cannot handle more data than fits in memory, but it keeps things simple for testing.
+     */
+    while (1) {
+        size_t input_read, output_written;
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process(
+            session,
+            *output_buf + total_output_written,
+            output_size - total_output_written,
+            &output_written,
+            input_buf + total_input_read,
+            input_window,
+            &input_read));
+
+        total_output_written += output_written;
+        total_input_read += input_read;
+
+        if (total_input_read == input_len && set_message_size) {
+            TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_message_size(session, 100));
+            set_message_size = false;
+        }
+
+        if (aws_cryptosdk_session_is_done(session)) break;
+
+        aws_cryptosdk_session_estimate_buf(session, &output_needed, &input_window);
+
+        size_t output_size_needed = output_needed + total_output_written;
+        if (output_size < output_size_needed) {
+            TEST_ASSERT_SUCCESS(aws_mem_realloc(alloc, (void **)output_buf, output_size, output_size_needed));
+            output_size = output_size_needed;
+        }
+    }
+    *output_len = total_output_written;
+    return 0;
+}
+
+static int set_message_bound_with_caching_cmm() {
+    struct aws_allocator *alloc                 = aws_default_allocator();
+    struct aws_cryptosdk_keyring *kr            = NULL;
+    struct aws_cryptosdk_cmm *default_cmm       = NULL;
+    struct aws_cryptosdk_materials_cache *cache = NULL;
+    struct aws_cryptosdk_cmm *caching_cmm       = NULL;
+    struct aws_cryptosdk_session *session       = NULL;
+
+    size_t plaintext_len     = 100;
+    uint8_t *plaintext_buf_1 = aws_mem_acquire(alloc, plaintext_len);
+    uint8_t *plaintext_buf_2 = aws_mem_acquire(alloc, plaintext_len);
+    size_t ciphertext_len;
+    uint8_t *ciphertext_buf_1;
+    uint8_t *ciphertext_buf_2;
+
+    kr = aws_cryptosdk_zero_keyring_new(alloc);
+    TEST_ASSERT_ADDR_NOT_NULL(kr);
+
+    default_cmm = aws_cryptosdk_default_cmm_new(alloc, kr);
+    TEST_ASSERT_ADDR_NOT_NULL(default_cmm);
+
+    cache = aws_cryptosdk_materials_cache_local_new(alloc, 8);
+    TEST_ASSERT_ADDR_NOT_NULL(cache);
+
+    caching_cmm = aws_cryptosdk_caching_cmm_new(alloc, cache, default_cmm, NULL);
+    TEST_ASSERT_ADDR_NOT_NULL(caching_cmm);
+
+    aws_cryptosdk_keyring_release(kr);
+    aws_cryptosdk_cmm_release(default_cmm);
+
+    session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_ENCRYPT, caching_cmm);
+    TEST_ASSERT_ADDR_NOT_NULL(session);
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_frame_size(session, 50));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_message_bound(session, 200));
+
+    TEST_ASSERT_INT_EQ(0, aws_cryptosdk_materials_cache_entry_count(cache));
+    TEST_ASSERT_ADDR_NOT_NULL(plaintext_buf_1);
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_genrandom(plaintext_buf_1, plaintext_len));
+    TEST_ASSERT_SUCCESS(
+        process_loop(alloc, &ciphertext_buf_1, &ciphertext_len, session, plaintext_buf_1, plaintext_len));
+    // asserting that there is a cache miss
+    TEST_ASSERT_INT_EQ(1, aws_cryptosdk_materials_cache_entry_count(cache));
+
+    TEST_ASSERT_ADDR_NOT_NULL(plaintext_buf_2);
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_genrandom(plaintext_buf_2, plaintext_len));
+    TEST_ASSERT_SUCCESS(
+        process_loop(alloc, &ciphertext_buf_2, &ciphertext_len, session, plaintext_buf_2, plaintext_len));
+    // asserting that there is a cache hit
+    TEST_ASSERT_INT_EQ(1, aws_cryptosdk_materials_cache_entry_count(cache));
+
+    aws_mem_release(alloc, plaintext_buf_1);
+    aws_mem_release(alloc, plaintext_buf_2);
+    aws_mem_release(alloc, ciphertext_buf_1);
+    aws_mem_release(alloc, ciphertext_buf_2);
+    aws_cryptosdk_materials_cache_release(cache);
+    aws_cryptosdk_cmm_release(caching_cmm);
+    aws_cryptosdk_session_destroy(session);
+
+    return 0;
+}
+
+static int message_bound_error_code() {
+    setup_mocks();
+    size_t message_bound_size = 128;
+    struct aws_cryptosdk_session *session =
+        aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm);
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_message_bound(session, message_bound_size));
+    /* Since we are setting the message_size value to be greater that the message_bound value set
+    we expect a AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED error thrown. */
+    TEST_ASSERT_ERROR(
+        AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED, aws_cryptosdk_session_set_message_size(session, 2 * message_bound_size));
+    teardown();
+    aws_cryptosdk_session_destroy(session);
+    return 0;
+}
+
 #define TEST_CASE(name) \
     { "caching_cmm", #name, name }
 struct test_case caching_cmm_test_cases[] = { TEST_CASE(create_destroy),
@@ -944,6 +1077,8 @@ struct test_case caching_cmm_test_cases[] = { TEST_CASE(create_destroy),
                                               TEST_CASE(static_and_null_partition_id_dont_match),
                                               TEST_CASE(two_null_partition_ids_dont_match),
                                               TEST_CASE(two_different_static_partition_ids_dont_match),
+                                              TEST_CASE(set_message_bound_with_caching_cmm),
+                                              TEST_CASE(message_bound_error_code),
                                               { NULL } };
 
 // TEST TODO: Threadstorm
