@@ -945,7 +945,7 @@ static int process_loop(
     *output_buf                 = aws_mem_acquire(alloc, output_size);
     size_t total_output_written = 0;
     size_t output_needed        = 1;
-    bool set_message_size       = 1;
+    bool set_message_size       = true;
 
     /* The entire input is already in the input buffer and we just expand the window into it as needed.
      * The entire output will eventually be put into a single buffer. This is not a realistic streaming
@@ -967,7 +967,7 @@ static int process_loop(
 
         if (total_input_read == input_len && set_message_size) {
             TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_message_size(session, 100));
-            set_message_size = 0;
+            set_message_size = false;
         }
 
         if (aws_cryptosdk_session_is_done(session)) break;
