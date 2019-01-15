@@ -998,7 +998,6 @@ static int set_message_bound_with_caching_cmm() {
     size_t ciphertext_len;
     uint8_t *ciphertext_buf_1;
     uint8_t *ciphertext_buf_2;
-    size_t pt_consumed, ct_consumed;
 
     kr = aws_cryptosdk_zero_keyring_new(alloc);
     TEST_ASSERT_ADDR_NOT_NULL(kr);
