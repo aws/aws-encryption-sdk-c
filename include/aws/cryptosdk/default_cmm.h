@@ -26,24 +26,33 @@ extern "C" {
 /**
  * @ingroup cmm_kr_highlevel
  * Instantiate the default (non-caching) implementation of the Crypto Materials
- * Manager (CMM). A Keyring (KR) must have already been instantiated
- * and a pointer to it passed in. This CMM maintains no state of its own other
- * than pointers to the KR and allocator. It implements all of the CMM virtual
- * functions.
+ * Manager (CMM). A Keyring must have already been instantiated and a pointer
+ * to it passed in. This CMM implements all of the CMM virtual functions.
  *
- * On each attempt to generate encryption materials, it asks the KR to generate a
- * data key.
+ * On each call to Generate Encryption Materials, it makes a call to the
+ * keyring's On Encrypt function to generate and encrypt a data key. If an
+ * algorithm suite that does not include signing is used, this is the only
+ * thing that the Generate Encryption Materials does. If an algorithm suite
+ * that does include signing is used, then the call additionally begins the
+ * calculation of the trailing signature, which will be completed by the
+ * session.
  *
- * On each attempt to decrypt materials, it passes the full list of EDKs to the KR
- * and asks it to find one to decrypt.
+ * On each call to Decrypt Materials, it passes the full list of EDKs to the
+ * keyring and asks it to find one to decrypt, via the keyring's On Decrypt
+ * function. If an algorithm suite that does not include signing is used, this
+ * is the only thing that the Decrypt Materials call does. If an algorithm
+ * suite that does include signing is used, then the call additionally begins
+ * the verification of the trailing signature, which will be completed by the
+ * session.
  *
- * If a CMM that delegates to the default CMM selects an algorithm suite, that algorithm
- * suite will be used. Otherwise, the default CMM will select a default algorithm suite.
- * This is initially ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384, but can be overridden using
- * aws_cryptosdk_default_cmm_set_alg_id.
+ * If a CMM that delegates to the default CMM selects an algorithm suite, that
+ * algorithm suite will be used. Otherwise, the default CMM will select a default
+ * algorithm suite. This is initially ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+ * but can be overridden using aws_cryptosdk_default_cmm_set_alg_id.
  *
- * On success allocates a CMM and returns its address. Be sure to deallocate it later
- * by calling aws_cryptosdk_cmm_destroy on the CMM pointer returned by this function.
+ * On success allocates a CMM and returns a pointer to it. Be sure to call
+ * aws_cryptosdk_cmm_release when you are done using the pointer so that the
+ * memory is properly deallocated.
  *
  * On failure returns NULL and sets an internal AWS error code.
  */
