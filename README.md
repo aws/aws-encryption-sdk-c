@@ -76,13 +76,11 @@ the AWS SDK for C++ build.
 
 ## Building on Mac
 
-It is possible to install the AWS SDK for C++ via Homebrew. However, currently the
-version in Homebrew is 1.7.30 which is slightly too old for us. (We need a minimum
-1.7.31 version.) This problem should be remedied once the AWS SDK for C++ reaches
-version 1.7.40 in the next week or two. Furthermore, installing in brew does a full
-build of the entire AWS SDK for C++, which takes much longer than the KMS only build.
-For these reasons we recommend doing a source build of the AWS SDK for C++ yourself,
-as in the Linux instructions above.
+The version of the AWS SDK for C++ in Homebrew is at the time of this writing
+slightly too old to build with the AWS Encryption SDK for C. Furthermore,
+installing it through Homebrew does a full build of the entire AWS SDK for C++, which
+takes much longer than the KMS-only build. For these reasons we recommend doing a source
+build of the AWS SDK for C++ yourself, as in the Linux instructions above.
 
 Start by installing some dependencies.
 
