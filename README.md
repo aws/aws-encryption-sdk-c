@@ -74,6 +74,22 @@ Install the needed dependencies with:
 Then just follow the Amazon Linux installation instructions above, starting with
 the AWS SDK for C++ build.
 
+## Building on Mac
+
+The version of the AWS SDK for C++ in Homebrew is at the time of this writing
+slightly too old to build with the AWS Encryption SDK for C. Furthermore,
+installing it through Homebrew does a full build of the entire AWS SDK for C++, which
+takes much longer than the KMS-only build. For these reasons we recommend doing a source
+build of the AWS SDK for C++ yourself, as in the Linux instructions above.
+
+Start by installing some dependencies.
+
+    brew install openssl@1.1 gcc
+
+Then build the AWS SDK for C++ and AWS Encryption SDK for C as above, but add the argument
+`-DOPENSSL_ROOT_DIR=/usr/local/opt/openssl\@1.1` to the cmake line for the AWS Encryption
+SDK for C.
+
 ## Tips and tricks
 
 When building aws-sdk-cpp, you can save time by only building the subcomponents we need:
