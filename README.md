@@ -84,11 +84,26 @@ build of the AWS SDK for C++ yourself, as in the Linux instructions above.
 
 Start by installing some dependencies.
 
-    brew install openssl@1.1 gcc
+    brew install openssl@1.1 cmake
 
 Then build the AWS SDK for C++ and AWS Encryption SDK for C as above, but add the argument
 `-DOPENSSL_ROOT_DIR=/usr/local/opt/openssl\@1.1` to the cmake line for the AWS Encryption
 SDK for C.
+
+## Compiling your program using the AWS Encryption SDK for C
+
+Once you have installed the AWS Encryption SDK for C, you are ready to start writing
+your own programs with it.
+
+When doing a C compilation (not using the KMS keyring) be sure to include the flags
+``-laws-encryption-sdk -laws-c-common``.
+
+When doing a C++ compilation (using the KMS keyring) be sure to include the flags
+``-std=c++11 -laws-encryption-sdk -laws-encryption-sdk-cpp -laws-c-common -laws-cpp-sdk-kms -laws-cpp-sdk-core``.
+
+In the examples directory are several self-standing C and C++ files that you can
+compile and run directly. Note that the C++ files using the KMS keyring will require
+you to make sure that AWS credentials are set up on your machine to run properly.
 
 ## Tips and tricks
 
