@@ -49,6 +49,12 @@ option(PERFORM_HEADER_CHECK "Performs compile-time checks that each header can b
 option(VALGRIND_TEST_SUITE "Run the test suite under valgrind")
 set(VALGRIND_OPTIONS "--suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind.suppressions" CACHE STRING "Additional options to pass to valgrind")
 
+# Build will detect whether KMS dependencies are available and only build the KMS keyring in that case
+# This will make the build fail if the KMS dependencies are not available
+option(FORCE_KMS_KEYRING_BUILD "Fail build if KMS Keyring dependencies are not satisfied")
+
+# This takes precedence over FORCE_KMS_KEYRING_BUILD if both are set to ON
+option(SKIP_KMS_KEYRING_BUILD "Do not build KMS Keyring")
 
 find_package(aws-c-common CONFIG REQUIRED)
 
@@ -159,7 +165,40 @@ target_compile_definitions(aws-encryption-sdk-test PUBLIC AWS_ENCRYPTION_SDK_FOR
 
 include(CodeCoverageTargets)
 
-add_subdirectory(aws-encryption-sdk-cpp)
+if (SKIP_KMS_KEYRING_BUILD)
+    message(STATUS "Skipping C++ build of KMS keyring")
+else()
+    # By default we will try to build KMS Keyring only if we find AwsSdk
+    if (FORCE_KMS_KEYRING_BUILD)
+        message(STATUS "KMS Keyring is required")
+        set(KMS_REQUIRED "REQUIRED")
+    endif()
+
+    # for KMS Keyring
+    find_package(AWSSDK QUIET COMPONENTS core kms)
+    if (AWSSDK_FOUND)
+        option(BUILD_AWS_ENC_SDK_CPP "Build AWS ENC SDK C++ components" ON)
+        include_directories(${AWSSDK_INCLUDE_DIR})
+        link_directories(${AWSSDK_LIB_DIR})
+        message(STATUS "AWSSDK having components core, kms found.")
+    else()
+        # This fallback logic is needed on Windows
+        find_package(aws-cpp-sdk-core ${KMS_REQUIRED})
+        find_package(aws-cpp-sdk-kms ${KMS_REQUIRED})
+        if (aws-cpp-sdk-core_FOUND AND aws-cpp-sdk-kms_FOUND)
+            option(BUILD_AWS_ENC_SDK_CPP "Build AWS ENC SDK C++ components" ON)
+            message(STATUS "aws-cpp-sdk-core and aws-cpp-sdk-kms found.")
+        else()
+            message(WARNING "AWSSDK having components core and kms not found. KMS Keyring will not be built.")
+            option(BUILD_AWS_ENC_SDK_CPP "Build AWS ENC SDK C++ components" OFF)
+        endif()
+    endif()
+
+    if (BUILD_AWS_ENC_SDK_CPP)
+        add_subdirectory(aws-encryption-sdk-cpp)
+    endif()
+endif()
+
 add_subdirectory(tests)
 
 # Installation logic
