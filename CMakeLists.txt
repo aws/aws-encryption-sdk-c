@@ -49,6 +49,12 @@ option(PERFORM_HEADER_CHECK "Performs compile-time checks that each header can b
 option(VALGRIND_TEST_SUITE "Run the test suite under valgrind")
 set(VALGRIND_OPTIONS "--suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind.suppressions" CACHE STRING "Additional options to pass to valgrind")
 
+# Build will detect whether KMS dependencies are available and only build the KMS keyring in that case
+# This will make the build fail if the KMS dependencies are not available
+option(FORCE_KMS_KEYRING_BUILD "Fail build if KMS Keyring dependencies are not satisfied")
+
+# This takes precedence over FORCE_KMS_KEYRING_BUILD if both are set to ON
+option(SKIP_KMS_KEYRING_BUILD "Do not build KMS Keyring")
 
 find_package(aws-c-common CONFIG REQUIRED)
 
