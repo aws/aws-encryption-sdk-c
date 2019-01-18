@@ -23,7 +23,7 @@
 cmake_minimum_required(VERSION 3.1)
 project(header-check C CXX)
 
-include(AwsCFlags)
+include(AwsCryptosdkCFlags)
 
 set(HEADER_CHECKER_ROOT "${CMAKE_CURRENT_BINARY_DIR}/header-checker")
 

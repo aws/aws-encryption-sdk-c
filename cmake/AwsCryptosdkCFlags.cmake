@@ -11,7 +11,15 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-# This file is originally from the aws-c-common project
+# TODO:
+# This file was originally AwsCFlags.cmake from the aws-c-common project
+# We added some of our own warning suppressions into it, and then
+# later aws-c-common started installing the original AwsCFlags.cmake
+# into the install directory so other packages could read it.
+# We should probably refactor our extra stuff into a separate module
+# file and start using their AwsCFlags.cmake file from the install
+# directory. But until we have time to make those changes, we are just
+# renaming this file and its function to prevent conflicts.
 
 include(CheckCCompilerFlag)
 include(CheckIncludeFile)
@@ -21,7 +29,7 @@ include(CheckIncludeFile)
 #  NO_WGNU: Disable -Wgnu
 #  NO_WEXTRA: Disable -Wextra
 #  NO_PEDANTIC: Disable -pedantic
-function(aws_set_common_properties target)
+function(aws_cryptosdk_set_common_properties target)
     set(options NO_WGNU NO_WEXTRA NO_PEDANTIC NO_VISIBILITY_HIDDEN)
     cmake_parse_arguments(SET_PROPERTIES "${options}" "" "" ${ARGN})
 

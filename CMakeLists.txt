@@ -15,10 +15,30 @@
 cmake_minimum_required (VERSION 3.9)
 project (aws-encryption-sdk)
 
+if (UNIX AND NOT APPLE)
+    include(GNUInstallDirs)
+elseif(NOT DEFINED CMAKE_INSTALL_LIBDIR)
+    set(CMAKE_INSTALL_LIBDIR "lib")
+endif()
+
 include(CTest)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-include(AwsCFlags)
+
+# Make sure we can pick up Cmake modules installed by dependencies
+# both when they are in the CMAKE_INSTALL_PREFIX directory
+# and in the CMAKE_PREFIX_PATH list.
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/cmake")
+foreach(prefix ${CMAKE_PREFIX_PATH})
+    list(APPEND CMAKE_MODULE_PATH "${prefix}/${CMAKE_INSTALL_LIBDIR}/cmake")
+endforeach(prefix)
+
+# Including AwsSharedLibSetup depends on aws-c-common being installed already.
+# Putting this ahead of that include line for a more meaningful error when missing.
+find_package(aws-c-common CONFIG REQUIRED)
+
+include(AwsCryptosdkCFlags)
+include(AwsSharedLibSetup)
 include(InstallLogic)
 include(TestLibraryPath)
 
@@ -48,8 +68,6 @@ option(PERFORM_HEADER_CHECK "Performs compile-time checks that each header can b
 
 option(VALGRIND_TEST_SUITE "Run the test suite under valgrind")
 set(VALGRIND_OPTIONS "--suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind.suppressions" CACHE STRING "Additional options to pass to valgrind")
-
-find_package(aws-c-common CONFIG REQUIRED)
 
 if(USE_ASM)
     CHECK_CXX_SOURCE_COMPILES("
@@ -125,7 +143,7 @@ endif()
 
 add_library(${PROJECT_NAME} ${LIBTYPE} ${CORE_HEADERS} ${CORE_SRC})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
-aws_set_common_properties(${PROJECT_NAME})
+aws_cryptosdk_set_common_properties(${PROJECT_NAME})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -142,7 +160,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC AWS::aws-c-common)
 # We'll use the shared lib for integration tests.
 add_library(aws-encryption-sdk-test EXCLUDE_FROM_ALL STATIC ${CORE_HEADERS} ${CORE_SRC})
 set_target_properties(aws-encryption-sdk-test PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
-aws_set_common_properties(aws-encryption-sdk-test)
+aws_cryptosdk_set_common_properties(aws-encryption-sdk-test)
 
 target_include_directories(aws-encryption-sdk-test PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -157,6 +175,13 @@ target_compile_definitions(aws-encryption-sdk-test PRIVATE AWS_CRYPTOSDK_TEST_ST
 target_compile_definitions(aws-encryption-sdk-test PUBLIC AWS_ENCRYPTION_SDK_FORCE_STATIC)
 
 include(CodeCoverageTargets)
+
+# Installation logic
+aws_install_target(
+    TARGET ${CMAKE_PROJECT_NAME}
+    HEADERS ${CORE_HEADERS}
+    HEADER_ROOTS ${GENERATED_INCLUDE} ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 
 # BUILD_AWS_ENC_SDK_CPP defined as ON = force build of C++ components
 # BUILD_AWS_ENC_SDK_CPP defined as OFF = skip build of C++ components
@@ -192,13 +217,6 @@ if (BUILD_AWS_ENC_SDK_CPP)
 endif()
 
 add_subdirectory(tests)
-
-# Installation logic
-aws_install_target(
-    TARGET ${CMAKE_PROJECT_NAME}
-    HEADERS ${CORE_HEADERS}
-    HEADER_ROOTS ${GENERATED_INCLUDE} ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
 
 # Generate the config header at the end, after we've finished feature probing
 set(AWS_CRYPTOSDK_P_HAVE_LIBPTHREAD ${HAVE_LIBPTHREAD} CACHE INTERNAL "")
