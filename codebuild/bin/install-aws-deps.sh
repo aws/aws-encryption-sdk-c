@@ -61,7 +61,7 @@ for libtype in shared static; do
 
     root=/deps/$libtype
 
-    build_pkg $root/install https://github.com/awslabs/aws-c-common.git master $CMAKE_ARGS
-    build_pkg $root/install https://github.com/awslabs/aws-sdk-cpp.git 1.6.35 $CMAKE_ARGS -DBUILD_ONLY=kms -DENABLE_UNITY_BUILD=ON
+    # not installing aws-c-common anymore because aws-sdk-cpp installs it for us
+    build_pkg $root/install https://github.com/awslabs/aws-sdk-cpp.git 1.7.36 $CMAKE_ARGS -DBUILD_ONLY=kms -DENABLE_UNITY_BUILD=ON
 done
 
