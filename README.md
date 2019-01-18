@@ -90,6 +90,48 @@ Then build the AWS SDK for C++ and AWS Encryption SDK for C as above, but add th
 `-DOPENSSL_ROOT_DIR=/usr/local/opt/openssl\@1.1` to the cmake line for the AWS Encryption
 SDK for C.
 
+## Building on Windows 
+
+To install the AWS Encryption SDK for C in Windows, start by installing Visual Studio version 15 
+or later and a few basic dependencies: 
+
+    git clone https://github.com/Microsoft/vcpkg.git
+    cd vcpkg && .\bootstrap-vcpkg.bat
+    .\vcpkg integrate install
+    .\vcpkg install curl:x64-windows openssl:x64-windows
+
+To inherit the environment variables directly from Visual Studio, we recommend using the Visual Studio 
+developer command prompt. 
+
+To do a KMS-only build of the AWS SDK for C++:
+    
+    git clone git@github.com:aws/aws-sdk-cpp.git
+    mkdir build-aws-sdk-cpp && cd build-aws-sdk-cpp
+    cmake -DCMAKE_INSTALL_PREFIX=c:\inst -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DENABLE_UNITY_BUILD=ON
+    -DBUILD_ONLY=kms -DCMAKE_TOOLCHAIN_FILE=c:\src\vcpkg\scripts\buildsystems\vcpkg.cmake -G Ninja ..
+    cmake --build .
+    cmake --build . --target install
+
+
+To do a C-only build, we would need to install aws-c-common from source: 
+
+    git clone git@github.com:awslabs/aws-c-common.git
+    mkdir build-aws-c-common && cd build-aws-c-common
+    cmake -DCMAKE_INSTALL_PREFIX=c:\inst -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON
+    -DCMAKE_TOOLCHAIN_FILE=C:/src/vcpkg/scripts/buildsystems/vcpkg.cmake -G Ninja ..
+    cmake --build .
+    cmake --build . --target install
+
+    
+Now you can build the AWS Encryption SDK for C:
+
+    git clone git@github.com:awslabs/aws-encryption-sdk-c.git
+    mkdir build-aws-encryption-sdk-c && cd build-aws-encryption-sdk-c
+    cmake -DCMAKE_INSTALL_PREFIX=c:\inst -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON 
+    -DCMAKE_TOOLCHAIN_FILE=c:\src\vcpkg\scripts\buildsystems\vcpkg.cmake -G Ninja  ..
+    cmake --build .
+    cmake --build . --target install
+
 ## Compiling your program using the AWS Encryption SDK for C
 
 Once you have installed the AWS Encryption SDK for C, you are ready to start writing
