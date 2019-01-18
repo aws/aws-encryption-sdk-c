@@ -72,7 +72,7 @@ int encrypt_string(
      * before aws_cryptosdk_session_process is called. At other times, it returns NULL.
      */
     struct aws_hash_table *session_enc_ctx = aws_cryptosdk_session_get_enc_ctx_ptr_mut(session);
-    assert(session_enc_ctx);
+    if (!session_enc_ctx) abort();
 
     /* We copy the contents of our own encryption context into the session's. */
     if (AWS_OP_SUCCESS != aws_cryptosdk_enc_ctx_clone(alloc, session_enc_ctx, my_enc_ctx)) {
@@ -89,8 +89,8 @@ int encrypt_string(
         return 7;
     }
 
-    assert(aws_cryptosdk_session_is_done(session));
-    assert(plaintext_consumed == plaintext_len);
+    if (!aws_cryptosdk_session_is_done(session)) abort();
+    if (plaintext_consumed != plaintext_len) abort();
 
     /* This call deallocates all of the memory allocated in this function, including
      * the keyring and CMM, since we already released their pointers.
@@ -138,8 +138,8 @@ int decrypt_string_and_verify_encryption_context(
         return 11;
     }
 
-    assert(aws_cryptosdk_session_is_done(session));
-    assert(ciphertext_consumed == ciphertext_len);
+    if (!aws_cryptosdk_session_is_done(session)) abort();
+    if (ciphertext_consumed != ciphertext_len) abort();
 
     /* The encryption context is stored in plaintext in the encrypted message, and the
      * AWS Encryption SDK detects it and uses it for decryption, so there is no need to
@@ -147,7 +147,7 @@ int decrypt_string_and_verify_encryption_context(
      * read-only pointer to the encryption context.
      */
     const struct aws_hash_table *session_enc_ctx = aws_cryptosdk_session_get_enc_ctx_ptr(session);
-    assert(session_enc_ctx);
+    if (!session_enc_ctx) abort();
 
     /* Because the CMM can add new entries to the encryption context, we do not
      * require that the encryption context matches, but only that the entries we
@@ -193,12 +193,12 @@ int set_up_enc_ctx(struct aws_allocator *alloc, struct aws_hash_table *enc_ctx) 
         aws_cryptosdk_enc_ctx_clean_up(enc_ctx);
         return 13;
     }
-    assert(was_created == 1);
+    if (was_created != 1) abort();
     if (AWS_OP_SUCCESS != aws_hash_table_put(enc_ctx, enc_ctx_key2, (void *)enc_ctx_value2, &was_created)) {
         aws_cryptosdk_enc_ctx_clean_up(enc_ctx);
         return 14;
     }
-    assert(was_created == 1);
+    if (was_created != 1) abort();
     return 0;
 }
 
@@ -259,8 +259,8 @@ int main(int argc, char **argv) {
     }
     printf(">> Decrypted to plaintext of length %zu\n", plaintext_result_len);
 
-    assert(plaintext_original_len == plaintext_result_len);
-    assert(!memcmp(plaintext_original, plaintext_result, plaintext_result_len));
+    if (plaintext_original_len != plaintext_result_len) abort();
+    if (memcmp(plaintext_original, plaintext_result, plaintext_result_len)) abort();
     printf(">> Decrypted plaintext matches original!\n");
 
 done:

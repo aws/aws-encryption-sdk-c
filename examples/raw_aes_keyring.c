@@ -32,18 +32,18 @@ void encrypt_or_decrypt_with_cmm(
     enum aws_cryptosdk_mode mode,
     struct aws_cryptosdk_cmm *cmm) {
     struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(alloc, mode, cmm);
-    assert(session);
+    if (!session) abort();
 
     if (mode == AWS_CRYPTOSDK_ENCRYPT) {
-        assert(AWS_OP_SUCCESS == aws_cryptosdk_session_set_message_size(session, input_len));
+        if (AWS_OP_SUCCESS != aws_cryptosdk_session_set_message_size(session, input_len)) abort();
     }
 
     size_t input_consumed;
-    assert(
-        AWS_OP_SUCCESS ==
-        aws_cryptosdk_session_process(session, output, output_buf_sz, output_len, input, input_len, &input_consumed));
-    assert(aws_cryptosdk_session_is_done(session));
-    assert(input_consumed == input_len);
+    if (AWS_OP_SUCCESS !=
+        aws_cryptosdk_session_process(session, output, output_buf_sz, output_len, input, input_len, &input_consumed))
+        abort();
+    if (!aws_cryptosdk_session_is_done(session)) abort();
+    if (input_consumed != input_len) abort();
     aws_cryptosdk_session_destroy(session);
 }
 
@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
     uint8_t wrapping_key[32];
 
     FILE *key_file = fopen(argv[1], "rb");
-    assert(key_file);
+    if (!key_file) abort();
 
     /* Read in up to 256 bits from the key file. */
     size_t wrapping_key_len = fread(wrapping_key, 1, 32, key_file);
@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
 
     struct aws_cryptosdk_keyring *keyring = aws_cryptosdk_raw_aes_keyring_new(
         alloc, wrapping_key_namespace, wrapping_key_name, wrapping_key, wrapping_key_len);
-    assert(keyring);
+    if (!keyring) abort();
 
     /* The keyring holds its own copy of the strings and key, so we destroy the string
      * we created and zero out the bytes of the key.
@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
 
     /* We create a default Cryptographic Materials Manager (CMM) using this keyring. */
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(alloc, keyring);
-    assert(cmm);
+    if (!cmm) abort();
 
     /* We release the pointer on the keyring so that it will be destroyed when the
      * CMM is destroyed. The CMM will be used for both encrypt and decrypt.
@@ -205,8 +205,8 @@ int main(int argc, char **argv) {
         cmm);
     printf(">> Decrypted to plaintext of length %zu\n", plaintext_result_len);
 
-    assert(plaintext_original_len == plaintext_result_len);
-    assert(!memcmp(plaintext_original, plaintext_result, plaintext_result_len));
+    if (plaintext_original_len != plaintext_result_len) abort();
+    if (memcmp(plaintext_original, plaintext_result, plaintext_result_len)) abort();
     printf(">> Decrypted plaintext matches original!\n");
 
     /* Releasing the CMM causes both the CMM and keyring to be destroyed.
