@@ -26,6 +26,10 @@ include(CTest)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/cmake")
 
+# Including AwsSharedLibSetup depends on aws-c-common being installed already.
+# Putting this ahead of that include line for a more meaningful error when missing.
+find_package(aws-c-common CONFIG REQUIRED)
+
 include(AwsCryptosdkCFlags)
 include(AwsSharedLibSetup)
 include(InstallLogic)
@@ -57,8 +61,6 @@ option(PERFORM_HEADER_CHECK "Performs compile-time checks that each header can b
 
 option(VALGRIND_TEST_SUITE "Run the test suite under valgrind")
 set(VALGRIND_OPTIONS "--suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind.suppressions" CACHE STRING "Additional options to pass to valgrind")
-
-find_package(aws-c-common CONFIG REQUIRED)
 
 if(USE_ASM)
     CHECK_CXX_SOURCE_COMPILES("
