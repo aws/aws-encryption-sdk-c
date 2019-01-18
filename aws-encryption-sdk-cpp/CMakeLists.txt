@@ -32,7 +32,7 @@ set_property(TARGET aws-encryption-sdk-cpp PROPERTY CXX_STANDARD 11)
 # Normally, the dynamic linker will resolve to a single instance of this static, but -fvisibility=hidden
 # makes our instantiation a local symbol (instead of 'global unique'), which means we end up with multiple
 # instances, and crash when a string is passed across library boundaries and then destroyed.
-aws_set_common_properties(aws-encryption-sdk-cpp NO_VISIBILITY_HIDDEN)
+aws_cryptosdk_set_common_properties(aws-encryption-sdk-cpp NO_VISIBILITY_HIDDEN)
 
 target_include_directories(aws-encryption-sdk-cpp PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/aws-encryption-sdk-cpp/include>

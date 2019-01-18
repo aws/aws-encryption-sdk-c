@@ -41,7 +41,6 @@ function(aws_install_target)
         endif()
     endforeach(HEADER_SRCPATH)
 
-    set(LIBRARY_DIRECTORY ${CMAKE_INSTALL_PREFIX}/lib)
     install(TARGETS ${AWS_INSTALL_TARGET} EXPORT ${AWS_INSTALL_TARGET}-targets
         ARCHIVE DESTINATION "${LIBRARY_DIRECTORY}"
         LIBRARY DESTINATION "${LIBRARY_DIRECTORY}"
