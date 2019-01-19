@@ -53,7 +53,7 @@ website](https://cmake.org/) and make sure cmake is in your path.
 If you intend to use the KMS components to build the AWS Encryption SDK for C, you will have to build 
 the AWS SDK for C++::
 
-    git clone https://github.com/ttjsu-aws/aws-sdk-cpp.git
+    git clone https://github.com/aws/aws-sdk-cpp.git
     mkdir build-aws-sdk-cpp && cd build-aws-sdk-cpp
     cmake -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="kms" -DENABLE_UNITY_BUILD=ON ../aws-sdk-cpp
     make && sudo make install ; cd ..
@@ -61,7 +61,7 @@ the AWS SDK for C++::
 If you donot intend to use the KMS components to build the AWS Encryption SDK for C, you will have to build
 aws-c-common from source: 
 
-    git clone https://github.com/ttjsu-aws/aws-c-common.git
+    git clone https://github.com/awslabs/aws-c-common.git
     mkdir build-aws-c-common && cd build-aws-c-common
     cmake -DBUILD_SHARED_LIBS=ON ../aws-c-common
     make && sudo make install ; cd ..
@@ -114,7 +114,7 @@ developer command prompt. You will also require a few basic dependencies:
 If you intend to use the KMS components to build the AWS Encryption SDK for C, you will have to build 
 the AWS SDK for C++:
     
-    git clone https://github.com/ttjsu-aws/aws-sdk-cpp.git
+    git clone https://github.com/aws/aws-sdk-cpp.git
     mkdir build-aws-sdk-cpp && cd build-aws-sdk-cpp
     cmake -DCMAKE_INSTALL_PREFIX=..\..\install -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DENABLE_UNITY_BUILD=ON -DBUILD_ONLY=kms -DCMAKE_TOOLCHAIN_FILE=..\vcpkg\scripts\buildsystems\vcpkg.cmake ..\aws-sdk-cpp
     msbuild.exe ALL_BUILD.vcxproj /p:Configuration=Release
@@ -123,7 +123,7 @@ the AWS SDK for C++:
 If you donot intend to use the KMS components to build the AWS Encryption SDK for C, you will have to build
 aws-c-common from source: 
 
-    git clone https://github.com/ttjsu-aws/aws-c-common.git
+    git clone https://github.com/awslabs/aws-c-common.git
     mkdir build-aws-c-common && cd build-aws-c-common
     cmake -DCMAKE_INSTALL_PREFIX=..\..\install -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_TOOLCHAIN_FILE=..\vcpkg\scripts\buildsystems\vcpkg.cmake ..\aws-c-common
     msbuild.exe ALL_BUILD.vcxproj /p:Configuration=Release
