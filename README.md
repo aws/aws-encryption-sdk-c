@@ -50,16 +50,26 @@ Start by installing a few basic dependencies:
 The yum repo has an old version of CMake, so download CMake 3.9 or later from [their
 website](https://cmake.org/) and make sure cmake is in your path.
 
-Do a KMS-only build of the AWS SDK for C++:
+If you intend to use the KMS components to build the AWS Encryption SDK for C, you will have to build 
+the AWS SDK for C++::
 
-    git clone git@github.com:aws/aws-sdk-cpp.git
+    git clone https://github.com/ttjsu-aws/aws-sdk-cpp.git
     mkdir build-aws-sdk-cpp && cd build-aws-sdk-cpp
-    cmake -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="kms" ../aws-sdk-cpp
+    cmake -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="kms" -DENABLE_UNITY_BUILD=ON ../aws-sdk-cpp
     make && sudo make install ; cd ..
+
+If you donot intend to use the KMS components to build the AWS Encryption SDK for C, you will have to build
+aws-c-common from source: 
+
+    git clone https://github.com/ttjsu-aws/aws-c-common.git
+    mkdir build-aws-c-common && cd build-aws-c-common
+    cmake -DBUILD_SHARED_LIBS=ON ../aws-c-common
+    make && sudo make install ; cd ..
+
 
 Now you can build the AWS Encryption SDK for C.
 
-    git clone git@github.com:awslabs/aws-encryption-sdk-c.git
+    git clone https://github.com/awslabs/aws-encryption-sdk-c.git
     mkdir build-aws-encryption-sdk-c && cd build-aws-encryption-sdk-c
     cmake -DBUILD_SHARED_LIBS=ON ../aws-encryption-sdk-c
     make && sudo make install ; cd ..
@@ -93,44 +103,38 @@ SDK for C.
 ## Building on Windows 
 
 To install the AWS Encryption SDK for C in Windows, start by installing Visual Studio version 15 
-or later and a few basic dependencies: 
+or later. To inherit the environment variables directly from Visual Studio, we recommend using the Visual Studio
+developer command prompt. You will also require a few basic dependencies: 
 
     git clone https://github.com/Microsoft/vcpkg.git
     cd vcpkg && .\bootstrap-vcpkg.bat
     .\vcpkg integrate install
-    .\vcpkg install curl:x64-windows openssl:x64-windows
+    .\vcpkg install curl:x64-windows openssl:x64-windows && cd ..
 
-To inherit the environment variables directly from Visual Studio, we recommend using the Visual Studio 
-developer command prompt. 
-
-To do a KMS-only build of the AWS SDK for C++:
+If you intend to use the KMS components to build the AWS Encryption SDK for C, you will have to build 
+the AWS SDK for C++:
     
-    git clone git@github.com:aws/aws-sdk-cpp.git
+    git clone https://github.com/ttjsu-aws/aws-sdk-cpp.git
     mkdir build-aws-sdk-cpp && cd build-aws-sdk-cpp
-    cmake -DCMAKE_INSTALL_PREFIX=c:\inst -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DENABLE_UNITY_BUILD=ON
-    -DBUILD_ONLY=kms -DCMAKE_TOOLCHAIN_FILE=c:\src\vcpkg\scripts\buildsystems\vcpkg.cmake -G Ninja ..
-    cmake --build .
-    cmake --build . --target install
+    cmake -DCMAKE_INSTALL_PREFIX=..\..\install -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DENABLE_UNITY_BUILD=ON -DBUILD_ONLY=kms -DCMAKE_TOOLCHAIN_FILE=..\vcpkg\scripts\buildsystems\vcpkg.cmake ..\aws-sdk-cpp
+    msbuild.exe ALL_BUILD.vcxproj /p:Configuration=Release
+    msbuild.exe INSTALL.vcxproj /p:Configuration=Release && cd ..
 
+If you donot intend to use the KMS components to build the AWS Encryption SDK for C, you will have to build
+aws-c-common from source: 
 
-To do a C-only build, we would need to install aws-c-common from source: 
-
-    git clone git@github.com:awslabs/aws-c-common.git
+    git clone https://github.com/ttjsu-aws/aws-c-common.git
     mkdir build-aws-c-common && cd build-aws-c-common
-    cmake -DCMAKE_INSTALL_PREFIX=c:\inst -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON
-    -DCMAKE_TOOLCHAIN_FILE=C:/src/vcpkg/scripts/buildsystems/vcpkg.cmake -G Ninja ..
-    cmake --build .
-    cmake --build . --target install
+    cmake -DCMAKE_INSTALL_PREFIX=..\..\install -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_TOOLCHAIN_FILE=..\vcpkg\scripts\buildsystems\vcpkg.cmake ..\aws-c-common
+    msbuild.exe ALL_BUILD.vcxproj /p:Configuration=Release
+    msbuild.exe INSTALL.vcxproj /p:Configuration=Release && cd ..
 
-    
 Now you can build the AWS Encryption SDK for C:
 
-    git clone git@github.com:awslabs/aws-encryption-sdk-c.git
+    git clone https://github.com/awslabs/aws-encryption-sdk-c.git
     mkdir build-aws-encryption-sdk-c && cd build-aws-encryption-sdk-c
-    cmake -DCMAKE_INSTALL_PREFIX=c:\inst -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON 
-    -DCMAKE_TOOLCHAIN_FILE=c:\src\vcpkg\scripts\buildsystems\vcpkg.cmake -G Ninja  ..
-    cmake --build .
-    cmake --build . --target install
+    cmake -DCMAKE_INSTALL_PREFIX=..\..\install -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_TOOLCHAIN_FILE=..\vcpkg\scripts\buildsystems\vcpkg.cmake ..\aws-encryption-sdk-c
+    msbuild ALL_BUILD.vcxproj /p:Configuration=Release && cd ..
 
 ## Compiling your program using the AWS Encryption SDK for C
 
