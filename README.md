@@ -1,8 +1,7 @@
 # AWS Encryption SDK C
 
 The AWS Encryption SDK for C provides easy-to-use envelope encryption in C,
-with a data format compatible with the [AWS Encryption SDKs for Java and
-Python](https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/introduction.html).
+with a data format compatible with the [AWS Encryption SDKs in other languages](https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/introduction.html).
 
 **This library is currently under public preview**. Feel free to check out the
 code and give it a spin, but be aware that the APIs might change as we get
@@ -82,9 +81,8 @@ Once it is set up, run the following:
 takes much longer than the KMS-only build. For these reasons we recommend doing a source
 build of the AWS SDK for C++ yourself, as in the common instructions below.)
 
-Now follow the "Common installation instructions for Linux and Mac" below, with
-one addition: add the argument `-DOPENSSL_ROOT_DIR=/usr/local/opt/openssl\@1.1` to the
-cmake line for the AWS Encryption SDK for C.
+Now follow the "Common installation instructions for Linux and Mac" below, but note that
+the last step is slightly different on Mac.
 
 ### Common installation instructions for Linux and Mac
 
@@ -93,18 +91,18 @@ do a C only build, which will not include integration with KMS, or you can do a
 C and C++ build, which will include integration with KMS. Follow one of the two
 subsections below, but not both.
 
-#### Option 1: C only build prerequisite: Install aws-c-common
+#### (Option 1) C only build prerequisite: Install aws-c-common
 
     git clone https://github.com/awslabs/aws-c-common.git
     mkdir build-aws-c-common && cd build-aws-c-common
     cmake -DBUILD_SHARED_LIBS=ON ../aws-c-common
     make && sudo make install ; cd ..
 
-Now continue to "Both build options" below.
+Now continue to "Install the AWS Encryption SDK for C" below.
 
-#### Option 2: C and C++ build prerequisite: Install the AWS SDK for C++
+#### (Option 2) C and C++ build prerequisite: Install the AWS SDK for C++
 
-Both aws-sdk-cpp and aws-c-common are needed, but the build of aws-sdk-cpp will handle
+Both aws-sdk-cpp and aws-c-common are needed, but the installation of aws-sdk-cpp will handle
 the installation of aws-c-common for you.
 
 Do a KMS-only build of the AWS SDK for C++. If you want to use the AWS SDK for C++ for
@@ -115,13 +113,23 @@ other AWS services, you can omit the kms argument, but the build will take much 
     cmake -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="kms" -DENABLE_UNITY_BUILD=ON ../aws-sdk-cpp
     make && sudo make install ; cd ..
 
-#### Both build options
+#### Install the AWS Encryption SDK for C
 
-Now build and install the AWS Encryption SDK for C.
+These directions will diverge slightly for Mac, because using brew we installed OpenSSL
+in a place that will not be picked up by cmake by default.
+
+On Linux (non-Mac) systems:
 
     git clone https://github.com/awslabs/aws-encryption-sdk-c.git
     mkdir build-aws-encryption-sdk-c && cd build-aws-encryption-sdk-c
     cmake -DBUILD_SHARED_LIBS=ON ../aws-encryption-sdk-c
+    make && sudo make install ; cd ..
+
+On Mac:
+
+    git clone https://github.com/awslabs/aws-encryption-sdk-c.git
+    mkdir build-aws-encryption-sdk-c && cd build-aws-encryption-sdk-c
+    cmake -DBUILD_SHARED_LIBS=ON -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl\@1.1 ../aws-encryption-sdk-c
     make && sudo make install ; cd ..
 
 ## Compiling your program using the AWS Encryption SDK for C
