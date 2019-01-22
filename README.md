@@ -25,12 +25,11 @@ AWS SDK for C++ install logic, and you will be forced to install several other d
 manually. The minimum supported version of the AWS SDK for C++ is 1.7.36.
 
 You need to compile both the AWS Encryption SDK for C and its dependencies as either all
-shared or all static libraries. We will use all shared library builds in our examples, by
+shared or all static libraries. We will use all shared library builds in our examples by
 using the cmake argument `-DBUILD_SHARED_LIBS=ON`. You can change them to static library
 builds by just changing `ON` to `OFF`.
 
-Once you have built each dependency, you should install it so it can be picked
-up by the next build.
+Once you have built each dependency, install it so it can be picked up by the next build.
 
 ### If you are working on an EC2 instance, regardless of operating system
 
@@ -133,20 +132,20 @@ On Mac:
 
 ### Setting up dependencies on Windows
 
-Start by installing Visual Studio version 15 or later. To inherit the environment variables 
-directly from Visual Studio, we recommend using the x64 Native Tools Command Prompt. 
-You can run these instructions in whatever directory you want to do your build in.
+Start by installing Visual Studio version 15 or later. To inherit the environment variables
+directly from Visual Studio, we recommend using the x64 Native Tools Command Prompt.
+Run these instructions in the directory where you want to do the build and installation.
 
+    mkdir install && mkdir build && cd build
     git clone https://github.com/Microsoft/vcpkg.git
     cd vcpkg && .\bootstrap-vcpkg.bat
     .\vcpkg install curl:x64-windows openssl:x64-windows && cd ..
-
 
 You can do a C only build, which will not include integration with KMS, or you can do a
 C and C++ build, which will include integration with KMS. Follow one of the two
 subsections below, but not both.
 
-#### (Option 1)  C only build prerequisite: Install aws-c-common 
+#### (Option 1)  C only build prerequisite: Install aws-c-common
 
     git clone https://github.com/awslabs/aws-c-common.git
     mkdir build-aws-c-common && cd build-aws-c-common
