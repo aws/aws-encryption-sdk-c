@@ -36,19 +36,5 @@ RUN powershell -NoProfile -InputFormat None -Command `
     .\vcpkg install curl:x86-windows openssl:x86-windows curl:x64-windows openssl:x64-windows; `
     c:\cleanup-vcpkg.ps1
 
-RUN powershell -NoProfile -InputFormat None -Command `
-    cd c:\vcpkg; `
-    .\vcpkg install aws-sdk-cpp[kms]:x86-windows; `
-    c:\cleanup-vcpkg.ps1
-
-RUN powershell -NoProfile -InputFormat None -Command `
-    cd c:\vcpkg; `
-    try { `
-    .\vcpkg install aws-sdk-cpp[kms]:x64-windows; `
-    c:\cleanup-vcpkg.ps1 `
-    } catch { `
-    get-content c:\vcpkg\buildtrees\aws-sdk-cpp\config-x64-windows-out.log `
-    }
-
 CMD [ "cmd.exe" ]
 
