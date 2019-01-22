@@ -31,22 +31,22 @@ void encrypt_or_decrypt(
     const uint8_t *input,
     size_t input_len) {
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(alloc, keyring);
-    assert(cmm);
+    if (!cmm) abort();
     struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(alloc, mode, cmm);
-    assert(session);
+    if (!session) abort();
     /* We release the CMM pointer so it will be destroyed when the session is destroyed. */
     aws_cryptosdk_cmm_release(cmm);
 
     if (mode == AWS_CRYPTOSDK_ENCRYPT) {
-        assert(AWS_OP_SUCCESS == aws_cryptosdk_session_set_message_size(session, input_len));
+        if (AWS_OP_SUCCESS != aws_cryptosdk_session_set_message_size(session, input_len)) abort();
     }
 
     size_t input_consumed;
-    assert(
-        AWS_OP_SUCCESS ==
-        aws_cryptosdk_session_process(session, output, output_buf_sz, output_len, input, input_len, &input_consumed));
-    assert(aws_cryptosdk_session_is_done(session));
-    assert(input_consumed == input_len);
+    if (AWS_OP_SUCCESS !=
+        aws_cryptosdk_session_process(session, output, output_buf_sz, output_len, input, input_len, &input_consumed))
+        abort();
+    if (!aws_cryptosdk_session_is_done(session)) abort();
+    if (input_consumed != input_len) abort();
 
     /* This destroys both the session and the CMM, but not the keyring, since the
      * keyring pointer was not released.
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
      * See the AES keyring example for more explanation of the creation of this keyring.
      */
     FILE *key_file = fopen(argv[2], "rb");
-    assert(key_file);
+    if (!key_file) abort();
     uint8_t wrapping_key[32];
     size_t wrapping_key_len = fread(wrapping_key, 1, 32, key_file);
     uint8_t throwaway;
@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
     AWS_STATIC_STRING_FROM_LITERAL(wrapping_key_name, "escrow key #1");
     struct aws_cryptosdk_keyring *escrow_keyring = aws_cryptosdk_raw_aes_keyring_new(
         alloc, wrapping_key_namespace, wrapping_key_name, wrapping_key, AWS_CRYPTOSDK_AES256);
-    assert(escrow_keyring);
+    if (!escrow_keyring) abort();
     /* Zero out our copy of the escrow key now that it is stored in the keyring. */
     aws_secure_zero(wrapping_key, wrapping_key_len);
 
@@ -109,14 +109,13 @@ int main(int argc, char **argv) {
      * be able to use it for decryption.
      */
     struct aws_cryptosdk_keyring *multi_keyring = aws_cryptosdk_multi_keyring_new(alloc, kms_keyring);
-    assert(multi_keyring);
+    if (!multi_keyring) abort();
 
     /* We add the escrow keyring as a child keyring to the multi-keyring.
      * Any data encrypted with the multi-keyring will be decryptable by
      * either the KMS keyring or by the escrow keyring.
      */
-    assert(AWS_OP_SUCCESS == aws_cryptosdk_multi_keyring_add_child(multi_keyring, escrow_keyring));
-
+    if (AWS_OP_SUCCESS != aws_cryptosdk_multi_keyring_add_child(multi_keyring, escrow_keyring)) abort();
     /*
      * The multi-keyring holds references to the other two keyrings, so we
      * could release the other two keyring pointers and allow them to be
@@ -162,8 +161,8 @@ int main(int argc, char **argv) {
             ciphertext_len);
 
         printf(">> Decrypted to plaintext of length %zu\n", plaintext_result_len);
-        assert(plaintext_original_len == plaintext_result_len);
-        assert(!memcmp(plaintext_original, plaintext_result, plaintext_result_len));
+        if (plaintext_original_len != plaintext_result_len) abort();
+        if (memcmp(plaintext_original, plaintext_result, plaintext_result_len)) abort();
         printf(">> Decrypted plaintext matches original!\n");
 
         /* All sessions and CMMs that referred to the keyring have already

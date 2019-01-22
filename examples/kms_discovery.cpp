@@ -56,8 +56,8 @@ void encrypt_string(
                               &in_plaintext_consumed)) {
         abort();
     }
-    assert(aws_cryptosdk_session_is_done(session));
-    assert(in_plaintext_consumed == in_plaintext_len);
+    if (!aws_cryptosdk_session_is_done(session)) abort();
+    if (in_plaintext_consumed != in_plaintext_len) abort();
     aws_cryptosdk_session_destroy(session);
 }
 
@@ -87,8 +87,8 @@ void decrypt_string(
                               &in_ciphertext_consumed)) {
         abort();
     }
-    assert(aws_cryptosdk_session_is_done(session));
-    assert(in_ciphertext_consumed == in_ciphertext_len);
+    if (!aws_cryptosdk_session_is_done(session)) abort();
+    if (in_ciphertext_consumed != in_ciphertext_len) abort();
     aws_cryptosdk_session_destroy(session);
 }
 
@@ -182,8 +182,8 @@ int main(int argc, char **argv) {
             alloc, keyring, plaintext_result, BUFFER_SIZE, &plaintext_result_len, ciphertext, ciphertext_len);
         printf(">> Decrypted to plaintext of length %zu\n", plaintext_result_len);
 
-        assert(plaintext_original_len == plaintext_result_len);
-        assert(!memcmp(plaintext_original, plaintext_result, plaintext_result_len));
+        if (plaintext_original_len != plaintext_result_len) abort();
+        if (memcmp(plaintext_original, plaintext_result, plaintext_result_len)) abort();
         printf(">> Decrypted plaintext matches original!\n");
         aws_cryptosdk_keyring_release(keyring);
     }
