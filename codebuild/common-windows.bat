@@ -11,9 +11,10 @@ REM "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express 
 REM implied. See the License for the specific language governing permissions and
 REM limitations under the License.
 
-rmdir/s/q deps
-mkdir deps
-cd deps
+set ROOT_SRC_DIR=%cd%
+rmdir/s/q \build
+mkdir \build
+cd \build
 git clone -b 1.7.36 https://github.com/aws/aws-sdk-cpp.git || goto error
 mkdir build-aws-sdk-cpp
 cd build-aws-sdk-cpp
@@ -21,12 +22,10 @@ cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_BUILD_TYPE="Release" -DCMAKE_TOO
 msbuild.exe ALL_BUILD.vcxproj /p:Configuration=Release || goto error
 msbuild.exe INSTALL.vcxproj /p:Configuration=Release || goto error
 
-cd ..\..
-
-rmdir/s/q build
-mkdir build
-cd build
-cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE="Release" -DBUILD_AWS_ENC_SDK_CPP=ON -DAWS_ENC_SDK_END_TO_END_TESTS=ON ../ || goto error
+cd \build
+mkdir build-aws-encryption-sdk-c
+cd build-aws-encryption-sdk-c
+cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE="Release" -DBUILD_AWS_ENC_SDK_CPP=ON -DAWS_ENC_SDK_END_TO_END_TESTS=ON %ROOT_SRC_DIR% || goto error
 msbuild.exe ALL_BUILD.vcxproj /p:Configuration=Release || goto error
 ctest -V --output-on-failure -j4 || goto error
 
