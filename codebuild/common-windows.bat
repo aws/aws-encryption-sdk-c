@@ -17,7 +17,7 @@ cd deps
 git clone -b 1.7.36 https://github.com/aws/aws-sdk-cpp.git || goto error
 mkdir build-aws-sdk-cpp
 cd build-aws-sdk-cpp
-cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_BUILD_TYPE="Release" -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake ../aws-sdk-cpp || goto error
+cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_BUILD_TYPE="Release" -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DBUILD_ONLY="kms" -DENABLE_UNITY_BUILD=ON ../aws-sdk-cpp || goto error
 msbuild.exe ALL_BUILD.vcxproj /p:Configuration=Release || goto error
 msbuild.exe INSTALL.vcxproj /p:Configuration=Release || goto error
 
