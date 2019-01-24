@@ -51,7 +51,7 @@ static void process_file(
     }
 
     /* Initialize a KMS keyring using the provided ARN. */
-    auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({ key_arn });
+    auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build(key_arn);
 
     /* Initialize the Cryptographic Materials Manager (CMM). */
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(allocator, kms_keyring);

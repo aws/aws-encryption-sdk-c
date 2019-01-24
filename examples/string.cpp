@@ -27,7 +27,7 @@ int encrypt_string(
     const uint8_t *plaintext,
     size_t plaintext_len,
     struct aws_hash_table *my_enc_ctx) {
-    struct aws_cryptosdk_keyring *kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({ key_arn });
+    struct aws_cryptosdk_keyring *kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build(key_arn);
     if (!kms_keyring) {
         fprintf(stderr, "Failed to build KMS Keyring. Did you specify a valid KMS CMK ARN?\n");
         return 2;
@@ -111,7 +111,7 @@ int decrypt_string_and_verify_encryption_context(
     const uint8_t *ciphertext,
     size_t ciphertext_len,
     struct aws_hash_table *my_enc_ctx) {
-    struct aws_cryptosdk_keyring *kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({ key_arn });
+    struct aws_cryptosdk_keyring *kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build(key_arn);
     if (!kms_keyring) {
         fprintf(stderr, "Failed to build KMS Keyring. Did you specify a valid KMS CMK ARN?\n");
         return 9;

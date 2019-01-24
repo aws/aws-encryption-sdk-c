@@ -114,7 +114,7 @@ std::string base64_encode(const std::vector<uint8_t> &vec) {
 }
 
 struct aws_cryptosdk_cmm *setup_cmm(struct aws_allocator *alloc, const char *key_arn) {
-    struct aws_cryptosdk_keyring *kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({ key_arn });
+    struct aws_cryptosdk_keyring *kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build(key_arn);
     if (!kms_keyring) error("kms_keyring builder");
 
     struct aws_cryptosdk_cmm *default_cmm = aws_cryptosdk_default_cmm_new(alloc, kms_keyring);
