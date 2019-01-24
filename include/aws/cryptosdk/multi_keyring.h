@@ -43,30 +43,28 @@ extern "C" {
  * as a child keyring of another multi-keyring.) However, a multi-keyring with no
  * generator is not usable for encryption on its own.
  *
- * Calling the multi-keyring's On Encrypt method without a provided unencrypted
- * data key will cause it to do the following:
+ * Calling the multi-keyring's On Encrypt method does the following:
  *
- * (1) Call the generator's On Encrypt method.
- * (2) Verify that an unencrypted data key has been generated.
- * (3) Call the child keyrings' On Encrypt methods.
+ * (1) Call the generator's On Encrypt method, if a generator has been set.
+ *     If the generator's On Encrypt method fails, the multi-keyring's On Encrypt
+ *     fails immediately, and the error code will be set by the generator keyring.
+ *
+ * (2) Verify that an unencrypted data key has been generated, setting an error
+ *     code of AWS_CRYPTOSDK_ERR_BAD_STATE and failing if it has not.
+ *
+ * (3) Call the child keyrings' On Encrypt methods, producing a list of
+ *     EDKs that are all encrypted versions of the data key verified in step (2).
+ *     If any of the child keyring's On Encrypt methods fail, the multi-keyring's
+ *     On Encrypt method will fail immediately, and the error code will be set
+ *     by the failing child keyring.
+ *
  * (4) If all previous calls have succeeded, return the unencrypted data key
  *     and append all EDKs to the list provided by the caller.
  *
- * If the generator is not set, or if it fails to generate an unencrypted
- * data key, or if any of the delegated calls fail, the multi-keyring's On
- * Encrypt call will fail without modifying its arguments. In the first two
- * cases it will set the error code AWS_CRYPTOSDK_ERR_BAD_STATE. In the case of a
- * delegated call failing, it will not set an error code, so as not to overwrite
- * the error code of the failing keyring.
- *
- * If the multi-keyring's On Encrypt method is called WITH a provided unencrypted
- * data key, it will skip directly to step (3) above, meaning that the generator
- * will never be called.
- *
- * The multi-keyring's On Decrypt call will attempt to decrypt an EDK with each
- * child keyring and the generator (if one is set) until it succeeds. Errors from
- * any keyrings will not stop it from proceeding to the rest. If it succeeds in
- * decrypting an EDK, it will return AWS_OP_SUCCESS, even if one or more of the
+ * The multi-keyring's On Decrypt call will attempt to decrypt an EDK with the
+ * generator (if one is set) and then each child keyring until it succeeds. Errors
+ * from any keyrings will not stop it from proceeding to the rest. If it succeeds
+ * in decrypting an EDK, it will return AWS_OP_SUCCESS, even if one or more of the
  * keyrings failed. If it does not succeed in decrypting an EDK, it will return
  * AWS_OP_SUCCESS if there were no errors, and AWS_OP_ERR if there were errors.
  * As with all On Decrypt calls, check unencrypted_data_key.buffer to see

@@ -62,23 +62,24 @@ static int multi_keyring_on_encrypt(
     }
 
     int ret = AWS_OP_SUCCESS;
+    if (self->generator &&
+        aws_cryptosdk_keyring_on_encrypt(
+            self->generator, request_alloc, unencrypted_data_key, &my_trace, &my_edks, enc_ctx, alg)) {
+        ret = AWS_OP_ERR;
+        goto out;
+    }
+
     if (!unencrypted_data_key->buffer) {
-        if (!self->generator) {
-            ret = aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-            goto out;
-        }
-        if (aws_cryptosdk_keyring_on_encrypt(
-                self->generator, request_alloc, unencrypted_data_key, &my_trace, &my_edks, enc_ctx, alg)) {
-            ret = AWS_OP_ERR;
-            goto out;
-        }
-        if (!unencrypted_data_key->buffer) {
-            /* Keyrings are not required to generate a data key when it is not
-             * provided, but generator keyrings are.
-             */
-            ret = aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
-            goto out;
-        }
+        /* If we are here, it means we are in one of two possible error cases:
+         *
+         * (1) This multi-keyring has a generator that did not generate a data key. Keyrings are not
+         *     required to generate a data key when it is not provided, but generator keyrings are.
+         *
+         * (2) This multi-keyring did not have a generator assigned and it was called as the first or
+         *     only keyring for encryption. See comments in multi_keyring.h
+         */
+        ret = aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+        goto out;
     }
 
     if (call_on_encrypt_on_list(
