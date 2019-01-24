@@ -25,12 +25,18 @@ AWS SDK for C++ install logic, and you will be forced to install several other d
 manually. The minimum supported version of the AWS SDK for C++ is 1.7.36.
 
 You need to compile both the AWS Encryption SDK for C and its dependencies as either all
-shared or all static libraries. We will use all shared library builds in our examples, by
+shared or all static libraries. We will use all shared library builds in our examples by
 using the cmake argument `-DBUILD_SHARED_LIBS=ON`. You can change them to static library
 builds by just changing `ON` to `OFF`.
 
-Once you have built each dependency, you should `make install` it so it can be picked
-up by the next build.
+Once you have built each dependency, install it so it can be picked up by the next build.
+
+### If you are working on an EC2 instance, regardless of operating system
+
+For best results, create an EC2 instance with an instance profile that at a
+minimum has KMS permissions for Encrypt, Decrypt, and GenerateDataKey for
+at least one KMS CMK in your account. You will not need any other AWS
+permissions to use the AWS Encryption SDK for C.
 
 ## Building on Linux and Mac
 
@@ -40,13 +46,6 @@ then jump to the common installation instructions for all Linux and Mac systems.
 
 These recipes install everything in the standard directories in /usr/local. See
 the Tips and Tricks section at the end to change your installation directory if desired.
-
-### If you are working on an EC2 instance, regardless of operating system
-
-For best results, create an EC2 instance with an instance profile that at a
-minimum has KMS permissions for Encrypt, Decrypt, and GenerateDataKey for
-at least one KMS CMK in your account. You will not need any other AWS
-permissions to use the AWS Encryption SDK for C.
 
 ### Setting up dependencies on Amazon Linux
 
@@ -64,9 +63,6 @@ Now follow the "Common installation instructions for Linux and Mac" below.
 
     sudo apt-get update
     sudo apt-get install -y libssl-dev cmake g++ libcurl4-openssl-dev zlib1g-dev
-
-Then just follow the Amazon Linux installation instructions above, starting with
-the AWS SDK for C++ build.
 
 Now follow the "Common installation instructions for Linux and Mac" below.
 
@@ -131,6 +127,52 @@ On Mac:
     mkdir build-aws-encryption-sdk-c && cd build-aws-encryption-sdk-c
     cmake -DBUILD_SHARED_LIBS=ON -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl\@1.1 ../aws-encryption-sdk-c
     make && sudo make install ; cd ..
+
+## Building on Windows
+
+### Setting up dependencies on Windows
+
+Start by installing Visual Studio version 15 or later. To inherit the environment variables
+directly from Visual Studio, we recommend using the x64 Native Tools Command Prompt.
+Run these instructions in the directory where you want to do the build and installation.
+
+    mkdir install && mkdir build && cd build
+    git clone https://github.com/Microsoft/vcpkg.git
+    cd vcpkg && .\bootstrap-vcpkg.bat
+    .\vcpkg install curl:x64-windows openssl:x64-windows && cd ..
+
+You can do a C only build, which will not include integration with KMS, or you can do a
+C and C++ build, which will include integration with KMS. Follow one of the two
+subsections below, but not both.
+
+#### (Option 1)  C only build prerequisite: Install aws-c-common
+
+    git clone https://github.com/awslabs/aws-c-common.git
+    mkdir build-aws-c-common && cd build-aws-c-common
+    cmake -DCMAKE_INSTALL_PREFIX=%cd%\..\..\install -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_TOOLCHAIN_FILE=%cd%\..\vcpkg\scripts\buildsystems\vcpkg.cmake -G Ninja ..\aws-c-common
+    cmake --build . && cmake --build . --target install && cd ..
+
+Now continue to "Install the AWS Encryption SDK for C" below.
+
+#### (Option 2)  C and C++ build prerequisite: Install the AWS SDK for C++
+
+Both aws-sdk-cpp and aws-c-common are needed, but the installation of aws-sdk-cpp will handle
+the installation of aws-c-common for you.
+
+Do a KMS-only build of the AWS SDK for C++. If you want to use the AWS SDK for C++ for
+other AWS services, you can omit the kms argument, but the build will take much longer.
+
+    git clone https://github.com/aws/aws-sdk-cpp.git
+    mkdir build-aws-sdk-cpp && cd build-aws-sdk-cpp
+    cmake -DCMAKE_INSTALL_PREFIX=%cd%\..\..\install -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DENABLE_UNITY_BUILD=ON -DBUILD_ONLY=kms -DCMAKE_TOOLCHAIN_FILE=%cd%\..\vcpkg\scripts\buildsystems\vcpkg.cmake -G Ninja ..\aws-sdk-cpp
+    cmake --build . && cmake --build . --target install && cd ..
+
+#### Install  the AWS Encryption SDK for C 
+
+    git clone https://github.com/awslabs/aws-encryption-sdk-c.git
+    mkdir build-aws-encryption-sdk-c && cd build-aws-encryption-sdk-c
+    cmake -DCMAKE_INSTALL_PREFIX=%cd%\..\..\install -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_TOOLCHAIN_FILE=%cd%\..\vcpkg\scripts\buildsystems\vcpkg.cmake -G Ninja ..\aws-encryption-sdk-c
+    cmake --build . && cmake --build . --target install && cd ..
 
 ## Compiling your program using the AWS Encryption SDK for C
 
