@@ -146,17 +146,16 @@ int delegates_on_encrypt_calls() {
     return 0;
 }
 
-int generator_set_but_not_called_when_data_key_present() {
+int generator_and_children_called_when_data_key_present() {
     TEST_ASSERT_SUCCESS(set_up_all_the_things(true));
     struct aws_byte_buf unencrypted_data_key = aws_byte_buf_from_c_str(test_data_key);
 
     TEST_ASSERT_SUCCESS(
         aws_cryptosdk_keyring_on_encrypt(multi, alloc, &unencrypted_data_key, &keyring_trace, &edks, NULL, alg));
-    TEST_ASSERT(!test_keyrings[0].on_encrypt_called);
-    for (size_t kr_idx = 1; kr_idx < num_test_keyrings; ++kr_idx) {
+    for (size_t kr_idx = 0; kr_idx < num_test_keyrings; ++kr_idx) {
         TEST_ASSERT(test_keyrings[kr_idx].on_encrypt_called);
     }
-    TEST_ASSERT_INT_EQ(aws_array_list_length(&edks), num_test_keyrings - 1);
+    TEST_ASSERT_INT_EQ(aws_array_list_length(&edks), num_test_keyrings);
 
     tear_down_all_the_things();
     return 0;
@@ -358,8 +357,8 @@ int fail_when_error_and_no_decrypt() {
 struct test_case multi_keyring_test_cases[] = {
     { "multi_keyring", "delegates_on_encrypt_calls", delegates_on_encrypt_calls },
     { "multi_keyring",
-      "generator_set_but_not_called_when_data_key_present",
-      generator_set_but_not_called_when_data_key_present },
+      "generator_and_children_called_when_data_key_present",
+      generator_and_children_called_when_data_key_present },
     { "multi_keyring",
       "on_encrypt_fails_when_generator_not_set_and_no_data_key",
       on_encrypt_fails_when_generator_not_set_and_no_data_key },
