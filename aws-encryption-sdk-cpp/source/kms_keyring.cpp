@@ -383,30 +383,26 @@ std::shared_ptr<KmsKeyring::ClientSupplier> KmsKeyring::Builder::BuildClientSupp
     return client_supplier ? client_supplier : KmsKeyring::CachingClientSupplier::Create();
 }
 
-bool KmsKeyring::Builder::ValidParameters(const Aws::Vector<Aws::String> &key_ids) const {
-    if (!key_ids.size()) {
-        AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "No keys provided");
-        return false;
-    }
-
-    for (auto &key : key_ids) {
-        if (Private::parse_region_from_kms_key_arn(key).empty()) {
-            AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "Unable to parse key ARN");
-            return false;
-        }
-    }
-
-    return true;
-}
-
-aws_cryptosdk_keyring *KmsKeyring::Builder::Build(const Aws::Vector<Aws::String> &key_ids) const {
-    if (!ValidParameters(key_ids)) {
+aws_cryptosdk_keyring *KmsKeyring::Builder::Build(
+    const Aws::String &generator_key_id, const Aws::Vector<Aws::String> &additional_key_ids) const {
+    if (Private::parse_region_from_kms_key_arn(generator_key_id).empty()) {
+        AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "Unable to parse key ARN");
         aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
         return NULL;
     }
 
+    Aws::Vector<Aws::String> my_key_ids = { generator_key_id };
+    for (auto &key : additional_key_ids) {
+        if (Private::parse_region_from_kms_key_arn(key).empty()) {
+            AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "Unable to parse key ARN");
+            aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
+            return NULL;
+        }
+        my_key_ids.push_back(key);
+    }
+
     return Aws::New<Private::KmsKeyringImpl>(
-        AWS_CRYPTO_SDK_KMS_CLASS_TAG, key_ids, grant_tokens, BuildClientSupplier(key_ids));
+        AWS_CRYPTO_SDK_KMS_CLASS_TAG, my_key_ids, grant_tokens, BuildClientSupplier(my_key_ids));
 }
 
 aws_cryptosdk_keyring *KmsKeyring::Builder::BuildDiscovery() const {

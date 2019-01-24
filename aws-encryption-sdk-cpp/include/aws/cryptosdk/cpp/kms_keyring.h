@@ -97,10 +97,22 @@ class AWS_CRYPTOSDK_CPP_API Builder {
     /**
      * Creates a new KmsKeyring object or returns NULL if parameters are invalid.
      *
-     * You must specify at least one KMS CMK to use as a master key for encryption and decryption.
-     * Encrypting with multiple keys gives users who have KMS DecryptDataKey access with *any one*
-     * of those keys the ability to decrypt the data. Providing multiple CMKs for decryptions
-     * allows the decryption of data that was encrypted using any of those keys.
+     * You must specify at least one KMS CMK to use as a master key for encryption and decryption
+     * as the generator CMK. This CMK is the first one that will be used in all encryption and
+     * decryption attempts, and it is the only key for which you need to have KMS GenerateDataKey
+     * permissions in order to do encryption.
+     *
+     * If this keyring is called for encryption after another keyring has already generated the
+     * data key (for example, in a multi-keyring) then the generator CMK will encrypt an existing
+     * data key. In that case, you will need KMS Encrypt permissions on this CMK.
+     *
+     * Optionally, you may specify a list of additional CMKs to encrypt the data key with.
+     * Encrypting with multiple CMKs gives users who have KMS Decrypt access with *any one*
+     * of those CMKs the ability to decrypt the data. For encryption you will only need KMS Encrypt
+     * permission on the additional CMKs. You will NEVER need KMS GenerateDataKey permission on them.
+     *
+     * Providing multiple CMKs for decryption allows the decryption of data that was encrypted using
+     * any of those keys. You will need KMS Decrypt permission on the generator CMK and all other CMKs.
      *
      * Key IDs for encryption may be specified in two different ways:
      *
@@ -113,7 +125,8 @@ class AWS_CRYPTOSDK_CPP_API Builder {
      * in decrypting data that was encrypted with keys that were specified in key ARN format. This
      * is a limitation of the message format of encryption and of the KMS APIs, not of this library.
      */
-    aws_cryptosdk_keyring *Build(const Aws::Vector<Aws::String> &key_ids) const;
+    aws_cryptosdk_keyring *Build(
+        const Aws::String &generator_key_id, const Aws::Vector<Aws::String> &additional_key_ids = {}) const;
 
     /**
      * Creates a new KmsKeyring object with no KMS keys configured, i.e., in "discovery" mode.
@@ -132,7 +145,6 @@ class AWS_CRYPTOSDK_CPP_API Builder {
     aws_cryptosdk_keyring *BuildDiscovery() const;
 
    protected:
-    bool ValidParameters(const Aws::Vector<Aws::String> &key_ids) const;
     std::shared_ptr<ClientSupplier> BuildClientSupplier(const Aws::Vector<Aws::String> &key_ids) const;
 
    private:

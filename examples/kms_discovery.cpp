@@ -28,7 +28,7 @@ void encrypt_string(
     const uint8_t *in_plaintext,
     size_t in_plaintext_len) {
     struct aws_cryptosdk_keyring *kms_keyring =
-        Aws::Cryptosdk::KmsKeyring::Builder().Build({ KEY_ARN_US_WEST_2, KEY_ARN_EU_CENTRAL_1 });
+        Aws::Cryptosdk::KmsKeyring::Builder().Build(KEY_ARN_US_WEST_2, { KEY_ARN_EU_CENTRAL_1 });
     if (!kms_keyring) {
         abort();
     }
@@ -136,19 +136,19 @@ int main(int argc, char **argv) {
      * string using KEY_ARN_EU_CENTRAL_1.
      */
     decryption_keyrings.push_back(
-        Aws::Cryptosdk::KmsKeyring::Builder().Build({ KEY_ARN_EU_CENTRAL_1, KEY_ARN_US_WEST_2 }));
+        Aws::Cryptosdk::KmsKeyring::Builder().Build(KEY_ARN_EU_CENTRAL_1, { KEY_ARN_US_WEST_2 }));
 
     /* This keyring is guaranteed to only call KMS to attempt decryptions
      * in us-west-2, and it will only attempt to do so when it sees that
      * the message has been encrypted by this specific CMK.
      */
-    decryption_keyrings.push_back(Aws::Cryptosdk::KmsKeyring::Builder().Build({ KEY_ARN_US_WEST_2 }));
+    decryption_keyrings.push_back(Aws::Cryptosdk::KmsKeyring::Builder().Build(KEY_ARN_US_WEST_2));
 
     /* This keyring is guaranteed to only call KMS to attempt decryptions
      * in eu-central-1, and it will only attempt to do so when it sees that
      * the message has beeen encrypted by this specific CMK.
      */
-    decryption_keyrings.push_back(Aws::Cryptosdk::KmsKeyring::Builder().Build({ KEY_ARN_EU_CENTRAL_1 }));
+    decryption_keyrings.push_back(Aws::Cryptosdk::KmsKeyring::Builder().Build(KEY_ARN_EU_CENTRAL_1));
 
     /* This is a discovery keyring, which you do not need to configure at all.
      * It will detect from the metadata in the encrypted message itself which

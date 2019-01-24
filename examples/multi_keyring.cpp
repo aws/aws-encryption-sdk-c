@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
     /* We will create two different keyrings and link them together with a multi-keyring.
      * The first is a KMS keyring, the same as used in the string and file examples.
      */
-    struct aws_cryptosdk_keyring *kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build({ argv[1] });
+    struct aws_cryptosdk_keyring *kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build(argv[1]);
     if (!kms_keyring) {
         fprintf(stderr, "KMS keyring not created. Did you provide a valid KMS CMK ARN?\n");
         return 2;

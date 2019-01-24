@@ -31,14 +31,19 @@ struct aws_cryptosdk_keyring *CreateTestingKeyring(
     std::shared_ptr<Aws::KMS::KMSClient> kms,
     const Aws::Vector<Aws::String> &key_ids,
     const Aws::Vector<Aws::String> &grant_tokens = {}) {
+    Aws::Vector<Aws::String> additional_key_ids;
+    for (auto it = ++key_ids.begin(); it != key_ids.end(); ++it) {
+        additional_key_ids.push_back(*it);
+    }
+
     Aws::Cryptosdk::KmsKeyring::Builder builder;
-    return builder.WithKmsClient(kms).WithGrantTokens(grant_tokens).Build(key_ids);
+    return builder.WithKmsClient(kms).WithGrantTokens(grant_tokens).Build(key_ids[0], additional_key_ids);
 }
 
 struct aws_cryptosdk_keyring *CreateTestingKeyring(
     std::shared_ptr<Aws::KMS::KMSClient> kms, const Aws::String &key_id) {
     Aws::Cryptosdk::KmsKeyring::Builder builder;
-    return builder.WithKmsClient(kms).Build({ key_id });
+    return builder.WithKmsClient(kms).Build(key_id);
 }
 
 Aws::Utils::ByteBuffer t_aws_utils_bb_from_char(const char *str) {
@@ -676,7 +681,6 @@ int generateDataKey_kmsFails_returnFailure() {
 struct KmsKeyringBuilderExposer : KmsKeyring::Builder {
    public:
     using KmsKeyring::Builder::BuildClientSupplier;
-    using KmsKeyring::Builder::ValidParameters;
 };
 
 int testBuilder_buildClientSupplier_buildsClient() {
@@ -694,17 +698,9 @@ int testBuilder_buildClientSupplier_buildsClient() {
     return 0;
 }
 
-int testBuilder_noKeys_invalid() {
-    KmsKeyringBuilderExposer a;
-    // no keys
-    Aws::Vector<Aws::String> empty_key_id_list;
-    TEST_ASSERT(!a.Build(empty_key_id_list));
-    return 0;
-}
-
 int testBuilder_keyWithRegion_valid() {
     KmsKeyringBuilderExposer a;
-    aws_cryptosdk_keyring *k = a.Build({ "arn:aws:kms:region_extracted_from_key:" });
+    aws_cryptosdk_keyring *k = a.Build("arn:aws:kms:region_extracted_from_key:");
     TEST_ASSERT_ADDR_NOT_NULL(k);
     aws_cryptosdk_keyring_release(k);
     return 0;
@@ -712,13 +708,13 @@ int testBuilder_keyWithRegion_valid() {
 
 int testBuilder_keyWithoutRegion_invalid() {
     KmsKeyringBuilderExposer a;
-    TEST_ASSERT_ADDR_NULL(a.Build({ "alias/foobar" }));
+    TEST_ASSERT_ADDR_NULL(a.Build("alias/foobar"));
     return 0;
 }
 
 int testBuilder_emptyKey_invalid() {
     KmsKeyringBuilderExposer a;
-    TEST_ASSERT_ADDR_NULL(a.Build({ "" }));
+    TEST_ASSERT_ADDR_NULL(a.Build(""));
     return 0;
 }
 
@@ -758,7 +754,6 @@ int main() {
     RUN_TEST(generateDataKey_validInputsWithGrantTokensAndEncContext_returnSuccess());
     RUN_TEST(generateDataKey_kmsFails_returnFailure());
     RUN_TEST(testBuilder_buildClientSupplier_buildsClient());
-    RUN_TEST(testBuilder_noKeys_invalid());
     RUN_TEST(testBuilder_keyWithRegion_valid());
     RUN_TEST(testBuilder_keyWithoutRegion_invalid());
     RUN_TEST(testBuilder_emptyKey_invalid());
