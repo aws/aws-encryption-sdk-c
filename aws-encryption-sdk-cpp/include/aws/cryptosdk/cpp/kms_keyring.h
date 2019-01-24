@@ -102,9 +102,9 @@ class AWS_CRYPTOSDK_CPP_API Builder {
      * decryption attempts, and it is the only key for which you need to have KMS GenerateDataKey
      * permissions in order to do encryption.
      *
-     * If this keyring is called for encryption after another keyring (such as in a multi-keyring)
-     * then it is possible that the generator CMK will be called to encrypt an existing data key.
-     * In that case, you may need KMS Encrypt permissions on this key as well.
+     * If this keyring is called for encryption after another keyring has already generated the
+     * data key (for example, in a multi-keyring) then the generator CMK will encrypt an existing
+     * data key. In that case, you will need KMS Encrypt permissions on this CMK.
      *
      * Optionally, you may specify a list of additional CMKs to encrypt the data key with.
      * Encrypting with multiple CMKs gives users who have KMS Decrypt access with *any one*
@@ -112,8 +112,7 @@ class AWS_CRYPTOSDK_CPP_API Builder {
      * permission on the additional CMKs. You will NEVER need KMS GenerateDataKey permission on them.
      *
      * Providing multiple CMKs for decryption allows the decryption of data that was encrypted using
-     * any of those keys. You will need KMS Decrypt permission on the generator CMK and all other
-     * CMKs
+     * any of those keys. You will need KMS Decrypt permission on the generator CMK and all other CMKs.
      *
      * Key IDs for encryption may be specified in two different ways:
      *
