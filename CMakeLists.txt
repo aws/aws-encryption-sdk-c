@@ -41,7 +41,6 @@ include(AwsCryptosdkCFlags)
 include(AwsSharedLibSetup)
 include(InstallLogic)
 include(TestLibraryPath)
-
 include(CheckLibraryExists)
 include(CodeCoverageFlags)
 
@@ -67,6 +66,9 @@ option(PERFORM_HEADER_CHECK "Performs compile-time checks that each header can b
 option(VALGRIND_TEST_SUITE "Run the test suite under valgrind")
 set(VALGRIND_OPTIONS "--suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind.suppressions" CACHE STRING "Additional options to pass to valgrind")
 
+CHECK_C_SOURCE_COMPILES("
+    int main() { return __builtin_expect(0, 0); }
+    " HAVE_BUILTIN_EXPECT)
 
 file(GLOB AWS_CRYPTOSDK_HEADERS
 # Headers subject to API/ABI stability guarantees
@@ -182,9 +184,9 @@ else()
         option(BUILD_AWS_ENC_SDK_CPP "Build AWS ENC SDK C++ components" ON)
     else()
         # This fallback logic is needed on Windows
-        find_package(AWS_CPP_SDK_CORE QUIET COMPONENTS core)
-        find_package(AWS_CPP_SDK_KMS QUIET COMPONENTS kms)
-        if (AWS_CPP_SDK_CORE_FOUND AND AWS_CPP_SDK_KMS_FOUND)
+        find_package(aws-cpp-sdk-core)
+        find_package(aws-cpp-sdk-kms)
+        if (aws-cpp-sdk-core_FOUND AND aws-cpp-sdk-kms_FOUND)
             message(STATUS "aws-cpp-sdk-core and aws-cpp-sdk-kms found.")
             option(BUILD_AWS_ENC_SDK_CPP "Build AWS ENC SDK C++ components" ON)
         else()
@@ -198,23 +200,7 @@ else()
 endif()
 
 if (BUILD_AWS_ENC_SDK_CPP)
-    project (aws-encryption-sdk LANGUAGES C CXX)
-    include(CheckCXXSourceCompiles)
-    include(CheckCXXCompilerFlag)
-
-    if(USE_ASM)
-        CHECK_CXX_SOURCE_COMPILES("
-        int main() {
-                __asm__(\"xor %%rax, %%rax\":::);
-                return 0;
-        }"
-        USE_X86_64_ASM
-        )
-    endif()
-
-    CHECK_CXX_SOURCE_COMPILES("
-        int main() { return __builtin_expect(0, 0); }
-        " HAVE_BUILTIN_EXPECT)
+    enable_language(CXX)
     add_subdirectory(aws-encryption-sdk-cpp)
 endif()
 
