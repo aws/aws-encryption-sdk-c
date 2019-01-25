@@ -369,8 +369,10 @@ std::shared_ptr<KMS::KMSClient> KmsKeyring::CachingClientSupplier::GetClient(
     return client;
 }
 
-std::shared_ptr<KmsKeyring::ClientSupplier> KmsKeyring::Builder::BuildClientSupplier(
-    const Aws::Vector<Aws::String> &key_ids) const {
+static std::shared_ptr<KmsKeyring::ClientSupplier> BuildClientSupplier(
+    const Aws::Vector<Aws::String> &key_ids,
+    const std::shared_ptr<Aws::KMS::KMSClient> kms_client,
+    std::shared_ptr<KmsKeyring::ClientSupplier> client_supplier) {
     if (kms_client) {
         return KmsKeyring::SingleClientSupplier::Create(kms_client);
     }
@@ -402,13 +404,19 @@ aws_cryptosdk_keyring *KmsKeyring::Builder::Build(
     }
 
     return Aws::New<Private::KmsKeyringImpl>(
-        AWS_CRYPTO_SDK_KMS_CLASS_TAG, my_key_ids, grant_tokens, BuildClientSupplier(my_key_ids));
+        AWS_CRYPTO_SDK_KMS_CLASS_TAG,
+        my_key_ids,
+        grant_tokens,
+        BuildClientSupplier(my_key_ids, kms_client, client_supplier));
 }
 
 aws_cryptosdk_keyring *KmsKeyring::Builder::BuildDiscovery() const {
     Aws::Vector<Aws::String> empty_key_ids_list;
     return Aws::New<Private::KmsKeyringImpl>(
-        AWS_CRYPTO_SDK_KMS_CLASS_TAG, empty_key_ids_list, grant_tokens, BuildClientSupplier(empty_key_ids_list));
+        AWS_CRYPTO_SDK_KMS_CLASS_TAG,
+        empty_key_ids_list,
+        grant_tokens,
+        BuildClientSupplier(empty_key_ids_list, kms_client, client_supplier));
 }
 
 KmsKeyring::Builder &KmsKeyring::Builder::WithGrantTokens(const Aws::Vector<Aws::String> &grant_tokens) {
