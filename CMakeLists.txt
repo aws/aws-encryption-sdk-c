@@ -13,7 +13,7 @@
 #
 
 cmake_minimum_required (VERSION 3.9)
-project (aws-encryption-sdk)
+project (aws-encryption-sdk LANGUAGES C)
 
 if (UNIX AND NOT APPLE)
     include(GNUInstallDirs)
@@ -41,10 +41,7 @@ include(AwsCryptosdkCFlags)
 include(AwsSharedLibSetup)
 include(InstallLogic)
 include(TestLibraryPath)
-
 include(CheckLibraryExists)
-include(CheckCXXSourceCompiles)
-include(CheckCXXCompilerFlag)
 include(CodeCoverageFlags)
 
 # TODO: Static link?
@@ -69,19 +66,9 @@ option(PERFORM_HEADER_CHECK "Performs compile-time checks that each header can b
 option(VALGRIND_TEST_SUITE "Run the test suite under valgrind")
 set(VALGRIND_OPTIONS "--suppressions=${CMAKE_CURRENT_SOURCE_DIR}/valgrind.suppressions" CACHE STRING "Additional options to pass to valgrind")
 
-if(USE_ASM)
-    CHECK_CXX_SOURCE_COMPILES("
-    int main() {
-        __asm__(\"xor %%rax, %%rax\":::);
-        return 0;
-    }"
-    USE_X86_64_ASM
-    )
-endif()
-
-CHECK_CXX_SOURCE_COMPILES("
+CHECK_C_SOURCE_COMPILES("
     int main() { return __builtin_expect(0, 0); }
-" HAVE_BUILTIN_EXPECT)
+    " HAVE_BUILTIN_EXPECT)
 
 file(GLOB AWS_CRYPTOSDK_HEADERS
 # Headers subject to API/ABI stability guarantees
@@ -213,6 +200,7 @@ else()
 endif()
 
 if (BUILD_AWS_ENC_SDK_CPP)
+    enable_language(CXX)
     add_subdirectory(aws-encryption-sdk-cpp)
 endif()
 
@@ -221,8 +209,6 @@ add_subdirectory(tests)
 # Generate the config header at the end, after we've finished feature probing
 set(AWS_CRYPTOSDK_P_HAVE_LIBPTHREAD ${HAVE_LIBPTHREAD} CACHE INTERNAL "")
 set(AWS_CRYPTOSDK_P_HAVE_LIBRT ${HAVE_LIBRT} CACHE INTERNAL "")
-set(AWS_CRYPTOSDK_P_USE_X86_64_ASM ${USE_X86_64_ASM} CACHE INTERNAL "")
-set(AWS_CRYPTOSDK_P_SPECTRE_MITIGATIONS ${SPECTRE_MITIGATIONS} CACHE INTERNAL "")
 set(AWS_CRYPTOSDK_P_HAVE_BUILTIN_EXPECT ${HAVE_BUILTIN_EXPECT} CACHE INTERNAL "")
 
 configure_file("include/aws/cryptosdk/private/config.h.in"

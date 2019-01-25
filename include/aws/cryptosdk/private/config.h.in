@@ -18,8 +18,6 @@
 
 #cmakedefine AWS_CRYPTOSDK_P_HAVE_LIBPTHREAD
 #cmakedefine AWS_CRYPTOSDK_P_HAVE_LIBRT
-#cmakedefine AWS_CRYPTOSDK_P_USE_X86_64_ASM
-#cmakedefine AWS_CRYPTOSDK_P_SPECTRE_MITIGATIONS
 #cmakedefine AWS_CRYPTOSDK_P_HAVE_BUILTIN_EXPECT
 
 // At cmake configure time we look for the current git revision; if found and
@@ -29,8 +27,6 @@
 #ifdef __CPROVER__
 
 // Disable all compiler, and go to bare C
-#undef AWS_CRYPTOSDK_P_USE_X86_64_ASM
-#undef AWS_CRYPTOSDK_P_SPECTRE_MITIGATIONS
 #undef AWS_CRYPTOSDK_P_HAVE_BUILTIN_EXPECT
 
 #endif
