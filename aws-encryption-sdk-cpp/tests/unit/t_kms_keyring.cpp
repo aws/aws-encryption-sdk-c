@@ -677,29 +677,8 @@ int generateDataKey_kmsFails_returnFailure() {
     return 0;
 }
 
-// exposes protected members
-struct KmsKeyringBuilderExposer : KmsKeyring::Builder {
-   public:
-    using KmsKeyring::Builder::BuildClientSupplier;
-};
-
-int testBuilder_buildClientSupplier_buildsClient() {
-    KmsKeyringBuilderExposer a;
-    TEST_ASSERT(
-        dynamic_cast<KmsKeyring::CachingClientSupplier *>(
-            a.BuildClientSupplier({ "arn:aws:kms:region1:", "arn:aws:kms:region2:" }).get()) != NULL);
-
-    TestValues tv;
-    a.WithKmsClient(tv.kms_client_mock);
-    TEST_ASSERT(
-        dynamic_cast<KmsKeyring::SingleClientSupplier *>(a.BuildClientSupplier({ "arn:aws:kms:region:" }).get()) !=
-        NULL);
-
-    return 0;
-}
-
 int testBuilder_keyWithRegion_valid() {
-    KmsKeyringBuilderExposer a;
+    KmsKeyring::Builder a;
     aws_cryptosdk_keyring *k = a.Build("arn:aws:kms:region_extracted_from_key:");
     TEST_ASSERT_ADDR_NOT_NULL(k);
     aws_cryptosdk_keyring_release(k);
@@ -707,13 +686,13 @@ int testBuilder_keyWithRegion_valid() {
 }
 
 int testBuilder_keyWithoutRegion_invalid() {
-    KmsKeyringBuilderExposer a;
+    KmsKeyring::Builder a;
     TEST_ASSERT_ADDR_NULL(a.Build("alias/foobar"));
     return 0;
 }
 
 int testBuilder_emptyKey_invalid() {
-    KmsKeyringBuilderExposer a;
+    KmsKeyring::Builder a;
     TEST_ASSERT_ADDR_NULL(a.Build(""));
     return 0;
 }
@@ -753,7 +732,6 @@ int main() {
     RUN_TEST(generateDataKey_validInputs_returnSuccess());
     RUN_TEST(generateDataKey_validInputsWithGrantTokensAndEncContext_returnSuccess());
     RUN_TEST(generateDataKey_kmsFails_returnFailure());
-    RUN_TEST(testBuilder_buildClientSupplier_buildsClient());
     RUN_TEST(testBuilder_keyWithRegion_valid());
     RUN_TEST(testBuilder_keyWithoutRegion_invalid());
     RUN_TEST(testBuilder_emptyKey_invalid());

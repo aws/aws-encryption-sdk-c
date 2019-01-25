@@ -144,9 +144,6 @@ class AWS_CRYPTOSDK_CPP_API Builder {
      */
     aws_cryptosdk_keyring *BuildDiscovery() const;
 
-   protected:
-    std::shared_ptr<ClientSupplier> BuildClientSupplier(const Aws::Vector<Aws::String> &key_ids) const;
-
    private:
     std::shared_ptr<KMS::KMSClient> kms_client;
     Aws::Vector<Aws::String> grant_tokens;
