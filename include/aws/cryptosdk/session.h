@@ -20,20 +20,21 @@
 
 /**
  * @defgroup session Session APIs
- * The session is the primary API used to actually perform an encrypt or decrypt operation.
- * After configuring your CMM, you will create a session object, and process your plaintext
- * or ciphertext through this session object in order to encrypt and decrypt.
+ * The session is the primary API that encrypts or decrypts your data.
+ * To encrypt or decrypt data, configure your CMM, create a session object, 
+ * and process your plaintext or ciphertext through this session object.
  *
- * Typically using a session object will proceed through three phases:
+ * Typically using a session object will proceed through the following phases:
  *
- * 1. First, a new session object is created and configured (or an existing one reset and
- *    configured)
- * 2. @ref aws_cryptosdk_session_process is invoked in a loop, providing all of the input plaintext
- *    or ciphertext, and producing some output data
- * 3. After all input data is presented, if encrypting, @ref aws_cryptosdk_session_set_message_size
- *    (if it hasn't been called already) to mark the end of the message
- * 4. @ref aws_cryptosdk_session_process is invoked in a loop with no input data until
- *    @ref aws_cryptosdk_session_is_done returns true, to process or generate trailing data.
+ * 1. Create and configure a session object (or reuse an existing session that you have 
+ *    reset and configured)
+ * 2. Invoke @ref aws_cryptosdk_session_process in a loop that provide all of the input 
+ *    plaintext or ciphertext, and produces some output data
+ * 3. When encrypting, after all input data is consumed, 
+ *    @ref aws_cryptosdk_session_set_message_size (if it hasn't been called already) to 
+ *    mark the end of the message.
+ * 4. To process or generate trailing data, invoke @ref aws_cryptosdk_session_process in 
+ *    a loop with no input data until @ref aws_cryptosdk_session_is_done returns true.
  *
  * Most configuration functions will fail if invoked after the first call to @ref aws_cryptosdk_session_process,
  * as the header is generated (thus committing the session to a particular set of parameters)
