@@ -14,15 +14,14 @@ The only direct dependencies of this code are OpenSSL 1.0.2 or higher or 1.1.0 o
 [aws-c-common](https://github.com/awslabs/aws-c-common) v0.3.0 or higher. You will also need
 a C compiler and CMake 3.9 or higher.
 
-In order to integrate with [KMS](https://aws.amazon.com/kms/) the AWS Encryption SDK for C
-will need as additional dependencies the [AWS SDK for C++](https://github.com/aws/aws-sdk-cpp),
-a C++ compiler, and libcurl.
+To integrate with [KMS](https://aws.amazon.com/kms/) the AWS Encryption SDK for C also requires
+the [AWS SDK for C++](https://github.com/aws/aws-sdk-cpp), a C++ compiler, and libcurl.
 
-For best results when doing a build with KMS integration, do not install aws-c-common directly,
-but simply build and install the AWS SDK for C++, which will build and install aws-c-common for
-you. If you install aws-c-common before building the AWS SDK for C++, this will fool the
-AWS SDK for C++ install logic, and you will be forced to install several other dependencies
-manually. The minimum supported version of the AWS SDK for C++ is 1.7.36.
+For best results when doing a build with KMS integration, do not install aws-c-common directly.
+Build and install the AWS SDK for C++, which will build and install aws-c-common for you. If
+you install aws-c-common before building the AWS SDK for C++, this will fool the AWS SDK for
+C++ install logic, and you will be forced to install several other dependencies manually. The
+minimum supported version of the AWS SDK for C++ is 1.7.36.
 
 You need to compile both the AWS Encryption SDK for C and its dependencies as either all
 shared or all static libraries. We will use all shared library builds in our examples by
@@ -44,8 +43,8 @@ We will demonstrate some simple build recipes for Linux, Mac, and Windows operat
 
 The Linux and Mac recipes install everything in the standard directories in /usr/local. The
 Windows recipe installs everything in an install directory placed at the directory you are in
-when you start the build process. See the Tips and Tricks section at the end to change your
-installation directory if desired.
+when you start the build process. To change the installation directory, if desired, see the Tips
+and Tricks section at the end of this README.
 
 You can do (Option 1) a C and C++ build, which will include integration with KMS, or you can do
 (Option 2) a C only build, which will not include integration with KMS. In places where
@@ -67,11 +66,11 @@ Run the following:
 The yum repo has an old version of CMake, so download CMake 3.9 or later from [their
 website](https://cmake.org/) and make sure cmake is in your path.
 
-Both aws-sdk-cpp and aws-c-common are needed, but the installation of aws-sdk-cpp will handle
-the installation of aws-c-common for you.
+Both aws-sdk-cpp and aws-c-common are required, but the installation of aws-sdk-cpp will install
+aws-c-common for you.
 
 Do a KMS-only build of the AWS SDK for C++. If you want to use the AWS SDK for C++ for
-other AWS services, you can omit the kms argument, but the build will take much longer.
+other AWS services, you can omit the `-DBUILD_ONLY="kms"` argument, but the build will take much longer.
 
     git clone https://github.com/aws/aws-sdk-cpp.git
     mkdir build-aws-sdk-cpp && cd build-aws-sdk-cpp
@@ -118,11 +117,11 @@ you want to do your build.
     sudo apt-get update
     sudo apt-get install -y libssl-dev cmake g++ libcurl4-openssl-dev zlib1g-dev
 
-Both aws-sdk-cpp and aws-c-common are needed, but the installation of aws-sdk-cpp will handle
-the installation of aws-c-common for you.
+Both aws-sdk-cpp and aws-c-common are required, but the installation of aws-sdk-cpp will install
+aws-c-common for you.
 
 Do a KMS-only build of the AWS SDK for C++. If you want to use the AWS SDK for C++ for
-other AWS services, you can omit the kms argument, but the build will take much longer.
+other AWS services, you can omit the `-DBUILD_ONLY="kms"` argument, but the build will take much longer.
 
     git clone https://github.com/aws/aws-sdk-cpp.git
     mkdir build-aws-sdk-cpp && cd build-aws-sdk-cpp
@@ -160,18 +159,18 @@ Once it is set up, run the following:
     brew install openssl@1.1 cmake
 
 (Note: Installing the AWS SDK for C++ through Homebrew does a full build, which
-takes much longer than the KMS-only build. For these reasons we recommend doing a source
+takes much longer than the KMS-only build. For these reasons, we recommend doing a source
 build of the AWS SDK for C++ yourself, as we will demonstrate below.)
 
 Start in the directory where you want to do your build.
 
 #### Mac: (Option 1) C and C++ build dependencies
 
-Both aws-sdk-cpp and aws-c-common are needed, but the installation of aws-sdk-cpp will handle
-the installation of aws-c-common for you.
+Both aws-sdk-cpp and aws-c-common are required, but the installation of aws-sdk-cpp will install
+aws-c-common for you.
 
 Do a KMS-only build of the AWS SDK for C++. If you want to use the AWS SDK for C++ for
-other AWS services, you can omit the kms argument, but the build will take much longer.
+other AWS services, you can omit the `-DBUILD_ONLY="kms"` argument, but the build will take much longer.
 
     git clone https://github.com/aws/aws-sdk-cpp.git
     mkdir build-aws-sdk-cpp && cd build-aws-sdk-cpp
@@ -214,11 +213,11 @@ Run these instructions in the directory where you want to do the build and insta
 
 #### Windows: (Option 1) C and C++ build dependencies
 
-Both aws-sdk-cpp and aws-c-common are needed, but the installation of aws-sdk-cpp will handle
-the installation of aws-c-common for you.
+Both aws-sdk-cpp and aws-c-common are required, but the installation of aws-sdk-cpp will install
+aws-c-common for you.
 
 Do a KMS-only build of the AWS SDK for C++. If you want to use the AWS SDK for C++ for
-other AWS services, you can omit the kms argument, but the build will take much longer.
+other AWS services, you can omit the `-DBUILD_ONLY="kms"` argument, but the build will take much longer.
 
     git clone https://github.com/aws/aws-sdk-cpp.git
     mkdir build-aws-sdk-cpp && cd build-aws-sdk-cpp
