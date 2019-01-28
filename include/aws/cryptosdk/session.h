@@ -21,19 +21,19 @@
 /**
  * @defgroup session Session APIs
  * The session is the primary API that encrypts or decrypts your data.
- * To encrypt or decrypt data, configure your CMM, create a session object, 
+ * To encrypt or decrypt data, configure your CMM, create a session object,
  * and process your plaintext or ciphertext through this session object.
  *
  * Typically using a session object will proceed through the following phases:
  *
- * 1. Create and configure a session object (or reuse an existing session that you have 
+ * 1. Create and configure a session object (or reuse an existing session that you have
  *    reset and configured)
- * 2. Invoke @ref aws_cryptosdk_session_process in a loop that provide all of the input 
+ * 2. Invoke @ref aws_cryptosdk_session_process in a loop that provide all of the input
  *    plaintext or ciphertext, and produces some output data
- * 3. When encrypting, after all input data is consumed, 
- *    @ref aws_cryptosdk_session_set_message_size (if it hasn't been called already) to 
+ * 3. When encrypting, after all input data is consumed,
+ *    @ref aws_cryptosdk_session_set_message_size (if it hasn't been called already) to
  *    mark the end of the message.
- * 4. To process or generate trailing data, invoke @ref aws_cryptosdk_session_process in 
+ * 4. To process or generate trailing data, invoke @ref aws_cryptosdk_session_process in
  *    a loop with no input data until @ref aws_cryptosdk_session_is_done returns true.
  *
  * Most configuration functions will fail if invoked after the first call to @ref aws_cryptosdk_session_process,
