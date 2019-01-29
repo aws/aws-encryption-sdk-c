@@ -123,7 +123,11 @@ struct aws_cryptosdk_cmm *setup_cmm(struct aws_allocator *alloc, const char *key
     struct aws_cryptosdk_materials_cache *cache = aws_cryptosdk_materials_cache_local_new(alloc, 8);
     if (!cache) error("local cache constructor");
 
-    struct aws_cryptosdk_cmm *caching_cmm = aws_cryptosdk_caching_cmm_new(alloc, cache, default_cmm, NULL);
+    /* The final argument of the call to create the caching CMM sets the TTL of data keys in the cache
+     * in nanoseconds. Here we set the TTL to 60 seconds.
+     */
+    struct aws_cryptosdk_cmm *caching_cmm =
+        aws_cryptosdk_caching_cmm_new(alloc, cache, default_cmm, NULL, 60 * 1000000000UL);
     if (!caching_cmm) error("caching CMM constructor");
 
     // The caching_cmm object now holds references (directly or indirectly) to all the other objects;

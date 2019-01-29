@@ -108,7 +108,8 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
     struct aws_allocator *alloc,
     struct aws_cryptosdk_materials_cache *materials_cache,
     struct aws_cryptosdk_cmm *upstream,
-    const struct aws_byte_buf *partition_name) {
+    const struct aws_byte_buf *partition_name,
+    uint64_t cache_limit_ttl_nanoseconds) {
     struct aws_string *partition_id_str = hash_or_generate_partition_id(alloc, partition_name);
 
     if (!partition_id_str) {
@@ -132,7 +133,7 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
 
     cmm->limit_messages = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES;
     cmm->limit_bytes    = UINT64_MAX;
-    cmm->ttl            = UINT64_MAX;
+    cmm->ttl            = cache_limit_ttl_nanoseconds;
 
     return &cmm->base;
 }
