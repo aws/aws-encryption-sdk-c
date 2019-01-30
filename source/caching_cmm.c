@@ -132,7 +132,7 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
     caching_cmm_set_clock(&cmm->base, aws_sys_clock_get_ticks);
 
     cmm->limit_messages = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES;
-    cmm->limit_bytes    = UINT64_MAX;
+    cmm->limit_bytes    = INT64_MAX;
     cmm->ttl            = cache_limit_ttl_nanoseconds;
 
     return &cmm->base;
@@ -158,7 +158,13 @@ int aws_cryptosdk_caching_cmm_set_limits(
                 cmm->limit_messages = new_value;
             }
             break;
-        case AWS_CRYPTOSDK_CACHE_LIMIT_BYTES: cmm->limit_bytes = new_value; break;
+        case AWS_CRYPTOSDK_CACHE_LIMIT_BYTES:
+            if (new_value > INT64_MAX) {
+                cmm->limit_bytes = INT64_MAX;
+            } else {
+                cmm->limit_bytes = new_value;
+            }
+            break;
         case AWS_CRYPTOSDK_CACHE_LIMIT_TTL: cmm->ttl = new_value; break;
         default: return aws_raise_error(AWS_ERROR_UNSUPPORTED_OPERATION);
     }

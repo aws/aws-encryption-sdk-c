@@ -569,12 +569,12 @@ enum aws_cryptosdk_caching_cmm_limit_type {
  * aws_cryptosdk_session_set_message_bound value. If neither function is called before the first call to
  * process, then a cache miss will be forced on encrypt, as the message size is completely unknown.
  *
- * By default, the message count and byte limits are set to their maximum permitted values:
- *   * The message count limit is set to 1 << 32 (AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES)
- *   * The byte count limit is set to UINT64_MAX
- *
  * The TTL limit is first set in the call to aws_cryptosdk_caching_cmm_new. If it is set to the maximum
  * value of UINT64_MAX then entries will never age out of the cache.
+ *
+ * By default, the message count and byte limits are set to their maximum permitted values:
+ *   * The message count limit is set to 1 << 32 (AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES)
+ *   * The byte count limit is set to INT64_MAX (not UINT64_MAX)
  *
  * If you attempt to set a limit to a value higher than the maximum permitted value,
  * it will instead be set to the maximum permitted value.
