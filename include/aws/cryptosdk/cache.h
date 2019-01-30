@@ -35,7 +35,7 @@ AWS_EXTERN_C_BEGIN
  * aws_cryptosdk_materials_cache_local_new) and pass it to the constructor of a
  * caching cmm (@ref aws_cryptosdk_caching_cmm_new), along with a delegate CMM
  * to use on a cache miss. We recommend additionally setting policy limits using
- * @ref aws_cryptosdk_caching_cmm_set_limits to ensure that keys expire and are
+ * @ref aws_cryptosdk_caching_cmm_set_limit to ensure that keys expire and are
  * refreshed periodically.
  *
  * As with CMMs and keyrings, the local cache is reference counted. In simple use
@@ -586,7 +586,7 @@ enum aws_cryptosdk_caching_cmm_limit_type {
  * @param new_value The new value of the limit
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_caching_cmm_set_limits(
+int aws_cryptosdk_caching_cmm_set_limit(
     struct aws_cryptosdk_cmm *cmm, enum aws_cryptosdk_caching_cmm_limit_type type, uint64_t new_value);
 
 AWS_EXTERN_C_END

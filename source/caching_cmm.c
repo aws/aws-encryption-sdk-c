@@ -142,7 +142,7 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
     return &cmm->base;
 }
 
-int aws_cryptosdk_caching_cmm_set_limits(
+int aws_cryptosdk_caching_cmm_set_limit(
     struct aws_cryptosdk_cmm *generic_cmm, enum aws_cryptosdk_caching_cmm_limit_type type, uint64_t new_value) {
     if (generic_cmm->vtable != &caching_cmm_vt) {
         return aws_raise_error(AWS_ERROR_UNSUPPORTED_OPERATION);
