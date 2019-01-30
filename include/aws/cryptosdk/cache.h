@@ -524,7 +524,7 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_materials_cache_release(
  * @param upstream The upstream CMM to query on a cache miss
  * @param partition_id The partition ID to use to avoid collisions with other CMMs. This string need not remain valid
  *                       once this function returns. If NULL, a random partition ID will be generated and used.
- * @param cache_limit_ttl_nanoseconds The amount of time that a data key can be used for in nanoseconds.
+ * @param cache_limit_ttl_nanoseconds The amount of time in nanoseconds that a data key can be used for
  */
 AWS_CRYPTOSDK_API
 struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
@@ -573,11 +573,12 @@ enum aws_cryptosdk_caching_cmm_limit_type {
  * value of UINT64_MAX then entries will never age out of the cache.
  *
  * By default, the message count and byte limits are set to their maximum permitted values:
- *   * The message count limit is set to 1 << 32 (AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES)
- *   * The byte count limit is set to INT64_MAX (not UINT64_MAX)
+ *   * The message count limit is set to 2^32 (AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES)
+ *   * The byte count limit is set to 2^63 - 1 (i.e., INT64_MAX, *not* UINT64_MAX)
  *
- * If you attempt to set a limit to a value higher than the maximum permitted value,
- * it will instead be set to the maximum permitted value.
+ * If you attempt to set a limit to a value greater than the maximum permitted, the limit will instead
+ * be set to the maximum value, and this function will return unsuccessfully with the error code set to
+ * AWS_ERROR_INVALID_ARGUMENT.
  *
  * Parameters:
  * @param cmm The caching CMM to configure.

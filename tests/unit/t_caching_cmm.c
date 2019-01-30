@@ -436,7 +436,9 @@ static int limits_test() {
     // Note that our mock doesn't actually invalidate when asked, so we can continue on
 
     // The caching CMM should clamp the message limit to 1<<32
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limits(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES, UINT64_MAX));
+    TEST_ASSERT_ERROR(
+        AWS_ERROR_INVALID_ARGUMENT,
+        aws_cryptosdk_caching_cmm_set_limits(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES, UINT64_MAX));
     mock_materials_cache->usage_stats.messages_encrypted = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES - 1;
     ASSERT_HIT(true);
     mock_materials_cache->usage_stats.messages_encrypted = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES;
@@ -446,7 +448,9 @@ static int limits_test() {
     mock_materials_cache->usage_stats.messages_encrypted = 0;
 
     // actually sets limit to INT64_MAX
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limits(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_BYTES, UINT64_MAX));
+    TEST_ASSERT_ERROR(
+        AWS_ERROR_INVALID_ARGUMENT,
+        aws_cryptosdk_caching_cmm_set_limits(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_BYTES, UINT64_MAX));
     request.plaintext_size                            = 100;
     mock_materials_cache->usage_stats.bytes_encrypted = INT64_MAX - 100;
     ASSERT_HIT(true);
@@ -482,7 +486,7 @@ static int limits_test() {
     // or setting TTLs
     TEST_ASSERT(!mock_clock_queried);
     TEST_ASSERT_INT_EQ(mock_materials_cache->entry_ttl_hint, 0x424242);
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limits(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_BYTES, UINT64_MAX));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limits(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_BYTES, INT64_MAX));
     TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limits(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_TTL, 10000));
     mock_materials_cache->usage_stats.bytes_encrypted = 0;
 
@@ -1135,6 +1139,30 @@ static int message_bound_error_code() {
     return 0;
 }
 
+static int disallowed_limits() {
+    setup_mocks();
+
+    aws_reset_error();
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
+        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, 0);
+    TEST_ASSERT_ADDR_NULL(cmm);
+    TEST_ASSERT_INT_EQ(aws_last_error(), AWS_ERROR_INVALID_ARGUMENT);
+
+    cmm = aws_cryptosdk_caching_cmm_new(
+        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, UINT64_MAX);
+    TEST_ASSERT_ADDR_NOT_NULL(cmm);
+
+    TEST_ASSERT_ERROR(
+        AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_limits(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_TTL, 0));
+
+    TEST_ASSERT_ERROR(
+        AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_limits(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES, 0));
+
+    aws_cryptosdk_cmm_release(cmm);
+    teardown();
+    return 0;
+}
+
 #define TEST_CASE(name) \
     { "caching_cmm", #name, name }
 struct test_case caching_cmm_test_cases[] = { TEST_CASE(create_destroy),
@@ -1153,6 +1181,7 @@ struct test_case caching_cmm_test_cases[] = { TEST_CASE(create_destroy),
                                               TEST_CASE(two_different_static_partition_ids_dont_match),
                                               TEST_CASE(set_message_bound_with_caching_cmm),
                                               TEST_CASE(message_bound_error_code),
+                                              TEST_CASE(disallowed_limits),
                                               { NULL } };
 
 // TEST TODO: Threadstorm

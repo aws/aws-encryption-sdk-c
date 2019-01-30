@@ -110,6 +110,10 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
     struct aws_cryptosdk_cmm *upstream,
     const struct aws_byte_buf *partition_name,
     uint64_t cache_limit_ttl_nanoseconds) {
+    if (!cache_limit_ttl_nanoseconds) {
+        aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
+        return NULL;
+    }
     struct aws_string *partition_id_str = hash_or_generate_partition_id(alloc, partition_name);
 
     if (!partition_id_str) {
@@ -147,13 +151,14 @@ int aws_cryptosdk_caching_cmm_set_limits(
     struct caching_cmm *cmm = AWS_CONTAINER_OF(generic_cmm, struct caching_cmm, base);
 
     if (new_value == 0) {
-        return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
+        return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
     }
 
     switch (type) {
         case AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES:
             if (new_value > AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES) {
                 cmm->limit_messages = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES;
+                return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
             } else {
                 cmm->limit_messages = new_value;
             }
@@ -161,6 +166,7 @@ int aws_cryptosdk_caching_cmm_set_limits(
         case AWS_CRYPTOSDK_CACHE_LIMIT_BYTES:
             if (new_value > INT64_MAX) {
                 cmm->limit_bytes = INT64_MAX;
+                return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
             } else {
                 cmm->limit_bytes = new_value;
             }
