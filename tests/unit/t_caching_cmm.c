@@ -444,6 +444,17 @@ static int limits_test() {
 
     // Byte limits next
     mock_materials_cache->usage_stats.messages_encrypted = 0;
+
+    // actually sets limit to INT64_MAX
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limits(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_BYTES, UINT64_MAX));
+    request.plaintext_size                            = 100;
+    mock_materials_cache->usage_stats.bytes_encrypted = INT64_MAX - 100;
+    ASSERT_HIT(true);
+
+    request.plaintext_size                            = 101;
+    mock_materials_cache->usage_stats.bytes_encrypted = INT64_MAX - 100;
+    ASSERT_HIT(false);
+
     TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limits(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_BYTES, 1000));
 
     request.plaintext_size                            = 250;
@@ -518,6 +529,68 @@ static int limits_test() {
     mock_materials_cache->entry_ttl_hint = 0x424242;
     ASSERT_HIT(true);
     TEST_ASSERT_INT_EQ(mock_materials_cache->entry_ttl_hint, 0x424242);
+
+    aws_cryptosdk_cmm_release(cmm);
+    aws_cryptosdk_enc_ctx_clean_up(&req_context);
+    teardown();
+
+    return 0;
+}
+
+static int ttl_limit_set_in_constructor_test() {
+    setup_mocks();
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
+        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, 10000);
+
+    struct aws_hash_table req_context;
+    aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &req_context);
+
+    struct aws_cryptosdk_enc_request request;
+    request.alloc          = aws_default_allocator();
+    request.requested_alg  = 0;
+    request.plaintext_size = 32768;
+
+    bool was_hit;
+    struct aws_cryptosdk_cache_usage_stats usage = { 1, 1 };
+
+    caching_cmm_set_clock(cmm, mock_clock_get_ticks);
+    ASSERT_HIT(false);
+
+    mock_materials_cache->usage_stats.bytes_encrypted = 0;
+
+    mock_clock_time                           = 100;
+    mock_materials_cache->entry_creation_time = 1;
+    ASSERT_HIT(true);
+    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
+    TEST_ASSERT(!mock_materials_cache->invalidated);
+
+    mock_clock_time                      = 200;
+    mock_materials_cache->entry_ttl_hint = 0;
+    ASSERT_HIT(true);
+    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
+    TEST_ASSERT(!mock_materials_cache->invalidated);
+
+    mock_clock_time                      = 10000;
+    mock_materials_cache->entry_ttl_hint = 0;
+    ASSERT_HIT(true);
+    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
+    TEST_ASSERT(!mock_materials_cache->invalidated);
+
+    mock_materials_cache->entry_ttl_hint = 0;
+    mock_clock_time                      = 10001;
+    ASSERT_HIT(false);
+    TEST_ASSERT(mock_materials_cache->invalidated);
+    // At this point our mock clock time is 10001, and we had a cache miss.
+    // We'd expect that, since our TTL is 10000, we should get a TTL hint of
+    // 20001; however, the mock_materials_cache's entry creation time is still set
+    // to 1 (even after the miss, because the mock cache doesn't know about our
+    // fake clock), so the TTL hint ends up being 10001.
+    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
+
+    mock_materials_cache->entry_creation_time = 1;
+    mock_clock_time                           = 10002;
+    ASSERT_HIT(false);
+    TEST_ASSERT(mock_materials_cache->invalidated);
 
     aws_cryptosdk_cmm_release(cmm);
     aws_cryptosdk_enc_ctx_clean_up(&req_context);
@@ -1070,6 +1143,7 @@ struct test_case caching_cmm_test_cases[] = { TEST_CASE(create_destroy),
                                               TEST_CASE(enc_cache_id_test_vecs),
                                               TEST_CASE(enc_cache_hit),
                                               TEST_CASE(limits_test),
+                                              TEST_CASE(ttl_limit_set_in_constructor_test),
                                               TEST_CASE(dec_cache_id_test_vecs),
                                               TEST_CASE(dec_materials),
                                               TEST_CASE(cache_miss_failed_put),
