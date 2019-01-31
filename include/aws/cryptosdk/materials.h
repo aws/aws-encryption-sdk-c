@@ -291,7 +291,7 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_private_refcount_up(struct aws_at
 
 /**
  * Virtual tables for CMM and keyring. Any implementation should declare a static instance of
- * this, andpass it to @ref aws_cryptosdk_cmm_base_init to initiailze the base struct
+ * this, and pass it to @ref aws_cryptosdk_cmm_base_init to initialize the base struct
  */
 struct aws_cryptosdk_cmm_vt {
     /**
