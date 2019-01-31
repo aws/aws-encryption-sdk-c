@@ -150,7 +150,7 @@ int aws_cryptosdk_caching_cmm_set_limit(
 
     struct caching_cmm *cmm = AWS_CONTAINER_OF(generic_cmm, struct caching_cmm, base);
 
-    if (new_value == 0) {
+    if (new_value == 0 && type != AWS_CRYPTOSDK_CACHE_LIMIT_BYTES) {
         return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
     }
 
@@ -468,7 +468,7 @@ static int generate_enc_materials(
      * to safely process the result, and should also bypass the cache.
      */
 
-    if (delta_usage.bytes_encrypted >= cmm->limit_bytes ||
+    if (delta_usage.bytes_encrypted > cmm->limit_bytes ||
         (request->requested_alg && !can_cache_algorithm(request->requested_alg))) {
         return aws_cryptosdk_cmm_generate_enc_materials(cmm->upstream, output, request);
     }
@@ -497,7 +497,7 @@ static int generate_enc_materials(
         goto cache_miss;
     }
 
-    if (stats.bytes_encrypted == cmm->limit_bytes || stats.messages_encrypted == cmm->limit_messages) {
+    if (stats.messages_encrypted == cmm->limit_messages) {
         should_invalidate = true;
     }
 
