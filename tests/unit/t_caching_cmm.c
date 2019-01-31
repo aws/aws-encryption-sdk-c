@@ -468,8 +468,10 @@ static int limits_test() {
     request.plaintext_size                            = 500;
     mock_materials_cache->usage_stats.bytes_encrypted = 500;
     ASSERT_HIT(true);
-    // Request should have invalidated this entry, but still hit
-    TEST_ASSERT(mock_materials_cache->invalidated);
+
+    // Requests that hit the byte limit exactly do not invalidate the cache entry
+    // so that it may be reused for 0 length encryptions
+    TEST_ASSERT(!mock_materials_cache->invalidated);
 
     request.plaintext_size                            = 501;
     mock_materials_cache->usage_stats.bytes_encrypted = 500;
@@ -595,6 +597,41 @@ static int ttl_limit_set_in_constructor_test() {
     mock_clock_time                           = 10002;
     ASSERT_HIT(false);
     TEST_ASSERT(mock_materials_cache->invalidated);
+
+    aws_cryptosdk_cmm_release(cmm);
+    aws_cryptosdk_enc_ctx_clean_up(&req_context);
+    teardown();
+
+    return 0;
+}
+
+static int zero_byte_limit_zero_length_messages() {
+    setup_mocks();
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
+        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, UINT64_MAX);
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_BYTES, 0));
+
+    struct aws_hash_table req_context;
+    aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &req_context);
+
+    struct aws_cryptosdk_enc_request request;
+    request.alloc          = aws_default_allocator();
+    request.requested_alg  = 0;
+    request.plaintext_size = 0;
+
+    bool was_hit;
+    struct aws_cryptosdk_cache_usage_stats usage = { 1, 1 };
+
+    ASSERT_HIT(false);
+
+    // we verify that we can encrypt zero length messages a bunch of times with no cache misses
+    for (int i = 0; i < 5; ++i) {
+        ASSERT_HIT(true);
+    }
+
+    request.plaintext_size = 1;
+    ASSERT_HIT(false);
 
     aws_cryptosdk_cmm_release(cmm);
     aws_cryptosdk_enc_ctx_clean_up(&req_context);
@@ -1043,13 +1080,19 @@ static int process_loop(
         total_input_read += input_read;
 
         if (total_input_read == input_len && set_message_size) {
-            TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_message_size(session, 100));
+            TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_message_size(session, input_len));
             set_message_size = false;
         }
 
         if (aws_cryptosdk_session_is_done(session)) break;
 
         aws_cryptosdk_session_estimate_buf(session, &output_needed, &input_window);
+        if (input_window > input_len - total_input_read) {
+            /* There are some scenarios where our input estimates are larger than needed.
+             * If that happens, we shrink the input window to the rest of the buffer.
+             */
+            input_window = input_len - total_input_read;
+        }
 
         size_t output_size_needed = output_needed + total_output_written;
         if (output_size < output_size_needed) {
@@ -1172,6 +1215,7 @@ struct test_case caching_cmm_test_cases[] = { TEST_CASE(create_destroy),
                                               TEST_CASE(enc_cache_hit),
                                               TEST_CASE(limits_test),
                                               TEST_CASE(ttl_limit_set_in_constructor_test),
+                                              TEST_CASE(zero_byte_limit_zero_length_messages),
                                               TEST_CASE(dec_cache_id_test_vecs),
                                               TEST_CASE(dec_materials),
                                               TEST_CASE(cache_miss_failed_put),
