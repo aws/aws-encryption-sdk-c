@@ -150,13 +150,11 @@ int aws_cryptosdk_caching_cmm_set_limit(
 
     struct caching_cmm *cmm = AWS_CONTAINER_OF(generic_cmm, struct caching_cmm, base);
 
-    if (new_value == 0) {
-        return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
-    }
-
     switch (type) {
         case AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES:
-            if (new_value > AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES) {
+            if (new_value == 0) {
+                return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
+            } else if (new_value > AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES) {
                 cmm->limit_messages = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES;
                 return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
             } else {
@@ -171,7 +169,13 @@ int aws_cryptosdk_caching_cmm_set_limit(
                 cmm->limit_bytes = new_value;
             }
             break;
-        case AWS_CRYPTOSDK_CACHE_LIMIT_TTL: cmm->ttl = new_value; break;
+        case AWS_CRYPTOSDK_CACHE_LIMIT_TTL:
+            if (new_value == 0) {
+                return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
+            } else {
+                cmm->ttl = new_value;
+            }
+            break;
         default: return aws_raise_error(AWS_ERROR_UNSUPPORTED_OPERATION);
     }
 
@@ -468,7 +472,7 @@ static int generate_enc_materials(
      * to safely process the result, and should also bypass the cache.
      */
 
-    if (delta_usage.bytes_encrypted >= cmm->limit_bytes ||
+    if (delta_usage.bytes_encrypted > cmm->limit_bytes ||
         (request->requested_alg && !can_cache_algorithm(request->requested_alg))) {
         return aws_cryptosdk_cmm_generate_enc_materials(cmm->upstream, output, request);
     }
@@ -497,7 +501,12 @@ static int generate_enc_materials(
         goto cache_miss;
     }
 
-    if (stats.bytes_encrypted == cmm->limit_bytes || stats.messages_encrypted == cmm->limit_messages) {
+    /* If the current message exactly hits the message limit, reuse the data key this time but
+     * immediately invalidate it from the cache. If the current message exactly hits the byte
+     * limit, we do not invalidate the data key, because we are allowed to reuse it for zero
+     * byte length messages.
+     */
+    if (stats.messages_encrypted == cmm->limit_messages) {
         should_invalidate = true;
     }
 
