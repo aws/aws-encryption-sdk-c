@@ -497,6 +497,11 @@ static int generate_enc_materials(
         goto cache_miss;
     }
 
+    /* If the current message exactly hits the message limit, reuse the data key this time but
+     * immediately invalidate it from the cache. If the current message exactly hits the byte
+     * limit, we do not invalidate the data key, because we are allowed to reuse it for zero
+     * byte length messages.
+     */
     if (stats.messages_encrypted == cmm->limit_messages) {
         should_invalidate = true;
     }
