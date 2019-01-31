@@ -150,13 +150,11 @@ int aws_cryptosdk_caching_cmm_set_limit(
 
     struct caching_cmm *cmm = AWS_CONTAINER_OF(generic_cmm, struct caching_cmm, base);
 
-    if (new_value == 0 && type != AWS_CRYPTOSDK_CACHE_LIMIT_BYTES) {
-        return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
-    }
-
     switch (type) {
         case AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES:
-            if (new_value > AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES) {
+            if (new_value == 0) {
+                return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
+            } else if (new_value > AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES) {
                 cmm->limit_messages = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES;
                 return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
             } else {
@@ -171,7 +169,13 @@ int aws_cryptosdk_caching_cmm_set_limit(
                 cmm->limit_bytes = new_value;
             }
             break;
-        case AWS_CRYPTOSDK_CACHE_LIMIT_TTL: cmm->ttl = new_value; break;
+        case AWS_CRYPTOSDK_CACHE_LIMIT_TTL:
+            if (new_value == 0) {
+                return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
+            } else {
+                cmm->ttl = new_value;
+            }
+            break;
         default: return aws_raise_error(AWS_ERROR_UNSUPPORTED_OPERATION);
     }
 

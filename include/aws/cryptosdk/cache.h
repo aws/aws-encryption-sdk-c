@@ -557,7 +557,7 @@ enum aws_cryptosdk_caching_cmm_limit_type {
 };
 
 /**
- * Configures the usage limis for cached entries when used via this CMM.
+ * Configures the usage limits for cached entries when used via this CMM.
  *
  * The caching CMM can be configured to limit cache entry usage by number of messages encrypted,
  * number of bytes encrypted, and/or by the maximum time to live in the cache. For decrypt operations,
