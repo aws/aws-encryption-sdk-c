@@ -448,7 +448,7 @@ static int limits_test() {
     ASSERT_HIT(true);
 
     // If we set a message use limit, we'll expire after we hit the limit
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES, 4));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit_messages(cmm, 4));
     mock_materials_cache->usage_stats.messages_encrypted = 2;
     ASSERT_HIT(true);
     TEST_ASSERT(!mock_materials_cache->invalidated);
@@ -461,9 +461,7 @@ static int limits_test() {
     // Note that our mock doesn't actually invalidate when asked, so we can continue on
 
     // The caching CMM should clamp the message limit to 1<<32
-    TEST_ASSERT_ERROR(
-        AWS_ERROR_INVALID_ARGUMENT,
-        aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES, UINT64_MAX));
+    TEST_ASSERT_ERROR(AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_limit_messages(cmm, UINT64_MAX));
     mock_materials_cache->usage_stats.messages_encrypted = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES - 1;
     ASSERT_HIT(true);
     mock_materials_cache->usage_stats.messages_encrypted = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES;
@@ -473,9 +471,7 @@ static int limits_test() {
     mock_materials_cache->usage_stats.messages_encrypted = 0;
 
     // actually sets limit to INT64_MAX
-    TEST_ASSERT_ERROR(
-        AWS_ERROR_INVALID_ARGUMENT,
-        aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_BYTES, UINT64_MAX));
+    TEST_ASSERT_ERROR(AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_limit_bytes(cmm, UINT64_MAX));
     request.plaintext_size                            = 100;
     mock_materials_cache->usage_stats.bytes_encrypted = INT64_MAX - 100;
     ASSERT_HIT(true);
@@ -484,7 +480,7 @@ static int limits_test() {
     mock_materials_cache->usage_stats.bytes_encrypted = INT64_MAX - 100;
     ASSERT_HIT(false);
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_BYTES, 1000));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit_bytes(cmm, 1000));
 
     request.plaintext_size                            = 250;
     mock_materials_cache->usage_stats.bytes_encrypted = 250;
@@ -513,8 +509,8 @@ static int limits_test() {
     // or setting TTLs
     TEST_ASSERT(!mock_clock_queried);
     TEST_ASSERT_INT_EQ(mock_materials_cache->entry_ttl_hint, 0x424242);
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_BYTES, INT64_MAX));
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_TTL_NANOS, 10000));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit_bytes(cmm, INT64_MAX));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_ttl(cmm, 10000, AWS_TIMESTAMP_NANOS));
     mock_materials_cache->usage_stats.bytes_encrypted = 0;
 
     mock_clock_time                           = 100;
@@ -554,8 +550,7 @@ static int limits_test() {
     // If someone sets a really big timeout, and the expiration overflows, we shouldn't
     // expire.
     mock_materials_cache->entry_creation_time = (uint64_t)0xE << 60;  // 0xE000....ULL
-    TEST_ASSERT_SUCCESS(
-        aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_TTL_NANOS, (uint64_t)0x2 << 60));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_ttl(cmm, (uint64_t)0x2 << 60, AWS_TIMESTAMP_NANOS));
     mock_clock_time = 2;
 
     mock_materials_cache->entry_ttl_hint = 0x424242;
@@ -646,7 +641,7 @@ static int zero_byte_limit_zero_length_messages() {
         UINT64_MAX,
         AWS_TIMESTAMP_NANOS);
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_BYTES, 0));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit_bytes(cmm, 0));
 
     struct aws_hash_table req_context;
     aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &req_context);
@@ -835,7 +830,7 @@ static int dec_materials() {
     TEST_ASSERT_ADDR_NULL(mock_upstream_cmm->last_dec_request);
 
     /* Hit; TTL OK */
-    aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_TTL_NANOS, 100);
+    aws_cryptosdk_caching_cmm_set_ttl(cmm, 100, AWS_TIMESTAMP_NANOS);
     mock_clock_time = 99;
     aws_cryptosdk_dec_materials_destroy(hit_materials);
 
@@ -1284,17 +1279,23 @@ static int disallowed_limits() {
         AWS_TIMESTAMP_SECS);
     TEST_ASSERT_ADDR_NOT_NULL(cmm);
 
-    TEST_ASSERT_ERROR(
-        AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_TTL_SECS, 0));
-    TEST_ASSERT_ERROR(
-        AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_TTL_MILLIS, 0));
-    TEST_ASSERT_ERROR(
-        AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_TTL_MICROS, 0));
-    TEST_ASSERT_ERROR(
-        AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_TTL_NANOS, 0));
+    TEST_ASSERT_ERROR(AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_ttl(cmm, 0, AWS_TIMESTAMP_SECS));
+    TEST_ASSERT_ERROR(AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_ttl(cmm, 0, AWS_TIMESTAMP_MILLIS));
+    TEST_ASSERT_ERROR(AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_ttl(cmm, 0, AWS_TIMESTAMP_MICROS));
+    TEST_ASSERT_ERROR(AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_ttl(cmm, 0, AWS_TIMESTAMP_NANOS));
+
+    TEST_ASSERT_ERROR(AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_limit_messages(cmm, 0));
 
     TEST_ASSERT_ERROR(
-        AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES, 0));
+        AWS_ERROR_INVALID_ARGUMENT,
+        aws_cryptosdk_caching_cmm_set_limit_messages(cmm, AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES + 1));
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit_messages(cmm, AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES));
+
+    TEST_ASSERT_ERROR(
+        AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_limit_bytes(cmm, (uint64_t)INT64_MAX + 1));
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit_bytes(cmm, INT64_MAX));
 
     aws_cryptosdk_cmm_release(cmm);
     teardown();
