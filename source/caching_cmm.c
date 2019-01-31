@@ -30,7 +30,7 @@ struct caching_cmm {
 
     int (*clock_get_ticks)(uint64_t *now);
 
-    uint64_t limit_messages, limit_bytes, ttl;
+    uint64_t limit_messages, limit_bytes, ttl_nanos;
 };
 
 static void destroy_caching_cmm(struct aws_cryptosdk_cmm *generic_cmm);
@@ -104,16 +104,28 @@ void caching_cmm_set_clock(struct aws_cryptosdk_cmm *generic_cmm, int (*clock_ge
     cmm->clock_get_ticks = clock_get_ticks;
 }
 
+static inline void set_cache_limit_ttl(
+    struct caching_cmm *cmm, uint64_t cache_limit_ttl, enum aws_timestamp_unit cache_limit_ttl_units) {
+    if (cache_limit_ttl == UINT64_MAX) {
+        // special case: UINT64_MAX means no time limit in cache, regardless of units specified
+        cmm->ttl_nanos = UINT64_MAX;
+    } else {
+        cmm->ttl_nanos = aws_timestamp_convert(cache_limit_ttl, cache_limit_ttl_units, AWS_TIMESTAMP_NANOS, NULL);
+    }
+}
+
 struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
     struct aws_allocator *alloc,
     struct aws_cryptosdk_materials_cache *materials_cache,
     struct aws_cryptosdk_cmm *upstream,
     const struct aws_byte_buf *partition_name,
-    uint64_t cache_limit_ttl_nanoseconds) {
-    if (!cache_limit_ttl_nanoseconds) {
+    uint64_t cache_limit_ttl,
+    enum aws_timestamp_unit cache_limit_ttl_units) {
+    if (!cache_limit_ttl) {
         aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
         return NULL;
     }
+
     struct aws_string *partition_id_str = hash_or_generate_partition_id(alloc, partition_name);
 
     if (!partition_id_str) {
@@ -137,9 +149,18 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
 
     cmm->limit_messages = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES;
     cmm->limit_bytes    = INT64_MAX;
-    cmm->ttl            = cache_limit_ttl_nanoseconds;
-
+    set_cache_limit_ttl(cmm, cache_limit_ttl, cache_limit_ttl_units);
     return &cmm->base;
+}
+
+static inline enum aws_timestamp_unit limit_type_to_timestamp_unit(enum aws_cryptosdk_caching_cmm_limit_type type) {
+    switch (type) {
+        case AWS_CRYPTOSDK_CACHE_LIMIT_TTL_SECS: return AWS_TIMESTAMP_SECS;
+        case AWS_CRYPTOSDK_CACHE_LIMIT_TTL_MILLIS: return AWS_TIMESTAMP_MILLIS;
+        case AWS_CRYPTOSDK_CACHE_LIMIT_TTL_MICROS: return AWS_TIMESTAMP_MICROS;
+        case AWS_CRYPTOSDK_CACHE_LIMIT_TTL_NANOS: return AWS_TIMESTAMP_NANOS;
+        default: abort();
+    }
 }
 
 int aws_cryptosdk_caching_cmm_set_limit(
@@ -169,11 +190,14 @@ int aws_cryptosdk_caching_cmm_set_limit(
                 cmm->limit_bytes = new_value;
             }
             break;
-        case AWS_CRYPTOSDK_CACHE_LIMIT_TTL:
+        case AWS_CRYPTOSDK_CACHE_LIMIT_TTL_SECS:
+        case AWS_CRYPTOSDK_CACHE_LIMIT_TTL_MILLIS:
+        case AWS_CRYPTOSDK_CACHE_LIMIT_TTL_MICROS:
+        case AWS_CRYPTOSDK_CACHE_LIMIT_TTL_NANOS:
             if (new_value == 0) {
                 return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
             } else {
-                cmm->ttl = new_value;
+                set_cache_limit_ttl(cmm, new_value, limit_type_to_timestamp_unit(type));
             }
             break;
         default: return aws_raise_error(AWS_ERROR_UNSUPPORTED_OPERATION);
@@ -187,13 +211,13 @@ int aws_cryptosdk_caching_cmm_set_limit(
  * Additionally, sets the TTL hint on the entry if it has not expired.
  */
 static bool check_ttl(struct caching_cmm *cmm, struct aws_cryptosdk_materials_cache_entry *entry) {
-    if (cmm->ttl == UINT64_MAX) {
+    if (cmm->ttl_nanos == UINT64_MAX) {
         /* Entries never expire, because their expiration time is beyond the maximum time we can represent */
         return true;
     }
 
     uint64_t creation_time = aws_cryptosdk_materials_cache_entry_get_creation_time(cmm->materials_cache, entry);
-    uint64_t expiration    = creation_time + cmm->ttl;
+    uint64_t expiration    = creation_time + cmm->ttl_nanos;
     uint64_t now;
 
     if (expiration < creation_time) {
@@ -441,9 +465,9 @@ err:
 }
 
 static void set_ttl_on_miss(struct caching_cmm *cmm, struct aws_cryptosdk_materials_cache_entry *entry) {
-    if (entry && cmm->ttl != UINT64_MAX) {
+    if (entry && cmm->ttl_nanos != UINT64_MAX) {
         uint64_t creation_time = aws_cryptosdk_materials_cache_entry_get_creation_time(cmm->materials_cache, entry);
-        uint64_t exp_time      = creation_time + cmm->ttl;
+        uint64_t exp_time      = creation_time + cmm->ttl_nanos;
 
         if (exp_time > creation_time) {
             aws_cryptosdk_materials_cache_entry_ttl_hint(cmm->materials_cache, entry, exp_time);

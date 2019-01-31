@@ -524,7 +524,9 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_materials_cache_release(
  * @param upstream The upstream CMM to query on a cache miss
  * @param partition_id The partition ID to use to avoid collisions with other CMMs. This string need not remain valid
  *                       once this function returns. If NULL, a random partition ID will be generated and used.
- * @param cache_limit_ttl_nanoseconds The amount of time in nanoseconds that a data key can be used for
+ * @param cache_limit_ttl The amount of time that a data key can be used for. Setting this to UINT64_MAX
+ *                        puts no time limit on data key reuse, regardless of the units specified.
+ * @param cache_limit_ttl_units The units of cache_limit_ttl. Allowable values are defined in aws/common/clock.h
  */
 AWS_CRYPTOSDK_API
 struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
@@ -532,7 +534,8 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
     struct aws_cryptosdk_materials_cache *materials_cache,
     struct aws_cryptosdk_cmm *upstream,
     const struct aws_byte_buf *partition_id,
-    uint64_t cache_limit_ttl_nanoseconds);
+    uint64_t cache_limit_ttl,
+    enum aws_timestamp_unit cache_limit_ttl_units);
 
 enum aws_cryptosdk_caching_cmm_limit_type {
     /**
@@ -546,6 +549,33 @@ enum aws_cryptosdk_caching_cmm_limit_type {
      */
     AWS_CRYPTOSDK_CACHE_LIMIT_BYTES,
     /**
+     * Limits the amount of time that a data key can be used for, in seconds.
+     *
+     * Note that we make a best-effort attempt to remove the data key from memory
+     * after expiration, but this is not guaranteed - in particular, because we do
+     * not currently create a cleanup thread, if no calls are made to the cache, no
+     * cache cleanup will take place.
+     */
+    AWS_CRYPTOSDK_CACHE_LIMIT_TTL_SECS,
+    /**
+     * Limits the amount of time that a data key can be used for, in milliseconds.
+     *
+     * Note that we make a best-effort attempt to remove the data key from memory
+     * after expiration, but this is not guaranteed - in particular, because we do
+     * not currently create a cleanup thread, if no calls are made to the cache, no
+     * cache cleanup will take place.
+     */
+    AWS_CRYPTOSDK_CACHE_LIMIT_TTL_MILLIS,
+    /**
+     * Limits the amount of time that a data key can be used for, in microseconds.
+     *
+     * Note that we make a best-effort attempt to remove the data key from memory
+     * after expiration, but this is not guaranteed - in particular, because we do
+     * not currently create a cleanup thread, if no calls are made to the cache, no
+     * cache cleanup will take place.
+     */
+    AWS_CRYPTOSDK_CACHE_LIMIT_TTL_MICROS,
+    /**
      * Limits the amount of time that a data key can be used for, in nanoseconds.
      *
      * Note that we make a best-effort attempt to remove the data key from memory
@@ -553,7 +583,7 @@ enum aws_cryptosdk_caching_cmm_limit_type {
      * not currently create a cleanup thread, if no calls are made to the cache, no
      * cache cleanup will take place.
      */
-    AWS_CRYPTOSDK_CACHE_LIMIT_TTL
+    AWS_CRYPTOSDK_CACHE_LIMIT_TTL_NANOS
 };
 
 /**
@@ -570,7 +600,7 @@ enum aws_cryptosdk_caching_cmm_limit_type {
  * process, then a cache miss will be forced on encrypt, as the message size is completely unknown.
  *
  * The TTL limit is first set in the call to aws_cryptosdk_caching_cmm_new. If it is set to the maximum
- * value of UINT64_MAX then entries will never age out of the cache.
+ * value of UINT64_MAX, regardless of the units specified, then entries will never age out of the cache.
  *
  * By default, the message count and byte limits are set to their maximum permitted values:
  *   * The message count limit is set to 2^32 (AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES)
