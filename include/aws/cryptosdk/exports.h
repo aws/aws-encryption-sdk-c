@@ -34,7 +34,7 @@
 #        define AWS_CRYPTOSDK_API
 #    endif  // USE_IMPORT_EXPORT
 
-#else /* defined (USE_WINDOWS_DLL_SEMANTICS) || defined (WIN32) */
+#else /* defined (WIN32) */
 
 #    if ((__GNUC__ >= 4) || defined(__clang__)) && defined(AWS_ENCRYPTION_SDK_EXPORTS)
 #        define AWS_CRYPTOSDK_API __attribute__((visibility("default")))
@@ -42,7 +42,7 @@
 #        define AWS_CRYPTOSDK_API
 #    endif /* __GNUC__ >= 4 || defined(__clang__) */
 
-#endif /* defined (USE_WINDOWS_DLL_SEMANTICS) || defined (WIN32) */
+#endif /* defined (WIN32) */
 
 /*
  * We'd like for certain functions to be inlinable in consuming code,
