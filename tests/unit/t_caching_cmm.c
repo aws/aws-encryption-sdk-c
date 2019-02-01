@@ -589,7 +589,7 @@ static int ttl_test() {
         TEST_ASSERT(mock_materials_cache->invalidated);
         // At this point our mock clock time is 10000000000001, and we had a cache miss.
         // We'd expect that, since our TTL is 10000000000000, we should get a TTL hint of
-        // 20001; however, the mock_materials_cache's entry creation time is still set
+        // 20000000000001; however, the mock_materials_cache's entry creation time is still set
         // to 1 (even after the miss, because the mock cache doesn't know about our
         // fake clock), so the TTL hint ends up being 10000000000001.
         TEST_ASSERT_INT_EQ(10000 * ONE_BILLION + 1, mock_materials_cache->entry_ttl_hint);
