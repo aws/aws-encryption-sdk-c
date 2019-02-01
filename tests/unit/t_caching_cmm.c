@@ -415,8 +415,9 @@ void caching_cmm_set_clock(struct aws_cryptosdk_cmm *generic_cmm, int (*clock_ge
         TEST_ASSERT_INT_EQ(should_hit, was_hit);            \
     } while (0)
 
-static int limits_test() {
+static int byte_and_message_limits_test() {
     setup_mocks();
+
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
         aws_default_allocator(),
         &mock_materials_cache->base,
@@ -502,57 +503,9 @@ static int limits_test() {
     ASSERT_HIT(false);
     TEST_ASSERT(mock_materials_cache->invalidated);
 
-    // TTL limits
     // Since we had no limit set until now, the CMM should not have been querying the clock
     // or setting TTLs
     TEST_ASSERT(!mock_clock_queried);
-    TEST_ASSERT_INT_EQ(mock_materials_cache->entry_ttl_hint, 0x424242);
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit_bytes(cmm, INT64_MAX));
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_ttl(cmm, 10000, AWS_TIMESTAMP_NANOS));
-    mock_materials_cache->usage_stats.bytes_encrypted = 0;
-
-    mock_clock_time                           = 100;
-    mock_materials_cache->entry_creation_time = 1;
-    ASSERT_HIT(true);
-    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
-    TEST_ASSERT(!mock_materials_cache->invalidated);
-
-    mock_clock_time                      = 200;
-    mock_materials_cache->entry_ttl_hint = 0;
-    ASSERT_HIT(true);
-    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
-    TEST_ASSERT(!mock_materials_cache->invalidated);
-
-    mock_clock_time                      = 10000;
-    mock_materials_cache->entry_ttl_hint = 0;
-    ASSERT_HIT(true);
-    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
-    TEST_ASSERT(!mock_materials_cache->invalidated);
-
-    mock_materials_cache->entry_ttl_hint = 0;
-    mock_clock_time                      = 10001;
-    ASSERT_HIT(false);
-    TEST_ASSERT(mock_materials_cache->invalidated);
-    // At this point our mock clock time is 10001, and we had a cache miss.
-    // We'd expect that, since our TTL is 10000, we should get a TTL hint of
-    // 20001; however, the mock_materials_cache's entry creation time is still set
-    // to 1 (even after the miss, because the mock cache doesn't know about our
-    // fake clock), so the TTL hint ends up being 10001.
-    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
-
-    mock_materials_cache->entry_creation_time = 1;
-    mock_clock_time                           = 10002;
-    ASSERT_HIT(false);
-    TEST_ASSERT(mock_materials_cache->invalidated);
-
-    // If someone sets a really big timeout, and the expiration overflows, we shouldn't
-    // expire.
-    mock_materials_cache->entry_creation_time = (uint64_t)0xE << 60;  // 0xE000....ULL
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_ttl(cmm, (uint64_t)0x2 << 60, AWS_TIMESTAMP_NANOS));
-    mock_clock_time = 2;
-
-    mock_materials_cache->entry_ttl_hint = 0x424242;
-    ASSERT_HIT(true);
     TEST_ASSERT_INT_EQ(mock_materials_cache->entry_ttl_hint, 0x424242);
 
     aws_cryptosdk_cmm_release(cmm);
@@ -562,15 +515,18 @@ static int limits_test() {
     return 0;
 }
 
-static int ttl_limit_set_in_constructor_test() {
+#define ONE_BILLION 1000000000UL
+
+static int ttl_test() {
     setup_mocks();
+
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
         aws_default_allocator(),
         &mock_materials_cache->base,
         &mock_upstream_cmm->base,
         NULL,
         10000,
-        AWS_TIMESTAMP_NANOS);
+        AWS_TIMESTAMP_SECS);
 
     struct aws_hash_table req_context;
     aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &req_context);
@@ -578,54 +534,85 @@ static int ttl_limit_set_in_constructor_test() {
     struct aws_cryptosdk_enc_request request;
     request.alloc          = aws_default_allocator();
     request.requested_alg  = 0;
-    request.plaintext_size = 32768;
+    request.plaintext_size = 1;
 
     bool was_hit;
     struct aws_cryptosdk_cache_usage_stats usage = { 1, 1 };
 
+    mock_clock_queried = false;
     caching_cmm_set_clock(cmm, mock_clock_get_ticks);
+
+    // Do an initial miss to create the response
     ASSERT_HIT(false);
 
-    mock_materials_cache->usage_stats.bytes_encrypted = 0;
-
-    mock_clock_time                           = 100;
-    mock_materials_cache->entry_creation_time = 1;
+    // Sanity check: We should hit
     ASSERT_HIT(true);
-    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
-    TEST_ASSERT(!mock_materials_cache->invalidated);
 
-    mock_clock_time                      = 200;
-    mock_materials_cache->entry_ttl_hint = 0;
-    ASSERT_HIT(true);
-    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
-    TEST_ASSERT(!mock_materials_cache->invalidated);
+    enum aws_timestamp_unit units[] = {
+        0, AWS_TIMESTAMP_NANOS, AWS_TIMESTAMP_MICROS, AWS_TIMESTAMP_MILLIS, AWS_TIMESTAMP_SECS
+    };
+    for (int unit_idx = 0; unit_idx < sizeof(units) / sizeof(enum aws_timestamp_unit); ++unit_idx) {
+        /* TTL was set to 10000 seconds by constructor before this loop.
+         * We run this series of TTL tests first without changing that setting, then in each following iteration
+         * of this loop we make a call to set the TTL to the same value of 10000 seconds using each of the
+         * different units, just to verify they are all setting the TTL in an equivalent way.
+         *
+         * Integer value of each unit enum is the number of that unit in 1 second (see aws/common/common.h)
+         */
+        if (unit_idx) {
+            TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_ttl(cmm, 10000UL * units[unit_idx], units[unit_idx]));
+        }
 
-    mock_clock_time                      = 10000;
-    mock_materials_cache->entry_ttl_hint = 0;
-    ASSERT_HIT(true);
-    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
-    TEST_ASSERT(!mock_materials_cache->invalidated);
+        mock_materials_cache->usage_stats.bytes_encrypted = 0;
 
-    mock_materials_cache->entry_ttl_hint = 0;
-    mock_clock_time                      = 10001;
-    ASSERT_HIT(false);
-    TEST_ASSERT(mock_materials_cache->invalidated);
-    // At this point our mock clock time is 10001, and we had a cache miss.
-    // We'd expect that, since our TTL is 10000, we should get a TTL hint of
-    // 20001; however, the mock_materials_cache's entry creation time is still set
-    // to 1 (even after the miss, because the mock cache doesn't know about our
-    // fake clock), so the TTL hint ends up being 10001.
-    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
+        mock_clock_time                           = 100 * ONE_BILLION;
+        mock_materials_cache->entry_creation_time = 1;
+        ASSERT_HIT(true);
+        TEST_ASSERT_INT_EQ(10000 * ONE_BILLION + 1, mock_materials_cache->entry_ttl_hint);
+        TEST_ASSERT(!mock_materials_cache->invalidated);
 
-    mock_materials_cache->entry_creation_time = 1;
-    mock_clock_time                           = 10002;
-    ASSERT_HIT(false);
-    TEST_ASSERT(mock_materials_cache->invalidated);
+        mock_clock_time                      = 200 * ONE_BILLION;
+        mock_materials_cache->entry_ttl_hint = 0;
+        ASSERT_HIT(true);
+        TEST_ASSERT_INT_EQ(10000 * ONE_BILLION + 1, mock_materials_cache->entry_ttl_hint);
+        TEST_ASSERT(!mock_materials_cache->invalidated);
+
+        mock_clock_time                      = 10000 * ONE_BILLION;
+        mock_materials_cache->entry_ttl_hint = 0;
+        ASSERT_HIT(true);
+        TEST_ASSERT_INT_EQ(10000 * ONE_BILLION + 1, mock_materials_cache->entry_ttl_hint);
+        TEST_ASSERT(!mock_materials_cache->invalidated);
+
+        mock_materials_cache->entry_ttl_hint = 0;
+        mock_clock_time                      = 10000 * ONE_BILLION + 1;
+        ASSERT_HIT(false);
+        TEST_ASSERT(mock_materials_cache->invalidated);
+        // At this point our mock clock time is 10000000000001, and we had a cache miss.
+        // We'd expect that, since our TTL is 10000000000000, we should get a TTL hint of
+        // 20001; however, the mock_materials_cache's entry creation time is still set
+        // to 1 (even after the miss, because the mock cache doesn't know about our
+        // fake clock), so the TTL hint ends up being 10000000000001.
+        TEST_ASSERT_INT_EQ(10000 * ONE_BILLION + 1, mock_materials_cache->entry_ttl_hint);
+
+        mock_materials_cache->entry_creation_time = 1;
+        mock_clock_time                           = 10000 * ONE_BILLION + 2;
+        ASSERT_HIT(false);
+        TEST_ASSERT(mock_materials_cache->invalidated);
+
+        // If someone sets a really big timeout, and the expiration overflows, we shouldn't
+        // expire.
+        mock_materials_cache->entry_creation_time = (uint64_t)0xE << 60;  // 0xE000....ULL
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_ttl(cmm, (uint64_t)0x2 << 60, AWS_TIMESTAMP_NANOS));
+        mock_clock_time = 2;
+
+        mock_materials_cache->entry_ttl_hint = 0x424242;
+        ASSERT_HIT(true);
+        TEST_ASSERT_INT_EQ(mock_materials_cache->entry_ttl_hint, 0x424242);
+    }
 
     aws_cryptosdk_cmm_release(cmm);
     aws_cryptosdk_enc_ctx_clean_up(&req_context);
     teardown();
-
     return 0;
 }
 
@@ -1349,8 +1336,8 @@ struct test_case caching_cmm_test_cases[] = { TEST_CASE(create_destroy),
                                               TEST_CASE(enc_cache_unique_ids),
                                               TEST_CASE(enc_cache_id_test_vecs),
                                               TEST_CASE(enc_cache_hit),
-                                              TEST_CASE(limits_test),
-                                              TEST_CASE(ttl_limit_set_in_constructor_test),
+                                              TEST_CASE(byte_and_message_limits_test),
+                                              TEST_CASE(ttl_test),
                                               TEST_CASE(zero_byte_limit_zero_length_messages),
                                               TEST_CASE(dec_cache_id_test_vecs),
                                               TEST_CASE(dec_materials),
