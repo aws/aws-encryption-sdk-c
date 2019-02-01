@@ -120,17 +120,20 @@ struct aws_cryptosdk_cmm *setup_cmm(struct aws_allocator *alloc, const char *key
     struct aws_cryptosdk_cmm *default_cmm = aws_cryptosdk_default_cmm_new(alloc, kms_keyring);
     if (!default_cmm) error("default_cmm constructor");
 
+    /* Construct an in-memory cache that will be used by the caching CMM.
+     * This one is configured to cache a maximum of 10 data keys.
+     */
     struct aws_cryptosdk_materials_cache *cache = aws_cryptosdk_materials_cache_local_new(alloc, 10);
     if (!cache) error("local cache constructor");
 
     /* The final two arguments of the call to create the caching CMM set the TTL of data keys in the cache.
-     * In this case we will not reuse data keys for more than one minute.
+     * In this case, the caching CMM does not reuse data keys for more than one minute.
      */
     struct aws_cryptosdk_cmm *caching_cmm =
         aws_cryptosdk_caching_cmm_new(alloc, cache, default_cmm, NULL, 60, AWS_TIMESTAMP_SECS);
     if (!caching_cmm) error("caching CMM constructor");
 
-    // We will also not use a single data key more than 10 times.
+    // This caching CMM is also configured not to use a single data key more than 10 times.
     if (aws_cryptosdk_caching_cmm_set_limit_messages(caching_cmm, 10)) error("caching CMM set limit");
 
     /* The caching_cmm object now holds references (directly or indirectly) to all the other objects;
