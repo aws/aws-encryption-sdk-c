@@ -111,7 +111,6 @@ int aws_cryptosdk_caching_cmm_set_limit_bytes(struct aws_cryptosdk_cmm *generic_
     }
 
     if (limit_bytes > INT64_MAX) {
-        cmm->limit_bytes = INT64_MAX;
         return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
     }
 
@@ -125,12 +124,7 @@ int aws_cryptosdk_caching_cmm_set_limit_messages(struct aws_cryptosdk_cmm *gener
         return aws_raise_error(AWS_ERROR_UNSUPPORTED_OPERATION);
     }
 
-    if (!limit_messages) {
-        return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
-    }
-
-    if (limit_messages > AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES) {
-        cmm->limit_messages = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES;
+    if (!limit_messages || limit_messages > AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES) {
         return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
     }
 
@@ -141,7 +135,8 @@ int aws_cryptosdk_caching_cmm_set_limit_messages(struct aws_cryptosdk_cmm *gener
 /* Returns zero if any of the arguments have invalid values
  * and returns UINT64_MAX if there would be an overflow.
  */
-static inline uint64_t convert_ttl_to_nanos(uint64_t ttl, enum aws_timestamp_unit ttl_units) {
+AWS_CRYPTOSDK_TEST_STATIC
+uint64_t convert_ttl_to_nanos(uint64_t ttl, enum aws_timestamp_unit ttl_units) {
     if (!ttl || (ttl_units != AWS_TIMESTAMP_SECS && ttl_units != AWS_TIMESTAMP_MILLIS &&
                  ttl_units != AWS_TIMESTAMP_MICROS && ttl_units != AWS_TIMESTAMP_NANOS)) {
         return 0UL;

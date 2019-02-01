@@ -460,8 +460,7 @@ static int limits_test() {
     TEST_ASSERT(mock_materials_cache->invalidated);
     // Note that our mock doesn't actually invalidate when asked, so we can continue on
 
-    // The caching CMM should clamp the message limit to 1<<32
-    TEST_ASSERT_ERROR(AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_limit_messages(cmm, UINT64_MAX));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit_messages(cmm, AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES));
     mock_materials_cache->usage_stats.messages_encrypted = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES - 1;
     ASSERT_HIT(true);
     mock_materials_cache->usage_stats.messages_encrypted = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES;
@@ -470,8 +469,7 @@ static int limits_test() {
     // Byte limits next
     mock_materials_cache->usage_stats.messages_encrypted = 0;
 
-    // actually sets limit to INT64_MAX
-    TEST_ASSERT_ERROR(AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_limit_bytes(cmm, UINT64_MAX));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit_bytes(cmm, INT64_MAX));
     request.plaintext_size                            = 100;
     mock_materials_cache->usage_stats.bytes_encrypted = INT64_MAX - 100;
     ASSERT_HIT(true);
@@ -1302,6 +1300,41 @@ static int disallowed_limits() {
     return 0;
 }
 
+uint64_t convert_ttl_to_nanos(uint64_t ttl, enum aws_timestamp_unit ttl_units);
+
+static int time_conversions_work() {
+    // 1 of each unit converts properly
+    TEST_ASSERT_INT_EQ(1000000000UL, convert_ttl_to_nanos(1UL, AWS_TIMESTAMP_SECS));
+    TEST_ASSERT_INT_EQ(1000000UL, convert_ttl_to_nanos(1UL, AWS_TIMESTAMP_MILLIS));
+    TEST_ASSERT_INT_EQ(1000UL, convert_ttl_to_nanos(1UL, AWS_TIMESTAMP_MICROS));
+    TEST_ASSERT_INT_EQ(1UL, convert_ttl_to_nanos(1UL, AWS_TIMESTAMP_NANOS));
+
+    // equivalent of 1 minute in each unit converts properly
+    TEST_ASSERT_INT_EQ(60UL * 1000000000, convert_ttl_to_nanos(60UL, AWS_TIMESTAMP_SECS));
+    TEST_ASSERT_INT_EQ(60UL * 1000000000, convert_ttl_to_nanos(60UL * 1000, AWS_TIMESTAMP_MILLIS));
+    TEST_ASSERT_INT_EQ(60UL * 1000000000, convert_ttl_to_nanos(60UL * 1000000, AWS_TIMESTAMP_MICROS));
+    TEST_ASSERT_INT_EQ(60UL * 1000000000, convert_ttl_to_nanos(60UL * 1000000000, AWS_TIMESTAMP_NANOS));
+
+    // highest value without overflow converts properly
+    // overflows handled properly
+    TEST_ASSERT_INT_EQ(18446744073000000000UL, convert_ttl_to_nanos(18446744073UL, AWS_TIMESTAMP_SECS));
+    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(18446744074UL, AWS_TIMESTAMP_SECS));
+    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(UINT64_MAX, AWS_TIMESTAMP_SECS));
+
+    TEST_ASSERT_INT_EQ(18446744073709000000UL, convert_ttl_to_nanos(18446744073709UL, AWS_TIMESTAMP_MILLIS));
+    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(18446744073710UL, AWS_TIMESTAMP_MILLIS));
+    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(UINT64_MAX, AWS_TIMESTAMP_MILLIS));
+
+    TEST_ASSERT_INT_EQ(18446744073709551000UL, convert_ttl_to_nanos(18446744073709551UL, AWS_TIMESTAMP_MICROS));
+    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(18446744073709552UL, AWS_TIMESTAMP_MICROS));
+    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(UINT64_MAX, AWS_TIMESTAMP_MICROS));
+
+    TEST_ASSERT_INT_EQ(UINT64_MAX - 1, convert_ttl_to_nanos(UINT64_MAX - 1, AWS_TIMESTAMP_NANOS));
+    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(UINT64_MAX, AWS_TIMESTAMP_NANOS));
+
+    return 0;
+}
+
 #define TEST_CASE(name) \
     { "caching_cmm", #name, name }
 struct test_case caching_cmm_test_cases[] = { TEST_CASE(create_destroy),
@@ -1322,6 +1355,7 @@ struct test_case caching_cmm_test_cases[] = { TEST_CASE(create_destroy),
                                               TEST_CASE(set_message_bound_with_caching_cmm),
                                               TEST_CASE(message_bound_error_code),
                                               TEST_CASE(disallowed_limits),
+                                              TEST_CASE(time_conversions_work),
                                               { NULL } };
 
 // TEST TODO: Threadstorm
