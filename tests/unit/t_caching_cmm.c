@@ -1332,6 +1332,13 @@ static int time_conversions_work() {
     TEST_ASSERT_INT_EQ(UINT64_MAX - 1, convert_ttl_to_nanos(UINT64_MAX - 1, AWS_TIMESTAMP_NANOS));
     TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(UINT64_MAX, AWS_TIMESTAMP_NANOS));
 
+    // return 0 on disallowed values
+    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(0UL, AWS_TIMESTAMP_SECS));
+    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(0UL, AWS_TIMESTAMP_MILLIS));
+    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(0UL, AWS_TIMESTAMP_MICROS));
+    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(0UL, AWS_TIMESTAMP_NANOS));
+    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(34287562786UL, 2));
+
     return 0;
 }
 
