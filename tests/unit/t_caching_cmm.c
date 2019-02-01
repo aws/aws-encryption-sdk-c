@@ -50,7 +50,12 @@ static void release_mocks();
 static int create_destroy() {
     setup_mocks();
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
-        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, UINT64_MAX);
+        aws_default_allocator(),
+        &mock_materials_cache->base,
+        &mock_upstream_cmm->base,
+        NULL,
+        UINT64_MAX,
+        AWS_TIMESTAMP_SECS);
     release_mocks();
 
     aws_cryptosdk_cmm_release(cmm);
@@ -62,7 +67,12 @@ static int create_destroy() {
 static int enc_cache_miss() {
     setup_mocks();
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
-        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, UINT64_MAX);
+        aws_default_allocator(),
+        &mock_materials_cache->base,
+        &mock_upstream_cmm->base,
+        NULL,
+        UINT64_MAX,
+        AWS_TIMESTAMP_MILLIS);
     release_mocks();
 
     struct aws_hash_table req_context, expect_context;
@@ -111,7 +121,12 @@ static int enc_cache_miss() {
 static int enc_cache_hit() {
     setup_mocks();
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
-        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, UINT64_MAX);
+        aws_default_allocator(),
+        &mock_materials_cache->base,
+        &mock_upstream_cmm->base,
+        NULL,
+        UINT64_MAX,
+        AWS_TIMESTAMP_MICROS);
     release_mocks();
 
     struct aws_hash_table req_context, expect_context;
@@ -179,7 +194,12 @@ static int enc_cache_unique_ids() {
     struct aws_allocator *alloc = aws_default_allocator();
     setup_mocks();
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
-        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, UINT64_MAX);
+        aws_default_allocator(),
+        &mock_materials_cache->base,
+        &mock_upstream_cmm->base,
+        NULL,
+        UINT64_MAX,
+        AWS_TIMESTAMP_NANOS);
     release_mocks();
 
     struct aws_hash_table req_context, output_context, seen_ids;
@@ -395,10 +415,16 @@ void caching_cmm_set_clock(struct aws_cryptosdk_cmm *generic_cmm, int (*clock_ge
         TEST_ASSERT_INT_EQ(should_hit, was_hit);            \
     } while (0)
 
-static int limits_test() {
+static int byte_and_message_limits_test() {
     setup_mocks();
+
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
-        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, UINT64_MAX);
+        aws_default_allocator(),
+        &mock_materials_cache->base,
+        &mock_upstream_cmm->base,
+        NULL,
+        UINT64_MAX,
+        AWS_TIMESTAMP_SECS);
 
     struct aws_hash_table req_context;
     aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &req_context);
@@ -423,7 +449,7 @@ static int limits_test() {
     ASSERT_HIT(true);
 
     // If we set a message use limit, we'll expire after we hit the limit
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES, 4));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit_messages(cmm, 4));
     mock_materials_cache->usage_stats.messages_encrypted = 2;
     ASSERT_HIT(true);
     TEST_ASSERT(!mock_materials_cache->invalidated);
@@ -435,10 +461,7 @@ static int limits_test() {
     TEST_ASSERT(mock_materials_cache->invalidated);
     // Note that our mock doesn't actually invalidate when asked, so we can continue on
 
-    // The caching CMM should clamp the message limit to 1<<32
-    TEST_ASSERT_ERROR(
-        AWS_ERROR_INVALID_ARGUMENT,
-        aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES, UINT64_MAX));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit_messages(cmm, AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES));
     mock_materials_cache->usage_stats.messages_encrypted = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES - 1;
     ASSERT_HIT(true);
     mock_materials_cache->usage_stats.messages_encrypted = AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES;
@@ -447,10 +470,7 @@ static int limits_test() {
     // Byte limits next
     mock_materials_cache->usage_stats.messages_encrypted = 0;
 
-    // actually sets limit to INT64_MAX
-    TEST_ASSERT_ERROR(
-        AWS_ERROR_INVALID_ARGUMENT,
-        aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_BYTES, UINT64_MAX));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit_bytes(cmm, INT64_MAX));
     request.plaintext_size                            = 100;
     mock_materials_cache->usage_stats.bytes_encrypted = INT64_MAX - 100;
     ASSERT_HIT(true);
@@ -459,7 +479,7 @@ static int limits_test() {
     mock_materials_cache->usage_stats.bytes_encrypted = INT64_MAX - 100;
     ASSERT_HIT(false);
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_BYTES, 1000));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit_bytes(cmm, 1000));
 
     request.plaintext_size                            = 250;
     mock_materials_cache->usage_stats.bytes_encrypted = 250;
@@ -483,57 +503,9 @@ static int limits_test() {
     ASSERT_HIT(false);
     TEST_ASSERT(mock_materials_cache->invalidated);
 
-    // TTL limits
     // Since we had no limit set until now, the CMM should not have been querying the clock
     // or setting TTLs
     TEST_ASSERT(!mock_clock_queried);
-    TEST_ASSERT_INT_EQ(mock_materials_cache->entry_ttl_hint, 0x424242);
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_BYTES, INT64_MAX));
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_TTL, 10000));
-    mock_materials_cache->usage_stats.bytes_encrypted = 0;
-
-    mock_clock_time                           = 100;
-    mock_materials_cache->entry_creation_time = 1;
-    ASSERT_HIT(true);
-    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
-    TEST_ASSERT(!mock_materials_cache->invalidated);
-
-    mock_clock_time                      = 200;
-    mock_materials_cache->entry_ttl_hint = 0;
-    ASSERT_HIT(true);
-    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
-    TEST_ASSERT(!mock_materials_cache->invalidated);
-
-    mock_clock_time                      = 10000;
-    mock_materials_cache->entry_ttl_hint = 0;
-    ASSERT_HIT(true);
-    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
-    TEST_ASSERT(!mock_materials_cache->invalidated);
-
-    mock_materials_cache->entry_ttl_hint = 0;
-    mock_clock_time                      = 10001;
-    ASSERT_HIT(false);
-    TEST_ASSERT(mock_materials_cache->invalidated);
-    // At this point our mock clock time is 10001, and we had a cache miss.
-    // We'd expect that, since our TTL is 10000, we should get a TTL hint of
-    // 20001; however, the mock_materials_cache's entry creation time is still set
-    // to 1 (even after the miss, because the mock cache doesn't know about our
-    // fake clock), so the TTL hint ends up being 10001.
-    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
-
-    mock_materials_cache->entry_creation_time = 1;
-    mock_clock_time                           = 10002;
-    ASSERT_HIT(false);
-    TEST_ASSERT(mock_materials_cache->invalidated);
-
-    // If someone sets a really big timeout, and the expiration overflows, we shouldn't
-    // expire.
-    mock_materials_cache->entry_creation_time = (uint64_t)0xE << 60;  // 0xE000....ULL
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_TTL, (uint64_t)0x2 << 60));
-    mock_clock_time = 2;
-
-    mock_materials_cache->entry_ttl_hint = 0x424242;
-    ASSERT_HIT(true);
     TEST_ASSERT_INT_EQ(mock_materials_cache->entry_ttl_hint, 0x424242);
 
     aws_cryptosdk_cmm_release(cmm);
@@ -543,10 +515,18 @@ static int limits_test() {
     return 0;
 }
 
-static int ttl_limit_set_in_constructor_test() {
+#define ONE_BILLION 1000000000ULL
+
+static int ttl_test() {
     setup_mocks();
+
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
-        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, 10000);
+        aws_default_allocator(),
+        &mock_materials_cache->base,
+        &mock_upstream_cmm->base,
+        NULL,
+        10000,
+        AWS_TIMESTAMP_SECS);
 
     struct aws_hash_table req_context;
     aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &req_context);
@@ -554,63 +534,99 @@ static int ttl_limit_set_in_constructor_test() {
     struct aws_cryptosdk_enc_request request;
     request.alloc          = aws_default_allocator();
     request.requested_alg  = 0;
-    request.plaintext_size = 32768;
+    request.plaintext_size = 1;
 
     bool was_hit;
     struct aws_cryptosdk_cache_usage_stats usage = { 1, 1 };
 
+    mock_clock_queried = false;
     caching_cmm_set_clock(cmm, mock_clock_get_ticks);
+
+    // Do an initial miss to create the response
     ASSERT_HIT(false);
 
-    mock_materials_cache->usage_stats.bytes_encrypted = 0;
-
-    mock_clock_time                           = 100;
-    mock_materials_cache->entry_creation_time = 1;
+    // Sanity check: We should hit
     ASSERT_HIT(true);
-    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
-    TEST_ASSERT(!mock_materials_cache->invalidated);
 
-    mock_clock_time                      = 200;
-    mock_materials_cache->entry_ttl_hint = 0;
-    ASSERT_HIT(true);
-    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
-    TEST_ASSERT(!mock_materials_cache->invalidated);
+    enum aws_timestamp_unit units[] = {
+        0, AWS_TIMESTAMP_NANOS, AWS_TIMESTAMP_MICROS, AWS_TIMESTAMP_MILLIS, AWS_TIMESTAMP_SECS
+    };
+    for (int unit_idx = 0; unit_idx < sizeof(units) / sizeof(enum aws_timestamp_unit); ++unit_idx) {
+        /* TTL was set to 10000 seconds by constructor before this loop.
+         * We run this series of TTL tests first without changing that setting, then in each following iteration
+         * of this loop we make a call to set the TTL to the same value of 10000 seconds using each of the
+         * different units, just to verify they are all setting the TTL in an equivalent way.
+         *
+         * Integer value of each unit enum is the number of that unit in 1 second (see aws/common/common.h)
+         */
+        if (unit_idx) {
+            TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_ttl(cmm, 10000ULL * units[unit_idx], units[unit_idx]));
+        }
 
-    mock_clock_time                      = 10000;
-    mock_materials_cache->entry_ttl_hint = 0;
-    ASSERT_HIT(true);
-    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
-    TEST_ASSERT(!mock_materials_cache->invalidated);
+        mock_materials_cache->usage_stats.bytes_encrypted = 0;
 
-    mock_materials_cache->entry_ttl_hint = 0;
-    mock_clock_time                      = 10001;
-    ASSERT_HIT(false);
-    TEST_ASSERT(mock_materials_cache->invalidated);
-    // At this point our mock clock time is 10001, and we had a cache miss.
-    // We'd expect that, since our TTL is 10000, we should get a TTL hint of
-    // 20001; however, the mock_materials_cache's entry creation time is still set
-    // to 1 (even after the miss, because the mock cache doesn't know about our
-    // fake clock), so the TTL hint ends up being 10001.
-    TEST_ASSERT_INT_EQ(10001, mock_materials_cache->entry_ttl_hint);
+        mock_clock_time                           = 100 * ONE_BILLION;
+        mock_materials_cache->entry_creation_time = 1;
+        ASSERT_HIT(true);
+        TEST_ASSERT_INT_EQ(10000 * ONE_BILLION + 1, mock_materials_cache->entry_ttl_hint);
+        TEST_ASSERT(!mock_materials_cache->invalidated);
 
-    mock_materials_cache->entry_creation_time = 1;
-    mock_clock_time                           = 10002;
-    ASSERT_HIT(false);
-    TEST_ASSERT(mock_materials_cache->invalidated);
+        mock_clock_time                      = 200 * ONE_BILLION;
+        mock_materials_cache->entry_ttl_hint = 0;
+        ASSERT_HIT(true);
+        TEST_ASSERT_INT_EQ(10000 * ONE_BILLION + 1, mock_materials_cache->entry_ttl_hint);
+        TEST_ASSERT(!mock_materials_cache->invalidated);
+
+        mock_clock_time                      = 10000 * ONE_BILLION;
+        mock_materials_cache->entry_ttl_hint = 0;
+        ASSERT_HIT(true);
+        TEST_ASSERT_INT_EQ(10000 * ONE_BILLION + 1, mock_materials_cache->entry_ttl_hint);
+        TEST_ASSERT(!mock_materials_cache->invalidated);
+
+        mock_materials_cache->entry_ttl_hint = 0;
+        mock_clock_time                      = 10000 * ONE_BILLION + 1;
+        ASSERT_HIT(false);
+        TEST_ASSERT(mock_materials_cache->invalidated);
+        // At this point our mock clock time is 10000000000001, and we had a cache miss.
+        // We'd expect that, since our TTL is 10000000000000, we should get a TTL hint of
+        // 20001; however, the mock_materials_cache's entry creation time is still set
+        // to 1 (even after the miss, because the mock cache doesn't know about our
+        // fake clock), so the TTL hint ends up being 10000000000001.
+        TEST_ASSERT_INT_EQ(10000 * ONE_BILLION + 1, mock_materials_cache->entry_ttl_hint);
+
+        mock_materials_cache->entry_creation_time = 1;
+        mock_clock_time                           = 10000 * ONE_BILLION + 2;
+        ASSERT_HIT(false);
+        TEST_ASSERT(mock_materials_cache->invalidated);
+
+        // If someone sets a really big timeout, and the expiration overflows, we shouldn't
+        // expire.
+        mock_materials_cache->entry_creation_time = (uint64_t)0xE << 60;  // 0xE000....ULL
+        TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_ttl(cmm, (uint64_t)0x2 << 60, AWS_TIMESTAMP_NANOS));
+        mock_clock_time = 2;
+
+        mock_materials_cache->entry_ttl_hint = 0x424242;
+        ASSERT_HIT(true);
+        TEST_ASSERT_INT_EQ(mock_materials_cache->entry_ttl_hint, 0x424242);
+    }
 
     aws_cryptosdk_cmm_release(cmm);
     aws_cryptosdk_enc_ctx_clean_up(&req_context);
     teardown();
-
     return 0;
 }
 
 static int zero_byte_limit_zero_length_messages() {
     setup_mocks();
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
-        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, UINT64_MAX);
+        aws_default_allocator(),
+        &mock_materials_cache->base,
+        &mock_upstream_cmm->base,
+        NULL,
+        UINT64_MAX,
+        AWS_TIMESTAMP_NANOS);
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_BYTES, 0));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit_bytes(cmm, 0));
 
     struct aws_hash_table req_context;
     aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &req_context);
@@ -757,7 +773,12 @@ static int dec_cache_id_test_vecs() {
 static int dec_materials() {
     setup_mocks();
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
-        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, UINT64_MAX);
+        aws_default_allocator(),
+        &mock_materials_cache->base,
+        &mock_upstream_cmm->base,
+        NULL,
+        UINT64_MAX,
+        AWS_TIMESTAMP_NANOS);
     caching_cmm_set_clock(cmm, mock_clock_get_ticks);
 
     struct aws_hash_table enc_ctx;
@@ -794,7 +815,7 @@ static int dec_materials() {
     TEST_ASSERT_ADDR_NULL(mock_upstream_cmm->last_dec_request);
 
     /* Hit; TTL OK */
-    aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_TTL, 100);
+    aws_cryptosdk_caching_cmm_set_ttl(cmm, 100, AWS_TIMESTAMP_NANOS);
     mock_clock_time = 99;
     aws_cryptosdk_dec_materials_destroy(hit_materials);
 
@@ -830,7 +851,12 @@ static int dec_materials() {
 static int cache_miss_failed_put() {
     setup_mocks();
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
-        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, UINT64_MAX);
+        aws_default_allocator(),
+        &mock_materials_cache->base,
+        &mock_upstream_cmm->base,
+        NULL,
+        UINT64_MAX,
+        AWS_TIMESTAMP_MILLIS);
     caching_cmm_set_clock(cmm, mock_clock_get_ticks);
 
     struct aws_hash_table enc_ctx;
@@ -874,9 +900,19 @@ static int cache_miss_failed_put() {
 static bool partitions_match_on_enc(
     const struct aws_byte_buf *partition_name_a, const struct aws_byte_buf *partition_name_b) {
     struct aws_cryptosdk_cmm *cmm_a = aws_cryptosdk_caching_cmm_new(
-        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, partition_name_a, UINT64_MAX);
+        aws_default_allocator(),
+        &mock_materials_cache->base,
+        &mock_upstream_cmm->base,
+        partition_name_a,
+        UINT64_MAX,
+        AWS_TIMESTAMP_MICROS);
     struct aws_cryptosdk_cmm *cmm_b = aws_cryptosdk_caching_cmm_new(
-        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, partition_name_b, UINT64_MAX);
+        aws_default_allocator(),
+        &mock_materials_cache->base,
+        &mock_upstream_cmm->base,
+        partition_name_b,
+        UINT64_MAX,
+        AWS_TIMESTAMP_MICROS);
 
     struct aws_hash_table enc_ctx;
     if (aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &enc_ctx)) {
@@ -921,9 +957,19 @@ static bool partitions_match_on_enc(
 static bool partitions_match_on_dec(
     const struct aws_byte_buf *partition_name_a, const struct aws_byte_buf *partition_name_b) {
     struct aws_cryptosdk_cmm *cmm_a = aws_cryptosdk_caching_cmm_new(
-        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, partition_name_a, UINT64_MAX);
+        aws_default_allocator(),
+        &mock_materials_cache->base,
+        &mock_upstream_cmm->base,
+        partition_name_a,
+        UINT64_MAX,
+        AWS_TIMESTAMP_SECS);
     struct aws_cryptosdk_cmm *cmm_b = aws_cryptosdk_caching_cmm_new(
-        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, partition_name_b, UINT64_MAX);
+        aws_default_allocator(),
+        &mock_materials_cache->base,
+        &mock_upstream_cmm->base,
+        partition_name_b,
+        UINT64_MAX,
+        AWS_TIMESTAMP_SECS);
 
     struct aws_hash_table enc_ctx;
     TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_ctx_init(aws_default_allocator(), &enc_ctx));
@@ -1128,7 +1174,7 @@ static int set_message_bound_with_caching_cmm() {
     cache = aws_cryptosdk_materials_cache_local_new(alloc, 8);
     TEST_ASSERT_ADDR_NOT_NULL(cache);
 
-    caching_cmm = aws_cryptosdk_caching_cmm_new(alloc, cache, default_cmm, NULL, UINT64_MAX);
+    caching_cmm = aws_cryptosdk_caching_cmm_new(alloc, cache, default_cmm, NULL, UINT64_MAX, AWS_TIMESTAMP_NANOS);
     TEST_ASSERT_ADDR_NOT_NULL(caching_cmm);
 
     aws_cryptosdk_keyring_release(kr);
@@ -1187,22 +1233,99 @@ static int disallowed_limits() {
 
     aws_reset_error();
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
-        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, 0);
+        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, 0, AWS_TIMESTAMP_SECS);
+    TEST_ASSERT_ADDR_NULL(cmm);
+    TEST_ASSERT_INT_EQ(aws_last_error(), AWS_ERROR_INVALID_ARGUMENT);
+
+    aws_reset_error();
+    cmm = aws_cryptosdk_caching_cmm_new(
+        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, 0, AWS_TIMESTAMP_MILLIS);
+    TEST_ASSERT_ADDR_NULL(cmm);
+    TEST_ASSERT_INT_EQ(aws_last_error(), AWS_ERROR_INVALID_ARGUMENT);
+
+    aws_reset_error();
+    cmm = aws_cryptosdk_caching_cmm_new(
+        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, 0, AWS_TIMESTAMP_MICROS);
+    TEST_ASSERT_ADDR_NULL(cmm);
+    TEST_ASSERT_INT_EQ(aws_last_error(), AWS_ERROR_INVALID_ARGUMENT);
+
+    aws_reset_error();
+    cmm = aws_cryptosdk_caching_cmm_new(
+        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, 0, AWS_TIMESTAMP_NANOS);
     TEST_ASSERT_ADDR_NULL(cmm);
     TEST_ASSERT_INT_EQ(aws_last_error(), AWS_ERROR_INVALID_ARGUMENT);
 
     cmm = aws_cryptosdk_caching_cmm_new(
-        aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, UINT64_MAX);
+        aws_default_allocator(),
+        &mock_materials_cache->base,
+        &mock_upstream_cmm->base,
+        NULL,
+        UINT64_MAX,
+        AWS_TIMESTAMP_SECS);
     TEST_ASSERT_ADDR_NOT_NULL(cmm);
 
-    TEST_ASSERT_ERROR(
-        AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_TTL, 0));
+    TEST_ASSERT_ERROR(AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_ttl(cmm, 0, AWS_TIMESTAMP_SECS));
+    TEST_ASSERT_ERROR(AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_ttl(cmm, 0, AWS_TIMESTAMP_MILLIS));
+    TEST_ASSERT_ERROR(AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_ttl(cmm, 0, AWS_TIMESTAMP_MICROS));
+    TEST_ASSERT_ERROR(AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_ttl(cmm, 0, AWS_TIMESTAMP_NANOS));
+
+    TEST_ASSERT_ERROR(AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_limit_messages(cmm, 0));
 
     TEST_ASSERT_ERROR(
-        AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_limit(cmm, AWS_CRYPTOSDK_CACHE_LIMIT_MESSAGES, 0));
+        AWS_ERROR_INVALID_ARGUMENT,
+        aws_cryptosdk_caching_cmm_set_limit_messages(cmm, AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES + 1));
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit_messages(cmm, AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES));
+
+    TEST_ASSERT_ERROR(
+        AWS_ERROR_INVALID_ARGUMENT, aws_cryptosdk_caching_cmm_set_limit_bytes(cmm, (uint64_t)INT64_MAX + 1));
+
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_limit_bytes(cmm, INT64_MAX));
 
     aws_cryptosdk_cmm_release(cmm);
     teardown();
+    return 0;
+}
+
+uint64_t convert_ttl_to_nanos(uint64_t ttl, enum aws_timestamp_unit ttl_units);
+
+static int time_conversions_work() {
+    // 1 of each unit converts properly
+    TEST_ASSERT_INT_EQ(ONE_BILLION, convert_ttl_to_nanos(1, AWS_TIMESTAMP_SECS));
+    TEST_ASSERT_INT_EQ(1000000, convert_ttl_to_nanos(1, AWS_TIMESTAMP_MILLIS));
+    TEST_ASSERT_INT_EQ(1000, convert_ttl_to_nanos(1, AWS_TIMESTAMP_MICROS));
+    TEST_ASSERT_INT_EQ(1, convert_ttl_to_nanos(1, AWS_TIMESTAMP_NANOS));
+
+    // equivalent of 1 minute in each unit converts properly
+    TEST_ASSERT_INT_EQ(60 * ONE_BILLION, convert_ttl_to_nanos(60, AWS_TIMESTAMP_SECS));
+    TEST_ASSERT_INT_EQ(60 * ONE_BILLION, convert_ttl_to_nanos(60 * 1000, AWS_TIMESTAMP_MILLIS));
+    TEST_ASSERT_INT_EQ(60 * ONE_BILLION, convert_ttl_to_nanos(60 * 1000000, AWS_TIMESTAMP_MICROS));
+    TEST_ASSERT_INT_EQ(60 * ONE_BILLION, convert_ttl_to_nanos(60 * ONE_BILLION, AWS_TIMESTAMP_NANOS));
+
+    // highest value without overflow converts properly
+    // overflows handled properly
+    TEST_ASSERT_INT_EQ(18446744073000000000ULL, convert_ttl_to_nanos(18446744073ULL, AWS_TIMESTAMP_SECS));
+    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(18446744074ULL, AWS_TIMESTAMP_SECS));
+    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(UINT64_MAX, AWS_TIMESTAMP_SECS));
+
+    TEST_ASSERT_INT_EQ(18446744073709000000ULL, convert_ttl_to_nanos(18446744073709ULL, AWS_TIMESTAMP_MILLIS));
+    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(18446744073710ULL, AWS_TIMESTAMP_MILLIS));
+    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(UINT64_MAX, AWS_TIMESTAMP_MILLIS));
+
+    TEST_ASSERT_INT_EQ(18446744073709551000ULL, convert_ttl_to_nanos(18446744073709551ULL, AWS_TIMESTAMP_MICROS));
+    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(18446744073709552ULL, AWS_TIMESTAMP_MICROS));
+    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(UINT64_MAX, AWS_TIMESTAMP_MICROS));
+
+    TEST_ASSERT_INT_EQ(UINT64_MAX - 1, convert_ttl_to_nanos(UINT64_MAX - 1, AWS_TIMESTAMP_NANOS));
+    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(UINT64_MAX, AWS_TIMESTAMP_NANOS));
+
+    // return 0 on disallowed values
+    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(0, AWS_TIMESTAMP_SECS));
+    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(0, AWS_TIMESTAMP_MILLIS));
+    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(0, AWS_TIMESTAMP_MICROS));
+    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(0, AWS_TIMESTAMP_NANOS));
+    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(34287562786ULL, 2));
+
     return 0;
 }
 
@@ -1213,8 +1336,8 @@ struct test_case caching_cmm_test_cases[] = { TEST_CASE(create_destroy),
                                               TEST_CASE(enc_cache_unique_ids),
                                               TEST_CASE(enc_cache_id_test_vecs),
                                               TEST_CASE(enc_cache_hit),
-                                              TEST_CASE(limits_test),
-                                              TEST_CASE(ttl_limit_set_in_constructor_test),
+                                              TEST_CASE(byte_and_message_limits_test),
+                                              TEST_CASE(ttl_test),
                                               TEST_CASE(zero_byte_limit_zero_length_messages),
                                               TEST_CASE(dec_cache_id_test_vecs),
                                               TEST_CASE(dec_materials),
@@ -1226,6 +1349,7 @@ struct test_case caching_cmm_test_cases[] = { TEST_CASE(create_destroy),
                                               TEST_CASE(set_message_bound_with_caching_cmm),
                                               TEST_CASE(message_bound_error_code),
                                               TEST_CASE(disallowed_limits),
+                                              TEST_CASE(time_conversions_work),
                                               { NULL } };
 
 // TEST TODO: Threadstorm
