@@ -74,7 +74,7 @@ struct aws_cryptosdk_keyring_trace_record {
 #define AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX (1 << 3)
 
 /**
- * Bit flag indicating this wrapping key verified signature of encryption context.
+ * Bit flag indicating this wrapping key verified the signature of the encryption context.
  */
 #define AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX (1 << 4)
 
