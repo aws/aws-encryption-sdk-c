@@ -515,7 +515,7 @@ static int byte_and_message_limits_test() {
     return 0;
 }
 
-#define ONE_BILLION 1000000000UL
+#define ONE_BILLION 1000000000ULL
 
 static int ttl_test() {
     setup_mocks();
@@ -560,7 +560,7 @@ static int ttl_test() {
          * Integer value of each unit enum is the number of that unit in 1 second (see aws/common/common.h)
          */
         if (unit_idx) {
-            TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_ttl(cmm, 10000UL * units[unit_idx], units[unit_idx]));
+            TEST_ASSERT_SUCCESS(aws_cryptosdk_caching_cmm_set_ttl(cmm, 10000ULL * units[unit_idx], units[unit_idx]));
         }
 
         mock_materials_cache->usage_stats.bytes_encrypted = 0;
@@ -1291,40 +1291,40 @@ uint64_t convert_ttl_to_nanos(uint64_t ttl, enum aws_timestamp_unit ttl_units);
 
 static int time_conversions_work() {
     // 1 of each unit converts properly
-    TEST_ASSERT_INT_EQ(1000000000UL, convert_ttl_to_nanos(1UL, AWS_TIMESTAMP_SECS));
-    TEST_ASSERT_INT_EQ(1000000UL, convert_ttl_to_nanos(1UL, AWS_TIMESTAMP_MILLIS));
-    TEST_ASSERT_INT_EQ(1000UL, convert_ttl_to_nanos(1UL, AWS_TIMESTAMP_MICROS));
-    TEST_ASSERT_INT_EQ(1UL, convert_ttl_to_nanos(1UL, AWS_TIMESTAMP_NANOS));
+    TEST_ASSERT_INT_EQ(ONE_BILLION, convert_ttl_to_nanos(1, AWS_TIMESTAMP_SECS));
+    TEST_ASSERT_INT_EQ(1000000, convert_ttl_to_nanos(1, AWS_TIMESTAMP_MILLIS));
+    TEST_ASSERT_INT_EQ(1000, convert_ttl_to_nanos(1, AWS_TIMESTAMP_MICROS));
+    TEST_ASSERT_INT_EQ(1, convert_ttl_to_nanos(1, AWS_TIMESTAMP_NANOS));
 
     // equivalent of 1 minute in each unit converts properly
-    TEST_ASSERT_INT_EQ(60UL * 1000000000, convert_ttl_to_nanos(60UL, AWS_TIMESTAMP_SECS));
-    TEST_ASSERT_INT_EQ(60UL * 1000000000, convert_ttl_to_nanos(60UL * 1000, AWS_TIMESTAMP_MILLIS));
-    TEST_ASSERT_INT_EQ(60UL * 1000000000, convert_ttl_to_nanos(60UL * 1000000, AWS_TIMESTAMP_MICROS));
-    TEST_ASSERT_INT_EQ(60UL * 1000000000, convert_ttl_to_nanos(60UL * 1000000000, AWS_TIMESTAMP_NANOS));
+    TEST_ASSERT_INT_EQ(60 * ONE_BILLION, convert_ttl_to_nanos(60, AWS_TIMESTAMP_SECS));
+    TEST_ASSERT_INT_EQ(60 * ONE_BILLION, convert_ttl_to_nanos(60 * 1000, AWS_TIMESTAMP_MILLIS));
+    TEST_ASSERT_INT_EQ(60 * ONE_BILLION, convert_ttl_to_nanos(60 * 1000000, AWS_TIMESTAMP_MICROS));
+    TEST_ASSERT_INT_EQ(60 * ONE_BILLION, convert_ttl_to_nanos(60 * ONE_BILLION, AWS_TIMESTAMP_NANOS));
 
     // highest value without overflow converts properly
     // overflows handled properly
-    TEST_ASSERT_INT_EQ(18446744073000000000UL, convert_ttl_to_nanos(18446744073UL, AWS_TIMESTAMP_SECS));
-    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(18446744074UL, AWS_TIMESTAMP_SECS));
+    TEST_ASSERT_INT_EQ(18446744073000000000ULL, convert_ttl_to_nanos(18446744073ULL, AWS_TIMESTAMP_SECS));
+    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(18446744074ULL, AWS_TIMESTAMP_SECS));
     TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(UINT64_MAX, AWS_TIMESTAMP_SECS));
 
-    TEST_ASSERT_INT_EQ(18446744073709000000UL, convert_ttl_to_nanos(18446744073709UL, AWS_TIMESTAMP_MILLIS));
-    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(18446744073710UL, AWS_TIMESTAMP_MILLIS));
+    TEST_ASSERT_INT_EQ(18446744073709000000ULL, convert_ttl_to_nanos(18446744073709ULL, AWS_TIMESTAMP_MILLIS));
+    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(18446744073710ULL, AWS_TIMESTAMP_MILLIS));
     TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(UINT64_MAX, AWS_TIMESTAMP_MILLIS));
 
-    TEST_ASSERT_INT_EQ(18446744073709551000UL, convert_ttl_to_nanos(18446744073709551UL, AWS_TIMESTAMP_MICROS));
-    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(18446744073709552UL, AWS_TIMESTAMP_MICROS));
+    TEST_ASSERT_INT_EQ(18446744073709551000ULL, convert_ttl_to_nanos(18446744073709551ULL, AWS_TIMESTAMP_MICROS));
+    TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(18446744073709552ULL, AWS_TIMESTAMP_MICROS));
     TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(UINT64_MAX, AWS_TIMESTAMP_MICROS));
 
     TEST_ASSERT_INT_EQ(UINT64_MAX - 1, convert_ttl_to_nanos(UINT64_MAX - 1, AWS_TIMESTAMP_NANOS));
     TEST_ASSERT_INT_EQ(UINT64_MAX, convert_ttl_to_nanos(UINT64_MAX, AWS_TIMESTAMP_NANOS));
 
     // return 0 on disallowed values
-    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(0UL, AWS_TIMESTAMP_SECS));
-    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(0UL, AWS_TIMESTAMP_MILLIS));
-    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(0UL, AWS_TIMESTAMP_MICROS));
-    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(0UL, AWS_TIMESTAMP_NANOS));
-    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(34287562786UL, 2));
+    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(0, AWS_TIMESTAMP_SECS));
+    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(0, AWS_TIMESTAMP_MILLIS));
+    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(0, AWS_TIMESTAMP_MICROS));
+    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(0, AWS_TIMESTAMP_NANOS));
+    TEST_ASSERT_INT_EQ(0, convert_ttl_to_nanos(34287562786ULL, 2));
 
     return 0;
 }
