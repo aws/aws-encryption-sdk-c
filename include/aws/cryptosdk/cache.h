@@ -27,25 +27,28 @@ AWS_EXTERN_C_BEGIN
 /**
  * @defgroup caching Caching APIs
  *
- * The Encryption SDK includes a mechanism that can be used to cache the result
- * of encryption and decryption operations to reduce the number of calls made
- * to a backing keyring (e.g. KMS).
+ * The caching CMM caches the results of encryption and decryption operations
+ * to reduce the number of calls made to backing keyrings (e.g. KMS).
  *
  * To use the caching API, construct a local cache (using @ref
  * aws_cryptosdk_materials_cache_local_new) and pass it to the constructor of a
  * caching cmm (@ref aws_cryptosdk_caching_cmm_new), along with a delegate CMM
- * to use on a cache miss. We recommend additionally setting policy limits using
- * @ref aws_cryptosdk_caching_cmm_set_limit to ensure that keys expire and are
- * refreshed periodically.
+ * that generates the encryption and decryption materials that are cached.
  *
- * As with CMMs and keyrings, the local cache is reference counted. In simple use
+ * When constructing a caching CMM, you are required to set a time-to-live (TTL)
+ * for data keys in the cache. We also recommend setting one of the two additional
+ * security thresholds using @ref aws_cryptosdk_caching_cmm_set_limit_bytes or
+ * @ref aws_cryptosdk_caching_cmm_set_limit_messages to ensure that data keys expire
+ * and are refreshed periodically.
+ *
+ * As with CMMs and keyrings, the local cache is reference-counted. In simple use
  * cases where there is only one local cache and one CMM, you can immediately call
  * @ref aws_cryptosdk_materials_cache_release on the local cache after constructing the
  * CMM.
  *
  * Multiple caching CMMs can share the same local cache, but by default will
- * not use each other's entries (that is, they share the entry count limit, but
- * otherwise are partitioned from each other). This is to avoid unexpected behavior
+ * not use each other's entries. (They share the entry count limit, but otherwise
+ * are partitioned from each other.) This is to avoid unexpected behavior
  * in case the cache-miss delegate CMMs are different. If you want two caching CMMs
  * to share their entries, pass the same partition ID to both calls to @ref
  * aws_cryptosdk_caching_cmm_new .
