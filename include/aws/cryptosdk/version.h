@@ -22,7 +22,8 @@
  *
  * The AWS Encryption SDK for C provides easy-to-use envelope encryption in C,
  * with a data format compatible with the
- * <a href="https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/introduction.html">AWS Encryption SDKs in other languages</a>.
+ * <a href="https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/introduction.html">AWS Encryption SDKs in
+ * other languages</a>.
  *
  * <b>This library is currently under public preview.</b>
  * Feel free to check out the code and give it a spin, but be aware that the APIs might change
@@ -37,7 +38,6 @@
  *
  * This library is licensed under the Apache 2.0 License.
  */
-
 
 /**
  * @defgroup versioning Version constants
