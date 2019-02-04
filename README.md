@@ -203,9 +203,8 @@ You have successfully built and installed the AWS Encryption SDK for C.
 
 ### Building on Windows
 
-Start by installing Visual Studio version 15 or later. To inherit the environment variables
-directly from Visual Studio, we recommend using the x64 Native Tools Command Prompt.
-Run these instructions in the directory where you want to do the build and installation.
+Start by installing Visual Studio version 15 or later and Git for Windows. Use the x64 Native Tools Command Prompt
+for all commands listed here. Run these instructions in the directory where you want to do the build and installation.
 
     mkdir install && mkdir build && cd build
     git clone https://github.com/Microsoft/vcpkg.git
