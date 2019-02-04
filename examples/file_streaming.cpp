@@ -27,7 +27,7 @@
 /* Encrypts or decrypts a file in a streaming way. This is suitable
  * for large files that cannot be held in a single memory buffer.
  */
-static void process_file(
+static int process_file(
     char const *output_filename,
     char const *input_filename,
     aws_cryptosdk_mode mode,
@@ -36,7 +36,7 @@ static void process_file(
     FILE *input_fp = fopen(input_filename, "rb");
     if (!input_fp) {
         fprintf(stderr, "Could not open input file %s for reading; error %s\n", input_filename, strerror(errno));
-        return;
+        return -1;
     }
 
     FILE *output_fp = fopen(output_filename, "wb");
@@ -47,7 +47,7 @@ static void process_file(
             output_filename,
             strerror(errno));
         fclose(input_fp);
-        return;
+        return -1;
     }
 
     /* Initialize a KMS keyring using the provided ARN. */
@@ -84,7 +84,7 @@ static void process_file(
     size_t total_input_consumed  = 0;
     size_t total_output_produced = 0;
 
-    int aws_status = AWS_OP_SUCCESS;
+    int aws_status;
     while (!aws_cryptosdk_session_is_done(session)) {
         if (!feof(input_fp) && (input_len < input_capacity)) {
             size_t num_read = fread(&input_buffer[input_len], 1, input_capacity - input_len, input_fp);
@@ -127,7 +127,7 @@ static void process_file(
         if (!input_consumed && !output_produced && input_capacity >= input_needed && output_capacity >= output_needed) {
             /* This should be impossible. */
             fprintf(
-                stderr, "Unexpected error: encryption SDK made no progress.  Please contact the development team.\n");
+                stderr, "Unexpected error: Encryption SDK made no progress.  Please contact the development team.\n");
             abort();
         }
 
@@ -166,6 +166,7 @@ static void process_file(
     fclose(output_fp);
 
     aws_cryptosdk_session_destroy(session);
+    return aws_status;
 }
 
 int main(int argc, char *argv[]) {
@@ -197,13 +198,16 @@ int main(int argc, char *argv[]) {
 
     struct aws_allocator *allocator = aws_default_allocator();
 
-    process_file(encrypted_filename, input_filename, AWS_CRYPTOSDK_ENCRYPT, key_arn, allocator);
+    // Encrypt the file, and if that succeeds decrypt it too.
+    int ret = process_file(encrypted_filename, input_filename, AWS_CRYPTOSDK_ENCRYPT, key_arn, allocator);
 
-    process_file(decrypted_filename, encrypted_filename, AWS_CRYPTOSDK_DECRYPT, key_arn, allocator);
+    if (!ret) {
+        ret = process_file(decrypted_filename, encrypted_filename, AWS_CRYPTOSDK_DECRYPT, key_arn, allocator);
+    }
 
     Aws::ShutdownAPI(options);
 
     free(encrypted_filename);
     free(decrypted_filename);
-    return 0;
+    return ret;
 }
