@@ -1,4 +1,4 @@
-# AWS Encryption SDK C
+# AWS Encryption SDK for C
 
 The AWS Encryption SDK for C is a client-side encryption library designed to make it easy for
 everyone to encrypt and decrypt data using industry standards and best practices. It uses a
@@ -203,9 +203,9 @@ You have successfully built and installed the AWS Encryption SDK for C.
 
 ### Building on Windows
 
-Start by installing Visual Studio version 15 or later. To inherit the environment variables
-directly from Visual Studio, we recommend using the x64 Native Tools Command Prompt.
-Run these instructions in the directory where you want to do the build and installation.
+Start by installing Visual Studio version 15 or later and [Git for Windows](https://git-scm.com/download/win).
+Use the x64 Native Tools Command Prompt for all commands listed here. Run the following commands in the
+directory where you want to do the build and installation.
 
     mkdir install && mkdir build && cd build
     git clone https://github.com/Microsoft/vcpkg.git
