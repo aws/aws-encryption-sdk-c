@@ -18,6 +18,27 @@
 
 #include <aws/cryptosdk/private/config.h>
 
+/*! \mainpage The AWS Encryption SDK for C
+ *
+ * The AWS Encryption SDK for C provides easy-to-use envelope encryption in C,
+ * with a data format compatible with the
+ * <a href="https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/introduction.html">AWS Encryption SDKs in other languages</a>.
+ *
+ * <b>This library is currently under public preview.</b>
+ * Feel free to check out the code and give it a spin, but be aware that the APIs might change
+ * as we get closer to release. We'd love to hear your feedback on the APIs before they're
+ * fully nailed down.
+ *
+ * Source code and installation instructions are avaiable in
+ * <a href="https://github.com/awslabs/aws-encryption-sdk-c">the GitHub repository</a>.
+ *
+ *
+ * <b><u>License</u></b>
+ *
+ * This library is licensed under the Apache 2.0 License.
+ */
+
+
 /**
  * @defgroup versioning Version constants
  *
