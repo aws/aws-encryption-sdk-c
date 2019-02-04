@@ -40,7 +40,7 @@ extern "C" {
 /**
  * @defgroup cmm_kr_highlevel Materials providers
  *
- * The behavior of the encryption SDK is largely defined by two types of material providers -
+ * The behavior of the encryption SDK is largely defined by two types of materials providers -
  * the Crypto Materials Managers (CMMs) and Keyrings. In order to perform an encryption or
  * decryption operation, the @ref session must be given a CMM, which will typically be configured
  * to delegate to one or more keyrings to perform the key wrapping or unwrapping operation.
