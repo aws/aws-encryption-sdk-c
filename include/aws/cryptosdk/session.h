@@ -108,7 +108,7 @@ int aws_cryptosdk_session_set_frame_size(struct aws_cryptosdk_session *session, 
  * method is called more than once, the session will enter an error state.
  *
  * This method is how the end of data is determined; if this is not called, then
- * process will be unable to write out the end-of-message frames (and instead will
+ * the process will be unable to write out the end-of-message frames (and instead will
  * continue to request additional data).
  *
  * Note that if the frame size is set to zero (i.e. this is a one-shot encrypt),

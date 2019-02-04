@@ -40,7 +40,7 @@ extern "C" {
 /**
  * @defgroup cmm_kr_highlevel Materials providers
  *
- * The behavior of the encryption SDK is largely defined by two types of materials providers -
+ * The behavior of the encryption SDK is largely defined by two types of material providers -
  * the Crypto Materials Managers (CMMs) and Keyrings. In order to perform an encryption or
  * decryption operation, the @ref session must be given a CMM, which will typically be configured
  * to delegate to one or more keyrings to perform the key wrapping or unwrapping operation.
@@ -325,7 +325,7 @@ struct aws_cryptosdk_cmm_vt {
 };
 
 /**
- * Initialize the base structure for a CMM. This should be called by the /implementation/ of a CMM, to set up the
+ * Initialize the base structure for a CMM. This should be called by the implementation of a CMM, to set up the
  * vtable and reference count. On return, the reference count is initialized to 1.
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_base_init(
@@ -346,7 +346,7 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_release(struct aws_cryptosdk_
 
 /**
  * @ingroup cmm_kr_highlevel
- * Increments the reference count on the cmm.
+ * Increments the reference count on the CMM.
  */
 AWS_CRYPTOSDK_STATIC_INLINE struct aws_cryptosdk_cmm *aws_cryptosdk_cmm_retain(struct aws_cryptosdk_cmm *cmm) {
     aws_cryptosdk_private_refcount_up(&cmm->refcount);
@@ -440,7 +440,7 @@ struct aws_cryptosdk_keyring_vt {
 };
 
 /**
- * Initialize the base structure for a keyring. This should be called by the /implementation/ of a keyring, to set up
+ * Initialize the base structure for a keyring. This should be called by the implementation of a keyring, to set up
  * the vtable and reference count. On return, the reference count is initialized to 1.
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_keyring_base_init(

@@ -47,7 +47,7 @@ extern "C" {
 #endif
 
 /**
- * Deallocates all memory associated with an EDK. Setting all bytes of EDK to
+ * Deallocates all memory associated with an EDK. Setting all bytes of an EDK to
  * zero upon creation will make this safe to call even if some buffers are unused.
  */
 AWS_CRYPTOSDK_API
