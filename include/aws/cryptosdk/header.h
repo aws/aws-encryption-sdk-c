@@ -19,8 +19,9 @@
 /**
  * @ingroup session
  * Known algorithm suite names.
- * These follow the format:
- *   [cipher algorithm]_IV[iv length]_AUTH[authtag length]_KD[KDF algorithm]_SIG[Signature algorithm, or NONE]
+ * See the <a
+ * href="https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/algorithms-reference.html">Algorithms
+ * Reference</a> for more information.
  */
 enum aws_cryptosdk_alg_id {
     ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384 = 0x0378,

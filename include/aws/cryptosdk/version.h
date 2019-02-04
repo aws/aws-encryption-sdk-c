@@ -30,7 +30,7 @@
  * Feel free to check out the code and give it a spin, but be aware that the APIs are still in flux.
  * We'd love to hear your feedback on the APIs before they're fully nailed down.
  *
- * Source code and installation instructions are avaiable in
+ * Source code and installation instructions are available in
  * <a href="https://github.com/awslabs/aws-encryption-sdk-c">the GitHub repository</a>.
  *
  *
