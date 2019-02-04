@@ -19,9 +19,9 @@
 /**
  * @ingroup session
  * Known algorithm suite names.
- * See the <a
+ * For more information, see the <a
  * href="https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/algorithms-reference.html">Algorithms
- * Reference</a> for more information.
+ * Reference</a>.
  */
 enum aws_cryptosdk_alg_id {
     ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384 = 0x0378,

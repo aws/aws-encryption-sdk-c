@@ -48,7 +48,7 @@ extern "C" {
 
 /**
  * Deallocates all memory associated with an EDK. Setting all bytes of an EDK to
- * zero upon creation will make this safe to call even if some buffers are unused.
+ * zero when you declare it will make this safe to call even if some buffers are unused.
  */
 AWS_CRYPTOSDK_API
 void aws_cryptosdk_edk_clean_up(struct aws_cryptosdk_edk *edk);
