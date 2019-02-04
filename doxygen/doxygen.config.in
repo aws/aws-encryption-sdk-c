@@ -4,9 +4,9 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
-PROJECT_NAME           = "AWS Encryption SDK C"
-PROJECT_NUMBER         = 1.3.52
-PROJECT_BRIEF          = "AWS Encryption SDK C"
+PROJECT_NAME           = "AWS Encryption SDK for C"
+PROJECT_NUMBER         = 0.1.0
+PROJECT_BRIEF          = "AWS Encryption SDK for C"
 PROJECT_LOGO           = 
 OUTPUT_DIRECTORY       = doxygen
 CREATE_SUBDIRS         = NO
