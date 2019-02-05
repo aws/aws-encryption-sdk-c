@@ -5,6 +5,8 @@ everyone to encrypt and decrypt data using industry standards and best practices
 data format compatible with the AWS Encryption SDKs in other languages. For more information on
 the AWS Encryption SDKs in all languages, see the [Developer Guide](https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/introduction.html).
 
+Also, see the [API documentation](https://awslabs.github.io/aws-encryption-sdk-c/html/) for the AWS Encryption SDK for C.
+
 **This library is currently under public preview**. Feel free to check out the code and give
 it a spin, but be aware that the APIs are still in flux. We'd love to hear your feedback on
 the APIs before they're fully nailed down.
@@ -203,8 +205,11 @@ You have successfully built and installed the AWS Encryption SDK for C.
 
 ### Building on Windows
 
-Start by installing Visual Studio version 15 or later and [Git for Windows](https://git-scm.com/download/win).
-Use the x64 Native Tools Command Prompt for all commands listed here. Run the following commands in the
+Start by installing Visual Studio version 15 or later with the Windows Universal C Runtime and
+[Git for Windows](https://git-scm.com/download/win).
+
+
+Use the **x64 Native Tools Command Prompt** for all commands listed here. Run the following commands in the
 directory where you want to do the build and installation.
 
     mkdir install && mkdir build && cd build
