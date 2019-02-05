@@ -325,7 +325,7 @@ struct aws_cryptosdk_cmm_vt {
 };
 
 /**
- * Initialize the base structure for a CMM. This should be called by the /implementation/ of a CMM, to set up the
+ * Initialize the base structure for a CMM. The implementation of a CMM needs to call this function to set up the
  * vtable and reference count. On return, the reference count is initialized to 1.
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_base_init(
@@ -336,7 +336,7 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_base_init(
 
 /**
  * @ingroup cmm_kr_highlevel
- * Decrements the reference count on the CMM; if the new reference count is zero, the CMM is destroyed.
+ * Decrements the reference count on the CMM. If the new reference count is zero, the CMM is destroyed.
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_release(struct aws_cryptosdk_cmm *cmm) {
     if (cmm && aws_cryptosdk_private_refcount_down(&cmm->refcount)) {
@@ -346,7 +346,7 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_release(struct aws_cryptosdk_
 
 /**
  * @ingroup cmm_kr_highlevel
- * Increments the reference count on the cmm.
+ * Increments the reference count on the CMM.
  */
 AWS_CRYPTOSDK_STATIC_INLINE struct aws_cryptosdk_cmm *aws_cryptosdk_cmm_retain(struct aws_cryptosdk_cmm *cmm) {
     aws_cryptosdk_private_refcount_up(&cmm->refcount);
@@ -440,8 +440,8 @@ struct aws_cryptosdk_keyring_vt {
 };
 
 /**
- * Initialize the base structure for a keyring. This should be called by the /implementation/ of a keyring, to set up
- * the vtable and reference count. On return, the reference count is initialized to 1.
+ * Initialize the base structure for a keyring. The implementation of a keyring needs to call this function
+ * to set up the vtable and reference count. On return, the reference count is initialized to 1.
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_keyring_base_init(
     struct aws_cryptosdk_keyring *keyring, const struct aws_cryptosdk_keyring_vt *vtable) {

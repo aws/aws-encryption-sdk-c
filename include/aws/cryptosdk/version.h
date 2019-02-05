@@ -26,11 +26,11 @@
  * the AWS Encryption SDKs in all languages, see the
  * <a href="https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/introduction.html">Developer Guide</a>.
  *
- * <b>This library is currently under public preview.</b>
+ * <b>This library is currently in public preview.</b>
  * Feel free to check out the code and give it a spin, but be aware that the APIs are still in flux.
  * We'd love to hear your feedback on the APIs before they're fully nailed down.
  *
- * Source code and installation instructions are avaiable in
+ * Source code and installation instructions are available in
  * <a href="https://github.com/awslabs/aws-encryption-sdk-c">the GitHub repository</a>.
  *
  *
