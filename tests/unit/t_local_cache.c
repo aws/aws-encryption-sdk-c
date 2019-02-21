@@ -124,7 +124,7 @@ static int entry_refcount() {
     struct aws_cryptosdk_materials_cache_entry *entry_1 = NULL, *entry_2 = NULL;
     struct aws_hash_table enc_ctx_1, enc_ctx_2;
     struct aws_byte_buf cache_id;
-    struct aws_cryptosdk_cache_usage_stats stats_1 = { 0 }, stats_2 = { 0 };
+    struct aws_cryptosdk_cache_usage_stats stats_1 = { 0 };
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_ctx_init(alloc, &enc_ctx_1));
     TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_ctx_init(alloc, &enc_ctx_2));
