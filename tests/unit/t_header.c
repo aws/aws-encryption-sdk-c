@@ -13,6 +13,12 @@
  * limitations under the License.
  */
 
+#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
+#    define _BSD_SOURCE
+#    include <sys/mman.h>
+#    include <unistd.h>
+#endif
+
 #include <aws/common/hash_table.h>
 #include <aws/common/string.h>
 #include <aws/cryptosdk/edk.h>
@@ -23,11 +29,6 @@
 #include <string.h>
 #include "testing.h"
 #include "testutil.h"
-
-#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
-#    include <sys/mman.h>
-#    include <unistd.h>
-#endif
 
 #ifdef _MSC_VER
 #    include <malloc.h>
