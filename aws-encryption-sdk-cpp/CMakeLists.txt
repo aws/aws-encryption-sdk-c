@@ -13,9 +13,6 @@
 # limitations under the License.
 #
 
-# End-to-End tests might require special permissions
-option(AWS_ENC_SDK_END_TO_END_TESTS "Enable End-to-End tests")
-
 file(GLOB AWS_CRYPTOSDK_CPP_HEADERS
     # Headers subject to API/ABI stability guarantees
     "${CMAKE_CURRENT_SOURCE_DIR}/include/aws/cryptosdk/cpp/*.h"

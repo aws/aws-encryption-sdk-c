@@ -71,7 +71,7 @@ if (REDUCE_TEST_ITERATIONS)
     target_compile_definitions(test_decryption_vectors PRIVATE REDUCE_TEST_ITERATIONS)
 endif()
 
-if(CURL_FOUND)
+if(AWS_ENC_SDK_END_TO_END_TESTS AND CURL_FOUND)
     add_executable(t_encrypt_compat integration/t_encrypt_compat.c)
     set_target_properties(t_encrypt_compat PROPERTIES
         C_STANDARD 99
@@ -81,7 +81,7 @@ if(CURL_FOUND)
     target_sources(t_encrypt_compat PRIVATE ${UNIT_TEST_SRC_CPP})
     target_include_directories(t_encrypt_compat PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib)
     aws_add_test(integration_encrypt_compatibility ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/t_encrypt_compat)
-endif(CURL_FOUND)
+endif(AWS_ENC_SDK_END_TO_END_TESTS AND CURL_FOUND)
 
 aws_add_test(cipher ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite cipher)
 aws_add_test(header ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite header)
