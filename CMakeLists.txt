@@ -44,10 +44,7 @@ include(TestLibraryPath)
 include(CheckLibraryExists)
 include(CodeCoverageFlags)
 
-# TODO: Static link?
 include(FindOpenSSL)
-# For tests
-include(FindCURL)
 
 set(PROJECT_NAME aws-encryption-sdk)
 
@@ -60,6 +57,11 @@ set(REDUCE_TEST_ITERATIONS FALSE
 
 set(BUILD_SHARED_LIBS FALSE
     CACHE BOOL "Build aws-encryption-sdk-c as a shared library")
+
+option(AWS_ENC_SDK_END_TO_END_TESTS "Enable end-to-end tests. If set to FALSE (the default), runs local tests only.")
+if(AWS_ENC_SDK_END_TO_END_TESTS)
+    include(FindCURL)
+endif()
 
 option(PERFORM_HEADER_CHECK "Performs compile-time checks that each header can be included independently. Requires a C++ compiler.")
 
