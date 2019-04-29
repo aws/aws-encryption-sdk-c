@@ -32,7 +32,8 @@ int encrypt_string(
         return 2;
     }
 
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_keyring(alloc, AWS_CRYPTOSDK_ENCRYPT, kms_keyring);
+    struct aws_cryptosdk_session *session =
+        aws_cryptosdk_session_new_from_keyring(alloc, AWS_CRYPTOSDK_ENCRYPT, kms_keyring);
 
     /* The session has a reference to the keyring now. We release our reference so that
      * the keyring will be destroyed when the session is. If session failed to allocate,
@@ -104,7 +105,8 @@ int decrypt_string_and_verify_encryption_context(
         return 8;
     }
 
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_keyring(alloc, AWS_CRYPTOSDK_DECRYPT, kms_keyring);
+    struct aws_cryptosdk_session *session =
+        aws_cryptosdk_session_new_from_keyring(alloc, AWS_CRYPTOSDK_DECRYPT, kms_keyring);
     aws_cryptosdk_keyring_release(kms_keyring);
 
     if (!session) {

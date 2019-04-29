@@ -71,7 +71,7 @@ enum aws_cryptosdk_mode { AWS_CRYPTOSDK_ENCRYPT = 0x9000, AWS_CRYPTOSDK_DECRYPT 
 AWS_CRYPTOSDK_API
 struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_keyring(
     struct aws_allocator *allocator, enum aws_cryptosdk_mode mode, struct aws_cryptosdk_keyring *keyring);
-    
+
 /**
  * Creates a new encryption or decryption session.
  *

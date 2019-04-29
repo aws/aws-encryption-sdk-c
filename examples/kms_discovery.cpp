@@ -37,7 +37,8 @@ void encrypt_string(
         abort();
     }
 
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_keyring(alloc, AWS_CRYPTOSDK_ENCRYPT, kms_keyring);
+    struct aws_cryptosdk_session *session =
+        aws_cryptosdk_session_new_from_keyring(alloc, AWS_CRYPTOSDK_ENCRYPT, kms_keyring);
     if (!session) abort();
     aws_cryptosdk_keyring_release(kms_keyring);
 
@@ -69,7 +70,8 @@ void decrypt_string(
     size_t *out_plaintext_len,
     const uint8_t *in_ciphertext,
     size_t in_ciphertext_len) {
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_keyring(alloc, AWS_CRYPTOSDK_DECRYPT, kms_keyring);
+    struct aws_cryptosdk_session *session =
+        aws_cryptosdk_session_new_from_keyring(alloc, AWS_CRYPTOSDK_DECRYPT, kms_keyring);
     if (!session) abort();
 
     size_t in_ciphertext_consumed;
