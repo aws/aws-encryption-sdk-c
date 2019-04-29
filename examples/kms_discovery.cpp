@@ -14,11 +14,15 @@
  */
 
 #include <aws/cryptosdk/cpp/kms_keyring.h>
-#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/session.h>
 
-const char *KEY_ARN_US_WEST_2    = "arn:aws:kms:us-west-2:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
-const char *KEY_ARN_EU_CENTRAL_1 = "arn:aws:kms:eu-central-1:658956600833:key/75414c93-5285-4b57-99c9-30c1cf0a22c2";
+/* This example shows how various KMS keyrings operate slightly differently on
+ * decryption. The code is completely functional except for the two fake KMS
+ * Customer Master Key ARNs. If you want to test the functionality yourself,
+ * replace the ARNs with keys of your own in two separate regions.
+ */
+const char *KEY_ARN_US_WEST_2    = "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab";
+const char *KEY_ARN_EU_CENTRAL_1 = "arn:aws:kms:eu-central-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab";
 
 void encrypt_string(
     struct aws_allocator *alloc,
@@ -33,13 +37,9 @@ void encrypt_string(
         abort();
     }
 
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(alloc, kms_keyring);
-    if (!cmm) abort();
-    aws_cryptosdk_keyring_release(kms_keyring);
-
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_ENCRYPT, cmm);
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_keyring(alloc, AWS_CRYPTOSDK_ENCRYPT, kms_keyring);
     if (!session) abort();
-    aws_cryptosdk_cmm_release(cmm);
+    aws_cryptosdk_keyring_release(kms_keyring);
 
     if (AWS_OP_SUCCESS != aws_cryptosdk_session_set_message_size(session, in_plaintext_len)) {
         abort();
@@ -69,12 +69,8 @@ void decrypt_string(
     size_t *out_plaintext_len,
     const uint8_t *in_ciphertext,
     size_t in_ciphertext_len) {
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(alloc, kms_keyring);
-    if (!cmm) abort();
-
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm);
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_keyring(alloc, AWS_CRYPTOSDK_DECRYPT, kms_keyring);
     if (!session) abort();
-    aws_cryptosdk_cmm_release(cmm);
 
     size_t in_ciphertext_consumed;
     if (AWS_OP_SUCCESS != aws_cryptosdk_session_process(

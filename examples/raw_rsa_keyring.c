@@ -14,15 +14,14 @@
  */
 
 #include <aws/common/string.h>
-#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/raw_rsa_keyring.h>
 #include <aws/cryptosdk/session.h>
 #include <stdio.h>
 
 #define BUFFER_SIZE 4096
 
-/* Encrypts/decrypts the entire input buffer using the CMM provided. */
-void encrypt_or_decrypt_with_cmm(
+/* Encrypts/decrypts the entire input buffer using the keyring provided. */
+void encrypt_or_decrypt_with_keyring(
     struct aws_allocator *alloc,
     uint8_t *output,
     size_t output_buf_sz,
@@ -30,8 +29,8 @@ void encrypt_or_decrypt_with_cmm(
     const uint8_t *input,
     size_t input_len,
     enum aws_cryptosdk_mode mode,
-    struct aws_cryptosdk_cmm *cmm) {
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(alloc, mode, cmm);
+    struct aws_cryptosdk_keyring *keyring) {
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_keyring(alloc, mode, keyring);
     if (!session) abort();
 
     if (mode == AWS_CRYPTOSDK_ENCRYPT) {
@@ -140,15 +139,6 @@ int main(int argc, char **argv) {
     free(private_key_pem);
     free(public_key_pem);
 
-    /* We create a default Cryptographic Materials Manager (CMM) using this keyring. */
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(alloc, keyring);
-    if (!cmm) abort();
-
-    /* We release the pointer on the keyring so that it will be destroyed when the
-     * CMM is destroyed. The CMM will be used for both encrypt and decrypt.
-     */
-    aws_cryptosdk_keyring_release(keyring);
-
     const char *plaintext_original      = "Hello world!";
     const size_t plaintext_original_len = strlen(plaintext_original);
 
@@ -157,7 +147,7 @@ int main(int argc, char **argv) {
     size_t ciphertext_len;
     size_t plaintext_result_len;
 
-    encrypt_or_decrypt_with_cmm(
+    encrypt_or_decrypt_with_keyring(
         alloc,
         ciphertext,
         BUFFER_SIZE,
@@ -165,10 +155,10 @@ int main(int argc, char **argv) {
         (const uint8_t *)plaintext_original,
         plaintext_original_len,
         AWS_CRYPTOSDK_ENCRYPT,
-        cmm);
+        keyring);
     printf(">> Encrypted to ciphertext of length %zu\n", ciphertext_len);
 
-    encrypt_or_decrypt_with_cmm(
+    encrypt_or_decrypt_with_keyring(
         alloc,
         plaintext_result,
         BUFFER_SIZE,
@@ -176,18 +166,17 @@ int main(int argc, char **argv) {
         ciphertext,
         ciphertext_len,
         AWS_CRYPTOSDK_DECRYPT,
-        cmm);
+        keyring);
     printf(">> Decrypted to plaintext of length %zu\n", plaintext_result_len);
 
     if (plaintext_original_len != plaintext_result_len) abort();
     if (memcmp(plaintext_original, plaintext_result, plaintext_result_len)) abort();
     printf(">> Decrypted plaintext matches original!\n");
 
-    /* Releasing the CMM causes both the CMM and keyring to be destroyed.
-     * The destruction of the raw RSA keyring also causes the internal copy
+    /* The destruction of the raw RSA keyring causes the internal copy
      * of the private key to be securely zeroed before deallocation.
      */
-    aws_cryptosdk_cmm_release(cmm);
+    aws_cryptosdk_keyring_release(keyring);
 
     return 0;
 }
