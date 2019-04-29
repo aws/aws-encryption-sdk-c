@@ -14,7 +14,6 @@
  */
 
 #include <aws/cryptosdk/cache.h>
-#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/edk.h>
 #include <aws/cryptosdk/enc_ctx.h>
 #include <aws/cryptosdk/private/cipher.h>
@@ -49,7 +48,7 @@ static void release_mocks();
 
 static int create_destroy() {
     setup_mocks();
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new_from_cmm(
         aws_default_allocator(),
         &mock_materials_cache->base,
         &mock_upstream_cmm->base,
@@ -66,7 +65,7 @@ static int create_destroy() {
 
 static int enc_cache_miss() {
     setup_mocks();
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new_from_cmm(
         aws_default_allocator(),
         &mock_materials_cache->base,
         &mock_upstream_cmm->base,
@@ -120,7 +119,7 @@ static int enc_cache_miss() {
 
 static int enc_cache_hit() {
     setup_mocks();
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new_from_cmm(
         aws_default_allocator(),
         &mock_materials_cache->base,
         &mock_upstream_cmm->base,
@@ -193,7 +192,7 @@ static int enc_cache_hit() {
 static int enc_cache_unique_ids() {
     struct aws_allocator *alloc = aws_default_allocator();
     setup_mocks();
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new_from_cmm(
         aws_default_allocator(),
         &mock_materials_cache->base,
         &mock_upstream_cmm->base,
@@ -418,7 +417,7 @@ void caching_cmm_set_clock(struct aws_cryptosdk_cmm *generic_cmm, int (*clock_ge
 static int byte_and_message_limits_test() {
     setup_mocks();
 
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new_from_cmm(
         aws_default_allocator(),
         &mock_materials_cache->base,
         &mock_upstream_cmm->base,
@@ -520,7 +519,7 @@ static int byte_and_message_limits_test() {
 static int ttl_test() {
     setup_mocks();
 
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new_from_cmm(
         aws_default_allocator(),
         &mock_materials_cache->base,
         &mock_upstream_cmm->base,
@@ -618,7 +617,7 @@ static int ttl_test() {
 
 static int zero_byte_limit_zero_length_messages() {
     setup_mocks();
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new_from_cmm(
         aws_default_allocator(),
         &mock_materials_cache->base,
         &mock_upstream_cmm->base,
@@ -772,7 +771,7 @@ static int dec_cache_id_test_vecs() {
 
 static int dec_materials() {
     setup_mocks();
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new_from_cmm(
         aws_default_allocator(),
         &mock_materials_cache->base,
         &mock_upstream_cmm->base,
@@ -850,7 +849,7 @@ static int dec_materials() {
 
 static int cache_miss_failed_put() {
     setup_mocks();
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new_from_cmm(
         aws_default_allocator(),
         &mock_materials_cache->base,
         &mock_upstream_cmm->base,
@@ -899,14 +898,14 @@ static int cache_miss_failed_put() {
 
 static bool partitions_match_on_enc(
     const struct aws_byte_buf *partition_name_a, const struct aws_byte_buf *partition_name_b) {
-    struct aws_cryptosdk_cmm *cmm_a = aws_cryptosdk_caching_cmm_new(
+    struct aws_cryptosdk_cmm *cmm_a = aws_cryptosdk_caching_cmm_new_from_cmm(
         aws_default_allocator(),
         &mock_materials_cache->base,
         &mock_upstream_cmm->base,
         partition_name_a,
         UINT64_MAX,
         AWS_TIMESTAMP_MICROS);
-    struct aws_cryptosdk_cmm *cmm_b = aws_cryptosdk_caching_cmm_new(
+    struct aws_cryptosdk_cmm *cmm_b = aws_cryptosdk_caching_cmm_new_from_cmm(
         aws_default_allocator(),
         &mock_materials_cache->base,
         &mock_upstream_cmm->base,
@@ -956,14 +955,14 @@ static bool partitions_match_on_enc(
 
 static bool partitions_match_on_dec(
     const struct aws_byte_buf *partition_name_a, const struct aws_byte_buf *partition_name_b) {
-    struct aws_cryptosdk_cmm *cmm_a = aws_cryptosdk_caching_cmm_new(
+    struct aws_cryptosdk_cmm *cmm_a = aws_cryptosdk_caching_cmm_new_from_cmm(
         aws_default_allocator(),
         &mock_materials_cache->base,
         &mock_upstream_cmm->base,
         partition_name_a,
         UINT64_MAX,
         AWS_TIMESTAMP_SECS);
-    struct aws_cryptosdk_cmm *cmm_b = aws_cryptosdk_caching_cmm_new(
+    struct aws_cryptosdk_cmm *cmm_b = aws_cryptosdk_caching_cmm_new_from_cmm(
         aws_default_allocator(),
         &mock_materials_cache->base,
         &mock_upstream_cmm->base,
@@ -1153,7 +1152,6 @@ static int process_loop(
 static int set_message_bound_with_caching_cmm() {
     struct aws_allocator *alloc                 = aws_default_allocator();
     struct aws_cryptosdk_keyring *kr            = NULL;
-    struct aws_cryptosdk_cmm *default_cmm       = NULL;
     struct aws_cryptosdk_materials_cache *cache = NULL;
     struct aws_cryptosdk_cmm *caching_cmm       = NULL;
     struct aws_cryptosdk_session *session       = NULL;
@@ -1168,17 +1166,13 @@ static int set_message_bound_with_caching_cmm() {
     kr = aws_cryptosdk_zero_keyring_new(alloc);
     TEST_ASSERT_ADDR_NOT_NULL(kr);
 
-    default_cmm = aws_cryptosdk_default_cmm_new(alloc, kr);
-    TEST_ASSERT_ADDR_NOT_NULL(default_cmm);
-
     cache = aws_cryptosdk_materials_cache_local_new(alloc, 8);
     TEST_ASSERT_ADDR_NOT_NULL(cache);
 
-    caching_cmm = aws_cryptosdk_caching_cmm_new(alloc, cache, default_cmm, NULL, UINT64_MAX, AWS_TIMESTAMP_NANOS);
+    caching_cmm = aws_cryptosdk_caching_cmm_new_from_keyring(alloc, cache, kr, NULL, UINT64_MAX, AWS_TIMESTAMP_NANOS);
     TEST_ASSERT_ADDR_NOT_NULL(caching_cmm);
 
     aws_cryptosdk_keyring_release(kr);
-    aws_cryptosdk_cmm_release(default_cmm);
 
     session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_ENCRYPT, caching_cmm);
     TEST_ASSERT_ADDR_NOT_NULL(session);
@@ -1232,30 +1226,30 @@ static int disallowed_limits() {
     setup_mocks();
 
     aws_reset_error();
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new(
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_caching_cmm_new_from_cmm(
         aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, 0, AWS_TIMESTAMP_SECS);
     TEST_ASSERT_ADDR_NULL(cmm);
     TEST_ASSERT_INT_EQ(aws_last_error(), AWS_ERROR_INVALID_ARGUMENT);
 
     aws_reset_error();
-    cmm = aws_cryptosdk_caching_cmm_new(
+    cmm = aws_cryptosdk_caching_cmm_new_from_cmm(
         aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, 0, AWS_TIMESTAMP_MILLIS);
     TEST_ASSERT_ADDR_NULL(cmm);
     TEST_ASSERT_INT_EQ(aws_last_error(), AWS_ERROR_INVALID_ARGUMENT);
 
     aws_reset_error();
-    cmm = aws_cryptosdk_caching_cmm_new(
+    cmm = aws_cryptosdk_caching_cmm_new_from_cmm(
         aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, 0, AWS_TIMESTAMP_MICROS);
     TEST_ASSERT_ADDR_NULL(cmm);
     TEST_ASSERT_INT_EQ(aws_last_error(), AWS_ERROR_INVALID_ARGUMENT);
 
     aws_reset_error();
-    cmm = aws_cryptosdk_caching_cmm_new(
+    cmm = aws_cryptosdk_caching_cmm_new_from_cmm(
         aws_default_allocator(), &mock_materials_cache->base, &mock_upstream_cmm->base, NULL, 0, AWS_TIMESTAMP_NANOS);
     TEST_ASSERT_ADDR_NULL(cmm);
     TEST_ASSERT_INT_EQ(aws_last_error(), AWS_ERROR_INVALID_ARGUMENT);
 
-    cmm = aws_cryptosdk_caching_cmm_new(
+    cmm = aws_cryptosdk_caching_cmm_new_from_cmm(
         aws_default_allocator(),
         &mock_materials_cache->base,
         &mock_upstream_cmm->base,

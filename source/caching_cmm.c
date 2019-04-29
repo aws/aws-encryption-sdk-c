@@ -17,6 +17,7 @@
 #include <aws/common/linked_list.h> /* AWS_CONTAINER_OF */
 #include <aws/common/math.h>
 #include <aws/cryptosdk/cache.h>
+#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/enc_ctx.h>
 #include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/private/enc_ctx.h>
@@ -158,7 +159,7 @@ int aws_cryptosdk_caching_cmm_set_ttl(
     return AWS_OP_SUCCESS;
 }
 
-struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
+struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new_from_cmm(
     struct aws_allocator *alloc,
     struct aws_cryptosdk_materials_cache *materials_cache,
     struct aws_cryptosdk_cmm *upstream,
@@ -197,6 +198,22 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
     cmm->ttl_nanos      = ttl_nanos;
 
     return &cmm->base;
+}
+
+struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new_from_keyring(
+    struct aws_allocator *alloc,
+    struct aws_cryptosdk_materials_cache *materials_cache,
+    struct aws_cryptosdk_keyring *keyring,
+    const struct aws_byte_buf *partition_id,
+    uint64_t cache_limit_ttl,
+    enum aws_timestamp_unit cache_limit_ttl_units) {
+    struct aws_cryptosdk_cmm *upstream = aws_cryptosdk_default_cmm_new(alloc, keyring);
+    if (!upstream) return NULL;
+
+    struct aws_cryptosdk_cmm *caching_cmm = aws_cryptosdk_caching_cmm_new_from_cmm(
+        alloc, materials_cache, upstream, partition_id, cache_limit_ttl, cache_limit_ttl_units);
+    aws_cryptosdk_cmm_release(upstream);
+    return caching_cmm;
 }
 
 /*
