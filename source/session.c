@@ -18,6 +18,7 @@
 #include <stdlib.h>
 
 #include <aws/common/byte_buf.h>
+#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/private/framefmt.h>
 #include <aws/cryptosdk/private/header.h>
@@ -110,6 +111,24 @@ struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm(
         session->cmm = cmm;
         aws_cryptosdk_cmm_retain(cmm);
     }
+
+    return session;
+}
+
+struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_keyring(
+    struct aws_allocator *allocator, enum aws_cryptosdk_mode mode, struct aws_cryptosdk_keyring *keyring) {
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(allocator, keyring);
+    if (!cmm) return NULL;
+
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new(allocator, mode);
+    if (!session) {
+        aws_cryptosdk_cmm_release(cmm);
+        return NULL;
+    }
+
+    session->cmm = cmm;
+    // CMM reference count is now 1 and the session owns the reference, which will be released
+    // when session is destroyed.
 
     return session;
 }
