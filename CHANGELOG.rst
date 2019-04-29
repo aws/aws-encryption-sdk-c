@@ -20,3 +20,5 @@ Changelog
 0.1.3 -- 2019-04-29
 ===================
 * Added API function to make session from keyring
+* Added API function to make caching CMM from keyring
+* Added "_from_cmm" to end of "aws_cryptosdk_caching_cmm_new" function name
