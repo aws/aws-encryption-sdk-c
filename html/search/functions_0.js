@@ -1,7 +1,8 @@
 var searchData=
 [
   ['aws_5fcryptosdk_5falg_5fprops',['aws_cryptosdk_alg_props',['../group__hazmat.html#ga96b436f51e3a18d420150ce6f64b479d',1,'cipher.h']]],
-  ['aws_5fcryptosdk_5fcaching_5fcmm_5fnew',['aws_cryptosdk_caching_cmm_new',['../group__caching.html#gaa934de1183898fcea6e21b12b91167e5',1,'cache.h']]],
+  ['aws_5fcryptosdk_5fcaching_5fcmm_5fnew_5ffrom_5fcmm',['aws_cryptosdk_caching_cmm_new_from_cmm',['../group__caching.html#gaeae90cd48b352c0d694381d71c3022d3',1,'cache.h']]],
+  ['aws_5fcryptosdk_5fcaching_5fcmm_5fnew_5ffrom_5fkeyring',['aws_cryptosdk_caching_cmm_new_from_keyring',['../group__caching.html#gae79999f9cecf68c86b24829c6c01aaf7',1,'cache.h']]],
   ['aws_5fcryptosdk_5fcaching_5fcmm_5fset_5flimit_5fbytes',['aws_cryptosdk_caching_cmm_set_limit_bytes',['../group__caching.html#gac7d9d141904d97c89637e9162e416ab6',1,'cache.h']]],
   ['aws_5fcryptosdk_5fcaching_5fcmm_5fset_5flimit_5fmessages',['aws_cryptosdk_caching_cmm_set_limit_messages',['../group__caching.html#gaf298383cea70baeaac20a652aead75a5',1,'cache.h']]],
   ['aws_5fcryptosdk_5fcaching_5fcmm_5fset_5fttl',['aws_cryptosdk_caching_cmm_set_ttl',['../group__caching.html#ga568b28a1d78d05617f77cdb573b87eba',1,'cache.h']]],
@@ -57,6 +58,7 @@ var searchData=
   ['aws_5fcryptosdk_5fsession_5fget_5fkeyring_5ftrace_5fptr',['aws_cryptosdk_session_get_keyring_trace_ptr',['../group__session.html#gaa7cd8c9a6ba12e8148b56dc043f54b9e',1,'session.h']]],
   ['aws_5fcryptosdk_5fsession_5fis_5fdone',['aws_cryptosdk_session_is_done',['../group__session.html#ga02df3f7639fb1ad34c6b0893d1ffc0b5',1,'session.h']]],
   ['aws_5fcryptosdk_5fsession_5fnew_5ffrom_5fcmm',['aws_cryptosdk_session_new_from_cmm',['../group__session.html#gae0942539031b2b8c1a14abfc81845f16',1,'session.h']]],
+  ['aws_5fcryptosdk_5fsession_5fnew_5ffrom_5fkeyring',['aws_cryptosdk_session_new_from_keyring',['../group__session.html#ga763808ac375e579ebd07a0ee9285a3ba',1,'session.h']]],
   ['aws_5fcryptosdk_5fsession_5fprocess',['aws_cryptosdk_session_process',['../group__session.html#gab68c1609a18cd0a32035739767293e35',1,'session.h']]],
   ['aws_5fcryptosdk_5fsession_5freset',['aws_cryptosdk_session_reset',['../group__session.html#gae3b107e88cd33c98df05a6a37b31d427',1,'session.h']]],
   ['aws_5fcryptosdk_5fsession_5fset_5fframe_5fsize',['aws_cryptosdk_session_set_frame_size',['../group__session.html#ga4aad15397f8d35bb459f61d386795a27',1,'session.h']]],

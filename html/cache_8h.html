@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">AWS Encryption SDK for C
-   &#160;<span id="projectnumber">0.1.0</span>
+   &#160;<span id="projectnumber">0.1.3</span>
    </div>
    <div id="projectbrief">AWS Encryption SDK for C</div>
   </td>
@@ -98,8 +98,10 @@ Functions</h2></td></tr>
 <tr class="separator:ga2de2306e1e8a40cd3decc7b8f9f8fb94"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga5f5ed8a55fd167ff436b3c4437ea754d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__caching.html#ga5f5ed8a55fd167ff436b3c4437ea754d">aws_cryptosdk_materials_cache_release</a> (struct aws_cryptosdk_materials_cache *materials_cache)</td></tr>
 <tr class="separator:ga5f5ed8a55fd167ff436b3c4437ea754d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaa934de1183898fcea6e21b12b91167e5"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__caching.html#gaa934de1183898fcea6e21b12b91167e5">aws_cryptosdk_caching_cmm_new</a> (struct aws_allocator *alloc, struct aws_cryptosdk_materials_cache *materials_cache, struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a> *upstream, const struct aws_byte_buf *partition_id, uint64_t cache_limit_ttl, enum aws_timestamp_unit cache_limit_ttl_units)</td></tr>
-<tr class="separator:gaa934de1183898fcea6e21b12b91167e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaeae90cd48b352c0d694381d71c3022d3"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__caching.html#gaeae90cd48b352c0d694381d71c3022d3">aws_cryptosdk_caching_cmm_new_from_cmm</a> (struct aws_allocator *alloc, struct aws_cryptosdk_materials_cache *materials_cache, struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a> *upstream, const struct aws_byte_buf *partition_id, uint64_t cache_limit_ttl, enum aws_timestamp_unit cache_limit_ttl_units)</td></tr>
+<tr class="separator:gaeae90cd48b352c0d694381d71c3022d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae79999f9cecf68c86b24829c6c01aaf7"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__caching.html#gae79999f9cecf68c86b24829c6c01aaf7">aws_cryptosdk_caching_cmm_new_from_keyring</a> (struct aws_allocator *alloc, struct aws_cryptosdk_materials_cache *materials_cache, struct <a class="el" href="structaws__cryptosdk__keyring.html">aws_cryptosdk_keyring</a> *keyring, const struct aws_byte_buf *partition_id, uint64_t cache_limit_ttl, enum aws_timestamp_unit cache_limit_ttl_units)</td></tr>
+<tr class="separator:gae79999f9cecf68c86b24829c6c01aaf7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga568b28a1d78d05617f77cdb573b87eba"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__caching.html#ga568b28a1d78d05617f77cdb573b87eba">aws_cryptosdk_caching_cmm_set_ttl</a> (struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a> *cmm, uint64_t ttl, enum aws_timestamp_unit ttl_units)</td></tr>
 <tr class="separator:ga568b28a1d78d05617f77cdb573b87eba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gac7d9d141904d97c89637e9162e416ab6"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__caching.html#gac7d9d141904d97c89637e9162e416ab6">aws_cryptosdk_caching_cmm_set_limit_bytes</a> (struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a> *cmm, uint64_t limit_bytes)</td></tr>
