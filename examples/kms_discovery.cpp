@@ -16,10 +16,17 @@
 #include <aws/cryptosdk/cpp/kms_keyring.h>
 #include <aws/cryptosdk/session.h>
 
-/* This example shows how various KMS keyrings operate slightly differently on
- * decryption. The code is completely functional except for the two fake KMS
- * Customer Master Key ARNs. If you want to test the functionality yourself,
- * replace the ARNs with keys of your own in two separate regions.
+/* This example encrypts a string using a keyring configured with two KMS CMKs in
+ * different regions and then performs the same decryption of the string with six
+ * keyrings configured in various ways. Although all of the decrypting keyrings
+ * are able to decrypt this message, their general behavior varies, and the comments
+ * below explain the differences. These differences are most significant when
+ * consumers of the Encryption SDK want to limit their calls to KMS either to
+ * specific sets of CMKs or to specific regions.
+ *
+ * The code is completely functional except for the two example KMS Customer Master
+ * Key ARNs. If you want to test the functionality yourself, replace the ARNs with
+ * those for keys of your own in two separate regions.
  */
 const char *KEY_ARN_US_WEST_2    = "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab";
 const char *KEY_ARN_EU_CENTRAL_1 = "arn:aws:kms:eu-central-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab";
