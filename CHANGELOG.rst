@@ -17,7 +17,7 @@ Changelog
 * Local tests only by default
 * Fix of MAP_ANONYMOUS issue for older Linuxes
 
-0.1.3 -- 2019-04-29
+0.2.0 -- 2019-04-29
 ===================
 * Added API function to make session from keyring
 * Added API function to make caching CMM from keyring
