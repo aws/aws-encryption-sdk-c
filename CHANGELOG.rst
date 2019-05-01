@@ -22,3 +22,4 @@ Changelog
 * Added API function to make session from keyring
 * Added API function to make caching CMM from keyring
 * Added "_from_cmm" to end of "aws_cryptosdk_caching_cmm_new" function name
+* Changed "aws_cryptosdk_session_get_algorithm" to "aws_cryptosdk_session_get_alg_id"

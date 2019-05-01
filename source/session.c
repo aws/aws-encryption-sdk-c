@@ -288,7 +288,7 @@ bool aws_cryptosdk_session_is_done(const struct aws_cryptosdk_session *session) 
     return session->state == ST_DONE;
 }
 
-int aws_cryptosdk_session_get_algorithm(
+int aws_cryptosdk_session_get_alg_id(
     const struct aws_cryptosdk_session *session, enum aws_cryptosdk_alg_id *alg_id) {
     if (!session->alg_props) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);

@@ -77,7 +77,7 @@ static void decrypt_test_oneshot(
     if (rv != 0) unexpected_error();
 
     enum aws_cryptosdk_alg_id actual_alg_id;
-    if (aws_cryptosdk_session_get_algorithm(session, &actual_alg_id)) unexpected_error();
+    if (aws_cryptosdk_session_get_alg_id(session, &actual_alg_id)) unexpected_error();
 
     if (actual_alg_id != alg_id) {
         fprintf(stderr, "Wrong algorithm ID. Expected %04x, got %04x\n", alg_id, actual_alg_id);
@@ -263,7 +263,7 @@ static void decrypt_test_incremental(
     }  // outer loop until complete
 
     enum aws_cryptosdk_alg_id actual_alg_id;
-    if (aws_cryptosdk_session_get_algorithm(session, &actual_alg_id)) unexpected_error();
+    if (aws_cryptosdk_session_get_alg_id(session, &actual_alg_id)) unexpected_error();
 
     if (actual_alg_id != alg_id) {
         fprintf(stderr, "Wrong algorithm ID. Expected %04x, got %04x\n", alg_id, actual_alg_id);

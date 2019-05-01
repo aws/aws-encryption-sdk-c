@@ -206,7 +206,7 @@ bool aws_cryptosdk_session_is_done(const struct aws_cryptosdk_session *session);
  * returns true, but may succeed earlier in the message as well.
  */
 AWS_CRYPTOSDK_API
-int aws_cryptosdk_session_get_algorithm(const struct aws_cryptosdk_session *session, enum aws_cryptosdk_alg_id *alg_id);
+int aws_cryptosdk_session_get_alg_id(const struct aws_cryptosdk_session *session, enum aws_cryptosdk_alg_id *alg_id);
 
 /**
  * Estimates the amount of buffer space needed to make forward progress.

@@ -361,13 +361,13 @@ static int test_algorithm_override_once(enum aws_cryptosdk_alg_id alg_id) {
     if (pump_ciphertext(2048, &ct_consumed, pt_size, &pt_consumed)) return 1;
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_get_algorithm(session, &reported_alg_id));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_get_alg_id(session, &reported_alg_id));
     TEST_ASSERT_INT_EQ(alg_id, reported_alg_id);
 
     if (check_ciphertext_and_trace(false)) return 1;
 
     // Session is now configured for decrypt and should report decryption-side ID
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_get_algorithm(session, &reported_alg_id));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_get_alg_id(session, &reported_alg_id));
     TEST_ASSERT_INT_EQ(alg_id, reported_alg_id);
 
     aws_cryptosdk_cmm_release(cmm);
