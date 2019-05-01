@@ -101,7 +101,7 @@ var searchData=
   ['aws_5fcryptosdk_5frsa_5fpkcs1',['AWS_CRYPTOSDK_RSA_PKCS1',['../group__raw__keyring.html#ggac9c87fc941b5a569d75b706abe18593da270665def26a8c2d44ec6fc1a7e6f8e1',1,'cipher.h']]],
   ['aws_5fcryptosdk_5fsession_5fdestroy',['aws_cryptosdk_session_destroy',['../group__session.html#gaa690d827c07d8c1fa4441e2e0ab5da82',1,'session.h']]],
   ['aws_5fcryptosdk_5fsession_5festimate_5fbuf',['aws_cryptosdk_session_estimate_buf',['../group__session.html#ga6df70e33a7b3eddd8155d54bee4281f6',1,'session.h']]],
-  ['aws_5fcryptosdk_5fsession_5fget_5falgorithm',['aws_cryptosdk_session_get_algorithm',['../group__session.html#ga806b5c8b3f42ffae30e5c1bdff0c7c62',1,'session.h']]],
+  ['aws_5fcryptosdk_5fsession_5fget_5falg_5fid',['aws_cryptosdk_session_get_alg_id',['../group__session.html#ga1e5506284e241c584cebc22b7b10ecfc',1,'session.h']]],
   ['aws_5fcryptosdk_5fsession_5fget_5fenc_5fctx_5fptr',['aws_cryptosdk_session_get_enc_ctx_ptr',['../group__session.html#gac54be89c4898b81516326fda5633008f',1,'session.h']]],
   ['aws_5fcryptosdk_5fsession_5fget_5fenc_5fctx_5fptr_5fmut',['aws_cryptosdk_session_get_enc_ctx_ptr_mut',['../group__session.html#gab5ffeb4e7780ed0fc58bf684887ad7cb',1,'session.h']]],
   ['aws_5fcryptosdk_5fsession_5fget_5fkeyring_5ftrace_5fptr',['aws_cryptosdk_session_get_keyring_trace_ptr',['../group__session.html#gaa7cd8c9a6ba12e8148b56dc043f54b9e',1,'session.h']]],
