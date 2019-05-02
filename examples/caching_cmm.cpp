@@ -15,7 +15,6 @@
 
 #include <aws/cryptosdk/cache.h>
 #include <aws/cryptosdk/cpp/kms_keyring.h>
-#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/session.h>
 
 #include <aws/common/encoding.h>
@@ -117,9 +116,6 @@ struct aws_cryptosdk_cmm *setup_cmm(struct aws_allocator *alloc, const char *key
     struct aws_cryptosdk_keyring *kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build(key_arn);
     if (!kms_keyring) error("kms_keyring builder");
 
-    struct aws_cryptosdk_cmm *default_cmm = aws_cryptosdk_default_cmm_new(alloc, kms_keyring);
-    if (!default_cmm) error("default_cmm constructor");
-
     /* Construct an in-memory cache that will be used by the caching CMM.
      * This one is configured to cache a maximum of 10 data keys.
      */
@@ -130,7 +126,7 @@ struct aws_cryptosdk_cmm *setup_cmm(struct aws_allocator *alloc, const char *key
      * In this case, the caching CMM does not reuse data keys for more than one minute.
      */
     struct aws_cryptosdk_cmm *caching_cmm =
-        aws_cryptosdk_caching_cmm_new(alloc, cache, default_cmm, NULL, 60, AWS_TIMESTAMP_SECS);
+        aws_cryptosdk_caching_cmm_new_from_keyring(alloc, cache, kms_keyring, NULL, 60, AWS_TIMESTAMP_SECS);
     if (!caching_cmm) error("caching CMM constructor");
 
     // This caching CMM is also configured not to use a single data key more than 10 times.
@@ -141,7 +137,6 @@ struct aws_cryptosdk_cmm *setup_cmm(struct aws_allocator *alloc, const char *key
      * eventually release the caching_cmm itself.
      */
     aws_cryptosdk_keyring_release(kms_keyring);
-    aws_cryptosdk_cmm_release(default_cmm);
     aws_cryptosdk_materials_cache_release(cache);
 
     return caching_cmm;

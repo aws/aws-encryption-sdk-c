@@ -18,6 +18,7 @@
 #include <stdlib.h>
 
 #include <aws/common/byte_buf.h>
+#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/private/framefmt.h>
 #include <aws/cryptosdk/private/header.h>
@@ -110,6 +111,24 @@ struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm(
         session->cmm = cmm;
         aws_cryptosdk_cmm_retain(cmm);
     }
+
+    return session;
+}
+
+struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_keyring(
+    struct aws_allocator *allocator, enum aws_cryptosdk_mode mode, struct aws_cryptosdk_keyring *keyring) {
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(allocator, keyring);
+    if (!cmm) return NULL;
+
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new(allocator, mode);
+    if (!session) {
+        aws_cryptosdk_cmm_release(cmm);
+        return NULL;
+    }
+
+    session->cmm = cmm;
+    // CMM reference count is now 1 and the session owns the reference, which will be released
+    // when session is destroyed.
 
     return session;
 }
@@ -269,8 +288,7 @@ bool aws_cryptosdk_session_is_done(const struct aws_cryptosdk_session *session) 
     return session->state == ST_DONE;
 }
 
-int aws_cryptosdk_session_get_algorithm(
-    const struct aws_cryptosdk_session *session, enum aws_cryptosdk_alg_id *alg_id) {
+int aws_cryptosdk_session_get_alg_id(const struct aws_cryptosdk_session *session, enum aws_cryptosdk_alg_id *alg_id) {
     if (!session->alg_props) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     }

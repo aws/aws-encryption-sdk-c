@@ -22,7 +22,6 @@
 #include "testutil.h"
 #include "zero_keyring.h"
 
-static struct aws_cryptosdk_cmm *cmm;
 static uint8_t *pt_buf;
 static size_t pt_size, pt_offset;
 static uint8_t *ct_buf;
@@ -32,17 +31,29 @@ static int precise_size_set = 0;
 
 static int create_session(enum aws_cryptosdk_mode mode, struct aws_cryptosdk_keyring *kr) {
     if (session) aws_cryptosdk_session_destroy(session);
-    if (cmm) aws_cryptosdk_cmm_release(cmm);
 
-    session = NULL;
+    session = aws_cryptosdk_session_new_from_keyring(aws_default_allocator(), mode, kr);
+    if (!session) abort();
 
-    cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
-    if (!cmm) abort();
     aws_cryptosdk_keyring_release(kr);
+
+    return AWS_OP_SUCCESS;
+}
+
+// Same as previous except gives a handle to the CMM. You must release CMM pointer when done with it.
+static struct aws_cryptosdk_cmm *create_session_with_cmm(
+    enum aws_cryptosdk_mode mode, struct aws_cryptosdk_keyring *kr) {
+    if (session) aws_cryptosdk_session_destroy(session);
+
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
+    if (!cmm) abort();
+
     session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), mode, cmm);
     if (!session) abort();
 
-    return AWS_OP_SUCCESS;
+    aws_cryptosdk_keyring_release(kr);
+
+    return cmm;
 }
 
 static void init_bufs(size_t pt_len) {
@@ -60,9 +71,7 @@ static void init_bufs(size_t pt_len) {
 
 static void free_bufs() {
     aws_cryptosdk_session_destroy(session);
-    aws_cryptosdk_cmm_release(cmm);
     session = NULL;
-    cmm     = NULL;
 
     aws_mem_release(aws_default_allocator(), pt_buf);
     aws_mem_release(aws_default_allocator(), ct_buf);
@@ -343,7 +352,8 @@ static int test_algorithm_override_once(enum aws_cryptosdk_alg_id alg_id) {
 
     size_t ct_consumed, pt_consumed;
     enum aws_cryptosdk_alg_id reported_alg_id;
-    create_session(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_counting_keyring_new(aws_default_allocator()));
+    struct aws_cryptosdk_cmm *cmm =
+        create_session_with_cmm(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_counting_keyring_new(aws_default_allocator()));
     aws_cryptosdk_default_cmm_set_alg_id(cmm, alg_id);
     aws_cryptosdk_session_set_message_size(session, pt_size);
     precise_size_set = true;
@@ -351,15 +361,16 @@ static int test_algorithm_override_once(enum aws_cryptosdk_alg_id alg_id) {
     if (pump_ciphertext(2048, &ct_consumed, pt_size, &pt_consumed)) return 1;
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_get_algorithm(session, &reported_alg_id));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_get_alg_id(session, &reported_alg_id));
     TEST_ASSERT_INT_EQ(alg_id, reported_alg_id);
 
     if (check_ciphertext_and_trace(false)) return 1;
 
     // Session is now configured for decrypt and should report decryption-side ID
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_get_algorithm(session, &reported_alg_id));
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_get_alg_id(session, &reported_alg_id));
     TEST_ASSERT_INT_EQ(alg_id, reported_alg_id);
 
+    aws_cryptosdk_cmm_release(cmm);
     free_bufs();
 
     return 0;

@@ -513,28 +513,60 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_materials_cache_release(
 }
 
 /**
- * Creates a new instance of the caching crypto materials manager. This CMM will intercept requests for encrypt
- * and decrypt materials, and forward them to the provided materials cache.
+ * Creates a new instance of the caching crypto materials manager. This CMM will intercept requests
+ * for encrypt and decrypt materials, and forward them to the provided materials cache.
  *
- * If multiple caching CMMs are attached to the same materials_cache, they will share entries if and only if the
- * partition_id parameter is set to the same string. Unless you need to use this feature, we recommend passing NULL, in
- * which case the caching CMM will internally generate a random partition ID to ensure it does not collide with any
- * other CMM.
+ * If multiple caching CMMs are attached to the same materials_cache, they will share entries if and
+ * only if the partition_id parameter is set to the same string. Unless you need to use this feature,
+ * we recommend passing NULL, in which case the caching CMM will internally generate a random partition
+ * ID to ensure it does not collide with any other CMM.
  *
  * Parameters:
  * @param alloc The allocator to use for the caching CMM itself (not for cache entries, however)
  * @param materials_cache The backing cache
  * @param upstream The upstream CMM to query on a cache miss
- * @param partition_id The partition ID to use to avoid collisions with other CMMs. This string need not remain valid
- *                       once this function returns. If NULL, a random partition ID will be generated and used.
+ * @param partition_id The partition ID to use to avoid collisions with other CMMs. This string need
+ *                     not remain valid once this function returns. If NULL, a random partition ID will
+ *                     be generated and used.
  * @param cache_limit_ttl The amount of time that a data key can be used for.
- * @param cache_limit_ttl_units The units of cache_limit_ttl. Allowable values are defined in aws/common/clock.h
+ * @param cache_limit_ttl_units The units of cache_limit_ttl. Allowable values are defined in
+ *                              aws/common/clock.h
  */
 AWS_CRYPTOSDK_API
-struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new(
+struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new_from_cmm(
     struct aws_allocator *alloc,
     struct aws_cryptosdk_materials_cache *materials_cache,
     struct aws_cryptosdk_cmm *upstream,
+    const struct aws_byte_buf *partition_id,
+    uint64_t cache_limit_ttl,
+    enum aws_timestamp_unit cache_limit_ttl_units);
+
+/**
+ * Creates a new instance of the caching crypto materials manager. This CMM will intercept requests
+ * for encrypt and decrypt materials, and forward them to the provided materials cache.
+ *
+ * If multiple caching CMMs are attached to the same materials_cache, they will share entries if and
+ * only if the partition_id parameter is set to the same string. Unless you need to use this feature,
+ * we recommend passing NULL, in which case the caching CMM will internally generate a random partition
+ * ID to ensure it does not collide with any other CMM.
+ *
+ * Parameters:
+ * @param alloc The allocator to use for the caching CMM itself (not for cache entries, however)
+ * @param materials_cache The backing cache
+ * @param keyring The keyring that will encrypt or decrypt data keys on a cache miss. This function
+ *                uses a default CMM that is configured with the provided keyring as the upstream CMM.
+ * @param partition_id The partition ID to use to avoid collisions with other CMMs. This string need
+ *                     not remain valid once this function returns. If NULL, a random partition ID will
+ *                     be generated and used.
+ * @param cache_limit_ttl The amount of time that a data key can be used for.
+ * @param cache_limit_ttl_units The units of cache_limit_ttl. Allowable values are defined in
+ *                              aws/common/clock.h
+ */
+AWS_CRYPTOSDK_API
+struct aws_cryptosdk_cmm *aws_cryptosdk_caching_cmm_new_from_keyring(
+    struct aws_allocator *alloc,
+    struct aws_cryptosdk_materials_cache *materials_cache,
+    struct aws_cryptosdk_keyring *keyring,
     const struct aws_byte_buf *partition_id,
     uint64_t cache_limit_ttl,
     enum aws_timestamp_unit cache_limit_ttl_units);

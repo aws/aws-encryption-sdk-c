@@ -20,7 +20,6 @@
 #include <aws/core/Aws.h>
 
 #include <aws/cryptosdk/cpp/kms_keyring.h>
-#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/session.h>
 
@@ -53,17 +52,11 @@ static int process_file(
     /* Initialize a KMS keyring using the provided ARN. */
     auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build(key_arn);
 
-    /* Initialize the Cryptographic Materials Manager (CMM). */
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(allocator, kms_keyring);
-    if (!cmm) abort();
-    /* Since the CMM now holds a reference to the keyring, we can release the local reference. */
-    aws_cryptosdk_keyring_release(kms_keyring);
-
     /* Initialize the session object. */
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(allocator, mode, cmm);
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_keyring(allocator, mode, kms_keyring);
     if (!session) abort();
-    /* Since the session now holds a reference to the CMM, we can release the local reference. */
-    aws_cryptosdk_cmm_release(cmm);
+    /* Since the session now holds a reference to the keyring, we can release the local reference. */
+    aws_cryptosdk_keyring_release(kms_keyring);
 
     /* Allocate buffers for input and output.  Note that the initial size is not critical, as we will resize
      * and reallocate if more space is needed to make progress.

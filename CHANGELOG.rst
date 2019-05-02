@@ -16,3 +16,10 @@ Changelog
 * Fixed empty string bug on git version of KMS user agent
 * Local tests only by default
 * Fix of MAP_ANONYMOUS issue for older Linuxes
+
+0.2.0 -- 2019-04-29
+===================
+* Added API function to make session from keyring
+* Added API function to make caching CMM from keyring
+* Added "_from_cmm" to end of "aws_cryptosdk_caching_cmm_new" function name
+* Changed "aws_cryptosdk_session_get_algorithm" to "aws_cryptosdk_session_get_alg_id"
