@@ -15,7 +15,6 @@
 
 #include <aws/common/string.h>
 #include <aws/cryptosdk/cpp/kms_keyring.h>
-#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/multi_keyring.h>
 #include <aws/cryptosdk/raw_aes_keyring.h>
 #include <aws/cryptosdk/session.h>
@@ -30,12 +29,8 @@ void encrypt_or_decrypt(
     size_t *output_len,
     const uint8_t *input,
     size_t input_len) {
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(alloc, keyring);
-    if (!cmm) abort();
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(alloc, mode, cmm);
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_keyring(alloc, mode, keyring);
     if (!session) abort();
-    /* We release the CMM pointer so it will be destroyed when the session is destroyed. */
-    aws_cryptosdk_cmm_release(cmm);
 
     if (mode == AWS_CRYPTOSDK_ENCRYPT) {
         if (AWS_OP_SUCCESS != aws_cryptosdk_session_set_message_size(session, input_len)) abort();
@@ -48,9 +43,7 @@ void encrypt_or_decrypt(
     if (!aws_cryptosdk_session_is_done(session)) abort();
     if (input_consumed != input_len) abort();
 
-    /* This destroys both the session and the CMM, but not the keyring, since the
-     * keyring pointer was not released.
-     */
+    /* This destroys the session but not the keyring, since the keyring pointer was not released. */
     aws_cryptosdk_session_destroy(session);
 }
 
@@ -165,7 +158,7 @@ int main(int argc, char **argv) {
         if (memcmp(plaintext_original, plaintext_result, plaintext_result_len)) abort();
         printf(">> Decrypted plaintext matches original!\n");
 
-        /* All sessions and CMMs that referred to the keyring have already
+        /* All sessions that referred to the keyring have already
          * been destroyed. So the keyring will be destroyed on this release.
          * Note, however, that destroying the multi-keyring in the first
          * iteration of this loop will not destroy the other two keyrings,
