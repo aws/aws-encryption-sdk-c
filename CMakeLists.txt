@@ -48,12 +48,13 @@ include(FindOpenSSL)
 
 set(PROJECT_NAME aws-encryption-sdk)
 
+# Version number of the SDK to be consumed by Doxygen
+# We are still hard coding version numbers in version.h to make sure they are
+# available to users.
+# TODO: make build system paste these numbers into version.h that gets installed.
 set(MAJOR 0)
 set(MINOR 2)
 set(PATCH 0)
-add_compile_definitions(AWS_CRYPTOSDK_VERSION_MAJOR=${MAJOR}
-                        AWS_CRYPTOSDK_VERSION_MINOR=${MINOR}
-                        AWS_CRYPTOSDK_VERSION_PATCH=${PATCH})
 
 # Compiler feature tests and feature flags
 set(USE_ASM TRUE

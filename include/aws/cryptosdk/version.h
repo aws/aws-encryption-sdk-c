@@ -57,6 +57,21 @@
 #endif
 
 /**
+ * The major version number.
+ */
+#define AWS_CRYPTOSDK_VERSION_MAJOR 0
+
+/**
+ * The minor version number.
+ */
+#define AWS_CRYPTOSDK_VERSION_MINOR 2
+
+/**
+ * The patch version number.
+ */
+#define AWS_CRYPTOSDK_VERSION_PATCH 0
+
+/**
  * A string constant containing version information in a human-readable form.
  */
 #define AWS_CRYPTOSDK_VERSION_STR                                                                             \
