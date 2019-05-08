@@ -26,13 +26,10 @@
  * the AWS Encryption SDKs in all languages, see the
  * <a href="https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/introduction.html">Developer Guide</a>.
  *
- * <b>This library is currently in public preview.</b>
- * Feel free to check out the code and give it a spin, but be aware that the APIs are still in flux.
- * We'd love to hear your feedback on the APIs before they're fully nailed down.
- *
  * Source code and installation instructions are available in
  * <a href="https://github.com/awslabs/aws-encryption-sdk-c">the GitHub repository</a>.
  *
+ * This API documentation was generated from the v$(MAJOR).$(MINOR).$(PATCH) source code.
  *
  * <b>License</b>
  *
@@ -53,10 +50,6 @@
 #ifndef AWS_CRYPTOSDK_PRIVATE_GITVERSION
 #    define AWS_CRYPTOSDK_PRIVATE_GITVERSION ""
 #endif
-
-#define AWS_CRYPTOSDK_VERSION_MAJOR 0
-#define AWS_CRYPTOSDK_VERSION_MINOR 2
-#define AWS_CRYPTOSDK_VERSION_PATCH 0
 
 #ifndef AWS_CRYPTOSDK_DOXYGEN  // undocumented private helpers
 #    define AWS_CRYPTOSDK_PRIVATE_QUOTEARG(a) #    a

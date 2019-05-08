@@ -5,8 +5,8 @@
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = "AWS Encryption SDK for C"
-PROJECT_NUMBER         = 0.2.x
-PROJECT_BRIEF          = "AWS Encryption SDK for C"
+PROJECT_NUMBER         = v$(MAJOR).$(MINOR)
+PROJECT_BRIEF          =
 PROJECT_LOGO           = 
 OUTPUT_DIRECTORY       = doxygen
 CREATE_SUBDIRS         = NO

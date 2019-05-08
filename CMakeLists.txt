@@ -48,6 +48,13 @@ include(FindOpenSSL)
 
 set(PROJECT_NAME aws-encryption-sdk)
 
+set(MAJOR 0)
+set(MINOR 2)
+set(PATCH 0)
+add_compile_definitions(AWS_CRYPTOSDK_VERSION_MAJOR=${MAJOR}
+                        AWS_CRYPTOSDK_VERSION_MINOR=${MINOR}
+                        AWS_CRYPTOSDK_VERSION_PATCH=${PATCH})
+
 # Compiler feature tests and feature flags
 set(USE_ASM TRUE
     CACHE BOOL "Enable use of inline assembler, if supported by the compiler and platform")
@@ -226,7 +233,7 @@ if (BUILD_DOC)
         set(DOXYGEN_CONFIG_FILE_GENERATED ${CMAKE_CURRENT_BINARY_DIR}/doxygen/doxygen.config)
         configure_file(${DOXYGEN_CONFIG_FILE_IN} ${DOXYGEN_CONFIG_FILE_GENERATED} @ONLY)
         add_custom_target(doc_doxygen ALL
-                COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_CONFIG_FILE_GENERATED}
+                COMMAND ${CMAKE_COMMAND} -E env MAJOR=${MAJOR} MINOR=${MINOR} PATCH=${PATCH} ${DOXYGEN_EXECUTABLE} ${DOXYGEN_CONFIG_FILE_GENERATED}
                 WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
                 COMMENT "Generating Doxygen documentation"
                 VERBATIM)
