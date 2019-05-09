@@ -36,6 +36,10 @@
  * This library is licensed under the Apache 2.0 License.
  */
 
+#ifndef AWS_CRYPTOSDK_PRIVATE_GITVERSION
+#    define AWS_CRYPTOSDK_PRIVATE_GITVERSION ""
+#endif
+
 /**
  * @defgroup versioning Version constants
  *
@@ -47,29 +51,25 @@
  * @{
  */
 
-#ifndef AWS_CRYPTOSDK_PRIVATE_GITVERSION
-#    define AWS_CRYPTOSDK_PRIVATE_GITVERSION ""
-#endif
-
 #ifndef AWS_CRYPTOSDK_DOXYGEN  // undocumented private helpers
 #    define AWS_CRYPTOSDK_PRIVATE_QUOTEARG(a) #    a
 #    define AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE(a) AWS_CRYPTOSDK_PRIVATE_QUOTEARG(a)
 #endif
 
 /**
- * The major version number.
+ * The major version number. See VERSIONING.rst for details on versioning policy.
  */
-#define AWS_CRYPTOSDK_VERSION_MAJOR 0
+#define AWS_CRYPTOSDK_VERSION_MAJOR @MAJOR@
 
 /**
- * The minor version number.
+ * The minor version number. See VERSIONING.rst for details on versioning policy.
  */
-#define AWS_CRYPTOSDK_VERSION_MINOR 2
+#define AWS_CRYPTOSDK_VERSION_MINOR @MINOR@
 
 /**
- * The patch version number.
+ * The patch version number. See VERSIONING.rst for details on versioning policy.
  */
-#define AWS_CRYPTOSDK_VERSION_PATCH 0
+#define AWS_CRYPTOSDK_VERSION_PATCH @PATCH@
 
 /**
  * A string constant containing version information in a human-readable form.

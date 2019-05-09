@@ -48,10 +48,7 @@ include(FindOpenSSL)
 
 set(PROJECT_NAME aws-encryption-sdk)
 
-# Version number of the SDK to be consumed by Doxygen
-# We are still hard coding version numbers in version.h to make sure they are
-# available to users.
-# TODO: make build system paste these numbers into version.h that gets installed.
+# Version number of the SDK to be consumed by C code and Doxygen
 set(MAJOR 0)
 set(MINOR 2)
 set(PATCH 0)
@@ -225,6 +222,10 @@ configure_file("include/aws/cryptosdk/private/config.h.in"
                ${GENERATED_CONFIG_HEADER}
                ESCAPE_QUOTES)
 
+configure_file("include/aws/cryptosdk/version.h.in"
+               "${CMAKE_CURRENT_BINARY_DIR}/generated/include/aws/cryptosdk/version.h"
+               ESCAPE_QUOTES)
+ 
 # Documentation
 option(BUILD_DOC "Build documentation" OFF)
 if (BUILD_DOC)
