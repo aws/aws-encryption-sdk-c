@@ -24,7 +24,6 @@
    <div id="projectname">AWS Encryption SDK for C
    &#160;<span id="projectnumber">v0.2</span>
    </div>
-   <div id="projectbrief">AWS Encryption SDK for C</div>
   </td>
  </tr>
  </tbody>
@@ -72,8 +71,6 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:ga7e342b273f796011294096426c263854"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__versioning.html#ga7e342b273f796011294096426c263854">AWS_CRYPTOSDK_PRIVATE_GITVERSION</a>&#160;&#160;&#160;&quot;&quot;</td></tr>
-<tr class="separator:ga7e342b273f796011294096426c263854"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaa07584728ad7d8cd9a1cb72ccefdac3b"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__versioning.html#gaa07584728ad7d8cd9a1cb72ccefdac3b">AWS_CRYPTOSDK_VERSION_MAJOR</a>&#160;&#160;&#160;0</td></tr>
 <tr class="separator:gaa07584728ad7d8cd9a1cb72ccefdac3b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga954058701f41b1534f3eb9ce10c4db81"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__versioning.html#ga954058701f41b1534f3eb9ce10c4db81">AWS_CRYPTOSDK_VERSION_MINOR</a>&#160;&#160;&#160;2</td></tr>
@@ -82,28 +79,10 @@ Macros</h2></td></tr>
 <tr class="separator:ga83e4e78c9abb86c93bd2ba9e241b89f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaa0c906479cb5cbced439077f45c4a093"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__versioning.html#gaa0c906479cb5cbced439077f45c4a093">AWS_CRYPTOSDK_VERSION_STR</a></td></tr>
 <tr class="separator:gaa0c906479cb5cbced439077f45c4a093"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga07c2a1cfd48a1671bfaa688bab39c9f0"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__versioning.html#ga07c2a1cfd48a1671bfaa688bab39c9f0">AWS_CRYPTOSDK_VERSION_UA</a>&#160;&#160;&#160;&quot;aws-encryption-sdk-c/&quot; AWS_CRYPTOSDK_VERSION_STR</td></tr>
-<tr class="separator:ga07c2a1cfd48a1671bfaa688bab39c9f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<p>This section defines version macros that can be used to query the current version of the Encryption SDK. For prerelease builds, the version constants will generally contain the anticipated version of the upcoming release; if a git working copy is detected at build time, we will include that revision in the version strings, but not in the numeric version constants. </p>
+<p>This section defines version macros that can be used to query the current version of the Encryption SDK. For prerelease builds, the version constants will generally contain the anticipated version of the upcoming release. </p>
 <h2 class="groupheader">Macro Definition Documentation</h2>
-<a id="ga7e342b273f796011294096426c263854"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga7e342b273f796011294096426c263854">&#9670;&nbsp;</a></span>AWS_CRYPTOSDK_PRIVATE_GITVERSION</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define AWS_CRYPTOSDK_PRIVATE_GITVERSION&#160;&#160;&#160;&quot;&quot;</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="version_8h_source.html#l00054">54</a> of file <a class="el" href="version_8h_source.html">version.h</a>.</p>
-
-</div>
-</div>
 <a id="gaa07584728ad7d8cd9a1cb72ccefdac3b"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gaa07584728ad7d8cd9a1cb72ccefdac3b">&#9670;&nbsp;</a></span>AWS_CRYPTOSDK_VERSION_MAJOR</h2>
 
@@ -115,8 +94,9 @@ Macros</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>The major version number. See VERSIONING.rst for details on versioning policy. </p>
 
-<p class="definition">Definition at line <a class="el" href="version_8h_source.html#l00057">57</a> of file <a class="el" href="version_8h_source.html">version.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="version_8h_source.html#l00055">55</a> of file <a class="el" href="version_8h_source.html">version.h</a>.</p>
 
 </div>
 </div>
@@ -131,8 +111,9 @@ Macros</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>The minor version number. See VERSIONING.rst for details on versioning policy. </p>
 
-<p class="definition">Definition at line <a class="el" href="version_8h_source.html#l00058">58</a> of file <a class="el" href="version_8h_source.html">version.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="version_8h_source.html#l00060">60</a> of file <a class="el" href="version_8h_source.html">version.h</a>.</p>
 
 </div>
 </div>
@@ -147,8 +128,9 @@ Macros</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>The patch version number. See VERSIONING.rst for details on versioning policy. </p>
 
-<p class="definition">Definition at line <a class="el" href="version_8h_source.html#l00059">59</a> of file <a class="el" href="version_8h_source.html">version.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="version_8h_source.html#l00065">65</a> of file <a class="el" href="version_8h_source.html">version.h</a>.</p>
 
 </div>
 </div>
@@ -163,30 +145,12 @@ Macros</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<b>Value:</b><div class="fragment"><div class="line">AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE(<a class="code" href="group__versioning.html#gaa07584728ad7d8cd9a1cb72ccefdac3b">AWS_CRYPTOSDK_VERSION_MAJOR</a>)                                            \</div><div class="line">    <span class="stringliteral">&quot;.&quot;</span> AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE(<a class="code" href="group__versioning.html#ga954058701f41b1534f3eb9ce10c4db81">AWS_CRYPTOSDK_VERSION_MINOR</a>) <span class="stringliteral">&quot;.&quot;</span> AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE( \</div><div class="line">        <a class="code" href="group__versioning.html#ga83e4e78c9abb86c93bd2ba9e241b89f0">AWS_CRYPTOSDK_VERSION_PATCH</a>) <a class="code" href="group__versioning.html#ga7e342b273f796011294096426c263854">AWS_CRYPTOSDK_PRIVATE_GITVERSION</a></div><div class="ttc" id="group__versioning_html_ga954058701f41b1534f3eb9ce10c4db81"><div class="ttname"><a href="group__versioning.html#ga954058701f41b1534f3eb9ce10c4db81">AWS_CRYPTOSDK_VERSION_MINOR</a></div><div class="ttdeci">#define AWS_CRYPTOSDK_VERSION_MINOR</div><div class="ttdef"><b>Definition:</b> <a href="version_8h_source.html#l00058">version.h:58</a></div></div>
-<div class="ttc" id="group__versioning_html_ga7e342b273f796011294096426c263854"><div class="ttname"><a href="group__versioning.html#ga7e342b273f796011294096426c263854">AWS_CRYPTOSDK_PRIVATE_GITVERSION</a></div><div class="ttdeci">#define AWS_CRYPTOSDK_PRIVATE_GITVERSION</div><div class="ttdef"><b>Definition:</b> <a href="version_8h_source.html#l00054">version.h:54</a></div></div>
-<div class="ttc" id="group__versioning_html_ga83e4e78c9abb86c93bd2ba9e241b89f0"><div class="ttname"><a href="group__versioning.html#ga83e4e78c9abb86c93bd2ba9e241b89f0">AWS_CRYPTOSDK_VERSION_PATCH</a></div><div class="ttdeci">#define AWS_CRYPTOSDK_VERSION_PATCH</div><div class="ttdef"><b>Definition:</b> <a href="version_8h_source.html#l00059">version.h:59</a></div></div>
-<div class="ttc" id="group__versioning_html_gaa07584728ad7d8cd9a1cb72ccefdac3b"><div class="ttname"><a href="group__versioning.html#gaa07584728ad7d8cd9a1cb72ccefdac3b">AWS_CRYPTOSDK_VERSION_MAJOR</a></div><div class="ttdeci">#define AWS_CRYPTOSDK_VERSION_MAJOR</div><div class="ttdef"><b>Definition:</b> <a href="version_8h_source.html#l00057">version.h:57</a></div></div>
+<b>Value:</b><div class="fragment"><div class="line">AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE(<a class="code" href="group__versioning.html#gaa07584728ad7d8cd9a1cb72ccefdac3b">AWS_CRYPTOSDK_VERSION_MAJOR</a>)                                            \</div><div class="line">    <span class="stringliteral">&quot;.&quot;</span> AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE(<a class="code" href="group__versioning.html#ga954058701f41b1534f3eb9ce10c4db81">AWS_CRYPTOSDK_VERSION_MINOR</a>) <span class="stringliteral">&quot;.&quot;</span> AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE( \</div><div class="line">        <a class="code" href="group__versioning.html#ga83e4e78c9abb86c93bd2ba9e241b89f0">AWS_CRYPTOSDK_VERSION_PATCH</a>)</div><div class="ttc" id="group__versioning_html_ga954058701f41b1534f3eb9ce10c4db81"><div class="ttname"><a href="group__versioning.html#ga954058701f41b1534f3eb9ce10c4db81">AWS_CRYPTOSDK_VERSION_MINOR</a></div><div class="ttdeci">#define AWS_CRYPTOSDK_VERSION_MINOR</div><div class="ttdef"><b>Definition:</b> <a href="version_8h_source.html#l00060">version.h:60</a></div></div>
+<div class="ttc" id="group__versioning_html_ga83e4e78c9abb86c93bd2ba9e241b89f0"><div class="ttname"><a href="group__versioning.html#ga83e4e78c9abb86c93bd2ba9e241b89f0">AWS_CRYPTOSDK_VERSION_PATCH</a></div><div class="ttdeci">#define AWS_CRYPTOSDK_VERSION_PATCH</div><div class="ttdef"><b>Definition:</b> <a href="version_8h_source.html#l00065">version.h:65</a></div></div>
+<div class="ttc" id="group__versioning_html_gaa07584728ad7d8cd9a1cb72ccefdac3b"><div class="ttname"><a href="group__versioning.html#gaa07584728ad7d8cd9a1cb72ccefdac3b">AWS_CRYPTOSDK_VERSION_MAJOR</a></div><div class="ttdeci">#define AWS_CRYPTOSDK_VERSION_MAJOR</div><div class="ttdef"><b>Definition:</b> <a href="version_8h_source.html#l00055">version.h:55</a></div></div>
 </div><!-- fragment --><p>A string constant containing version information in a human-readable form. </p>
 
-<p class="definition">Definition at line <a class="el" href="version_8h_source.html#l00069">69</a> of file <a class="el" href="version_8h_source.html">version.h</a>.</p>
-
-</div>
-</div>
-<a id="ga07c2a1cfd48a1671bfaa688bab39c9f0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga07c2a1cfd48a1671bfaa688bab39c9f0">&#9670;&nbsp;</a></span>AWS_CRYPTOSDK_VERSION_UA</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define AWS_CRYPTOSDK_VERSION_UA&#160;&#160;&#160;&quot;aws-encryption-sdk-c/&quot; AWS_CRYPTOSDK_VERSION_STR</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>A string constant containing version information in a form suitable for a user-agent string. </p>
-
-<p class="definition">Definition at line <a class="el" href="version_8h_source.html#l00077">77</a> of file <a class="el" href="version_8h_source.html">version.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="version_8h_source.html#l00070">70</a> of file <a class="el" href="version_8h_source.html">version.h</a>.</p>
 
 </div>
 </div>
