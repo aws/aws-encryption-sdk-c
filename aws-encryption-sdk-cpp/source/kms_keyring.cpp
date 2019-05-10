@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 #include <aws/cryptosdk/private/kms_keyring.h>
-#include <aws/cryptosdk/version.h>
 
 #include <aws/core/utils/Outcome.h>
 #include <aws/core/utils/logging/LogMacros.h>
@@ -21,6 +20,7 @@
 #include <aws/core/utils/memory/stl/AWSAllocator.h>
 #include <aws/cryptosdk/list_utils.h>
 #include <aws/cryptosdk/private/cpputils.h>
+#include <aws/cryptosdk/private/config.h>
 #include <aws/kms/model/DecryptRequest.h>
 #include <aws/kms/model/DecryptResult.h>
 #include <aws/kms/model/EncryptRequest.h>
@@ -328,7 +328,7 @@ Aws::Cryptosdk::Private::KmsKeyringImpl::KmsKeyringImpl(
 static std::shared_ptr<KMS::KMSClient> CreateDefaultKmsClient(const Aws::String &region) {
     Aws::Client::ClientConfiguration client_configuration;
     client_configuration.region = region;
-    client_configuration.userAgent += " " AWS_CRYPTOSDK_VERSION_UA "/kms-keyring-cpp";
+    client_configuration.userAgent += " " AWS_CRYPTOSDK_PRIVATE_VERSION_UA "/kms-keyring-cpp";
 #ifdef VALGRIND_TESTS
     // When running under valgrind, the default timeouts are too slow
     client_configuration.requestTimeoutMs = 10000;

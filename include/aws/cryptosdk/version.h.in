@@ -16,8 +16,6 @@
 #ifndef AWS_CRYPTOSDK_VERSION_H
 #define AWS_CRYPTOSDK_VERSION_H
 
-#include <aws/cryptosdk/private/config.h>
-
 /*! \mainpage The AWS Encryption SDK for C
  *
  * The AWS Encryption SDK for C is a client-side encryption library designed to make it easy for
@@ -29,24 +27,19 @@
  * Source code and installation instructions are available in
  * <a href="https://github.com/awslabs/aws-encryption-sdk-c">the GitHub repository</a>.
  *
- * This API documentation was generated from the v$(MAJOR).$(MINOR).$(PATCH) source code.
+ * This API documentation was generated from the v@MAJOR@.@MINOR@.@PATCH@ source code.
  *
  * <b>License</b>
  *
  * This library is licensed under the Apache 2.0 License.
  */
 
-#ifndef AWS_CRYPTOSDK_PRIVATE_GITVERSION
-#    define AWS_CRYPTOSDK_PRIVATE_GITVERSION ""
-#endif
-
 /**
  * @defgroup versioning Version constants
  *
  * This section defines version macros that can be used to query the current version of the Encryption SDK.
  * For prerelease builds, the version constants will generally contain the anticipated version of the upcoming
- * release; if a git working copy is detected at build time, we will include that revision in the version
- * strings, but not in the numeric version constants.
+ * release.
  *
  * @{
  */
@@ -77,12 +70,7 @@
 #define AWS_CRYPTOSDK_VERSION_STR                                                                             \
     AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE(AWS_CRYPTOSDK_VERSION_MAJOR)                                            \
     "." AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE(AWS_CRYPTOSDK_VERSION_MINOR) "." AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE( \
-        AWS_CRYPTOSDK_VERSION_PATCH) AWS_CRYPTOSDK_PRIVATE_GITVERSION
-
-/**
- * A string constant containing version information in a form suitable for a user-agent string.
- */
-#define AWS_CRYPTOSDK_VERSION_UA "aws-encryption-sdk-c/" AWS_CRYPTOSDK_VERSION_STR
+        AWS_CRYPTOSDK_VERSION_PATCH)
 
 /** @} */  // doxygen group versioning
 

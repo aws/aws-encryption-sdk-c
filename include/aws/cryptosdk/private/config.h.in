@@ -12,9 +12,10 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */ 
-
 #ifndef AWS_CRYPTOSDK_PRIVATE_CONFIG_H
 #define AWS_CRYPTOSDK_PRIVATE_CONFIG_H 1
+
+#include <aws/cryptosdk/version.h>
 
 #cmakedefine AWS_CRYPTOSDK_P_HAVE_LIBPTHREAD
 #cmakedefine AWS_CRYPTOSDK_P_HAVE_LIBRT
@@ -23,6 +24,19 @@
 // At cmake configure time we look for the current git revision; if found and
 // not on a tag, we'll add the git revision to the version strings
 #cmakedefine AWS_CRYPTOSDK_PRIVATE_GITVERSION "@AWS_CRYPTOSDK_PRIVATE_GITVERSION@"
+
+#ifndef AWS_CRYPTOSDK_PRIVATE_GITVERSION
+#    define AWS_CRYPTOSDK_PRIVATE_GITVERSION ""
+#endif
+
+// A string constant containing version information in a human-readable form, with git repo info.
+#define AWS_CRYPTOSDK_PRIVATE_VERSION_STR                                                                     \
+    AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE(AWS_CRYPTOSDK_VERSION_MAJOR)                                            \
+    "." AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE(AWS_CRYPTOSDK_VERSION_MINOR) "." AWS_CRYPTOSDK_PRIVATE_EXPANDQUOTE( \
+        AWS_CRYPTOSDK_VERSION_PATCH) AWS_CRYPTOSDK_PRIVATE_GITVERSION
+
+// A string constant containing version information in a form suitable for a user-agent string.
+#define AWS_CRYPTOSDK_PRIVATE_VERSION_UA "aws-encryption-sdk-c/" AWS_CRYPTOSDK_PRIVATE_VERSION_STR
 
 #ifdef __CPROVER__
 
