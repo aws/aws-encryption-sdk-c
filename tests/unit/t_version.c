@@ -17,8 +17,11 @@
 #include "testing.h"
 
 static int print_version_info() {
-    printf("\nMajor.Minor.Patch: %d.%d.%d\n", AWS_CRYPTOSDK_VERSION_MAJOR,
-           AWS_CRYPTOSDK_VERSION_MINOR, AWS_CRYPTOSDK_VERSION_PATCH);
+    printf(
+        "\nMajor.Minor.Patch: %d.%d.%d\n",
+        AWS_CRYPTOSDK_VERSION_MAJOR,
+        AWS_CRYPTOSDK_VERSION_MINOR,
+        AWS_CRYPTOSDK_VERSION_PATCH);
     printf("Version string: %s\n", AWS_CRYPTOSDK_VERSION_STR);
     return 0;
 }
@@ -30,8 +33,6 @@ static int print_user_agent_string() {
     return 0;
 }
 
-struct test_case version_test_cases[] = {
-    { "version", "print_version_info", print_version_info },
-    { "version", "print_user_agent_string", print_user_agent_string },
-    { NULL }
-};
+struct test_case version_test_cases[] = { { "version", "print_version_info", print_version_info },
+                                          { "version", "print_user_agent_string", print_user_agent_string },
+                                          { NULL } };
