@@ -15,7 +15,7 @@
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/private/hkdf.h>
 #include "testing.h"
-struct hkdf_test_vectors {
+struct hkdf_test_vector {
     enum aws_cryptosdk_sha_version which_sha;
     const uint8_t *ikm;
     size_t ikm_len;
@@ -572,7 +572,7 @@ static const uint8_t tv_7_okm_desired[] = {
     0xbb, 0x65, 0xc3, 0x9f, 0xcf, 0x3e, 0xe3, 0x99, 0x89, 0x33, 0x61, 0x46, 0xdc, 0xb7, 0xba, 0x76
 };
 
-struct hkdf_test_vectors tv[] = {
+struct hkdf_test_vector tv[] = {
     { .which_sha   = AWS_CRYPTOSDK_SHA256,
       .ikm         = tv_0_ikm,
       .ikm_len     = 22,
@@ -647,7 +647,7 @@ struct hkdf_test_vectors tv[] = {
 };
 
 int test_hkdf() {
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < sizeof(tv) / sizeof(struct hkdf_test_vector); i++) {
         struct aws_byte_buf myokm;
         struct aws_allocator *allocator = aws_default_allocator();
         if (aws_byte_buf_init(&myokm, allocator, tv[i].okm_len)) return AWS_OP_ERR;
