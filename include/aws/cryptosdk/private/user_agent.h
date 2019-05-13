@@ -15,8 +15,8 @@
 #ifndef AWS_CRYPTOSDK_PRIVATE_USER_AGENT_H
 #define AWS_CRYPTOSDK_PRIVATE_USER_AGENT_H
 
-#include <aws/cryptosdk/version.h>
 #include <aws/cryptosdk/private/config.h>
+#include <aws/cryptosdk/version.h>
 
 // A string constant containing version information in a human-readable form, with git repo info.
 #define AWS_CRYPTOSDK_PRIVATE_VERSION_STR                                                                     \
@@ -27,5 +27,4 @@
 // A string constant containing version information in a form suitable for a user-agent string.
 #define AWS_CRYPTOSDK_PRIVATE_VERSION_UA "aws-encryption-sdk-c/" AWS_CRYPTOSDK_PRIVATE_VERSION_STR
 
-
-#endif // AWS_CRYPTOSDK_PRIVATE_USER_AGENT_H
+#endif  // AWS_CRYPTOSDK_PRIVATE_USER_AGENT_H
