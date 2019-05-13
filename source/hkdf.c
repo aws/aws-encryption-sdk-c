@@ -77,14 +77,14 @@ static int aws_cryptosdk_hkdf_expand(
     if (!prk || !okm->len || !prk_len) goto err;
     n = (okm->len + hash_len - 1) / hash_len;
     if (n > 255) goto err;
-
-    for (uint8_t idx = 1; idx <= n; idx++) {
+    for (uint32_t idx = 1; idx <= n; idx++) {
+        uint8_t idx_byte = idx;
         if (!HMAC_Init_ex(&ctx, prk, prk_len, evp_md, NULL)) goto err;
         if (idx != 1) {
             if (!HMAC_Update(&ctx, t, hash_len)) goto err;
         }
         if (!HMAC_Update(&ctx, info->buffer, info->len)) goto err;
-        if (!HMAC_Update(&ctx, &idx, 1)) goto err;
+        if (!HMAC_Update(&ctx, &idx_byte, 1)) goto err;
         if (!HMAC_Final(&ctx, t, &t_len)) goto err;
 
         assert(t_len == hash_len);
