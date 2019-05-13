@@ -48,6 +48,11 @@ include(FindOpenSSL)
 
 set(PROJECT_NAME aws-encryption-sdk)
 
+# Version number of the SDK to be consumed by C code and Doxygen
+set(MAJOR 0)
+set(MINOR 2)
+set(PATCH 0)
+
 # Compiler feature tests and feature flags
 set(USE_ASM TRUE
     CACHE BOOL "Enable use of inline assembler, if supported by the compiler and platform")
@@ -72,14 +77,19 @@ CHECK_C_SOURCE_COMPILES("
     int main() { return __builtin_expect(0, 0); }
     " HAVE_BUILTIN_EXPECT)
 
+# Generate includable header files exposing build-time configuration
+set(GENERATED_INCLUDE "${CMAKE_CURRENT_BINARY_DIR}/generated/include")
+set(GENERATED_CONFIG_HEADER "${GENERATED_INCLUDE}/aws/cryptosdk/private/config.h")
+set(GENERATED_VERSION_HEADER "${GENERATED_INCLUDE}/aws/cryptosdk/version.h")
+
+configure_file("include/aws/cryptosdk/version.h.in"
+               ${GENERATED_VERSION_HEADER}
+               ESCAPE_QUOTES)
+
 file(GLOB AWS_CRYPTOSDK_HEADERS
 # Headers subject to API/ABI stability guarantees
      "include/aws/cryptosdk/*.h"
-)
-
-file(GLOB AWS_CRYPTOSDK_PRIV_HEADERS
-# Headers not installed with the library
-     "include/aws/cryptosdk/private/*.h"
+     ${GENERATED_VERSION_HEADER}
 )
 
 file(GLOB AWS_CRYPTOSDK_SRC
@@ -90,10 +100,6 @@ if (PERFORM_HEADER_CHECK)
     set(HEADERS_TO_CHECK ${AWS_CRYPTOSDK_HEADERS})
     add_subdirectory(cmake/header-tester)
 endif()
-
-# Generate includable header files exposing build-time configuration
-set(GENERATED_INCLUDE "${CMAKE_CURRENT_BINARY_DIR}/generated/include")
-set(GENERATED_CONFIG_HEADER "${GENERATED_INCLUDE}/aws/cryptosdk/private/config.h")
 
 # Also expose git revision information in user-agent
 include(GitRevision)
@@ -115,22 +121,13 @@ if(HAVE_LIBRT)
    set(PLATFORM_LIBS ${PLATFORM_LIBS} "pthread")
 endif()
 
-file(GLOB CORE_HEADERS
-    ${AWS_CRYPTOSDK_HEADERS}
-    ${GENERATED_CONFIG_HEADER}
-)
-
-file(GLOB CORE_SRC
-    ${AWS_CRYPTOSDK_SRC}
-)
-
 if(BUILD_SHARED_LIBS)
     set(LIBTYPE SHARED)
 else()
     set(LIBTYPE STATIC)
 endif()
 
-add_library(${PROJECT_NAME} ${LIBTYPE} ${CORE_HEADERS} ${CORE_SRC})
+add_library(${PROJECT_NAME} ${LIBTYPE} ${AWS_CRYPTOSDK_HEADERS} ${AWS_CRYPTOSDK_SRC})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 aws_cryptosdk_set_common_properties(${PROJECT_NAME})
 
@@ -147,7 +144,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC AWS::aws-c-common)
 
 # Some of our unit tests need to access private symbols. Build a static library for their use.
 # We'll use the shared lib for integration tests.
-add_library(aws-encryption-sdk-test EXCLUDE_FROM_ALL STATIC ${CORE_HEADERS} ${CORE_SRC})
+add_library(aws-encryption-sdk-test EXCLUDE_FROM_ALL STATIC ${AWS_CRYPTOSDK_HEADERS} ${AWS_CRYPTOSDK_SRC})
 set_target_properties(aws-encryption-sdk-test PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 aws_cryptosdk_set_common_properties(aws-encryption-sdk-test)
 
@@ -168,7 +165,7 @@ include(CodeCoverageTargets)
 # Installation logic
 aws_install_target(
     TARGET ${CMAKE_PROJECT_NAME}
-    HEADERS ${CORE_HEADERS}
+    HEADERS ${AWS_CRYPTOSDK_HEADERS}
     HEADER_ROOTS ${GENERATED_INCLUDE} ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
@@ -226,7 +223,7 @@ if (BUILD_DOC)
         set(DOXYGEN_CONFIG_FILE_GENERATED ${CMAKE_CURRENT_BINARY_DIR}/doxygen/doxygen.config)
         configure_file(${DOXYGEN_CONFIG_FILE_IN} ${DOXYGEN_CONFIG_FILE_GENERATED} @ONLY)
         add_custom_target(doc_doxygen ALL
-                COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_CONFIG_FILE_GENERATED}
+                COMMAND ${CMAKE_COMMAND} -E env MAJOR=${MAJOR} MINOR=${MINOR} PATCH=${PATCH} ${DOXYGEN_EXECUTABLE} ${DOXYGEN_CONFIG_FILE_GENERATED}
                 WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
                 COMMENT "Generating Doxygen documentation"
                 VERBATIM)
