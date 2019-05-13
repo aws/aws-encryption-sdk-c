@@ -12,7 +12,6 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */ 
-
 #ifndef AWS_CRYPTOSDK_PRIVATE_CONFIG_H
 #define AWS_CRYPTOSDK_PRIVATE_CONFIG_H 1
 
@@ -23,6 +22,10 @@
 // At cmake configure time we look for the current git revision; if found and
 // not on a tag, we'll add the git revision to the version strings
 #cmakedefine AWS_CRYPTOSDK_PRIVATE_GITVERSION "@AWS_CRYPTOSDK_PRIVATE_GITVERSION@"
+
+#ifndef AWS_CRYPTOSDK_PRIVATE_GITVERSION
+#    define AWS_CRYPTOSDK_PRIVATE_GITVERSION ""
+#endif
 
 #ifdef __CPROVER__
 

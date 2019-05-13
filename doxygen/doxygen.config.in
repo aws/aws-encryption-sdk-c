@@ -5,8 +5,8 @@
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = "AWS Encryption SDK for C"
-PROJECT_NUMBER         = 0.2.x
-PROJECT_BRIEF          = "AWS Encryption SDK for C"
+PROJECT_NUMBER         = v$(MAJOR).$(MINOR)
+PROJECT_BRIEF          =
 PROJECT_LOGO           = 
 OUTPUT_DIRECTORY       = doxygen
 CREATE_SUBDIRS         = NO
@@ -112,7 +112,8 @@ WARN_LOGFILE           =
 # Configuration options related to the input files
 #---------------------------------------------------------------------------
 INPUT                  = @CMAKE_CURRENT_SOURCE_DIR@/include \
-                         @CMAKE_CURRENT_SOURCE_DIR@/aws-encryption-sdk-cpp/include
+                         @CMAKE_CURRENT_SOURCE_DIR@/aws-encryption-sdk-cpp/include \
+                         @GENERATED_INCLUDE@
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = *.h \
                          *.md
