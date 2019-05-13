@@ -22,9 +22,8 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">AWS Encryption SDK for C
-   &#160;<span id="projectnumber">0.1.0</span>
+   &#160;<span id="projectnumber">v0.2</span>
    </div>
-   <div id="projectbrief">AWS Encryption SDK for C</div>
   </td>
  </tr>
  </tbody>
@@ -95,6 +94,8 @@ Enumerations</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
+<tr class="memitem:ga763808ac375e579ebd07a0ee9285a3ba"><td class="memItemLeft" align="right" valign="top">struct aws_cryptosdk_session *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#ga763808ac375e579ebd07a0ee9285a3ba">aws_cryptosdk_session_new_from_keyring</a> (struct aws_allocator *allocator, enum <a class="el" href="group__session.html#ga128aab83f9c1b9519c622f747b49a19e">aws_cryptosdk_mode</a> mode, struct <a class="el" href="structaws__cryptosdk__keyring.html">aws_cryptosdk_keyring</a> *keyring)</td></tr>
+<tr class="separator:ga763808ac375e579ebd07a0ee9285a3ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gae0942539031b2b8c1a14abfc81845f16"><td class="memItemLeft" align="right" valign="top">struct aws_cryptosdk_session *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#gae0942539031b2b8c1a14abfc81845f16">aws_cryptosdk_session_new_from_cmm</a> (struct aws_allocator *allocator, enum <a class="el" href="group__session.html#ga128aab83f9c1b9519c622f747b49a19e">aws_cryptosdk_mode</a> mode, struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a> *cmm)</td></tr>
 <tr class="separator:gae0942539031b2b8c1a14abfc81845f16"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaa690d827c07d8c1fa4441e2e0ab5da82"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#gaa690d827c07d8c1fa4441e2e0ab5da82">aws_cryptosdk_session_destroy</a> (struct aws_cryptosdk_session *session)</td></tr>
@@ -111,8 +112,8 @@ Functions</h2></td></tr>
 <tr class="separator:gab68c1609a18cd0a32035739767293e35"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga02df3f7639fb1ad34c6b0893d1ffc0b5"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#ga02df3f7639fb1ad34c6b0893d1ffc0b5">aws_cryptosdk_session_is_done</a> (const struct aws_cryptosdk_session *session)</td></tr>
 <tr class="separator:ga02df3f7639fb1ad34c6b0893d1ffc0b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga806b5c8b3f42ffae30e5c1bdff0c7c62"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#ga806b5c8b3f42ffae30e5c1bdff0c7c62">aws_cryptosdk_session_get_algorithm</a> (const struct aws_cryptosdk_session *session, enum <a class="el" href="group__session.html#ga3a102b234535436099f0821e677686f9">aws_cryptosdk_alg_id</a> *alg_id)</td></tr>
-<tr class="separator:ga806b5c8b3f42ffae30e5c1bdff0c7c62"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga1e5506284e241c584cebc22b7b10ecfc"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#ga1e5506284e241c584cebc22b7b10ecfc">aws_cryptosdk_session_get_alg_id</a> (const struct aws_cryptosdk_session *session, enum <a class="el" href="group__session.html#ga3a102b234535436099f0821e677686f9">aws_cryptosdk_alg_id</a> *alg_id)</td></tr>
+<tr class="separator:ga1e5506284e241c584cebc22b7b10ecfc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga6df70e33a7b3eddd8155d54bee4281f6"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#ga6df70e33a7b3eddd8155d54bee4281f6">aws_cryptosdk_session_estimate_buf</a> (const struct aws_cryptosdk_session *AWS_RESTRICT session, size_t *AWS_RESTRICT outbuf_needed, size_t *AWS_RESTRICT inbuf_needed)</td></tr>
 <tr class="separator:ga6df70e33a7b3eddd8155d54bee4281f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gac54be89c4898b81516326fda5633008f"><td class="memItemLeft" align="right" valign="top">const struct aws_hash_table *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#gac54be89c4898b81516326fda5633008f">aws_cryptosdk_session_get_enc_ctx_ptr</a> (const struct aws_cryptosdk_session *session)</td></tr>
@@ -238,14 +239,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="ga806b5c8b3f42ffae30e5c1bdff0c7c62"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga806b5c8b3f42ffae30e5c1bdff0c7c62">&#9670;&nbsp;</a></span>aws_cryptosdk_session_get_algorithm()</h2>
+<a id="ga1e5506284e241c584cebc22b7b10ecfc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga1e5506284e241c584cebc22b7b10ecfc">&#9670;&nbsp;</a></span>aws_cryptosdk_session_get_alg_id()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">int aws_cryptosdk_session_get_algorithm </td>
+          <td class="memname">int aws_cryptosdk_session_get_alg_id </td>
           <td>(</td>
           <td class="paramtype">const struct aws_cryptosdk_session *&#160;</td>
           <td class="paramname"><em>session</em>, </td>
@@ -391,6 +392,50 @@ Functions</h2></td></tr>
     <tr><td class="paramname">allocator</td><td>The allocator to use for the session object and any temporary data allocated for the session </td></tr>
     <tr><td class="paramname">mode</td><td>The mode (AWS_CRYPTOSDK_ENCRYPT or AWS_CRYPTOSDK_DECRYPT) to start in. This can be changed later with <a class="el" href="group__session.html#gae3b107e88cd33c98df05a6a37b31d427">aws_cryptosdk_session_reset</a> </td></tr>
     <tr><td class="paramname">cmm</td><td>The crypto material manager which will provide key material for this session. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ga763808ac375e579ebd07a0ee9285a3ba"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga763808ac375e579ebd07a0ee9285a3ba">&#9670;&nbsp;</a></span>aws_cryptosdk_session_new_from_keyring()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct aws_cryptosdk_session* aws_cryptosdk_session_new_from_keyring </td>
+          <td>(</td>
+          <td class="paramtype">struct aws_allocator *&#160;</td>
+          <td class="paramname"><em>allocator</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">enum <a class="el" href="group__session.html#ga128aab83f9c1b9519c622f747b49a19e">aws_cryptosdk_mode</a>&#160;</td>
+          <td class="paramname"><em>mode</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structaws__cryptosdk__keyring.html">aws_cryptosdk_keyring</a> *&#160;</td>
+          <td class="paramname"><em>keyring</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Creates a new encryption or decryption session.</p>
+<dl class="section return"><dt>Returns</dt><dd>The new session, or NULL on failure (in which case, an AWS error code is set)</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">allocator</td><td>The allocator to use for the session object and any temporary data allocated for the session </td></tr>
+    <tr><td class="paramname">mode</td><td>The mode (AWS_CRYPTOSDK_ENCRYPT or AWS_CRYPTOSDK_DECRYPT) to start in. This can be changed later with <a class="el" href="group__session.html#gae3b107e88cd33c98df05a6a37b31d427">aws_cryptosdk_session_reset</a> </td></tr>
+    <tr><td class="paramname">keyring</td><td>The keyring which will encrypt or decrypt data keys for this session. This function uses a default CMM to link the session and keyring. </td></tr>
   </table>
   </dd>
 </dl>

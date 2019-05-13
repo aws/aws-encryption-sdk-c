@@ -22,9 +22,8 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">AWS Encryption SDK for C
-   &#160;<span id="projectnumber">0.1.0</span>
+   &#160;<span id="projectnumber">v0.2</span>
    </div>
-   <div id="projectbrief">AWS Encryption SDK for C</div>
   </td>
  </tr>
  </tbody>
@@ -88,8 +87,10 @@ Functions</h2></td></tr>
 <tr class="separator:ga2de2306e1e8a40cd3decc7b8f9f8fb94"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga5f5ed8a55fd167ff436b3c4437ea754d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__caching.html#ga5f5ed8a55fd167ff436b3c4437ea754d">aws_cryptosdk_materials_cache_release</a> (struct aws_cryptosdk_materials_cache *materials_cache)</td></tr>
 <tr class="separator:ga5f5ed8a55fd167ff436b3c4437ea754d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaa934de1183898fcea6e21b12b91167e5"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__caching.html#gaa934de1183898fcea6e21b12b91167e5">aws_cryptosdk_caching_cmm_new</a> (struct aws_allocator *alloc, struct aws_cryptosdk_materials_cache *materials_cache, struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a> *upstream, const struct aws_byte_buf *partition_id, uint64_t cache_limit_ttl, enum aws_timestamp_unit cache_limit_ttl_units)</td></tr>
-<tr class="separator:gaa934de1183898fcea6e21b12b91167e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaeae90cd48b352c0d694381d71c3022d3"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__caching.html#gaeae90cd48b352c0d694381d71c3022d3">aws_cryptosdk_caching_cmm_new_from_cmm</a> (struct aws_allocator *alloc, struct aws_cryptosdk_materials_cache *materials_cache, struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a> *upstream, const struct aws_byte_buf *partition_id, uint64_t cache_limit_ttl, enum aws_timestamp_unit cache_limit_ttl_units)</td></tr>
+<tr class="separator:gaeae90cd48b352c0d694381d71c3022d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gae79999f9cecf68c86b24829c6c01aaf7"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__caching.html#gae79999f9cecf68c86b24829c6c01aaf7">aws_cryptosdk_caching_cmm_new_from_keyring</a> (struct aws_allocator *alloc, struct aws_cryptosdk_materials_cache *materials_cache, struct <a class="el" href="structaws__cryptosdk__keyring.html">aws_cryptosdk_keyring</a> *keyring, const struct aws_byte_buf *partition_id, uint64_t cache_limit_ttl, enum aws_timestamp_unit cache_limit_ttl_units)</td></tr>
+<tr class="separator:gae79999f9cecf68c86b24829c6c01aaf7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga568b28a1d78d05617f77cdb573b87eba"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__caching.html#ga568b28a1d78d05617f77cdb573b87eba">aws_cryptosdk_caching_cmm_set_ttl</a> (struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a> *cmm, uint64_t ttl, enum aws_timestamp_unit ttl_units)</td></tr>
 <tr class="separator:ga568b28a1d78d05617f77cdb573b87eba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gac7d9d141904d97c89637e9162e416ab6"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__caching.html#gac7d9d141904d97c89637e9162e416ab6">aws_cryptosdk_caching_cmm_set_limit_bytes</a> (struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a> *cmm, uint64_t limit_bytes)</td></tr>
@@ -99,10 +100,10 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>The caching CMM caches the results of encryption and decryption operations to reduce the number of calls made to backing keyrings (e.g. KMS).</p>
-<p>To use the caching API, construct a local cache (using <a class="el" href="group__caching.html#gae9f7838ea1a80675a76d6ebb01b82c35">aws_cryptosdk_materials_cache_local_new</a>) and pass it to the constructor of a caching cmm (<a class="el" href="group__caching.html#gaa934de1183898fcea6e21b12b91167e5">aws_cryptosdk_caching_cmm_new</a>), along with a delegate CMM that generates the encryption and decryption materials that are cached.</p>
+<p>To use the caching API, construct a local cache (using <a class="el" href="group__caching.html#gae9f7838ea1a80675a76d6ebb01b82c35">aws_cryptosdk_materials_cache_local_new</a>) and pass it to the constructor of a caching cmm (aws_cryptosdk_caching_cmm_new), along with a delegate CMM that generates the encryption and decryption materials that are cached.</p>
 <p>When constructing a caching CMM, you are required to set a time-to-live (TTL) for data keys in the cache. We also recommend setting one of the two additional security thresholds using <a class="el" href="group__caching.html#gac7d9d141904d97c89637e9162e416ab6">aws_cryptosdk_caching_cmm_set_limit_bytes</a> or <a class="el" href="group__caching.html#gaf298383cea70baeaac20a652aead75a5">aws_cryptosdk_caching_cmm_set_limit_messages</a> to ensure that data keys expire and are refreshed periodically.</p>
 <p>As with CMMs and keyrings, the local cache is reference-counted. In simple use cases where there is only one local cache and one CMM, you can immediately call <a class="el" href="group__caching.html#ga5f5ed8a55fd167ff436b3c4437ea754d">aws_cryptosdk_materials_cache_release</a> on the local cache after constructing the CMM.</p>
-<p>Multiple caching CMMs can share the same local cache, but by default will not use each other's entries. (They share the entry count limit, but otherwise are partitioned from each other.) This is to avoid unexpected behavior in case the cache-miss delegate CMMs are different. If you want two caching CMMs to share their entries, pass the same partition ID to both calls to <a class="el" href="group__caching.html#gaa934de1183898fcea6e21b12b91167e5">aws_cryptosdk_caching_cmm_new</a> . </p>
+<p>Multiple caching CMMs can share the same local cache, but by default will not use each other's entries. (They share the entry count limit, but otherwise are partitioned from each other.) This is to avoid unexpected behavior in case the cache-miss delegate CMMs are different. If you want two caching CMMs to share their entries, pass the same partition ID to both calls to aws_cryptosdk_caching_cmm_new . </p>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="ga7d265c1712b27c883d6f2057ea6d31c2"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga7d265c1712b27c883d6f2057ea6d31c2">&#9670;&nbsp;</a></span>AWS_CRYPTOSDK_CACHE_MAX_LIMIT_MESSAGES</h2>
@@ -121,14 +122,14 @@ Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="gaa934de1183898fcea6e21b12b91167e5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gaa934de1183898fcea6e21b12b91167e5">&#9670;&nbsp;</a></span>aws_cryptosdk_caching_cmm_new()</h2>
+<a id="gaeae90cd48b352c0d694381d71c3022d3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaeae90cd48b352c0d694381d71c3022d3">&#9670;&nbsp;</a></span>aws_cryptosdk_caching_cmm_new_from_cmm()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a>* aws_cryptosdk_caching_cmm_new </td>
+          <td class="memname">struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a>* aws_cryptosdk_caching_cmm_new_from_cmm </td>
           <td>(</td>
           <td class="paramtype">struct aws_allocator *&#160;</td>
           <td class="paramname"><em>alloc</em>, </td>
@@ -177,6 +178,71 @@ Functions</h2></td></tr>
     <tr><td class="paramname">alloc</td><td>The allocator to use for the caching CMM itself (not for cache entries, however) </td></tr>
     <tr><td class="paramname">materials_cache</td><td>The backing cache </td></tr>
     <tr><td class="paramname">upstream</td><td>The upstream CMM to query on a cache miss </td></tr>
+    <tr><td class="paramname">partition_id</td><td>The partition ID to use to avoid collisions with other CMMs. This string need not remain valid once this function returns. If NULL, a random partition ID will be generated and used. </td></tr>
+    <tr><td class="paramname">cache_limit_ttl</td><td>The amount of time that a data key can be used for. </td></tr>
+    <tr><td class="paramname">cache_limit_ttl_units</td><td>The units of cache_limit_ttl. Allowable values are defined in aws/common/clock.h </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="gae79999f9cecf68c86b24829c6c01aaf7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gae79999f9cecf68c86b24829c6c01aaf7">&#9670;&nbsp;</a></span>aws_cryptosdk_caching_cmm_new_from_keyring()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a>* aws_cryptosdk_caching_cmm_new_from_keyring </td>
+          <td>(</td>
+          <td class="paramtype">struct aws_allocator *&#160;</td>
+          <td class="paramname"><em>alloc</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct aws_cryptosdk_materials_cache *&#160;</td>
+          <td class="paramname"><em>materials_cache</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structaws__cryptosdk__keyring.html">aws_cryptosdk_keyring</a> *&#160;</td>
+          <td class="paramname"><em>keyring</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const struct aws_byte_buf *&#160;</td>
+          <td class="paramname"><em>partition_id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>cache_limit_ttl</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">enum aws_timestamp_unit&#160;</td>
+          <td class="paramname"><em>cache_limit_ttl_units</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Creates a new instance of the caching crypto materials manager. This CMM will intercept requests for encrypt and decrypt materials, and forward them to the provided materials cache.</p>
+<p>If multiple caching CMMs are attached to the same materials_cache, they will share entries if and only if the partition_id parameter is set to the same string. Unless you need to use this feature, we recommend passing NULL, in which case the caching CMM will internally generate a random partition ID to ensure it does not collide with any other CMM.</p>
+<p>Parameters: </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">alloc</td><td>The allocator to use for the caching CMM itself (not for cache entries, however) </td></tr>
+    <tr><td class="paramname">materials_cache</td><td>The backing cache </td></tr>
+    <tr><td class="paramname">keyring</td><td>The keyring that will encrypt or decrypt data keys on a cache miss. This function uses a default CMM that is configured with the provided keyring as the upstream CMM. </td></tr>
     <tr><td class="paramname">partition_id</td><td>The partition ID to use to avoid collisions with other CMMs. This string need not remain valid once this function returns. If NULL, a random partition ID will be generated and used. </td></tr>
     <tr><td class="paramname">cache_limit_ttl</td><td>The amount of time that a data key can be used for. </td></tr>
     <tr><td class="paramname">cache_limit_ttl_units</td><td>The units of cache_limit_ttl. Allowable values are defined in aws/common/clock.h </td></tr>
