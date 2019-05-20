@@ -5,11 +5,7 @@ everyone to encrypt and decrypt data using industry standards and best practices
 data format compatible with the AWS Encryption SDKs in other languages. For more information on
 the AWS Encryption SDKs in all languages, see the [Developer Guide](https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/introduction.html).
 
-Also, see the [API documentation](https://awslabs.github.io/aws-encryption-sdk-c/html/) for the AWS Encryption SDK for C.
-
-**This library is currently under public preview**. Feel free to check out the code and give
-it a spin, but be aware that the APIs are still in flux. We'd love to hear your feedback on
-the APIs before they're fully nailed down.
+Also, see the [API documentation](https://aws.github.io/aws-encryption-sdk-c/html/) for the AWS Encryption SDK for C.
 
 ## Dependencies
 
@@ -101,7 +97,7 @@ Now build and install aws-c-common:
 
 #### Amazon Linux: Build and install the AWS Encryption SDK for C
 
-    git clone https://github.com/awslabs/aws-encryption-sdk-c.git
+    git clone https://github.com/aws/aws-encryption-sdk-c.git
     mkdir build-aws-encryption-sdk-c && cd build-aws-encryption-sdk-c
     cmake -DBUILD_SHARED_LIBS=ON ../aws-encryption-sdk-c
     make && sudo make install ; cd ..
@@ -147,7 +143,7 @@ Now build and install aws-c-common:
 
 #### Ubuntu: Build and install the AWS Encryption SDK for C
 
-    git clone https://github.com/awslabs/aws-encryption-sdk-c.git
+    git clone https://github.com/aws/aws-encryption-sdk-c.git
     mkdir build-aws-encryption-sdk-c && cd build-aws-encryption-sdk-c
     cmake -DBUILD_SHARED_LIBS=ON ../aws-encryption-sdk-c
     make && sudo make install ; cd ..
@@ -196,7 +192,7 @@ Build and install aws-c-common:
 Brew installed OpenSSL 1.1 to a place that is not picked up by default so we will
 set the directory manually in our build.
 
-    git clone https://github.com/awslabs/aws-encryption-sdk-c.git
+    git clone https://github.com/aws/aws-encryption-sdk-c.git
     mkdir build-aws-encryption-sdk-c && cd build-aws-encryption-sdk-c
     cmake -DBUILD_SHARED_LIBS=ON -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl\@1.1 ../aws-encryption-sdk-c
     make && sudo make install ; cd ..
@@ -243,7 +239,7 @@ Build and install aws-c-common:
 
 #### Windows: Build and install the AWS Encryption SDK for C
 
-    git clone https://github.com/awslabs/aws-encryption-sdk-c.git
+    git clone https://github.com/aws/aws-encryption-sdk-c.git
     mkdir build-aws-encryption-sdk-c && cd build-aws-encryption-sdk-c
     cmake -DCMAKE_INSTALL_PREFIX=%cd%\..\..\install -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DCMAKE_TOOLCHAIN_FILE=%cd%\..\vcpkg\scripts\buildsystems\vcpkg.cmake -G Ninja ..\aws-encryption-sdk-c
     cmake --build . && cmake --build . --target install && cd ..
