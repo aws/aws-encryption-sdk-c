@@ -25,7 +25,7 @@
  * <a href="https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/introduction.html">Developer Guide</a>.
  *
  * Source code and installation instructions are available in
- * <a href="https://github.com/awslabs/aws-encryption-sdk-c">the GitHub repository</a>.
+ * <a href="https://github.com/aws/aws-encryption-sdk-c">the GitHub repository</a>.
  *
  * This API documentation was generated from the v@MAJOR@.@MINOR@.@PATCH@ source code.
  *
