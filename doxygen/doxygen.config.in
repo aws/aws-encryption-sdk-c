@@ -120,9 +120,9 @@ FILE_PATTERNS          = *.h \
 RECURSIVE              = YES
 EXCLUDE                = 
 EXCLUDE_SYMLINKS       = NO
-EXCLUDE_PATTERNS       = */private/* \
-                         */exports.h \
-                         */vtable.h
+EXCLUDE_PATTERNS       = #*/private/* \
+                         #*/exports.h \
+                         #*/vtable.h
 EXCLUDE_SYMBOLS        = 
 EXAMPLE_PATH           = 
 EXAMPLE_PATTERNS       = *
