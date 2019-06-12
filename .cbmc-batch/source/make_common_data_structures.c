@@ -44,3 +44,7 @@ void ensure_sig_ctx_has_allocated_members(struct aws_cryptosdk_sig_ctx *ctx) {
         evp_md_ctx_set0_evp_pkey(ctx->ctx, ctx->pkey);
     }
 }
+
+void ensure_alg_properties_is_allocated(struct aws_cryptosdk_alg_properties **alg_props) {
+    *alg_props = aws_cryptosdk_alg_props(nondet_int());
+}

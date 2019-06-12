@@ -88,6 +88,15 @@ static enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk
     }
 }
 
+bool aws_cryptosdk_alg_properties_is_valid(const struct aws_cryptosdk_alg_properties *const alg_props) {
+    if (alg_props == NULL) {
+        return false;
+    }
+    enum aws_cryptosdk_alg_id id                             = alg_props->alg_id;
+    const struct aws_cryptosdk_alg_properties *std_alg_props = aws_cryptosdk_alg_props(id);
+    return (std_alg_props == alg_props);
+}
+
 int aws_cryptosdk_derive_key(
     const struct aws_cryptosdk_alg_properties *props,
     struct content_key *content_key,
