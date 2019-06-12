@@ -88,6 +88,62 @@ static enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk
     }
 }
 
+static bool str_eq(const char *const str1, const char *const str2) {
+    if ((str1 && !str2) || (!str1 && str2)) {
+        return false;
+    }
+    if (!str1 && !str2) {
+        return true;
+    }
+#ifdef CBMC
+    /* TODO: Bound the alg_props_string size to 128 characters (or any
+       reasonable max size).  This is only useful for CBMC to work,
+       not a real precondition. (We have to include that in the
+       validity check for alg_props (checking for that bound) so that
+       it is at least checked in debug_mode. */
+    /* For now just assert that they both point somewhere */
+    return true;
+#else
+    return strcmp(str1, str2) == 0;
+#endif
+}
+
+static bool alg_properties_equal(const struct aws_cryptosdk_alg_properties alg_props1,
+                                 const struct aws_cryptosdk_alg_properties alg_props2) {
+    return
+        /* Note: strcmp messes with CBMC so we should either define
+           this to be different for CBMC or bound the size of names */ 
+        /* strcmp(alg_props1.md_name, alg_props2.md_name) == 0 && */
+        /* strcmp(alg_props1.cipher_name, alg_props2.cipher_name) == 0 && */
+        /* strcmp(alg_props1.alg_name, alg_props2.alg_name) == 0 && */
+        
+        /* Note: for now we don't check the equiality of the alg_impl
+         * struct. Is there a way to check for equality of the impl
+         * structure? */
+        alg_props1.data_key_len == alg_props2.data_key_len &&
+        alg_props1.content_key_len == alg_props2.content_key_len &&
+        alg_props1.iv_len == alg_props2.iv_len &&
+        alg_props1.tag_len == alg_props2.tag_len &&
+        alg_props1.signature_len == alg_props2.signature_len &&
+        alg_props1.alg_id == alg_props2.alg_id;
+}
+
+bool aws_cryptosdk_alg_properties_is_valid(const struct aws_cryptosdk_alg_properties *const alg_props) {
+    if (alg_props == NULL) {
+        return false;
+    }   
+    enum aws_cryptosdk_alg_id id = alg_props->alg_id;
+    struct aws_cryptosdk_alg_properties *std_alg_props = aws_cryptosdk_alg_props(id);
+    if (std_alg_props == NULL) {
+        return false;
+    }
+    return
+        alg_props->md_name &&
+        alg_props->cipher_name &&
+        alg_props->alg_name &&
+        alg_properties_equal(*alg_props, *std_alg_props);
+}
+
 int aws_cryptosdk_derive_key(
     const struct aws_cryptosdk_alg_properties *props,
     struct content_key *content_key,

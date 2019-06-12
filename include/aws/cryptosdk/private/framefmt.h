@@ -33,6 +33,15 @@ struct aws_cryptosdk_frame {
     struct aws_byte_buf authtag;
 };
 
+#define MAX_PLAINTEXT_SIZE 65535
+
+/**
+ * Checks whether a frame struct is valid. At the moment this means
+ * that it checks the validity of the byte buffers and the fact that
+ * they should have NULL allocators.
+ */
+bool aws_cryptosdk_frame_is_valid(const struct aws_cryptosdk_frame *const frame);
+
 /**
  * Performs frame-type-specific work prior to writing a frame; writes out all
  * fields except for the IV, ciphertext, and authtag - for those three fields,

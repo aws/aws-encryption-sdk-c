@@ -101,6 +101,13 @@ struct aws_cryptosdk_alg_properties {
 AWS_CRYPTOSDK_API
 const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryptosdk_alg_id alg_id);
 
+
+/**
+ * Checks whether an aws_cryptosdk_alg_properties is valid and is supported by the SDK.
+ */
+AWS_CRYPTOSDK_API
+bool aws_cryptosdk_alg_properties_is_valid(const struct aws_cryptosdk_alg_properties *const alg_props);
+
 /**
  * An opaque structure representing an ongoing sign or verify operation
  */

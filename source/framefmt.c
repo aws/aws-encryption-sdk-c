@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <aws/common/common.h>
 #include <aws/common/error.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/private/framefmt.h>
@@ -213,6 +214,22 @@ static inline int serde_nonframed(
     return AWS_ERROR_SUCCESS;
 }
 
+bool aws_cryptosdk_frame_is_valid(const struct aws_cryptosdk_frame *const frame) {
+    bool iv_valid = aws_byte_buf_is_valid(&frame->iv);
+    bool ciphertext_valid = aws_byte_buf_is_valid(&frame->ciphertext);
+    /* This happens when input plaintext size is 0 */
+    bool ciphertext_valid_zero = frame->ciphertext.len == 0 &&
+        frame->ciphertext.buffer &&
+        frame->ciphertext.capacity == 0;
+    bool authtag_valid = aws_byte_buf_is_valid(&frame->authtag);
+    return iv_valid &&
+        frame->iv.allocator == NULL &&
+        (ciphertext_valid || ciphertext_valid_zero) &&
+        frame->ciphertext.allocator == NULL &&
+        authtag_valid &&
+        frame->authtag.allocator == NULL;
+}
+
 /**
  * Performs frame-type-specific work prior to writing a frame; writes out all
  * fields except for the IV, ciphertext, and authtag, and returns their
@@ -235,8 +252,15 @@ int aws_cryptosdk_serialize_frame(
     size_t plaintext_size,
     struct aws_byte_buf *ciphertext_buf,
     const struct aws_cryptosdk_alg_properties *alg_props) {
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(alg_props));
     struct aws_cryptosdk_framestate state;
 
+    // The plaintext_size should be bound to prevent arithmetic
+    // overflows due to addition
+    if (plaintext_size > MAX_PLAINTEXT_SIZE) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
+    }
+    
     // We assume that the max frame size is equal to the plaintext size. This
     // lets us avoid having to pass in a redundant argument, avoids needing to
     // take a branch in serde_framed, and does not impact the serialized
@@ -244,7 +268,7 @@ int aws_cryptosdk_serialize_frame(
     state.max_frame_size = plaintext_size;
     state.plaintext_size = plaintext_size;
     // Currently all supported algorithms have plaintext = ciphertext size
-    state.ciphertext_size = plaintext_size;
+    state.ciphertext_size = 0;
 
     state.alg_props = alg_props;
     state.u.buffer  = *ciphertext_buf;
@@ -271,6 +295,7 @@ int aws_cryptosdk_serialize_frame(
         return aws_raise_error(result);
     } else {
         *ciphertext_buf = state.u.buffer;
+        AWS_POSTCONDITION(aws_cryptosdk_frame_is_valid(frame));
         return AWS_OP_SUCCESS;
     }
 }
