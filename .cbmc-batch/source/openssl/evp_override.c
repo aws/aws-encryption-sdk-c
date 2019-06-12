@@ -92,6 +92,7 @@ struct evp_pkey_ctx_st {
     bool is_initialized_for_signing;
     bool is_initialized_for_derivation;
     bool is_initialized_for_encryption;
+    bool is_initialized_for_decryption;
     int rsa_pad;
     EVP_PKEY *pkey;
 };
@@ -111,6 +112,7 @@ EVP_PKEY_CTX *EVP_PKEY_CTX_new(EVP_PKEY *pkey, ENGINE *e) {
         ctx->is_initialized_for_signing    = false;
         ctx->is_initialized_for_derivation = false;
         ctx->is_initialized_for_encryption = false;
+        ctx->is_initialized_for_decryption = false;
         ctx->pkey                          = pkey;
         pkey->references += 1;
     }
@@ -133,6 +135,7 @@ EVP_PKEY_CTX *EVP_PKEY_CTX_new_id(int id, ENGINE *e) {
         ctx->is_initialized_for_signing    = false;
         ctx->is_initialized_for_derivation = false;
         ctx->is_initialized_for_encryption = false;
+        ctx->is_initialized_for_decryption = false;
         ctx->pkey                          = NULL;
     }
 
@@ -281,6 +284,23 @@ int EVP_PKEY_encrypt_init(EVP_PKEY_CTX *ctx) {
 }
 
 /*
+ * The EVP_PKEY_decrypt_init() function initializes a public key algorithm context using key pkey for a decryption
+ * operation. EVP_PKEY_decrypt_init() and EVP_PKEY_decrypt() return 1 for success and 0 or a negative value for failure.
+ * In particular a return value of -2 indicates the operation is not supported by the public key algorithm.
+ */
+int EVP_PKEY_decrypt_init(EVP_PKEY_CTX *ctx) {
+    assert(ctx != NULL);
+    assert(ctx->pkey != NULL);
+    if (nondet_bool()) {
+        ctx->is_initialized_for_decryption = true;
+        return 1;
+    }
+    int rv;
+    __CPROVER_assume(rv <= 0);
+    return rv;
+}
+
+/*
  * The macro EVP_PKEY_CTX_set_rsa_padding() sets the RSA padding mode for ctx. The pad parameter can take the value
  * RSA_PKCS1_PADDING for PKCS#1 padding, RSA_SSLV23_PADDING for SSLv23 padding, RSA_NO_PADDING for no padding,
  * RSA_PKCS1_OAEP_PADDING for OAEP padding (encrypt and decrypt only), RSA_X931_PADDING for X9.31 padding (signature
@@ -336,6 +356,35 @@ int EVP_PKEY_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen, cons
     assert(ctx != NULL);
     // Encyption size is nondeterministic but fixed. See ec_override.c for details.
     size_t max_required_size = max_encryption_size();
+
+    if (nondet_bool()) {
+        int rv;
+        __CPROVER_assume(rv <= 0);
+        return rv;
+    }
+
+    if (!out) {
+        *outlen = max_required_size;
+    } else {
+        size_t amount_of_data_written;
+        __CPROVER_assume(amount_of_data_written <= *outlen);
+        write_unconstrained_data(out, amount_of_data_written);
+        *outlen = amount_of_data_written;
+    }
+
+    return 1;
+}
+
+/*
+ * The EVP_PKEY_decrypt() function performs a public key decryption operation using ctx. The data to be decrypted is
+ * specified using the in and inlen parameters. If out is NULL then the maximum size of the output buffer is written to
+ * the outlen parameter. If out is not NULL then before the call the outlen parameter should contain the length of the
+ * out buffer, if the call is successful the decrypted data is written to out and the amount of data written to outlen.
+ */
+int EVP_PKEY_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen, const unsigned char *in, size_t inlen) {
+    assert(ctx != NULL);
+    // Decryption size is nondeterministic but fixed. See ec_override.c for details.
+    size_t max_required_size = max_decryption_size();
 
     if (nondet_bool()) {
         int rv;

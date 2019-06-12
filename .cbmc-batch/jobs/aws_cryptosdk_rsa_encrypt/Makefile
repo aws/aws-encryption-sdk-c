@@ -12,16 +12,16 @@
 # limitations under the License.
 
 ###########
-# if Makefile.local exists, use it. This provides a way to override the defaults 
+# if Makefile.local exists, use it. This provides a way to override the defaults
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
 include ../Makefile.string
 
-UNWINDSET += 
+UNWINDSET +=
 
-CBMCFLAGS += 
+CBMCFLAGS +=
 
 ENTRY = aws_cryptosdk_rsa_encrypt_harness
 
