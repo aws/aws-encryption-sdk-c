@@ -88,6 +88,32 @@ static enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk
     }
 }
 
+static bool alg_properties_equal(
+    const struct aws_cryptosdk_alg_properties alg_props1, const struct aws_cryptosdk_alg_properties alg_props2) {
+    /* Note: We are not checking whether the names (md/cipher/alg) are
+     * equal */
+
+    /* Note: We are not checking whether the underlying alg_impl
+     * structs are equal. */
+    return alg_props1.data_key_len == alg_props2.data_key_len &&
+           alg_props1.content_key_len == alg_props2.content_key_len && alg_props1.iv_len == alg_props2.iv_len &&
+           alg_props1.tag_len == alg_props2.tag_len && alg_props1.signature_len == alg_props2.signature_len &&
+           alg_props1.alg_id == alg_props2.alg_id;
+}
+
+bool aws_cryptosdk_alg_properties_is_valid(const struct aws_cryptosdk_alg_properties *const alg_props) {
+    if (alg_props == NULL) {
+        return false;
+    }
+    enum aws_cryptosdk_alg_id id                             = alg_props->alg_id;
+    const struct aws_cryptosdk_alg_properties *std_alg_props = aws_cryptosdk_alg_props(id);
+    if (std_alg_props == NULL) {
+        return false;
+    }
+    return alg_props->md_name && alg_props->cipher_name && alg_props->alg_name &&
+           alg_properties_equal(*alg_props, *std_alg_props);
+}
+
 int aws_cryptosdk_derive_key(
     const struct aws_cryptosdk_alg_properties *props,
     struct content_key *content_key,
