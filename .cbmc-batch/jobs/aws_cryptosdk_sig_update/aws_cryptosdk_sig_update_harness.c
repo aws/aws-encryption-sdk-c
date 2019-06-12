@@ -34,6 +34,7 @@ void aws_cryptosdk_sig_update_harness() {
     __CPROVER_assume(aws_cryptosdk_sig_ctx_is_valid_cbmc(ctx));
     ensure_byte_cursor_has_allocated_buffer_member(&buf);
     __CPROVER_assume(aws_byte_cursor_is_valid(&buf));
+    __CPROVER_assume(buf.len > 0);
 
     /* operation under verification */
     if (aws_cryptosdk_sig_update(ctx, buf) == AWS_OP_SUCCESS) {
