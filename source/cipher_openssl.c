@@ -682,16 +682,24 @@ int aws_cryptosdk_sig_verify_start(
     struct aws_allocator *alloc,
     const struct aws_string *pub_key,
     const struct aws_cryptosdk_alg_properties *props) {
+    AWS_PRECONDITION(pctx);
+    AWS_PRECONDITION(alloc);
+    AWS_PRECONDITION(aws_string_is_valid(pub_key));
+    AWS_PRECONDITION(props);
     EC_KEY *key                       = NULL;
     struct aws_cryptosdk_sig_ctx *ctx = NULL;
 
     *pctx = NULL;
 
     if (!props->impl->curve_name) {
+        AWS_POSTCONDITION(!*pctx);
+        AWS_POSTCONDITION(aws_string_is_valid(pub_key));
         return AWS_OP_SUCCESS;
     }
 
     if (load_pubkey(&key, props, pub_key)) {
+        AWS_POSTCONDITION(!*pctx);
+        AWS_POSTCONDITION(aws_string_is_valid(pub_key));
         return AWS_OP_ERR;
     }
 
@@ -726,6 +734,9 @@ int aws_cryptosdk_sig_verify_start(
     ctx->is_sign = false;
     *pctx        = ctx;
 
+    AWS_POSTCONDITION(aws_cryptosdk_sig_ctx_is_valid(*pctx));
+    AWS_POSTCONDITION(!(*pctx)->is_sign);
+    AWS_POSTCONDITION(aws_string_is_valid(pub_key));
     return AWS_OP_SUCCESS;
 
 oom:
@@ -736,6 +747,8 @@ rethrow:
         aws_cryptosdk_sig_abort(ctx);
     }
 
+    AWS_POSTCONDITION(!*pctx);
+    AWS_POSTCONDITION(aws_string_is_valid(pub_key));
     return AWS_OP_ERR;
 }
 
@@ -760,7 +773,10 @@ int aws_cryptosdk_sig_update(struct aws_cryptosdk_sig_ctx *ctx, const struct aws
 }
 
 int aws_cryptosdk_sig_verify_finish(struct aws_cryptosdk_sig_ctx *ctx, const struct aws_string *signature) {
-    assert(!ctx->is_sign);
+    AWS_PRECONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+    AWS_PRECONDITION(ctx->alloc);
+    AWS_PRECONDITION(!ctx->is_sign);
+    AWS_PRECONDITION(aws_string_is_valid(signature));
     bool ok = EVP_DigestVerifyFinal(ctx->ctx, aws_string_bytes(signature), signature->len) == 1;
 
     aws_cryptosdk_sig_abort(ctx);
