@@ -814,6 +814,11 @@ int aws_cryptosdk_sig_verify_finish(struct aws_cryptosdk_sig_ctx *ctx, const str
 
 int aws_cryptosdk_sig_sign_finish(
     struct aws_cryptosdk_sig_ctx *ctx, struct aws_allocator *alloc, struct aws_string **signature) {
+    AWS_PRECONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+    AWS_PRECONDITION(ctx->alloc);
+    AWS_PRECONDITION(ctx->is_sign);
+    AWS_PRECONDITION(alloc);
+    AWS_PRECONDITION(signature);
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     /* This needs to be big enough for all digest algorithms in use */
     uint8_t digestbuf[64];
@@ -823,7 +828,6 @@ int aws_cryptosdk_sig_sign_finish(
     struct aws_byte_buf sigtmp = { 0 };
 
     size_t digestlen, siglen;
-    assert(ctx->is_sign);
 
     digestlen = EVP_MD_CTX_size(ctx->ctx);
 
@@ -938,6 +942,14 @@ int aws_cryptosdk_sig_sign_finish(
 
         ECDSA_SIG_free(sig);
         sig = NULL;
+
+#ifdef CBMC
+        /* Loop is potentially unbounded but has a high probability of terminating after one or two iterations. This
+         * assume forces the loop to terminate after one iteration during verification with CBMC. Since each iteration
+         * of the loop is independent of the others, we assume that every memory-safety error that could occur can occur
+         * in one iteration, and therefore would be caught by CBMC before reaching this assume. */
+        __CPROVER_assume(sigtmp.len == ctx->props->signature_len);
+#endif
     }
 
     *signature = aws_string_new_from_array(alloc, sigtmp.buffer, sigtmp.len);
@@ -963,5 +975,6 @@ rethrow:
         *signature = NULL;
     }
 
+    AWS_POSTCONDITION(result == AWS_OP_SUCCESS ? aws_string_is_valid(*signature) : !*signature);
     return result ? AWS_OP_ERR : AWS_OP_SUCCESS;
 }
