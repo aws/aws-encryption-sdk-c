@@ -4,3 +4,6 @@ build
 *.[ch]-e
 .DS_Store
 *.goto
+*.log
+.cbmc-batch/jobs/*/link-farm
+.cbmc-batch/jobs/*/html

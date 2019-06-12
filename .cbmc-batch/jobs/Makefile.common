@@ -17,12 +17,15 @@ default: report
 
 ################################################################
 # Helper-inc must go first, so it can override other includes.
-INC += \
-	-I$(SRCDIR)/helper-inc \
-	-I$(SRCDIR)/c-enc-sdk-inc \
-	-I$(SRCDIR)/c-common-inc 
-	 
+INC += -I$(SRCDIR)/helper-inc
+INC += -I$(SRCDIR)/c-enc-sdk-inc
+INC += -I$(SRCDIR)/c-common-inc
+INC += -I$(SRCDIR)/c-common-helper-inc
+INC += -I/usr/local/opt/openssl@1.1/include/
 
+CBMC_OBJECT_BITS ?= 8
+CBMCFLAGS +=  --object-bits $(CBMC_OBJECT_BITS)
+DEF += -DCBMC_OBJECT_BITS=$(CBMC_OBJECT_BITS)
 DEF += -DCBMC=1
 
 OPT += 
@@ -31,15 +34,21 @@ CFLAGS += $(CFLAGS2) $(DEF) $(OPT)
 
 LINKFARM = $(abspath ./link-farm)
 
+HARNESS_NAME ?= $(ENTRY)_harness.c
+
 ################################################################
-CBMCFLAGS += \
-	--bounds-check \
-	--pointer-check \
-	--signed-overflow-check \
-	--unsigned-overflow-check \
-	--pointer-overflow-check \
-	--div-by-zero-check \
-	--unwinding-assertions
+CBMCFLAGS += --bounds-check
+CBMCFLAGS += --div-by-zero-check
+CBMCFLAGS += --float-overflow-check
+CBMCFLAGS += --nan-check
+CBMCFLAGS += --pointer-check
+CBMCFLAGS += --pointer-overflow-check
+CBMCFLAGS += --signed-overflow-check
+CBMCFLAGS += --undefined-shift-check
+CBMCFLAGS += --unsigned-overflow-check
+CBMCFLAGS += --unwind 1
+CBMCFLAGS += --unwinding-assertions
+
 
 UNWIND ?= 0
 SIMPLIFY ?= 0
@@ -74,6 +83,10 @@ common-symlinks: common-git linkfarm-dir
 	$(call make_symlink, $(LINKFARM), $(COMMONDIR)/include, c-common-inc)
 	$(call make_symlink, $(LINKFARM), $(COMMONDIR)/source, c-common-src)
 
+common-helper-symlinks: common-git linkfarm-dir
+	$(call make_symlink, $(LINKFARM), $(COMMON_HELPERDIR)/include, c-common-helper-inc)
+	$(call make_symlink, $(LINKFARM), $(COMMON_HELPERDIR)/source, c-common-helper-src)
+
 enc-sdk-symlinks: linkfarm-dir
 	$(call make_symlink, $(LINKFARM), $(SDKDIR)/include, c-enc-sdk-inc)
 	$(call make_symlink, $(LINKFARM), $(SDKDIR)/source, c-enc-sdk-src)
@@ -86,20 +99,20 @@ helper-symlinks: linkfarm-dir
 	$(call make_symlink, $(LINKFARM), $(HELPERDIR)/source, helper-src)
 
 
-fill-linkfarm: harness-symlink enc-sdk-symlinks common-symlinks helper-symlinks
+fill-linkfarm: harness-symlink enc-sdk-symlinks common-symlinks common-helper-symlinks helper-symlinks
 
 $(ENTRY)1.goto: fill-linkfarm $(OBJS)
 	$(GOTO_CC) --function harness -o $@ $(OBJS)
 
 $(ENTRY)3.goto: $(ENTRY)1.goto
 	 $(GOTO_INSTRUMENT) $(ABSTRACTIONS) --add-library $< $@ \
-		2>&1 | tee $(ENTRY)3.txt ; exit $${PIPESTATUS[0]}
+		2>&1 | tee $(ENTRY)3.log ; exit $${PIPESTATUS[0]}
 
 # Simplify and constant propagation may benefit from unwinding first
 $(ENTRY)4.goto: $(ENTRY)3.goto
 ifeq ($(UNWIND_GOTO), 1)
 	$(GOTO_INSTRUMENT) $(UNWINDING) $< $@ \
-		2>&1 | tee $(ENTRY)4.txt ; exit $${PIPESTATUS[0]}
+		2>&1 | tee $(ENTRY)4.log ; exit $${PIPESTATUS[0]}
 else
 	cp $< $@
 endif
@@ -108,7 +121,7 @@ endif
 $(ENTRY)5.goto: $(ENTRY)4.goto
 ifeq ($(SIMPLIFY), 1)
 	$(GOTO_INSTRUMENT) --generate-function-body '.*' $< $@ \
-		2>&1 | tee $(ENTRY)5.txt ; exit $${PIPESTATUS[0]}
+		2>&1 | tee $(ENTRY)5.log ; exit $${PIPESTATUS[0]}
 else
 	cp $< $@
 endif
@@ -117,18 +130,18 @@ endif
 $(ENTRY)6.goto: $(ENTRY)5.goto
 ifeq ($(SIMPLIFY), 1)
 	$(GOTO_ANALYZER) --simplify $@ $< \
-		2>&1 | tee $(ENTRY)6.txt ; exit $${PIPESTATUS[0]}
+		2>&1 | tee $(ENTRY)6.log ; exit $${PIPESTATUS[0]}
 else
 	cp $< $@
 endif
 
 $(ENTRY)7.goto: $(ENTRY)6.goto
 	$(GOTO_INSTRUMENT) --drop-unused-functions $< $@ \
-		2>&1 | tee $(ENTRY)7.txt ; exit $${PIPESTATUS[0]}
+		2>&1 | tee $(ENTRY)7.log ; exit $${PIPESTATUS[0]}
 
 $(ENTRY)8.goto: $(ENTRY)7.goto
 	$(GOTO_INSTRUMENT) --slice-global-inits $< $@ \
-		2>&1 | tee $(ENTRY)8.txt ; exit $${PIPESTATUS[0]}
+		2>&1 | tee $(ENTRY)8.log ; exit $${PIPESTATUS[0]}
 
 $(ENTRY).goto: $(ENTRY)8.goto
 	cp $< $@
@@ -138,7 +151,7 @@ $(ENTRY).goto: $(ENTRY)8.goto
 
 goto: $(ENTRY).goto 
 
-cbmc.txt: $(ENTRY).goto
+cbmc.log: $(ENTRY).goto
 	cbmc $(CBMCFLAGS) --trace $< 2>&1 | tee $@
 
 property.xml: $(ENTRY).goto
@@ -147,27 +160,27 @@ property.xml: $(ENTRY).goto
 coverage.xml: $(ENTRY).goto
 	cbmc $(filter-out --unwinding-assertions,$(CBMCFLAGS)) --cover location --xml-ui $< 2>&1 > $@
 
-cbmc: cbmc.txt
+cbmc: cbmc.log
 
 property: property.xml
 
 coverage: coverage.xml
 
-report: cbmc.txt property.xml coverage.xml
+report: cbmc.log property.xml coverage.xml
 	$(VIEWER) \
 	--goto $(ENTRY).goto \
 	--srcdir $(SRCDIR) \
 	--htmldir html \
 	--srcexclude "(./verification|./tests|./tools|./lib/third_party)" \
-	--result cbmc.txt \
+	--result cbmc.log \
 	--property property.xml \
 	--block coverage.xml
 
 clean:
 	$(RM) $(GOTOS)
 	$(RM) $(OBJS) $(ENTRY).goto
-	$(RM) $(ENTRY)[0-9].goto $(ENTRY)[0-9].txt
-	$(RM) cbmc.txt property.xml coverage.xml TAGS
+	$(RM) $(ENTRY)[0-9].goto $(ENTRY)[0-9].log
+	$(RM) cbmc.log property.xml coverage.xml TAGS
 	$(RM) *~ \#*
 
 veryclean: clean

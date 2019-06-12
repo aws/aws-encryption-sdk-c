@@ -20,12 +20,10 @@ include ../Makefile.local_default
 
 ######### 
 ENTRY = MultiKeyringNew
-HARNESS_NAME = $(ENTRY)_harness.c
-OBJS = \
-	$(SRCDIR)/$(ENTRY)_harness.goto \
-	$(SRCDIR)/c-enc-sdk-src/multi_keyring.goto \
-	$(SRCDIR)/c-common-src/common.goto \
-	$(SRCDIR)/helper-src/proof_allocators.goto
+OBJS += $(SRCDIR)/$(ENTRY)_harness.goto
+OBJS += $(SRCDIR)/c-enc-sdk-src/multi_keyring.goto
+OBJS += $(SRCDIR)/c-common-src/common.goto
+OBJS += $(SRCDIR)/helper-src/proof_allocators.goto
 
 ###########
 
