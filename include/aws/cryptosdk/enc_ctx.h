@@ -52,7 +52,9 @@ int aws_cryptosdk_enc_ctx_init(struct aws_allocator *alloc, struct aws_hash_tabl
  * This is equivalent to aws_hash_table_clear, but provided as an alias for clarity.
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_enc_ctx_clear(struct aws_hash_table *enc_ctx) {
+    AWS_PRECONDITION(aws_hash_table_is_valid(enc_ctx));
     aws_hash_table_clear(enc_ctx);
+    AWS_PRECONDITION(aws_hash_table_is_valid(enc_ctx));
 }
 
 /**
@@ -60,7 +62,13 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_enc_ctx_clear(struct aws_hash_tab
  * This is equivalent to aws_hash_table_clean_up, but provided as an alias for clarity.
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_enc_ctx_clean_up(struct aws_hash_table *enc_ctx) {
+    AWS_PRECONDITION(enc_ctx != NULL);
+    AWS_PRECONDITION(
+        enc_ctx->p_impl == NULL || aws_hash_table_is_valid(enc_ctx),
+        "Input aws_hash_table [map] must be valid or hash_table_state pointer [map->p_impl] must be NULL, in case "
+        "aws_hash_table_clean_up was called twice.");
     aws_hash_table_clean_up(enc_ctx);
+    AWS_POSTCONDITION(enc_ctx->p_impl == NULL);
 }
 
 /**
