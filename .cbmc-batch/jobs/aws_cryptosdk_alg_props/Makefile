@@ -11,14 +11,21 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-##########
+###########
 # if Makefile.local exists, use it. This provides a way to override the defaults
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
-# Sufficently long to get full coverage on the aws_byte_buf and aws_byte_cursor APIs
-# short enough that all proofs complete in less than a minute
-MAX_BUFFER_SIZE ?= 1028
+UNWINDSET +=
 
-DEFINES += -DMAX_BUFFER_SIZE=$(MAX_BUFFER_SIZE)
+CBMCFLAGS +=
+
+ENTRY = aws_cryptosdk_alg_props_harness
+
+DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher.goto
+DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.goto
+
+###########
+
+include ../Makefile.common
