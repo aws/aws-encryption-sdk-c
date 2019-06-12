@@ -80,6 +80,8 @@ COMMON_REPO_NAME ?= aws-c-common-for-cryptosdk-proofs
 COMMONDIR ?= $(BASEDIR)/$(COMMON_REPO_NAME)
 COMMON_HELPERDIR ?= $(COMMONDIR)/.cbmc-batch
 
+HARNESS_NAME ?= $(ENTRY)_harness.c
+
 ################################################################
 # Setup include directory order
 # Helper-inc must go first, so it can override other includes.
