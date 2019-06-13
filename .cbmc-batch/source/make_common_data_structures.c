@@ -23,5 +23,3 @@ void ensure_alg_properties_has_allocated_names(struct aws_cryptosdk_alg_properti
     size_t alg_name_size;
     alg_props->alg_name = can_fail_malloc(alg_name_size);
 }
-
-

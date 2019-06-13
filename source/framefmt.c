@@ -215,19 +215,14 @@ static inline int serde_nonframed(
 }
 
 bool aws_cryptosdk_frame_is_valid(const struct aws_cryptosdk_frame *const frame) {
-    bool iv_valid = aws_byte_buf_is_valid(&frame->iv);
+    bool iv_valid         = aws_byte_buf_is_valid(&frame->iv);
     bool ciphertext_valid = aws_byte_buf_is_valid(&frame->ciphertext);
     /* This happens when input plaintext size is 0 */
-    bool ciphertext_valid_zero = frame->ciphertext.len == 0 &&
-        frame->ciphertext.buffer &&
-        frame->ciphertext.capacity == 0;
+    bool ciphertext_valid_zero =
+        frame->ciphertext.len == 0 && frame->ciphertext.buffer && frame->ciphertext.capacity == 0;
     bool authtag_valid = aws_byte_buf_is_valid(&frame->authtag);
-    return iv_valid &&
-        frame->iv.allocator == NULL &&
-        (ciphertext_valid || ciphertext_valid_zero) &&
-        frame->ciphertext.allocator == NULL &&
-        authtag_valid &&
-        frame->authtag.allocator == NULL;
+    return iv_valid && frame->iv.allocator == NULL && (ciphertext_valid || ciphertext_valid_zero) &&
+           frame->ciphertext.allocator == NULL && authtag_valid && frame->authtag.allocator == NULL;
 }
 
 /**
@@ -260,7 +255,7 @@ int aws_cryptosdk_serialize_frame(
     if (plaintext_size > MAX_PLAINTEXT_SIZE) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
     }
-    
+
     // We assume that the max frame size is equal to the plaintext size. This
     // lets us avoid having to pass in a redundant argument, avoids needing to
     // take a branch in serde_framed, and does not impact the serialized
