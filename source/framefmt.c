@@ -203,6 +203,12 @@ static inline int serde_nonframed(
     struct aws_cryptosdk_framestate *AWS_RESTRICT state, struct aws_cryptosdk_frame *AWS_RESTRICT frame) {
     field_sized(state, &frame->iv, state->alg_props->iv_len);
     field_be64(state, &state->plaintext_size);
+
+    // Check that plaintext_size is within bounds so we avoid an overflow later
+    if (state->plaintext_size >= MAX_PLAINTEXT_SIZE) {
+        return AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
+    }
+
     field_sized(state, &frame->ciphertext, state->plaintext_size);
     field_sized(state, &frame->authtag, state->alg_props->tag_len);
 
