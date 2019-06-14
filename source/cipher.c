@@ -113,8 +113,7 @@ static bool alg_properties_equal(
     return
         /* Note: strcmp messes with CBMC so we should either define
            this to be different for CBMC or bound the size of names */
-        str_eq(alg_props1.md_name, alg_props2.md_name) &&
-        str_eq(alg_props1.cipher_name, alg_props2.cipher_name) &&
+        str_eq(alg_props1.md_name, alg_props2.md_name) && str_eq(alg_props1.cipher_name, alg_props2.cipher_name) &&
         str_eq(alg_props1.alg_name, alg_props2.alg_name) &&
 
         /* Note: for now we don't check the equiality of the alg_impl
@@ -130,7 +129,7 @@ bool aws_cryptosdk_alg_properties_is_valid(const struct aws_cryptosdk_alg_proper
     if (alg_props == NULL) {
         return false;
     }
-    enum aws_cryptosdk_alg_id id                       = alg_props->alg_id;
+    enum aws_cryptosdk_alg_id id                             = alg_props->alg_id;
     const struct aws_cryptosdk_alg_properties *std_alg_props = aws_cryptosdk_alg_props(id);
     if (std_alg_props == NULL) {
         return false;
