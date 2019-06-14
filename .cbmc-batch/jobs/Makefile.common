@@ -191,7 +191,7 @@ gitclean: veryclean
 	$(RM) -r $(COMMONDIR)
 
 
-.PHONY: cbmc property coverage report clean veryclean common-symlinks common-git harness-symlink fill-linkfarm helper-symlinks
+.PHONY: cbmc property coverage report clean veryclean common-symlinks common-git harness-symlink fill-linkfarm helper-symlinks ci-yaml
 
 ################################################################
 # Launching cbmc on cbmc-batch
@@ -240,6 +240,16 @@ $(ENTRY).yaml: $(ENTRY).goto Makefile
 	echo 'property_memory: $(PROPMEM)' >> $@
 	echo 'coverage_memory: $(COVMEM)' >> $@
 	echo 'expected: "SUCCESSFUL"' >> $@
+
+batch-yaml: $(ENTRY).yaml
+
+cbmc-batch.yaml: $(ENTRY).goto Makefile
+	echo 'jobos: ubuntu16' > $@
+	echo 'cbmcflags: $(strip $(call yaml_encode_options,$(CBMCFLAGS)))' >> $@
+	echo 'goto: $(ENTRY).goto' >> $@
+	echo 'expected: "SUCCESSFUL"' >> $@
+
+ci-yaml: cbmc-batch.yaml
 
 launch: $(ENTRY).goto Makefile
 	mkdir -p $(WS)

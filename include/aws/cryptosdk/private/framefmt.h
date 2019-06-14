@@ -17,6 +17,7 @@
 #define AWS_CRYPTOSDK_PRIVATE_FRAMEFMT_H
 
 #include <aws/common/byte_buf.h>
+#include <aws/common/common.h>
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/private/cipher.h>
 
