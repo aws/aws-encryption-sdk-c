@@ -34,7 +34,13 @@ struct aws_cryptosdk_frame {
     struct aws_byte_buf authtag;
 };
 
-#define MAX_PLAINTEXT_SIZE 65535
+// MAX_FRAME_SIZE = 2^32 - 1
+#define MAX_FRAME_SIZE 0xFFFFFFFF
+// MAX_FRAMES = 2^32 - 1
+#define MAX_FRAMES 0xFFFFFFFF
+// MAX_UNFRAMED_PLAINTEXT_SIZE = 2^36 - 32
+#define MAX_UNFRAMED_PLAINTEXT_SIZE 0xFFFFFFFE0ull
+
 
 /**
  * Checks whether a frame struct is valid. At the moment this means

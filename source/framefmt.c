@@ -215,14 +215,22 @@ static inline int serde_nonframed(
 }
 
 bool aws_cryptosdk_frame_is_valid(const struct aws_cryptosdk_frame *const frame) {
-    bool iv_valid         = aws_byte_buf_is_valid(&frame->iv);
-    bool ciphertext_valid = aws_byte_buf_is_valid(&frame->ciphertext);
+    bool iv_byte_buf_valid = aws_byte_buf_is_valid(&frame->iv);
+    bool iv_byte_buf_static = frame->iv.allocator == NULL;
+
+    bool authtag_byte_buf_valid = aws_byte_buf_is_valid(&frame->authtag);
+    bool authtag_byte_buf_static = frame->authtag.allocator == NULL;
+    
+    bool ciphertext_byte_buf_valid = aws_byte_buf_is_valid(&frame->ciphertext);
     /* This happens when input plaintext size is 0 */
     bool ciphertext_valid_zero =
         frame->ciphertext.len == 0 && frame->ciphertext.buffer && frame->ciphertext.capacity == 0;
-    bool authtag_valid = aws_byte_buf_is_valid(&frame->authtag);
-    return iv_valid && frame->iv.allocator == NULL && (ciphertext_valid || ciphertext_valid_zero) &&
-           frame->ciphertext.allocator == NULL && authtag_valid && frame->authtag.allocator == NULL;
+    bool ciphertext_valid = ciphertext_byte_buf_valid || ciphertext_valid_zero;
+    bool ciphertext_static = frame->ciphertext.allocator == NULL;
+
+    return iv_byte_buf_valid && iv_byte_buf_static &&
+        authtag_byte_buf_valid && authtag_byte_buf_static &&
+        ciphertext_valid && ciphertext_static;
 }
 
 /**
@@ -252,7 +260,10 @@ int aws_cryptosdk_serialize_frame(
 
     // The plaintext_size should be bound to prevent arithmetic
     // overflows due to addition
-    if (plaintext_size > MAX_PLAINTEXT_SIZE) {
+    if ((frame->type == FRAME_TYPE_SINGLE && plaintext_size > MAX_UNFRAMED_PLAINTEXT_SIZE) ||
+        (frame->type != FRAME_TYPE_SINGLE && plaintext_size > MAX_FRAME_SIZE)) {
+        // Clear the ciphertext buffer
+        aws_byte_buf_secure_zero(ciphertext_buf);
         return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
     }
 
