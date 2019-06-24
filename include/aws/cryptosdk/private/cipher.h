@@ -49,6 +49,8 @@ struct aws_cryptosdk_md_context;
 
 enum aws_cryptosdk_md_alg { AWS_CRYPTOSDK_MD_SHA512 };
 
+bool aws_cryptosdk_md_context_is_valid(const struct aws_cryptosdk_md_context *md_context);
+
 int aws_cryptosdk_md_init(
     struct aws_allocator *alloc, struct aws_cryptosdk_md_context **md_context, enum aws_cryptosdk_md_alg md_alg);
 

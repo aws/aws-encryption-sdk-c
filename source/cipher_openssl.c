@@ -84,6 +84,10 @@ struct aws_cryptosdk_md_context {
     EVP_MD_CTX *evp_md_ctx;
 };
 
+bool aws_cryptosdk_md_context_is_valid(const struct aws_cryptosdk_md_context *md_context) {
+    return md_context != NULL;
+}
+
 int aws_cryptosdk_md_init(
     struct aws_allocator *alloc, struct aws_cryptosdk_md_context **md_context, enum aws_cryptosdk_md_alg md_alg) {
     const EVP_MD *evp_md_alg;
