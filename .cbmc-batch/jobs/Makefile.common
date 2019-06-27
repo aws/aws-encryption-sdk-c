@@ -103,7 +103,8 @@ helper-symlinks: linkfarm-dir
 fill-linkfarm: harness-symlink enc-sdk-symlinks common-symlinks common-helper-symlinks helper-symlinks
 
 $(ENTRY)1.goto: fill-linkfarm $(OBJS)
-	$(GOTO_CC) --function harness -o $@ $(OBJS)
+		printenv
+		$(GOTO_CC) --function harness -o $@ $(OBJS)
 
 $(ENTRY)3.goto: $(ENTRY)1.goto
 	 $(GOTO_INSTRUMENT) $(ABSTRACTIONS) --add-library $< $@ \
@@ -148,6 +149,7 @@ $(ENTRY).goto: $(ENTRY)8.goto
 	cp $< $@
 
 %.goto : %.c fill-linkfarm
+	printenv
 	$(GOTO_CC) -o $@ $(INC) $(CFLAGS) $<
 
 goto: $(ENTRY).goto 
