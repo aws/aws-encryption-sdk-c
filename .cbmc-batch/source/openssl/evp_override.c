@@ -22,9 +22,9 @@ void EVP_PKEY_free(EVP_PKEY *pkey) {
     assert(pkey != NULL);
 }
 
-typedef struct evp_md_ctx {
+struct evp_md_ctx_st {
     bool is_initialized;
-} EVP_MD_CTX;
+};
 
 bool evp_md_ctx_is_initialized(EVP_MD_CTX *ctx) {
     return ctx && ctx->is_initialized;
