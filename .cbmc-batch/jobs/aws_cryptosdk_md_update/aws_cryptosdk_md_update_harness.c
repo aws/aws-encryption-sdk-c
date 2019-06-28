@@ -11,7 +11,7 @@ void harness() {
     void *buf = can_fail_malloc(length);
 
     /* assumptions */
-    __CPROVER_assume(aws_cryptosdk_md_context_is_valid(md_context));
+    __CPROVER_assume(md_context);
     md_context->evp_md_ctx = EVP_MD_CTX_new();
     __CPROVER_assume(evp_md_ctx_is_initialized(md_context->evp_md_ctx));
     __CPROVER_assume(buf != NULL);
