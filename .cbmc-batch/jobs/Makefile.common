@@ -40,7 +40,7 @@ HARNESS_NAME ?= $(ENTRY)_harness.c
 CBMCFLAGS += --bounds-check
 CBMCFLAGS += --div-by-zero-check
 CBMCFLAGS += --float-overflow-check
-CBMCFLAGS += --memory-leak-check
+#CBMCFLAGS += --memory-leak-check
 CBMCFLAGS += --nan-check
 CBMCFLAGS += --pointer-check
 CBMCFLAGS += --pointer-overflow-check
@@ -145,7 +145,6 @@ $(ENTRY)8.goto: $(ENTRY)7.goto
 		2>&1 | tee $(ENTRY)8.log ; exit $${PIPESTATUS[0]}
 
 $(ENTRY).goto: $(ENTRY)8.goto
-	echo $LD_LIBRARY_PATH       
 	cp $< $@
 
 %.goto : %.c fill-linkfarm
