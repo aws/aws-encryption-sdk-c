@@ -7,8 +7,8 @@
 void harness() {
     /* arguments */
     struct aws_cryptosdk_md_context *md_context = can_fail_malloc(sizeof(struct aws_cryptosdk_md_context));
-    void *buf;
     size_t length;
+    void *buf = can_fail_malloc(length);
 
     /* assumptions */
     __CPROVER_assume(aws_cryptosdk_md_context_is_valid(md_context));

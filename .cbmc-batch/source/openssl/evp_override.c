@@ -60,7 +60,8 @@ int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl) {
 int EVP_DigestUpdate(EVP_MD_CTX *ctx, const void *d, size_t cnt) {
     assert(ctx != NULL);  // OpenSSL implementation dereferences ctx
     assert(ctx->is_initialized);
-    assert(d != NULL);  // unclear if this is necessary
+    assert(d != NULL);  // unclear if this is necessary or if OpenSSL tests for it
+    assert(AWS_MEM_IS_READABLE(d, cnt));
 
     return nondet_bool();  // OpenSSL documentation: 1 for success, 0 for failure
 }
