@@ -26,4 +26,5 @@ void harness() {
     /* clean up */
     EVP_MD_CTX_free(md_context->evp_md_ctx);
     free(md_context);
+    free(buf);
 }
