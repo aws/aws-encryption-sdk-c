@@ -215,22 +215,21 @@ static inline int serde_nonframed(
 }
 
 bool aws_cryptosdk_frame_is_valid(const struct aws_cryptosdk_frame *const frame) {
-    bool iv_byte_buf_valid = aws_byte_buf_is_valid(&frame->iv);
+    bool iv_byte_buf_valid  = aws_byte_buf_is_valid(&frame->iv);
     bool iv_byte_buf_static = frame->iv.allocator == NULL;
 
-    bool authtag_byte_buf_valid = aws_byte_buf_is_valid(&frame->authtag);
+    bool authtag_byte_buf_valid  = aws_byte_buf_is_valid(&frame->authtag);
     bool authtag_byte_buf_static = frame->authtag.allocator == NULL;
-    
+
     bool ciphertext_byte_buf_valid = aws_byte_buf_is_valid(&frame->ciphertext);
     /* This happens when input plaintext size is 0 */
     bool ciphertext_valid_zero =
         frame->ciphertext.len == 0 && frame->ciphertext.buffer && frame->ciphertext.capacity == 0;
-    bool ciphertext_valid = ciphertext_byte_buf_valid || ciphertext_valid_zero;
+    bool ciphertext_valid  = ciphertext_byte_buf_valid || ciphertext_valid_zero;
     bool ciphertext_static = frame->ciphertext.allocator == NULL;
 
-    return iv_byte_buf_valid && iv_byte_buf_static &&
-        authtag_byte_buf_valid && authtag_byte_buf_static &&
-        ciphertext_valid && ciphertext_static;
+    return iv_byte_buf_valid && iv_byte_buf_static && authtag_byte_buf_valid && authtag_byte_buf_static &&
+           ciphertext_valid && ciphertext_static;
 }
 
 /**
