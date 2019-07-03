@@ -41,7 +41,6 @@ struct aws_cryptosdk_frame {
 // MAX_UNFRAMED_PLAINTEXT_SIZE = 2^36 - 32
 #define MAX_UNFRAMED_PLAINTEXT_SIZE 0xFFFFFFFE0ull
 
-
 /**
  * Checks whether a frame struct is valid. At the moment this means
  * that it checks the validity of the byte buffers and the fact that
