@@ -21,7 +21,6 @@ INC += -I$(SRCDIR)/helper-inc
 INC += -I$(SRCDIR)/c-enc-sdk-inc
 INC += -I$(SRCDIR)/c-common-inc
 INC += -I$(SRCDIR)/c-common-helper-inc
-INC += -I/usr/local/opt/openssl@1.1/include/
 
 CBMC_OBJECT_BITS ?= 8
 CBMCFLAGS +=  --object-bits $(CBMC_OBJECT_BITS)
@@ -102,7 +101,7 @@ helper-symlinks: linkfarm-dir
 fill-linkfarm: harness-symlink enc-sdk-symlinks common-symlinks common-helper-symlinks helper-symlinks
 
 $(ENTRY)1.goto: fill-linkfarm $(OBJS)
-	$(GOTO_CC) --function harness -o $@ $(OBJS)
+		$(GOTO_CC) --function harness -o $@ $(OBJS)
 
 $(ENTRY)3.goto: $(ENTRY)1.goto
 	 $(GOTO_INSTRUMENT) $(ABSTRACTIONS) --add-library $< $@ \
@@ -186,7 +185,6 @@ clean:
 veryclean: clean
 	$(RM) -r html
 	$(RM) -r link-farm
-
 gitclean: veryclean
 	$(RM) -r $(COMMONDIR)
 
