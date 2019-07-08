@@ -2,6 +2,8 @@
 
 #include <openssl/ossl_typ.h>
 
+#define EVP_MAX_MD_SIZE 64/* longest known is SHA512 */
+
 void EVP_PKEY_free(EVP_PKEY *pkey);
 EVP_MD_CTX *EVP_MD_CTX_new(void);
 void EVP_MD_CTX_free(EVP_MD_CTX *ctx);
