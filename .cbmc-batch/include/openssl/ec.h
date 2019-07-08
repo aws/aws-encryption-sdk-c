@@ -17,9 +17,7 @@ typedef enum {
 
 typedef struct ec_group_st EC_GROUP;
 
-struct ECDSA_SIG_st {
-  BIGNUM *r;
-  BIGNUM *s;
-};
-
 typedef struct ECDSA_SIG_st ECDSA_SIG;
+
+EC_KEY *EC_KEY_new(void);
+void EC_KEY_free(EC_KEY *key);

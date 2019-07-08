@@ -18,6 +18,54 @@
 #include <make_common_data_structures.h>
 #include <proof_helpers/nondet.h>
 
+/* Abstraction of the EVP_PKEY struct */
+struct evp_pkey_st {
+  int references;
+};
+
+/* Helper function for CBMC proofs: initializes PKEY as nondeterministically as possible. */
+void evp_pkey_nondet_init(EVP_PKEY* pkey) {
+  int new_reference_count;
+  __CPROVER_assume(new_reference_count > 0);
+  pkey->references = new_reference_count;
+}
+
+/* Helper function for CBMC proofs: returns the reference count. */
+int evp_pkey_get_reference_count(EVP_PKEY* pkey) {
+  return pkey ? pkey->references : 0;
+}
+
+/* Helper function for CBMC proofs: frees the memory regardless of the reference count. */
+void evp_pkey_unconditional_free(EVP_PKEY* pkey) {
+  free(pkey);
+}
+
+/*
+ * Description: The EVP_PKEY_new() function allocates an empty EVP_PKEY structure which is used by OpenSSL to store public and private keys. The reference count is set to 1.
+ * Return values: EVP_PKEY_new() returns either the newly allocated EVP_PKEY structure or NULL if an error occurred.
+ */
+EVP_PKEY* EVP_PKEY_new() {
+  EVP_PKEY* pkey = can_fail_malloc(sizeof(EVP_PKEY));
+
+  if (pkey) {
+    pkey->references = 1;
+  }
+
+  return pkey;
+}
+
+/*
+ * Description: EVP_PKEY_free() decrements the reference count of key and, if the reference count is zero, frees it up. If key is NULL, nothing is done.
+ */
+void EVP_PKEY_free(EVP_PKEY *pkey) {
+  if (pkey) {
+    --pkey->references;
+    if (pkey->references == 0) {
+      free(pkey);
+    }
+  }
+}
+
 /* Abstraction of the EVP_MD_CTX struct */
 struct evp_md_ctx_st {
     bool is_initialized;
