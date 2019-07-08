@@ -84,6 +84,10 @@ struct aws_cryptosdk_md_context {
     EVP_MD_CTX *evp_md_ctx;
 };
 
+bool aws_cryptosdk_md_context_is_valid(const struct aws_cryptosdk_md_context *md_context) {
+    return md_context && md_context->evp_md_ctx;
+}
+
 int aws_cryptosdk_md_init(
     struct aws_allocator *alloc, struct aws_cryptosdk_md_context **md_context, enum aws_cryptosdk_md_alg md_alg) {
     const EVP_MD *evp_md_alg;
@@ -113,6 +117,7 @@ int aws_cryptosdk_md_init(
     (*md_context)->alloc      = alloc;
     (*md_context)->evp_md_ctx = evp_md_ctx;
 
+    AWS_POSTCONDITION(aws_cryptosdk_md_context_is_valid(*md_context));
     return AWS_OP_SUCCESS;
 err:
     EVP_MD_CTX_destroy(evp_md_ctx);
@@ -127,14 +132,22 @@ size_t aws_cryptosdk_md_size(enum aws_cryptosdk_md_alg md_alg) {
 }
 
 int aws_cryptosdk_md_update(struct aws_cryptosdk_md_context *md_context, const void *buf, size_t length) {
+    AWS_PRECONDITION(aws_cryptosdk_md_context_is_valid(md_context));
+    AWS_PRECONDITION(buf);
+    AWS_PRECONDITION(AWS_MEM_IS_READABLE(buf, length));
+
     if (1 != EVP_DigestUpdate(md_context->evp_md_ctx, buf, length)) {
+        AWS_POSTCONDITION(aws_cryptosdk_md_context_is_valid(md_context));
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
+    AWS_POSTCONDITION(aws_cryptosdk_md_context_is_valid(md_context));
     return AWS_OP_SUCCESS;
 }
 
 int aws_cryptosdk_md_finish(struct aws_cryptosdk_md_context *md_context, void *output_buf, size_t *length) {
+    AWS_PRECONDITION(aws_cryptosdk_md_context_is_valid(md_context));
+
     int rv            = AWS_OP_SUCCESS;
     unsigned int size = 0;
 
