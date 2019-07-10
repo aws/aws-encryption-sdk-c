@@ -13,6 +13,12 @@
  * limitations under the License.
  */
 
+#include <openssl/ec.h>
+#include <openssl/evp.h>
+
+#include <cipher_openssl.h>
+#include <ec_utils.h>
+#include <evp_utils.h>
 #include <make_common_data_structures.h>
 
 void ensure_alg_properties_has_allocated_names(struct aws_cryptosdk_alg_properties *const alg_props) {
@@ -22,4 +28,15 @@ void ensure_alg_properties_has_allocated_names(struct aws_cryptosdk_alg_properti
     alg_props->cipher_name = can_fail_malloc(cipher_name_size);
     size_t alg_name_size;
     alg_props->alg_name = can_fail_malloc(alg_name_size);
+}
+
+void ensure_sig_ctx_has_allocated_members(struct aws_cryptosdk_sig_ctx *ctx) {
+    ctx->keypair = EC_KEY_new();
+    ctx->pkey    = EVP_PKEY_new();
+    ctx->ctx     = EVP_MD_CTX_new();
+
+    // initialize members nondeterministically
+    if (ctx->keypair) ec_key_nondet_init(ctx->keypair);
+    if (ctx->pkey) evp_pkey_nondet_init(ctx->pkey);
+    if (ctx->ctx) evp_md_ctx_nondet_init(ctx->ctx);
 }
