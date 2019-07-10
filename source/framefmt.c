@@ -241,10 +241,9 @@ int aws_cryptosdk_serialize_frame(
     // lets us avoid having to pass in a redundant argument, avoids needing to
     // take a branch in serde_framed, and does not impact the serialized
     // output.
-    state.max_frame_size = plaintext_size;
-    state.plaintext_size = plaintext_size;
-    // Currently all supported algorithms have plaintext = ciphertext size
-    state.ciphertext_size = plaintext_size;
+    state.max_frame_size  = plaintext_size;
+    state.plaintext_size  = plaintext_size;
+    state.ciphertext_size = 0;
 
     state.alg_props = alg_props;
     state.u.buffer  = *ciphertext_buf;
