@@ -26,13 +26,13 @@ int aws_cryptosdk_enc_ctx_init(struct aws_allocator *alloc, struct aws_hash_tabl
     AWS_PRECONDITION(enc_ctx);
     size_t initial_size = 10;  // arbitrary starting point, will resize as necessary
     if (aws_hash_table_init(
-        enc_ctx,
-        alloc,
-        initial_size,
-        aws_hash_string,
-        aws_hash_callback_string_eq,
-        aws_hash_callback_string_destroy,
-        aws_hash_callback_string_destroy) == AWS_OP_ERR) {
+            enc_ctx,
+            alloc,
+            initial_size,
+            aws_hash_string,
+            aws_hash_callback_string_eq,
+            aws_hash_callback_string_destroy,
+            aws_hash_callback_string_destroy) == AWS_OP_ERR) {
         return AWS_OP_ERR;
     }
 
