@@ -40,6 +40,9 @@ int test_serialize_return_ciphertext_size() {
     struct aws_byte_buf ciphertext_buf;
     TEST_ASSERT_SUCCESS(aws_byte_buf_init(&ciphertext_buf, alloc, ciphertext_buf_capacity));
 
+    // Increase the length of the ciphertext to simulate having old data
+    ciphertext_buf.len += 1000;
+
     // Allocate and initialize the alg_properties
     const struct aws_cryptosdk_alg_properties *alg_props = aws_cryptosdk_alg_props(id);
     size_t ciphertext_size;
