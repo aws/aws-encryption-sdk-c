@@ -12,22 +12,31 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/private/enc_ctx.h>
 #include <aws/cryptosdk/private/utils.h>
 
 #include <aws/common/byte_buf.h>
+#include <aws/common/common.h>
+#include <aws/common/hash_table.h>
 
 int aws_cryptosdk_enc_ctx_init(struct aws_allocator *alloc, struct aws_hash_table *enc_ctx) {
+    AWS_PRECONDITION(alloc);
+    AWS_PRECONDITION(enc_ctx);
     size_t initial_size = 10;  // arbitrary starting point, will resize as necessary
-    return aws_hash_table_init(
+    if (aws_hash_table_init(
         enc_ctx,
         alloc,
         initial_size,
         aws_hash_string,
         aws_hash_callback_string_eq,
         aws_hash_callback_string_destroy,
-        aws_hash_callback_string_destroy);
+        aws_hash_callback_string_destroy) == AWS_OP_ERR) {
+        return AWS_OP_ERR;
+    }
+
+    AWS_SUCCEED_WITH_POSTCONDITION(aws_hash_table_is_valid(enc_ctx));
 }
 
 int aws_cryptosdk_enc_ctx_size(size_t *size, const struct aws_hash_table *enc_ctx) {
