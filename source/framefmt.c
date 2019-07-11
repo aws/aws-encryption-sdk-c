@@ -377,7 +377,7 @@ int aws_cryptosdk_deserialize_frame(
     /* in */
     struct aws_byte_cursor *ciphertext_buf,
     const struct aws_cryptosdk_alg_properties *alg_props,
-    uint64_t max_frame_size) {
+    uint32_t max_frame_size) {
     struct aws_cryptosdk_framestate state;
     state.max_frame_size  = max_frame_size;
     state.plaintext_size  = 0;
