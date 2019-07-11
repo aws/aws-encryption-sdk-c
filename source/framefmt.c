@@ -205,7 +205,7 @@ static inline int serde_nonframed(
     field_be64(state, &state->plaintext_size);
 
     // Check that plaintext_size is within bounds so we avoid an overflow later
-    if (state->plaintext_size >= MAX_PLAINTEXT_SIZE) {
+    if (state->plaintext_size >= MAX_UNFRAMED_PLAINTEXT_SIZE) {
         return AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
     }
 
