@@ -497,7 +497,7 @@ class BufferedLogSystem : public Aws::Utils::Logging::FormattedLogSystem {
         }
     }
 
-    void Flush();
+    void Flush() {}
 
     BufferedLogSystem(Aws::Utils::Logging::LogLevel logLevel) : FormattedLogSystem(logLevel) {}
 
