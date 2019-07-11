@@ -27,8 +27,8 @@ module type_def where
 // function of session.c has made progress (line 242)
 type state_t = {
                     sess : session_c_t, 
-                    output_buffer : aws_byte_cursor_c_t, 
-                    input_buffer : aws_byte_cursor_c_t
+                    output_buffer : aws_byte_buf_c_t,
+                    input_cursor : aws_byte_cursor_c_t
                     }
 
 
@@ -54,6 +54,16 @@ type aws_byte_cursor_c_t = {
     ptr : size_bits_t, //TODO: actual size in the c code is [8]. Figure out casting
     len : size_bits_t
     }
+
+
+// See <aws/common/byte_buf.h>
+// NOTE: Incomplete implementation - only has the fields necessary for current proofs.
+type aws_byte_buf_c_t = {
+    len : size_bits_t,
+    buffer : size_bits_t, //TODO: actual size in the c code is [8]. Figure out casting
+    capacity : size_bits_t
+}
+
 
 // <aws/cryptosdk/cipher.h>> : 28 - 41
 // NOTE: Incomplete implementation - only has the fields necessary for current proofs. 

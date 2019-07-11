@@ -77,11 +77,13 @@ incrementFrameSeqno session_old = {
 
 //Helper function to changed only the session of the state_t to a new state.        
 advanceSessionByStateOnly : state_t -> state_size_t -> state_t
-advanceSessionByStateOnly state_old new_state = {
-                                                sess = advanceStateOnly state_old.sess new_state,
-                                                output_buffer = state_old.output_buffer, 
-                                                input_buffer = state_old.input_buffer
-                                                }
+advanceSessionByStateOnly state_old new_state =
+  { state_old | sess = advanceStateOnly state_old.sess new_state }
 
+advanceByteBuf : aws_byte_buf_c_t -> size_bits_t -> aws_byte_buf_c_t
+advanceByteBuf buf l =
+  { buf | len -> len + l }
 
-                                                    
+advanceByteCursor : aws_byte_cursor_c_t -> size_bits_t -> aws_byte_cursor_c_t
+advanceByteCursor cursor l =
+  { cursor | ptr -> ptr + l, len -> len - l }
