@@ -378,6 +378,9 @@ int aws_cryptosdk_deserialize_frame(
     struct aws_byte_cursor *ciphertext_buf,
     const struct aws_cryptosdk_alg_properties *alg_props,
     uint32_t max_frame_size) {
+    AWS_PRECONDITION(frame);
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(ciphertext_buf));
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(alg_props));
     struct aws_cryptosdk_framestate state;
     state.max_frame_size  = max_frame_size;
     state.plaintext_size  = 0;
@@ -416,9 +419,14 @@ int aws_cryptosdk_deserialize_frame(
     if (result != AWS_ERROR_SUCCESS) {
         // Don't leak a partially-initialized structure
         aws_secure_zero(frame, sizeof(*frame));
+        AWS_POSTCONDITION(aws_byte_cursor_is_valid(ciphertext_buf));
+        AWS_POSTCONDITION(aws_cryptosdk_alg_properties_is_valid(alg_props));
         return aws_raise_error(result);
     } else {
         *ciphertext_buf = state.u.cursor;
+	AWS_POSTCONDITION(aws_cryptosdk_frame_is_valid(frame));
+        AWS_POSTCONDITION(aws_byte_cursor_is_valid(ciphertext_buf));
+        AWS_POSTCONDITION(aws_cryptosdk_alg_properties_is_valid(alg_props));
         return AWS_OP_SUCCESS;
     }
 }
