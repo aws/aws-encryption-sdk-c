@@ -215,6 +215,12 @@ static inline int serde_nonframed(
 }
 
 bool aws_cryptosdk_frame_is_valid(const struct aws_cryptosdk_frame *const frame) {
+    if (frame == NULL) {
+        return false;
+    }
+
+    bool frame_type_seq_valid = aws_cryptosdk_frame_has_valid_type_seq(frame);
+
     bool iv_byte_buf_valid  = aws_byte_buf_is_valid(&frame->iv);
     bool iv_byte_buf_static = frame->iv.allocator == NULL;
 
@@ -228,8 +234,45 @@ bool aws_cryptosdk_frame_is_valid(const struct aws_cryptosdk_frame *const frame)
     bool ciphertext_valid  = ciphertext_byte_buf_valid || ciphertext_valid_zero;
     bool ciphertext_static = frame->ciphertext.allocator == NULL;
 
-    return iv_byte_buf_valid && iv_byte_buf_static && authtag_byte_buf_valid && authtag_byte_buf_static &&
-           ciphertext_valid && ciphertext_static;
+    return frame_type_seq_valid && iv_byte_buf_valid && iv_byte_buf_static && authtag_byte_buf_valid &&
+           authtag_byte_buf_static && ciphertext_valid && ciphertext_static;
+}
+
+bool aws_cryptosdk_frame_serialized(
+    const struct aws_cryptosdk_frame *frame,
+    const struct aws_cryptosdk_alg_properties *alg_props,
+    size_t plaintext_size) {
+    if (frame == NULL || alg_props == NULL) {
+        return false;
+    }
+
+    // Check that both iv, authtag buffers contain the correct amount of bytes
+    bool iv_size_valid  = frame->iv.capacity == alg_props->iv_len;
+    bool tag_size_valid = frame->authtag.capacity == alg_props->tag_len;
+
+    // Check that both iv, authtag buffers are empty and ready for writting
+    bool iv_empty  = frame->iv.len == 0;
+    bool tag_empty = frame->authtag.len == 0;
+
+    // Check that the ciphertext buffer has the correct size
+    bool ciphertext_size_valid = ((frame->type == FRAME_TYPE_SINGLE || frame->type == FRAME_TYPE_FRAME) &&
+                                  frame->ciphertext.capacity == plaintext_size) ||
+                                 (frame->type == FRAME_TYPE_FINAL && frame->ciphertext.capacity <= plaintext_size);
+
+    return iv_size_valid && tag_size_valid && iv_empty && tag_empty;
+}
+
+bool aws_cryptosdk_frame_has_valid_type_seq(const struct aws_cryptosdk_frame *frame) {
+    if (frame == NULL) {
+        return false;
+    }
+
+    bool seq_valid = frame->sequence_number > 0 && frame->sequence_number <= MAX_FRAMES;
+
+    bool frame_enum_in_range =
+        frame->type == FRAME_TYPE_SINGLE || frame->type == FRAME_TYPE_FRAME || frame->type == FRAME_TYPE_FINAL;
+
+    return seq_valid && frame_enum_in_range;
 }
 
 /**
@@ -254,6 +297,7 @@ int aws_cryptosdk_serialize_frame(
     size_t plaintext_size,
     struct aws_byte_buf *ciphertext_buf,
     const struct aws_cryptosdk_alg_properties *alg_props) {
+    AWS_PRECONDITION(aws_cryptosdk_frame_has_valid_type_seq(frame));
     AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(alg_props));
     struct aws_cryptosdk_framestate state;
 
@@ -301,6 +345,8 @@ int aws_cryptosdk_serialize_frame(
     } else {
         *ciphertext_buf = state.u.buffer;
         AWS_POSTCONDITION(aws_cryptosdk_frame_is_valid(frame));
+        AWS_POSTCONDITION(aws_cryptosdk_alg_properties_is_valid(alg_props));
+        AWS_POSTCONDITION(aws_cryptosdk_frame_serialized(frame, alg_props, plaintext_size));
         return AWS_OP_SUCCESS;
     }
 }
