@@ -16,6 +16,12 @@ SHELL=/bin/bash
 default: report
 
 ################################################################
+# Define some constants that are hard to reference otherwise
+SPACE :=$() $()
+COMMA :=,
+
+
+################################################################
 # Helper-inc must go first, so it can override other includes.
 INC += -I$(SRCDIR)/helper-inc
 INC += -I$(SRCDIR)/c-enc-sdk-inc
@@ -47,12 +53,20 @@ CBMCFLAGS += --undefined-shift-check
 CBMCFLAGS += --unsigned-overflow-check
 CBMCFLAGS += --unwind 1
 CBMCFLAGS += --unwinding-assertions
-
+CBMCFLAGS += $(CBMC_UNWINDSET)
 
 UNWIND ?= 0
 SIMPLIFY ?= 0
 
 ABSTRACTIONS ?=
+
+################################################################
+# Preprocess the unwindset
+
+ifneq ($(UNWINDSET),)
+CBMC_UNWINDSET := --unwindset $(subst $(SPACE),$(COMMA),$(strip $(UNWINDSET)))
+endif
+
 
 ################################################################
 # makes a symlink if one doesn't already exist
