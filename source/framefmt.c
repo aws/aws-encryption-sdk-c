@@ -413,6 +413,10 @@ int aws_cryptosdk_deserialize_frame(
         result = AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED;
     }
 
+    if (frame->sequence_number == 0) {
+        result = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
+    }
+
     *plaintext_size  = state.plaintext_size;
     *ciphertext_size = state.ciphertext_size;
 
