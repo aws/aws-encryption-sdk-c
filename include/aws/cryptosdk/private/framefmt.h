@@ -61,9 +61,9 @@ bool aws_cryptosdk_frame_serialized(
     size_t plaintext_size);
 
 /**
- * Checks whether a frame has a valid frame type, and a valid sequence number.
+ * Checks whether a frame has a valid frame type.
  */
-bool aws_cryptosdk_frame_has_valid_type_seq(const struct aws_cryptosdk_frame *frame);
+bool aws_cryptosdk_frame_has_valid_type(const struct aws_cryptosdk_frame *frame);
 
 /**
  * Performs frame-type-specific work prior to writing a frame; writes out all

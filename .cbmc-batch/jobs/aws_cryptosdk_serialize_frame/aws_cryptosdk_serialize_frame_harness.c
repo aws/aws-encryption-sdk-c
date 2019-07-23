@@ -38,7 +38,7 @@ void harness() {
     size_t old_ciphertext_buffer_len = ciphertext_buf.len;
 
     /* Assume the preconditions */
-    __CPROVER_assume(aws_cryptosdk_frame_has_valid_type_seq(&frame));
+    __CPROVER_assume(aws_cryptosdk_frame_has_valid_type(&frame));
 
     int rval = aws_cryptosdk_serialize_frame(&frame, &ciphertext_size, plaintext_size, &ciphertext_buf, &alg_props);
     if (rval == AWS_OP_SUCCESS) {
