@@ -219,7 +219,7 @@ bool aws_cryptosdk_frame_is_valid(const struct aws_cryptosdk_frame *const frame)
         return false;
     }
 
-    bool frame_type_seq_valid = aws_cryptosdk_frame_has_valid_type_seq(frame);
+    bool frame_type_seq_valid = aws_cryptosdk_frame_has_valid_type(frame);
 
     bool iv_byte_buf_valid  = aws_byte_buf_is_valid(&frame->iv);
     bool iv_byte_buf_static = frame->iv.allocator == NULL;
@@ -262,17 +262,15 @@ bool aws_cryptosdk_frame_serialized(
     return iv_size_valid && tag_size_valid && iv_empty && tag_empty;
 }
 
-bool aws_cryptosdk_frame_has_valid_type_seq(const struct aws_cryptosdk_frame *frame) {
+bool aws_cryptosdk_frame_has_valid_type(const struct aws_cryptosdk_frame *frame) {
     if (frame == NULL) {
         return false;
     }
 
-    bool seq_valid = frame->sequence_number > 0 && frame->sequence_number <= MAX_FRAMES;
-
     bool frame_enum_in_range =
         frame->type == FRAME_TYPE_SINGLE || frame->type == FRAME_TYPE_FRAME || frame->type == FRAME_TYPE_FINAL;
 
-    return seq_valid && frame_enum_in_range;
+    return frame_enum_in_range;
 }
 
 /**
@@ -297,7 +295,8 @@ int aws_cryptosdk_serialize_frame(
     size_t plaintext_size,
     struct aws_byte_buf *ciphertext_buf,
     const struct aws_cryptosdk_alg_properties *alg_props) {
-    AWS_PRECONDITION(aws_cryptosdk_frame_has_valid_type_seq(frame));
+    AWS_PRECONDITION(aws_cryptosdk_frame_has_valid_type(frame));
+    AWS_PRECONDITION(aws_byte_buf_is_valid(ciphertext_buf));
     AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(alg_props));
     struct aws_cryptosdk_framestate state;
 
