@@ -33,10 +33,6 @@
 #include <ctype.h>
 #include <stdio.h>
 
-/* This is large enough to hold an encoded public key for all currently supported curves */
-#define MAX_PUBKEY_SIZE 64
-#define MAX_PUBKEY_SIZE_B64 (((MAX_PUBKEY_SIZE + 2) * 4) / 3)
-
 /*
  * This is larger than the sizes defined in cipher.c to account for certain versions of the Encryption SDK
  * for other languages which generated signatures of nondeterministic size.
