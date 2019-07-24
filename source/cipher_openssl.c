@@ -614,8 +614,15 @@ static int load_pubkey(
     }
 
     *key = EC_KEY_new();
+    if (*key == NULL) {
+        result = AWS_ERROR_OOM;
+        goto out;
+    }
     // We must set the group before decoding, to allow openssl to decompress the point
-    EC_KEY_set_group(*key, group);
+    if (!EC_KEY_set_group(*key, group)) {
+        // raise an error?
+        goto out;
+    }
     EC_KEY_set_conv_form(*key, POINT_CONVERSION_COMPRESSED);
 
     const unsigned char *pBuf = b64_decode_buf.buffer;
