@@ -79,10 +79,21 @@ struct aws_cryptosdk_sig_ctx {
     bool is_sign;
 };
 
+bool aws_cryptosdk_sig_ctx_is_valid(const struct aws_cryptosdk_sig_ctx *sig_ctx) {
+    return sig_ctx && sig_ctx->props && sig_ctx->keypair && sig_ctx->pkey && sig_ctx->ctx &&
+           (EVP_PKEY_get0_EC_KEY(sig_ctx->pkey) == sig_ctx->keypair) &&
+           (sig_ctx->is_sign == (EC_KEY_get0_private_key(sig_ctx->keypair) != NULL));
+    ;
+}
+
 struct aws_cryptosdk_md_context {
     struct aws_allocator *alloc;
     EVP_MD_CTX *evp_md_ctx;
 };
+
+bool aws_cryptosdk_md_context_is_valid(const struct aws_cryptosdk_md_context *md_context) {
+    return md_context && md_context->evp_md_ctx;
+}
 
 int aws_cryptosdk_md_init(
     struct aws_allocator *alloc, struct aws_cryptosdk_md_context **md_context, enum aws_cryptosdk_md_alg md_alg) {
