@@ -45,6 +45,10 @@ enum aws_cryptosdk_rsa_padding_mode {
     AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1,
 };
 
+/* This is large enough to hold an encoded public key for all currently supported curves */
+#define MAX_PUBKEY_SIZE 64
+#define MAX_PUBKEY_SIZE_B64 (((MAX_PUBKEY_SIZE + 2) * 4) / 3)
+
 /**
  * This structure contains information about a particular algorithm suite used
  * within the encryption SDK.  In most cases, end-users don't need to
