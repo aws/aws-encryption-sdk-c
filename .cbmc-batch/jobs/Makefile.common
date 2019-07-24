@@ -45,6 +45,7 @@ HARNESS_NAME ?= $(ENTRY)_harness.c
 CBMCFLAGS += --bounds-check
 CBMCFLAGS += --div-by-zero-check
 CBMCFLAGS += --float-overflow-check
+CBMCFLAGS += --memory-leak-check
 CBMCFLAGS += --nan-check
 CBMCFLAGS += --pointer-check
 CBMCFLAGS += --pointer-overflow-check
