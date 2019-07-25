@@ -527,7 +527,10 @@ int aws_cryptosdk_sig_sign_start(
         goto out;
     }
 
-    EC_KEY_set_group(keypair, group);
+    if (!EC_KEY_set_group(keypair, group)) {
+        // raise an error?
+        goto out;
+    }
     EC_GROUP_free(group);
     EC_KEY_set_conv_form(keypair, POINT_CONVERSION_COMPRESSED);
 
@@ -543,7 +546,7 @@ int aws_cryptosdk_sig_sign_start(
     field = aws_byte_cursor_advance(&cursor, privkey_len);
     bufp  = field.ptr;
 
-    if (!d2i_ASN1_INTEGER(&priv_key_asn1, &bufp, field.len) || bufp != field.ptr + field.len) {
+    if (!field.ptr || !d2i_ASN1_INTEGER(&priv_key_asn1, &bufp, field.len) || bufp != field.ptr + field.len) {
         ASN1_STRING_clear_free(priv_key_asn1);
         aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
         goto out;
