@@ -528,7 +528,7 @@ int aws_cryptosdk_sig_sign_start(
     }
 
     if (!EC_KEY_set_group(keypair, group)) {
-        // raise an error?
+        aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
         goto out;
     }
     EC_GROUP_free(group);
@@ -623,7 +623,7 @@ static int load_pubkey(
     }
     // We must set the group before decoding, to allow openssl to decompress the point
     if (!EC_KEY_set_group(*key, group)) {
-        // raise an error?
+        result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
         goto out;
     }
     EC_KEY_set_conv_form(*key, POINT_CONVERSION_COMPRESSED);
