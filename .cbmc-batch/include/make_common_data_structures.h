@@ -21,4 +21,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-void ensure_alg_properties_has_allocated_names(struct aws_cryptosdk_alg_properties *const alg_props);
+/* This function creates a valid alg properties data structure by
+ * calling the initializer in cipher.h */
+void ensure_alg_properties_is_allocated(struct aws_cryptosdk_alg_properties **alg_props);

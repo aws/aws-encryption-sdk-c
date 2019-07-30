@@ -24,27 +24,27 @@ void harness() {
     size_t ciphertext_size;
     size_t plaintext_size;
     struct aws_byte_buf ciphertext_buf;
-    struct aws_cryptosdk_alg_properties alg_props;  // Preconditions assume not null
+    struct aws_cryptosdk_alg_properties *alg_props;
 
-    /* Assumptions about the function input */
+    /* Assumptions about the function input (based on the
+     * preconditions) */
     ensure_byte_buf_has_allocated_buffer_member(&ciphertext_buf);
     __CPROVER_assume(aws_byte_buf_is_valid(&ciphertext_buf));
 
-    ensure_alg_properties_has_allocated_names(&alg_props);
-    __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(&alg_props));
+    ensure_alg_properties_is_allocated(&alg_props);
+    __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(alg_props));
+
+    __CPROVER_assume(aws_cryptosdk_frame_has_valid_type(&frame));
 
     /* Save the old state of the ciphertext buffer */
     uint8_t *old_ciphertext_buffer   = ciphertext_buf.buffer;
     size_t old_ciphertext_buffer_len = ciphertext_buf.len;
 
-    /* Assume the preconditions */
-    __CPROVER_assume(aws_cryptosdk_frame_has_valid_type(&frame));
-
-    int rval = aws_cryptosdk_serialize_frame(&frame, &ciphertext_size, plaintext_size, &ciphertext_buf, &alg_props);
+    int rval = aws_cryptosdk_serialize_frame(&frame, &ciphertext_size, plaintext_size, &ciphertext_buf, alg_props);
     if (rval == AWS_OP_SUCCESS) {
         assert(aws_cryptosdk_frame_is_valid(&frame));
-        assert(aws_cryptosdk_alg_properties_is_valid(&alg_props));
-        assert(aws_cryptosdk_frame_serialized(&frame, &alg_props, plaintext_size));
+        assert(aws_cryptosdk_alg_properties_is_valid(alg_props));
+        assert(aws_cryptosdk_frame_serialized(&frame, alg_props, plaintext_size));
         assert(ciphertext_buf.buffer == old_ciphertext_buffer);
         assert(ciphertext_buf.len == old_ciphertext_buffer_len + ciphertext_size);
     } else {

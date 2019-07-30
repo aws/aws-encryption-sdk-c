@@ -15,11 +15,6 @@
 
 #include <make_common_data_structures.h>
 
-void ensure_alg_properties_has_allocated_names(struct aws_cryptosdk_alg_properties *const alg_props) {
-    size_t md_name_size;
-    alg_props->md_name = can_fail_malloc(md_name_size);
-    size_t cipher_name_size;
-    alg_props->cipher_name = can_fail_malloc(cipher_name_size);
-    size_t alg_name_size;
-    alg_props->alg_name = can_fail_malloc(alg_name_size);
+void ensure_alg_properties_is_allocated(struct aws_cryptosdk_alg_properties **alg_props) {
+    *alg_props = aws_cryptosdk_alg_props(nondet_int());
 }
