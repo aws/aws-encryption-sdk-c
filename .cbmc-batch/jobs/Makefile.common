@@ -48,12 +48,21 @@ CBMCFLAGS += --undefined-shift-check
 CBMCFLAGS += --unsigned-overflow-check
 CBMCFLAGS += --unwind 1
 CBMCFLAGS += --unwinding-assertions
+CBMCFLAGS += $(CBMC_UNWINDSET)
 
 
 UNWIND ?= 0
 SIMPLIFY ?= 0
 
 ABSTRACTIONS ?=
+
+
+################################################################
+# Preprocess the unwindset
+
+ifneq ($(UNWINDSET),)
+CBMC_UNWINDSET := --unwindset $(subst $(SPACE),$(COMMA),$(strip $(UNWINDSET)))
+endif
 
 ################################################################
 # makes a symlink if one doesn't already exist
