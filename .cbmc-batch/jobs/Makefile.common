@@ -15,28 +15,31 @@ SHELL=/bin/bash
 
 default: report
 
-################################################################
-# Helper-inc must go first, so it can override other includes.
-INC += -I$(SRCDIR)/helper-inc
-INC += -I$(SRCDIR)/c-enc-sdk-inc
-INC += -I$(SRCDIR)/c-common-inc
-INC += -I$(SRCDIR)/c-common-helper-inc
-INC += -I/usr/local/opt/openssl@1.1/include/
-
-CBMC_OBJECT_BITS ?= 8
-CBMCFLAGS +=  --object-bits $(CBMC_OBJECT_BITS)
-DEFINES += -DCBMC_OBJECT_BITS=$(CBMC_OBJECT_BITS)
-DEFINES += -DCBMC=1
-
-OPT +=
-
-CFLAGS += $(CFLAGS2) $(DEFINES) $(OPT)
-
-LINKFARM = $(abspath ./link-farm)
-
-HARNESS_NAME ?= $(ENTRY)_harness.c
+# if Makefile.local exists, use it. This provides a way to override the defaults
+sinclude Makefile.local
 
 ################################################################
+# Define some constants that are hard to reference otherwise
+SPACE :=$() $()
+COMMA :=,
+
+################################################################
+# Setup paths to binaries
+# By default, use the version on your path; this can be overriden to select particular
+# versions of the tools. /usr/bin/goto-analyzer or ${HOME}/sw/goto-analyzer etc
+GOTO_ANALYZER ?= goto-analyzer
+GOTO_CC ?= goto-cc
+GOTO_INSTRUMENT ?= goto-instrument
+VIEWER ?= cbmc-viewer
+
+################################################################
+# Define locations and binaries
+ABSTRACTIONS ?= ""
+HARNESS_NAME ?= $(ENTRY).c
+
+################################################################
+# Default CBMC flags
+CBMC_VERBOSITY ?= ""
 CBMCFLAGS += --bounds-check
 CBMCFLAGS += --div-by-zero-check
 CBMCFLAGS += --float-overflow-check
@@ -49,12 +52,75 @@ CBMCFLAGS += --unsigned-overflow-check
 CBMCFLAGS += --unwind 1
 CBMCFLAGS += --unwinding-assertions
 
+################################################################
+# Preprocess the unwindset
+ifneq ($(UNWINDSET),)
+CBMC_UNWINDSET := --unwindset $(subst $(SPACE),$(COMMA),$(strip $(UNWINDSET)))
+endif
+CBMCFLAGS += $(CBMC_UNWINDSET)
 
-UNWIND ?= 0
+################################################################
+# Set C compiler defines
+CBMC_OBJECT_BITS ?= 8
+CBMCFLAGS +=  --object-bits $(CBMC_OBJECT_BITS)
+DEFINES += -DCBMC_OBJECT_BITS=$(CBMC_OBJECT_BITS)
+DEFINES += -DCBMC=1
+
+################################################################
+# Setup directory aliases
+BASEDIR ?= $(abspath ../../../..)
+SRCDIR ?= $(abspath ./link-farm)
+SDKDIR ?= $(abspath ../../..)
+HELPERDIR ?= $(SDKDIR)/.cbmc-batch
+LINKFARM = $(abspath ./link-farm)
+COMMON_REPO_NAME ?= aws-c-common-for-cryptosdk-proofs
+COMMONDIR ?= $(BASEDIR)/$(COMMON_REPO_NAME)
+COMMON_HELPERDIR ?= $(COMMONDIR)/.cbmc-batch
+
+################################################################
+# Setup include directory order
+# Helper-inc must go first, so it can override other includes.
+INC += -I$(SRCDIR)/helper-inc
+INC += -I$(SRCDIR)/c-enc-sdk-inc
+INC += -I$(SRCDIR)/c-common-inc
+INC += -I$(SRCDIR)/c-common-helper-inc
+INC += -I/usr/local/opt/openssl@1.1/include/
+
+################################################################
+# Temporarily disable UNWIND_GOTO, SIMPLIFY until the feature is
+# stable
+UNWIND_GOTO ?= 0
 SIMPLIFY ?= 0
 
-ABSTRACTIONS ?=
+################################################################
+# Enables costly checks (e.g. ones that contain loops)
+# Don't execute deep checks by default
+AWS_DEEP_CHECKS ?= 0
+DEFINES += -DAWS_DEEP_CHECKS=$(AWS_DEEP_CHECKS)
 
+################################################################
+# We always override allocator functions with our own allocator
+# Removing the function from the goto program helps CBMC's
+# function pointer analysis.
+REMOVE_FUNCTION_BODY += --remove-function-body aws_default_allocator
+REMOVE_FUNCTION_BODY += --remove-function-body s_cf_allocator_allocate
+REMOVE_FUNCTION_BODY += --remove-function-body s_cf_allocator_copy_description
+REMOVE_FUNCTION_BODY += --remove-function-body s_cf_allocator_deallocate
+REMOVE_FUNCTION_BODY += --remove-function-body s_cf_allocator_preferred_size
+REMOVE_FUNCTION_BODY += --remove-function-body s_cf_allocator_reallocate
+REMOVE_FUNCTION_BODY += --remove-function-body s_default_calloc
+REMOVE_FUNCTION_BODY += --remove-function-body s_default_free
+REMOVE_FUNCTION_BODY += --remove-function-body s_default_malloc
+REMOVE_FUNCTION_BODY += --remove-function-body s_default_realloc
+
+################################################################
+# We override abort() to be assert(0), as it is not caught by
+# CBMC as a violation. This is in the link-farm c-common
+ABSTRACTIONS += $(LINKFARM)/c-common-helper-stubs/abort_override_assert_false.c
+REMOVE_FUNCTION_BODY += --remove-function-body abort
+################################################################
+
+REMOVE_FUNCTION_BODY += $(ADDITIONAL_REMOVE_FUNCTION_BODY)
 DEPENDENT_GOTOS = $(patsubst %.c,%.goto,$(DEPENDENCIES))
 
 ################################################################
@@ -104,53 +170,98 @@ helper-symlinks: linkfarm-dir
 
 fill-linkfarm: harness-symlink enc-sdk-symlinks common-symlinks common-helper-symlinks helper-symlinks
 
-$(ENTRY)1.goto: fill-linkfarm $(DEPENDENT_GOTOS)
-	$(GOTO_CC) --function harness -o $@ $(DEPENDENT_GOTOS)
+################################################################
+# Other libraries that use this Makefile template may wish to do
+# actual work here
+setup_dependencies: fill-linkfarm
+	echo "Setting up dependencies"
 
-$(ENTRY)3.goto: $(ENTRY)1.goto
-	 $(GOTO_INSTRUMENT) $(ABSTRACTIONS) --add-library $< $@ \
-		2>&1 | tee $(ENTRY)3.log ; exit $${PIPESTATUS[0]}
+# Here, whenever there is a change in any of ANSI-C source
+# dependency files, make will take action. However, to make
+# sure changes in the headers files will also trigger make,
+# the user must run make clean first.
+$(ENTRY)0.goto: setup_dependencies $(ENTRY).c $(DEPENDENT_GOTOS)
+	$(GOTO_CC) $(ENTRY).c $(DEPENDENT_GOTOS) \
+	  --export-function-local-symbols $(CBMC_VERBOSITY) \
+	  --function $(ENTRY) $(DEPENDENT_GOTOS) $(INC) $(DEFINES) -o $@ \
+	  2>&1 | tee $(ENTRY)1.log ; exit $${PIPESTATUS[0]}
+
+# Removes specified function bodies. This allows us to replace
+# function definitions with ABSTRACTIONS.
+$(ENTRY)1.goto: $(ENTRY)0.goto
+ifeq ($(REMOVE_FUNCTION_BODY), "")
+	cp $< $@
+	echo "Not removing function bodies" | tee $(ENTRY)1.log ; exit $${PIPESTATUS[0]}
+else
+	$(GOTO_INSTRUMENT) $(REMOVE_FUNCTION_BODY) $< $@ \
+		2>&1 | tee $(ENTRY)2.log ; exit $${PIPESTATUS[0]}
+endif
+
+# ABSTRACTIONS is a list of function stubs to use. If a function body
+# is missing and is not abstracted, then it returnes a non
+# deterministic value.
+$(ENTRY)2.goto: $(ENTRY)1.goto
+ifeq ($(ABSTRACTIONS), "")
+	cp $< $@
+	echo "Not implementing abstractions" | tee $(ENTRY)2.log ; exit $${PIPESTATUS[0]}
+else
+	$(GOTO_CC) --function $(ENTRY) $(ABSTRACTIONS) $< $(INC) $(DEFINES) -o $@ \
+		2>&1 | tee $(ENTRY)2.log ; exit $${PIPESTATUS[0]}
+endif
+
+
+## Temporarily skipped steps
 
 # Simplify and constant propagation may benefit from unwinding first
-$(ENTRY)4.goto: $(ENTRY)3.goto
+$(ENTRY)3.goto: $(ENTRY)2.goto
 ifeq ($(UNWIND_GOTO), 1)
 	$(GOTO_INSTRUMENT) $(UNWINDING) $< $@ \
+		2>&1 | tee $(ENTRY)3.log ; exit $${PIPESTATUS[0]}
+else
+	cp $< $@
+	echo "Not unwinding goto program" | tee $(ENTRY)3.log ; exit $${PIPESTATUS[0]}
+endif
+
+# Skip simplify (and hence generate-function-body) until missing source locations debugged
+$(ENTRY)4.goto: $(ENTRY)3.goto
+ifeq ($(SIMPLIFY), 1)
+	$(GOTO_INSTRUMENT) --generate-function-body '.*' $< $@ \
 		2>&1 | tee $(ENTRY)4.log ; exit $${PIPESTATUS[0]}
 else
 	cp $< $@
+	echo "Not generating-function-bodies in goto program" | tee $(ENTRY)4.log ; exit $${PIPESTATUS[0]}
 endif
 
 # Skip simplify (and hence generate-function-body) until missing source locations debugged
 $(ENTRY)5.goto: $(ENTRY)4.goto
 ifeq ($(SIMPLIFY), 1)
-	$(GOTO_INSTRUMENT) --generate-function-body '.*' $< $@ \
+	$(GOTO_ANALYZER) --simplify $@ $< \
 		2>&1 | tee $(ENTRY)5.log ; exit $${PIPESTATUS[0]}
 else
 	cp $< $@
+	echo "Not simplfying goto program" | tee $(ENTRY)5.log ; exit $${PIPESTATUS[0]}
 endif
 
-# Skip simplify (and hence generate-function-body) until missing source locations debugged
+# Simplify the goto program by removing any unused function bodies
 $(ENTRY)6.goto: $(ENTRY)5.goto
-ifeq ($(SIMPLIFY), 1)
-	$(GOTO_ANALYZER) --simplify $@ $< \
-		2>&1 | tee $(ENTRY)6.log ; exit $${PIPESTATUS[0]}
-else
-	cp $< $@
-endif
-
-$(ENTRY)7.goto: $(ENTRY)6.goto
 	$(GOTO_INSTRUMENT) --drop-unused-functions $< $@ \
+		2>&1 | tee $(ENTRY)6.log ; exit $${PIPESTATUS[0]}
+
+# Simplify the goto program by slicing away initializations of unused
+# global variables
+$(ENTRY)7.goto: $(ENTRY)6.goto
+	$(GOTO_INSTRUMENT) --slice-global-inits $< $@ \
 		2>&1 | tee $(ENTRY)7.log ; exit $${PIPESTATUS[0]}
 
-$(ENTRY)8.goto: $(ENTRY)7.goto
-	$(GOTO_INSTRUMENT) --slice-global-inits $< $@ \
-		2>&1 | tee $(ENTRY)8.log ; exit $${PIPESTATUS[0]}
-
-$(ENTRY).goto: $(ENTRY)8.goto
+$(ENTRY).goto: $(ENTRY)7.goto
 	cp $< $@
 
-%.goto : %.c fill-linkfarm
-	$(GOTO_CC) -o $@ $(INC) $(CFLAGS) $<
+# Catch-all used for building goto-binaries of the individual
+# dependencies, which are then linked in the $(ENTRY)0.goto rule above
+%.goto: %.c
+	$(GOTO_CC) -c $< --export-function-local-symbols $(CBMC_VERBOSITY) \
+	  $(INC) $(DEFINES) -o $@ \
+	  2>&1 | tee $(dir $<)/$(notdir $<).log ; exit $${PIPESTATUS[0]}
 
 goto: $(ENTRY).goto
 
@@ -171,18 +282,18 @@ coverage: coverage.xml
 
 report: cbmc.log property.xml coverage.xml
 	$(VIEWER) \
+	--block coverage.xml \
 	--goto $(ENTRY).goto \
-	--srcdir $(SRCDIR) \
 	--htmldir html \
-	--srcexclude "(./verification|./tests|./tools|./lib/third_party)" \
-	--result cbmc.log \
 	--property property.xml \
-	--block coverage.xml
+	--result cbmc.log \
+	--srcdir $(SRCDIR) \
+	--srcexclude "(./verification|./tests|./tools|./lib/third_party)"
 
 clean:
-	$(RM) $(GOTOS)
-	$(RM) $(DEPENDENT_GOTOS) $(ENTRY).goto
-	$(RM) $(ENTRY)[0-9].goto $(ENTRY)[0-9].log
+	$(RM) *.goto
+	$(RM) $(DEPENDENT_GOTOS)
+	$(RM) *.log
 	$(RM) cbmc.log property.xml coverage.xml TAGS
 	$(RM) *~ \#*
 
@@ -193,83 +304,8 @@ veryclean: clean
 gitclean: veryclean
 	$(RM) -r $(COMMONDIR)
 
-
 .PHONY: cbmc property coverage report clean veryclean common-symlinks common-git harness-symlink fill-linkfarm helper-symlinks ci-yaml
 
-################################################################
-# Launching cbmc on cbmc-batch
+.PHONY: setup_dependencies cbmc property coverage report clean veryclean
 
-BATCH ?= cbmc-batch
-WS ?= ws
-
-define encode_options
-       '=$(shell echo $(1) | sed 's/ ,/ /g' | sed 's/ /;/g')='
-endef
-
-PROPMEM ?= 64000
-COVMEM ?= 64000
-CBMCPKG ?= cbmc-20180820
-BATCHPKG ?= cbmc-batch-20180913
-VIEWERPKG ?= cbmc-viewer-20180913
-
-BATCHFLAGS ?= \
-	--srcdir $(LINKFARM) \
-	--wsdir $(WS) \
-	--jobprefix $(ENTRY) \
-	--no-build \
-	--goto $(ENTRY).goto \
-	--cbmcflags $(call encode_options,$(CBMCFLAGS)) \
-	--property-memory $(PROPMEM) \
-	--coverage-memory $(COVMEM) \
-	--cbmcpkg $(CBMCPKG) \
-	--batchpkg $(BATCHPKG) \
-	--viewerpkg $(VIEWERPKG) \
-	--no-copysrc \
-	--srctarfile $(SRC_TARFILE) \
-	--blddir $(LINKFARM) \
-
-define yaml_encode_options
-       "$(shell echo $(1) | sed 's/ ,/ /g' | sed 's/ /;/g')"
-endef
-
-$(ENTRY).yaml: $(ENTRY).goto Makefile
-	echo 'jobos: ubuntu14' > $@
-	echo 'cbmcpkg: $(CBMCPKG)' >> $@
-	echo 'batchpkg: $(BATCHPKG)' >> $@
-	echo 'viewerpkg: $(VIEWERPKG)' >> $@
-	echo 'goto: $(ENTRY).goto' >> $@
-	echo 'build: true' >> $@
-	echo 'cbmcflags: $(call yaml_encode_options,$(CBMCFLAGS))' >> $@
-	echo 'property_memory: $(PROPMEM)' >> $@
-	echo 'coverage_memory: $(COVMEM)' >> $@
-	echo 'expected: "SUCCESSFUL"' >> $@
-
-batch-yaml: $(ENTRY).yaml
-
-cbmc-batch.yaml: $(ENTRY).goto Makefile
-	echo 'jobos: ubuntu16' > $@
-	echo 'cbmcflags: $(strip $(call yaml_encode_options,$(CBMCFLAGS)))' >> $@
-	echo 'goto: $(ENTRY).goto' >> $@
-	echo 'expected: "SUCCESSFUL"' >> $@
-
-ci-yaml: cbmc-batch.yaml
-
-launch: $(ENTRY).goto Makefile
-	mkdir -p $(WS)
-	cp $(ENTRY).goto $(WS)
-	$(BATCH) $(BATCHFLAGS)
-
-launch-clean:
-	for d in $(ENTRY)*; do \
-	  if [ -d $$d ]; then \
-	    for f in $$d.json $$d.yaml Makefile-$$d; do \
-	      if [ -f $$f ]; then mv $$f $$d; fi \
-	    done\
-	  fi \
-	done
-	$(RM) Makefile-$(ENTRY)-[0-9]*-[0-9]*
-	$(RM) $(ENTRY)-[0-9]*-[0-9]*.json $(ENTRY)-[0-9]*-[0-9]*.yaml
-	$(RM) -r $(WS)
-
-launch-veryclean: launch-clean
-	$(RM) -r $(ENTRY)-[0-9]*-[0-9]*
+include $(HELPERDIR)/jobs/Makefile.cbmc_batch

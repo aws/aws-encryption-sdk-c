@@ -19,12 +19,11 @@ sinclude ../Makefile.local
 include ../Makefile.local_default
 
 #########
-ENTRY = MultiKeyringNew
+ENTRY = MultiKeyringNew_harness
 
-DEPENDENCIES += $(SRCDIR)/$(ENTRY)_harness.goto
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/multi_keyring.goto
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/proof_allocators.goto
+DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/multi_keyring.c
+DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
+DEPENDENCIES += $(SRCDIR)/helper-src/proof_allocators.c
 
 ###########
 
