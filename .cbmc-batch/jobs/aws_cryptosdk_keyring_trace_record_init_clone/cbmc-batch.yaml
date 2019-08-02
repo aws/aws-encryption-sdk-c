@@ -1,0 +1,4 @@
+jobos: ubuntu16
+cbmcflags: "--object-bits;8;--bounds-check;--div-by-zero-check;--float-overflow-check;--nan-check;--pointer-check;--pointer-overflow-check;--signed-overflow-check;--undefined-shift-check;--unsigned-overflow-check;--unwind;1;--unwinding-assertions;--unwindset;memcmp.0:17"
+goto: aws_cryptosdk_keyring_trace_record_init_clone.goto
+expected: "SUCCESSFUL"
