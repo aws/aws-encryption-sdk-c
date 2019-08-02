@@ -18,7 +18,7 @@
 #include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
 
-void harness() {
+void aws_cryptosdk_serialize_frame_harness() {
     /* data structure */
     struct aws_cryptosdk_frame frame;  // Preconditions assume not null
     size_t ciphertext_size;

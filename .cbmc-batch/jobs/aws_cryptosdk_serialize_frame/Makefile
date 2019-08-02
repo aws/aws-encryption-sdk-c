@@ -12,29 +12,27 @@
 # limitations under the License.
 
 ###########
-# if Makefile.local exists, use it. This provides a way to override the defaults 
+# if Makefile.local exists, use it. This provides a way to override the defaults
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
 ## At the moment this is not used in the Makefile.common of encryption-sdk
-UNWINDSET += 
+UNWINDSET +=
 
 CBMCFLAGS +=
 
-ENTRY = aws_cryptosdk_serialize_frame
+ENTRY = aws_cryptosdk_serialize_frame_harness
 
-OBJS += $(SRCDIR)/$(ENTRY)_harness.goto
-
-OBJS +=	$(SRCDIR)/c-common-helper-src/make_common_data_structures.goto
-OBJS +=	$(SRCDIR)/c-common-helper-src/proof_allocators.goto
-OBJS +=	$(SRCDIR)/c-common-helper-src/utils.goto
-OBJS +=	$(SRCDIR)/c-common-src/byte_buf.goto
-OBJS +=	$(SRCDIR)/c-common-src/common.goto
-OBJS +=	$(SRCDIR)/c-common-src/error.goto
-OBJS +=	$(SRCDIR)/c-enc-sdk-src/cipher.goto
-OBJS +=	$(SRCDIR)/c-enc-sdk-src/framefmt.goto
-OBJS += $(SRCDIR)/helper-src/make_common_data_structures.goto
+DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/make_common_data_structures.c
+DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/proof_allocators.c
+DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/utils.c
+DEPENDENCIES +=	$(SRCDIR)/c-common-src/byte_buf.c
+DEPENDENCIES +=	$(SRCDIR)/c-common-src/common.c
+DEPENDENCIES +=	$(SRCDIR)/c-common-src/error.c
+DEPENDENCIES +=	$(SRCDIR)/c-enc-sdk-src/cipher.c
+DEPENDENCIES +=	$(SRCDIR)/c-enc-sdk-src/framefmt.c
+DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
 
 ###########
 
