@@ -127,6 +127,8 @@ REMOVE_FUNCTION_BODY += --remove-function-body abort
 REMOVE_FUNCTION_BODY += $(ADDITIONAL_REMOVE_FUNCTION_BODY)
 DEPENDENT_GOTOS = $(patsubst %.c,%.goto,$(DEPENDENCIES))
 
+DEPENDENT_GOTOS = $(patsubst %.c,%.goto,$(DEPENDENCIES))
+
 ################################################################
 # makes a symlink if one doesn't already exist
 # make_symlink where src dest

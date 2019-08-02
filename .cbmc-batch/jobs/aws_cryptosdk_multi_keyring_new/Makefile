@@ -13,7 +13,7 @@
 
 
 #########
-# if Makefile.local exists, use it. This provides a way to override the defaults 
+# if Makefile.local exists, use it. This provides a way to override the defaults
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
