@@ -16,10 +16,14 @@
 #include <aws/cryptosdk/private/utils.h>
 
 void aws_cryptosdk_keyring_trace_record_clean_up(struct aws_cryptosdk_keyring_trace_record *record) {
+    AWS_FATAL_PRECONDITION(record != NULL);
     aws_string_destroy(record->wrapping_key_namespace);
     aws_string_destroy(record->wrapping_key_name);
     record->flags                  = 0;
     record->wrapping_key_namespace = record->wrapping_key_name = NULL;
+    AWS_POSTCONDITION(record->flags == 0);
+    AWS_POSTCONDITION(record->wrapping_key_name == NULL);
+    AWS_POSTCONDITION(record->wrapping_key_namespace == NULL);
 }
 
 static inline int record_init_check(struct aws_cryptosdk_keyring_trace_record *record) {
@@ -83,7 +87,6 @@ int aws_cryptosdk_keyring_trace_add_record(
     struct aws_cryptosdk_keyring_trace_record record;
     int ret = record_init_from_strings(alloc, &record, wk_namespace, wk_name, flags);
     if (ret) return ret;
-
     return push_record_onto_trace(trace, &record);
 }
 
@@ -115,21 +118,41 @@ int aws_cryptosdk_keyring_trace_add_record_buf(
 
 int aws_cryptosdk_keyring_trace_init(struct aws_allocator *alloc, struct aws_array_list *trace) {
     // arbitrary starting point, list will resize as necessary
+    AWS_FATAL_PRECONDITION(trace != NULL);
+    AWS_FATAL_PRECONDITION(alloc != NULL);
     const int initial_size = 10;
-    return aws_array_list_init_dynamic(trace, alloc, initial_size, sizeof(struct aws_cryptosdk_keyring_trace_record));
+    int r_val = aws_array_list_init_dynamic(trace, alloc, initial_size, sizeof(struct aws_cryptosdk_keyring_trace_record));
+    AWS_POSTCONDITION(r_val == AWS_OP_SUCCESS ==> aws_array_list_is_valid(trace));
+    AWS_POSTCONDITION(r_val == AWS_OP_SUCCESS ==> trace->alloc == alloc);
+    AWS_POSTCONDITION(r_val == AWS_OP_SUCCESS ==> trace->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
+    AWS_POSTCONDITION(r_val == AWS_OP_SUCCESS ==> trace->length == 0);
+    return r_val;
 }
 
 int aws_cryptosdk_keyring_trace_record_init_clone(
     struct aws_allocator *alloc,
     struct aws_cryptosdk_keyring_trace_record *dest,
     const struct aws_cryptosdk_keyring_trace_record *src) {
+    AWS_FATAL_PRECONDITION(alloc != NULL);
+    AWS_FATAL_PRECONDITION(dest != NULL);
+    AWS_FATAL_PRECONDITION(src != NULL);
+    
+    AWS_FATAL_PRECONDITION(aws_string_is_valid(src->wrapping_key_namespace));
+    AWS_FATAL_PRECONDITION(aws_string_is_valid(src->wrapping_key_name));
+
     dest->wrapping_key_namespace = aws_cryptosdk_string_dup(alloc, src->wrapping_key_namespace);
     dest->wrapping_key_name      = aws_cryptosdk_string_dup(alloc, src->wrapping_key_name);
     if (record_init_check(dest)) {
         aws_cryptosdk_keyring_trace_record_clean_up(dest);
+        AWS_POSTCONDITION(dest->flags == 0);
+        AWS_POSTCONDITION(dest->wrapping_key_name == NULL);
+        AWS_POSTCONDITION(dest->wrapping_key_namespace == NULL);
         return AWS_OP_ERR;
     }
     dest->flags = src->flags;
+    AWS_POSTCONDITION(aws_string_eq(src->wrapping_key_namespace, dest->wrapping_key_namespace));
+    AWS_POSTCONDITION(aws_string_eq(src->wrapping_key_name, dest->wrapping_key_name));
+    AWS_POSTCONDITION(src->flags == dest->flags);
     return AWS_OP_SUCCESS;
 }
 
