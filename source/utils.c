@@ -10,6 +10,7 @@
  * limitations under the License.
  */
 #include <assert.h>
+#include <aws/common/string.h>
 #include <aws/cryptosdk/private/utils.h>
 
 int aws_cryptosdk_compare_hash_elems_by_key_string(const void *elem_a, const void *elem_b) {
@@ -38,6 +39,9 @@ int aws_cryptosdk_hash_elems_array_init(
 }
 
 struct aws_string *aws_cryptosdk_string_dup(struct aws_allocator *alloc, const struct aws_string *str) {
-    if (str->allocator) return aws_string_new_from_string(alloc, str);
+    AWS_FATAL_PRECONDITION(alloc != NULL);
+    if (str->allocator) {
+        return aws_string_new_from_string(alloc, str);
+    }
     return (struct aws_string *)str;
 }
