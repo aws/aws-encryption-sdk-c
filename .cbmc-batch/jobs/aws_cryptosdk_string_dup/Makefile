@@ -12,14 +12,7 @@
 # limitations under the License.
 
 ###########
-# if Makefile.local exists, use it. This provides a way to override the defaults 
-#sinclude ../Makefile.local
-#otherwise, use the default values
-#include ../Makefile.local_default
 include ../Makefile.string
-
-MAX_STRING_LEN ?= 16
-DEFINES += -DMAX_STRING_LEN=$(MAX_STRING_LEN) 
 
 CBMC_UNWINDSET += --unwindset memcmp.0:17
 
