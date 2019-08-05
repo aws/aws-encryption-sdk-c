@@ -15,6 +15,13 @@
 
 #include <aws/cryptosdk/cipher.h>
 
+/* The invariants defined in this file are for use within the CBMC proof harnesses. They cannot be called directly in
+ * ESDK code because they depend on internal properties of the OpenSSL data structures which are not part of the public
+ * API. However, we can check them in the proof harnesses because these properties are modeled in our abstract model of
+ * OpenSSL. */
+
+/* Checks that the message-digest context is valid based on the state of its members. */
 bool aws_cryptosdk_md_context_is_valid_cbmc(struct aws_cryptosdk_md_context *md_context);
 
+/* Checks that the signing context is valid based on the state of its members. */
 bool aws_cryptosdk_sig_ctx_is_valid_cbmc(struct aws_cryptosdk_sig_ctx *sig_ctx);
