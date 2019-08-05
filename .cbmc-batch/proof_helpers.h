@@ -1,4 +1,4 @@
-#include<stdlib.h>
+#include <stdlib.h>
 
 #define ASSUME_VALID_MEMORY(ptr) ptr = malloc(sizeof(*(ptr)))
 #define ASSUME_VALID_MEMORY_COUNT(ptr, count) ptr = malloc(sizeof(*(ptr)) * (count))
