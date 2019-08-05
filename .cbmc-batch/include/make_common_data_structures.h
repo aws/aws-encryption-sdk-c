@@ -20,6 +20,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+/* Allocates the members of the context and ensures that internal pointers are pointing to the correct objects. */
 void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ctx);
 
+/* Allocates the members of the context and ensures that internal pointers are pointing to the correct objects. */
 void ensure_sig_ctx_has_allocated_members(struct aws_cryptosdk_sig_ctx *ctx);

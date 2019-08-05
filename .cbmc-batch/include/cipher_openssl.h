@@ -18,6 +18,9 @@
 
 #include <aws/cryptosdk/private/cipher.h>
 
+/* The definitions in this file are directly copied from cipher_openssl.c, in order to make the internals of the data
+ * structures accessible from the CBMC proof harness. */
+
 struct aws_cryptosdk_sig_ctx {
     struct aws_allocator *alloc;
     const struct aws_cryptosdk_alg_properties *props;
