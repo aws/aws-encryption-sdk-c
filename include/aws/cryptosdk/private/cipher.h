@@ -49,6 +49,9 @@ struct aws_cryptosdk_md_context;
 
 enum aws_cryptosdk_md_alg { AWS_CRYPTOSDK_MD_SHA512 };
 
+/**
+ * Performs basic validity checks for the message-digest context (e.g. that member pointers are not NULL).
+ */
 bool aws_cryptosdk_md_context_is_valid(const struct aws_cryptosdk_md_context *md_context);
 
 int aws_cryptosdk_md_init(
