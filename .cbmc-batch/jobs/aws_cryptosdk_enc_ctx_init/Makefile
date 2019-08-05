@@ -1,4 +1,4 @@
-# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You may not use
 # this file except in compliance with the License. A copy of the License is
@@ -19,12 +19,12 @@ sinclude ../Makefile.local
 include ../Makefile.local_default
 
 ######### 
-ENTRY = aws_cryptosdk_enc_ctx_init
-OBJS += $(SRCDIR)/$(ENTRY)_harness.goto
-OBJS += $(SRCDIR)/c-enc-sdk-src/enc_ctx.goto
-OBJS += $(SRCDIR)/c-common-src/hash_table.goto
-OBJS += $(SRCDIR)/c-common-src/common.goto
-OBJS += $(SRCDIR)/helper-src/proof_allocators.goto
+ENTRY = aws_cryptosdk_enc_ctx_init_harness
+
+DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/enc_ctx.c
+DEPENDENCIES += $(SRCDIR)/c-common-src/hash_table.c
+DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
+DEPENDENCIES += $(SRCDIR)/helper-src/proof_allocators.c
 
 ###########
 
