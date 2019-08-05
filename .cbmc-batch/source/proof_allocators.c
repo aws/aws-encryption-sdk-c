@@ -16,14 +16,16 @@
 #include "proof_allocators.h"
 #include <stdlib.h>
 
-//Use the same functions as the standard default allocator, but nondeterministically have malloc
-//return null.  This is needed because the CBMC model of malloc cannot fail, so we cannot
-//test the null case otherwise.
+// Use the same functions as the standard default allocator, but nondeterministically have malloc
+// return null.  This is needed because the CBMC model of malloc cannot fail, so we cannot
+// test the null case otherwise.
 static void *can_fail_malloc(struct aws_allocator *allocator, size_t size) {
     (void)allocator;
     int nondet;
-    if (nondet) return NULL;
-    else return malloc(size);
+    if (nondet)
+        return NULL;
+    else
+        return malloc(size);
 }
 
 static void can_fail_free(struct aws_allocator *allocator, void *ptr) {
@@ -35,8 +37,10 @@ static void *can_fail_realloc(struct aws_allocator *allocator, void *ptr, size_t
     (void)allocator;
     (void)oldsize;
     int nondet;
-    if (nondet) return NULL;
-    else return realloc(ptr, newsize);
+    if (nondet)
+        return NULL;
+    else
+        return realloc(ptr, newsize);
 }
 
 static struct aws_allocator can_fail_allocator_static = {
@@ -45,7 +49,6 @@ static struct aws_allocator can_fail_allocator_static = {
     .mem_realloc = can_fail_realloc,
 };
 
-struct aws_allocator* can_fail_allocator()
-{
-  return &can_fail_allocator_static;
+struct aws_allocator *can_fail_allocator() {
+    return &can_fail_allocator_static;
 }

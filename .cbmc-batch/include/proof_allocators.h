@@ -20,4 +20,4 @@
  * The standard allocator in CBMC cannot fail.  This one can, which allows us to
  * nondeterministically find more bugs
  */
-struct aws_allocator* can_fail_allocator();
+struct aws_allocator *can_fail_allocator();
