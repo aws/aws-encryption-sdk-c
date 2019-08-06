@@ -13,9 +13,9 @@
  * limitations under the License.
  */
 
-#include <aws/cryptosdk/enc_ctx.h>
 #include <aws/common/hash_table.h>
 #include <aws/common/private/hash_table_impl.h>
+#include <aws/cryptosdk/enc_ctx.h>
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
