@@ -222,20 +222,21 @@ bool aws_cryptosdk_frame_is_valid(const struct aws_cryptosdk_frame *const frame)
     bool frame_type_valid = aws_cryptosdk_frame_has_valid_type(frame);
 
     bool iv_byte_buf_valid  = aws_byte_buf_is_valid(&frame->iv);
-    bool iv_byte_buf_static = frame->iv.allocator == NULL;
+    bool iv_byte_buf_static = (frame->iv.allocator == NULL);
 
     bool authtag_byte_buf_valid  = aws_byte_buf_is_valid(&frame->authtag);
-    bool authtag_byte_buf_static = frame->authtag.allocator == NULL;
+    bool authtag_byte_buf_static = (frame->authtag.allocator == NULL);
 
     bool ciphertext_byte_buf_valid = aws_byte_buf_is_valid(&frame->ciphertext);
     /* This happens when input plaintext size is 0 */
     bool ciphertext_valid_zero =
-        frame->ciphertext.len == 0 && frame->ciphertext.buffer && frame->ciphertext.capacity == 0;
-    bool ciphertext_valid  = ciphertext_byte_buf_valid || ciphertext_valid_zero;
-    bool ciphertext_static = frame->ciphertext.allocator == NULL;
+        (frame->ciphertext.len == 0 && frame->ciphertext.buffer && frame->ciphertext.capacity == 0);
+    bool ciphertext_valid  = (ciphertext_byte_buf_valid || ciphertext_valid_zero);
+    bool ciphertext_static = (frame->ciphertext.allocator == NULL);
 
-    return frame_type_valid && iv_byte_buf_valid && iv_byte_buf_static && authtag_byte_buf_valid &&
-           authtag_byte_buf_static && ciphertext_valid && ciphertext_static;
+    return (
+        frame_type_valid && iv_byte_buf_valid && iv_byte_buf_static && authtag_byte_buf_valid &&
+        authtag_byte_buf_static && ciphertext_valid && ciphertext_static);
 }
 
 bool aws_cryptosdk_frame_serialized(
@@ -247,19 +248,19 @@ bool aws_cryptosdk_frame_serialized(
     }
 
     // Check that both iv, authtag buffers contain the correct amount of bytes
-    bool iv_size_valid  = frame->iv.capacity == alg_props->iv_len;
-    bool tag_size_valid = frame->authtag.capacity == alg_props->tag_len;
+    bool iv_size_valid  = (frame->iv.capacity == alg_props->iv_len);
+    bool tag_size_valid = (frame->authtag.capacity == alg_props->tag_len);
 
     // Check that both iv, authtag buffers are empty and ready for writting
-    bool iv_empty  = frame->iv.len == 0;
-    bool tag_empty = frame->authtag.len == 0;
+    bool iv_empty  = (frame->iv.len == 0);
+    bool tag_empty = (frame->authtag.len == 0);
 
     // Check that the ciphertext buffer has the correct size
     bool ciphertext_size_valid = ((frame->type == FRAME_TYPE_SINGLE || frame->type == FRAME_TYPE_FRAME) &&
                                   frame->ciphertext.capacity == plaintext_size) ||
                                  (frame->type == FRAME_TYPE_FINAL && frame->ciphertext.capacity <= plaintext_size);
 
-    return iv_size_valid && tag_size_valid && iv_empty && tag_empty;
+    return (iv_size_valid && tag_size_valid && iv_empty && tag_empty);
 }
 
 bool aws_cryptosdk_frame_has_valid_type(const struct aws_cryptosdk_frame *frame) {
@@ -268,7 +269,7 @@ bool aws_cryptosdk_frame_has_valid_type(const struct aws_cryptosdk_frame *frame)
     }
 
     bool frame_enum_in_range =
-        frame->type == FRAME_TYPE_SINGLE || frame->type == FRAME_TYPE_FRAME || frame->type == FRAME_TYPE_FINAL;
+        (frame->type == FRAME_TYPE_SINGLE || frame->type == FRAME_TYPE_FRAME || frame->type == FRAME_TYPE_FINAL);
 
     return frame_enum_in_range;
 }

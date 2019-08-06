@@ -94,7 +94,7 @@ bool aws_cryptosdk_alg_properties_is_valid(const struct aws_cryptosdk_alg_proper
     }
     enum aws_cryptosdk_alg_id id                             = alg_props->alg_id;
     const struct aws_cryptosdk_alg_properties *std_alg_props = aws_cryptosdk_alg_props(id);
-    return std_alg_props == alg_props;
+    return (std_alg_props == alg_props);
 }
 
 int aws_cryptosdk_derive_key(

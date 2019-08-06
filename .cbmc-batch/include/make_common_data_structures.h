@@ -1,3 +1,6 @@
+#ifndef AWS_CRYPTOSDK_MAKE_COMMON_DATA_STRUCTURES_H
+#define AWS_CRYPTOSDK_MAKE_COMMON_DATA_STRUCTURES_H
+
 /*
  * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -21,6 +24,14 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-/* This function creates a valid alg properties data structure by
- * calling the initializer in cipher.h */
+/**
+ * This function creates a valid alg properties data structure by
+ * calling the initializer in cipher.h. This is the only valid way to
+ * construct an alg_props structure, and that is why
+ * [aws_cryptosdk_alg_properties_is_valid] checks whether the pointer
+ * of alg_props is the same as the one returned after calling the
+ * [aws_cryptosdk_alg_props] initializer.
+ */
 void ensure_alg_properties_is_allocated(struct aws_cryptosdk_alg_properties **alg_props);
+
+#endif /* AWS_CRYPTOSDK_MAKE_COMMON_DATA_STRUCTURES_H */
