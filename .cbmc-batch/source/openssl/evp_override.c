@@ -47,7 +47,7 @@ EVP_PKEY *EVP_PKEY_new() {
  * value: EVP_PKEY_get0_EC_KEY() returns the referenced key or NULL if an error occurred.
  */
 EC_KEY *EVP_PKEY_get0_EC_KEY(EVP_PKEY *pkey) {
-  assert(pkey);
+    assert(pkey);
 
     // In our current model, the key is always of type EC
     return pkey->ec_key;
@@ -84,89 +84,94 @@ void EVP_PKEY_free(EVP_PKEY *pkey) {
 
 /* Abstraction of the EVP_PKEY_CTX struct */
 struct evp_pkey_ctx_st {
-  bool is_initialized;
-  EVP_PKEY* pkey;
+    bool is_initialized;
+    EVP_PKEY *pkey;
 };
 
 /*
- * Description: The EVP_PKEY_CTX_new() function allocates public key algorithm context using the algorithm specified in pkey and ENGINE e.
- * Return values: EVP_PKEY_CTX_new() returns either the newly allocated EVP_PKEY_CTX structure of NULL if an error occurred.
+ * Description: The EVP_PKEY_CTX_new() function allocates public key algorithm context using the algorithm specified in
+ * pkey and ENGINE e. Return values: EVP_PKEY_CTX_new() returns either the newly allocated EVP_PKEY_CTX structure of
+ * NULL if an error occurred.
  */
 EVP_PKEY_CTX *EVP_PKEY_CTX_new(EVP_PKEY *pkey, ENGINE *e) {
-  assert(evp_pkey_is_valid(pkey));
-  assert(!e); // Assuming is always called with e == NULL
+    assert(evp_pkey_is_valid(pkey));
+    assert(!e);  // Assuming is always called with e == NULL
 
-  EVP_PKEY_CTX* ctx = can_fail_malloc(sizeof(EVP_PKEY_CTX));
-  
-  if (ctx) {
-    ctx->is_initialized = false;
-    ctx->pkey = pkey;
-    pkey->references += 1;
-  }
-  
-  return ctx;
+    EVP_PKEY_CTX *ctx = can_fail_malloc(sizeof(EVP_PKEY_CTX));
+
+    if (ctx) {
+        ctx->is_initialized = false;
+        ctx->pkey           = pkey;
+        pkey->references += 1;
+    }
+
+    return ctx;
 }
 
 /*
- * Description: The EVP_PKEY_sign_init() function initializes a public key algorithm context using key pkey for a signing operation.
- * Return values: EVP_PKEY_sign_init() and EVP_PKEY_sign() return 1 for success and 0 or a negative value for failure. In particular a return value of -2 indicates the operation is not supported by the public key algorithm.
+ * Description: The EVP_PKEY_sign_init() function initializes a public key algorithm context using key pkey for a
+ * signing operation. Return values: EVP_PKEY_sign_init() and EVP_PKEY_sign() return 1 for success and 0 or a negative
+ * value for failure. In particular a return value of -2 indicates the operation is not supported by the public key
+ * algorithm.
  */
 int EVP_PKEY_sign_init(EVP_PKEY_CTX *ctx) {
-  assert(ctx);
-  assert(ctx->pkey);
+    assert(ctx);
+    assert(ctx->pkey);
 
-  if (nondet_bool()) {
-    ctx->is_initialized = true;
-    return 1;
-  }
+    if (nondet_bool()) {
+        ctx->is_initialized = true;
+        return 1;
+    }
 
-  int rv;
-  __CPROVER_assume(rv <= 0);
-  return rv;
-}
-
-/*
- * Description: The EVP_PKEY_sign() function performs a public key signing operation using ctx. The data to be signed is specified using the tbs and tbslen parameters. If sig is NULL then the maximum size of the output buffer is written to the siglen parameter. If sig is not NULL then before the call the siglen parameter should contain the length of the sig buffer, if the call is successful the signature is written to sig and the amount of data written to siglen.
- * Return values: EVP_PKEY_sign_init() and EVP_PKEY_sign() return 1 for success and 0 or a negative value for failure. In particular a return value of -2 indicates the operation is not supported by the public key algorithm.
- */ 
-int EVP_PKEY_sign(EVP_PKEY_CTX *ctx,
-		  unsigned char *sig, size_t *siglen,
-		  const unsigned char *tbs, size_t tbslen) {
-  assert(evp_pkey_ctx_is_valid(ctx));
-  assert(siglen);
-  assert(!sig || (*siglen >= max_signature_size() && AWS_MEM_IS_WRITABLE(sig, *siglen)));
-  assert(tbs);
-  assert(AWS_MEM_IS_READABLE(tbs, tbslen));
-
-  if (nondet_bool()) {
     int rv;
     __CPROVER_assume(rv <= 0);
     return rv;
-  }
+}
 
-  // Signature size is nondeterministic but fixed. See ec_override.c for details.
-  size_t max_required_size = max_signature_size();
-  
-  if (!sig) {
-    *siglen = max_required_size;
-  } else {
-    size_t amount_of_data_written;
-    __CPROVER_assume(amount_of_data_written <= max_required_size);
-    write_unconstrained_data(sig, amount_of_data_written);
-    *siglen = amount_of_data_written;
-  }
+/*
+ * Description: The EVP_PKEY_sign() function performs a public key signing operation using ctx. The data to be signed is
+ * specified using the tbs and tbslen parameters. If sig is NULL then the maximum size of the output buffer is written
+ * to the siglen parameter. If sig is not NULL then before the call the siglen parameter should contain the length of
+ * the sig buffer, if the call is successful the signature is written to sig and the amount of data written to siglen.
+ * Return values: EVP_PKEY_sign_init() and EVP_PKEY_sign() return 1 for success and 0 or a negative value for failure.
+ * In particular a return value of -2 indicates the operation is not supported by the public key algorithm.
+ */
+int EVP_PKEY_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen, const unsigned char *tbs, size_t tbslen) {
+    assert(evp_pkey_ctx_is_valid(ctx));
+    assert(siglen);
+    assert(!sig || (*siglen >= max_signature_size() && AWS_MEM_IS_WRITABLE(sig, *siglen)));
+    assert(tbs);
+    assert(AWS_MEM_IS_READABLE(tbs, tbslen));
 
-  return 1;
+    if (nondet_bool()) {
+        int rv;
+        __CPROVER_assume(rv <= 0);
+        return rv;
+    }
+
+    // Signature size is nondeterministic but fixed. See ec_override.c for details.
+    size_t max_required_size = max_signature_size();
+
+    if (!sig) {
+        *siglen = max_required_size;
+    } else {
+        size_t amount_of_data_written;
+        __CPROVER_assume(amount_of_data_written <= max_required_size);
+        write_unconstrained_data(sig, amount_of_data_written);
+        *siglen = amount_of_data_written;
+    }
+
+    return 1;
 }
 
 /*
  * Description: EVP_PKEY_CTX_free() frees up the context ctx. If ctx is NULL, nothing is done.
  */
 void EVP_PKEY_CTX_free(EVP_PKEY_CTX *ctx) {
-  if (ctx) {
-    EVP_PKEY_free(ctx->pkey);
-    free(ctx);
-  }
+    if (ctx) {
+        EVP_PKEY_free(ctx->pkey);
+        free(ctx);
+    }
 }
 
 enum evp_aes { EVP_AES_128_GCM, EVP_AES_192_GCM, EVP_AES_256_GCM };
@@ -243,12 +248,12 @@ EVP_MD_CTX *EVP_MD_CTX_new() {
 }
 
 /*
- * Description: Return the size of the message digest when passed an EVP_MD or an EVP_MD_CTX structure, i.e. the size of the hash.
- * Return values: Returns the digest or block size in bytes.
+ * Description: Return the size of the message digest when passed an EVP_MD or an EVP_MD_CTX structure, i.e. the size of
+ * the hash. Return values: Returns the digest or block size in bytes.
  */
 int EVP_MD_CTX_size(const EVP_MD_CTX *ctx) {
-  assert(evp_md_ctx_is_valid(ctx));
-  return ctx->digest_size;
+    assert(evp_md_ctx_is_valid(ctx));
+    return ctx->digest_size;
 }
 
 /*
@@ -285,7 +290,7 @@ int EVP_DigestInit_ex(EVP_MD_CTX *ctx, const EVP_MD *type, ENGINE *impl) {
  * Return value: Returns 1 for success and 0 for failure.
  */
 int EVP_DigestInit(EVP_MD_CTX *ctx, const EVP_MD *type) {
-  return EVP_DigestInit_ex(ctx, type, NULL);
+    return EVP_DigestInit_ex(ctx, type, NULL);
 }
 
 /*
@@ -322,13 +327,13 @@ int EVP_DigestFinal_ex(EVP_MD_CTX *ctx, unsigned char *md, unsigned int *s) {
     ctx->is_initialized = false;
 
     if (nondet_bool()) {
-      // Something went wrong, can't guarantee *s will have the correct value
-      unsigned int garbage;
-      if (s) *s = garbage;
+        // Something went wrong, can't guarantee *s will have the correct value
+        unsigned int garbage;
+        if (s) *s = garbage;
         return 0;
     }
 
-    if (s) *s                  = ctx->digest_size;
+    if (s) *s = ctx->digest_size;
 
     return 1;
 }
@@ -338,11 +343,11 @@ int EVP_DigestFinal_ex(EVP_MD_CTX *ctx, unsigned char *md, unsigned int *s) {
  * Return values: Returns 1 for success and 0 for failure.
  */
 int EVP_DigestFinal(EVP_MD_CTX *ctx, unsigned char *md, unsigned int *s) {
-  int ret;
-  ret = EVP_DigestFinal_ex(ctx, md, s);
-  // Context is "cleaned up", but not sure how this restricts future operations
-  // Assuming that EVP_PKEY is not freed, and that EVP_MD_CTX_free still needs to be called
-  return ret;
+    int ret;
+    ret = EVP_DigestFinal_ex(ctx, md, s);
+    // Context is "cleaned up", but not sure how this restricts future operations
+    // Assuming that EVP_PKEY is not freed, and that EVP_MD_CTX_free still needs to be called
+    return ret;
 }
 
 /*
@@ -421,7 +426,7 @@ void evp_pkey_unconditional_free(EVP_PKEY *pkey) {
 }
 
 bool evp_pkey_ctx_is_valid(EVP_PKEY_CTX *ctx) {
-  return ctx && ctx->is_initialized && evp_pkey_is_valid(ctx->pkey);
+    return ctx && ctx->is_initialized && evp_pkey_is_valid(ctx->pkey);
 }
 
 bool evp_cipher_is_valid(EVP_CIPHER *cipher) {
