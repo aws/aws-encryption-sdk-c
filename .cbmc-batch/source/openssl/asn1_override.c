@@ -90,7 +90,9 @@ ASN1_INTEGER *d2i_ASN1_INTEGER(ASN1_INTEGER **a, unsigned char **ppin, long leng
         return NULL;
     }
 
-    *ppin += length;  // Is ppin always incremented exactly by length?
+    long offset;
+    __CPROVER_assume(0 <= offset && offset <= length);
+    *ppin += offset;
     (*a)->is_valid = true;
     return *a;
 }
