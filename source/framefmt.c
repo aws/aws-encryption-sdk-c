@@ -219,7 +219,7 @@ bool aws_cryptosdk_frame_is_valid(const struct aws_cryptosdk_frame *const frame)
         return false;
     }
 
-    bool frame_type_seq_valid = aws_cryptosdk_frame_has_valid_type(frame);
+    bool frame_type_valid = aws_cryptosdk_frame_has_valid_type(frame);
 
     bool iv_byte_buf_valid  = aws_byte_buf_is_valid(&frame->iv);
     bool iv_byte_buf_static = frame->iv.allocator == NULL;
@@ -234,7 +234,7 @@ bool aws_cryptosdk_frame_is_valid(const struct aws_cryptosdk_frame *const frame)
     bool ciphertext_valid  = ciphertext_byte_buf_valid || ciphertext_valid_zero;
     bool ciphertext_static = frame->ciphertext.allocator == NULL;
 
-    return frame_type_seq_valid && iv_byte_buf_valid && iv_byte_buf_static && authtag_byte_buf_valid &&
+    return frame_type_valid && iv_byte_buf_valid && iv_byte_buf_static && authtag_byte_buf_valid &&
            authtag_byte_buf_static && ciphertext_valid && ciphertext_static;
 }
 
