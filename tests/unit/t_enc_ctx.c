@@ -382,6 +382,27 @@ int enc_ctx_clone_test() {
     return 0;
 }
 
+int deserialize_error_when_duplicate_key_in_context() {
+    uint8_t serialized_enc_ctx[] = {
+        0x00, 0x04, 0x00, 0x0b, 0x69, 0x6e, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x00, 0x0c,
+        0xc2, 0xbd, 0x20, 0x2b, 0x20, 0xc2, 0xbc, 0x20, 0x3d, 0x20, 0xc2, 0xbe, 0x00, 0x0b, 0x69, 0x6e, 0x66,
+        0x6f, 0x72, 0x6d, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x00, 0x0c, 0xc2, 0xbd, 0x20, 0x2b, 0x20, 0xc2, 0xbc,
+        0x20, 0x3d, 0x20, 0xc2, 0xbe, 0x00, 0x04, 0x73, 0x6f, 0x6d, 0x65, 0x00, 0x06, 0x70, 0x75, 0x62, 0x6c,
+        0x69, 0x63, 0x00, 0x04, 0x73, 0x6f, 0x6d, 0x65, 0x00, 0x06, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x63
+    };
+
+    struct aws_allocator *alloc = aws_default_allocator();
+    struct aws_hash_table enc_ctx;
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_ctx_init(alloc, &enc_ctx));
+
+    struct aws_byte_cursor cursor = aws_byte_cursor_from_array(serialized_enc_ctx, sizeof(serialized_enc_ctx));
+
+    TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT, aws_cryptosdk_enc_ctx_deserialize(alloc, &enc_ctx, &cursor));
+
+    aws_cryptosdk_enc_ctx_clean_up(&enc_ctx);
+    return 0;
+}
+
 struct test_case enc_ctx_test_cases[] = {
     { "enc_ctx", "get_sorted_elems_array_test", get_sorted_elems_array_test },
     { "enc_ctx", "serialize_empty_enc_ctx", serialize_empty_enc_ctx },
@@ -392,5 +413,6 @@ struct test_case enc_ctx_test_cases[] = {
     { "enc_ctx", "serialize_valid_enc_ctx_max_length", serialize_valid_enc_ctx_max_length },
     { "enc_ctx", "serialize_error_when_too_many_elements", serialize_error_when_too_many_elements },
     { "enc_ctx", "clone_test", enc_ctx_clone_test },
+    { "enc_ctx", "deserialize_error_when_duplicate_key_in_context", deserialize_error_when_duplicate_key_in_context },
     { NULL }
 };
