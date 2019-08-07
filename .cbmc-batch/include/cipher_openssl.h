@@ -21,6 +21,10 @@
 /* The definitions in this file are directly copied from cipher_openssl.c, in order to make the internals of the data
  * structures accessible from the CBMC proof harness. */
 
+/* This is large enough to hold an encoded public key for all currently supported curves */
+#define MAX_PUBKEY_SIZE 64
+#define MAX_PUBKEY_SIZE_B64 (((MAX_PUBKEY_SIZE + 2) * 4) / 3)
+
 struct aws_cryptosdk_sig_ctx {
     struct aws_allocator *alloc;
     const struct aws_cryptosdk_alg_properties *props;
