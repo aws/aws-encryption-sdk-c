@@ -20,9 +20,7 @@
 #include <proof_helpers/utils.h>
 #include <aws/cryptosdk/private/utils.h>
 
-const size_t MAX_STRING_LEN = 16; //TODO: this should be defined in Makefile. 
-
-void harness() {
+void aws_cryptosdk_string_dup_harness() {
     /* data structure */
     struct aws_allocator *alloc = can_fail_allocator(); /* Precondition: alloc must be non-null */
     struct aws_string *str_a = ensure_string_is_allocated_bounded_length(MAX_STRING_LEN);
