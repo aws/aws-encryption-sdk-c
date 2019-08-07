@@ -18,7 +18,7 @@
 #include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
 
-void harness() {
+void aws_cryptosdk_keyring_trace_init_harness() {
     /* data structure */
     struct aws_allocator *alloc = can_fail_allocator(); /* Precondition: alloc must be non-null */
     struct aws_array_list trace; /* Precondition: trace must be non-null */
