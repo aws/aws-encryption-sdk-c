@@ -488,6 +488,9 @@ int aws_cryptosdk_sig_sign_start(
     struct aws_string **pub_key_str,
     const struct aws_cryptosdk_alg_properties *props,
     const struct aws_string *priv_key) {
+    AWS_PRECONDITION(ctx);
+    AWS_PRECONDITION(props);
+    AWS_PRECONDITION(aws_string_is_valid(priv_key));
     /* See comments in aws_cryptosdk_sig_get_privkey re the serialized format */
 
     *ctx = NULL;
@@ -496,12 +499,18 @@ int aws_cryptosdk_sig_sign_start(
     }
 
     if (!props->impl->curve_name) {
+        AWS_POSTCONDITION(!*ctx);
+        AWS_POSTCONDITION(!pub_key_str || !*pub_key_str);
+        AWS_POSTCONDITION(aws_string_is_valid(priv_key));
         return AWS_OP_SUCCESS;
     }
 
     if (priv_key->len < 5) {
         // We don't have room for the algorithm ID plus the serialized private key.
         // Someone has apparently handed us a truncated private key?
+        AWS_POSTCONDITION(!*ctx);
+        AWS_POSTCONDITION(!pub_key_str || !*pub_key_str);
+        AWS_POSTCONDITION(aws_string_is_valid(priv_key));
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
@@ -525,6 +534,9 @@ int aws_cryptosdk_sig_sign_start(
 
     if (serialized_alg_id != props->alg_id) {
         // Algorithm mismatch
+        AWS_POSTCONDITION(!*ctx);
+        AWS_POSTCONDITION(!pub_key_str || !*pub_key_str);
+        AWS_POSTCONDITION(aws_string_is_valid(priv_key));
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
@@ -590,6 +602,9 @@ int aws_cryptosdk_sig_sign_start(
 
     if (pub_key_str && serialize_pubkey(alloc, keypair, pub_key_str)) {
         EC_KEY_free(keypair);
+        AWS_POSTCONDITION(!*ctx);
+        AWS_POSTCONDITION(!*pub_key_str);
+        AWS_POSTCONDITION(aws_string_is_valid(priv_key));
         return AWS_OP_ERR;
     }
 
@@ -602,6 +617,9 @@ int aws_cryptosdk_sig_sign_start(
 out:
     // EC_KEYs are reference counted
     EC_KEY_free(keypair);
+    AWS_POSTCONDITION(!*ctx || (aws_cryptosdk_sig_ctx_is_valid(*ctx) && (*ctx)->is_sign));
+    AWS_POSTCONDITION(!pub_key_str || (!*ctx && !*pub_key_str) || aws_string_is_valid(*pub_key_str));
+    AWS_POSTCONDITION(aws_string_is_valid(priv_key));
     return *ctx ? AWS_OP_SUCCESS : AWS_OP_ERR;
 }
 
