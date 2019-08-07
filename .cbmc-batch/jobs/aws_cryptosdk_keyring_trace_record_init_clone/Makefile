@@ -12,7 +12,7 @@
 # limitations under the License.
 
 ###########
-sinclude ../Makefile.string
+include ../Makefile.string
 
 CBMC_UNWINDSET += --unwindset memcmp.0:$(shell echo $$((1 + $(MAX_STRING_LEN))))
 
