@@ -13,6 +13,9 @@
  * limitations under the License.
  */
 
+#ifndef CBMC_INVARIANTS_H
+#define CBMC_INVARIANTS_H
+
 #include <aws/cryptosdk/cipher.h>
 
 /* The invariants defined in this file are for use within the CBMC proof harnesses. They cannot be called directly in
@@ -25,3 +28,5 @@ bool aws_cryptosdk_md_context_is_valid_cbmc(struct aws_cryptosdk_md_context *md_
 
 /* Checks that the signing context is valid based on the state of its members. */
 bool aws_cryptosdk_sig_ctx_is_valid_cbmc(struct aws_cryptosdk_sig_ctx *sig_ctx);
+
+#endif /* CBMC_INVARIANTS_H */
