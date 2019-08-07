@@ -445,6 +445,10 @@ int aws_cryptosdk_sig_sign_start_keygen(
         goto rethrow;
     }
 
+    // If pub_key is NULL the conversion form is never set, and so it differs between the EC_KEY and EC_GROUP objects.
+    // If this is not a problem this line can be removed, but ec_key_is_valid needs to be changed in the CBMC model.
+    EC_KEY_set_conv_form(keypair, POINT_CONVERSION_COMPRESSED);
+
     *pctx = sign_start(alloc, keypair, props);
     if (!*pctx) {
         goto rethrow;
