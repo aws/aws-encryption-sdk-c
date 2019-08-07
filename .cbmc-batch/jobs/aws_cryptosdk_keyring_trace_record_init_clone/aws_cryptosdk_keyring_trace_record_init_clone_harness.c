@@ -17,9 +17,7 @@
 #include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
 
-const size_t MAX_STRING_LEN = 16; //TODO: move this to the Makefile
-
-void harness() {
+void aws_cryptosdk_keyring_trace_record_init_clone_harness() {
     /* data structure */
     struct aws_cryptosdk_keyring_trace_record source_record; /* Precondition: record is non-null */
     struct aws_cryptosdk_keyring_trace_record dest_record; /* Precondition: record is non-null */
