@@ -412,6 +412,9 @@ int aws_cryptosdk_sig_sign_start_keygen(
     struct aws_allocator *alloc,
     struct aws_string **pub_key,
     const struct aws_cryptosdk_alg_properties *props) {
+    AWS_PRECONDITION(pctx);
+    AWS_PRECONDITION(alloc);
+    AWS_PRECONDITION(props);
     EC_GROUP *group = NULL;
     EC_KEY *keypair = NULL;
 
@@ -421,6 +424,8 @@ int aws_cryptosdk_sig_sign_start_keygen(
     }
 
     if (!props->impl->curve_name) {
+        AWS_POSTCONDITION(!*pctx);
+        AWS_POSTCONDITION(!pub_key || !*pub_key);
         return AWS_OP_SUCCESS;
     }
 
@@ -457,6 +462,8 @@ int aws_cryptosdk_sig_sign_start_keygen(
     EC_KEY_free(keypair);
     EC_GROUP_free(group);
 
+    AWS_POSTCONDITION(aws_cryptosdk_sig_ctx_is_valid(*pctx) && (*pctx)->is_sign);
+    AWS_POSTCONDITION(!pub_key || aws_string_is_valid(*pub_key));
     return AWS_OP_SUCCESS;
 
 err:
@@ -473,6 +480,8 @@ rethrow:
     EC_KEY_free(keypair);
     EC_GROUP_free(group);
 
+    AWS_POSTCONDITION(!*pctx);
+    AWS_POSTCONDITION(!pub_key || !*pub_key);
     return AWS_OP_ERR;
 }
 
