@@ -461,8 +461,10 @@ rethrow:
     aws_cryptosdk_sig_abort(*pctx);
     *pctx = NULL;
 
-    aws_string_destroy(*pub_key);
-    *pub_key = NULL;
+    if (pub_key) {
+        aws_string_destroy(*pub_key);
+        *pub_key = NULL;
+    }
 
     EC_KEY_free(keypair);
     EC_GROUP_free(group);
