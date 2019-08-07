@@ -15,4 +15,4 @@
 
 set -euxo pipefail
 
-find {.,aws-encryption-sdk-cpp}/{include,source,tests} examples -name '*.h' -or -name '*.c' -or -name '*.cpp' | xargs clang-format -i
+find {.,aws-encryption-sdk-cpp}/{include,source,tests} .cbmc-batch examples -name '*.h' -or -name '*.c' -or -name '*.cpp' | xargs clang-format -i

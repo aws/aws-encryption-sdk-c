@@ -527,7 +527,11 @@ int aws_cryptosdk_sig_sign_start(
         goto out;
     }
 
-    EC_KEY_set_group(keypair, group);
+    if (!EC_KEY_set_group(keypair, group)) {
+        aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+        EC_GROUP_free(group);
+        goto out;
+    }
     EC_GROUP_free(group);
     EC_KEY_set_conv_form(keypair, POINT_CONVERSION_COMPRESSED);
 
@@ -543,7 +547,7 @@ int aws_cryptosdk_sig_sign_start(
     field = aws_byte_cursor_advance(&cursor, privkey_len);
     bufp  = field.ptr;
 
-    if (!d2i_ASN1_INTEGER(&priv_key_asn1, &bufp, field.len) || bufp != field.ptr + field.len) {
+    if (!field.ptr || !d2i_ASN1_INTEGER(&priv_key_asn1, &bufp, field.len) || bufp != field.ptr + field.len) {
         ASN1_STRING_clear_free(priv_key_asn1);
         aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
         goto out;
@@ -614,8 +618,15 @@ static int load_pubkey(
     }
 
     *key = EC_KEY_new();
+    if (*key == NULL) {
+        result = AWS_ERROR_OOM;
+        goto out;
+    }
     // We must set the group before decoding, to allow openssl to decompress the point
-    EC_KEY_set_group(*key, group);
+    if (!EC_KEY_set_group(*key, group)) {
+        result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
+        goto out;
+    }
     EC_KEY_set_conv_form(*key, POINT_CONVERSION_COMPRESSED);
 
     const unsigned char *pBuf = b64_decode_buf.buffer;
