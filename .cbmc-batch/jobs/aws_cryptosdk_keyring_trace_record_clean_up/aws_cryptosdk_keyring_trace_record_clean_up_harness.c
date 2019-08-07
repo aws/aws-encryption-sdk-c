@@ -18,7 +18,7 @@
 #include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
 
-void harness() {
+void aws_cryptosdk_keyring_trace_record_clean_up_harness() {
     /* data structure */
     struct aws_cryptosdk_keyring_trace_record record; /* Precondition: record is non-null */
 
