@@ -742,6 +742,11 @@ int aws_cryptosdk_sig_verify_finish(struct aws_cryptosdk_sig_ctx *ctx, const str
 
 int aws_cryptosdk_sig_sign_finish(
     struct aws_cryptosdk_sig_ctx *ctx, struct aws_allocator *alloc, struct aws_string **signature) {
+    AWS_PRECONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+    AWS_PRECONDITION(ctx->alloc);
+    AWS_PRECONDITION(ctx->is_sign);
+    AWS_PRECONDITION(alloc);
+    AWS_PRECONDITION(signature);
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     /* This needs to be big enough for all digest algorithms in use */
     uint8_t digestbuf[64];
@@ -751,7 +756,6 @@ int aws_cryptosdk_sig_sign_finish(
     struct aws_byte_buf sigtmp = { 0 };
 
     size_t digestlen, siglen;
-    assert(ctx->is_sign);
 
     digestlen = EVP_MD_CTX_size(ctx->ctx);
 
@@ -899,5 +903,6 @@ rethrow:
         *signature = NULL;
     }
 
+    AWS_POSTCONDITION(result == AWS_OP_SUCCESS ? aws_string_is_valid(*signature) : !*signature);
     return result ? AWS_OP_ERR : AWS_OP_SUCCESS;
 }
