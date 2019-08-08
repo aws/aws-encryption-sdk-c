@@ -16,9 +16,11 @@
 #include <aws/common/array_list.h>
 #include <aws/common/string.h>
 #include <aws/cryptosdk/private/keyring_trace.h>
+#include <aws/cryptosdk/keyring_trace.h>
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/utils.h>
 #include <aws/cryptosdk/private/utils.h>
+#include <make_common_data_structures.h>
 
 
 void aws_cryptosdk_keyring_trace_add_record_harness() {
@@ -30,8 +32,11 @@ void aws_cryptosdk_keyring_trace_add_record_harness() {
     uint32_t flags;
 
     __CPROVER_assume(aws_array_list_is_bounded(&trace, MAX_INITIAL_ITEM_ALLOCATION, MAX_ITEM_SIZE));
+    __CPROVER_assume(trace.item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     ensure_array_list_has_allocated_data_member(&trace);
     __CPROVER_assume(aws_array_list_is_valid(&trace));
+    ensure_trace_has_allocated_records(&trace, MAX_STRING_LEN);
+    __CPROVER_assume(aws_cryptosdk_keyring_trace_is_valid(&trace));
 
     struct aws_array_list old = trace;
     struct store_byte_from_buffer old_byte;
@@ -40,7 +45,7 @@ void aws_cryptosdk_keyring_trace_add_record_harness() {
 
 	if (aws_cryptosdk_keyring_trace_add_record(alloc, &trace, namespace, name, flags) == AWS_OP_SUCCESS){
         /* assertions */
-        assert(aws_array_list_is_valid(&trace));
+        assert(aws_cryptosdk_keyring_trace_is_valid(&trace)); 
         assert(trace.length = old.length + 1);
     }
     else {
