@@ -80,10 +80,10 @@ struct aws_cryptosdk_sig_ctx {
 };
 
 bool aws_cryptosdk_sig_ctx_is_valid(const struct aws_cryptosdk_sig_ctx *sig_ctx) {
-    return sig_ctx && sig_ctx->props && sig_ctx->keypair && sig_ctx->pkey && sig_ctx->ctx &&
+    return sig_ctx && AWS_OBJECT_PTR_IS_READABLE(sig_ctx->alloc) && AWS_OBJECT_PTR_IS_READABLE(sig_ctx->props) &&
+           sig_ctx->keypair && sig_ctx->pkey && sig_ctx->ctx &&
            (EVP_PKEY_get0_EC_KEY(sig_ctx->pkey) == sig_ctx->keypair) &&
            (sig_ctx->is_sign == (EC_KEY_get0_private_key(sig_ctx->keypair) != NULL));
-    ;
 }
 
 struct aws_cryptosdk_md_context {
@@ -92,7 +92,7 @@ struct aws_cryptosdk_md_context {
 };
 
 bool aws_cryptosdk_md_context_is_valid(const struct aws_cryptosdk_md_context *md_context) {
-    return md_context && md_context->evp_md_ctx;
+    return md_context && AWS_OBJECT_PTR_IS_READABLE(md_context->alloc) && md_context->evp_md_ctx;
 }
 
 int aws_cryptosdk_md_init(
