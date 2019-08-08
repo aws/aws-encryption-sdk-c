@@ -154,7 +154,8 @@ int aws_cryptosdk_md_update(struct aws_cryptosdk_md_context *md_context, const v
 
 int aws_cryptosdk_md_finish(struct aws_cryptosdk_md_context *md_context, void *output_buf, size_t *length) {
     AWS_PRECONDITION(aws_cryptosdk_md_context_is_valid(md_context));
-    AWS_PRECONDITION(output_buf);
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(length));
+    AWS_PRECONDITION(AWS_MEM_IS_WRITABLE(output_buf, *length));
 
     int rv            = AWS_OP_SUCCESS;
     unsigned int size = 0;
@@ -177,6 +178,7 @@ int aws_cryptosdk_md_finish(struct aws_cryptosdk_md_context *md_context, void *o
 }
 
 void aws_cryptosdk_md_abort(struct aws_cryptosdk_md_context *md_context) {
+    AWS_PRECONDITION(!md_context || aws_cryptosdk_md_context_is_valid(md_context));
     if (!md_context) {
         return;
     }

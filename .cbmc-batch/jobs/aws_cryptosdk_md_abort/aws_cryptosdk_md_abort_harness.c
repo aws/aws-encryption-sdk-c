@@ -16,6 +16,7 @@
 #include <aws/cryptosdk/private/cipher.h>
 #include <proof_helpers/proof_allocators.h>
 
+#include <cbmc_invariants.h>
 #include <evp_utils.h>
 #include <make_common_data_structures.h>
 
@@ -29,7 +30,7 @@ void aws_cryptosdk_md_abort_harness() {
     if (md_context) {
         ensure_md_context_has_allocated_members(md_context);
         __CPROVER_assume(evp_md_ctx_get0_evp_pkey(md_context->evp_md_ctx) == NULL);
-        __CPROVER_assume(md_context->alloc);
+        __CPROVER_assume(aws_cryptosdk_md_context_is_valid_cbmc(md_context));
     }
 
     /* operation under verification */

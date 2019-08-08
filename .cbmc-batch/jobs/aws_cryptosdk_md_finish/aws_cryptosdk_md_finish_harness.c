@@ -33,10 +33,10 @@ void aws_cryptosdk_md_finish_harness() {
     ensure_md_context_has_allocated_members(md_context);
     __CPROVER_assume(evp_md_ctx_get0_evp_pkey(md_context->evp_md_ctx) == NULL);
     __CPROVER_assume(aws_cryptosdk_md_context_is_valid_cbmc(md_context));
-    __CPROVER_assume(md_context->alloc);
     __CPROVER_assume(buf);
     size_t digest_size = evp_md_ctx_get_digest_size(md_context->evp_md_ctx);
-    __CPROVER_assume(AWS_MEM_IS_WRITABLE(buf, digest_size));
+    __CPROVER_assume(length >= digest_size);
+    __CPROVER_assume(AWS_MEM_IS_WRITABLE(buf, length));
 
     /* operation under verification */
     if (aws_cryptosdk_md_finish(md_context, buf, &length) == AWS_OP_SUCCESS) {
