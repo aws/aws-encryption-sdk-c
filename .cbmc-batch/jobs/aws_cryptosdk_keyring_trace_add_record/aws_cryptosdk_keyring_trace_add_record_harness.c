@@ -15,20 +15,21 @@
 
 #include <aws/common/array_list.h>
 #include <aws/common/string.h>
-#include <aws/cryptosdk/private/keyring_trace.h>
 #include <aws/cryptosdk/keyring_trace.h>
-#include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/utils.h>
+#include <aws/cryptosdk/private/keyring_trace.h>
 #include <aws/cryptosdk/private/utils.h>
 #include <make_common_data_structures.h>
-
+#include <proof_helpers/make_common_data_structures.h>
+#include <proof_helpers/utils.h>
 
 void aws_cryptosdk_keyring_trace_add_record_harness() {
     /* data structure */
     struct aws_allocator *alloc = can_fail_allocator(); /* Precondition: alloc must be non-null */
-    struct aws_array_list trace; /* Precondition: trace must be non-null */
-    struct aws_string *namespace = ensure_string_is_allocated_bounded_length(MAX_STRING_LEN); /* Precondition: namespace must be non-null */
-    struct aws_string *name = ensure_string_is_allocated_bounded_length(MAX_STRING_LEN); /* Precondition: name must be non-null */
+    struct aws_array_list trace;                        /* Precondition: trace must be non-null */
+    struct aws_string *namespace =
+        ensure_string_is_allocated_bounded_length(MAX_STRING_LEN); /* Precondition: namespace must be non-null */
+    struct aws_string *name =
+        ensure_string_is_allocated_bounded_length(MAX_STRING_LEN); /* Precondition: name must be non-null */
     uint32_t flags;
 
     __CPROVER_assume(aws_array_list_is_bounded(&trace, MAX_INITIAL_ITEM_ALLOCATION, MAX_ITEM_SIZE));
@@ -42,15 +43,12 @@ void aws_cryptosdk_keyring_trace_add_record_harness() {
     struct store_byte_from_buffer old_byte;
     save_byte_from_array((uint8_t *)trace.data, trace.current_size, &old_byte);
 
-
-	if (aws_cryptosdk_keyring_trace_add_record(alloc, &trace, namespace, name, flags) == AWS_OP_SUCCESS){
+    if (aws_cryptosdk_keyring_trace_add_record(alloc, &trace, namespace, name, flags) == AWS_OP_SUCCESS) {
         /* assertions */
-        assert(aws_cryptosdk_keyring_trace_is_valid(&trace)); 
+        assert(aws_cryptosdk_keyring_trace_is_valid(&trace));
         assert(trace.length = old.length + 1);
-    }
-    else {
+    } else {
         /* assertions */
         assert_array_list_equivalence(&trace, &old, &old_byte);
     }
-
 }

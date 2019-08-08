@@ -22,3 +22,5 @@
 #include <stdlib.h>
 
 void ensure_alg_properties_has_allocated_names(struct aws_cryptosdk_alg_properties *const alg_props);
+void ensure_record_has_allocated_members(struct aws_cryptosdk_keyring_trace_record *record, size_t max_len);
+void ensure_trace_has_allocated_records(struct aws_array_list *trace, size_t max_len);

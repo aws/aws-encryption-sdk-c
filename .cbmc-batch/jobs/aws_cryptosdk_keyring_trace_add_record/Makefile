@@ -15,8 +15,6 @@
 include ../Makefile.string
 include ../Makefile.aws_array_list
 
-
-## At the moment this is not used in the Makefile.common of encryption-sdk
 CBMC_UNWINDSET += --unwindset aws_cryptosdk_keyring_trace_is_valid.0:$(shell echo $$((1 + $(MAX_ITEM_SIZE)))),ensure_trace_has_allocated_records.0:$(shell echo $$((1 + $(MAX_ITEM_SIZE))))
 
 CBMCFLAGS +=
