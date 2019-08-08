@@ -30,7 +30,6 @@ void aws_cryptosdk_sig_abort_harness() {
     /* assumptions */
     if (ctx) {
         ensure_sig_ctx_has_allocated_members(ctx);
-        __CPROVER_assume(ctx->alloc);
         __CPROVER_assume(aws_cryptosdk_sig_ctx_is_valid_cbmc(ctx));
     }
 
