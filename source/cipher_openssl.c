@@ -412,9 +412,9 @@ int aws_cryptosdk_sig_sign_start_keygen(
     struct aws_allocator *alloc,
     struct aws_string **pub_key,
     const struct aws_cryptosdk_alg_properties *props) {
-    AWS_PRECONDITION(pctx);
-    AWS_PRECONDITION(alloc);
-    AWS_PRECONDITION(props);
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_WRITABLE(pctx));
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(alloc));
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(props));
     EC_GROUP *group = NULL;
     EC_KEY *keypair = NULL;
 
@@ -503,8 +503,9 @@ int aws_cryptosdk_sig_sign_start(
     struct aws_string **pub_key_str,
     const struct aws_cryptosdk_alg_properties *props,
     const struct aws_string *priv_key) {
-    AWS_PRECONDITION(ctx);
-    AWS_PRECONDITION(props);
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_WRITABLE(ctx));
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(alloc));
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(props));
     AWS_PRECONDITION(aws_string_is_valid(priv_key));
     /* See comments in aws_cryptosdk_sig_get_privkey re the serialized format */
 
