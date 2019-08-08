@@ -471,7 +471,7 @@ rethrow:
 }
 
 void aws_cryptosdk_sig_abort(struct aws_cryptosdk_sig_ctx *ctx) {
-    AWS_PRECONDITION(!ctx || (aws_cryptosdk_sig_ctx_is_valid(ctx) && ctx->alloc));
+    AWS_PRECONDITION(!ctx || (aws_cryptosdk_sig_ctx_is_valid(ctx) && AWS_OBJECT_PTR_IS_READABLE(ctx->alloc)));
 
     if (!ctx) {
         return;
