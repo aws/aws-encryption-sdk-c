@@ -122,10 +122,12 @@ int aws_cryptosdk_keyring_trace_init(struct aws_allocator *alloc, struct aws_arr
     AWS_FATAL_PRECONDITION(alloc != NULL);
     const int initial_size = 10;
     int r_val = aws_array_list_init_dynamic(trace, alloc, initial_size, sizeof(struct aws_cryptosdk_keyring_trace_record));
-    AWS_POSTCONDITION(r_val == AWS_OP_SUCCESS ==> aws_array_list_is_valid(trace));
-    AWS_POSTCONDITION(r_val == AWS_OP_SUCCESS ==> trace->alloc == alloc);
-    AWS_POSTCONDITION(r_val == AWS_OP_SUCCESS ==> trace->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
-    AWS_POSTCONDITION(r_val == AWS_OP_SUCCESS ==> trace->length == 0);
+    if (r_val == AWS_OP_SUCCESS){
+        AWS_POSTCONDITION(aws_array_list_is_valid(trace));
+        AWS_POSTCONDITION(trace->alloc == alloc);
+        AWS_POSTCONDITION(trace->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
+        AWS_POSTCONDITION(trace->length == 0);
+    }
     return r_val;
 }
 
