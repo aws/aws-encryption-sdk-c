@@ -117,6 +117,7 @@ int aws_cryptosdk_keyring_trace_add_record(
     AWS_FATAL_PRECONDITION(wk_namespace != NULL);
     AWS_FATAL_PRECONDITION(wk_name != NULL);
     AWS_FATAL_PRECONDITION(aws_cryptosdk_keyring_trace_is_valid(trace));
+    AWS_FATAL_PRECONDITION(trace->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     struct aws_cryptosdk_keyring_trace_record record;
     int ret = record_init_from_strings(alloc, &record, wk_namespace, wk_name, flags);
     if (ret) return ret;
@@ -129,6 +130,12 @@ int aws_cryptosdk_keyring_trace_add_record_c_str(
     const char *wk_namespace,
     const char *wk_name,
     uint32_t flags) {
+    AWS_FATAL_PRECONDITION(alloc != NULL);
+    AWS_FATAL_PRECONDITION(trace != NULL);
+    AWS_FATAL_PRECONDITION(wk_namespace != NULL);
+    AWS_FATAL_PRECONDITION(wk_name != NULL);
+    AWS_FATAL_PRECONDITION(aws_cryptosdk_keyring_trace_is_valid(trace));
+    AWS_FATAL_PRECONDITION(trace->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     struct aws_cryptosdk_keyring_trace_record record;
     int ret = record_init_from_c_strs(alloc, &record, wk_namespace, wk_name, flags);
     if (ret) return ret;
@@ -142,6 +149,14 @@ int aws_cryptosdk_keyring_trace_add_record_buf(
     const struct aws_byte_buf *wk_namespace,
     const struct aws_byte_buf *wk_name,
     uint32_t flags) {
+    AWS_FATAL_PRECONDITION(alloc != NULL);
+    AWS_FATAL_PRECONDITION(trace != NULL);
+    AWS_FATAL_PRECONDITION(wk_namespace != NULL);
+    AWS_FATAL_PRECONDITION(wk_name != NULL);
+    AWS_FATAL_PRECONDITION(aws_byte_buf_is_valid(wk_namespace));
+    AWS_FATAL_PRECONDITION(aws_byte_buf_is_valid(wk_name));
+    AWS_FATAL_PRECONDITION(aws_cryptosdk_keyring_trace_is_valid(trace));
+    AWS_FATAL_PRECONDITION(trace->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     struct aws_cryptosdk_keyring_trace_record record;
     int ret = record_init_from_bufs(alloc, &record, wk_namespace, wk_name, flags);
     if (ret) return ret;
