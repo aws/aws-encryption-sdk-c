@@ -34,13 +34,13 @@ void ensure_sig_ctx_has_allocated_members(struct aws_cryptosdk_sig_ctx *ctx) {
     ctx->pkey    = evp_pkey_nondet_alloc();
     ctx->ctx     = evp_md_ctx_nondet_alloc();
 
-    // Need to ensure consistency of reference count later by assuming ctx is valid
+    // Later in the harness we ensure consistency of reference count by assuming ctx is valid
     evp_pkey_set0_ec_key(ctx->pkey, ctx->keypair);
 
     if (ctx->is_sign) {
         evp_md_ctx_set0_evp_pkey(ctx->ctx, NULL);
     } else {
-        // Need to ensure consistency of reference count later by assuming ctx is valid
+        // Later in the harness we ensure consistency of reference count by assuming ctx is valid
         evp_md_ctx_set0_evp_pkey(ctx->ctx, ctx->pkey);
     }
 }
