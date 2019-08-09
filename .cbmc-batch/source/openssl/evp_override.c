@@ -299,8 +299,7 @@ int EVP_DigestInit(EVP_MD_CTX *ctx, const EVP_MD *type) {
  */
 int EVP_DigestUpdate(EVP_MD_CTX *ctx, const void *d, size_t cnt) {
     assert(evp_md_ctx_is_valid(ctx));
-    assert(d);
-    assert(AWS_MEM_IS_READABLE(d, cnt));
+    assert(AWS_MEM_IS_READABLE(d, cnt));  // d can be NULL as long as cnt == 0
 
     if (nondet_bool()) {
         ctx->is_initialized = false;

@@ -140,7 +140,6 @@ size_t aws_cryptosdk_md_size(enum aws_cryptosdk_md_alg md_alg) {
 
 int aws_cryptosdk_md_update(struct aws_cryptosdk_md_context *md_context, const void *buf, size_t length) {
     AWS_PRECONDITION(aws_cryptosdk_md_context_is_valid(md_context));
-    AWS_PRECONDITION(buf);
     AWS_PRECONDITION(AWS_MEM_IS_READABLE(buf, length));
 
     if (1 != EVP_DigestUpdate(md_context->evp_md_ctx, buf, length)) {
