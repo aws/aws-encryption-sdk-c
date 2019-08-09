@@ -24,8 +24,8 @@ void aws_cryptosdk_md_size_harness() {
 
     /* assertions */
     if (md_alg == AWS_CRYPTOSDK_MD_SHA512) {
-        assert(size == (512 / 8));
+        assert(size == (512 / 8));  // number of bytes of a SHA-512 hash
     } else {
-        assert(size == 0);
+        assert(size == 0);  // other algorithms not currently supported
     }
 }
