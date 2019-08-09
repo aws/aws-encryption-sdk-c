@@ -14,6 +14,9 @@
  * permissions and limitations under the License.
  */
 
+/* This is a local copy of the OpenSSL header of the same name, but containing only those functions that are called by
+ * the code that we are verifying. */
+
 #ifndef HEADER_OBJECTS_H
 #define HEADER_OBJECTS_H
 

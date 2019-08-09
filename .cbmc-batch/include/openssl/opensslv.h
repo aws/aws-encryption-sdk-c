@@ -14,6 +14,9 @@
  * permissions and limitations under the License.
  */
 
+/* This is a local copy of the OpenSSL header of the same name, but containing only those definitions used in the code
+ * that we are verifying. */
+
 #ifndef HEADER_OPENSSLV_H
 #define HEADER_OPENSSLV_H
 

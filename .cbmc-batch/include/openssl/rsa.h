@@ -14,6 +14,12 @@
  * permissions and limitations under the License.
  */
 
+/* This is a local copy of the OpenSSL header of the same name, but containing only those functions that are called by
+ * the code that we are verifying. */
+
+#ifndef HEADER_RSA_H
+#define HEADER_RSA_H
+
 #define RSA_PKCS1_PADDING 1
 #define RSA_SSLV23_PADDING 2
 #define RSA_NO_PADDING 3
@@ -21,3 +27,5 @@
 #define RSA_X931_PADDING 5
 /* EVP_PKEY_ only */
 #define RSA_PKCS1_PSS_PADDING 6
+
+#endif
