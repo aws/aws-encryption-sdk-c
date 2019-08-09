@@ -23,10 +23,10 @@
  * API. However, we can check them in the proof harnesses because these properties are modeled in our abstract model of
  * OpenSSL. */
 
-/* Checks that the message-digest context is valid based on the state of its members. */
+/** Checks that the message-digest context is valid based on the state of its members. */
 bool aws_cryptosdk_md_context_is_valid_cbmc(struct aws_cryptosdk_md_context *md_context);
 
-/* Checks that the signing context is valid based on the state of its members. */
+/** Checks that the signing context is valid based on the state of its members. */
 bool aws_cryptosdk_sig_ctx_is_valid_cbmc(struct aws_cryptosdk_sig_ctx *sig_ctx);
 
 #endif /* CBMC_INVARIANTS_H */
