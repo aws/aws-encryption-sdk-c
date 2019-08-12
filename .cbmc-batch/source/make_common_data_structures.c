@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-
 #include <openssl/ec.h>
 #include <openssl/evp.h>
 
@@ -21,6 +20,15 @@
 #include <ec_utils.h>
 #include <evp_utils.h>
 #include <make_common_data_structures.h>
+
+void ensure_alg_properties_has_allocated_names(struct aws_cryptosdk_alg_properties *const alg_props) {
+    size_t md_name_size;
+    alg_props->md_name = can_fail_malloc(md_name_size);
+    size_t cipher_name_size;
+    alg_props->cipher_name = can_fail_malloc(cipher_name_size);
+    size_t alg_name_size;
+    alg_props->alg_name = can_fail_malloc(alg_name_size);
+}
 
 void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ctx) {
     ctx->alloc      = nondet_bool() ? NULL : can_fail_allocator();

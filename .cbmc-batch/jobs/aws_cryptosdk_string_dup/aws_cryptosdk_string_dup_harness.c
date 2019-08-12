@@ -13,20 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include <aws/common/string.h>
 #include <aws/common/array_list.h>
+#include <aws/common/string.h>
+#include <aws/cryptosdk/private/utils.h>
 #include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/utils.h>
-#include <aws/cryptosdk/private/utils.h>
 
 void aws_cryptosdk_string_dup_harness() {
     /* data structure */
     struct aws_allocator *alloc = can_fail_allocator(); /* Precondition: alloc must be non-null */
-    struct aws_string *str_a = ensure_string_is_allocated_bounded_length(MAX_STRING_LEN);
+    struct aws_string *str_a    = ensure_string_is_allocated_bounded_length(MAX_STRING_LEN);
 
     struct aws_string *str_b = aws_cryptosdk_string_dup(alloc, str_a);
-    /* assertions */ 
+    /* assertions */
     aws_string_eq(str_a, str_b);
-
 }

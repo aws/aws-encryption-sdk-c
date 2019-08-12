@@ -20,24 +20,21 @@
 void aws_cryptosdk_keyring_trace_record_init_clone_harness() {
     /* data structure */
     struct aws_cryptosdk_keyring_trace_record source_record; /* Precondition: record is non-null */
-    struct aws_cryptosdk_keyring_trace_record dest_record; /* Precondition: record is non-null */
-    struct aws_allocator *alloc = can_fail_allocator(); /* Precondition: alloc must be non-null */
+    struct aws_cryptosdk_keyring_trace_record dest_record;   /* Precondition: record is non-null */
+    struct aws_allocator *alloc = can_fail_allocator();      /* Precondition: alloc must be non-null */
 
     source_record.wrapping_key_namespace = ensure_string_is_allocated_bounded_length(MAX_STRING_LEN);
-    source_record.wrapping_key_name = ensure_string_is_allocated_bounded_length(MAX_STRING_LEN);
+    source_record.wrapping_key_name      = ensure_string_is_allocated_bounded_length(MAX_STRING_LEN);
 
-
-    if ( aws_cryptosdk_keyring_trace_record_init_clone(alloc, &dest_record, &source_record) == AWS_OP_SUCCESS) {
-    	/* assertions */
-    	assert(aws_string_eq(source_record.wrapping_key_namespace, dest_record.wrapping_key_namespace));
-    	assert(aws_string_eq(source_record.wrapping_key_name, dest_record.wrapping_key_name));
-    	assert(source_record.flags == dest_record.flags);
+    if (aws_cryptosdk_keyring_trace_record_init_clone(alloc, &dest_record, &source_record) == AWS_OP_SUCCESS) {
+        /* assertions */
+        assert(aws_string_eq(source_record.wrapping_key_namespace, dest_record.wrapping_key_namespace));
+        assert(aws_string_eq(source_record.wrapping_key_name, dest_record.wrapping_key_name));
+        assert(source_record.flags == dest_record.flags);
+    } else {
+        /* assertions */
+        assert(dest_record.flags == 0);
+        assert(dest_record.wrapping_key_name == NULL);
+        assert(dest_record.wrapping_key_namespace == NULL);
     }
-    else {
-    	/* assertions */
-    	assert(dest_record.flags == 0);
-    	assert(dest_record.wrapping_key_name == NULL);
-    	assert(dest_record.wrapping_key_namespace == NULL);
-    }
-
 }

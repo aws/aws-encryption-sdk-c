@@ -26,6 +26,4 @@ void aws_cryptosdk_keyring_trace_record_clean_up_harness() {
     assert(record.flags == 0);
     assert(record.wrapping_key_name == NULL);
     assert(record.wrapping_key_namespace == NULL);
-
-
 }
