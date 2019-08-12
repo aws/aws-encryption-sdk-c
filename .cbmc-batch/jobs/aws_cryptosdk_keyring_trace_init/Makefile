@@ -23,14 +23,14 @@ CBMCFLAGS +=
 
 ENTRY = aws_cryptosdk_keyring_trace_init_harness
 
-DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/make_common_data_structures.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/proof_allocators.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-src/byte_buf.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-src/common.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-src/error.c
-DEPENDENCIES +=	$(SRCDIR)/c-enc-sdk-src/cipher.c
-DEPENDENCIES +=	$(SRCDIR)/c-enc-sdk-src/keyring_trace.c
-DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
+DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/make_common_data_structures.goto
+DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/proof_allocators.goto
+DEPENDENCIES +=	$(SRCDIR)/c-common-src/byte_buf.goto
+DEPENDENCIES +=	$(SRCDIR)/c-common-src/common.goto
+DEPENDENCIES +=	$(SRCDIR)/c-common-src/error.goto
+DEPENDENCIES +=	$(SRCDIR)/c-enc-sdk-src/cipher.goto
+DEPENDENCIES +=	$(SRCDIR)/c-enc-sdk-src/keyring_trace.goto
+DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.goto
 
 ###########
 
