@@ -1,5 +1,6 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Changes to OpenSSL version 1.1.1. copyright 2019 Amazon.com, Inc. All Rights Reserved.
+ * Copyright 1995-2017 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -13,13 +14,13 @@
  * permissions and limitations under the License.
  */
 
-#ifndef BN_UTILS_H
-#define BN_UTILS_H
+#ifndef HEADER_OBJECTS_H
+#define HEADER_OBJECTS_H
 
-#include <stdbool.h>
-#include <openssl/bn.h>
+#define NID_undef 0
+#define NID_X9_62_prime256v1 415
+#define NID_secp384r1 715
 
-bool bignum_is_valid(BIGNUM *bn);
-BIGNUM *bignum_nondet_alloc();
+int OBJ_txt2nid(const char *s);
 
 #endif

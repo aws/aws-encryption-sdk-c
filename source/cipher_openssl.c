@@ -79,10 +79,21 @@ struct aws_cryptosdk_sig_ctx {
     bool is_sign;
 };
 
+bool aws_cryptosdk_sig_ctx_is_valid(const struct aws_cryptosdk_sig_ctx *sig_ctx) {
+    return sig_ctx && AWS_OBJECT_PTR_IS_READABLE(sig_ctx->alloc) && AWS_OBJECT_PTR_IS_READABLE(sig_ctx->props) &&
+           sig_ctx->keypair && sig_ctx->pkey && sig_ctx->ctx &&
+           (EVP_PKEY_get0_EC_KEY(sig_ctx->pkey) == sig_ctx->keypair) &&
+           (sig_ctx->is_sign == (EC_KEY_get0_private_key(sig_ctx->keypair) != NULL));
+}
+
 struct aws_cryptosdk_md_context {
     struct aws_allocator *alloc;
     EVP_MD_CTX *evp_md_ctx;
 };
+
+bool aws_cryptosdk_md_context_is_valid(const struct aws_cryptosdk_md_context *md_context) {
+    return md_context && AWS_OBJECT_PTR_IS_READABLE(md_context->alloc) && md_context->evp_md_ctx;
+}
 
 int aws_cryptosdk_md_init(
     struct aws_allocator *alloc, struct aws_cryptosdk_md_context **md_context, enum aws_cryptosdk_md_alg md_alg) {
@@ -460,6 +471,8 @@ rethrow:
 }
 
 void aws_cryptosdk_sig_abort(struct aws_cryptosdk_sig_ctx *ctx) {
+    AWS_PRECONDITION(!ctx || (aws_cryptosdk_sig_ctx_is_valid(ctx) && AWS_OBJECT_PTR_IS_READABLE(ctx->alloc)));
+
     if (!ctx) {
         return;
     }
@@ -713,10 +726,15 @@ rethrow:
 }
 
 int aws_cryptosdk_sig_update(struct aws_cryptosdk_sig_ctx *ctx, const struct aws_byte_cursor cursor) {
+    AWS_PRECONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(&cursor));
+    AWS_PRECONDITION(cursor.len > 0);
     if (EVP_DigestUpdate(ctx->ctx, cursor.ptr, cursor.len) != 1) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
+    AWS_POSTCONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+    AWS_POSTCONDITION(aws_byte_cursor_is_valid(&cursor));
     return AWS_OP_SUCCESS;
 }
 

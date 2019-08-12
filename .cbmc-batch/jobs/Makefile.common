@@ -84,7 +84,6 @@ INC += -I$(SRCDIR)/helper-inc
 INC += -I$(SRCDIR)/c-enc-sdk-inc
 INC += -I$(SRCDIR)/c-common-inc
 INC += -I$(SRCDIR)/c-common-helper-inc
-INC += -I/usr/local/opt/openssl@1.1/include/
 
 ################################################################
 # Temporarily disable UNWIND_GOTO, SIMPLIFY until the feature is

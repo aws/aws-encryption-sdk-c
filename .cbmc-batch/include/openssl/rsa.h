@@ -1,5 +1,6 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Changes to OpenSSL version 1.1.1. copyright 2019 Amazon.com, Inc. All Rights Reserved.
+ * Copyright 1995-2017 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -13,13 +14,10 @@
  * permissions and limitations under the License.
  */
 
-#ifndef BN_UTILS_H
-#define BN_UTILS_H
-
-#include <stdbool.h>
-#include <openssl/bn.h>
-
-bool bignum_is_valid(BIGNUM *bn);
-BIGNUM *bignum_nondet_alloc();
-
-#endif
+#define RSA_PKCS1_PADDING 1
+#define RSA_SSLV23_PADDING 2
+#define RSA_NO_PADDING 3
+#define RSA_PKCS1_OAEP_PADDING 4
+#define RSA_X931_PADDING 5
+/* EVP_PKEY_ only */
+#define RSA_PKCS1_PSS_PADDING 6

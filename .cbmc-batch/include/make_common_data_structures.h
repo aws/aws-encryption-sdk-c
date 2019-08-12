@@ -15,10 +15,13 @@
 
 #include <aws/common/common.h>
 #include <aws/cryptosdk/cipher.h>
-#include <aws/cryptosdk/private/framefmt.h>
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-void ensure_alg_properties_has_allocated_names(struct aws_cryptosdk_alg_properties *const alg_props);
+/* Allocates the members of the context and ensures that internal pointers are pointing to the correct objects. */
+void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ctx);
+
+/* Allocates the members of the context and ensures that internal pointers are pointing to the correct objects. */
+void ensure_sig_ctx_has_allocated_members(struct aws_cryptosdk_sig_ctx *ctx);
