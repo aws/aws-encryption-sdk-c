@@ -20,6 +20,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+void ensure_alg_properties_has_allocated_names(struct aws_cryptosdk_alg_properties *const alg_props);
+
 /* Allocates the members of the context and ensures that internal pointers are pointing to the correct objects. */
 void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ctx);
 
