@@ -18,7 +18,7 @@
 #include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
 
-void harness() {
+void aws_cryptosdk_serialize_frame_harness() {
     /* data structure */
     struct aws_cryptosdk_frame frame;
     size_t ciphertext_size;
@@ -46,5 +46,5 @@ void harness() {
         // Assert that the ciphertext buffer is zeroed in case of failure
         assert_all_zeroes(ciphertext_buf.buffer, ciphertext_buf.capacity);
         assert(ciphertext_buf.len == 0);
-    }   
+    }
 }
