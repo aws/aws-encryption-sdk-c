@@ -201,6 +201,8 @@ You have successfully built and installed the AWS Encryption SDK for C.
 
 ### Building on Windows
 
+**Note**: _see the docker-images folder for some Windows build recipes that automate many of theses steps_
+
 Start by installing Visual Studio version 15 or later with the Windows Universal C Runtime and
 [Git for Windows](https://git-scm.com/download/win).
 
