@@ -7,9 +7,6 @@ LABEL Description="Base image for Build Testing"
 LABEL Vendor="AWS"
 LABEL Version="1.0"
 
-# latest is not a tag used by Microsoft see https://hub.docker.com/_/microsoft-windows-servercore
-FROM mcr.microsoft.com/windows/servercore:1809-amd64
-
 ADD https://download.microsoft.com/download/6/A/A/6AA4EDFF-645B-48C5-81CC-ED5963AEAD48/vc_redist.x64.exe /vc_redist.x64.exe
 RUN start /wait C:\vc_redist.x64.exe /quiet /norestart
 
