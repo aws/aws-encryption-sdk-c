@@ -1,6 +1,7 @@
 # escape=`
 # latest is not a tag used by Microsoft see https://hub.docker.com/_/microsoft-windows-servercore
-FROM mcr.microsoft.com/windows/servercore:1809-amd64
+# Note CodeBuilds last error indicated they are using 10.0.14393 build hosts.
+FROM mcr.microsoft.com/windows/servercore:1607-KB4512517
 
 LABEL Description="Base image for Build Testing"
 LABEL Vendor="AWS"
