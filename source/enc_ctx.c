@@ -31,34 +31,39 @@ int aws_cryptosdk_enc_ctx_init(struct aws_allocator *alloc, struct aws_hash_tabl
 }
 
 int aws_cryptosdk_enc_ctx_size(size_t *size, const struct aws_hash_table *enc_ctx) {
-    size_t serialized_len = 2;  // First two bytes are the number of k-v pairs
-    size_t entry_count    = 0;
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_WRITABLE(size));
+    AWS_PRECONDITION(aws_hash_table_is_valid(enc_ctx));
 
+    const size_t entry_count = aws_hash_table_get_entry_count(enc_ctx);
+    if (entry_count > UINT16_MAX) return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
+    if (entry_count == 0) {
+        // Empty context.
+        *size = 0;
+        AWS_POSTCONDITION(aws_hash_table_is_valid(enc_ctx));
+        AWS_POSTCONDITION(*size <= UINT16_MAX);
+        return AWS_OP_SUCCESS;
+    }
+
+    size_t serialized_len = 2;  // First two bytes are the number of k-v pairs
     for (struct aws_hash_iter iter = aws_hash_iter_begin(enc_ctx); !aws_hash_iter_done(&iter);
          aws_hash_iter_next(&iter)) {
-        entry_count++;
-
-        if (entry_count > UINT16_MAX) {
-            return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
-        }
-
         const struct aws_string *key   = iter.element.key;
         const struct aws_string *value = iter.element.value;
-        serialized_len += 2 /* key length */ + key->len + 2 /* value length */ + value->len;
+
+        // Overflow safe addition:
+        // serialized_len +=  key->len + value->len + 4 [2 bytes for key len, 2 bytes for value len]
+        if (aws_add_size_checked_varargs(4, &serialized_len, serialized_len, key->len, value->len, (size_t)4)) {
+            return AWS_OP_ERR;
+        }
 
         if (serialized_len > UINT16_MAX) {
             return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
         }
     }
 
-    if (entry_count == 0) {
-        // Empty context.
-        *size = 0;
-        return AWS_OP_SUCCESS;
-    }
-
     *size = serialized_len;
-
+    AWS_POSTCONDITION(aws_hash_table_is_valid(enc_ctx));
+    AWS_POSTCONDITION(*size <= UINT16_MAX);
     return AWS_OP_SUCCESS;
 }
 
