@@ -58,8 +58,32 @@ int aws_cryptosdk_edk_init_clone(
 }
 
 bool aws_cryptosdk_edk_is_valid(const struct aws_cryptosdk_edk *const edk) {
-  return AWS_OBJECT_PTR_IS_READABLE(edk)
-    && aws_byte_buf_is_valid(&edk->provider_id)
-    && aws_byte_buf_is_valid(&edk->provider_info)
-    && aws_byte_buf_is_valid(&edk->ciphertext);
+    return AWS_OBJECT_PTR_IS_READABLE(edk) && aws_byte_buf_is_valid(&edk->provider_id) &&
+           aws_byte_buf_is_valid(&edk->provider_info) && aws_byte_buf_is_valid(&edk->ciphertext);
+}
+
+bool aws_cryptosdk_edk_list_is_valid(const struct aws_array_list *edk_list) {
+    if (!AWS_OBJECT_PTR_IS_READABLE(edk_list)) {
+        return false;
+    }
+    if (!aws_array_list_is_valid(edk_list)) {
+        return false;
+    }
+    if (edk_list->item_size != sizeof(struct aws_cryptosdk_edk)) {
+        return false;
+    }
+
+#if AWS_DEEP_CHECKS == 1
+    size_t len = edk_list->length;
+    for (size_t i = 0; i < len; ++i) {
+        struct aws_cryptosdk_edk *edk;
+        if (!aws_array_list_get_at_ptr(edk_list, (void **)&edk, i)) {
+            if (!aws_cryptosdk_edk_is_valid(edk)) {
+                return false;
+            }
+        }
+    }
+#endif /* AWS_DEEP_CHECKS == 1 */
+
+    return true;
 }
