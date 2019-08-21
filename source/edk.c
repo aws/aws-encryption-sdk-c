@@ -56,3 +56,10 @@ int aws_cryptosdk_edk_init_clone(
 
     return AWS_OP_SUCCESS;
 }
+
+bool aws_cryptosdk_edk_is_valid(const struct aws_cryptosdk_edk *const edk) {
+  return AWS_OBJECT_PTR_IS_READABLE(edk)
+    && aws_byte_buf_is_valid(&edk->provider_id)
+    && aws_byte_buf_is_valid(&edk->provider_info)
+    && aws_byte_buf_is_valid(&edk->ciphertext);
+}

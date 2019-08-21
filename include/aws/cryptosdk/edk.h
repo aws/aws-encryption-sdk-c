@@ -47,6 +47,20 @@ extern "C" {
 #endif
 
 /**
+ * Evaluates the set of properties that define the shape of all valid aws_cryptosdk_edk structures.
+ * It is also a cheap check, in the sense it run in constant time (i.e., no loops or recursion).
+ */
+AWS_CRYPTOSDK_API
+bool aws_cryptosdk_edk_is_valid(const struct aws_cryptosdk_edk *const edk);
+
+/**
+ * Evaluates the set of properties that define the shape of a valid edk_list.
+ */
+AWS_CRYPTOSDK_API
+bool aws_cryptosdk_edk_is_valid(const struct aws_cryptosdk_edk *const edk);
+
+  
+/**
  * Deallocates all memory associated with an EDK. Setting all bytes of an EDK to
  * zero when you declare it will make this safe to call even if some buffers are unused.
  */
