@@ -19,7 +19,10 @@
 #include <cipher_openssl.h>
 #include <ec_utils.h>
 #include <evp_utils.h>
-#include <make_common_data_structures.h>
+
+#include <proof_helpers/make_common_data_structures.h>
+#include <proof_helpers/cryptosdk/make_common_data_structures.h>
+#include <proof_helpers/proof_allocators.h>
 
 void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ctx) {
     ctx->alloc      = nondet_bool() ? NULL : can_fail_allocator();
@@ -43,4 +46,17 @@ void ensure_sig_ctx_has_allocated_members(struct aws_cryptosdk_sig_ctx *ctx) {
         // Need to ensure consistency of reference count later by assuming ctx is valid
         evp_md_ctx_set0_evp_pkey(ctx->ctx, ctx->pkey);
     }
+}
+
+struct aws_cryptosdk_edk {
+    struct aws_byte_buf provider_id;
+    struct aws_byte_buf provider_info;
+    struct aws_byte_buf ciphertext;
+};
+
+
+void ensure_cryptosdk_edk_has_allocated_members(struct aws_cryptosdk_edk* edk){
+  ensure_byte_buf_has_allocated_buffer_member(&edk->provider_id);
+  ensure_byte_buf_has_allocated_buffer_member(&edk->provider_info);
+  ensure_byte_buf_has_allocated_buffer_member(&edk->ciphertext);
 }
