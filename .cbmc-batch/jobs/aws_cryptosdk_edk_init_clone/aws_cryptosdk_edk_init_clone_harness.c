@@ -28,11 +28,11 @@ void aws_cryptosdk_edk_init_clone_harness() {
     struct aws_allocator *alloc = can_fail_allocator();  // Precondition: valid allocator
     __CPROVER_assume(aws_allocator_is_valid(alloc));
 
-    struct aws_cryptosdk_edk dest;                       // Precondition: non-null
+    struct aws_cryptosdk_edk dest;  // Precondition: non-null
 
     const struct aws_cryptosdk_edk src;  // Precondition: non-null
     ensure_cryptosdk_edk_has_allocated_members(&src);
-    __CPROVER_assume(aws_cryptosdk_edk_is_valid(&src)); //Precondition: is_valid()
+    __CPROVER_assume(aws_cryptosdk_edk_is_valid(&src));  // Precondition: is_valid()
 
     int rval = aws_cryptosdk_edk_init_clone(alloc, &dest, &src);
     assert(aws_cryptosdk_edk_is_valid(&src));

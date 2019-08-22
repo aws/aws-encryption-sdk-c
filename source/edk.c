@@ -20,9 +20,11 @@ int aws_cryptosdk_edk_list_init(struct aws_allocator *alloc, struct aws_array_li
 }
 
 void aws_cryptosdk_edk_clean_up(struct aws_cryptosdk_edk *edk) {
+    AWS_PRECONDITION(aws_cryptosdk_edk_is_valid(edk));
     aws_byte_buf_clean_up(&edk->provider_id);
     aws_byte_buf_clean_up(&edk->provider_info);
     aws_byte_buf_clean_up(&edk->ciphertext);
+    AWS_POSTCONDITION(aws_cryptosdk_edk_is_valid(edk));
 }
 
 void aws_cryptosdk_edk_list_clear(struct aws_array_list *edk_list) {
@@ -43,13 +45,17 @@ void aws_cryptosdk_edk_list_clean_up(struct aws_array_list *edk_list) {
 
 int aws_cryptosdk_edk_init_clone(
     struct aws_allocator *alloc, struct aws_cryptosdk_edk *dest, const struct aws_cryptosdk_edk *src) {
-    memset(dest, 0, sizeof(*dest));
+    AWS_PRECONDITION(aws_allocator_is_valid(alloc));
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(dest));
+    AWS_PRECONDITION(aws_cryptosdk_is_valid(src));
+
+    AWS_ZERO_STRUCT(*dest);
 
     if (aws_byte_buf_init_copy(&dest->provider_id, alloc, &src->provider_id) ||
         aws_byte_buf_init_copy(&dest->provider_info, alloc, &src->provider_info) ||
         aws_byte_buf_init_copy(&dest->ciphertext, alloc, &src->ciphertext)) {
         aws_cryptosdk_edk_clean_up(dest);
-        memset(dest, 0, sizeof(*dest));
+        AWS_ZERO_STRUCT(*dest);
 
         return AWS_OP_ERR;
     }

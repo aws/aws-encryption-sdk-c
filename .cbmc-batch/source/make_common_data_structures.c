@@ -20,8 +20,8 @@
 #include <ec_utils.h>
 #include <evp_utils.h>
 
-#include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/cryptosdk/make_common_data_structures.h>
+#include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
 
 void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ctx) {
@@ -48,15 +48,14 @@ void ensure_sig_ctx_has_allocated_members(struct aws_cryptosdk_sig_ctx *ctx) {
     }
 }
 
-
-bool aws_cryptosdk_edk_is_bounded(const struct aws_cryptosdk_edk* edk, const size_t max_size){
-  return aws_byte_buf_is_bounded(&edk->provider_id, max_size) &&
-    aws_byte_buf_is_bounded(&edk->provider_info, max_size) &&
-    aws_byte_buf_is_bounded(&edk->ciphertext, max_size);
+bool aws_cryptosdk_edk_is_bounded(const struct aws_cryptosdk_edk *edk, const size_t max_size) {
+    return aws_byte_buf_is_bounded(&edk->provider_id, max_size) &&
+           aws_byte_buf_is_bounded(&edk->provider_info, max_size) &&
+           aws_byte_buf_is_bounded(&edk->ciphertext, max_size);
 }
 
-void ensure_cryptosdk_edk_has_allocated_members(struct aws_cryptosdk_edk* edk){
-  ensure_byte_buf_has_allocated_buffer_member(&edk->provider_id);
-  ensure_byte_buf_has_allocated_buffer_member(&edk->provider_info);
-  ensure_byte_buf_has_allocated_buffer_member(&edk->ciphertext);
+void ensure_cryptosdk_edk_has_allocated_members(struct aws_cryptosdk_edk *edk) {
+    ensure_byte_buf_has_allocated_buffer_member(&edk->provider_id);
+    ensure_byte_buf_has_allocated_buffer_member(&edk->provider_info);
+    ensure_byte_buf_has_allocated_buffer_member(&edk->ciphertext);
 }
