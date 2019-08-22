@@ -13,6 +13,15 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -euxo pipefail
+# The command used to generate the clang-format config file is:
+#   clang-format --style=Google -dump-config
 
-find {.,aws-encryption-sdk-cpp}/{include,source,tests} examples -name '*.h' -or -name '*.c' -or -name '*.cpp' | xargs clang-format -i
+echo "Checking version number"
+VER=$(clang-format --version|cut -f3 -d' '|cut -f1 -d'.')
+if [ $VER -ge 8 ];then
+  set -euxo pipefail
+  find {.,aws-encryption-sdk-cpp}/{include,source,tests} examples -name '*.h' -or -name '*.c' -or -name '*.cpp' | xargs clang-format -i
+else
+  echo "clang-format version 8 or greater is needed to read the format file."
+fi
+
