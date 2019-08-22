@@ -13,11 +13,28 @@
  * limitations under the License.
  */
 
+#pragma once
+
 #include <aws/common/common.h>
 #include <aws/cryptosdk/cipher.h>
+#include <aws/cryptosdk/edk.h>
 
-/* Allocates the members of the context and ensures that internal pointers are pointing to the correct objects. */
+/**
+ * Allocates the members of the context and ensures that internal pointers are pointing to the correct objects. 
+ */
 void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ctx);
 
-/* Allocates the members of the context and ensures that internal pointers are pointing to the correct objects. */
+/**
+ * Allocates the members of the context and ensures that internal pointers are pointing to the correct objects. 
+ */
 void ensure_sig_ctx_has_allocated_members(struct aws_cryptosdk_sig_ctx *ctx);
+
+/**
+ * Ensures that the edk members are all bounded as less than max_size.
+ */
+bool aws_cryptosdk_edk_is_bounded(const struct aws_cryptosdk_edk* edk, const size_t max_size);
+
+/**
+ * Ensures that all fields in the edk are properly allocated.
+ */
+void ensure_cryptosdk_edk_has_allocated_members(struct aws_cryptosdk_edk* edk);

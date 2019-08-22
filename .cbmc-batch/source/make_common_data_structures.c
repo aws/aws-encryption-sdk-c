@@ -48,12 +48,12 @@ void ensure_sig_ctx_has_allocated_members(struct aws_cryptosdk_sig_ctx *ctx) {
     }
 }
 
-struct aws_cryptosdk_edk {
-    struct aws_byte_buf provider_id;
-    struct aws_byte_buf provider_info;
-    struct aws_byte_buf ciphertext;
-};
 
+bool aws_cryptosdk_edk_is_bounded(const struct aws_cryptosdk_edk* edk, const size_t max_size){
+  return aws_byte_buf_is_bounded(&edk->provider_id, max_size) &&
+    aws_byte_buf_is_bounded(&edk->provider_info, max_size) &&
+    aws_byte_buf_is_bounded(&edk->ciphertext, max_size);
+}
 
 void ensure_cryptosdk_edk_has_allocated_members(struct aws_cryptosdk_edk* edk){
   ensure_byte_buf_has_allocated_buffer_member(&edk->provider_id);
