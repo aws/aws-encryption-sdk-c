@@ -38,3 +38,11 @@ bool aws_cryptosdk_edk_is_bounded(const struct aws_cryptosdk_edk *edk, const siz
  * Ensures that all fields in the edk are properly allocated.
  */
 void ensure_cryptosdk_edk_has_allocated_members(struct aws_cryptosdk_edk *edk);
+
+bool aws_cryptosdk_edk_list_is_bounded(
+    const struct aws_array_list *const list, const size_t max_initial_item_allocation);
+
+bool aws_cryptosdk_edk_list_elements_are_bounded(const struct aws_array_list *const list, const size_t max_item_size);
+void ensure_cryptosdk_edk_list_has_allocated_list(struct aws_array_list *list);
+
+void ensure_cryptosdk_edk_list_has_allocated_list_elements(struct aws_array_list *list);

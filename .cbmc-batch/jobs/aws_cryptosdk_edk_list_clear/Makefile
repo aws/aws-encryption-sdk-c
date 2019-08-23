@@ -19,16 +19,20 @@ include ../Makefile.local_default
 
 #########
 # Local vars
-NUM_ELEMS = 1
+NUM_ELEMS = 2
+#2: 2m
 
 #########
 ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/error.c
 ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/memcmp_override_no_op.c
-AWS_DEEP_CHECKS = 1
+#AWS_DEEP_CHECKS = 1
 
 CBMCFLAGS +=
 
 DEFINES += -DNUM_ELEMS=$(NUM_ELEMS)
+DEFINES += -DARRAY_LIST_TYPE="struct aws_cryptosdk_edk"
+DEFINES += -DAWS_NO_STATIC_IMPL
+DEFINES += -DAWS_STATIC_IMPL=AWS_COMMON_API
 
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
@@ -44,8 +48,12 @@ ENTRY = aws_cryptosdk_edk_list_clear_harness
 REMOVE_FUNCTION_BODIES += --remove-function-body nondet_compare
 addone = $(shell echo $$(( $(1) + 1)))
 
-UNWINDSET += aws_cryptosdk_edk_list_is_valid.0:$(call addone,$(NUM_ELEMS)) 
 UNWINDSET += aws_cryptosdk_edk_list_clear.0:$(call addone,$(NUM_ELEMS)) 
-
+UNWINDSET += aws_cryptosdk_edk_list_elements_are_bounded.0:$(call addone,$(NUM_ELEMS))
+UNWINDSET += aws_cryptosdk_edk_list_elements_are_valid.0:$(call addone,$(NUM_ELEMS))
+UNWINDSET += aws_cryptosdk_edk_list_is_bounded.0:$(call addone,$(NUM_ELEMS))
+UNWINDSET += aws_cryptosdk_edk_list_is_valid.0:$(call addone,$(NUM_ELEMS)) 
+UNWINDSET += ensure_cryptosdk_edk_list_has_allocated_list_elements.0:$(call addone,$(NUM_ELEMS))
+UNWINDSET += ensure_cryptosdk_edk_list_has_allocated_members.0:$(call addone,$(NUM_ELEMS))
 ###########
 include ../Makefile.common

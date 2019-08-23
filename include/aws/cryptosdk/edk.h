@@ -62,6 +62,12 @@ AWS_CRYPTOSDK_API
 bool aws_cryptosdk_edk_list_is_valid(const struct aws_array_list *edk_list);
 
 /**
+ * Evaluates the set of properties that define the shape of a valid edk_list.
+ * Takes time O(list->length) as it loops through all elements of the list;
+ */
+bool aws_cryptosdk_edk_list_elements_are_valid(const struct aws_array_list *edk_list);
+
+/**
  * Deallocates all memory associated with an EDK. Setting all bytes of an EDK to
  * zero when you declare it will make this safe to call even if some buffers are unused.
  */

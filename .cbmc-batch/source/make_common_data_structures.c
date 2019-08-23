@@ -59,3 +59,41 @@ void ensure_cryptosdk_edk_has_allocated_members(struct aws_cryptosdk_edk *edk) {
     ensure_byte_buf_has_allocated_buffer_member(&edk->provider_info);
     ensure_byte_buf_has_allocated_buffer_member(&edk->ciphertext);
 }
+
+bool aws_cryptosdk_edk_list_is_bounded(
+    const struct aws_array_list *const list, const size_t max_initial_item_allocation) {
+    if (list->item_size != sizeof(struct aws_cryptosdk_edk)) {
+        return false;
+    }
+    if (list->length > max_initial_item_allocation) {
+        return false;
+    }
+
+    return true;
+}
+
+bool aws_cryptosdk_edk_list_elements_are_bounded(const struct aws_array_list *const list, const size_t max_item_size) {
+    for (size_t i = 0; i < list->length; ++i) {
+        if (!aws_cryptosdk_edk_is_bounded(&(list->data[i]), max_item_size)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void ensure_cryptosdk_edk_list_has_allocated_list(struct aws_array_list *list) {
+    if (list->current_size == 0) {
+        __CPROVER_assume(list->data == NULL);
+        list->alloc = can_fail_allocator();
+    } else {
+        size_t max_length = list->current_size / sizeof(struct aws_cryptosdk_edk);
+        list->data        = bounded_malloc(sizeof(struct aws_cryptosdk_edk) * max_length);
+        list->alloc       = nondet_bool() ? NULL : can_fail_allocator();
+    }
+}
+
+void ensure_cryptosdk_edk_list_has_allocated_list_elements(struct aws_array_list *list) {
+    for (size_t i = 0; i < list->length; ++i) {
+        ensure_cryptosdk_edk_has_allocated_members(&(list->data[i]));
+    }
+}
