@@ -20,5 +20,6 @@
 #include <stdio.h>
 
 void ERR_print_errors_fp(FILE *fp);
+signed int ERR_get_error(void);
 
 #endif

@@ -18,3 +18,7 @@
 void ERR_print_errors_fp(FILE *fp) {
     assert(fp == stderr);
 }
+
+signed int ERR_get_error(void){
+	return 0;
+}
