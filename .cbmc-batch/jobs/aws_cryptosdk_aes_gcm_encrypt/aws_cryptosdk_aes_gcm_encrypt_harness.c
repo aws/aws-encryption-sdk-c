@@ -17,7 +17,7 @@
 #include <aws/cryptosdk/private/cipher.h>
 #include <make_common_data_structures.h>
 
-#define MSG_ID_LEN 16
+#define KEY_LEN 256
 
 void aws_cryptosdk_aes_gcm_encrypt_harness() {
     struct aws_byte_buf cipher;
@@ -47,7 +47,7 @@ void aws_cryptosdk_aes_gcm_encrypt_harness() {
     ensure_byte_cursor_has_allocated_buffer_member(&aad);
     __CPROVER_assume(aws_byte_cursor_is_valid(&aad));
 
-    key = ensure_string_is_allocated_bounded_length(256);
+    key = ensure_string_is_allocated_bounded_length(KEY_LEN);
 
     aws_cryptosdk_aes_gcm_encrypt(&cipher, &tag, plain, iv, aad, key);
 }
