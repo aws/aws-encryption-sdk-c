@@ -20,14 +20,6 @@
 #define MSG_ID_LEN 16
 
 void aws_cryptosdk_aes_gcm_encrypt_harness() {
-    /*struct aws_byte_buf *cipher,
-    struct aws_byte_buf *tag,
-    const struct aws_byte_cursor plain,
-    const struct aws_byte_cursor iv,
-    const struct aws_byte_cursor aad,
-    const struct aws_string *key */
-    /* arguments */
-
     struct aws_byte_buf cipher;
     struct aws_byte_buf tag;
     struct aws_byte_cursor plain;
