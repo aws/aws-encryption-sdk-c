@@ -405,7 +405,6 @@ int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const 
     *outl = out_size;
     int rv;
     __CPROVER_assume(rv == 0 || rv == 1);
-    int DEBUG_rv = rv;
     asser(false);
     return rv;
 }
