@@ -21,6 +21,8 @@
 #include <proof_helpers/nondet.h>
 
 #define DEFAULT_IV_LEN 12  // For GCM AES and OCB AES the default is 12 (i.e. 96 bits).
+#define DEFAULT_BLOCK_SIZE 128  // For GCM AES, the default block size is 128
+
 
 /* Abstraction of the EVP_PKEY struct */
 struct evp_pkey_st {
@@ -33,7 +35,7 @@ struct evp_pkey_st {
  * public and private keys. The reference count is set to 1. Return values: EVP_PKEY_new() returns either the newly
  * allocated Ealg_idVP_PKEY structure or NULL if an error occurred.
  */
-EVP_PKEY *EVP_PKEY_new() {
+EVP_PKEY *EVEVP_EncryptInit_exP_PKEY_new() {
     EVP_PKEY *pkey = can_fail_malloc(sizeof(EVP_PKEY));
 
     if (pkey) {
@@ -301,6 +303,7 @@ struct evp_cipher_ctx_st {
     bool iv_set;          // boolean marks if iv has been set. Default:false.
     bool padding;         // boolean marks if padding is enabled. Default:true.
     bool data_processed;  // boolean marks if has encrypt/decrypt final has been called. Default:false.
+    int data_remaining; //how much is left to be encrypted/decrypted. Default: 0. 
 };
 
 /*
@@ -313,6 +316,8 @@ EVP_CIPHER_CTX *EVP_CIPHER_CTX_new() {
         cipher_ctx->iv_set         = false;
         cipher_ctx->padding        = true;
         cipher_ctx->data_processed = false;
+        cipher_ctx->data_remaining = 0; 
+        cipher_ctx->cipher = NULL;
     }
     return cipher_ctx;
 }
@@ -377,10 +382,28 @@ void EVP_CIPHER_CTX_free(EVP_CIPHER_CTX *ctx) {
 }
 
 /*
+* EVP_EncryptInit_ex() sets up cipher context ctx for encryption with cipher type from ENGINE impl.
+* ctx must be created before calling this function. type is normally supplied by a function such as EVP_aes_256_cbc().
+* If impl is NULL then the default implementation is used. key is the symmetric key to use and iv is the IV to use (if necessary), 
+* the actual number of bytes used for the key and IV depends on the cipher. It is possible to set all parameters to NULL except 
+* type in an initial call and supply the remaining parameters in subsequent calls, all of which have type set to NULL. 
+* This is done when the default cipher parameters are not appropriate.
+*/
+int EVP_EncryptInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type,
+                        ENGINE *impl, const unsigned char *key, const unsigned char *iv){
+    assert(ctx != NULL);
+    assert(type!= NULL);
+    ctx->encrypt = 1 ;
+
+}
+
+/*
  * EVP_CipherInit_ex(), EVP_CipherUpdate() and EVP_CipherFinal_ex() are functions that can be used for decryption
  * or encryption. The operation performed depends on the value of the enc parameter. It should be set to 1 for
  * encryption, 0 for decryption and -1 to leave the value unchanged (the actual value of 'enc' being supplied in a
  * previous call). Return 1 for success and 0 for failure.
+ * To specify any additional authenticated data (AAD) a call to EVP_CipherUpdate(), EVP_EncryptUpdate() or EVP_DecryptUpdate() 
+ * should be made with the output parameter out set to NULL.
  */
 int EVP_CipherUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const unsigned char *in, int inl) {
     assert(ctx != NULL);
@@ -400,13 +423,22 @@ int EVP_CipherUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const u
 int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const unsigned char *in, int inl) {
     assert(ctx != NULL);
     assert(ctx->data_processed == false);
-    size_t out_size;
-    __CPROVER_assume(out_size >= 0);
-    __CPROVER_assume(out_size <= inl + ctx->cipher->block_size - 1);
-    __CPROVER_assume(AWS_MEM_IS_WRITABLE(out, out_size));
-    *outl = out_size;
     int rv;
     __CPROVER_assume(rv == 0 || rv == 1);
+    if (out == NULL){ //specifying aad
+        return rv;   
+    }
+    size_t out_size;
+    __CPROVER_assume(out_size >= 0);
+    if (ctx->cipher){
+        __CPROVER_assume(out_size <= inl + DEFAULT_BLOCK_SIZE - 1); 
+    }
+    else{
+        __CPROVER_assume(out_size <= inl); 
+        ctx->data_remaining = inl - out_size;
+    }
+    assert(AWS_MEM_IS_WRITABLE(out, out_size));
+    *outl = out_size;
     return rv;
 }
 
@@ -425,7 +457,6 @@ int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const 
     if (ctx->padding) {
         __CPROVER_assume(out_size <= inl + ctx->cipher->block_size);
     }
-    __CPROVER_assume(AWS_MEM_IS_WRITABLE(out, out_size));
     *outl = out_size;
     int rv;
     __CPROVER_assume(rv == 0 || rv == 1);
@@ -441,9 +472,9 @@ int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const 
  */
 int EVP_EncryptFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl) {
     assert(ctx != NULL);
-    assert(AWS_MEM_IS_WRITABLE(out, ctx->cipher->block_size));
     if (ctx->padding == true) {
-        *outl = 0;
+        *outl = ctx->data_remaining;
+        assert(AWS_MEM_IS_WRITABLE(out, ctx->data_remaining));
     }
     ctx->data_processed = true;
     int rv;
@@ -459,7 +490,6 @@ int EVP_EncryptFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl) {
  */
 int EVP_DecryptFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *outm, int *outl) {
     assert(ctx != NULL);
-    assert(AWS_MEM_IS_WRITABLE(outm, ctx->cipher->block_size));
     if (ctx->padding == true) {
         *outl = 0;
     }
