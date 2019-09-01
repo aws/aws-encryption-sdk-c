@@ -50,5 +50,40 @@ void aws_cryptosdk_aes_gcm_decrypt_harness() {
 
     key = ensure_string_is_allocated_bounded_length(KEY_LEN);
 
-    aws_cryptosdk_aes_gcm_decrypt(&plain, cipher, tag, iv, aad, key);
+    /* save current state of the data structure */
+    struct aws_byte_cursor old_cipher = cipher;
+    struct store_byte_from_buffer old_byte_from_cipher;
+    save_byte_from_array(cipher.ptr, cipher.len, &old_byte_from_cipher);
+
+    struct aws_byte_cursor old_tag = tag;
+    struct store_byte_from_buffer old_byte_from_tag;
+    save_byte_from_array(tag.ptr, tag.len, &old_byte_from_tag);
+
+    struct aws_byte_cursor old_iv = iv;
+    struct store_byte_from_buffer old_byte_from_iv;
+    save_byte_from_array(iv.ptr, iv.len, &old_byte_from_iv);
+
+    struct aws_byte_cursor old_aad = aad;
+    struct store_byte_from_buffer old_byte_from_aad;
+    save_byte_from_array(aad.ptr, aad.len, &old_byte_from_aad);
+
+    if (aws_cryptosdk_aes_gcm_decrypt(&plain, cipher, tag, iv, aad, key) == AWS_OP_SUCCESS){
+        assert(plain.len == cipher.len);
+    }
+    assert(aws_byte_buf_is_valid(&plain));
+    if (cipher.len != 0) {
+        assert_byte_from_buffer_matches(cipher.ptr, &old_byte_from_cipher);
+    }
+    if (tag.len != 0) {
+        assert_byte_from_buffer_matches(tag.ptr, &old_byte_from_tag);
+    }
+    if (iv.len != 0) {
+        assert_byte_from_buffer_matches(iv.ptr, &old_byte_from_iv);
+    }
+    if (aad.len != 0){
+        assert_byte_from_buffer_matches(aad.ptr, &old_byte_from_aad);
+    }
+
+
+
 }

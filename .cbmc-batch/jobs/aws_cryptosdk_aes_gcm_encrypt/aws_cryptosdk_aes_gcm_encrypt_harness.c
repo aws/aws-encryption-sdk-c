@@ -47,7 +47,34 @@ void aws_cryptosdk_aes_gcm_encrypt_harness() {
     ensure_byte_cursor_has_allocated_buffer_member(&aad);
     __CPROVER_assume(aws_byte_cursor_is_valid(&aad));
 
+    /* save current state of the data structure */
+
+    struct aws_byte_cursor old_plain = plain;
+    struct store_byte_from_buffer old_byte_from_plain;
+    save_byte_from_array(plain.ptr, plain.len, &old_byte_from_plain);
+
+    struct aws_byte_cursor old_iv = iv;
+    struct store_byte_from_buffer old_byte_from_iv;
+    save_byte_from_array(iv.ptr, iv.len, &old_byte_from_iv);
+
+    struct aws_byte_cursor old_aad = aad;
+    struct store_byte_from_buffer old_byte_from_aad;
+    save_byte_from_array(aad.ptr, aad.len, &old_byte_from_aad);
+
     key = ensure_string_is_allocated_bounded_length(KEY_LEN);
 
-    aws_cryptosdk_aes_gcm_encrypt(&cipher, &tag, plain, iv, aad, key);
+    if (aws_cryptosdk_aes_gcm_encrypt(&cipher, &tag, plain, iv, aad, key) == AWS_OP_SUCCESS){
+        assert(cipher.len == plain.len);
+    }
+
+    assert(aws_byte_buf_is_valid(&cipher));
+    if (plain.len != 0) {
+        assert_byte_from_buffer_matches(plain.ptr, &old_byte_from_plain);
+    }
+    if (iv.len != 0) {
+        assert_byte_from_buffer_matches(iv.ptr, &old_byte_from_iv);
+    }
+    if (aad.len != 0){
+        assert_byte_from_buffer_matches(aad.ptr, &old_byte_from_aad);
+    }
 }
