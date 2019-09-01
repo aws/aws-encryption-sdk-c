@@ -33,6 +33,10 @@ void initialize_max_signature_size();
 
 size_t max_signature_size();
 
+void initialize_max_derivation_size();
+
+size_t max_derivation_size();
+
 void write_unconstrained_data(unsigned char *out, size_t len);
 
 #endif

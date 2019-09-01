@@ -15,6 +15,7 @@
 
 #include <aws/common/common.h>
 #include <aws/cryptosdk/cipher.h>
+
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
 #include <stdint.h>
@@ -25,3 +26,6 @@ void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ct
 
 /* Allocates the members of the context and ensures that internal pointers are pointing to the correct objects. */
 void ensure_sig_ctx_has_allocated_members(struct aws_cryptosdk_sig_ctx *ctx);
+
+/* Makes internal function from cipher.c accessible for CBMC */
+enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id alg_id);

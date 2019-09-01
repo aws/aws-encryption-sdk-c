@@ -33,6 +33,7 @@ typedef struct bignum_st BIGNUM;
 typedef struct ec_key_st EC_KEY;
 
 typedef struct evp_pkey_ctx_st EVP_PKEY_CTX;
+typedef struct hmac_ctx_st HMAC_CTX;
 
 typedef struct evp_cipher_st EVP_CIPHER;
 typedef struct evp_cipher_ctx_st EVP_CIPHER_CTX;
