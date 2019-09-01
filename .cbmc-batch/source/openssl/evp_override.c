@@ -402,10 +402,11 @@ int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const 
     size_t out_size;
     __CPROVER_assume(out_size >= 0);
     __CPROVER_assume(out_size <= inl + ctx->cipher->block_size - 1);
-    __CPROVER_assume(AWS_MEM_IS_WRITABLE(out, out_size));
     *outl = out_size;
     int rv;
     __CPROVER_assume(rv == 0 || rv == 1);
+    int DEBUG_rv = rv;
+    asser(false);
     return rv;
 }
 
@@ -424,7 +425,6 @@ int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const 
     if (ctx->padding) {
         __CPROVER_assume(out_size <= inl + ctx->cipher->block_size);
     }
-    __CPROVER_assume(AWS_MEM_IS_WRITABLE(out, out_size));
     *outl = out_size;
     int rv;
     __CPROVER_assume(rv == 0 || rv == 1);
@@ -440,7 +440,6 @@ int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const 
  */
 int EVP_EncryptFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl) {
     assert(ctx != NULL);
-    assert(AWS_MEM_IS_WRITABLE(out, ctx->cipher->block_size));
     if (ctx->padding == true) {
         *outl = 0;
     }
@@ -458,7 +457,6 @@ int EVP_EncryptFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl) {
  */
 int EVP_DecryptFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *outm, int *outl) {
     assert(ctx != NULL);
-    assert(AWS_MEM_IS_WRITABLE(outm, ctx->cipher->block_size));
     if (ctx->padding == true) {
         *outl = 0;
     }
