@@ -20,7 +20,7 @@
 /* Abstraction of the BIO struct */
 
 struct bio_st {    
-    size_t public_key_len;
+    size_t key_len;
 };
 
 /*
@@ -33,7 +33,7 @@ struct bio_st {
 BIO *BIO_new_mem_buf(const void *buf, signed int len){
     BIO *bio = can_fail_malloc(sizeof(BIO));
     if (bio){
-    	bio->public_key_len = len;
+    	bio->key_len = len;
 	}
     return bio;
 }
@@ -46,6 +46,15 @@ EVP_PKEY *PEM_read_bio_PUBKEY(BIO *bp, EVP_PKEY **x,
 	 x = EVP_PKEY_new();
 	 return x;
 
+}
+
+/*
+* Read a private key from a BIO. 
+*/
+EVP_PKEY *PEM_read_bio_PrivateKey(BIO *bp, EVP_PKEY **x,
+                                   pem_password_cb *cb, void *u){
+ 	x = EVP_PKEY_new();
+ 	return x;
 }
 
 /*

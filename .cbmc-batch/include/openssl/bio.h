@@ -29,6 +29,9 @@ BIO *BIO_new_mem_buf(const void *buf, signed int len);
 EVP_PKEY *PEM_read_bio_PUBKEY(BIO *bp, EVP_PKEY **x,
                                         pem_password_cb *cb, void *u);
 
+EVP_PKEY *PEM_read_bio_PrivateKey(BIO *bp, EVP_PKEY **x,
+                                   pem_password_cb *cb, void *u);
+
 int BIO_free(BIO *a);
 
 
