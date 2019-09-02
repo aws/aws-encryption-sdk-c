@@ -14,4 +14,24 @@
  * permissions and limitations under the License.
  */
 
-/* Empty header. Necessary just because it is included in cipher.c */
+
+#ifndef HEADER_RAND_H
+# define HEADER_RAND_H
+
+# include <stdlib.h>
+# include <openssl/ossl_typ.h>
+
+
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
+int RAND_bytes(unsigned char *buf, int num);
+
+
+#ifdef  __cplusplus
+}
+#endif
+
+#endif
+
