@@ -204,7 +204,6 @@ int aws_cryptosdk_sign_header(
     aws_secure_zero(iv, props->iv_len);
 
     int result          = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
-
     EVP_CIPHER_CTX *ctx = evp_gcm_cipher_init(props, content_key, iv, true);
     if (!ctx) goto out;
 
@@ -473,7 +472,6 @@ int aws_cryptosdk_aes_gcm_encrypt(
     int prev_len = out_len;
 
     if (!EVP_EncryptFinal_ex(ctx, cipher->buffer + out_len, &out_len)) goto openssl_err;
-
     if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, aes_gcm_tag_len, tag->buffer)) goto openssl_err;
 
     tag->len    = aes_gcm_tag_len;

@@ -17,7 +17,6 @@
 #include <aws/cryptosdk/private/cipher.h>
 #include <make_common_data_structures.h>
 
-
 void aws_cryptosdk_sign_header_harness() {
     /* arguments */
     enum aws_cryptosdk_alg_id alg_id;
@@ -53,5 +52,4 @@ void aws_cryptosdk_sign_header_harness() {
     assert(aws_byte_buf_is_valid(&header));
     assert(aws_byte_buf_is_valid(&authtag));
     assert_byte_buf_equivalence(&header, &old_header, &old_byte_from_header);
-    
 }

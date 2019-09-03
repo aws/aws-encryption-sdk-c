@@ -19,9 +19,8 @@
 #include <make_common_data_structures.h>
 #include <proof_helpers/nondet.h>
 
-#define DEFAULT_IV_LEN 12  // For GCM AES and OCB AES the default is 12 (i.e. 96 bits).
+#define DEFAULT_IV_LEN 12       // For GCM AES and OCB AES the default is 12 (i.e. 96 bits).
 #define DEFAULT_BLOCK_SIZE 128  // For GCM AES, the default block size is 128
-
 
 /* Abstraction of the EVP_PKEY struct */
 struct evp_pkey_st {
@@ -301,7 +300,7 @@ struct evp_cipher_ctx_st {
     bool iv_set;          // boolean marks if iv has been set. Default:false.
     bool padding;         // boolean marks if padding is enabled. Default:true.
     bool data_processed;  // boolean marks if has encrypt/decrypt final has been called. Default:false.
-    int data_remaining; //how much is left to be encrypted/decrypted. Default: 0. 
+    int data_remaining;   // how much is left to be encrypted/decrypted. Default: 0.
 };
 
 /*
@@ -314,8 +313,8 @@ EVP_CIPHER_CTX *EVP_CIPHER_CTX_new() {
         cipher_ctx->iv_set         = false;
         cipher_ctx->padding        = true;
         cipher_ctx->data_processed = false;
-        cipher_ctx->data_remaining = 0; 
-        cipher_ctx->cipher = NULL;
+        cipher_ctx->data_remaining = 0;
+        cipher_ctx->cipher         = NULL;
     }
     return cipher_ctx;
 }
@@ -404,23 +403,21 @@ int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const 
     assert(ctx->data_processed == false);
     int rv;
     __CPROVER_assume(rv == 0 || rv == 1);
-    if (out == NULL){ //specifying aad
-        return rv;   
+    if (out == NULL) {  // specifying aad
+        return rv;
     }
     size_t out_size;
     __CPROVER_assume(out_size >= 0);
-    if (ctx->cipher){
-        __CPROVER_assume(out_size <= inl + DEFAULT_BLOCK_SIZE - 1); 
-    }
-    else{
-        __CPROVER_assume(out_size <= inl); 
+    if (ctx->cipher) {
+        __CPROVER_assume(out_size <= inl + DEFAULT_BLOCK_SIZE - 1);
+    } else {
+        __CPROVER_assume(out_size <= inl);
         ctx->data_remaining = inl - out_size;
     }
     assert(AWS_MEM_IS_WRITABLE(out, out_size));
     *outl = out_size;
     return rv;
 }
-
 
 /*
  * EVP_DecryptUpdate() is the corresponding decryption operation.
@@ -432,23 +429,22 @@ int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const 
 int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const unsigned char *in, int inl) {
     assert(ctx != NULL);
     assert(ctx->data_processed == false);
-     int rv;
+    int rv;
     __CPROVER_assume(rv == 0 || rv == 1);
-    if (out == NULL){ //specifying aad
-        return rv;   
+    if (out == NULL) {  // specifying aad
+        return rv;
     }
     size_t out_size;
     __CPROVER_assume(out_size >= 0);
-    if (ctx->cipher){
-        if (ctx->padding){
+    if (ctx->cipher) {
+        if (ctx->padding) {
             __CPROVER_assume(out_size <= inl + DEFAULT_BLOCK_SIZE);
-        } 
-    }
-    else{
-        __CPROVER_assume(out_size <= inl); 
+        }
+    } else {
+        __CPROVER_assume(out_size <= inl);
         ctx->data_remaining = inl - out_size;
     }
-    assert(AWS_MEM_IS_WRITABLE(out,out_size));
+    assert(AWS_MEM_IS_WRITABLE(out, out_size));
     *outl = out_size;
     return rv;
 }

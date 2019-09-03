@@ -20,7 +20,7 @@ include ../Makefile.aws_byte_buf
 
 UNWINDSET += 
 
-CBMCFLAGS += 
+CBMCFLAGS +=
 
 ENTRY = aws_cryptosdk_sign_header_harness
 
