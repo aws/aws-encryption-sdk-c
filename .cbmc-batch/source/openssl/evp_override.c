@@ -13,23 +13,21 @@
  * permissions and limitations under the License.
  */
 
-#include <openssl/evp.h>
-#include <openssl/kdf.h>
-#include <openssl/hmac.h>
-#include <openssl/rsa.h>
 #include <ec_utils.h>
 #include <make_common_data_structures.h>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
+#include <openssl/kdf.h>
+#include <openssl/rsa.h>
 #include <proof_helpers/nondet.h>
 
-#define DEFAULT_IV_LEN 12  // For GCM AES and OCB AES the default is 12 (i.e. 96 bits).
+#define DEFAULT_IV_LEN 12       // For GCM AES and OCB AES the default is 12 (i.e. 96 bits).
 #define DEFAULT_BLOCK_SIZE 128  // For GCM AES, the default block size is 128
-
 
 /* Abstraction of the EVP_PKEY struct */
 struct evp_pkey_st {
     int references;
     EC_KEY *ec_key;
-
 };
 
 /*
@@ -49,10 +47,10 @@ EVP_PKEY *EVEVP_EncryptInit_exP_PKEY_new() {
 }
 
 /*
-* Decription: The EVP_PKEY_new() function allocates an empty EVP_PKEY structure which is used by OpenSSL to store public 
-* and private keys. The reference count is set to 1.
-*/
-EVP_PKEY *EVP_PKEY_new(void){
+ * Decription: The EVP_PKEY_new() function allocates an empty EVP_PKEY structure which is used by OpenSSL to store
+ * public and private keys. The reference count is set to 1.
+ */
+EVP_PKEY *EVP_PKEY_new(void) {
     EVP_PKEY *pkey = can_fail_malloc(sizeof(EVP_PKEY));
     if (pkey) {
         pkey->references = 1;
@@ -281,11 +279,11 @@ int EVP_PKEY_derive(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *keylen) {
 }
 
 /*
-* The EVP_PKEY_encrypt_init() function initializes a public key algorithm context using key pkey for an encryption operation.
-* EVP_PKEY_encrypt_init() and EVP_PKEY_encrypt() return 1 for success and 0 or a negative value for failure. 
-* In particular a return value of -2 indicates the operation is not supported by the public key algorithm.
-*/
-int EVP_PKEY_encrypt_init(EVP_PKEY_CTX *ctx){
+ * The EVP_PKEY_encrypt_init() function initializes a public key algorithm context using key pkey for an encryption
+ * operation. EVP_PKEY_encrypt_init() and EVP_PKEY_encrypt() return 1 for success and 0 or a negative value for failure.
+ * In particular a return value of -2 indicates the operation is not supported by the public key algorithm.
+ */
+int EVP_PKEY_encrypt_init(EVP_PKEY_CTX *ctx) {
     assert(ctx != NULL);
     assert(ctx->pkey != NULL);
     if (nondet_bool()) {
@@ -297,13 +295,12 @@ int EVP_PKEY_encrypt_init(EVP_PKEY_CTX *ctx){
     return rv;
 }
 
-
 /*
-* The EVP_PKEY_decrypt_init() function initializes a public key algorithm context using key pkey for a decryption operation.
-* EVP_PKEY_decrypt_init() and EVP_PKEY_decrypt() return 1 for success and 0 or a negative value for failure. 
-* In particular a return value of -2 indicates the operation is not supported by the public key algorithm.
-*/
-int EVP_PKEY_decrypt_init(EVP_PKEY_CTX *ctx){
+ * The EVP_PKEY_decrypt_init() function initializes a public key algorithm context using key pkey for a decryption
+ * operation. EVP_PKEY_decrypt_init() and EVP_PKEY_decrypt() return 1 for success and 0 or a negative value for failure.
+ * In particular a return value of -2 indicates the operation is not supported by the public key algorithm.
+ */
+int EVP_PKEY_decrypt_init(EVP_PKEY_CTX *ctx) {
     assert(ctx != NULL);
     assert(ctx->pkey != NULL);
     if (nondet_bool()) {
@@ -313,22 +310,21 @@ int EVP_PKEY_decrypt_init(EVP_PKEY_CTX *ctx){
     int rv;
     __CPROVER_assume(rv <= 0);
     return rv;
-
 }
 
-
 /*
-* The macro EVP_PKEY_CTX_set_rsa_padding() sets the RSA padding mode for ctx. The pad parameter can take the value 
-* RSA_PKCS1_PADDING for PKCS#1 padding, RSA_SSLV23_PADDING for SSLv23 padding, RSA_NO_PADDING for no padding,
-* RSA_PKCS1_OAEP_PADDING for OAEP padding (encrypt and decrypt only), RSA_X931_PADDING for X9.31 padding (signature operations only)
-* and RSA_PKCS1_PSS_PADDING (sign and verify only).
-*
-*/
-int EVP_PKEY_CTX_set_rsa_padding(EVP_PKEY_CTX *ctx, int pad){
+ * The macro EVP_PKEY_CTX_set_rsa_padding() sets the RSA padding mode for ctx. The pad parameter can take the value
+ * RSA_PKCS1_PADDING for PKCS#1 padding, RSA_SSLV23_PADDING for SSLv23 padding, RSA_NO_PADDING for no padding,
+ * RSA_PKCS1_OAEP_PADDING for OAEP padding (encrypt and decrypt only), RSA_X931_PADDING for X9.31 padding (signature
+ * operations only) and RSA_PKCS1_PSS_PADDING (sign and verify only).
+ *
+ */
+int EVP_PKEY_CTX_set_rsa_padding(EVP_PKEY_CTX *ctx, int pad) {
     assert(ctx != NULL);
-    assert(pad == RSA_PKCS1_PADDING || pad == RSA_SSLV23_PADDING || pad == RSA_NO_PADDING || pad == RSA_PKCS1_OAEP_PADDING || 
-        pad == RSA_X931_PADDING || pad == RSA_PKCS1_PSS_PADDING);
-    if (pad == RSA_X931_PADDING){
+    assert(
+        pad == RSA_PKCS1_PADDING || pad == RSA_SSLV23_PADDING || pad == RSA_NO_PADDING ||
+        pad == RSA_PKCS1_OAEP_PADDING || pad == RSA_X931_PADDING || pad == RSA_PKCS1_PSS_PADDING);
+    if (pad == RSA_X931_PADDING) {
         assert(ctx->is_initialized_for_signing);
     }
     ctx->rsa_pad = pad;
@@ -337,11 +333,11 @@ int EVP_PKEY_CTX_set_rsa_padding(EVP_PKEY_CTX *ctx, int pad){
     return rv;
 }
 /*
-* The EVP_PKEY_CTX_set_rsa_oaep_md() macro sets the message digest type used in RSA OAEP to md. 
-* The padding mode must have been set to RSA_PKCS1_OAEP_PADDING.
-*/
-int EVP_PKEY_CTX_set_rsa_oaep_md(EVP_PKEY_CTX *ctx, const EVP_MD *md){
-    assert(ctx!= NULL);
+ * The EVP_PKEY_CTX_set_rsa_oaep_md() macro sets the message digest type used in RSA OAEP to md.
+ * The padding mode must have been set to RSA_PKCS1_OAEP_PADDING.
+ */
+int EVP_PKEY_CTX_set_rsa_oaep_md(EVP_PKEY_CTX *ctx, const EVP_MD *md) {
+    assert(ctx != NULL);
     assert(ctx->rsa_pad == RSA_PKCS1_OAEP_PADDING);
     int rv;
     __CPROVER_assume(rv == 0 || rv == 1);
@@ -349,29 +345,27 @@ int EVP_PKEY_CTX_set_rsa_oaep_md(EVP_PKEY_CTX *ctx, const EVP_MD *md){
 }
 
 /*
-* The EVP_PKEY_CTX_set_rsa_mgf1_md() macro sets the MGF1 digest for RSA padding schemes to md.
-* If not explicitly set the signing digest is used. The padding mode must have been set to RSA_PKCS1_OAEP_PADDING or 
-* RSA_PKCS1_PSS_PADDING.
-*/
-int EVP_PKEY_CTX_set_rsa_mgf1_md(EVP_PKEY_CTX *ctx, const EVP_MD *md){
-    assert(ctx!= NULL);
+ * The EVP_PKEY_CTX_set_rsa_mgf1_md() macro sets the MGF1 digest for RSA padding schemes to md.
+ * If not explicitly set the signing digest is used. The padding mode must have been set to RSA_PKCS1_OAEP_PADDING or
+ * RSA_PKCS1_PSS_PADDING.
+ */
+int EVP_PKEY_CTX_set_rsa_mgf1_md(EVP_PKEY_CTX *ctx, const EVP_MD *md) {
+    assert(ctx != NULL);
     assert(ctx->rsa_pad == RSA_PKCS1_OAEP_PADDING || ctx->rsa_pad == RSA_PKCS1_PSS_PADDING);
     int rv;
     __CPROVER_assume(rv == 0 || rv == 1);
     return rv;
- }
+}
 
 /*
-* The EVP_PKEY_encrypt() function performs a public key encryption operation using ctx.
-* The data to be encrypted is specified using the in and inlen parameters. If out is NULL then the maximum size of the
-* output buffer is written to the outlen parameter. If out is not NULL then before the call the outlen parameter should 
-* contain the length of the out buffer, if the call is successful the encrypted data is written to out and the amount of
-* data written to outlen.
-*/
-int EVP_PKEY_encrypt(EVP_PKEY_CTX *ctx,
-                        unsigned char *out, size_t *outlen,
-                        const unsigned char *in, size_t inlen){
-    assert(ctx!= NULL);
+ * The EVP_PKEY_encrypt() function performs a public key encryption operation using ctx.
+ * The data to be encrypted is specified using the in and inlen parameters. If out is NULL then the maximum size of the
+ * output buffer is written to the outlen parameter. If out is not NULL then before the call the outlen parameter should
+ * contain the length of the out buffer, if the call is successful the encrypted data is written to out and the amount
+ * of data written to outlen.
+ */
+int EVP_PKEY_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen, const unsigned char *in, size_t inlen) {
+    assert(ctx != NULL);
     // Encyption size is nondeterministic but fixed. See ec_override.c for details.
     size_t max_required_size = max_encryption_size();
 
@@ -394,14 +388,12 @@ int EVP_PKEY_encrypt(EVP_PKEY_CTX *ctx,
 }
 
 /*
-* The EVP_PKEY_decrypt() function performs a public key decryption operation using ctx. The data to be decrypted is 
-* specified using the in and inlen parameters. If out is NULL then the maximum size of the output buffer is written to
-* the outlen parameter. If out is not NULL then before the call the outlen parameter should contain the length of the 
-* out buffer, if the call is successful the decrypted data is written to out and the amount of data written to outlen.
-*/
-int EVP_PKEY_decrypt(EVP_PKEY_CTX *ctx,
-                        unsigned char *out, size_t *outlen,
-                        const unsigned char *in, size_t inlen){
+ * The EVP_PKEY_decrypt() function performs a public key decryption operation using ctx. The data to be decrypted is
+ * specified using the in and inlen parameters. If out is NULL then the maximum size of the output buffer is written to
+ * the outlen parameter. If out is not NULL then before the call the outlen parameter should contain the length of the
+ * out buffer, if the call is successful the decrypted data is written to out and the amount of data written to outlen.
+ */
+int EVP_PKEY_decrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen, const unsigned char *in, size_t inlen) {
     assert(ctx != NULL);
     // Decryption size is nondeterministic but fixed. See ec_override.c for details.
     size_t max_required_size = max_decryption_size();
@@ -422,20 +414,16 @@ int EVP_PKEY_decrypt(EVP_PKEY_CTX *ctx,
     }
 
     return 1;
-
- }
-
-/*
-*EVP_PKEY_CTX_free() frees up the context ctx. If ctx is NULL, nothing is done.
-*/
-void EVP_PKEY_CTX_free(EVP_PKEY_CTX *ctx){
-    if (ctx){
-        free(ctx);
-    }
-
 }
 
-
+/*
+ *EVP_PKEY_CTX_free() frees up the context ctx. If ctx is NULL, nothing is done.
+ */
+void EVP_PKEY_CTX_free(EVP_PKEY_CTX *ctx) {
+    if (ctx) {
+        free(ctx);
+    }
+}
 
 enum evp_aes { EVP_AES_128_GCM, EVP_AES_192_GCM, EVP_AES_256_GCM };
 
@@ -472,7 +460,7 @@ struct evp_cipher_ctx_st {
     bool iv_set;          // boolean marks if iv has been set. Default:false.
     bool padding;         // boolean marks if padding is enabled. Default:true.
     bool data_processed;  // boolean marks if has encrypt/decrypt final has been called. Default:false.
-    int data_remaining; //how much is left to be encrypted/decrypted. Default: 0. 
+    int data_remaining;   // how much is left to be encrypted/decrypted. Default: 0.
 };
 
 /*
@@ -485,8 +473,8 @@ EVP_CIPHER_CTX *EVP_CIPHER_CTX_new() {
         cipher_ctx->iv_set         = false;
         cipher_ctx->padding        = true;
         cipher_ctx->data_processed = false;
-        cipher_ctx->data_remaining = 0; 
-        cipher_ctx->cipher = NULL;
+        cipher_ctx->data_remaining = 0;
+        cipher_ctx->cipher         = NULL;
     }
     return cipher_ctx;
 }
@@ -530,12 +518,12 @@ int EVP_CIPHER_CTX_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg, void *ptr) {
         ctx->iv_len = arg;
     }
     if (type == EVP_CTRL_GCM_GET_TAG) {
-        assert(ctx->encrypt == 1);  //only legal when encrypting data
+        assert(ctx->encrypt == 1);  // only legal when encrypting data
         assert(ctx->data_processed == true);
         AWS_MEM_IS_WRITABLE(ptr, arg);  // need to be able to write taglen (arg) bytes to buffer ptr.
     }
     if (type == EVP_CTRL_GCM_SET_TAG) {
-        assert(ctx->encrypt == 0);  //only legal when decrypting data
+        assert(ctx->encrypt == 0);      // only legal when decrypting data
         AWS_MEM_IS_WRITABLE(ptr, arg);  // need to be able to write taglen (arg) bytes to buffer ptr.
     }
     int rv;
@@ -555,31 +543,30 @@ void EVP_CIPHER_CTX_free(EVP_CIPHER_CTX *ctx) {
 }
 
 /*
-* EVP_EncryptInit_ex() sets up cipher context ctx for encryption with cipher type from ENGINE impl.
-* ctx must be created before calling this function. type is normally supplied by a function such as EVP_aes_256_cbc().
-* If impl is NULL then the default implementation is used. key is the symmetric key to use and iv is the IV to use (if necessary), 
-* the actual number of bytes used for the key and IV depends on the cipher. It is possible to set all parameters to NULL except 
-* type in an initial call and supply the remaining parameters in subsequent calls, all of which have type set to NULL. 
-* This is done when the default cipher parameters are not appropriate.
-*/
-int EVP_EncryptInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type,
-                        ENGINE *impl, const unsigned char *key, const unsigned char *iv){
+ * EVP_EncryptInit_ex() sets up cipher context ctx for encryption with cipher type from ENGINE impl.
+ * ctx must be created before calling this function. type is normally supplied by a function such as EVP_aes_256_cbc().
+ * If impl is NULL then the default implementation is used. key is the symmetric key to use and iv is the IV to use (if
+ * necessary), the actual number of bytes used for the key and IV depends on the cipher. It is possible to set all
+ * parameters to NULL except type in an initial call and supply the remaining parameters in subsequent calls, all of
+ * which have type set to NULL. This is done when the default cipher parameters are not appropriate.
+ */
+int EVP_EncryptInit_ex(
+    EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type, ENGINE *impl, const unsigned char *key, const unsigned char *iv) {
     assert(ctx != NULL);
-    assert(type!= NULL);
+    assert(type != NULL);
     ctx->encrypt = 1;
     int rv;
     __CPROVER_assume(rv == 0 || rv == 1);
     return rv;
-
 }
 
 /*
-* EVP_DecryptInit_ex() is the corresponding decryption operation. 
-*/
-int EVP_DecryptInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type,
-         ENGINE *impl, const unsigned char *key, const unsigned char *iv){
+ * EVP_DecryptInit_ex() is the corresponding decryption operation.
+ */
+int EVP_DecryptInit_ex(
+    EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type, ENGINE *impl, const unsigned char *key, const unsigned char *iv) {
     assert(ctx != NULL);
-    assert(type!= NULL);
+    assert(type != NULL);
     ctx->encrypt = 0;
     int rv;
     __CPROVER_assume(rv == 0 || rv == 1);
@@ -591,8 +578,8 @@ int EVP_DecryptInit_ex(EVP_CIPHER_CTX *ctx, const EVP_CIPHER *type,
  * or encryption. The operation performed depends on the value of the enc parameter. It should be set to 1 for
  * encryption, 0 for decryption and -1 to leave the value unchanged (the actual value of 'enc' being supplied in a
  * previous call). Return 1 for success and 0 for failure.
- * To specify any additional authenticated data (AAD) a call to EVP_CipherUpdate(), EVP_EncryptUpdate() or EVP_DecryptUpdate() 
- * should be made with the output parameter out set to NULL.
+ * To specify any additional authenticated data (AAD) a call to EVP_CipherUpdate(), EVP_EncryptUpdate() or
+ * EVP_DecryptUpdate() should be made with the output parameter out set to NULL.
  */
 int EVP_CipherUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const unsigned char *in, int inl) {
     assert(ctx != NULL);
@@ -614,16 +601,15 @@ int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const 
     assert(ctx->data_processed == false);
     int rv;
     __CPROVER_assume(rv == 0 || rv == 1);
-    if (out == NULL){ //specifying aad
-        return rv;   
+    if (out == NULL) {  // specifying aad
+        return rv;
     }
     size_t out_size;
     __CPROVER_assume(out_size >= 0);
-    if (ctx->cipher){
-        __CPROVER_assume(out_size <= inl + DEFAULT_BLOCK_SIZE - 1); 
-    }
-    else{
-        __CPROVER_assume(out_size <= inl); 
+    if (ctx->cipher) {
+        __CPROVER_assume(out_size <= inl + DEFAULT_BLOCK_SIZE - 1);
+    } else {
+        __CPROVER_assume(out_size <= inl);
         ctx->data_remaining = inl - out_size;
     }
     assert(AWS_MEM_IS_WRITABLE(out, out_size));
@@ -641,23 +627,22 @@ int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const 
 int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const unsigned char *in, int inl) {
     assert(ctx != NULL);
     assert(ctx->data_processed == false);
-     int rv;
+    int rv;
     __CPROVER_assume(rv == 0 || rv == 1);
-    if (out == NULL){ //specifying aad
-        return rv;   
+    if (out == NULL) {  // specifying aad
+        return rv;
     }
     size_t out_size;
     __CPROVER_assume(out_size >= 0);
-    if (ctx->cipher){
-        if (ctx->padding){
+    if (ctx->cipher) {
+        if (ctx->padding) {
             __CPROVER_assume(out_size <= inl + DEFAULT_BLOCK_SIZE);
-        } 
-    }
-    else{
-        __CPROVER_assume(out_size <= inl); 
+        }
+    } else {
+        __CPROVER_assume(out_size <= inl);
         ctx->data_remaining = inl - out_size;
     }
-    assert(AWS_MEM_IS_WRITABLE(out,out_size));
+    assert(AWS_MEM_IS_WRITABLE(out, out_size));
     *outl = out_size;
     return rv;
 }
@@ -909,52 +894,57 @@ int EVP_DigestVerifyFinal(EVP_MD_CTX *ctx, const unsigned char *sig, size_t sigl
     return nondet_int();
 }
 
-/* Abstraction of the HMAC_CTX struct has been moved to hmcac.h*/ 
+/* Abstraction of the HMAC_CTX struct has been moved to hmcac.h*/
 
-/* 
-* Description: HMAC_CTX_init() initialises a HMAC_CTX before first use. It must be called.
-*/
-void HMAC_CTX_init(HMAC_CTX *ctx){
-    HMAC_CTX *ctx_new = can_fail_malloc(sizeof(HMAC_CTX));
-    __CPROVER_assume(ctx_new); //cannot be null
-    ctx_new->is_initialized = true;
-    ctx_new->md = malloc(sizeof(EVP_MD));
-    *ctx = *ctx_new;
- }
-
- /*
-HMAC() computes the message authentication code of the n bytes at d using the hash function evp_md and the 
-key key which is key_len bytes long.
-It places the result in md (which must have space for the output of the hash function, 
-which is no more than EVP_MAX_MD_SIZE bytes). If md is NULL, the digest is placed in a static array. 
-The size of the output is placed in md_len, unless it is NULL. 
-Note: passing a NULL value for md to use the static array is not thread safe.
+/*
+ * Description: HMAC_CTX_init() initialises a HMAC_CTX before first use. It must be called.
  */
+void HMAC_CTX_init(HMAC_CTX *ctx) {
+    HMAC_CTX *ctx_new = can_fail_malloc(sizeof(HMAC_CTX));
+    __CPROVER_assume(ctx_new);  // cannot be null
+    ctx_new->is_initialized = true;
+    ctx_new->md             = malloc(sizeof(EVP_MD));
+    *ctx                    = *ctx_new;
+}
 
-unsigned char *HMAC(const EVP_MD *evp_md, const void *key, int key_len,
-                    const unsigned char *d, size_t n, unsigned char *md,
-                    unsigned int *md_len){
+/*
+HMAC() computes the message authentication code of the n bytes at d using the hash function evp_md and the
+key key which is key_len bytes long.
+It places the result in md (which must have space for the output of the hash function,
+which is no more than EVP_MAX_MD_SIZE bytes). If md is NULL, the digest is placed in a static array.
+The size of the output is placed in md_len, unless it is NULL.
+Note: passing a NULL value for md to use the static array is not thread safe.
+*/
+
+unsigned char *HMAC(
+    const EVP_MD *evp_md,
+    const void *key,
+    int key_len,
+    const unsigned char *d,
+    size_t n,
+    unsigned char *md,
+    unsigned int *md_len) {
     assert(evp_md != NULL);
-    size_t amount_of_data_written; 
+    size_t amount_of_data_written;
     __CPROVER_assume(amount_of_data_written <= EVP_MAX_MD_SIZE);
-    if (md != NULL){
+    if (md != NULL) {
         write_unconstrained_data(md, amount_of_data_written);
         *md_len = amount_of_data_written;
         return md;
     }
-    //create a static array to return the result 
-    unsigned char *res = malloc( sizeof(unsigned char) * ( amount_of_data_written + 1 ) );
+    // create a static array to return the result
+    unsigned char *res = malloc(sizeof(unsigned char) * (amount_of_data_written + 1));
     write_unconstrained_data(res, amount_of_data_written);
     return res;
-
-
 }
 
 /*
-* HMAC_Init_ex() initializes or reuses a HMAC_CTX structure to use the hash function evp_md and key key. 
-* If both are NULL (or evp_md is the same as the previous digest used by ctx and key is NULL) the existing key is reused. 
-* ctx must have been created with HMAC_CTX_new() before the first use of an HMAC_CTX in this function. 
-* N.B. HMAC_Init() had this undocumented behaviour in previous versions of OpenSSL - failure to switch to HMAC_Init_ex() in 
+* HMAC_Init_ex() initializes or reuses a HMAC_CTX structure to use the hash function evp_md and key key.
+* If both are NULL (or evp_md is the same as the previous digest used by ctx and key is NULL) the existing key is
+reused.
+* ctx must have been created with HMAC_CTX_new() before the first use of an HMAC_CTX in this function.
+* N.B. HMAC_Init() had this undocumented behaviour in previous versions of OpenSSL - failure to switch to HMAC_Init_ex()
+in
 * programs that expect it will cause them to stop working.
 
 * NB: if HMAC_Init_ex() is called with key NULL and evp_md is not the same as the previous digest used by ctx then an
@@ -962,11 +952,10 @@ unsigned char *HMAC(const EVP_MD *evp_md, const void *key, int key_len,
 *
 * Return 1 for success or 0 if an error occurred.
 */
-int HMAC_Init_ex(HMAC_CTX *ctx, const void *key, int len,
-                            const EVP_MD *md, ENGINE *impl){
+int HMAC_Init_ex(HMAC_CTX *ctx, const void *key, int len, const EVP_MD *md, ENGINE *impl) {
     assert(hmac_ctx_is_valid(ctx));
-    if (md != NULL){
-        if (key != NULL){
+    if (md != NULL) {
+        if (key != NULL) {
             ctx->md = md;
         }
     }
@@ -976,24 +965,20 @@ int HMAC_Init_ex(HMAC_CTX *ctx, const void *key, int len,
 }
 
 /*
-* HMAC_Update() can be called repeatedly with chunks of the message to be authenticated (len bytes at data).
-* Return 1 for success or 0 if an error occurred.
-*/
-int HMAC_Update(HMAC_CTX *ctx, const unsigned char *data,
-                           size_t len){
+ * HMAC_Update() can be called repeatedly with chunks of the message to be authenticated (len bytes at data).
+ * Return 1 for success or 0 if an error occurred.
+ */
+int HMAC_Update(HMAC_CTX *ctx, const unsigned char *data, size_t len) {
     assert(hmac_ctx_is_valid(ctx));
     int rv;
     __CPROVER_assume(rv == 1 || rv == 0);
     return rv;
-
 }
 
 /*
-*HMAC_Final() places the message authentication code in md, which must have space for the hash function output.
-*/
-int HMAC_Final(HMAC_CTX *ctx, unsigned char *md,
-                          unsigned int *len){
-
+ *HMAC_Final() places the message authentication code in md, which must have space for the hash function output.
+ */
+int HMAC_Final(HMAC_CTX *ctx, unsigned char *md, unsigned int *len) {
     assert(hmac_ctx_is_valid(ctx));
     assert(ctx->md != NULL);
     int md_size = EVP_MD_size(ctx->md);
@@ -1001,7 +986,7 @@ int HMAC_Final(HMAC_CTX *ctx, unsigned char *md,
     *len = md_size;
     int rv;
     __CPROVER_assume(rv == 1 || rv == 0);
-    __CPROVER_assume(AWS_MEM_IS_READABLE(md,md_size));
+    __CPROVER_assume(AWS_MEM_IS_READABLE(md, md_size));
     return rv;
 }
 

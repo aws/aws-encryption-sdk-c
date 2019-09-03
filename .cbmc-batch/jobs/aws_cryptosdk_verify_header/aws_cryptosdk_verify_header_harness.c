@@ -17,7 +17,6 @@
 #include <aws/cryptosdk/private/cipher.h>
 #include <make_common_data_structures.h>
 
-
 void aws_cryptosdk_verify_header_harness() {
     /* arguments */
     enum aws_cryptosdk_alg_id alg_id;

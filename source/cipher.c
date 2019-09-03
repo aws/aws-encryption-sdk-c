@@ -203,7 +203,7 @@ int aws_cryptosdk_sign_header(
      */
     aws_secure_zero(iv, props->iv_len);
 
-    int result          = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
+    int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
 
     EVP_CIPHER_CTX *ctx = evp_gcm_cipher_init(props, content_key, iv, true);
     if (!ctx) goto out;

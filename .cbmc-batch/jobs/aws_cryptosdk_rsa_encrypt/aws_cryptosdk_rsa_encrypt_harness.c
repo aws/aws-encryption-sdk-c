@@ -20,17 +20,14 @@
 #define KEY_LEN 256
 
 void aws_cryptosdk_rsa_encrypt_harness() {
-
-
     struct aws_byte_buf cipher;
     struct aws_allocator *alloc = can_fail_allocator();
     struct aws_byte_cursor plain;
     struct aws_string *key = ensure_string_is_allocated_bounded_length(KEY_LEN);
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode;
 
-
     __CPROVER_assume(aws_byte_buf_is_bounded(&cipher, MAX_BUFFER_SIZE));
-    //ensure_byte_buf_has_allocated_buffer_member(&cipher);
+    // ensure_byte_buf_has_allocated_buffer_member(&cipher);
     __CPROVER_assume(aws_byte_buf_is_valid(&cipher));
 
     __CPROVER_assume(aws_byte_cursor_is_bounded(&plain, MAX_BUFFER_SIZE));
@@ -42,14 +39,10 @@ void aws_cryptosdk_rsa_encrypt_harness() {
     struct store_byte_from_buffer old_byte_from_plain;
     save_byte_from_array(plain.ptr, plain.len, &old_byte_from_plain);
 
-    if (aws_cryptosdk_rsa_encrypt(&cipher, alloc, plain, key, rsa_padding_mode) == AWS_OP_SUCCESS){
+    if (aws_cryptosdk_rsa_encrypt(&cipher, alloc, plain, key, rsa_padding_mode) == AWS_OP_SUCCESS) {
         assert(aws_byte_buf_is_valid(&cipher));
     }
     if (plain.len != 0) {
         assert_byte_from_buffer_matches(plain.ptr, &old_byte_from_plain);
     }
-
-
-
-
 }

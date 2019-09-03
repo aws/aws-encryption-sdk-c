@@ -16,4 +16,4 @@
 
 /* Empty header. Necessary just because it is included in cipher.c */
 
- #include <openssl/bio.h>
+#include <openssl/bio.h>

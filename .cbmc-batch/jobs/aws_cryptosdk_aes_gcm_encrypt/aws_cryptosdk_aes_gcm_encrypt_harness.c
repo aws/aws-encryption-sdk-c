@@ -63,7 +63,7 @@ void aws_cryptosdk_aes_gcm_encrypt_harness() {
 
     key = ensure_string_is_allocated_bounded_length(KEY_LEN);
 
-    if (aws_cryptosdk_aes_gcm_encrypt(&cipher, &tag, plain, iv, aad, key) == AWS_OP_SUCCESS){
+    if (aws_cryptosdk_aes_gcm_encrypt(&cipher, &tag, plain, iv, aad, key) == AWS_OP_SUCCESS) {
         assert(cipher.len == plain.len);
     }
 
@@ -74,7 +74,7 @@ void aws_cryptosdk_aes_gcm_encrypt_harness() {
     if (iv.len != 0) {
         assert_byte_from_buffer_matches(iv.ptr, &old_byte_from_iv);
     }
-    if (aad.len != 0){
+    if (aad.len != 0) {
         assert_byte_from_buffer_matches(aad.ptr, &old_byte_from_aad);
     }
 }

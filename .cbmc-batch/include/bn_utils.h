@@ -16,8 +16,8 @@
 #ifndef BN_UTILS_H
 #define BN_UTILS_H
 
-#include <stdbool.h>
 #include <openssl/bn.h>
+#include <stdbool.h>
 
 bool bignum_is_valid(BIGNUM *bn);
 BIGNUM *bignum_nondet_alloc();

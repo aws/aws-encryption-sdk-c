@@ -482,7 +482,6 @@ size_t max_decryption_size() {
     return encryption_size;
 }
 
-
 /* Writes arbitrary data into the buffer out. */
 void write_unconstrained_data(unsigned char *out, size_t len) {
     assert(AWS_MEM_IS_WRITABLE(out, len));

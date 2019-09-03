@@ -8,34 +8,29 @@
  */
 
 #ifndef HEADER_BIO_H
-# define HEADER_BIO_H
+#define HEADER_BIO_H
 
-# ifndef OPENSSL_NO_STDIO
-#  include <stdio.h>
-# endif
-# include <stdarg.h>
+#ifndef OPENSSL_NO_STDIO
+#    include <stdio.h>
+#endif
+#include <stdarg.h>
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 #include <openssl/ossl_typ.h>
 
-
 typedef int pem_password_cb(char *buf, int size, int rwflag, void *u);
-
 
 BIO *BIO_new_mem_buf(const void *buf, signed int len);
 
-EVP_PKEY *PEM_read_bio_PUBKEY(BIO *bp, EVP_PKEY **x,
-                                        pem_password_cb *cb, void *u);
+EVP_PKEY *PEM_read_bio_PUBKEY(BIO *bp, EVP_PKEY **x, pem_password_cb *cb, void *u);
 
-EVP_PKEY *PEM_read_bio_PrivateKey(BIO *bp, EVP_PKEY **x,
-                                   pem_password_cb *cb, void *u);
+EVP_PKEY *PEM_read_bio_PrivateKey(BIO *bp, EVP_PKEY **x, pem_password_cb *cb, void *u);
 
 int BIO_free(BIO *a);
 
-
-# ifdef  __cplusplus
+#ifdef __cplusplus
 }
-# endif
+#endif
 #endif

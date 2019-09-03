@@ -20,7 +20,6 @@
 #define KEY_LEN 256
 
 void aws_cryptosdk_aes_gcm_decrypt_harness() {
-
     struct aws_byte_buf plain;
     struct aws_byte_cursor cipher;
     struct aws_byte_cursor tag;
@@ -67,7 +66,7 @@ void aws_cryptosdk_aes_gcm_decrypt_harness() {
     struct store_byte_from_buffer old_byte_from_aad;
     save_byte_from_array(aad.ptr, aad.len, &old_byte_from_aad);
 
-    if (aws_cryptosdk_aes_gcm_decrypt(&plain, cipher, tag, iv, aad, key) == AWS_OP_SUCCESS){
+    if (aws_cryptosdk_aes_gcm_decrypt(&plain, cipher, tag, iv, aad, key) == AWS_OP_SUCCESS) {
         assert(plain.len == cipher.len);
     }
     assert(aws_byte_buf_is_valid(&plain));
@@ -80,10 +79,7 @@ void aws_cryptosdk_aes_gcm_decrypt_harness() {
     if (iv.len != 0) {
         assert_byte_from_buffer_matches(iv.ptr, &old_byte_from_iv);
     }
-    if (aad.len != 0){
+    if (aad.len != 0) {
         assert_byte_from_buffer_matches(aad.ptr, &old_byte_from_aad);
     }
-
-
-
 }
