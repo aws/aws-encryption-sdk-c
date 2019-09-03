@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
-#include <openssl/evp.h>
-#include <openssl/kdf.h>
-#include <openssl/hmac.h>
 #include <ec_utils.h>
 #include <make_common_data_structures.h>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
+#include <openssl/kdf.h>
 #include <proof_helpers/nondet.h>
 
 #define DEFAULT_IV_LEN 12  // For GCM AES and OCB AES the default is 12 (i.e. 96 bits).
@@ -679,52 +679,57 @@ int EVP_DigestVerifyFinal(EVP_MD_CTX *ctx, const unsigned char *sig, size_t sigl
     return nondet_int();
 }
 
-/* Abstraction of the HMAC_CTX struct has been moved to hmcac.h*/ 
+/* Abstraction of the HMAC_CTX struct has been moved to hmcac.h*/
 
-/* 
-* Description: HMAC_CTX_init() initialises a HMAC_CTX before first use. It must be called.
-*/
-void HMAC_CTX_init(HMAC_CTX *ctx){
-    HMAC_CTX *ctx_new = can_fail_malloc(sizeof(HMAC_CTX));
-    __CPROVER_assume(ctx_new); //cannot be null
-    ctx_new->is_initialized = true;
-    ctx_new->md = malloc(sizeof(EVP_MD));
-    *ctx = *ctx_new;
- }
-
- /*
-HMAC() computes the message authentication code of the n bytes at d using the hash function evp_md and the 
-key key which is key_len bytes long.
-It places the result in md (which must have space for the output of the hash function, 
-which is no more than EVP_MAX_MD_SIZE bytes). If md is NULL, the digest is placed in a static array. 
-The size of the output is placed in md_len, unless it is NULL. 
-Note: passing a NULL value for md to use the static array is not thread safe.
+/*
+ * Description: HMAC_CTX_init() initialises a HMAC_CTX before first use. It must be called.
  */
+void HMAC_CTX_init(HMAC_CTX *ctx) {
+    HMAC_CTX *ctx_new = can_fail_malloc(sizeof(HMAC_CTX));
+    __CPROVER_assume(ctx_new);  // cannot be null
+    ctx_new->is_initialized = true;
+    ctx_new->md             = malloc(sizeof(EVP_MD));
+    *ctx                    = *ctx_new;
+}
 
-unsigned char *HMAC(const EVP_MD *evp_md, const void *key, int key_len,
-                    const unsigned char *d, size_t n, unsigned char *md,
-                    unsigned int *md_len){
+/*
+HMAC() computes the message authentication code of the n bytes at d using the hash function evp_md and the
+key key which is key_len bytes long.
+It places the result in md (which must have space for the output of the hash function,
+which is no more than EVP_MAX_MD_SIZE bytes). If md is NULL, the digest is placed in a static array.
+The size of the output is placed in md_len, unless it is NULL.
+Note: passing a NULL value for md to use the static array is not thread safe.
+*/
+
+unsigned char *HMAC(
+    const EVP_MD *evp_md,
+    const void *key,
+    int key_len,
+    const unsigned char *d,
+    size_t n,
+    unsigned char *md,
+    unsigned int *md_len) {
     assert(evp_md != NULL);
-    size_t amount_of_data_written; 
+    size_t amount_of_data_written;
     __CPROVER_assume(amount_of_data_written <= EVP_MAX_MD_SIZE);
-    if (md != NULL){
+    if (md != NULL) {
         write_unconstrained_data(md, amount_of_data_written);
         *md_len = amount_of_data_written;
         return md;
     }
-    //create a static array to return the result 
-    unsigned char *res = malloc( sizeof(unsigned char) * ( amount_of_data_written + 1 ) );
+    // create a static array to return the result
+    unsigned char *res = malloc(sizeof(unsigned char) * (amount_of_data_written + 1));
     write_unconstrained_data(res, amount_of_data_written);
     return res;
-
-
 }
 
 /*
-* HMAC_Init_ex() initializes or reuses a HMAC_CTX structure to use the hash function evp_md and key key. 
-* If both are NULL (or evp_md is the same as the previous digest used by ctx and key is NULL) the existing key is reused. 
-* ctx must have been created with HMAC_CTX_new() before the first use of an HMAC_CTX in this function. 
-* N.B. HMAC_Init() had this undocumented behaviour in previous versions of OpenSSL - failure to switch to HMAC_Init_ex() in 
+* HMAC_Init_ex() initializes or reuses a HMAC_CTX structure to use the hash function evp_md and key key.
+* If both are NULL (or evp_md is the same as the previous digest used by ctx and key is NULL) the existing key is
+reused.
+* ctx must have been created with HMAC_CTX_new() before the first use of an HMAC_CTX in this function.
+* N.B. HMAC_Init() had this undocumented behaviour in previous versions of OpenSSL - failure to switch to HMAC_Init_ex()
+in
 * programs that expect it will cause them to stop working.
 
 * NB: if HMAC_Init_ex() is called with key NULL and evp_md is not the same as the previous digest used by ctx then an
@@ -732,11 +737,10 @@ unsigned char *HMAC(const EVP_MD *evp_md, const void *key, int key_len,
 *
 * Return 1 for success or 0 if an error occurred.
 */
-int HMAC_Init_ex(HMAC_CTX *ctx, const void *key, int len,
-                            const EVP_MD *md, ENGINE *impl){
+int HMAC_Init_ex(HMAC_CTX *ctx, const void *key, int len, const EVP_MD *md, ENGINE *impl) {
     assert(hmac_ctx_is_valid(ctx));
-    if (md != NULL){
-        if (key != NULL){
+    if (md != NULL) {
+        if (key != NULL) {
             ctx->md = md;
         }
     }
@@ -746,24 +750,20 @@ int HMAC_Init_ex(HMAC_CTX *ctx, const void *key, int len,
 }
 
 /*
-* HMAC_Update() can be called repeatedly with chunks of the message to be authenticated (len bytes at data).
-* Return 1 for success or 0 if an error occurred.
-*/
-int HMAC_Update(HMAC_CTX *ctx, const unsigned char *data,
-                           size_t len){
+ * HMAC_Update() can be called repeatedly with chunks of the message to be authenticated (len bytes at data).
+ * Return 1 for success or 0 if an error occurred.
+ */
+int HMAC_Update(HMAC_CTX *ctx, const unsigned char *data, size_t len) {
     assert(hmac_ctx_is_valid(ctx));
     int rv;
     __CPROVER_assume(rv == 1 || rv == 0);
     return rv;
-
 }
 
 /*
-*HMAC_Final() places the message authentication code in md, which must have space for the hash function output.
-*/
-int HMAC_Final(HMAC_CTX *ctx, unsigned char *md,
-                          unsigned int *len){
-
+ *HMAC_Final() places the message authentication code in md, which must have space for the hash function output.
+ */
+int HMAC_Final(HMAC_CTX *ctx, unsigned char *md, unsigned int *len) {
     assert(hmac_ctx_is_valid(ctx));
     assert(ctx->md != NULL);
     int md_size = EVP_MD_size(ctx->md);
@@ -771,7 +771,7 @@ int HMAC_Final(HMAC_CTX *ctx, unsigned char *md,
     *len = md_size;
     int rv;
     __CPROVER_assume(rv == 1 || rv == 0);
-    __CPROVER_assume(AWS_MEM_IS_READABLE(md,md_size));
+    __CPROVER_assume(AWS_MEM_IS_READABLE(md, md_size));
     return rv;
 }
 
