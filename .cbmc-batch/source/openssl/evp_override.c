@@ -20,6 +20,8 @@
 #include <proof_helpers/nondet.h>
 
 #define DEFAULT_IV_LEN 12  // For GCM AES and OCB AES the default is 12 (i.e. 96 bits).
+#define DEFAULT_BLOCK_SIZE 128  // For GCM AES, the default block size is 128
+
 
 /* Abstraction of the EVP_PKEY struct */
 struct evp_pkey_st {
@@ -292,7 +294,6 @@ const EVP_CIPHER *EVP_aes_256_gcm(void) {
 }
 
 /* Abstraction of the EVP_CIPHER_CTX struct */
-
 struct evp_cipher_ctx_st {
     EVP_CIPHER *cipher;
     int encrypt;
@@ -300,6 +301,7 @@ struct evp_cipher_ctx_st {
     bool iv_set;          // boolean marks if iv has been set. Default:false.
     bool padding;         // boolean marks if padding is enabled. Default:true.
     bool data_processed;  // boolean marks if has encrypt/decrypt final has been called. Default:false.
+    int data_remaining; //how much is left to be encrypted/decrypted. Default: 0. 
 };
 
 /*
@@ -312,10 +314,11 @@ EVP_CIPHER_CTX *EVP_CIPHER_CTX_new() {
         cipher_ctx->iv_set         = false;
         cipher_ctx->padding        = true;
         cipher_ctx->data_processed = false;
+        cipher_ctx->data_remaining = 0; 
+        cipher_ctx->cipher = NULL;
     }
     return cipher_ctx;
 }
-
 /*
  * EVP_CipherInit_ex(), EVP_CipherUpdate() and EVP_CipherFinal_ex() are functions that can be used for
  * decryption or encryption. The operation performed depends on the value of the enc parameter.
@@ -399,15 +402,25 @@ int EVP_CipherUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const u
 int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const unsigned char *in, int inl) {
     assert(ctx != NULL);
     assert(ctx->data_processed == false);
-    size_t out_size;
-    __CPROVER_assume(out_size >= 0);
-    __CPROVER_assume(out_size <= inl + ctx->cipher->block_size - 1);
-    *outl = out_size;
     int rv;
     __CPROVER_assume(rv == 0 || rv == 1);
-    asser(false);
+    if (out == NULL){ //specifying aad
+        return rv;   
+    }
+    size_t out_size;
+    __CPROVER_assume(out_size >= 0);
+    if (ctx->cipher){
+        __CPROVER_assume(out_size <= inl + DEFAULT_BLOCK_SIZE - 1); 
+    }
+    else{
+        __CPROVER_assume(out_size <= inl); 
+        ctx->data_remaining = inl - out_size;
+    }
+    assert(AWS_MEM_IS_WRITABLE(out, out_size));
+    *outl = out_size;
     return rv;
 }
+
 
 /*
  * EVP_DecryptUpdate() is the corresponding decryption operation.
@@ -419,14 +432,24 @@ int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const 
 int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const unsigned char *in, int inl) {
     assert(ctx != NULL);
     assert(ctx->data_processed == false);
+     int rv;
+    __CPROVER_assume(rv == 0 || rv == 1);
+    if (out == NULL){ //specifying aad
+        return rv;   
+    }
     size_t out_size;
     __CPROVER_assume(out_size >= 0);
-    if (ctx->padding) {
-        __CPROVER_assume(out_size <= inl + ctx->cipher->block_size);
+    if (ctx->cipher){
+        if (ctx->padding){
+            __CPROVER_assume(out_size <= inl + DEFAULT_BLOCK_SIZE);
+        } 
     }
+    else{
+        __CPROVER_assume(out_size <= inl); 
+        ctx->data_remaining = inl - out_size;
+    }
+    assert(AWS_MEM_IS_WRITABLE(out,out_size));
     *outl = out_size;
-    int rv;
-    __CPROVER_assume(rv == 0 || rv == 1);
     return rv;
 }
 
@@ -440,7 +463,8 @@ int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const 
 int EVP_EncryptFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl) {
     assert(ctx != NULL);
     if (ctx->padding == true) {
-        *outl = 0;
+        *outl = ctx->data_remaining;
+        assert(AWS_MEM_IS_WRITABLE(out, ctx->data_remaining));
     }
     ctx->data_processed = true;
     int rv;
@@ -457,7 +481,8 @@ int EVP_EncryptFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl) {
 int EVP_DecryptFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *outm, int *outl) {
     assert(ctx != NULL);
     if (ctx->padding == true) {
-        *outl = 0;
+        *outl = ctx->data_remaining;
+        assert(AWS_MEM_IS_WRITABLE(outm, ctx->data_remaining));
     }
     ctx->data_processed = true;
     int rv;
