@@ -15,4 +15,17 @@ RUN setx /M PATH "%PATH%;C:\Program Files (x86)\MSBuild\14.0\bin"
 # Test msbuild can be accessed without path
 RUN msbuild -version
 
+RUN powershell -NoProfile -InputFormat None -Command `
+    cd c:\vcpkg; `
+    .\bootstrap-vcpkg.bat; `
+    .\vcpkg update; `
+    .\vcpkg integrate install; `
+    c:\cleanup-vcpkg.ps1
+
+RUN powershell -NoProfile -InputFormat None -Command `
+    cd c:\vcpkg; `
+    .\vcpkg install curl:x86-windows openssl:x86-windows curl:x64-windows openssl:x64-windows; `
+    c:\cleanup-vcpkg.ps1
+
+
 CMD [ "cmd.exe" ]

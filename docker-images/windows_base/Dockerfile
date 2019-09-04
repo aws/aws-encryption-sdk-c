@@ -18,19 +18,7 @@ RUN choco install cmake --installargs 'ADD_CMAKE_TO_PATH=""System""' -y
 
 ADD cleanup-vcpkg.ps1 /cleanup-vcpkg.ps1
 
-# Set up vcpkg and install dependencies
+# Install vcpkg
 RUN git clone https://github.com/Microsoft/vcpkg.git c:\vcpkg
-RUN powershell -NoProfile -InputFormat None -Command `
-    cd c:\vcpkg; `
-    .\bootstrap-vcpkg.bat; `
-    .\vcpkg update; `
-    .\vcpkg integrate install; `
-    c:\cleanup-vcpkg.ps1
-
-RUN powershell -NoProfile -InputFormat None -Command `
-    cd c:\vcpkg; `
-    .\vcpkg install curl:x86-windows openssl:x86-windows curl:x64-windows openssl:x64-windows; `
-    c:\cleanup-vcpkg.ps1
-
 
 CMD [ "cmd.exe" ]
