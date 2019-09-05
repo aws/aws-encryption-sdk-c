@@ -27,7 +27,7 @@ After the build finishes, you can run and test the image by running:
 
 To emulate the tests run by AWS CodeBuild, execute the following:
 
-    git checkout -b v1.0.0 https://github.com/aws/aws-encryption-sdk-c.git
+    git clone -b v1.0.0 --depth 1 https://github.com/aws/aws-encryption-sdk-c.git
     cd aws-encryption-sdk-c\codebuild
     .\codebuild\common-windows.bat
 
