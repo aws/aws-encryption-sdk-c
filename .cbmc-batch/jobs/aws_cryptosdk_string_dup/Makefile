@@ -18,8 +18,6 @@ CBMC_UNWINDSET += --unwindset memcmp.0:$(shell echo $$((1 + $(MAX_STRING_LEN))))
 
 CBMCFLAGS +=
 
-ENTRY = aws_cryptosdk_string_dup_harness
-
 DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/make_common_data_structures.c
 DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/proof_allocators.c
 DEPENDENCIES +=	$(SRCDIR)/c-common-src/byte_buf.c
@@ -30,6 +28,8 @@ DEPENDENCIES +=	$(SRCDIR)/c-enc-sdk-src/cipher.c
 DEPENDENCIES +=	$(SRCDIR)/c-enc-sdk-src/utils.c
 DEPENDENCIES += $(COMMON_HELPERDIR)/stubs/memcmp_override.c
 DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
+
+ENTRY = aws_cryptosdk_string_dup_harness
 
 ###########
 

@@ -17,11 +17,7 @@ sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
-UNWINDSET += 
-
 CBMCFLAGS +=
-
-ENTRY = aws_cryptosdk_keyring_trace_init_harness
 
 DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/make_common_data_structures.c
 DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/proof_allocators.c
@@ -31,6 +27,10 @@ DEPENDENCIES +=	$(SRCDIR)/c-common-src/error.c
 DEPENDENCIES +=	$(SRCDIR)/c-enc-sdk-src/cipher.c
 DEPENDENCIES +=	$(SRCDIR)/c-enc-sdk-src/keyring_trace.c
 DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
+
+ENTRY = aws_cryptosdk_keyring_trace_init_harness
+
+UNWINDSET += 
 
 ###########
 
