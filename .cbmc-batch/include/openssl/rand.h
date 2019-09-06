@@ -14,24 +14,20 @@
  * permissions and limitations under the License.
  */
 
-
 #ifndef HEADER_RAND_H
-# define HEADER_RAND_H
+#define HEADER_RAND_H
 
-# include <stdlib.h>
-# include <openssl/ossl_typ.h>
+#include <openssl/ossl_typ.h>
+#include <stdlib.h>
 
-
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 int RAND_bytes(unsigned char *buf, int num);
 
-
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 
 #endif
-

@@ -16,15 +16,8 @@
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
-include ../Makefile.aws_byte_buf
-include ../Makefile.aws_string
-
-
-UNWINDSET += 
 
 CBMCFLAGS += 
-
-ENTRY = aws_cryptosdk_genrandom_harness
 
 DEPENDENCIES += $(COMMON_HELPERDIR)/stubs/memcpy_override_havoc.goto
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.goto
@@ -38,6 +31,10 @@ DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/cbmc_invariants.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/rand_override.goto
+
+ENTRY = aws_cryptosdk_genrandom_harness
+
+UNWINDSET += 
 
 ###########
 
