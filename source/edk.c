@@ -49,7 +49,7 @@ int aws_cryptosdk_edk_init_clone(
     struct aws_allocator *alloc, struct aws_cryptosdk_edk *dest, const struct aws_cryptosdk_edk *src) {
     AWS_PRECONDITION(aws_allocator_is_valid(alloc));
     AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(dest));
-    AWS_PRECONDITION(aws_cryptosdk_is_valid(src));
+    AWS_PRECONDITION(aws_cryptosdk_edk_is_valid(src));
 
     AWS_ZERO_STRUCT(*dest);
 
