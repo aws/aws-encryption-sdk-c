@@ -157,6 +157,7 @@ common-helper-symlinks: common-git linkfarm-dir
 	$(call make_symlink, $(LINKFARM), $(COMMON_HELPERDIR)/include, c-common-helper-inc)
 	$(call make_symlink, $(LINKFARM), $(COMMON_HELPERDIR)/source, c-common-helper-src)
 	$(call make_symlink, $(LINKFARM), $(COMMON_HELPERDIR)/stubs, c-common-helper-stubs)
+	$(call make_symlink, $(LINKFARM), $(COMMON_HELPERDIR)/uninline, c-common-helper-uninline)
 
 enc-sdk-symlinks: linkfarm-dir
 	$(call make_symlink, $(LINKFARM), $(SDKDIR)/include, c-enc-sdk-inc)

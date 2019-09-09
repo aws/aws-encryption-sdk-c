@@ -22,7 +22,7 @@
 #include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
-void aws_cryptosdk_edk_list_clear_harness() {
+void aws_cryptosdk_edk_list_clean_up_harness() {
     struct aws_array_list edk_list;
     /* Precondition: We have a valid list */
     __CPROVER_assume(aws_cryptosdk_edk_list_is_bounded(&edk_list, NUM_ELEMS));
@@ -34,9 +34,9 @@ void aws_cryptosdk_edk_list_clear_harness() {
     ensure_cryptosdk_edk_list_has_allocated_list_elements(&edk_list);
     __CPROVER_assume(aws_cryptosdk_edk_list_elements_are_valid(&edk_list));
 
-    aws_cryptosdk_edk_list_clear(&edk_list);
-    assert(aws_cryptosdk_edk_list_is_valid(&edk_list));
-    assert(aws_cryptosdk_edk_list_elements_are_valid(&edk_list));
+    aws_cryptosdk_edk_list_clean_up(&edk_list);
+    //assert(aws_cryptosdk_edk_list_is_valid(&edk_list));
+    //assert(aws_cryptosdk_edk_list_elements_are_valid(&edk_list));
 }
 
 //#include <aws/common/array_list.inl>

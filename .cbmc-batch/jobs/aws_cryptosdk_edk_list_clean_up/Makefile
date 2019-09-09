@@ -47,7 +47,7 @@ DEPENDENCIES += $(SRCDIR)/c-common-src/math.c
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/edk.c
 DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
 
-ENTRY = aws_cryptosdk_edk_list_clear_harness
+ENTRY = aws_cryptosdk_edk_list_clean_up_harness
 
 REMOVE_FUNCTION_BODIES += --remove-function-body aws_array_list_get_at_ptr
 REMOVE_FUNCTION_BODIES += --remove-function-body nondet_compare
