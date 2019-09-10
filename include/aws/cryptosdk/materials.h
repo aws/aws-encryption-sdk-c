@@ -324,12 +324,17 @@ struct aws_cryptosdk_cmm_vt {
         struct aws_cryptosdk_dec_request *request);
 };
 
+
+  bool aws_atomic_var_is_valid(struct aws_atomic_var *var) {
+    return true;
+  }
+
 AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_cmm_vtable_is_valid(const struct aws_cryptosdk_cmm_vt *vtable) {
     return AWS_OBJECT_PTR_IS_READABLE(vtable) && vtable->vt_size == sizeof(struct aws_cryptosdk_cmm_vt) &&
            aws_c_string_is_valid(vtable->name);
 }
 
-AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_cmm_base_is_valid(const  struct aws_cryptosdk_cmm *cmm) {
+AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_cmm_base_is_valid(const struct aws_cryptosdk_cmm *cmm) {
   return AWS_OBJECT_PTR_IS_WRITABLE(cmm) && aws_atomic_var_is_valid(&cmm->refcount) &&aws_cryptosdk_cmm_vtable_is_valid(cmm->vtable);
 }
   
