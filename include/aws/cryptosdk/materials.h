@@ -324,10 +324,9 @@ struct aws_cryptosdk_cmm_vt {
         struct aws_cryptosdk_dec_request *request);
 };
 
-
-  bool aws_atomic_var_is_valid(struct aws_atomic_var *var) {
+bool aws_atomic_var_is_valid(struct aws_atomic_var *var) {
     return true;
-  }
+}
 
 AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_cmm_vtable_is_valid(const struct aws_cryptosdk_cmm_vt *vtable) {
     return AWS_OBJECT_PTR_IS_READABLE(vtable) && vtable->vt_size == sizeof(struct aws_cryptosdk_cmm_vt) &&
@@ -335,9 +334,10 @@ AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_cmm_vtable_is_valid(const struct 
 }
 
 AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_cmm_base_is_valid(const struct aws_cryptosdk_cmm *cmm) {
-  return AWS_OBJECT_PTR_IS_WRITABLE(cmm) && aws_atomic_var_is_valid(&cmm->refcount) &&aws_cryptosdk_cmm_vtable_is_valid(cmm->vtable);
+    return AWS_OBJECT_PTR_IS_WRITABLE(cmm) && aws_atomic_var_is_valid(&cmm->refcount) &&
+           AWS_ATOMIC_VAR_INTVAL(&cmm->refcount) > 0 && aws_cryptosdk_cmm_vtable_is_valid(cmm->vtable);
 }
-  
+
 /**
  * Initialize the base structure for a CMM. The implementation of a CMM needs to call this function to set up the
  * vtable and reference count. On return, the reference count is initialized to 1.
@@ -356,7 +356,8 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_base_init(
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_release(struct aws_cryptosdk_cmm *cmm) {
     if (cmm && aws_cryptosdk_private_refcount_down(&cmm->refcount)) {
-        AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, cmm);
+        assert(cmm);
+        // AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, cmm);
     }
 }
 
