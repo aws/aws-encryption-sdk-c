@@ -324,10 +324,9 @@ struct aws_cryptosdk_cmm_vt {
         struct aws_cryptosdk_dec_request *request);
 };
 
-
-  /**
-   * Putting this here for now, until we get it merged into the atomics.h in c-common
-   */
+/**
+ * Putting this here for now, until we get it merged into the atomics.h in c-common
+ */
 bool aws_atomic_var_is_valid(struct aws_atomic_var *var) {
     return AWS_OBJECT_PTR_IS_WRITABLE(var);
 }
@@ -340,13 +339,14 @@ AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_cmm_vtable_is_valid(const struct 
            aws_c_string_is_valid(vtable->name);
 }
 
-  /**
- * Constant time check of data-structure invariants for struct aws_cryptosdk_cmm. Since implementations of the 
+/**
+ * Constant time check of data-structure invariants for struct aws_cryptosdk_cmm. Since implementations of the
  * cmm may add additional fields, they may define their own, specialized is_valid functions that use this as a base.
  */
 AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_cmm_base_is_valid(const struct aws_cryptosdk_cmm *cmm) {
     return AWS_OBJECT_PTR_IS_WRITABLE(cmm) && aws_atomic_var_is_valid(&cmm->refcount) &&
-           AWS_ATOMIC_VAR_INTVAL(&cmm->refcount) > 0 && aws_cryptosdk_cmm_vtable_is_valid(cmm->vtable);
+           AWS_ATOMIC_VAR_INTVAL(&cmm->refcount) > 0 && AWS_ATOMIC_VAR_INTVAL(&cmm->refcount) <= SIZE_MAX &&
+           aws_cryptosdk_cmm_vtable_is_valid(cmm->vtable);
 }
 
 /**
@@ -378,7 +378,10 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_release(struct aws_cryptosdk_
  * Increments the reference count on the CMM.
  */
 AWS_CRYPTOSDK_STATIC_INLINE struct aws_cryptosdk_cmm *aws_cryptosdk_cmm_retain(struct aws_cryptosdk_cmm *cmm) {
+    AWS_PRECONDITION(aws_cryptosdk_cmm_base_is_valid(cmm));
+    AWS_PRECONDITION(AWS_ATOMIC_VAR_INTVAL(&cmm->refcount) < SIZE_MAX);
     aws_cryptosdk_private_refcount_up(&cmm->refcount);
+    AWS_POSTCONDITION(aws_cryptosdk_cmm_base_is_valid(cmm));
     return cmm;
 }
 
