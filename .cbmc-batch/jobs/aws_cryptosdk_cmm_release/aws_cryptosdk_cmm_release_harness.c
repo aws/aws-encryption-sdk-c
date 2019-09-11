@@ -23,22 +23,24 @@
 #include <proof_helpers/utils.h>
 
 void destroy(struct aws_cryptosdk_cmm *cmm) {
-    assert(AWS_OBJECT_POINTER_IS_WRITABLE(cmm));
+    assert(cmm);
+    assert(AWS_OBJECT_PTR_IS_WRITABLE(cmm));
     free(cmm);
 }
 
 void aws_cryptosdk_cmm_release_harness() {
     const struct aws_cryptosdk_cmm_vt vtable = { .vt_size                = sizeof(struct aws_cryptosdk_cmm_vt),
                                                  .name                   = ensure_c_str_is_allocated(SIZE_MAX),
-                                                 .destroy                = 0,
+                                                 .destroy                = nondet_bool() ? destroy : NULL,
                                                  .generate_enc_materials = nondet_voidp(),
                                                  .decrypt_materials      = nondet_voidp() };
     __CPROVER_assume(aws_cryptosdk_cmm_vtable_is_valid(&vtable));
 
     struct aws_cryptosdk_cmm *cmm = can_fail_malloc(sizeof(struct aws_cryptosdk_cmm));
+
     if (cmm) {
         cmm->vtable = &vtable;
         __CPROVER_assume(aws_cryptosdk_cmm_base_is_valid(cmm));
     }
-    aws_cryptosdk_cmm_release(&cmm);
+    aws_cryptosdk_cmm_release(cmm);
 }

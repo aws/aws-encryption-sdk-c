@@ -324,15 +324,26 @@ struct aws_cryptosdk_cmm_vt {
         struct aws_cryptosdk_dec_request *request);
 };
 
+
+  /**
+   * Putting this here for now, until we get it merged into the atomics.h in c-common
+   */
 bool aws_atomic_var_is_valid(struct aws_atomic_var *var) {
-    return true;
+    return AWS_OBJECT_PTR_IS_WRITABLE(var);
 }
 
+/**
+ * Constant time check of data-structure invariants for struct aws_cryptosdk_cmm_vt
+ */
 AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_cmm_vtable_is_valid(const struct aws_cryptosdk_cmm_vt *vtable) {
     return AWS_OBJECT_PTR_IS_READABLE(vtable) && vtable->vt_size == sizeof(struct aws_cryptosdk_cmm_vt) &&
            aws_c_string_is_valid(vtable->name);
 }
 
+  /**
+ * Constant time check of data-structure invariants for struct aws_cryptosdk_cmm. Since implementations of the 
+ * cmm may add additional fields, they may define their own, specialized is_valid functions that use this as a base.
+ */
 AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_cmm_base_is_valid(const struct aws_cryptosdk_cmm *cmm) {
     return AWS_OBJECT_PTR_IS_WRITABLE(cmm) && aws_atomic_var_is_valid(&cmm->refcount) &&
            AWS_ATOMIC_VAR_INTVAL(&cmm->refcount) > 0 && aws_cryptosdk_cmm_vtable_is_valid(cmm->vtable);
@@ -348,6 +359,7 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_base_init(
     AWS_PRECONDITION(aws_cryptosdk_cmm_vtable_is_valid(vtable));
     cmm->vtable = vtable;
     aws_atomic_init_int(&cmm->refcount, 1);
+    AWS_POSTCONDITION(aws_cryptosdk_cmm_base_is_valid(cmm));
 }
 
 /**
@@ -355,9 +367,9 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_base_init(
  * Decrements the reference count on the CMM. If the new reference count is zero, the CMM is destroyed.
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_release(struct aws_cryptosdk_cmm *cmm) {
+    AWS_PRECONDITION(!cmm || aws_cryptosdk_cmm_base_is_valid(cmm));
     if (cmm && aws_cryptosdk_private_refcount_down(&cmm->refcount)) {
-        assert(cmm);
-        // AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, cmm);
+        AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, cmm);
     }
 }
 

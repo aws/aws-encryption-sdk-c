@@ -25,4 +25,4 @@ ASN1_INTEGER *BN_to_ASN1_INTEGER(const BIGNUM *bn, ASN1_INTEGER *ai);
 ASN1_INTEGER *d2i_ASN1_INTEGER(ASN1_INTEGER **a, unsigned char **ppin, long length);
 int i2d_ASN1_INTEGER(ASN1_INTEGER *a, unsigned char **ppout);
 
-#endif HEADER_ASN1_H
+#endif  // HEADER_ASN1_H
