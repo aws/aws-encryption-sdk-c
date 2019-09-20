@@ -467,8 +467,9 @@ int aws_cryptosdk_aes_gcm_encrypt(
     if (!EVP_EncryptInit_ex(ctx, alg, NULL, aws_string_bytes(key), iv.ptr)) goto openssl_err;
 
     int out_len;
-    if (!EVP_EncryptUpdate(ctx, NULL, &out_len, aad.ptr, aad.len)) goto openssl_err;
-
+    if (add.len) {
+        if (!EVP_EncryptUpdate(ctx, NULL, &out_len, aad.ptr, aad.len)) goto openssl_err;
+    }
     if (!EVP_EncryptUpdate(ctx, cipher->buffer, &out_len, plain.ptr, plain.len)) goto openssl_err;
     int prev_len = out_len;
 
@@ -513,8 +514,9 @@ int aws_cryptosdk_aes_gcm_decrypt(
      * openssl wiki example does the same as this, giving it a pointer to an int and disregarding value.
      */
     int out_len;
-    if (!EVP_DecryptUpdate(ctx, NULL, &out_len, aad.ptr, aad.len)) goto decrypt_err;
-
+    if (aad.len) {
+        if (!EVP_DecryptUpdate(ctx, NULL, &out_len, aad.ptr, aad.len)) goto decrypt_err;
+    }
     if (!EVP_DecryptUpdate(ctx, plain->buffer, &out_len, cipher.ptr, cipher.len)) goto decrypt_err;
     int prev_len = out_len;
 
