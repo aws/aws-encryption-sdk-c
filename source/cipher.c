@@ -467,7 +467,7 @@ int aws_cryptosdk_aes_gcm_encrypt(
     if (!EVP_EncryptInit_ex(ctx, alg, NULL, aws_string_bytes(key), iv.ptr)) goto openssl_err;
 
     int out_len;
-    if (add.len) {
+    if (aad.len) {
         if (!EVP_EncryptUpdate(ctx, NULL, &out_len, aad.ptr, aad.len)) goto openssl_err;
     }
     if (!EVP_EncryptUpdate(ctx, cipher->buffer, &out_len, plain.ptr, plain.len)) goto openssl_err;
