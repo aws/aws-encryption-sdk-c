@@ -20,7 +20,7 @@ For best results when doing a build with KMS integration, do not install aws-c-c
 Build and install the AWS SDK for C++, which will build and install aws-c-common for you. If
 you install aws-c-common before building the AWS SDK for C++, this will fool the AWS SDK for
 C++ install logic, and you will be forced to install several other dependencies manually. The
-minimum supported version of the AWS SDK for C++ is 1.7.141.
+minimum supported version of the AWS SDK for C++ is 1.7.163.
 
 You need to compile both the AWS Encryption SDK for C and its dependencies as either all
 shared or all static libraries. We will use all shared library builds in our examples by
@@ -201,6 +201,8 @@ You have successfully built and installed the AWS Encryption SDK for C.
 
 ### Building on Windows
 
+**Note**: _see the docker-images folder for some Windows build recipes that automate many of theses steps_
+
 Start by installing Visual Studio version 15 or later with the Windows Universal C Runtime and
 [Git for Windows](https://git-scm.com/download/win).
 
@@ -304,4 +306,4 @@ fail if the C++ dependencies are not found.)
 
 ## License
 
-This library is licensed under the Apache 2.0 License. 
+This library is licensed under the Apache 2.0 License.
