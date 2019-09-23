@@ -19,7 +19,7 @@
 
 // This is a memory safety proof for aws_cryptosdk_multi_keyring() defined in
 // https://github.com/aws/aws-encryption-sdk-c/blob/master/source/multi_keyring.c
-void harness() {
+void MultiKeyringNew_harness() {
     struct aws_allocator *alloc = can_fail_allocator();
     struct aws_cryptosdk_keyring generator;
     aws_cryptosdk_keyring_base_init(&generator, NULL);
