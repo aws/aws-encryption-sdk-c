@@ -228,7 +228,7 @@ struct aws_cryptosdk_dec_materials {
  */
 AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_private_refcount_down(struct aws_atomic_var *refcount) {
     /*
-     * Memory ordering note: We must use release memory order here. Otherwise, we have the following race:
+     * Memory ordering note: We must use release_acquire memory order here. Otherwise, we have the following race:
      *
      * Program order:
      *
@@ -246,11 +246,12 @@ AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_private_refcount_down(struct aws_
      * Thread A: free(obj)
      * Thread B: obj->foo = 1
      *
-     * To prevent this we use release order, which forbids any memory accesses coming before this point
-     * from being reordered later. This prevents thread B from reordering the obj->foo access to come after
-     * the down().
+     * To prevent this we use release_acquire order. The release forbids any memory accesses sequenced-before the
+     * atomic decrement of down() from being reordered later. This prevents thread B from reordering the obj->foo
+     * access to come after the down(). The acquire ensures that the atomic decrements of down() calls correctly
+     * synchronize-with one-another.
      */
-    size_t old_count = aws_atomic_fetch_sub_explicit(refcount, 1, aws_memory_order_release);
+    size_t old_count = aws_atomic_fetch_sub_explicit(refcount, 1, aws_memory_order_acq_rel);
 
     assert(old_count != 0);
 
