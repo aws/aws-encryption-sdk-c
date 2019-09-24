@@ -653,10 +653,10 @@ static const enum aws_cryptosdk_alg_id known_algorithms[] = {
 };
 
 static const size_t test_sizes[] = {
-    0,
     1,
     2,
     3,
+    5,
     15,
     16,
     17,
