@@ -44,7 +44,9 @@ function(add_raw_lib_paths path_var)
 
     foreach(lib IN ITEMS ${ARGN})
         get_filename_component(basedir ${lib} DIRECTORY)
-        list(INSERT test_path 0 ${basedir})
+        if(${basedir})
+          list(INSERT test_path 0 ${basedir})
+        endif()
     endforeach()
 
     set(${path_var} ${test_path} PARENT_SCOPE)
