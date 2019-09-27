@@ -1,0 +1,56 @@
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+# this file except in compliance with the License. A copy of the License is
+# located at
+#
+# http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and
+# limitations under the License.
+version: '3.7'
+services:
+  ubuntu_18.04:
+    build:
+      args:
+        OPENSSL_TAG: ${OPENSSL_TAG}
+      context: ./ubuntu
+      dockerfile: 18.04/Dockerfile
+    image: ${REPOSITORY_URI}:ubuntu_18.04_${OPENSSL_TAG}
+  ubuntu_16.04:
+    build:
+      args:
+        OPENSSL_TAG: ${OPENSSL_TAG}
+      context: ./ubuntu
+      dockerfile: 16.04/Dockerfile
+    image: ${REPOSITORY_URI}:ubuntu_16.04_${OPENSSL_TAG}
+  ubuntu_14.04:
+    build:
+      args:
+        OPENSSL_TAG: ${OPENSSL_TAG}
+      context: ./ubuntu
+      dockerfile: 14.04/Dockerfile
+    image: ${REPOSITORY_URI}:ubuntu_14.04_${OPENSSL_TAG}
+  amazonlinux_2018.03:
+    build:
+      args:
+        OPENSSL_TAG: ${OPENSSL_TAG}
+      context: ./amazonlinux
+      dockerfile: 2018.03/Dockerfile
+    image: ${REPOSITORY_URI}:amazonlinux_2018.03_${OPENSSL_TAG}
+  amazonlinux_2.0:
+    build:
+      args:
+        OPENSSL_TAG: ${OPENSSL_TAG}
+      context: ./amazonlinux
+      dockerfile: 2.0/Dockerfile
+    image: ${REPOSITORY_URI}:amazonlinux_2.0_${OPENSSL_TAG}
+  centos_7:
+    build:
+      args:
+        OPENSSL_TAG: ${OPENSSL_TAG}
+      context: ./centos
+      dockerfile: 7/Dockerfile
+    image: ${REPOSITORY_URI}:centos_7_${OPENSSL_TAG}

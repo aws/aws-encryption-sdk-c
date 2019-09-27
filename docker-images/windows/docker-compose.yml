@@ -1,0 +1,20 @@
+version: "3.7"
+services:
+  windows_base:
+    build:
+      context: windows_base
+      dockerfile: Dockerfile
+    image: aws_encryption-windows:windows_base
+    mem_limit: 6g
+  windows_vs2015:
+    build:
+      context: visualcpp2015
+      dockerfile: Dockerfile
+    image: aws_encryption-windows:vs2015
+    mem_limit: 6g
+  windows_vs2017:
+    build:
+      context: visualcpp2017
+      dockerfile: Dockerfile
+    image: aws_encryption-windows:vs2017
+    mem_limit: 6g

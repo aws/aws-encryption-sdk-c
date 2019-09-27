@@ -13,10 +13,10 @@
 
 FROM ubuntu:14.04.5
 
-ADD bin/setup-apt-cache.sh /usr/local/bin/
-ADD bin/setup-apt-trusty.sh /usr/local/bin/
-RUN setup-apt-cache.sh
-RUN setup-apt-trusty.sh
+COPY bin/* /usr/local/bin/
+
+RUN /usr/local/bin/setup-apt-cache.sh
+RUN /usr/local/bin/setup-apt-trusty.sh
 
 ENV PATH=/usr/local/bin:/usr/bin:/bin
 
@@ -29,8 +29,7 @@ ENV LDFLAGS=
 # We'll need a newer version of cmake than is available for this version of ubuntu.
 # Because cmake depends on libssl, we'll want to build it either before we set -rpaths,
 # or after we build libssl.
-ADD bin/update-cmake.sh /usr/local/bin/
-RUN update-cmake.sh
+RUN /usr/local/bin/update-cmake.sh
 
 # We're going to install our own version of openssl at /deps/install/lib - this lets us test against multiple openssl versions.
 # However, this also means we need to install our own version of curl, as curl links against libssl and the C++ SDK links
@@ -44,15 +43,6 @@ ENV LDFLAGS="-Wl,-rpath -Wl,/deps/install/lib -Wl,-rpath -Wl,/deps/shared/instal
 
 ENV OPENSSL_TAG=OpenSSL_1_0_2h
 ENV OPENSSL_PLATFORM=linux-x86_64
-
-ADD bin/apt-install-pkgs /usr/local/bin/
-ADD bin/install-shared-deps.sh /usr/local/bin/
-RUN install-shared-deps.sh
-
-ADD bin/install-aws-deps.sh /usr/local/bin
-RUN install-aws-deps.sh
-
-ADD bin/codebuild-test.sh /usr/local/bin/
-
+RUN /usr/local/bin/install-shared-deps.sh && install-aws-deps.sh
 # Remove apt proxy configuration before publishing the dockerfile
 RUN rm -f /etc/apt/apt.conf.d/99proxy
