@@ -11,26 +11,23 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM i386/ubuntu:14.04
+FROM ubuntu:18.04
 
-ADD bin/setup-apt-cache.sh /usr/local/bin/
-ADD bin/setup-apt-trusty.sh /usr/local/bin/
-RUN setup-apt-cache.sh
-RUN setup-apt-trusty.sh
+# Needed for setup-apt-cache.sh
+ADD https://mirrors.kernel.org/ubuntu/pool/main/n/net-tools/net-tools_1.60+git20161116.90da8a0-2ubuntu1_amd64.deb /tmp
+ADD https://mirrors.kernel.org/ubuntu/pool/universe/n/netcat/netcat-traditional_1.10-40_amd64.deb /tmp
+RUN dpkg -i /tmp/net-tools_*.deb /tmp/netcat-*.deb
+COPY bin/* /usr/local/bin/
 
-ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+RUN /usr/local/bin/setup-apt-cache.sh
+RUN /usr/local/bin/setup-apt.sh
 
+ENV PATH=/usr/local/bin:/usr/bin:/bin
 ENV CC=/usr/bin/gcc
 ENV CXX=/usr/bin/g++
-ENV LDFLAGS=
 ENV CFLAGS=
 ENV CXXFLAGS=
-
-# We'll need a newer version of cmake than is available for this version of ubuntu.
-# Because cmake depends on libssl, we'll want to build it either before we set -rpaths,
-# or after we build libssl.
-ADD bin/update-cmake.sh /usr/local/bin/
-RUN update-cmake.sh
+ENV LDFLAGS=
 
 # We're going to install our own version of openssl at /deps/install/lib - this lets us test against multiple openssl versions.
 # However, this also means we need to install our own version of curl, as curl links against libssl and the C++ SDK links
@@ -42,17 +39,13 @@ RUN update-cmake.sh
 # on our special versions of openssl/libcurl (or to depend on them at all for that matter).
 ENV LDFLAGS="-Wl,-rpath -Wl,/deps/install/lib -Wl,-rpath -Wl,/deps/shared/install/lib -L/deps/install/lib -L/deps/shared/install/lib"
 
-ENV OPENSSL_TAG=OpenSSL_1_0_2h
-ENV OPENSSL_PLATFORM=linux-generic32
+#Setting OPENSSL_TAG in the docker compose file
+ARG OPENSSL_TAG
+ENV OPENSSL_TAG=${OPENSSL_TAG}
+ENV OPENSSL_PLATFORM=linux-x86_64
 
-ADD bin/apt-install-pkgs /usr/local/bin/
-ADD bin/install-shared-deps.sh /usr/local/bin/
-RUN install-shared-deps.sh
-
-ADD bin/install-aws-deps.sh /usr/local/bin
-RUN install-aws-deps.sh
-
-ADD bin/codebuild-test.sh /usr/local/bin/
+RUN /usr/local/bin/install-shared-deps.sh
+RUN /usr/local/bin/install-aws-deps.sh
 
 # Remove apt proxy configuration before publishing the dockerfile
 RUN rm -f /etc/apt/apt.conf.d/99proxy
