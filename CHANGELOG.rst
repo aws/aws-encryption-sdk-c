@@ -5,24 +5,12 @@ Changelog
 1.0.1 -- 2019-09-27
 =================== 
 * Merge pull request #376 from lucasmt/dependency-graph
-* Modified Doxygen config file to generate dependency graphs
-* Merge pull request #426 from danielsn/reformat ran reformat
+* Merge pull request #426 from danielsn/reformat 
 * Merge pull request #433 from nchong-at-aws/strengthen-atomic-refcount-down 
-  Strengthen memory_order for refcount_down
-* Merge pull request #391 from johnwalker/prtemplate Update PR template
-* Merge pull request #430 from dougch/clang_format_322 Issue #322; Refreshing the clang-format file and checking the version
-* Fix MultiKeyringNew proof so it runs again. (#444)
-* Windows build fixes (#446)
-** Changed aws-sdk-cpp version from 1.7.36 to 1.7.163
-** Fix for error C2259: anonymous-namespace::BufferedLogSystem cannot instantiate abstract class for windows builds
-** Modified Flush() function
-** Version bump of dep: aws-sdk-cpp
-** Don't add empty strings to library path
-** Pull in change from PR #386
-** Fixed calling EVP_EncryptUpdate and EVP_DecryptUpdate when AAD is NULL
-** Removed test size 0 and added test size 5 to fix failure case
-** Fix typo: aad
-** Pulling in changes from PR#446
+* Merge pull request #391 from johnwalker/prtemplate 
+* Merge pull request #430 from dougch/clang_format_322 
+* Fix MultiKeyringNew proof so it runs again. #444
+* Windows build fixes #446
 
 1.0.0 -- 2019-05-20
 =================== 
