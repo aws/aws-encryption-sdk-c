@@ -29,6 +29,14 @@ static const struct aws_error_info error_info[] = {
 static const struct aws_error_info_list error_info_list = { .error_list = error_info,
                                                             .count      = sizeof(error_info) / sizeof(error_info[0]) };
 
+void aws_cryptosdk_register_error_info() {
+    aws_register_error_info(&error_info_list);
+}
+
+void aws_cryptosdk_unregister_error_info() {
+    //aws_unregister_error_info(&error_info_list);
+}
+
 void aws_cryptosdk_load_error_strings() {
     aws_register_error_info(&error_info_list);
 }

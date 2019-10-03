@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <aws/cryptosdk/cryptosdk.h>
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/private/cipher.h>
@@ -289,7 +290,8 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
 }
 
 int main() {
-    aws_cryptosdk_load_error_strings();
+    struct aws_allocator *alloc = aws_default_allocator();
+    aws_cryptosdk_init(alloc);
 
     curl_init();
 
@@ -316,5 +318,6 @@ int main() {
     }
     curl_clean_up();
 
+    aws_cryptosdk_clean_up();
     return final_result;
 }

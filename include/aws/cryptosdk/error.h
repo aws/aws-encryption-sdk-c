@@ -58,6 +58,22 @@ enum aws_cryptosdk_err {
  * Implicitly registers error strings for aws-c-common as well.
  */
 AWS_CRYPTOSDK_API
+void aws_cryptosdk_register_error_info();
+
+/**
+ * Unregister error strings with the core error reporting APIs. This function is
+ * threadsafe and idempotent, and should be called at on application startup.
+ * Implicitly registers error strings for aws-c-common as well.
+ */
+AWS_CRYPTOSDK_API
+void aws_cryptosdk_unregister_error_info();
+
+/**
+ * DEPRECATED
+ * This function is left in place to not break existing applications.
+ * Users will notice that aws-c-common errors will not have been loaded.
+ */
+AWS_CRYPTOSDK_API
 void aws_cryptosdk_load_error_strings();
 
 #ifdef __cplusplus

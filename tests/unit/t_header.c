@@ -95,8 +95,8 @@ static const uint8_t test_header_1[] = {
 uint8_t test_header_1_aad_key[]                      = { 0x01, 0x02, 0x03, 0x04 };
 uint8_t test_header_1_aad_value[]                    = { 0x01, 0x00, 0x01, 0x00, 0x01 };
 struct aws_cryptosdk_hdr_aad test_header_1_aad_tbl[] = {
-    { .key   = { .len = sizeof(test_header_1_aad_key), .buffer = test_header_1_aad_key },
-      .value = { .len = sizeof(test_header_1_aad_value), .buffer = test_header_1_aad_value } },
+    { .key   = { .capacity = sizeof(test_header_1_aad_key), .len = sizeof(test_header_1_aad_key), .buffer = test_header_1_aad_key },
+      .value = { .capacity = sizeof(test_header_1_aad_value), .len = sizeof(test_header_1_aad_value), .buffer = test_header_1_aad_value } },
     { { 0 } }
 };
 
@@ -105,9 +105,9 @@ uint8_t test_header_1_edk_provider_info[]        = { 0x01, 0x02, 0x03, 0x04 };
 uint8_t test_header_1_edk_enc_data_key[]         = { 0x11, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x88 };
 struct aws_cryptosdk_edk test_header_1_edk_tbl[] = {
     { { 0 } },
-    { .provider_id   = { .len = sizeof(test_header_1_edk_provider_id), .buffer = test_header_1_edk_provider_id },
-      .provider_info = { .len = sizeof(test_header_1_edk_provider_info), .buffer = test_header_1_edk_provider_info },
-      .ciphertext    = { .len = sizeof(test_header_1_edk_enc_data_key), .buffer = test_header_1_edk_enc_data_key } },
+    { .provider_id   = { .capacity = sizeof(test_header_1_edk_provider_id), .len = sizeof(test_header_1_edk_provider_id), .buffer = test_header_1_edk_provider_id },
+      .provider_info = { .capacity = sizeof(test_header_1_edk_provider_info), .len = sizeof(test_header_1_edk_provider_info), .buffer = test_header_1_edk_provider_info },
+      .ciphertext    = { .capacity = sizeof(test_header_1_edk_enc_data_key), .len = sizeof(test_header_1_edk_enc_data_key), .buffer = test_header_1_edk_enc_data_key } },
     { { 0 } }
 };
 
@@ -155,8 +155,8 @@ static struct aws_cryptosdk_hdr test_header_1_hdr() {
     struct aws_cryptosdk_hdr test_header_1_hdr = {
         .alg_id     = ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
         .frame_len  = 0x1000,
-        .iv         = { .buffer = test_header_1_iv_arr, .len = sizeof(test_header_1_iv_arr) },
-        .auth_tag   = { .buffer = test_header_1_auth_tag_arr, .len = sizeof(test_header_1_auth_tag_arr) },
+        .iv         = aws_byte_buf_from_array(test_header_1_iv_arr, sizeof(test_header_1_iv_arr)),
+        .auth_tag   = aws_byte_buf_from_array(test_header_1_auth_tag_arr, sizeof(test_header_1_auth_tag_arr)),
         .message_id = { 0x11,
                         0x22,
                         0x33,
@@ -313,8 +313,8 @@ struct aws_cryptosdk_hdr test_header_2_hdr() {
     struct aws_cryptosdk_hdr hdr = {
         .alg_id = ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
         .frame_len = 0x1000,
-        .iv = {.buffer = test_header_1_iv_arr, .len = sizeof(test_header_1_iv_arr)},
-        .auth_tag = {.buffer = test_header_1_auth_tag_arr, .len = sizeof(test_header_1_auth_tag_arr)},
+        .iv         = aws_byte_buf_from_array(test_header_1_iv_arr, sizeof(test_header_1_iv_arr)),
+        .auth_tag   = aws_byte_buf_from_array(test_header_1_auth_tag_arr, sizeof(test_header_1_auth_tag_arr)),
         .message_id = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88},
         .auth_len = sizeof(test_header_2) - 29 // not used by aws_cryptosdk_hdr_size/write
     };
@@ -559,11 +559,15 @@ int header_size() {
         struct aws_cryptosdk_edk edk;
         TEST_ASSERT_SUCCESS(aws_array_list_get_at(&hdr.edk_list, &edk, i));
 
-        edk.ciphertext.len    = SIZE_MAX >> 1;
-        edk.provider_id.len   = SIZE_MAX >> 1;
-        edk.provider_info.len = SIZE_MAX >> 1;
+        edk.ciphertext.len          = SIZE_MAX >> 1;
+        edk.provider_id.len         = SIZE_MAX >> 1;
+        edk.provider_info.len       = SIZE_MAX >> 1;
 
         TEST_ASSERT_SUCCESS(aws_array_list_set_at(&hdr.edk_list, &edk, i));
+
+        edk.ciphertext.len          = 0;
+        edk.provider_id.len         = 0;
+        edk.provider_info.len       = 0;
     }
 
     TEST_ASSERT_INT_EQ(aws_cryptosdk_hdr_size(&hdr), 0);

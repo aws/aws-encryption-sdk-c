@@ -16,6 +16,7 @@
 #include <aws/common/encoding.h>
 #include <aws/core/utils/logging/AWSLogging.h>
 #include <aws/core/utils/logging/ConsoleLogSystem.h>
+#include <aes/cryptosdk/cryptosdk.h>
 #include <aws/cryptosdk/cpp/kms_keyring.h>
 #include <aws/cryptosdk/enc_ctx.h>
 
@@ -533,7 +534,9 @@ class LoggingRAII {
 }  // namespace
 
 int main() {
-    aws_cryptosdk_load_error_strings();
+
+    struct aws_allocator *alloc = aws_default_allocator();
+    aws_cryptosdk_init(alloc);
 
     LoggingRAII logging;
 
@@ -568,4 +571,5 @@ int main() {
     logging.clear();
 
     Aws::ShutdownAPI(options);
+    aws_cryptosdk_clean_up();
 }

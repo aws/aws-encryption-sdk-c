@@ -227,10 +227,20 @@ int aws_cryptosdk_priv_try_decrypt_body(
 
     // Before we go further, do we have enough room to place the plaintext?
     struct aws_byte_buf output;
+    aws_byte_buf_init(&output, aws_default_allocator(), session->output_size_estimate);
     if (!aws_byte_buf_advance(poutput, &output, session->output_size_estimate)) {
         *pinput = input_rollback;
         // No progress due to not enough plaintext output space.
         return AWS_OP_SUCCESS;
+    }
+
+    // XXX: There is a condition where plaintext length is 0, so the ciphertext length and
+    // capacity estimates are 0, and the buffer len and capacity get set to 0. However, the
+    // ciphertext.buffer still points to a block of memory. This causes the precondition
+    // for aws_byte_cursor_from_buf to fail. Setting the buffer to NULL fixes this, passes
+    // all the tests, and seems horribly hacky and wrong.
+    if (frame.ciphertext.len == 0 && frame.ciphertext.capacity == 0) {
+        frame.ciphertext.buffer = NULL;
     }
 
     // We have everything we need, try to decrypt

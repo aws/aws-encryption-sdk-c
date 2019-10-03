@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <aws/cryptosdk/cryptosdk.h>
 #include <aws/cryptosdk/enc_ctx.h>
 #include <aws/cryptosdk/private/cpputils.h>
 #include <aws/cryptosdk/private/kms_keyring.h>
@@ -713,10 +714,12 @@ int t_assert_encrypt_with_default_values(aws_cryptosdk_keyring *kms_keyring, Enc
 }
 
 int main() {
+    struct aws_allocator *alloc         = aws_default_allocator();
+
     Aws::SDKOptions *options = Aws::New<Aws::SDKOptions>(CLASS_TAG);
     Aws::InitAPI(*options);
 
-    aws_cryptosdk_load_error_strings();
+    aws_cryptosdk_init(alloc);
 
     RUN_TEST(encrypt_validInputs_returnSuccess());
     RUN_TEST(encrypt_kmsFails_returnError());
@@ -738,5 +741,7 @@ int main() {
 
     Aws::ShutdownAPI(*options);
     Aws::Delete(options);
+
+    aws_cryptosdk_clean_up();
     return 0;
 }

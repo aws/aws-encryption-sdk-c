@@ -21,6 +21,7 @@
 
 #include <aws/common/common.h>
 #include <aws/common/error.h>
+#include <aws/cryptosdk/cryptosdk.h>
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/session.h>
@@ -48,16 +49,13 @@ size_t ct_size, pt_size;
         return 1;                                                  \
     } while (0)
 
-int test_decrypt() {
-    aws_cryptosdk_load_error_strings();
-
+int test_decrypt(struct aws_allocator *alloc) {
     uint8_t *output_buf = malloc(pt_size);
     if (!output_buf) {
         fprintf(stderr, "out of memory\n");
         exit(1);
     }
 
-    struct aws_allocator *alloc           = aws_default_allocator();
     struct aws_cryptosdk_keyring *kr      = NULL;
     struct aws_cryptosdk_session *session = NULL;
     struct aws_cryptosdk_cmm *cmm         = NULL;
@@ -158,7 +156,9 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    int result = test_decrypt();
+    struct aws_allocator *alloc = aws_default_allocator();
+    aws_cryptosdk_register_error_info();
+    int result = test_decrypt(alloc);
 
     free(ciphertext);
     free(plaintext);

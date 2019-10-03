@@ -20,9 +20,12 @@ int aws_cryptosdk_edk_list_init(struct aws_allocator *alloc, struct aws_array_li
 }
 
 void aws_cryptosdk_edk_clean_up(struct aws_cryptosdk_edk *edk) {
-    aws_byte_buf_clean_up(&edk->provider_id);
-    aws_byte_buf_clean_up(&edk->provider_info);
-    aws_byte_buf_clean_up(&edk->ciphertext);
+    if (edk->provider_id.allocator)
+        aws_byte_buf_clean_up(&edk->provider_id);
+    if (edk->provider_info.allocator)
+        aws_byte_buf_clean_up(&edk->provider_info);
+    if (edk->ciphertext.allocator)
+        aws_byte_buf_clean_up(&edk->ciphertext);
 }
 
 void aws_cryptosdk_edk_list_clear(struct aws_array_list *edk_list) {

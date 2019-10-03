@@ -383,7 +383,7 @@ int aws_cryptosdk_decrypt_body(
     const struct content_key *key,
     const uint8_t *tag,
     int body_frame_type) {
-    if (inp->len != outp->capacity - outp->len) {
+    if (inp->len > outp->capacity - outp->len) {
         return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     }
 
@@ -606,6 +606,7 @@ int aws_cryptosdk_rsa_decrypt(
     const struct aws_byte_cursor cipher,
     const struct aws_string *rsa_private_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
+
     if (plain->buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     int padding = get_openssl_rsa_padding_mode(rsa_padding_mode);
     if (padding < 0) return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);

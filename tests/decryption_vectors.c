@@ -23,6 +23,7 @@
 #include <aws/common/common.h>
 #include <aws/common/encoding.h>
 #include <aws/common/error.h>
+#include <aws/cryptosdk/cryptosdk.h>
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/session.h>
@@ -423,7 +424,7 @@ void decrypt_test_vector(
 }
 
 int main() {
-    aws_cryptosdk_load_error_strings();
+    aws_cryptosdk_register_error_info();
 
     // clang-format off
     decrypt_test_vector(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256, "ALG_AES_128_GCM_IV12_TAG16_HKDF_SHA256 hello empty final frame", "SGVsbG8sIHdvcmxkIQ==", "AYABFO37IzpEmc0FwZTvdUKZNmwAAAABAAh6ZXJvLWtleQANcHJvdmlkZXIgaW5mbwABAAIAAAAADAAAAA0AAAAAAAAAAAAAAACNU9yvQgmpDkhnXnIQNxa2AAAAAQAAAAAAAAAAAAAAASUlloU74HOz+Y1YlYf6Raw/tn/7oSD3tUsfzC8W/////wAAAAIAAAAAAAAAAAAAAAIAAAAAeSAQ6uk0/Gbj1GQb7AXKTw==");

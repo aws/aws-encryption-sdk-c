@@ -25,6 +25,9 @@ static struct aws_cryptosdk_edk good_edk() {
  */
 static struct aws_cryptosdk_edk empty_edk() {
     struct aws_cryptosdk_edk edk = { { 0 } };
+    aws_byte_buf_init(&edk.ciphertext, aws_default_allocator(), 0);
+    aws_byte_buf_init(&edk.provider_id, aws_default_allocator(), 0);
+    aws_byte_buf_init(&edk.provider_info, aws_default_allocator(), 0);
     return edk;
 }
 static struct aws_cryptosdk_edk wrong_provider_id_edk() {
@@ -67,6 +70,7 @@ static struct aws_cryptosdk_edk enc_data_key_too_small_edk() {
 static struct aws_cryptosdk_edk enc_data_key_too_large_edk() {
     struct aws_cryptosdk_edk edk = good_edk();
     edk.ciphertext.len *= 2;
+    edk.ciphertext.capacity *= 2;
     return edk;
 }
 
@@ -89,6 +93,7 @@ static struct aws_byte_buf unencrypted_data_key = { 0 };
 
 static int set_up_all_the_things(enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode, bool use_correct_private_key) {
     alloc = aws_default_allocator();
+    aws_byte_buf_init(&unencrypted_data_key, alloc, 0);
     kr    = (use_correct_private_key ? raw_rsa_keyring_tv_new : raw_rsa_keyring_tv_new_with_wrong_key)(
         alloc, rsa_padding_mode);
     TEST_ASSERT_ADDR_NOT_NULL(kr);

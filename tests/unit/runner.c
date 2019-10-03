@@ -20,6 +20,8 @@
 
 #include <aws/common/error.h>
 #include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/cryptosdk.h>
+
 
 int pass_fn() {
     return 0;
@@ -101,7 +103,7 @@ static void enable_cases(const char *specifier) {
 }
 
 int main(int argc, char **argv) {
-    aws_cryptosdk_load_error_strings();
+    aws_cryptosdk_init(NULL);
 
     int ret;
     assemble_test_cases(argc < 2);

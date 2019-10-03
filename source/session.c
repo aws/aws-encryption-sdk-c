@@ -221,7 +221,6 @@ int aws_cryptosdk_session_process(
 
         struct aws_byte_buf remaining_space =
             aws_byte_buf_from_empty_array(output.buffer + output.len, output.capacity - output.len);
-
         switch (session->state) {
             case ST_CONFIG:
                 if (!session->cmm) {
@@ -258,7 +257,6 @@ int aws_cryptosdk_session_process(
         }
 
         made_progress = (remaining_space.len) || (input.ptr != old_inp) || (prior_state != session->state);
-
         output.len += remaining_space.len;
     } while (result == AWS_OP_SUCCESS && made_progress);
 

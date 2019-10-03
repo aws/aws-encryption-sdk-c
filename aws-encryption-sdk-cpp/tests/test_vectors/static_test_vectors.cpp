@@ -18,6 +18,7 @@
 #include <aws/common/encoding.h>
 #include <aws/common/error.h>
 #include <aws/core/Aws.h>
+#include <aws/cryptosdk/cryptosdk.h>
 #include <aws/cryptosdk/cpp/kms_keyring.h>
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/error.h>
@@ -461,10 +462,15 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Wrong number of arguments\nUsage: ./static_test_vectors /path/to/manifest/files\n");
         return EXIT_FAILURE;
     }
-    aws_cryptosdk_load_error_strings();
+
+    struct aws_allocator *alloc         = aws_default_allocator();
+    aws_cryptosdk_init(alloc);
+
     SDKOptions options;
     Aws::InitAPI(options);
     int rv = test_vector_runner(argv[1]);
     Aws::ShutdownAPI(options);
+    aws_cryptosdk_clean_up();
+
     return rv;
 }

@@ -58,6 +58,8 @@ struct aws_cryptosdk_dec_materials *aws_cryptosdk_dec_materials_new(
     if (!dec_mat) return NULL;
     dec_mat->alloc                          = alloc;
     dec_mat->unencrypted_data_key.buffer    = NULL;
+    dec_mat->unencrypted_data_key.len       = 0;
+    dec_mat->unencrypted_data_key.capacity  = 0;
     dec_mat->unencrypted_data_key.allocator = NULL;
     dec_mat->alg                            = alg;
     dec_mat->signctx                        = NULL;
