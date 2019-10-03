@@ -283,13 +283,13 @@ static void track_destroy_keyring(struct aws_cryptosdk_keyring *keyring) {
     destroy_called = true;
 }
 
-static const struct aws_cryptosdk_cmm_vt track_destroy_cmm_vt = {
-    .vt_size = sizeof(track_destroy_cmm_vt), .name = "track_destroy_cmm_vt", .destroy = track_destroy_cmm
-};
+static const struct aws_cryptosdk_cmm_vt track_destroy_cmm_vt = { .vt_size = sizeof(track_destroy_cmm_vt),
+                                                                  .name    = "track_destroy_cmm_vt",
+                                                                  .destroy = track_destroy_cmm };
 
-static const struct aws_cryptosdk_keyring_vt track_destroy_keyring_vt = {
-    .vt_size = sizeof(track_destroy_keyring_vt), .name = "track_destroy_keyring_vt", .destroy = track_destroy_keyring
-};
+static const struct aws_cryptosdk_keyring_vt track_destroy_keyring_vt = { .vt_size = sizeof(track_destroy_keyring_vt),
+                                                                          .name    = "track_destroy_keyring_vt",
+                                                                          .destroy = track_destroy_keyring };
 
 static int refcount_keyring() {
     struct aws_cryptosdk_keyring keyring;
