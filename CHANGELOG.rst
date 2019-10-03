@@ -4,11 +4,11 @@ Changelog
 
 1.0.1 -- 2019-09-27
 =================== 
-* Merge pull request #376 from lucasmt/dependency-graph
-* Merge pull request #426 from danielsn/reformat 
-* Merge pull request #433 from nchong-at-aws/strengthen-atomic-refcount-down 
-* Merge pull request #391 from johnwalker/prtemplate 
-* Merge pull request #430 from dougch/clang_format_322 
+* Modified Doxygen config file to generate dependency graphs #376
+* Ran reformat #426
+* Strengthen memory_order for refcount_down #433
+* Update PR template #391
+* Refreshing the clang-format file and checking the version #430
 * Fix MultiKeyringNew proof so it runs again. #444
 * Windows build fixes #446
 
