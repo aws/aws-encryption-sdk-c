@@ -16,7 +16,7 @@
 #include <aws/common/encoding.h>
 #include <aws/core/utils/logging/AWSLogging.h>
 #include <aws/core/utils/logging/ConsoleLogSystem.h>
-#include <aes/cryptosdk/cryptosdk.h>
+#include <aws/cryptosdk/cryptosdk.h>
 #include <aws/cryptosdk/cpp/kms_keyring.h>
 #include <aws/cryptosdk/enc_ctx.h>
 

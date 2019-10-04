@@ -225,13 +225,15 @@ int aws_cryptosdk_priv_try_decrypt_body(
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
     }
 
+    int rv = AWS_OP_SUCCESS;
     // Before we go further, do we have enough room to place the plaintext?
     struct aws_byte_buf output;
-    aws_byte_buf_init(&output, aws_default_allocator(), session->output_size_estimate);
+    aws_byte_buf_init(&output, aws_default_allocator(), 0);
     if (!aws_byte_buf_advance(poutput, &output, session->output_size_estimate)) {
         *pinput = input_rollback;
+
         // No progress due to not enough plaintext output space.
-        return AWS_OP_SUCCESS;
+        goto end;
     }
 
     // XXX: There is a condition where plaintext length is 0, so the ciphertext length and
@@ -245,7 +247,7 @@ int aws_cryptosdk_priv_try_decrypt_body(
 
     // We have everything we need, try to decrypt
     struct aws_byte_cursor ciphertext_cursor = aws_byte_cursor_from_buf(&frame.ciphertext);
-    int rv                                   = aws_cryptosdk_decrypt_body(
+    rv                                       = aws_cryptosdk_decrypt_body(
         session->alg_props,
         &output,
         &ciphertext_cursor,
@@ -262,7 +264,8 @@ int aws_cryptosdk_priv_try_decrypt_body(
         if (session->signctx) {
             struct aws_byte_cursor frame = { .ptr = input_rollback.ptr, .len = pinput->ptr - input_rollback.ptr };
             if (aws_cryptosdk_sig_update(session->signctx, frame)) {
-                return AWS_OP_ERR;
+                rv = AWS_OP_ERR;
+                goto end;
             }
         }
 
@@ -270,10 +273,13 @@ int aws_cryptosdk_priv_try_decrypt_body(
             aws_cryptosdk_priv_session_change_state(session, ST_CHECK_TRAILER);
         }
 
-        return rv;
+        goto end;
     }
 
     // An error was encountered; the top level loop will transition to the error state
+    //
+end:
+    aws_byte_buf_clean_up(&output);
     return rv;
 }
 
