@@ -306,12 +306,12 @@ static const uint8_t hdr_with_zero_edk_count[] = {
 };
 // clang-format on
 
-static const uint8_t *bad_headers[] = {
-    hdr_with_nonzero_reserve_bytes, hdr_with_zero_aad_count, hdr_with_zero_edk_count
-};
-static const size_t bad_headers_sz[] = {
-    sizeof(hdr_with_nonzero_reserve_bytes), sizeof(hdr_with_zero_aad_count), sizeof(hdr_with_zero_edk_count)
-};
+static const uint8_t *bad_headers[]  = { hdr_with_nonzero_reserve_bytes,
+                                        hdr_with_zero_aad_count,
+                                        hdr_with_zero_edk_count };
+static const size_t bad_headers_sz[] = { sizeof(hdr_with_nonzero_reserve_bytes),
+                                         sizeof(hdr_with_zero_aad_count),
+                                         sizeof(hdr_with_zero_edk_count) };
 
 struct aws_cryptosdk_hdr test_header_2_hdr() {
     // clang-format off
