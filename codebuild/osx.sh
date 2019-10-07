@@ -17,26 +17,26 @@
 set +ex
 
 OS=$(uname -s)
-CPP_VER="1.7.163"  #github versioned branch
+AWS_SDK_CPP_VER="1.7.163"  #github versioned branch
 BUILDROOT="/var/tmp/build-$(date +%s)"
-OPENSSLVER="openssl@1.1" #note this is a brew label, not an exact version reference
+OPENSSL_VER="openssl@1.1" #note this is a brew label, not an exact version reference
 BUILDROOT="/var/tmp/build-$(date +%Y%m%d)"
-CSDK_VER="master"  # Build from master
+AWS_ENCRYPTION_SDK_C_VER="master"  # Build from master
 
 deps(){
   if [ $(which brew|grep -c 'brew') -lt 1 ]; then
     echo "Can't find brew, required to build"
     exit 1
   fi
-  brew install ${OPENSSLVER} cmake || true
+  brew install ${OPENSSL_VER} cmake || true
   mkdir ${BUILDROOT} || true
   mkdir ${INSTALLROOT} || true
 }
 
 build_cpp(){
-    echo "Building cpp"
+    echo "Building aws-sdk-cpp"
     cd ${BUILDROOT}
-    git clone -b ${CPP_VER} https://github.com/aws/aws-sdk-cpp.git
+    git clone -b ${AWS_SDK_CPP_VER} https://github.com/aws/aws-sdk-cpp.git
     mkdir -p ${BUILDROOT}/build-aws-sdk-cpp ||true
     mkdir -p ${BUILDROOT}/install || true 
     cd ${BUILDROOT}/build-aws-sdk-cpp
@@ -49,15 +49,14 @@ build_cpp(){
 }
 
 build_csdk(){
-    echo "Building csdk"
+    echo "Building aws-encryption-sdk-c"
     cd ${BUILDROOT}
-    git clone -b ${CSDK_VER} https://github.com/aws/aws-encryption-sdk-c.git 
-    mkdir -p ${BUILDROOT}/build-csdk || true
-    cd $BUILDROOT/build-csdk
-    cmake -G Xcode -DBUILD_SHARED_LIBS=ON -DOPENSSL_ROOT_DIR="/usr/local/opt/${OPENSSLVER}" ../aws-encryption-sdk-c 
+    git clone -b ${AWS_ENCRYPTION_SDK_C_VER} https://github.com/aws/aws-encryption-sdk-c.git 
+    mkdir -p ${BUILDROOT}/build-aws-encryption-sdk-c || true
+    cd $BUILDROOT/build-aws-encryption-sdk-c
+    cmake -G Xcode -DBUILD_SHARED_LIBS=ON -DOPENSSL_ROOT_DIR="/usr/local/opt/${OPENSSL_VER}" ../aws-encryption-sdk-c 
     xcodebuild -target ALL_BUILD
     xcodebuild -scheme RUN_TESTS
-
 }
 
 

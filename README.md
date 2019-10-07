@@ -161,7 +161,7 @@ Once it is set up, run the following:
 takes much longer than the KMS-only build. For these reasons, we recommend doing a source
 build of the AWS SDK for C++ yourself, as we will demonstrate below.)
 
-Start in the directory where you want to do your build, or use the script in ./codebuild/osx.sh.
+Start in the directory where you want to do your build.
 
 #### Mac: (Option 1) C and C++ build dependencies
 
@@ -195,7 +195,7 @@ set the directory manually in our build.
     git clone https://github.com/aws/aws-encryption-sdk-c.git
     mkdir build-aws-encryption-sdk-c && cd build-aws-encryption-sdk-c
     cmake -G Xcode -DBUILD_SHARED_LIBS=ON -DOPENSSL_ROOT_DIR="/usr/local/opt/openssl@1.1" ../aws-encryption-sdk-c 
-    xcodebuild -target install
+    xcodebuild -target install; cd ..
 
 You have successfully built and installed the AWS Encryption SDK for C.
 
@@ -255,7 +255,7 @@ or use your OS package manager.
 
 Next, rerun the above cmake with a `-DBUILD_DOC="ON"` flag before building aws-encryption-sdk-c.
 
-Finally, run either `make doc_doxygen` (Unix) or `xcodebuild -scheme doc_doxygen` (Mac) to generate the documentation.
+Finally, run either `make doc_doxygen` (Unix), `MSBuild.exe .\doc_doxygen.vcxproj` (Windows) or `xcodebuild -scheme doc_doxygen` (Mac) to generate the documentation.
 
 ## Compiling your program using the AWS Encryption SDK for C
 
