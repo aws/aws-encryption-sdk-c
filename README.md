@@ -20,8 +20,8 @@ For best results when doing a build with KMS integration, do not install aws-c-c
 Build and install the AWS SDK for C++, which will build and install aws-c-common for you (see the C++ SDK dependancies
  [here](https://github.com/aws/aws-sdk-cpp/blob/master/third-party/CMakeLists.txt#L18)). If
 you install aws-c-common before building the AWS SDK for C++, this will fool the AWS SDK for
-C++ install logic, and you will be forced to install several other dependencies manually. The
-current supported version of the AWS SDK for C++ is 1.7.163.
+C++ install logic, and you will be forced to install several other dependencies manually. Version 1.7.163 of the 
+AWS SDK for C++ is supported by version v1.0.1 of the AWS Encryption SDK for C.
 
 You need to compile both the AWS Encryption SDK for C and its dependencies as either all
 shared or all static libraries. We will use all shared library builds in our examples by
