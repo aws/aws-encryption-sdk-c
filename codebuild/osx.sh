@@ -24,6 +24,7 @@ BUILDROOT="/var/tmp/build-$(date +%Y%m%d)"
 AWS_ENCRYPTION_SDK_C_VER="master"  # Build from master
 
 deps(){
+  echo "Installing dependancies" 
   if [ $(which brew|grep -c 'brew') -lt 1 ]; then
     echo "Can't find brew, required to build"
     exit 1
