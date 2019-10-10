@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 1.0.1 -- 2019-09-27
+## 1.0.1 -- 2019-10-10
 * Modified Doxygen config file to generate dependency graphs [#376](https://github.com/aws/aws-encryption-sdk-c/pull/376)
 * Ran reformat [#426](https://github.com/aws/aws-encryption-sdk-c/pull/426)
 * Strengthen memory_order for refcount_down [#433](https://github.com/aws/aws-encryption-sdk-c/pull/433)
@@ -9,6 +9,7 @@
 * Refreshing the clang-format file and checking the version [#430](https://github.com/aws/aws-encryption-sdk-c/pull/430)
 * Fix MultiKeyringNew proof so it runs again. [#444](https://github.com/aws/aws-encryption-sdk-c/pull/444)
 * Windows build fixes [#446](https://github.com/aws/aws-encryption-sdk-c/pull/446)
+* OSX build steps and README updates [#453](https://github.com/aws/aws-encryption-sdk-c/pull/)
 
 ## 1.0.0 -- 2019-05-20
 * Changed links from awslabs to aws 
