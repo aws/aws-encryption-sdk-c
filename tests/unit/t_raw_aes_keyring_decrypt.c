@@ -173,8 +173,6 @@ int decrypt_data_key_test_vectors() {
             if (corrupt_enc_ctx) {
                 TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
             } else if(unencrypted_data_key.buffer){
-                // TODO: these tests arent really testing anything ? except that they will fail
-                //TEST_ASSERT_ADDR_NOT_NULL(unencrypted_data_key.buffer);
 
                 struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv->data_key, tv->data_key_len);
                 TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &known_answer));
