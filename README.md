@@ -20,7 +20,7 @@ For best results when doing a build with KMS integration, do not install aws-c-c
 Build and install the AWS SDK for C++, which will build and install aws-c-common for you. If
 you install aws-c-common before building the AWS SDK for C++, this will fool the AWS SDK for
 C++ install logic, and you will be forced to install several other dependencies manually. The
-minimum supported version of the AWS SDK for C++ is 1.7.36.
+minimum supported version of the AWS SDK for C++ is 1.7.163.
 
 You need to compile both the AWS Encryption SDK for C and its dependencies as either all
 shared or all static libraries. We will use all shared library builds in our examples by
@@ -171,10 +171,10 @@ aws-c-common for you.
 Do a KMS-only build of the AWS SDK for C++. If you want to use the AWS SDK for C++ for
 other AWS services, you can omit the `-DBUILD_ONLY="kms"` argument, but the build will take much longer.
 
-    git clone https://github.com/aws/aws-sdk-cpp.git
+    git clone -b v1.7.163 https://github.com/aws/aws-sdk-cpp.git
     mkdir build-aws-sdk-cpp && cd build-aws-sdk-cpp
-    cmake -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="kms" -DENABLE_UNITY_BUILD=ON ../aws-sdk-cpp
-    make && sudo make install ; cd ..
+    cmake -G Xcode -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="kms" -DENABLE_UNITY_BUILD=ON ../aws-sdk-cpp 
+    xcodebuild -target install ; cd ..
 
 Now skip to the "Mac: Build and install the AWS Encryption SDK for C" section below.
 
@@ -182,10 +182,10 @@ Now skip to the "Mac: Build and install the AWS Encryption SDK for C" section be
 
 Build and install aws-c-common:
 
-    git clone https://github.com/awslabs/aws-c-common.git
+    git clone -b v0.3.15 https://github.com/awslabs/aws-c-common.git
     mkdir build-aws-c-common && cd build-aws-c-common
-    cmake -DBUILD_SHARED_LIBS=ON ../aws-c-common
-    make && sudo make install ; cd ..
+    cmake -G Xcode -DBUILD_SHARED_LIBS=ON ../aws-c-common
+    xcodebuild -target install ; cd ..
 
 #### Mac: Build and install the AWS Encryption SDK for C
 
@@ -194,12 +194,14 @@ set the directory manually in our build.
 
     git clone https://github.com/aws/aws-encryption-sdk-c.git
     mkdir build-aws-encryption-sdk-c && cd build-aws-encryption-sdk-c
-    cmake -DBUILD_SHARED_LIBS=ON -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl\@1.1 ../aws-encryption-sdk-c
-    make && sudo make install ; cd ..
+    cmake -G Xcode -DBUILD_SHARED_LIBS=ON -DOPENSSL_ROOT_DIR="/usr/local/opt/openssl@1.1" ../aws-encryption-sdk-c 
+    xcodebuild -target install; cd ..
 
 You have successfully built and installed the AWS Encryption SDK for C.
 
 ### Building on Windows
+
+**Note**: _see the docker-images folder for some Windows build recipes that automate many of theses steps_
 
 Start by installing Visual Studio version 15 or later with the Windows Universal C Runtime and
 [Git for Windows](https://git-scm.com/download/win).
@@ -245,6 +247,15 @@ Build and install aws-c-common:
     cmake --build . && cmake --build . --target install && cd ..
 
 You have successfully built and installed the AWS Encryption SDK for C.
+
+## Doxygen Documentation
+
+To build the documentation, you'll need [doxygen](http://www.doxygen.nl/) installed.  Check the [downloads](http://www.doxygen.nl/download.html) page 
+or use your OS package manager.
+
+Next, rerun the above cmake with a `-DBUILD_DOC="ON"` flag before building aws-encryption-sdk-c.
+
+Finally, run either `make doc_doxygen` (Unix), `MSBuild.exe .\doc_doxygen.vcxproj` (Windows) or `xcodebuild -scheme doc_doxygen` (Mac) to generate the documentation.
 
 ## Compiling your program using the AWS Encryption SDK for C
 
@@ -304,4 +315,4 @@ fail if the C++ dependencies are not found.)
 
 ## License
 
-This library is licensed under the Apache 2.0 License. 
+This library is licensed under the Apache 2.0 License.
