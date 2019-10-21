@@ -10,6 +10,9 @@
 * Fix MultiKeyringNew proof so it runs again. [#444](https://github.com/aws/aws-encryption-sdk-c/pull/444)
 * Windows build fixes [#446](https://github.com/aws/aws-encryption-sdk-c/pull/446)
 * OSX build steps and README updates [#453](https://github.com/aws/aws-encryption-sdk-c/pull/)
+* Fix duplicate in encryption context deserialization bug [#408](https://github.com/aws/aws-encryption-sdk-c/pull/408)
+* Fix a bug where framefmt serialize returns a wrong ciphertext size [#385](https://github.com/aws/aws-encryption-sdk-c/pull/385)
+
 
 ## 1.0.0 -- 2019-05-20
 * Changed links from awslabs to aws 
