@@ -153,9 +153,7 @@ void set_aad_tbl(struct aws_cryptosdk_hdr *hdr, struct aws_cryptosdk_hdr_aad *aa
 
 static struct aws_cryptosdk_hdr test_header_1_hdr() {
     struct aws_allocator *allocator = aws_default_allocator();
-    if(!allocator){
-        abort();
-    }
+
     struct aws_cryptosdk_hdr test_header_1_hdr = {
         .alg_id     = ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
         .frame_len  = 0x1000,
