@@ -1,6 +1,3 @@
-#ifndef AWS_CRYPTOSDK_MAKE_COMMON_DATA_STRUCTURES_H
-#define AWS_CRYPTOSDK_MAKE_COMMON_DATA_STRUCTURES_H
-
 /*
  * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -15,6 +12,8 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#pragma once
 
 #include <aws/common/common.h>
 #include <aws/cryptosdk/cipher.h>
@@ -39,6 +38,3 @@ void ensure_sig_ctx_has_allocated_members(struct aws_cryptosdk_sig_ctx *ctx);
  * [aws_cryptosdk_alg_props] initializer.
  */
 void ensure_alg_properties_is_allocated(struct aws_cryptosdk_alg_properties **alg_props);
-
-#endif /* AWS_CRYPTOSDK_MAKE_COMMON_DATA_STRUCTURES_H */
-

@@ -24,14 +24,14 @@ CBMCFLAGS +=
 
 ENTRY = aws_cryptosdk_serialize_frame_harness
 
-DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/make_common_data_structures.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/proof_allocators.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/utils.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-src/byte_buf.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-src/common.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-src/error.c
-DEPENDENCIES +=	$(SRCDIR)/c-enc-sdk-src/cipher.c
-DEPENDENCIES +=	$(SRCDIR)/c-enc-sdk-src/framefmt.c
+DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
+DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
+DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.c
+DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.c
+DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
+DEPENDENCIES += $(SRCDIR)/c-common-src/error.c
+DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher.c
+DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/framefmt.c
 DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
 
 ###########

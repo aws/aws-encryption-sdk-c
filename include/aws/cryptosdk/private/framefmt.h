@@ -55,7 +55,7 @@ bool aws_cryptosdk_frame_is_valid(const struct aws_cryptosdk_frame *const frame)
  * the [alg_props] algorithm properties and in the
  * [plaintext_size]. It also checks that the two buffers are empty.
  */
-bool aws_cryptosdk_frame_serialized(
+bool aws_cryptosdk_frame_is_valid_serialized(
     const struct aws_cryptosdk_frame *frame,
     const struct aws_cryptosdk_alg_properties *alg_props,
     size_t plaintext_size);

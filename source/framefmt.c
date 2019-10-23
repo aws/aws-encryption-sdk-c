@@ -215,7 +215,7 @@ static inline int serde_nonframed(
 }
 
 bool aws_cryptosdk_frame_is_valid(const struct aws_cryptosdk_frame *const frame) {
-    if (frame == NULL) {
+    if (!AWS_OBJECT_PTR_IS_READABLE(frame)) {
         return false;
     }
 
@@ -239,11 +239,11 @@ bool aws_cryptosdk_frame_is_valid(const struct aws_cryptosdk_frame *const frame)
         authtag_byte_buf_static && ciphertext_valid && ciphertext_static);
 }
 
-bool aws_cryptosdk_frame_serialized(
+bool aws_cryptosdk_frame_is_valid_serialized(
     const struct aws_cryptosdk_frame *frame,
     const struct aws_cryptosdk_alg_properties *alg_props,
     size_t plaintext_size) {
-    if (frame == NULL || alg_props == NULL) {
+    if (!AWS_OBJECT_PTR_IS_READABLE(frame) || !AWS_OBJECT_PTR_IS_READABLE(alg_props)) {
         return false;
     }
 
@@ -264,7 +264,7 @@ bool aws_cryptosdk_frame_serialized(
 }
 
 bool aws_cryptosdk_frame_has_valid_type(const struct aws_cryptosdk_frame *frame) {
-    if (frame == NULL) {
+    if (!AWS_OBJECT_PTR_IS_READABLE(frame)) {
         return false;
     }
 
@@ -346,7 +346,7 @@ int aws_cryptosdk_serialize_frame(
         *ciphertext_buf = state.u.buffer;
         AWS_POSTCONDITION(aws_cryptosdk_frame_is_valid(frame));
         AWS_POSTCONDITION(aws_cryptosdk_alg_properties_is_valid(alg_props));
-        AWS_POSTCONDITION(aws_cryptosdk_frame_serialized(frame, alg_props, plaintext_size));
+        AWS_POSTCONDITION(aws_cryptosdk_frame_is_valid_serialized(frame, alg_props, plaintext_size));
         return AWS_OP_SUCCESS;
     }
 }
