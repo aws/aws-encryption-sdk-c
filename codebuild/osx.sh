@@ -17,7 +17,7 @@
 set +ex
 
 OS=$(uname -s)
-AWS_SDK_CPP_VER="1.7.163"  #github versioned branch
+AWS_SDK_CPP_VER="1.7.231"  #github versioned branch
 BUILDROOT="/var/tmp/build-$(date +%s)"
 OPENSSL_VER="openssl@1.1" #note this is a brew label, not an exact version reference
 BUILDROOT="/var/tmp/build-$(date +%Y%m%d)"
@@ -37,7 +37,7 @@ deps(){
 build_cpp(){
     echo "Building aws-sdk-cpp"
     cd ${BUILDROOT}
-    git clone -b ${AWS_SDK_CPP_VER} https://github.com/aws/aws-sdk-cpp.git
+    git clone -b ${AWS_SDK_CPP_VER} https://github.com/dougch/aws-sdk-cpp.git
     mkdir -p ${BUILDROOT}/build-aws-sdk-cpp ||true
     mkdir -p ${BUILDROOT}/install || true 
     cd ${BUILDROOT}/build-aws-sdk-cpp
@@ -46,7 +46,7 @@ build_cpp(){
     # This target runs the cpp tests, but doesn't appear to run the other dependancy tests.
     xcodebuild -target ALL_BUILD 
     xcodebuild -target install
-
+ 
 }
 
 build_csdk(){
