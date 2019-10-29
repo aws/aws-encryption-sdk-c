@@ -88,6 +88,7 @@ aws_add_test(header ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite head
 aws_add_test(materials ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite materials)
 aws_add_test(enc_ctx ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite enc_ctx)
 aws_add_test(encrypt ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite encrypt)
+aws_add_test(framefmt ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite framefmt)
 aws_add_test(hkdf ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite hkdf)
 aws_add_test(raw_aes_keyring ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite raw_aes_keyring)
 aws_add_test(raw_rsa_keyring ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite raw_rsa_keyring)
