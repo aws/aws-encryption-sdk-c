@@ -10,27 +10,33 @@
 # "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
-version: '0.2'
+version: 0.2
+
 phases:
   install:
     runtime-versions:
       docker: 18
     commands:
-    - echo Logging in to Amazon ECR...
-    - aws --version
-    - $(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
-    - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - echo Logging in to Amazon ECR...
+      - aws --version
+      - $(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
+      - REPOSITORY_URI=636124823696.dkr.ecr.us-west-2.amazonaws.com/linux-docker-images
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
   build:
     labels:
-      openssl_tag: $OPENSSL_TAG
-      distro: ubuntu
-      distro_release: '18.04'
-      description: Buld testing image for ubuntu_18.04
+      "openssl_tag": "OpenSSL_1_1_0-stable"
+      "distro": "Ubuntu"
+      "distro_release": "18.04"
+      "description": "Build Testing image for Ubuntu"
     commands:
-    - echo Building Docker image at `date`
-    - docker-compose -f docker-images/docker-compose.yml build ubuntu_18.04_$OPENSSL_TAG
+      - echo Building Docker image at `date`
+      - docker-compose -f docker-images/docker-compose.yml build ubuntu_18.04_OpenSSL_1_1_0-stable
+      - docker-compose -f docker-images/docker-compose.yml build ubuntu_18.04_OpenSSL_1_1_1-stable
+      - docker-compose -f docker-images/docker-compose.yml build ubuntu_18.04_OpenSSL_1_0_2-stable
   post_build:
     commands:
-    - echo Build completed on `date`
-    - echo Pushing the Docker images.
-    - docker push $REPOSITORY_URI:ubuntu_18.04_$OPENSSL_TAG
+      - echo Build completed on `date`
+      - echo Pushing the Docker images...
+      - docker push $REPOSITORY_URI:ubuntu_18.04_OpenSSL_1_0_2-stable
+      - docker push $REPOSITORY_URI:ubuntu_18.04_OpenSSL_1_1_0-stable
+      - docker push $REPOSITORY_URI:ubuntu_18.04_OpenSSL_1_1_1-stable

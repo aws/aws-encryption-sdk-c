@@ -40,15 +40,15 @@ ecr_map = dict({'ubuntu': '636124823696.dkr.ecr.us-west-2.amazonaws.com/linux-do
                 })
 
 
-def populate_template(distro: str, tag: str) -> dict:
+def populate_template(openssl_tag: str, distro: str, tag: str) -> defaultdict:
     """ Populate the body section of a docker-compose yaml file """
-    return {'{}_{}'.format(distro, tag): {
+    return {'{}_{}_{}'.format(distro, tag, openssl_tag): {
         'build': {
-            'args': {'OPENSSL_TAG': '${OPENSSL_TAG}'},
+            'args': {'OPENSSL_TAG': '{}'.format(openssl_tag)},
             # TODO: ARG BUILD_DATE
             'context': './{}'.format(distro),
             'dockerfile': '{}/Dockerfile'.format(tag)},
-        'image': '${REPOSITORY_URI}' + f':{distro}_{tag}_'+'${OPENSSL_TAG}'
+        'image': '${REPOSITORY_URI}' + f':{distro}_{tag}_{openssl_tag}'
     }}
 
 
@@ -57,7 +57,8 @@ def compose() -> dict:
     final = {'version': "3.7", 'services': {}}
     for distro, release in distros.items():
         for tag in release:
-            final['services'].update((populate_template(distro=distro, tag=tag)))
+            for ssl_ver in open_ssl_versions:
+                final['services'].update((populate_template(openssl_tag=ssl_ver, distro=distro, tag=tag)))
     return final
 
 
@@ -66,15 +67,15 @@ def buildspec() -> dict:
     final = dict()
     for distro, release in distros.items():
         for tag in release:
-            final[distro + '/' + tag + '/buildspec'] = create_buildspec(distro=distro, tag=tag)
+            for ssl_ver in open_ssl_versions:
+                final[distro + '/' + tag + '/buildspec_' + ssl_ver] = create_buildspec(openssl_tag=ssl_ver,
+                                                                                       distro=distro,
+                                                                                       tag=tag)
     return final
 
 
-def create_buildspec(distro: str, tag: str) -> dict:
-    """ For each Distro,version  create a buildspec config structure.
-    NOTE: OPENSSL_TAG is an env variable provided by CodePipeline.
-    """
-
+def create_buildspec(openssl_tag: str, distro: str, tag: str) -> dict:
+    """ For each Distro,version and openssl version, create a buildspec config structure."""
     return {'version': "0.2",
             'phases': {
                 'install': {
@@ -85,25 +86,26 @@ def create_buildspec(distro: str, tag: str) -> dict:
                         'echo Logging in to Amazon ECR...',
                         'aws --version',
                         '$(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)',
+                        'REPOSITORY_URI=636124823696.dkr.ecr.us-west-2.amazonaws.com/linux-docker-images',
                         'COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)'
                     ]
                 },
                 'build': {
                     'labels': {
-                        "openssl_tag": "$OPENSSL_TAG",
+                        "openssl_tag": openssl_tag,
                         "distro": distro,
                         "distro_release": tag,
                         "description": f"Buld testing image for {distro}_{tag}"
                     },
                     'commands': [
                         "echo Building Docker image at `date`",
-                        f"docker-compose -f docker-images/docker-compose.yml build {distro}_{tag}_$OPENSSL_TAG"
+                        f"docker-compose -f docker-images/docker-compose.yml build {distro}_{tag}_{openssl_tag}"
                     ]
                 },
                 'post_build': {
                     'commands': ['echo Build completed on `date`',
-                                 'echo Pushing the Docker images.',
-                                 f'docker push $REPOSITORY_URI:{distro}_{tag}_$OPENSSL_TAG'
+                                 'echo Pushing the Docker images',
+                                 f'docker push $REPOSITORY_URI:{distro}_{tag}_{openssl_tag}'
                                  ]}
             }
             }
@@ -111,6 +113,57 @@ def create_buildspec(distro: str, tag: str) -> dict:
 
 def codebuild_iam_roles() -> Template:
     """
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "kms:Decrypt",
+                "kms:Encrypt",
+                "kms:GenerateDataKey",
+                "kms:GenerateDataKeyWithoutPlaintext"
+            ],
+            "Resource": [
+                "arn:aws:kms:eu-central-1:658956600833:key/75414c93-5285-4b57-99c9-30c1cf0a22c2",
+                "arn:aws:kms:us-west-2:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f"
+            ]
+        }
+    ]
+}
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Resource": [
+                "arn:aws:logs:us-west-2:636124823696:log-group:/aws/codebuild/csdk-trusty-gcc4x-x64",
+                "arn:aws:logs:us-west-2:636124823696:log-group:/aws/codebuild/csdk-trusty-gcc4x-x64:*"
+            ],
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Resource": [
+                "arn:aws:s3:::codepipeline-us-west-2-*"
+            ],
+            "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:GetObjectVersion",
+                "s3:GetBucketAcl",
+                "s3:GetBucketLocation"
+            ]
+        }
+    ]
+}
+
+    :return:
     """
     cfnrole = Template()
 
@@ -162,40 +215,42 @@ def codebuild_iam_roles() -> Template:
 
 
 def create_codebuild_jobs() -> defaultdict:
-    result = Template()
+    result = defaultdict()
     artifacts = Artifacts(Type='NO_ARTIFACTS')
-
 
     for distro, release in distros.items():
         for tag in release:
-            full_target = '_'.join([distro, tag])
-            # CodeBuild project names can not have dots.
-            # TODO: Test case for names with/without dots
-            no_dot_full_target = full_target.replace('.', '').replace('-','').replace('_','')
+            for ssl_ver in open_ssl_versions:
+                full_target = '_'.join([distro, tag, ssl_ver])
+                # CodeBuild project names can not have dots.
+                # TODO: Test case for names with/without dots
+                no_dot_full_target = ''.join(full_target.split('.'))
 
-            environment = Environment(
-                ComputeType='BUILD_GENERAL1_SMALL',
-                Image=f'{ecr_map[distro]}:{distro}_{tag}_$OPENSSL_TAG',
-                Type='LINUX_CONTAINER',
-                EnvironmentVariables=[{'Name': 'distro', 'Value': distro},
-                                      {'Name': 'release', 'Value': tag}]
-            )
+                environment = Environment(
+                    ComputeType='BUILD_GENERAL1_SMALL',
+                    Image=f'{ecr_map[distro]}:{distro}_{tag}_{ssl_ver}',
+                    Type='LINUX_CONTAINER',
+                    EnvironmentVariables=[{'Name': 'distro', 'Value': distro},
+                                          {'Name': 'release', 'Value': tag},
+                                          {'Name': 'openssl_ver', 'Value': ssl_ver}],
+                )
 
-            source = Source(
-                Location='https://github.com/aws/aws-encryption-sdk-c.git',
-                Type='GITHUB'
-            )
+                source = Source(
+                    Location='https://github.com/aws/aws-encryption-sdk-c.git',
+                    Type='GITHUB'
+                )
 
-            project = Project(
-                f'esdk{no_dot_full_target}',
-                Artifacts=artifacts,
-                Environment=environment,
-                Name=f'aws-encryption-sdk-c_{no_dot_full_target}',
-                ServiceRole="CESDKCodeBuildRole",
-                Source=source,
-            )
-            result.set_version('2010-09-09')
-            result.add_resource(project)
+                project = Project(
+                    'esdkc',
+                    Artifacts=artifacts,
+                    Environment=environment,
+                    Name=f'aws-encryption-sdk-c_{no_dot_full_target}',
+                    ServiceRole="CESDKCodeBuildRole",
+                    Source=source,
+                )
+                result[full_target] = Template()
+                result[full_target].set_version('2010-09-09')
+                result[full_target].add_resource(project)
     return result
 
 
@@ -229,9 +284,10 @@ def main(*argv):
 
     logging.debug('Creating CodeBuild CloudFormation yamls.')
     all_cfn = create_codebuild_jobs()
-    with(open(f'../codebuild/cfn/DockerBuildPipelinecfn.yml', "w")) as fh:
-        fh.write(copywrite)
-        fh.write(all_cfn.to_json())
+    for target in all_cfn.keys():
+        with(open(f'../codebuild/cfn/{target}_cfn.yml', "w")) as fh:
+            fh.write(copywrite)
+            fh.write(all_cfn[target].to_json())
 
 
 if __name__ == "__main__":
