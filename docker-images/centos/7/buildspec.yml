@@ -10,27 +10,30 @@
 # "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
-version: '0.2'
+version: 0.2
+
 phases:
   install:
     runtime-versions:
       docker: 18
     commands:
-    - echo Logging in to Amazon ECR...
-    - aws --version
-    - $(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
-    - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - echo Logging in to Amazon ECR...
+      - aws --version
+      - $(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
+      - REPOSITORY_URI=636124823696.dkr.ecr.us-west-2.amazonaws.com/linux-docker-images
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
   build:
     labels:
-      openssl_tag: $OPENSSL_TAG
-      distro: centos
-      distro_release: '7'
-      description: Buld testing image for centos_7
+      "openssl_tag": "OpenSSL_1_1_0-stable"
+      "distro": "Centos"
+      "distro_release": "7"
+      "description": "Build Testing image for Centos 7"
     commands:
-    - echo Building Docker image at `date`
-    - docker-compose -f docker-images/docker-compose.yml build centos_7_$OPENSSL_TAG
+      - echo Building Docker image at `date`
+      - docker-compose -f docker-images/docker-compose.yml build centos_7_OpenSSL_1_1_0-stable
   post_build:
     commands:
-    - echo Build completed on `date`
-    - echo Pushing the Docker images.
-    - docker push $REPOSITORY_URI:centos_7_$OPENSSL_TAG
+      - echo Build completed on `date`
+      - echo Pushing the Docker images
+      - docker push $REPOSITORY_URI:cents_7_OpenSSL_1_1_0-stable
+     
