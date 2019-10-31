@@ -226,7 +226,7 @@ int aws_cryptosdk_priv_try_decrypt_body(
     }
 
     // Before we go further, do we have enough room to place the plaintext?
-    struct aws_byte_buf output;
+    struct aws_byte_buf output = {.buffer = 0, .len = 0, .capacity = 0, .allocator = NULL};
     if (!aws_byte_buf_advance(poutput, &output, session->output_size_estimate)) {
         *pinput = input_rollback;
         // No progress due to not enough plaintext output space.
@@ -234,7 +234,7 @@ int aws_cryptosdk_priv_try_decrypt_body(
     }
 
     // We have everything we need, try to decrypt
-    struct aws_byte_cursor ciphertext_cursor = aws_byte_cursor_from_buf(&frame.ciphertext);
+    struct aws_byte_cursor ciphertext_cursor = aws_byte_cursor_from_array(frame.ciphertext.buffer, frame.ciphertext.len);
     int rv                                   = aws_cryptosdk_decrypt_body(
         session->alg_props,
         &output,

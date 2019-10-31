@@ -130,7 +130,7 @@ static int raw_rsa_keyring_on_decrypt(
         if (aws_cryptosdk_rsa_decrypt(
                 unencrypted_data_key,
                 request_alloc,
-                aws_byte_cursor_from_buf(&edk->ciphertext),
+                aws_byte_cursor_from_array(edk->ciphertext.buffer, edk->ciphertext.len),
                 self->rsa_private_key_pem,
                 self->rsa_padding_mode)) {
             /* We are here either because of a ciphertext mismatch
