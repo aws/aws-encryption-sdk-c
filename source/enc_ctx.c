@@ -140,9 +140,16 @@ int aws_cryptosdk_enc_ctx_deserialize(
         struct aws_string *k = aws_string_new_from_array(alloc, k_cursor.ptr, k_cursor.len);
         struct aws_string *v = aws_string_new_from_array(alloc, v_cursor.ptr, v_cursor.len);
 
-        if (!k || !v || aws_hash_table_put(enc_ctx, k, (void *)v, NULL)) {
+        int was_created;
+        if (!k || !v || aws_hash_table_put(enc_ctx, k, (void *)v, &was_created)) {
+            // Errors here are only on memory allocation. aws-c-common will raise the error code
             aws_string_destroy(k);
             aws_string_destroy(v);
+            goto RETHROW;
+        }
+        if (!was_created) {
+            // !was_created means there was a duplicate key in serialized encryption context, so fail
+            aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
             goto RETHROW;
         }
     }

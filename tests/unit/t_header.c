@@ -152,6 +152,8 @@ void set_aad_tbl(struct aws_cryptosdk_hdr *hdr, struct aws_cryptosdk_hdr_aad *aa
 }
 
 static struct aws_cryptosdk_hdr test_header_1_hdr() {
+    struct aws_allocator *allocator = aws_default_allocator();
+
     struct aws_cryptosdk_hdr test_header_1_hdr = {
         .alg_id     = ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
         .frame_len  = 0x1000,
@@ -177,8 +179,9 @@ static struct aws_cryptosdk_hdr test_header_1_hdr() {
         //        .edk_tbl = test_header_1_edk_tbl,
         .auth_len = sizeof(test_header_1) - 29  // not used by aws_cryptosdk_hdr_size/write
     };
-
-    test_header_1_hdr.alloc = aws_default_allocator();
+    test_header_1_hdr.iv = aws_byte_buf_from_array(test_header_1_iv_arr,sizeof(test_header_1_iv_arr));
+    test_header_1_hdr.auth_tag = aws_byte_buf_from_array(test_header_1_auth_tag_arr,sizeof(test_header_1_auth_tag_arr));
+    test_header_1_hdr.alloc = allocator;
 
     SET_EDK_TBL(&test_header_1_hdr, test_header_1_edk_tbl);
     SET_AAD_TBL(&test_header_1_hdr, test_header_1_aad_tbl);

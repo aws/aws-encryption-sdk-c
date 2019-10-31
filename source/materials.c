@@ -58,6 +58,8 @@ struct aws_cryptosdk_dec_materials *aws_cryptosdk_dec_materials_new(
     if (!dec_mat) return NULL;
     dec_mat->alloc                          = alloc;
     dec_mat->unencrypted_data_key.buffer    = NULL;
+    dec_mat->unencrypted_data_key.len       = 0;
+    dec_mat->unencrypted_data_key.capacity  = 0;
     dec_mat->unencrypted_data_key.allocator = NULL;
     dec_mat->alg                            = alg;
     dec_mat->signctx                        = NULL;
@@ -102,7 +104,9 @@ int aws_cryptosdk_keyring_on_encrypt(
     /* Postcondition: If this keyring generated data key, it must be the right length. */
     if (!precall_data_key_buf.buffer && unencrypted_data_key->buffer) {
         const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
-        if (unencrypted_data_key->len != props->data_key_len) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+        if (unencrypted_data_key->len != props->data_key_len) {
+            return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+        }
     }
 
     /* Postcondition: If data key was generated before call, byte buffer must not have been
