@@ -12,7 +12,7 @@
 * OSX build steps and README updates [#453](https://github.com/aws/aws-encryption-sdk-c/pull/)
 * Fix duplicate in encryption context deserialization bug [#408](https://github.com/aws/aws-encryption-sdk-c/pull/408)
 * Fix a bug where framefmt serialize returns a wrong ciphertext size [#385](https://github.com/aws/aws-encryption-sdk-c/pull/385)
-
+* Fix: Improve initialization. [#451](https://github.com/aws/aws-encryption-sdk-c/pull/451)
 
 ## 1.0.0 -- 2019-05-20
 * Changed links from awslabs to aws 
