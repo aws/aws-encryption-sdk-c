@@ -252,7 +252,7 @@ static int serialize_pubkey(struct aws_allocator *alloc, EC_KEY *keypair, struct
     }
 
     binary = aws_byte_cursor_from_array(buf, length);
-    b64    = aws_byte_buf_from_array(tmp, sizeof(tmp));
+    b64    = aws_byte_buf_from_empty_array(tmp, sizeof(tmp));
 
     if (aws_base64_compute_encoded_len(length, &b64_len)) {
         goto err;
