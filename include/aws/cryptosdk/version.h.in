@@ -29,10 +29,6 @@
  *
  * This API documentation was generated from the v@MAJOR@.@MINOR@.@PATCH@ source code.
  *
- * There are addiitonal dependancies built by the aws-sdk-cpp package, with the following versions:
- * aws-c-common: AWS_C_COMMON_TAG
- * aws-checksums: AWS_CHECKSUMS_TAG
- * aws-c-event-stream: AWS_EVENT_STREAM_TAG
  * <b>License</b>
  *
  * This library is licensed under the Apache 2.0 License.
