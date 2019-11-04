@@ -10,17 +10,18 @@ Also, see the [API documentation](https://aws.github.io/aws-encryption-sdk-c/htm
 ## Dependencies
 
 The only direct dependencies of this code are OpenSSL 1.0.2 or higher or 1.1.0 or higher and
-[aws-c-common](https://github.com/awslabs/aws-c-common) v0.3.0 or higher. You will also need
+[aws-c-common](https://github.com/awslabs/aws-c-common) v0.3.15. You will also need
 a C compiler and CMake 3.9 or higher.
 
 To integrate with [KMS](https://aws.amazon.com/kms/) the AWS Encryption SDK for C also requires
 the [AWS SDK for C++](https://github.com/aws/aws-sdk-cpp), a C++ compiler, and libcurl.
 
 For best results when doing a build with KMS integration, do not install aws-c-common directly.
-Build and install the AWS SDK for C++, which will build and install aws-c-common for you. If
+Build and install the AWS SDK for C++, which will build and install aws-c-common for you (see the C++ SDK dependancies
+ [here](https://github.com/aws/aws-sdk-cpp/blob/master/third-party/CMakeLists.txt#L18)). If
 you install aws-c-common before building the AWS SDK for C++, this will fool the AWS SDK for
-C++ install logic, and you will be forced to install several other dependencies manually. The
-minimum supported version of the AWS SDK for C++ is 1.7.163.
+C++ install logic, and you will be forced to install several other dependencies manually. Version 1.7.163 of the 
+AWS SDK for C++ is supported by version v1.0.1 of the AWS Encryption SDK for C.
 
 You need to compile both the AWS Encryption SDK for C and its dependencies as either all
 shared or all static libraries. We will use all shared library builds in our examples by
