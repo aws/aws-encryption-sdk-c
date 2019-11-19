@@ -38,9 +38,6 @@ debug() {
     ulimit -c unlimited
     if ! "$@"; then
         if [ -e core.* ]; then
-            yum update
-            yum install -y gdb
-
             gdb -x "$ROOT/codebuild/gdb.commands" "$1" core.* 
             exit 1
         fi
