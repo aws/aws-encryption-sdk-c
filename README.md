@@ -62,6 +62,11 @@ Run the following:
 
     sudo yum update
     sudo yum install -y openssl-devel git gcc-c++ libcurl-devel cmake3
+    sudo /usr/sbin/alternatives --install /usr/bin/cmake cmake /usr/bin/cmake3 20 \
+      --slave /usr/bin/ctest ctest /usr/bin/ctest3 \
+      --slave /usr/bin/cpack cpack /usr/bin/cpack3 \
+      --slave /usr/bin/ccmake ccmake /usr/bin/ccmake3 \
+      --family cmake
 
 Both aws-sdk-cpp and aws-c-common are required, but the installation of aws-sdk-cpp will install
 aws-c-common for you.
@@ -71,7 +76,7 @@ other AWS services, you can omit the `-DBUILD_ONLY="kms"` argument, but the buil
 
     git clone https://github.com/aws/aws-sdk-cpp.git
     mkdir build-aws-sdk-cpp && cd build-aws-sdk-cpp
-    cmake3 -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="kms" -DENABLE_UNITY_BUILD=ON ../aws-sdk-cpp
+    cmake -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="kms" -DENABLE_UNITY_BUILD=ON ../aws-sdk-cpp
     make && sudo make install ; cd ..
 
 Now skip to the "Amazon Linux: Build and install the AWS Encryption SDK for C" section below.
@@ -87,14 +92,14 @@ Now build and install aws-c-common:
 
     git clone https://github.com/awslabs/aws-c-common.git
     mkdir build-aws-c-common && cd build-aws-c-common
-    cmake3 -DBUILD_SHARED_LIBS=ON ../aws-c-common
+    cmake -DBUILD_SHARED_LIBS=ON ../aws-c-common
     make && sudo make install ; cd ..
 
 #### Amazon Linux: Build and install the AWS Encryption SDK for C
 
     git clone https://github.com/aws/aws-encryption-sdk-c.git
     mkdir build-aws-encryption-sdk-c && cd build-aws-encryption-sdk-c
-    cmake3 -DBUILD_SHARED_LIBS=ON ../aws-encryption-sdk-c
+    cmake -DBUILD_SHARED_LIBS=ON ../aws-encryption-sdk-c
     make && sudo make install ; cd ..
 
 You have successfully built and installed the AWS Encryption SDK for C.
