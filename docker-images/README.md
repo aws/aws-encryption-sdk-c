@@ -1,18 +1,22 @@
 # Docker images for testing
 
-## How are these used
+## How are the Docker images used ?
 
 The project uses AWS CodeBuild to launch tests on GitHub pull request submission, with prebuilt Docker containers stored as artifacts in ECR.
 
-## Linux
+## How are the Docker images built ?
 
-Each distribution folder contains a script directory (`bin`) intended for use by a build job to install dependanies and setup the docker image for future testing.
+A CodePipeline setup will fire either on a webhook or schedule and rebuild the docker containers, uploading them to ECR.  The automation to get Windows images to built under this pipeline is complex and not currently implemented.  Images can also be built manually.
+
+## Linux Docker file layout
+
+Each distribution folder contains a script directory (`bin`) intended for use by a build job to install dependencies and setup the docker image for future testing.
 The  version folder contain a Dockerfile and buildspec.yml used by CodeBuild to generate the images.
-The docker-compose.yml file allows some abstraction of installed version dependancies.  The file is generated with the `gen_compose.py` script.
+The docker-compose.yml file allows some abstraction of installed version dependencies.  The file is generated with the `gen_compose.py` script manually when OS or dependency version changes are needed.
 
 ## Manually Building Linux Docker Images
 
-As an example, `docker-compose build ubuntu_18.04_OpenSSL_1_1_0-stable` would build Ubuntu 18.04 with OpenSSL 1.1.0 and all the other nessisary pre-requisits installed.
+As an example, `docker-compose build ubuntu_18.04_OpenSSL_1_1_0-stable` would build Ubuntu 18.04 with OpenSSL 1.1.0 and all the other necessary prerequisites installed.
 
 
 ## Windows
