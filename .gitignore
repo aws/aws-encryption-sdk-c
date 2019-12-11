@@ -4,3 +4,5 @@ build
 *.[ch]-e
 .DS_Store
 *.goto
+docker-images/.env
+.vscode

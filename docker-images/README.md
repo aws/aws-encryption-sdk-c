@@ -1,19 +1,35 @@
-We use prebuilt docker images on windows, because configuring the build
-environment (including building dependencies) takes upwards of an hour to
-perform from scratch. This also gives us more precise control of the version
-of MSVC that is in our build environment as well.
+# Docker images for testing
 
-As a side effect of this, the codebuild environment takes longer to provision
-(~20 minutes), but this is still far shorter than installing our dependencies
-from scratch.
+## How are the Docker images used ?
 
-## Building Windows Docker Images and Uploading them to AWS Elastic Container Service
-### Prereqs
-* Windows with Containers (Any Windows 10 install with the Anniversary update will do)
-* Docker
+The project uses AWS CodeBuild to launch tests on GitHub pull request submission, with prebuilt Docker containers stored as artifacts in ECR.
+
+## How are the Docker images built ?
+
+A CodePipeline setup will fire either on a webhook or schedule and rebuild the docker containers, uploading them to ECR.  The automation to get Windows images to built under this pipeline is complex and not currently implemented.  Images can also be built manually.
+
+## Linux Docker file layout
+
+Each distribution folder contains a script directory (`bin`) intended for use by a build job to install dependencies and setup the docker image for future testing.
+The  version folder contain a Dockerfile and buildspec.yml used by CodeBuild to generate the images.
+The docker-compose.yml file allows some abstraction of installed version dependencies.  The file is generated with the `gen_compose.py` script manually when OS or dependency version changes are needed.
+
+## Manually Building Linux Docker Images
+
+As an example, `docker-compose build ubuntu_18.04_OpenSSL_1_1_0-stable` would build Ubuntu 18.04 with OpenSSL 1.1.0 and all the other necessary prerequisites installed.
+
+
+## Windows
+
+For Windows, there is a base docker image with two additional layers created on top of the base for different versions of Visualcpp.
+
+Windows builds do not utilize docker compose. The Windows building process is not yet automated.
+
+### Manually Building Windows Docker Images and Uploading them to AWS Elastic Container Repository 
+#### Prereqs for the build host
+* EC2 Windows instance with Containers (must match CodeBuild hosts: 10.0.14393 build hosts as of this writing).
+* Docker 
 * AWS CLI
-
-### Building the Image
 
 Run build.ps1:
 
@@ -33,7 +49,7 @@ To emulate the tests run by AWS CodeBuild, execute the following:
 
 When you are satisfied the image is to your liking, simply exit the container.
 
-### Publishing the Image
+#### Publishing the Image
 
 If you are publishing to your own account, update the `ECS_REPO` value in
 `push.ps1`. You can find the correct URI in the AWS Console for your ECR

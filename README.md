@@ -53,7 +53,7 @@ options, but not both, depending on which installation you want to do.
 
 ### Building on Amazon Linux
 
-This recipe should work with a brand new Amazon Linux instance. Start in the directory where
+This recipe should work with a brand new Amazon Linux instance (2018.03 and 2.x). Start in the directory where
 you want to do your build.
 
 #### Amazon Linux: (Option 1) C and C++ build dependencies
@@ -61,10 +61,12 @@ you want to do your build.
 Run the following:
 
     sudo yum update
-    sudo yum install -y openssl-devel git gcc-c++ libcurl-devel
-
-The yum repo has an old version of CMake, so download CMake 3.9 or later from [their
-website](https://cmake.org/) and make sure cmake is in your path.
+    sudo yum install -y openssl-devel git gcc-c++ libcurl-devel cmake3
+    sudo /usr/sbin/alternatives --install /usr/bin/cmake cmake /usr/bin/cmake3 20 \
+      --slave /usr/bin/ctest ctest /usr/bin/ctest3 \
+      --slave /usr/bin/cpack cpack /usr/bin/cpack3 \
+      --slave /usr/bin/ccmake ccmake /usr/bin/ccmake3 \
+      --family cmake
 
 Both aws-sdk-cpp and aws-c-common are required, but the installation of aws-sdk-cpp will install
 aws-c-common for you.
@@ -84,10 +86,7 @@ Now skip to the "Amazon Linux: Build and install the AWS Encryption SDK for C" s
 Run the following:
 
     sudo yum update
-    sudo yum install -y openssl-devel git gcc
-
-The yum repo has an old version of CMake, so download CMake 3.9 or later from [their
-website](https://cmake.org/) and make sure cmake is in your path.
+    sudo yum install -y openssl-devel git gcc cmake3
 
 Now build and install aws-c-common:
 
