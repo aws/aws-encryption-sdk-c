@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Outputs:
+  CodeBuildProjectesdkCubuntu1804OpenSSL111:
+    Value: !Ref 'esdkCubuntu1804OpenSSL111'
+  esdkCubuntu1804OpenSSL111Role:
+    Value: !Ref 'esdkCubuntu1804OpenSSL111Role'
+Resources:
+  esdkCubuntu1804OpenSSL111:
+    DependsOn: esdkCubuntu1804OpenSSL111Role
+    Properties:
+      Artifacts:
+        Type: NO_ARTIFACTS
+      BadgeEnabled: 'true'
+      Environment:
+        ComputeType: BUILD_GENERAL1_LARGE
+        EnvironmentVariables:
+          - Name: DOIT
+            Value: 'true'
+        Image: 636124823696.dkr.ecr.us-west-2.amazonaws.com/linux-docker-images:ubuntu_18.04_OpenSSL_1_1_1-stable
+        PrivilegedMode: 'true'
+        Type: LINUX_CONTAINER
+      Name: esdkCubuntu1804OpenSSL111
+      ServiceRole: !Ref 'esdkCubuntu1804OpenSSL111Role'
+      Source:
+        BuildSpec: codebuild/ubuntu_latest.yml
+        GitCloneDepth: '1'
+        Location: https://github.com/aws/aws-encryption-sdk-c.git
+        ReportBuildStatus: 'true'
+        Type: GITHUB
+      SourceVersion: ''
+    Type: AWS::CodeBuild::Project
+  esdkCubuntu1804OpenSSL111Role:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+      Path: /
+    Type: AWS::IAM::Role
