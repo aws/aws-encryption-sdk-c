@@ -22,7 +22,7 @@ Resources:
       Name: esdkCubuntu1804OpenSSL111
       ServiceRole: !Ref 'esdkCubuntu1804OpenSSL111Role'
       Source:
-        BuildSpec: codebuild/ubuntu_latest.yml
+        BuildSpec: codebuild/ubuntu-latest-x64.yml
         GitCloneDepth: '1'
         Location: https://github.com/aws/aws-encryption-sdk-c.git
         ReportBuildStatus: 'true'
