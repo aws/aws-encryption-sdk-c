@@ -16,6 +16,6 @@ version: 0.2
 phases:
   build:
     commands:
-      - .\codebuild\common-windows.bat -G "Visual Studio 14 2015 Win64"
+      - .\codebuild\common-windows.bat -DBUILD_SHARED_LIBS=OFF -G "Visual Studio 14 2015 Win64"
       - .\codebuild\common-windows.bat -DBUILD_SHARED_LIBS=ON -G "Visual Studio 14 2015 Win64"
 
