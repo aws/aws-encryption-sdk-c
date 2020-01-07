@@ -26,12 +26,32 @@
 # CC, CXX, CFLAGS, CXXFLAGS, LDFLAGS: The usual compiler flags (as used by the respective package
 #                                     configure scripts)
 # OPENSSL_TAG: The tag or branch of openssl to build
-
+GCC_MAJ_VER="${GCC_MAJ_VER:-NONE}"
+PATH=$PATH:/sbin
 
 set -euxo pipefail
 
 mkdir -p /deps
 
+install_gcc(){
+    if [ "$GCC_MAJ_VER" == 4 ]; then
+        apt-get update 
+        # GCC-4.8 has packaging issues- complains about not being able to configure the package.
+        apt-get install -y gcc-4.8 g++-4 g++-4.8-multilib || true
+        # for ubuntu18, gcc-7 is standard- install 4.8 and make it the default.
+        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 700 --slave /usr/bin/g++ g++ /usr/bin/g++-7
+        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 4800 --slave /usr/bin/g++ g++ /usr/bin/g++-4.
+    fi
+    if [ "$GCC_MAJ_VER" == 6 ]; then
+        apt-get update && apt-get install -y gcc-6 g++-6 g++-6-multilib
+        # for ubuntu18, gcc-7 is standard- install 6 and make it the default.
+        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 700 --slave /usr/bin/g++ g++ /usr/bin/g++-7
+        update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-6 6000 --slave /usr/bin/g++ g++ /usr/bin/g++-6
+    fi
+
+}
+
+install_gcc
 git clone --depth 1 --branch $OPENSSL_TAG https://github.com/openssl/openssl.git /deps/openssl_src
 cd /deps/openssl_src
 # -DPURIFY tries to avoid confusing valgrind (e.g. avoiding using uninitialized memory as entropy)

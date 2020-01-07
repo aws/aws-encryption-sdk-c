@@ -11,7 +11,7 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM ubuntu:18.04
+FROM i386/ubuntu:18.04
 
 # Needed for setup-apt-cache.sh
 ADD https://mirrors.kernel.org/ubuntu/pool/main/n/net-tools/net-tools_1.60+git20161116.90da8a0-2ubuntu1_amd64.deb /tmp
@@ -43,6 +43,8 @@ ENV LDFLAGS="-Wl,-rpath -Wl,/deps/install/lib -Wl,-rpath -Wl,/deps/shared/instal
 ARG OPENSSL_TAG
 ENV OPENSSL_TAG=${OPENSSL_TAG}
 ENV OPENSSL_PLATFORM=linux-x86_64
+ARG GCC_MAJ_VER
+ENV GCC_MAJ_VER=${GCC_MAJ_VER}
 
 RUN /usr/local/bin/install-shared-deps.sh
 RUN /usr/local/bin/install-aws-deps.sh

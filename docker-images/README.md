@@ -41,11 +41,11 @@ After the build finishes, you can run and test the image by running:
       --or--
     docker run -it vs2017
 
-To emulate the tests run by AWS CodeBuild, execute the following:
+To emulate the tests run by AWS CodeBuild, execute the following (note the version of VisualStudio installed):
 
     git clone -b v1.0.0 --depth 1 https://github.com/aws/aws-encryption-sdk-c.git
     cd aws-encryption-sdk-c\codebuild
-    .\codebuild\common-windows.bat
+    .\codebuild\common-windows.bat -DBUILD_SHARED_LIBS=ON -G "Visual Studio 15 2017"
 
 When you are satisfied the image is to your liking, simply exit the container.
 

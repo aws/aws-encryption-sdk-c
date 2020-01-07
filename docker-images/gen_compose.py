@@ -31,6 +31,7 @@ logging.basicConfig(level=logging.DEBUG)
 # Docker built matrix os distro/OS/SSL version (excludes macOS and windows)
 distros = {"ubuntu": ['18.04', '16.04', '14.04'], "amazonlinux": ['2018.03', '2.0'], "centos": ['7']}
 open_ssl_versions = ['OpenSSL_1_1_1-stable', 'OpenSSL_1_1_0-stable', 'OpenSSL_1_0_2-stable']
+gcc = ['DEFAULT', '6']
 
 # CodeBuild needs a map of OS -> ECR
 ecr_map = dict({'ubuntu': '636124823696.dkr.ecr.us-west-2.amazonaws.com/linux-docker-images',
@@ -113,55 +114,55 @@ def create_buildspec(openssl_tag: str, distro: str, tag: str) -> dict:
 
 def codebuild_iam_roles() -> Template:
     """
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "VisualEditor0",
-            "Effect": "Allow",
-            "Action": [
-                "kms:Decrypt",
-                "kms:Encrypt",
-                "kms:GenerateDataKey",
-                "kms:GenerateDataKeyWithoutPlaintext"
-            ],
-            "Resource": [
-                "arn:aws:kms:eu-central-1:658956600833:key/75414c93-5285-4b57-99c9-30c1cf0a22c2",
-                "arn:aws:kms:us-west-2:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f"
-            ]
-        }
-    ]
-}
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Resource": [
-                "arn:aws:logs:us-west-2:636124823696:log-group:/aws/codebuild/csdk-trusty-gcc4x-x64",
-                "arn:aws:logs:us-west-2:636124823696:log-group:/aws/codebuild/csdk-trusty-gcc4x-x64:*"
-            ],
-            "Action": [
-                "logs:CreateLogGroup",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents"
-            ]
-        },
-        {
-            "Effect": "Allow",
-            "Resource": [
-                "arn:aws:s3:::codepipeline-us-west-2-*"
-            ],
-            "Action": [
-                "s3:PutObject",
-                "s3:GetObject",
-                "s3:GetObjectVersion",
-                "s3:GetBucketAcl",
-                "s3:GetBucketLocation"
-            ]
-        }
-    ]
-}
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "VisualEditor0",
+                "Effect": "Allow",
+                "Action": [
+                    "kms:Decrypt",
+                    "kms:Encrypt",
+                    "kms:GenerateDataKey",
+                    "kms:GenerateDataKeyWithoutPlaintext"
+                ],
+                "Resource": [
+                    "arn:aws:kms:eu-central-1:658956600833:key/75414c93-5285-4b57-99c9-30c1cf0a22c2",
+                    "arn:aws:kms:us-west-2:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f"
+                ]
+            }
+        ]
+    }
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Resource": [
+                    "arn:aws:logs:us-west-2:636124823696:log-group:/aws/codebuild/csdk-trusty-gcc4x-x64",
+                    "arn:aws:logs:us-west-2:636124823696:log-group:/aws/codebuild/csdk-trusty-gcc4x-x64:*"
+                ],
+                "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                ]
+            },
+            {
+                "Effect": "Allow",
+                "Resource": [
+                    "arn:aws:s3:::codepipeline-us-west-2-*"
+                ],
+                "Action": [
+                    "s3:PutObject",
+                    "s3:GetObject",
+                    "s3:GetObjectVersion",
+                    "s3:GetBucketAcl",
+                    "s3:GetBucketLocation"
+                ]
+            }
+        ]
+    }
 
     :return:
     """
@@ -173,8 +174,11 @@ def codebuild_iam_roles() -> Template:
                 Effect="Allow",
                 Action=[AssumeRole],
                 Principal=Principal("Service", ["codebuild.amazonaws.com"])
-            )])
-     ))
+            )
+        ]
+    )
+  )
+)
 
 
     cfnrole.add_resource(PolicyType(
@@ -221,36 +225,38 @@ def create_codebuild_jobs() -> defaultdict:
     for distro, release in distros.items():
         for tag in release:
             for ssl_ver in open_ssl_versions:
-                full_target = '_'.join([distro, tag, ssl_ver])
-                # CodeBuild project names can not have dots.
-                # TODO: Test case for names with/without dots
-                no_dot_full_target = ''.join(full_target.split('.'))
+                for gcc_maj_ver in gcc:
+                    full_target = '_'.join([distro, tag, ssl_ver, gcc_maj_ver])
+                    # CodeBuild project names can not have dots.
+                    # TODO: Test case for names with/without dots
+                    no_dot_full_target = ''.join(full_target.split('.'))
 
-                environment = Environment(
-                    ComputeType='BUILD_GENERAL1_SMALL',
-                    Image=f'{ecr_map[distro]}:{distro}_{tag}_{ssl_ver}',
-                    Type='LINUX_CONTAINER',
-                    EnvironmentVariables=[{'Name': 'distro', 'Value': distro},
-                                          {'Name': 'release', 'Value': tag},
-                                          {'Name': 'openssl_ver', 'Value': ssl_ver}],
-                )
+                    environment = Environment(
+                        ComputeType='BUILD_GENERAL1_SMALL',
+                        Image=f'{ecr_map[distro]}:{distro}_{tag}_{ssl_ver}',
+                        Type='LINUX_CONTAINER',
+                        EnvironmentVariables=[{'Name': 'distro', 'Value': distro},
+                                            {'Name': 'release', 'Value': tag},
+                                            {'Name': 'gcc_maj_ver', 'Value': gcc_maj_ver},
+                                            {'Name': 'openssl_ver', 'Value': ssl_ver}],
+                    )
 
-                source = Source(
-                    Location='https://github.com/aws/aws-encryption-sdk-c.git',
-                    Type='GITHUB'
-                )
+                    source = Source(
+                        Location='https://github.com/aws/aws-encryption-sdk-c.git',
+                        Type='GITHUB'
+                    )
 
-                project = Project(
-                    'esdkc',
-                    Artifacts=artifacts,
-                    Environment=environment,
-                    Name=f'aws-encryption-sdk-c_{no_dot_full_target}',
-                    ServiceRole="CESDKCodeBuildRole",
-                    Source=source,
-                )
-                result[full_target] = Template()
-                result[full_target].set_version('2010-09-09')
-                result[full_target].add_resource(project)
+                    project = Project(
+                        'esdkc',
+                        Artifacts=artifacts,
+                        Environment=environment,
+                        Name=f'aws-encryption-sdk-c_{no_dot_full_target}',
+                        ServiceRole="CESDKCodeBuildRole",
+                        Source=source,
+                    )
+                    result[full_target] = Template()
+                    result[full_target].set_version('2010-09-09')
+                    result[full_target].add_resource(project)
     return result
 
 
