@@ -27,7 +27,7 @@ jobs:
 
       - name: Build and install aws-sdk-cpp
         run: |
-          mkdir -p build-aws-sdk-cpp ||true
+          mkdir -p build-aws-sdk-cpp || true
           mkdir -p install || true
           cd build-aws-sdk-cpp
           cmake -G Xcode -DTARGET_ARCH="APPLE" -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="kms" -DENABLE_UNITY_BUILD=ON ../aws-sdk-cpp
