@@ -60,8 +60,8 @@ set(USE_ASM TRUE
 set(REDUCE_TEST_ITERATIONS FALSE
     CACHE BOOL "Reduce the number of iterations done on some exhaustive tests. This is particularly helpful when running under valgrind")
 
-set(BUILD_SHARED_LIBS FALSE
-    CACHE BOOL "Build aws-encryption-sdk-c as a shared library")
+option(BUILD_SHARED_LIBS FALSE)
+
 
 option(AWS_ENC_SDK_END_TO_END_TESTS "Enable end-to-end tests. If set to FALSE (the default), runs local tests only.")
 if(AWS_ENC_SDK_END_TO_END_TESTS)
