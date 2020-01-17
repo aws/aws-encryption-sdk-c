@@ -62,6 +62,6 @@ env
 # Run the full test suite without valgrind, and as a shared library
 run_test '/deps/install;/deps/shared/install' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=ON
 # Also run the test suite as a debug build (probing for -DNDEBUG issues), and as a static library
-run_test '/deps/install;/deps/shared/install' -DCMAKE_BUILD_TYPE=Debug
+run_test '/deps/install;/deps/shared/install' -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=OFF
 # Run a lighter weight test suite under valgrind
-run_test '/deps/install;/deps/static/install' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREDUCE_TEST_ITERATIONS=TRUE -DVALGRIND_TEST_SUITE=ON
+run_test '/deps/install;/deps/static/install' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=OFF -DREDUCE_TEST_ITERATIONS=TRUE -DVALGRIND_TEST_SUITE=ON

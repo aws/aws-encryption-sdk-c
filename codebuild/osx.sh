@@ -17,7 +17,7 @@
 set +ex
 
 OS=$(uname -s)
-AWS_SDK_CPP_VER="1.7.163"  #github versioned branch
+AWS_SDK_CPP_VER="1.7.231"  #github versioned branch
 BUILDROOT="/var/tmp/build-$(date +%s)"
 OPENSSL_VER="openssl@1.1" #note this is a brew label, not an exact version reference
 BUILDROOT="/var/tmp/build-$(date +%Y%m%d)"
@@ -46,7 +46,6 @@ build_cpp(){
     # This target runs the cpp tests, but doesn't appear to run the other dependancy tests.
     xcodebuild -target ALL_BUILD 
     xcodebuild -target install
-
 }
 
 build_csdk(){
