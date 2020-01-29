@@ -62,5 +62,4 @@ void aws_cryptosdk_enc_ctx_deserialize_harness() {
     int rval = aws_cryptosdk_enc_ctx_deserialize(can_fail_allocator(), &map, &cursor);
     assert(aws_hash_table_is_valid(&map));
     assert(aws_byte_cursor_is_valid(&cursor));
-
 }
