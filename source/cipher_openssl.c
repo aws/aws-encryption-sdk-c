@@ -79,10 +79,23 @@ struct aws_cryptosdk_sig_ctx {
     bool is_sign;
 };
 
+bool aws_cryptosdk_sig_ctx_is_valid(const struct aws_cryptosdk_sig_ctx *sig_ctx) {
+    return sig_ctx && AWS_OBJECT_PTR_IS_READABLE(sig_ctx->alloc) && AWS_OBJECT_PTR_IS_READABLE(sig_ctx->props) &&
+           sig_ctx->keypair && sig_ctx->pkey && sig_ctx->ctx &&
+#if OPENSSL_VERSION_NUMBER >= 0x10100000
+           (EVP_PKEY_get0_EC_KEY(sig_ctx->pkey) == sig_ctx->keypair) &&
+#endif
+           (sig_ctx->is_sign == (EC_KEY_get0_private_key(sig_ctx->keypair) != NULL));
+}
+
 struct aws_cryptosdk_md_context {
     struct aws_allocator *alloc;
     EVP_MD_CTX *evp_md_ctx;
 };
+
+bool aws_cryptosdk_md_context_is_valid(const struct aws_cryptosdk_md_context *md_context) {
+    return md_context && AWS_OBJECT_PTR_IS_READABLE(md_context->alloc) && md_context->evp_md_ctx;
+}
 
 int aws_cryptosdk_md_init(
     struct aws_allocator *alloc, struct aws_cryptosdk_md_context **md_context, enum aws_cryptosdk_md_alg md_alg) {
@@ -460,6 +473,8 @@ rethrow:
 }
 
 void aws_cryptosdk_sig_abort(struct aws_cryptosdk_sig_ctx *ctx) {
+    AWS_PRECONDITION(!ctx || (aws_cryptosdk_sig_ctx_is_valid(ctx) && AWS_OBJECT_PTR_IS_READABLE(ctx->alloc)));
+
     if (!ctx) {
         return;
     }
@@ -527,7 +542,11 @@ int aws_cryptosdk_sig_sign_start(
         goto out;
     }
 
-    EC_KEY_set_group(keypair, group);
+    if (!EC_KEY_set_group(keypair, group)) {
+        aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+        EC_GROUP_free(group);
+        goto out;
+    }
     EC_GROUP_free(group);
     EC_KEY_set_conv_form(keypair, POINT_CONVERSION_COMPRESSED);
 
@@ -543,7 +562,7 @@ int aws_cryptosdk_sig_sign_start(
     field = aws_byte_cursor_advance(&cursor, privkey_len);
     bufp  = field.ptr;
 
-    if (!d2i_ASN1_INTEGER(&priv_key_asn1, &bufp, field.len) || bufp != field.ptr + field.len) {
+    if (!field.ptr || !d2i_ASN1_INTEGER(&priv_key_asn1, &bufp, field.len) || bufp != field.ptr + field.len) {
         ASN1_STRING_clear_free(priv_key_asn1);
         aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
         goto out;
@@ -614,8 +633,15 @@ static int load_pubkey(
     }
 
     *key = EC_KEY_new();
+    if (*key == NULL) {
+        result = AWS_ERROR_OOM;
+        goto out;
+    }
     // We must set the group before decoding, to allow openssl to decompress the point
-    EC_KEY_set_group(*key, group);
+    if (!EC_KEY_set_group(*key, group)) {
+        result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
+        goto out;
+    }
     EC_KEY_set_conv_form(*key, POINT_CONVERSION_COMPRESSED);
 
     const unsigned char *pBuf = b64_decode_buf.buffer;
@@ -702,10 +728,22 @@ rethrow:
 }
 
 int aws_cryptosdk_sig_update(struct aws_cryptosdk_sig_ctx *ctx, const struct aws_byte_cursor cursor) {
+    AWS_PRECONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(&cursor));
+
+    if (cursor.len == 0) {
+        /* Nothing to do */
+        AWS_POSTCONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+        AWS_POSTCONDITION(aws_byte_cursor_is_valid(&cursor));
+        return AWS_OP_SUCCESS;
+    }
+
     if (EVP_DigestUpdate(ctx->ctx, cursor.ptr, cursor.len) != 1) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
+    AWS_POSTCONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+    AWS_POSTCONDITION(aws_byte_cursor_is_valid(&cursor));
     return AWS_OP_SUCCESS;
 }
 
