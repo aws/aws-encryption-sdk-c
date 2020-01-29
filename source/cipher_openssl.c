@@ -82,7 +82,7 @@ struct aws_cryptosdk_sig_ctx {
 bool aws_cryptosdk_sig_ctx_is_valid(const struct aws_cryptosdk_sig_ctx *sig_ctx) {
     return sig_ctx && AWS_OBJECT_PTR_IS_READABLE(sig_ctx->alloc) && AWS_OBJECT_PTR_IS_READABLE(sig_ctx->props) &&
            sig_ctx->keypair && sig_ctx->pkey && sig_ctx->ctx &&
-           (EVP_PKEY_get0_EC_KEY(sig_ctx->pkey) == sig_ctx->keypair) &&
+	//           (EVP_PKEY_get0_EC_KEY(sig_ctx->pkey) == sig_ctx->keypair) &&
            (sig_ctx->is_sign == (EC_KEY_get0_private_key(sig_ctx->keypair) != NULL));
 }
 
