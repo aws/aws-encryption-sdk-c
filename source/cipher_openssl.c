@@ -728,7 +728,14 @@ rethrow:
 int aws_cryptosdk_sig_update(struct aws_cryptosdk_sig_ctx *ctx, const struct aws_byte_cursor cursor) {
     AWS_PRECONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
     AWS_PRECONDITION(aws_byte_cursor_is_valid(&cursor));
-    AWS_PRECONDITION(cursor.len > 0);
+
+    if (cursor.len == 0) {
+	/* Nothing to do */
+	AWS_POSTCONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+	AWS_POSTCONDITION(aws_byte_cursor_is_valid(&cursor));
+	return AWS_OP_SUCCESS;
+    }
+
     if (EVP_DigestUpdate(ctx->ctx, cursor.ptr, cursor.len) != 1) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
