@@ -82,7 +82,9 @@ struct aws_cryptosdk_sig_ctx {
 bool aws_cryptosdk_sig_ctx_is_valid(const struct aws_cryptosdk_sig_ctx *sig_ctx) {
     return sig_ctx && AWS_OBJECT_PTR_IS_READABLE(sig_ctx->alloc) && AWS_OBJECT_PTR_IS_READABLE(sig_ctx->props) &&
            sig_ctx->keypair && sig_ctx->pkey && sig_ctx->ctx &&
-	//           (EVP_PKEY_get0_EC_KEY(sig_ctx->pkey) == sig_ctx->keypair) &&
+#if OPENSSL_VERSION_NUMBER >= 0x10100000
+           (EVP_PKEY_get0_EC_KEY(sig_ctx->pkey) == sig_ctx->keypair) &&
+#endif
            (sig_ctx->is_sign == (EC_KEY_get0_private_key(sig_ctx->keypair) != NULL));
 }
 
@@ -730,10 +732,10 @@ int aws_cryptosdk_sig_update(struct aws_cryptosdk_sig_ctx *ctx, const struct aws
     AWS_PRECONDITION(aws_byte_cursor_is_valid(&cursor));
 
     if (cursor.len == 0) {
-	/* Nothing to do */
-	AWS_POSTCONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
-	AWS_POSTCONDITION(aws_byte_cursor_is_valid(&cursor));
-	return AWS_OP_SUCCESS;
+        /* Nothing to do */
+        AWS_POSTCONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+        AWS_POSTCONDITION(aws_byte_cursor_is_valid(&cursor));
+        return AWS_OP_SUCCESS;
     }
 
     if (EVP_DigestUpdate(ctx->ctx, cursor.ptr, cursor.len) != 1) {
