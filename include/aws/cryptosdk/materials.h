@@ -328,7 +328,7 @@ struct aws_cryptosdk_cmm_vt {
 /**
  * Putting this here for now, until we get it merged into the atomics.h in c-common
  */
-bool aws_atomic_var_is_valid(struct aws_atomic_var *var) {
+AWS_CRYPTOSDK_STATIC_INLINE bool aws_atomic_var_is_valid(const struct aws_atomic_var *var) {
     return AWS_OBJECT_PTR_IS_WRITABLE(var);
 }
 
