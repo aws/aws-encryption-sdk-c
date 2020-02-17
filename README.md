@@ -10,7 +10,7 @@ Also, see the [API documentation](https://aws.github.io/aws-encryption-sdk-c/htm
 ## Dependencies
 
 The only direct dependencies of this code are OpenSSL 1.0.2 or higher or 1.1.0 or higher and
-[aws-c-common](https://github.com/awslabs/aws-c-common) v0.3.15. You will also need
+[aws-c-common](https://github.com/awslabs/aws-c-common) v0.4.15. You will also need
 a C compiler and CMake 3.9 or higher.
 
 To integrate with [KMS](https://aws.amazon.com/kms/) the AWS Encryption SDK for C also requires

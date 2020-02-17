@@ -1,0 +1,8 @@
+# An attempt to centralize version numbers consumable with bash.
+CESDK_MAJOR=1
+CESDK_MINOR=1
+CESDK_PATCH=0
+AWS_SDK_CPP=1.7.231
+AWS_C_COMMON=0.4.15
+AWS_CHECKSUMS=0.1.5
+AWS_C_EVENT_STREAM=0.1.4

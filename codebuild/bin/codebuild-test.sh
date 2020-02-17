@@ -17,6 +17,7 @@ set -euxo pipefail
 
 PATH=$PWD/build-tools/bin:$PATH
 ROOT=$PWD
+source versions
 
 # End to end tests require valid credentials (instance role, etc..)
 # Disable for local runs.

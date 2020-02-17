@@ -12,6 +12,7 @@ REM implied. See the License for the specific language governing permissions and
 REM limitations under the License.
 
 set ROOT_SRC_DIR=%cd%
+source versions
 rmdir/s/q \build
 mkdir \build
 cd \build

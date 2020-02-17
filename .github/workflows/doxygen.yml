@@ -1,0 +1,37 @@
+name: Documentation Builder
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - CHANGELOG.md
+
+jobs:
+  Doxygen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: gh-pages
+      - name: Setup
+        run: |
+          sudo apt update && sudo apt install -y doxygen graphviz
+          cp include/aws/cryptosdk/version.h.in include/aws/cryptosdk/version.h
+          source versions
+          SOURCE_DIR=$(pwd) doxygen doxygen/doxygen.config
+      - name: Update html folder
+        run: |
+          if [ ! -d "doxygen/html" ]; then exit 255; fi
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          rm -rf html
+          mv doxygen/html .
+      - name: Upload docs branch
+          git commit -am "GHA Doxygen"
+      - name: Push docs
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages

@@ -48,10 +48,11 @@ include(FindOpenSSL)
 
 set(PROJECT_NAME aws-encryption-sdk)
 
-# Version number of the SDK to be consumed by C code and Doxygen
-set(MAJOR 1)
-set(MINOR 1)
-set(PATCH 0)
+message(STATUS "Version number of the SDK to be consumed by C code and Doxygen")
+set(MAJOR $ENV{CESDK_MAJOR})
+set(MINOR $ENV{CESDK_MINOR})
+set(PATCH $ENV{CESDK_PATCH})
+message(STAUS "Major_minor_patch ${MAJOR}_${MINOR}_${PATCH}")
 
 # Compiler feature tests and feature flags
 set(USE_ASM TRUE
