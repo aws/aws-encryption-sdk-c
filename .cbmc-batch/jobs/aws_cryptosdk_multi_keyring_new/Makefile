@@ -22,6 +22,6 @@ ENTRY = MultiKeyringNew_harness
 
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/multi_keyring.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
-DEPENDENCIES += $(SRCDIR)/helper-src/proof_allocators.c
+DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
 
 include ../Makefile.common
