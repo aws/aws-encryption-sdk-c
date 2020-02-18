@@ -1,6 +1,12 @@
 # Changelog
 
 
+## 1.1.0 -- 2020-02-17
+
+* Add security reporting instruction. (#467)
+* Cbmc to master (#454)
+* aws-cpp-sdk dependency bump to version 1.7.231
+
 ## 1.0.1 -- 2019-10-10
 * Modified Doxygen config file to generate dependency graphs [#376](https://github.com/aws/aws-encryption-sdk-c/pull/376)
 * Ran reformat [#426](https://github.com/aws/aws-encryption-sdk-c/pull/426)
