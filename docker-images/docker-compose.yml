@@ -10,7 +10,7 @@
 # "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
-version: '3.7'
+version: '3.5'
 services:
   ubuntu_18.04_OpenSSL_1_1_1-stable:
     build:
