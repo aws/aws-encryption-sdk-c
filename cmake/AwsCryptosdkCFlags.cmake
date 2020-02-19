@@ -87,6 +87,8 @@ function(aws_cryptosdk_set_common_properties target)
         list(APPEND AWS_C_DEFINES -DDEBUG_BUILD)
     endif()
 
+    # This value is flipping to off somehow.
+    message(STATUS "BUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}")
     if(BUILD_SHARED_LIBS)
         set(target_name_tmp ${target})
         string(TOUPPER ${target_name_tmp} target_name_tmp)
@@ -100,7 +102,6 @@ function(aws_cryptosdk_set_common_properties target)
         target_compile_definitions(${target} PUBLIC -D${target_name_tmp}_SHARED)
         # Also, make sure our other targets also define the _SHARED symbol
         add_definitions(-D${target_name_tmp}_SHARED)
-
         if(NOT MSVC AND NOT ${SET_PROPERTIES_NO_VISIBILITY_HIDDEN})
             # Avoid exporting symbols we don't mark as exported
             # Note that this behavior is the default on windows.
