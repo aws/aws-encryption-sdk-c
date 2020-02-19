@@ -346,7 +346,7 @@ AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_cmm_vtable_is_valid(const struct 
  */
 AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_cmm_base_is_valid(const struct aws_cryptosdk_cmm *cmm) {
     return AWS_OBJECT_PTR_IS_WRITABLE(cmm) && aws_atomic_var_is_valid(&cmm->refcount) &&
-           AWS_ATOMIC_VAR_INTVAL(&cmm->refcount) > 0 && AWS_ATOMIC_VAR_INTVAL(&cmm->refcount) <= SIZE_MAX &&
+        aws_atomic_load_int(&cmm->refcount) > 0 && aws_atomic_load_int(&cmm->refcount) <= SIZE_MAX &&
            aws_cryptosdk_cmm_vtable_is_valid(cmm->vtable);
 }
 
