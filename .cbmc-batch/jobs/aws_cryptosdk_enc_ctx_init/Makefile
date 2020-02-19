@@ -1,4 +1,4 @@
-# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You may not use
 # this file except in compliance with the License. A copy of the License is
@@ -13,15 +13,19 @@
 
 
 #########
-# if Makefile.local exists, use it. This provides a way to override the defaults
+# if Makefile.local exists, use it. This provides a way to override the defaults 
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
-ENTRY = MultiKeyringNew_harness
+######### 
+ENTRY = aws_cryptosdk_enc_ctx_init_harness
 
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/multi_keyring.c
+DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/enc_ctx.c
+DEPENDENCIES += $(SRCDIR)/c-common-src/hash_table.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
+
+###########
 
 include ../Makefile.common

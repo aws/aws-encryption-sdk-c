@@ -80,8 +80,6 @@ COMMON_REPO_NAME ?= aws-c-common-for-cryptosdk-proofs
 COMMONDIR ?= $(BASEDIR)/$(COMMON_REPO_NAME)
 COMMON_HELPERDIR ?= $(COMMONDIR)/.cbmc-batch
 
-HARNESS_NAME ?= $(ENTRY)_harness.c
-
 ################################################################
 # Setup include directory order
 # Helper-inc must go first, so it can override other includes.
@@ -123,9 +121,6 @@ REMOVE_FUNCTION_BODY += --remove-function-body s_default_realloc
 ABSTRACTIONS += $(LINKFARM)/c-common-helper-stubs/abort_override_assert_false.c
 REMOVE_FUNCTION_BODY += --remove-function-body abort
 ################################################################
-
-REMOVE_FUNCTION_BODY += $(ADDITIONAL_REMOVE_FUNCTION_BODY)
-DEPENDENT_GOTOS = $(patsubst %.c,%.goto,$(DEPENDENCIES))
 
 REMOVE_FUNCTION_BODY += $(ADDITIONAL_REMOVE_FUNCTION_BODY)
 DEPENDENT_GOTOS = $(patsubst %.c,%.goto,$(DEPENDENCIES))
@@ -205,6 +200,7 @@ else
 		2>&1 | tee $(ENTRY)2.log ; exit $${PIPESTATUS[0]}
 endif
 
+
 # ABSTRACTIONS is a list of function stubs to use. If a function body
 # is missing and is not abstracted, then it returnes a non
 # deterministic value.
@@ -216,7 +212,6 @@ else
 	$(GOTO_CC) --function $(ENTRY) $(ABSTRACTIONS) $< $(INC) $(DEFINES) -o $@ \
 		2>&1 | tee $(ENTRY)2.log ; exit $${PIPESTATUS[0]}
 endif
-
 
 ## Temporarily skipped steps
 
