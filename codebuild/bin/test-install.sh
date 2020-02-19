@@ -20,9 +20,10 @@ CODEBUILD_BASE="$MY_PATH/.."
 
 PREFIX_PATH="$1"
 BUILD_DIR="$2"
+BUILD_SHARED_LIBS=${BUILD_SHARED_LIBS:-off}
 
 rm -rf /tmp/TEST_INSTALL
-cmake -DCMAKE_INSTALL_PREFIX=/tmp/TEST_INSTALL "$BUILD_DIR"
+cmake -DCMAKE_INSTALL_PREFIX=/tmp/TEST_INSTALL -DBUILD_SHARED_LIBS="$BUILD_SHARED_LIBS" "$BUILD_DIR"
 cmake --build "$BUILD_DIR" --target install
 
 for i in test-install-project test-install-project-cpp; do
@@ -31,7 +32,7 @@ for i in test-install-project test-install-project-cpp; do
 
     rm -rf "$PROJECT_BUILD"
     mkdir "$PROJECT_BUILD"
-    (cd "$PROJECT_BUILD"; cmake .. -DCMAKE_PREFIX_PATH="$1;/tmp/TEST_INSTALL")
+    (cd "$PROJECT_BUILD"; cmake .. -DBUILD_SHARED_LIBS="$BUILD_SHARED_LIBS" -DCMAKE_PREFIX_PATH="$1;/tmp/TEST_INSTALL")
     cmake --build "$PROJECT_BUILD"
     "$PROJECT_BUILD/testapp"
 done
