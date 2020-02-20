@@ -105,9 +105,15 @@ uint8_t test_header_1_edk_provider_info[]        = { 0x01, 0x02, 0x03, 0x04 };
 uint8_t test_header_1_edk_enc_data_key[]         = { 0x11, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x88 };
 struct aws_cryptosdk_edk test_header_1_edk_tbl[] = {
     { { 0 } },
-    { .provider_id   = { .len = sizeof(test_header_1_edk_provider_id), .buffer = test_header_1_edk_provider_id },
-      .provider_info = { .len = sizeof(test_header_1_edk_provider_info), .buffer = test_header_1_edk_provider_info },
-      .ciphertext    = { .len = sizeof(test_header_1_edk_enc_data_key), .buffer = test_header_1_edk_enc_data_key } },
+    { .provider_id   = { .len      = sizeof(test_header_1_edk_provider_id),
+                       .buffer   = test_header_1_edk_provider_id,
+                       .capacity = sizeof(test_header_1_edk_provider_id) },
+      .provider_info = { .len      = sizeof(test_header_1_edk_provider_info),
+                         .buffer   = test_header_1_edk_provider_info,
+                         .capacity = sizeof(test_header_1_edk_provider_info) },
+      .ciphertext    = { .len      = sizeof(test_header_1_edk_enc_data_key),
+                      .buffer   = test_header_1_edk_enc_data_key,
+                      .capacity = sizeof(test_header_1_edk_enc_data_key) } },
     { { 0 } }
 };
 
@@ -179,8 +185,9 @@ static struct aws_cryptosdk_hdr test_header_1_hdr() {
         //        .edk_tbl = test_header_1_edk_tbl,
         .auth_len = sizeof(test_header_1) - 29  // not used by aws_cryptosdk_hdr_size/write
     };
-    test_header_1_hdr.iv = aws_byte_buf_from_array(test_header_1_iv_arr,sizeof(test_header_1_iv_arr));
-    test_header_1_hdr.auth_tag = aws_byte_buf_from_array(test_header_1_auth_tag_arr,sizeof(test_header_1_auth_tag_arr));
+    test_header_1_hdr.iv = aws_byte_buf_from_array(test_header_1_iv_arr, sizeof(test_header_1_iv_arr));
+    test_header_1_hdr.auth_tag =
+        aws_byte_buf_from_array(test_header_1_auth_tag_arr, sizeof(test_header_1_auth_tag_arr));
     test_header_1_hdr.alloc = allocator;
 
     SET_EDK_TBL(&test_header_1_hdr, test_header_1_edk_tbl);
@@ -559,17 +566,25 @@ int header_size() {
 
     // Now test that hdr_size detects integer overflow
     for (size_t i = 0; i < aws_array_list_length(&hdr.edk_list); i++) {
-        struct aws_cryptosdk_edk edk;
-        TEST_ASSERT_SUCCESS(aws_array_list_get_at(&hdr.edk_list, &edk, i));
+        struct aws_cryptosdk_edk *edk = NULL;
+        TEST_ASSERT_SUCCESS(aws_array_list_get_at_ptr(&hdr.edk_list, (void **)&edk, i));
 
-        edk.ciphertext.len    = SIZE_MAX >> 1;
-        edk.provider_id.len   = SIZE_MAX >> 1;
-        edk.provider_info.len = SIZE_MAX >> 1;
-
-        TEST_ASSERT_SUCCESS(aws_array_list_set_at(&hdr.edk_list, &edk, i));
+        edk->ciphertext.len    = SIZE_MAX >> 1;
+        edk->provider_id.len   = SIZE_MAX >> 1;
+        edk->provider_info.len = SIZE_MAX >> 1;
     }
 
     TEST_ASSERT_INT_EQ(aws_cryptosdk_hdr_size(&hdr), 0);
+
+    // Reset the edk to validity before doing cleanup.
+    for (size_t i = 0; i < aws_array_list_length(&hdr.edk_list); i++) {
+        struct aws_cryptosdk_edk *edk = NULL;
+        TEST_ASSERT_SUCCESS(aws_array_list_get_at_ptr(&hdr.edk_list, (void **)&edk, i));
+
+        edk->ciphertext.len    = 0;
+        edk->provider_id.len   = 0;
+        edk->provider_info.len = 0;
+    }
 
     aws_cryptosdk_hdr_clean_up(&hdr);
 

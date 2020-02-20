@@ -98,6 +98,15 @@ static int set_up_all_the_things(enum aws_cryptosdk_rsa_padding_mode rsa_padding
 }
 
 static void tear_down_all_the_things() {
+    // We need to make sure our edk list is structually valid before calling cleanup
+    for (size_t idx = 0; idx < aws_array_list_length(&edks); ++idx) {
+        struct aws_cryptosdk_edk *edk = NULL;
+        aws_array_list_get_at_ptr(&edks, (void **)&edk, idx);
+        if (edk->ciphertext.len > edk->ciphertext.capacity) {
+            edk->ciphertext.len = edk->ciphertext.capacity;
+        }
+    }
+
     aws_cryptosdk_keyring_trace_clean_up(&keyring_trace);
     aws_cryptosdk_edk_list_clean_up(&edks);
     aws_cryptosdk_keyring_release(kr);
