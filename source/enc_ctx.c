@@ -125,9 +125,16 @@ WRITE_ERR:
 
 int aws_cryptosdk_enc_ctx_deserialize(
     struct aws_allocator *alloc, struct aws_hash_table *enc_ctx, struct aws_byte_cursor *cursor) {
+    AWS_PRECONDITION(aws_allocator_is_valid(alloc));
+    AWS_PRECONDITION(aws_hash_table_is_valid(enc_ctx));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(cursor));
+
     aws_cryptosdk_enc_ctx_clear(enc_ctx);
 
     if (cursor->len == 0) {
+        AWS_POSTCONDITION(aws_allocator_is_valid(alloc));
+        AWS_POSTCONDITION(aws_hash_table_is_valid(enc_ctx));
+        AWS_POSTCONDITION(aws_byte_cursor_is_valid(cursor));
         return AWS_OP_SUCCESS;
     }
 
@@ -169,6 +176,9 @@ SHORT_BUF:
     aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 RETHROW:
     aws_cryptosdk_enc_ctx_clear(enc_ctx);
+    AWS_POSTCONDITION(aws_allocator_is_valid(alloc));
+    AWS_POSTCONDITION(aws_hash_table_is_valid(enc_ctx));
+    AWS_POSTCONDITION(aws_byte_cursor_is_valid(cursor));
     return AWS_OP_ERR;
 }
 
