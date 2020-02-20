@@ -107,6 +107,12 @@ const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryp
 struct aws_cryptosdk_sig_ctx;
 
 /**
+ * Performs basic validity checks for the signing context (e.g. that member pointers are not NULL).
+ */
+AWS_CRYPTOSDK_API
+bool aws_cryptosdk_sig_ctx_is_valid(const struct aws_cryptosdk_sig_ctx *sig_ctx);
+
+/**
  * Obtains the private key from a signing context, and serializes it to a byte buffer.
  * The serialization format is not currently guaranteed to remain unchanged.
  *

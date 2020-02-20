@@ -200,6 +200,7 @@ else
 		2>&1 | tee $(ENTRY)2.log ; exit $${PIPESTATUS[0]}
 endif
 
+
 # ABSTRACTIONS is a list of function stubs to use. If a function body
 # is missing and is not abstracted, then it returnes a non
 # deterministic value.
@@ -211,7 +212,6 @@ else
 	$(GOTO_CC) --function $(ENTRY) $(ABSTRACTIONS) $< $(INC) $(DEFINES) -o $@ \
 		2>&1 | tee $(ENTRY)2.log ; exit $${PIPESTATUS[0]}
 endif
-
 
 ## Temporarily skipped steps
 

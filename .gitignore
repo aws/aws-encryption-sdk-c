@@ -4,3 +4,4 @@ build
 *.[ch]-e
 .DS_Store
 *.goto
+*.log
