@@ -17,7 +17,7 @@ jobs:
         openssl_version: [openssl@1.1]
 
     steps:
-      - run: brew install ${{ matrix.ssl_version }}
+      - run: brew install ${{ matrix.openssl_version }}
 
       - name: Checkout PR
         uses: actions/checkout@v2
