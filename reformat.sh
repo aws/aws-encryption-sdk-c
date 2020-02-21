@@ -20,7 +20,7 @@ echo "Checking version number"
 VER=$(clang-format --version|cut -f3 -d' '|cut -f1 -d'.')
 if [ $VER -ge 8 ];then
     set -euxo pipefail
-    find {.,aws-encryption-sdk-cpp}/{include,source,tests} .cbmc-batch examples -name '*.h' -or -name '*.c' -or -name '*.cpp' | xargs clang-format -i
+    find . -name '*.h' -or -name '*.c' -or -name '*.cpp' | xargs clang-format -i
 else
     echo "clang-format version 8 or greater is needed to read the format file."
     exit 1
