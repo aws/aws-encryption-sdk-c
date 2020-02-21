@@ -196,6 +196,10 @@ static struct aws_string *clone_or_reuse_string(struct aws_allocator *allocator,
 
 int aws_cryptosdk_enc_ctx_clone(
     struct aws_allocator *alloc, struct aws_hash_table *dest, const struct aws_hash_table *src) {
+    AWS_PRECONDITION(aws_allocator_is_valid(alloc));
+    AWS_PRECONDITION(aws_hash_table_is_valid(dest));
+    AWS_PRECONDITION(aws_hash_table_is_valid(src));
+
     /* First, scan the destination for keys that don't belong, and remove them */
     for (struct aws_hash_iter iter = aws_hash_iter_begin(dest); !aws_hash_iter_done(&iter); aws_hash_iter_next(&iter)) {
         struct aws_hash_element *src_elem = NULL;
