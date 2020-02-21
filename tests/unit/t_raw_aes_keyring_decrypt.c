@@ -172,8 +172,7 @@ int decrypt_data_key_test_vectors() {
 
             if (corrupt_enc_ctx) {
                 TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
-            }else if(unencrypted_data_key.buffer){
-
+            } else if (unencrypted_data_key.buffer) {
                 struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv->data_key, tv->data_key_len);
                 TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &known_answer));
                 TEST_ASSERT_SUCCESS(raw_aes_keyring_tv_trace_updated_properly(
