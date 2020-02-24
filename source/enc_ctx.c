@@ -78,37 +78,39 @@ int aws_cryptosdk_enc_ctx_size(size_t *size, const struct aws_hash_table *enc_ct
 
 int aws_cryptosdk_enc_ctx_serialize(
     struct aws_allocator *alloc, struct aws_byte_buf *output, const struct aws_hash_table *enc_ctx) {
-    size_t length;
-    if (aws_cryptosdk_enc_ctx_size(&length, enc_ctx)) {
-        return AWS_OP_ERR;
-    }
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(alloc));
+    AWS_PRECONDITION(aws_byte_buf_is_valid(output));
+    AWS_PRECONDITION(aws_hash_table_is_valid(enc_ctx));
 
-    if (output->capacity < length) {
+    size_t num_elems = aws_hash_table_get_entry_count(enc_ctx);
+    if (num_elems > UINT16_MAX) return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
+
+    size_t length;
+    if (aws_cryptosdk_enc_ctx_size(&length, enc_ctx)) return AWS_OP_ERR;
+    if (length == 0) return AWS_OP_SUCCESS;  // Empty encryption context
+    if (output->capacity < length) return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
+
+    if (!aws_byte_buf_write_be16(output, (uint16_t)num_elems)) {
+        aws_byte_buf_clean_up(output);
         return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     }
 
-    if (length == 0) {
-        // Empty encryption context
-        return AWS_OP_SUCCESS;
-    }
-
-    size_t num_elems = aws_hash_table_get_entry_count(enc_ctx);
-
     struct aws_array_list elems;
     if (aws_cryptosdk_hash_elems_array_init(alloc, &elems, enc_ctx)) return AWS_OP_ERR;
-
     aws_array_list_sort(&elems, aws_cryptosdk_compare_hash_elems_by_key_string);
 
-    if (!aws_byte_buf_write_be16(output, (uint16_t)num_elems)) goto WRITE_ERR;
-
     for (size_t idx = 0; idx < num_elems; ++idx) {
-        struct aws_hash_element elem;
-        if (aws_array_list_get_at(&elems, (void *)&elem, idx)) {
+        struct aws_hash_element *elem;
+        if (aws_array_list_get_at_ptr(&elems, (void **)&elem, idx)) {
             aws_array_list_clean_up(&elems);
             return AWS_OP_ERR;
         }
-        const struct aws_string *key   = (const struct aws_string *)elem.key;
-        const struct aws_string *value = (const struct aws_string *)elem.value;
+        const struct aws_string *key   = (const struct aws_string *)elem->key;
+        const struct aws_string *value = (const struct aws_string *)elem->value;
+        // Assert that we don't truncate data when we write out the fields.
+        // This should have already been assured by aws_aws_cryptosdk_enc_ctx_size()
+        AWS_ASSERT(key->len <= UINT16_MAX);
+        AWS_ASSERT(value->len <= UINT16_MAX);
         if (!aws_byte_buf_write_be16(output, (uint16_t)key->len)) goto WRITE_ERR;
         if (!aws_byte_buf_write_from_whole_string(output, key)) goto WRITE_ERR;
         if (!aws_byte_buf_write_be16(output, (uint16_t)value->len)) goto WRITE_ERR;
