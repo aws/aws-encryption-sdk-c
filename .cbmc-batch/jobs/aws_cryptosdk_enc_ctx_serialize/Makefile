@@ -34,6 +34,7 @@ ABSTRACTIONS += $(SRCDIR)/helper-stubs/aws_array_list_sort_noop_stub.c
 ABSTRACTIONS += $(SRCDIR)/helper-stubs/aws_cryptosdk_enc_ctx_size_stub.c
 ABSTRACTIONS += $(SRCDIR)/helper-stubs/aws_cryptosdk_hash_elems_array_init_stub.c
 
+#Remove function bodies to deal with CBMC function pointer removal
 ADDITIONAL_REMOVE_FUNCTION_BODY += --remove-function-body aws_array_list_sort
 ADDITIONAL_REMOVE_FUNCTION_BODY += --remove-function-body aws_byte_buf_write
 ADDITIONAL_REMOVE_FUNCTION_BODY += --remove-function-body aws_cryptosdk_enc_ctx_size

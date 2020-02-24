@@ -20,6 +20,8 @@
 #include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
+// A generator function as described in the comment in aws_cryptosdk_hash_elems_array_init_stub.c.
+// Also see line 36 of the Makefile.
 void array_list_item_generator(struct aws_array_list *elems) {
     assert(elems->item_size == sizeof(struct aws_hash_element));
     for (size_t index = 0; index < elems->length; ++index) {
@@ -44,5 +46,5 @@ void aws_cryptosdk_enc_ctx_serialize_harness() {
     size_t empty_slot_idx;
     __CPROVER_assume(aws_hash_table_has_an_empty_slot(&map, &empty_slot_idx));
 
-    int rval = aws_cryptosdk_enc_ctx_serialize(can_fail_allocator(), &output, &map);
+    aws_cryptosdk_enc_ctx_serialize(can_fail_allocator(), &output, &map);
 }
