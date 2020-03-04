@@ -44,13 +44,4 @@ void aws_cryptosdk_sig_verify_finish_harness() {
 
     /* operation under verification */
     aws_cryptosdk_sig_verify_finish(ctx, signature);
-
-    /* clean up (necessary because we are checking for memory leaks) */
-    free(signature);
-    if (pkey_references > 2) {
-        evp_pkey_unconditional_free(pkey);
-        ec_key_unconditional_free(keypair);  // pkey holds a reference to keypair, have to free that as well
-    } else if (keypair_references > 2) {     // pkey was freed but keypair was not
-        ec_key_unconditional_free(keypair);
-    }
 }

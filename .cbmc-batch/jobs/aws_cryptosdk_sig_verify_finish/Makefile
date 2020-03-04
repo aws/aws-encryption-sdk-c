@@ -19,9 +19,6 @@ include ../Makefile.local_default
 
 UNWINDSET +=
 
-# Added check for memory leak
-CBMCFLAGS += --memory-leak-check
-
 ENTRY = aws_cryptosdk_sig_verify_finish_harness
 
 DEPENDENCIES +=	$(SRCDIR)/c-common-src/byte_buf.goto

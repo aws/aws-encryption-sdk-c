@@ -45,6 +45,7 @@ void aws_cryptosdk_sig_verify_start_harness() {
     assert(aws_string_is_valid(pub_key));
 
     /* clean up */
+    /*
     if (ctx) {
         EVP_PKEY_free(ctx->pkey);
         EVP_MD_CTX_free(ctx->ctx);
@@ -52,4 +53,5 @@ void aws_cryptosdk_sig_verify_start_harness() {
     }
     aws_mem_release(alloc, ctx);
     free(pub_key);
+    */
 }

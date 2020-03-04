@@ -20,7 +20,7 @@ include ../Makefile.local_default
 UNWINDSET += strcmp.0:11, aws_base64_decode.0:16
 
 # Added check for memory leaks
-CBMCFLAGS += --memory-leak-check
+#CBMCFLAGS += --memory-leak-check
 
 ENTRY = aws_cryptosdk_sig_verify_start_harness
 
