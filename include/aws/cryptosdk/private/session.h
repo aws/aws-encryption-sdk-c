@@ -21,7 +21,6 @@
 #include <aws/cryptosdk/session.h>
 
 #define DEFAULT_FRAME_SIZE (256 * 1024)
-#define MAX_FRAME_SIZE 0xFFFFFFFF
 
 enum session_state {
     /*** Common states ***/

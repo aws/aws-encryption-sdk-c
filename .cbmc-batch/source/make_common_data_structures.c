@@ -25,6 +25,15 @@
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
 
+void ensure_alg_properties_attempt_allocation(struct aws_cryptosdk_alg_properties *const alg_props) {
+    size_t md_name_size;
+    alg_props->md_name = can_fail_malloc(md_name_size);
+    size_t cipher_name_size;
+    alg_props->cipher_name = can_fail_malloc(cipher_name_size);
+    size_t alg_name_size;
+    alg_props->alg_name = can_fail_malloc(alg_name_size);
+}
+
 void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ctx) {
     ctx->alloc      = nondet_bool() ? NULL : can_fail_allocator();
     ctx->evp_md_ctx = evp_md_ctx_nondet_alloc();

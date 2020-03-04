@@ -17,6 +17,7 @@
 #define AWS_CRYPTOSDK_PRIVATE_FRAMEFMT_H
 
 #include <aws/common/byte_buf.h>
+#include <aws/common/common.h>
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/private/cipher.h>
 
@@ -32,6 +33,20 @@ struct aws_cryptosdk_frame {
     /* A cursor to space for the AEAD tag in the ciphertext buffer */
     struct aws_byte_buf authtag;
 };
+
+// MAX_FRAME_SIZE = 2^32 - 1
+#define MAX_FRAME_SIZE 0xFFFFFFFF
+// MAX_FRAMES = 2^32 - 1
+#define MAX_FRAMES 0xFFFFFFFF
+// MAX_UNFRAMED_PLAINTEXT_SIZE = 2^36 - 32
+#define MAX_UNFRAMED_PLAINTEXT_SIZE 0xFFFFFFFE0ull
+
+/**
+ * Checks whether a frame struct is valid. At the moment this means
+ * that it checks the validity of the byte buffers and the fact that
+ * they should have NULL allocators.
+ */
+bool aws_cryptosdk_frame_is_valid(const struct aws_cryptosdk_frame *const frame);
 
 /**
  * Performs frame-type-specific work prior to writing a frame; writes out all
