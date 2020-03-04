@@ -21,7 +21,6 @@ ENTRY = aws_cryptosdk_md_size_harness
 
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.goto
 
-
 ###########
 
 include ../Makefile.common

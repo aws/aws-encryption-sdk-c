@@ -46,6 +46,8 @@ void aws_cryptosdk_md_finish_harness() {
         assert(length == 0);
     }
 
+    assert(AWS_MEM_IS_READABLE(buf, length));
+
     /* clean up (necessary because we are checking for memory leaks) */
     free(buf);
 }

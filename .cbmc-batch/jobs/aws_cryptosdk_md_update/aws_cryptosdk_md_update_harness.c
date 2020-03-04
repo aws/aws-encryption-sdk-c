@@ -15,12 +15,11 @@
 
 #include <aws/cryptosdk/private/cipher.h>
 #include <cbmc_invariants.h>
+#include <cipher_openssl.h>
 #include <evp_utils.h>
 #include <make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
-
-#include <cipher_openssl.h>
 
 /* Expected runtime 1m30s */
 void aws_cryptosdk_md_update_harness() {
