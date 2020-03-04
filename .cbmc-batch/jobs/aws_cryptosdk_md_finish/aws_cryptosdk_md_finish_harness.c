@@ -21,12 +21,13 @@
 
 #include <cipher_openssl.h>
 
+/* Expected runtime 1m20s */
 void aws_cryptosdk_md_finish_harness() {
     /* arguments */
     struct aws_cryptosdk_md_context *md_context = can_fail_malloc(sizeof(struct aws_cryptosdk_md_context));
+    size_t length;
     size_t buf_size;
     void *buf = can_fail_malloc(buf_size);
-    size_t length;
 
     /* assumptions */
     __CPROVER_assume(md_context);
@@ -36,7 +37,7 @@ void aws_cryptosdk_md_finish_harness() {
     __CPROVER_assume(buf);
     size_t digest_size = evp_md_ctx_get_digest_size(md_context->evp_md_ctx);
     __CPROVER_assume(length >= digest_size);
-    __CPROVER_assume(AWS_MEM_IS_WRITABLE(buf, length));
+    __CPROVER_assume(buf_size >= length);
 
     /* operation under verification */
     if (aws_cryptosdk_md_finish(md_context, buf, &length) == AWS_OP_SUCCESS) {

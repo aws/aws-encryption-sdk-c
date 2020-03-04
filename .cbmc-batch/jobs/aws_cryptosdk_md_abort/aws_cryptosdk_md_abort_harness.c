@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -14,14 +14,13 @@
  */
 
 #include <aws/cryptosdk/private/cipher.h>
-#include <proof_helpers/proof_allocators.h>
-
 #include <cbmc_invariants.h>
+#include <cipher_openssl.h>
 #include <evp_utils.h>
 #include <make_common_data_structures.h>
+#include <proof_helpers/proof_allocators.h>
 
-#include <cipher_openssl.h>
-
+/* Expected runtime: 40 seconds */
 void aws_cryptosdk_md_abort_harness() {
     /* arguments */
     struct aws_cryptosdk_md_context *md_context = can_fail_malloc(sizeof(struct aws_cryptosdk_md_context));
@@ -35,4 +34,5 @@ void aws_cryptosdk_md_abort_harness() {
 
     /* operation under verification */
     aws_cryptosdk_md_abort(md_context);
+    /* After the abort, the md_context is now invalid. Nothing to assert here */
 }

@@ -20,14 +20,16 @@ include ../Makefile.local_default
 UNWINDSET += 
 
 # Adds check for memory leaks for this proof
+# Turning this flag on globally would require all proofs to carefully release objects, which they don't do.
+# But might as well do it when its easy
 CBMCFLAGS += --memory-leak-check
 
 ENTRY = aws_cryptosdk_md_finish_harness
 
-DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/proof_allocators.goto
+DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.goto
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.goto
-DEPENDENCIES +=	$(SRCDIR)/c-common-src/common.goto
-DEPENDENCIES +=	$(SRCDIR)/c-common-src/error.goto
+DEPENDENCIES += $(SRCDIR)/c-common-src/common.goto
+DEPENDENCIES += $(SRCDIR)/c-common-src/error.goto
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/cbmc_invariants.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.goto

@@ -18,28 +18,39 @@
 #include <evp_utils.h>
 #include <make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
+#include <proof_helpers/utils.h>
 
 #include <cipher_openssl.h>
 
+/* Expected runtime 1m30s */
 void aws_cryptosdk_md_update_harness() {
     /* arguments */
-    struct aws_cryptosdk_md_context md_context;  // can't be NULL according to preconditions
+    struct aws_cryptosdk_md_context *md_context = can_fail_malloc(sizeof(*md_context));
     size_t length;
     void *buf = can_fail_malloc(length);
 
     /* assumptions */
-    ensure_md_context_has_allocated_members(&md_context);
-    __CPROVER_assume(evp_md_ctx_get0_evp_pkey(md_context.evp_md_ctx) == NULL);
-    __CPROVER_assume(aws_cryptosdk_md_context_is_valid_cbmc(&md_context));
+    __CPROVER_assume(md_context);
+    ensure_md_context_has_allocated_members(md_context);
+    __CPROVER_assume(evp_md_ctx_get0_evp_pkey(md_context->evp_md_ctx) == NULL);
+    __CPROVER_assume(aws_cryptosdk_md_context_is_valid_cbmc(md_context));
     __CPROVER_assume(buf);
 
+    struct store_byte_from_buffer old_byte;
+    save_byte_from_array(buf, length, &old_byte);
+
     /* operation under verification */
-    if (aws_cryptosdk_md_update(&md_context, buf, length) == AWS_OP_SUCCESS) {
+    if (aws_cryptosdk_md_update(md_context, buf, length) == AWS_OP_SUCCESS) {
         /* assertions */
-        assert(aws_cryptosdk_md_context_is_valid_cbmc(&md_context));
+        assert(aws_cryptosdk_md_context_is_valid_cbmc(md_context));
+    }
+
+    if (length > 0) {
+        assert_byte_from_buffer_matches(buf, &old_byte);
     }
 
     /* clean up (necessary because we are checking for memory leaks) */
-    EVP_MD_CTX_free(md_context.evp_md_ctx);
+    EVP_MD_CTX_free(md_context->evp_md_ctx);
+    free(md_context);
     free(buf);
 }

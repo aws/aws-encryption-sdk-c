@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 
 #include <cipher_openssl.h>
 
+/* Expected runtime 45s */
 void aws_cryptosdk_md_init_harness() {
     /* arguments */
     struct aws_allocator *alloc;
@@ -40,4 +41,5 @@ void aws_cryptosdk_md_init_harness() {
         EVP_MD_CTX_free(md_context->evp_md_ctx);
         aws_mem_release(alloc, md_context);
     }
+    assert(aws_allocator_is_valid(alloc));
 }
