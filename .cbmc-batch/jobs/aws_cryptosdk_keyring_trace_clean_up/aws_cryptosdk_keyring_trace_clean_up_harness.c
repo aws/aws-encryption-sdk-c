@@ -13,21 +13,24 @@
  * permissions and limitations under the License.
  */
 
-#include <aws/common/array_list.h>
-#include <aws/common/string.h>
 #include <aws/cryptosdk/private/keyring_trace.h>
 #include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
 
-void aws_cryptosdk_keyring_trace_record_clean_up_harness() {
+void aws_cryptosdk_keyring_trace_clean_up_harness() {
     /* data structure */
-    struct aws_cryptosdk_keyring_trace_record record; /* Precondition: record is non-null */
+    struct aws_array_list trace;
 
-    ensure_record_has_allocated_members(&record, MAX_STRING_LEN);
-    __CPROVER_assume(aws_cryptosdk_keyring_trace_record_is_valid(&record));
+    /* assumptions */
+    __CPROVER_assume(aws_array_list_is_bounded(&trace, MAX_INITIAL_ITEM_ALLOCATION, MAX_ITEM_SIZE));
+    __CPROVER_assume(trace.item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
+    ensure_array_list_has_allocated_data_member(&trace);
+    __CPROVER_assume(aws_array_list_is_valid(&trace));
+    ensure_trace_has_allocated_records(&trace, MAX_STRING_LEN);
+    __CPROVER_assume(aws_cryptosdk_keyring_trace_is_valid(&trace));
 
-    aws_cryptosdk_keyring_trace_record_clean_up(&record);
-    assert(record.flags == 0);
-    assert(record.wrapping_key_name == NULL);
-    assert(record.wrapping_key_namespace == NULL);
+    aws_cryptosdk_keyring_trace_clean_up(&trace);
+
+    /* assertions */
+    assert(aws_array_list_length(&trace) == 0);
 }
