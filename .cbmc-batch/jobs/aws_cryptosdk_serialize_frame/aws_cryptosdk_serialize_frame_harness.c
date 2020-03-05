@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ void aws_cryptosdk_serialize_frame_harness() {
     ensure_byte_buf_has_allocated_buffer_member(&ciphertext_buf);
     __CPROVER_assume(aws_byte_buf_is_valid(&ciphertext_buf));
 
+    __CPROVER_assume(aws_cryptosdk_frame_has_valid_type(&frame));
     ensure_alg_properties_attempt_allocation(&alg_props);
     __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(&alg_props));
 
@@ -40,6 +41,8 @@ void aws_cryptosdk_serialize_frame_harness() {
     int rval = aws_cryptosdk_serialize_frame(&frame, &ciphertext_size, plaintext_size, &ciphertext_buf, &alg_props);
     if (rval == AWS_OP_SUCCESS) {
         assert(aws_cryptosdk_frame_is_valid(&frame));
+        assert(aws_cryptosdk_alg_properties_is_valid(&alg_props));
+        assert(aws_cryptosdk_frame_serialized(&frame, &alg_props, plaintext_size));
         assert(ciphertext_buf.buffer == old_ciphertext_buffer);
         assert(ciphertext_buf.len == old_ciphertext_buffer_len + ciphertext_size);
     } else {

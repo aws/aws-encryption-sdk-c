@@ -49,6 +49,23 @@ struct aws_cryptosdk_frame {
 bool aws_cryptosdk_frame_is_valid(const struct aws_cryptosdk_frame *const frame);
 
 /**
+ * Checks whether a frame struct is correctly serialized in relation
+ * to a specific algorithm.  More precisely, it checks that the
+ * buffers in [frame] have the same sizes as the sizes described in
+ * the [alg_props] algorithm properties and in the
+ * [plaintext_size]. It also checks that the two buffers are empty.
+ */
+bool aws_cryptosdk_frame_serialized(
+    const struct aws_cryptosdk_frame *frame,
+    const struct aws_cryptosdk_alg_properties *alg_props,
+    size_t plaintext_size);
+
+/**
+ * Checks whether a frame has a valid frame type.
+ */
+bool aws_cryptosdk_frame_has_valid_type(const struct aws_cryptosdk_frame *frame);
+
+/**
  * Performs frame-type-specific work prior to writing a frame; writes out all
  * fields except for the IV, ciphertext, and authtag - for those three fields,
  * this method will set the appropriate cursors in the frame structure instead;
