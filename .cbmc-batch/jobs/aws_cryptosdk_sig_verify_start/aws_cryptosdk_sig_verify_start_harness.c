@@ -15,13 +15,12 @@
 
 #include <aws/cryptosdk/cipher.h>
 #include <cbmc_invariants.h>
+#include <cipher_openssl.h>
 #include <ec_utils.h>
 #include <evp_utils.h>
 #include <make_common_data_structures.h>
 #include <proof_allocators.h>
 #include <proof_helpers/proof_allocators.h>
-
-#include <cipher_openssl.h>
 
 void aws_cryptosdk_sig_verify_start_harness() {
     /* arguments */
@@ -43,15 +42,4 @@ void aws_cryptosdk_sig_verify_start_harness() {
 
     /* assertions */
     assert(aws_string_is_valid(pub_key));
-
-    /* clean up */
-    /*
-    if (ctx) {
-        EVP_PKEY_free(ctx->pkey);
-        EVP_MD_CTX_free(ctx->ctx);
-        EC_KEY_free(ctx->keypair);
-    }
-    aws_mem_release(alloc, ctx);
-    free(pub_key);
-    */
 }
