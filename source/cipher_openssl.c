@@ -697,6 +697,7 @@ int aws_cryptosdk_sig_verify_start(
     }
 
     struct aws_cryptosdk_sig_ctx *ctx = aws_mem_acquire(alloc, sizeof(*ctx));
+
     if (!ctx) {
         goto oom;
     }

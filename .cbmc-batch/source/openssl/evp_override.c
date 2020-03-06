@@ -13,11 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include <openssl/evp.h>
-
 #include <ec_utils.h>
 #include <make_common_data_structures.h>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
+#include <openssl/kdf.h>
 #include <proof_helpers/nondet.h>
+
+#define DEFAULT_IV_LEN 12  // For GCM AES and OCB AES the default is 12 (i.e. 96 bits).
 
 /* Abstraction of the EVP_PKEY struct */
 struct evp_pkey_st {
@@ -84,7 +87,8 @@ void EVP_PKEY_free(EVP_PKEY *pkey) {
 
 /* Abstraction of the EVP_PKEY_CTX struct */
 struct evp_pkey_ctx_st {
-    bool is_initialized;
+    bool is_initialized_for_signing;
+    bool is_initialized_for_derivation;
     EVP_PKEY *pkey;
 };
 
@@ -100,12 +104,50 @@ EVP_PKEY_CTX *EVP_PKEY_CTX_new(EVP_PKEY *pkey, ENGINE *e) {
     EVP_PKEY_CTX *ctx = can_fail_malloc(sizeof(EVP_PKEY_CTX));
 
     if (ctx) {
-        ctx->is_initialized = false;
-        ctx->pkey           = pkey;
+        ctx->is_initialized_for_signing    = false;
+        ctx->is_initialized_for_derivation = false;
+        ctx->pkey                          = pkey;
         pkey->references += 1;
     }
 
     return ctx;
+}
+
+/*
+ * Description: The EVP_PKEY_CTX_new_id() function allocates public key algorithm
+ * context using the algorithm specified by id and ENGINE e. It is normally used when no EVP_PKEY structure is
+ * associated with the operations, for example during parameter generation of key generation for some algorithms. Return
+ * values: EVP_PKEY_CTX_new_id() returns either the newly allocated EVP_PKEY_CTX structure of NULL if an error occurred.
+ */
+EVP_PKEY_CTX *EVP_PKEY_CTX_new_id(int id, ENGINE *e) {
+    // assert(!e);  // Assuming is always called with e == NULL
+
+    EVP_PKEY_CTX *ctx = can_fail_malloc(sizeof(EVP_PKEY_CTX));
+
+    if (ctx) {
+        ctx->is_initialized_for_signing    = false;
+        ctx->is_initialized_for_derivation = false;
+        ctx->pkey                          = NULL;
+    }
+
+    return ctx;
+}
+
+/* Description: The EVP_PKEY_derive_init() function initializes a public key algorithm context using key pkey
+ * for shared secret derivation. EVP_PKEY_derive_init() returns 1 for success and 0 or a negative
+ * value for failure. In particular a return value of -2 indicates the operation is not supported by the public key
+ * algorithm.
+ */
+int EVP_PKEY_derive_init(EVP_PKEY_CTX *ctx) {
+    assert(ctx);
+    if (nondet_bool()) {
+        ctx->is_initialized_for_derivation = true;
+        return 1;
+    }
+
+    int rv;
+    __CPROVER_assume(rv <= 0);
+    return rv;
 }
 
 /*
@@ -119,7 +161,7 @@ int EVP_PKEY_sign_init(EVP_PKEY_CTX *ctx) {
     assert(ctx->pkey);
 
     if (nondet_bool()) {
-        ctx->is_initialized = true;
+        ctx->is_initialized_for_signing = true;
         return 1;
     }
 
@@ -138,6 +180,7 @@ int EVP_PKEY_sign_init(EVP_PKEY_CTX *ctx) {
  */
 int EVP_PKEY_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen, const unsigned char *tbs, size_t tbslen) {
     assert(evp_pkey_ctx_is_valid(ctx));
+    assert(ctx->is_initialized_for_signing == true);
     assert(siglen);
     assert(!sig || (*siglen >= max_signature_size() && AWS_MEM_IS_WRITABLE(sig, *siglen)));
     assert(tbs);
@@ -165,6 +208,56 @@ int EVP_PKEY_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen, const u
 }
 
 /*
+ * Description: The function EVP_PKEY_CTX_ctrl() sends a control operation to the context ctx.
+ * The key type used must match keytype if it is not -1. The parameter optype is a mask indicating which operations
+ * the control can be applied to. The control command is indicated in cmd and any additional arguments in p1 and p2.
+ * EVP_PKEY_CTX_ctrl() and its macros return a positive value for success and 0 or a negative value for failure.
+ * In particular a return value of -2 indicates the operation is not supported by the public key algorithm.
+ */
+int EVP_PKEY_CTX_ctrl(EVP_PKEY_CTX *ctx, int keytype, int optype, int cmd, int p1, void *p2) {
+    assert(ctx != NULL);
+    assert(keytype == -1);  // Is this ever false?
+    if (nondet_bool()) {
+        return 1;
+    }
+    int rv;
+    __CPROVER_assume(rv <= 0);
+    return rv;
+}
+
+/*
+ * Description: The EVP_PKEY_derive() derives a shared secret using ctx. If key is NULL then the maximum size of the
+ * output buffer is written to the keylen parameter. If key is not NULL then before the call the keylen parameter should
+ * contain the length of the key buffer, if the call is successful the shared secret is written to key and the amount of
+ * data written to keylen.
+ */
+int EVP_PKEY_derive(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *keylen) {
+    /* TODO: assert(evp_pkey_ctx_is_valid(ctx)); */
+    assert(ctx != NULL);
+    assert(ctx->is_initialized_for_derivation == true);
+    assert(keylen);
+    // Derivation size is nondeterministic but fixed. See ec_override.c for details.
+    size_t max_required_size = max_derivation_size();
+
+    if (nondet_bool()) {
+        int rv;
+        __CPROVER_assume(rv <= 0);
+        return rv;
+    }
+
+    if (!key) {
+        *keylen = max_required_size;
+    } else {
+        size_t amount_of_data_written;
+        __CPROVER_assume(amount_of_data_written <= *keylen);
+        write_unconstrained_data(key, amount_of_data_written);
+        *keylen = amount_of_data_written;
+    }
+
+    return 1;
+}
+
+/*
  * Description: EVP_PKEY_CTX_free() frees up the context ctx. If ctx is NULL, nothing is done.
  */
 void EVP_PKEY_CTX_free(EVP_PKEY_CTX *ctx) {
@@ -179,6 +272,7 @@ enum evp_aes { EVP_AES_128_GCM, EVP_AES_192_GCM, EVP_AES_256_GCM };
 /* Abstraction of the EVP_CIPHER struct */
 struct evp_cipher_st {
     enum evp_aes from;
+    size_t block_size;
 };
 
 /*
@@ -187,16 +281,193 @@ struct evp_cipher_st {
  * These functions return an EVP_CIPHER structure that contains the implementation of the symmetric cipher.
  */
 const EVP_CIPHER *EVP_aes_128_gcm(void) {
-    static const EVP_CIPHER cipher = { EVP_AES_128_GCM };
+    static const EVP_CIPHER cipher = { EVP_AES_128_GCM, 128 };
     return &cipher;
 }
 const EVP_CIPHER *EVP_aes_192_gcm(void) {
-    static const EVP_CIPHER cipher = { EVP_AES_192_GCM };
+    static const EVP_CIPHER cipher = { EVP_AES_192_GCM, 128 };
     return &cipher;
 }
 const EVP_CIPHER *EVP_aes_256_gcm(void) {
-    static const EVP_CIPHER cipher = { EVP_AES_256_GCM };
+    static const EVP_CIPHER cipher = { EVP_AES_256_GCM, 128 };
     return &cipher;
+}
+
+/* Abstraction of the EVP_CIPHER_CTX struct */
+
+struct evp_cipher_ctx_st {
+    EVP_CIPHER *cipher;
+    int encrypt;
+    int iv_len;           // default: DEFAULT_IV_LEN.
+    bool iv_set;          // boolean marks if iv has been set. Default:false.
+    bool padding;         // boolean marks if padding is enabled. Default:true.
+    bool data_processed;  // boolean marks if has encrypt/decrypt final has been called. Default:false.
+};
+
+/*
+ * EVP_CIPHER_CTX_new() creates a cipher context.
+ */
+EVP_CIPHER_CTX *EVP_CIPHER_CTX_new() {
+    EVP_CIPHER_CTX *cipher_ctx = can_fail_malloc(sizeof(EVP_CIPHER_CTX));
+    if (cipher_ctx) {
+        cipher_ctx->iv_len         = DEFAULT_IV_LEN;
+        cipher_ctx->iv_set         = false;
+        cipher_ctx->padding        = true;
+        cipher_ctx->data_processed = false;
+    }
+    return cipher_ctx;
+}
+
+/*
+ * EVP_CipherInit_ex(), EVP_CipherUpdate() and EVP_CipherFinal_ex() are functions that can be used for
+ * decryption or encryption. The operation performed depends on the value of the enc parameter.
+ * It should be set to 1 for encryption, 0 for decryption and -1 to leave the value unchanged (the actual value of 'enc'
+ * being supplied in a previous call). Return 1 for success and 0 for failure.
+ */
+int EVP_CipherInit_ex(
+    EVP_CIPHER_CTX *ctx,
+    const EVP_CIPHER *cipher,
+    ENGINE *impl,
+    const unsigned char *key,
+    const unsigned char *iv,
+    int enc) {
+    assert(ctx != NULL);
+    assert(enc == 0 || enc == 1 || enc == -1);
+    if (enc != -1) {
+        ctx->encrypt = enc;
+    }
+    if (cipher) {
+        ctx->cipher = cipher;
+    }
+    if (iv) {
+        ctx->iv_set = true;
+    }
+    int rv;
+    __CPROVER_assume(rv == 0 || rv == 1);
+    return rv;
+}
+
+/*
+ * EVP_CIPHER_CTX_ctrl() allows various cipher specific parameters to be determined and set.
+ */
+int EVP_CIPHER_CTX_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg, void *ptr) {
+    if (type == EVP_CTRL_GCM_SET_IVLEN || type == EVP_CTRL_AEAD_SET_IVLEN) {
+        assert(ctx->iv_set == false);
+        assert(arg > 0);  // IV length must be positive.
+        ctx->iv_len = arg;
+    }
+    if (type == EVP_CTRL_GCM_GET_TAG) {
+        assert(ctx->encrypt == 1);  //
+        assert(ctx->data_processed == true);
+        AWS_MEM_IS_WRITABLE(ptr, arg);  // need to be able to write taglen (arg) bytes to buffer ptr.
+    }
+    int rv;
+    __CPROVER_assume(rv == 0 || rv == 1);
+    return rv;
+}
+
+/*
+ * EVP_CIPHER_CTX_free() clears all information from a cipher context and free up any allocated memory associate with
+ * it, including ctx itself. This function should be called after all operations using a cipher are complete so
+ * sensitive information does not remain in memory.
+ */
+void EVP_CIPHER_CTX_free(EVP_CIPHER_CTX *ctx) {
+    if (ctx) {
+        free(ctx);
+    }
+}
+
+/*
+ * EVP_CipherInit_ex(), EVP_CipherUpdate() and EVP_CipherFinal_ex() are functions that can be used for decryption
+ * or encryption. The operation performed depends on the value of the enc parameter. It should be set to 1 for
+ * encryption, 0 for decryption and -1 to leave the value unchanged (the actual value of 'enc' being supplied in a
+ * previous call). Return 1 for success and 0 for failure.
+ */
+int EVP_CipherUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const unsigned char *in, int inl) {
+    assert(ctx != NULL);
+    if (ctx->encrypt) {
+        return EVP_EncryptUpdate(ctx, out, outl, in, inl);
+    } else
+        return EVP_DecryptUpdate(ctx, out, outl, in, inl);
+}
+
+/*
+ * EVP_EncryptUpdate() encrypts inl bytes from the buffer in and writes the encrypted version to out.
+ * This function can be called multiple times to encrypt successive blocks of data. The amount of data written depends
+ * on the block alignment of the encrypted data: as a result the amount of data written may be anything from zero bytes
+ * to (inl + cipher_block_size - 1) so out should contain sufficient room. The actual number of bytes written is placed
+ * in outl. It also checks if in and out are partially overlapping, and if they are 0 is returned to indicate failure.
+ */
+int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const unsigned char *in, int inl) {
+    assert(ctx != NULL);
+    assert(ctx->data_processed == false);
+    size_t out_size;
+    __CPROVER_assume(out_size >= 0);
+    __CPROVER_assume(out_size <= inl + ctx->cipher->block_size - 1);
+    __CPROVER_assume(AWS_MEM_IS_WRITABLE(out, out_size));
+    *outl = out_size;
+    int rv;
+    __CPROVER_assume(rv == 0 || rv == 1);
+    return rv;
+}
+
+/*
+ * EVP_DecryptUpdate() is the corresponding decryption operation.
+ * EVP_DecryptFinal() will return an error code if padding is enabled and the final block is not correctly formatted.
+ * The parameters and restrictions are identical to the encryption operations except that if padding is enabled the
+ * decrypted data buffer out passed to EVP_DecryptUpdate() should have sufficient room for (inl + cipher_block_size)
+ * bytes unless the cipher block size is 1 in which case inl bytes is sufficient.
+ */
+int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const unsigned char *in, int inl) {
+    assert(ctx != NULL);
+    assert(ctx->data_processed == false);
+    size_t out_size;
+    __CPROVER_assume(out_size >= 0);
+    if (ctx->padding) {
+        __CPROVER_assume(out_size <= inl + ctx->cipher->block_size);
+    }
+    __CPROVER_assume(AWS_MEM_IS_WRITABLE(out, out_size));
+    *outl = out_size;
+    int rv;
+    __CPROVER_assume(rv == 0 || rv == 1);
+    return rv;
+}
+
+/*
+ * If padding is enabled (the default) then EVP_EncryptFinal_ex() encrypts the "final" data, that is any data that
+ * remains in a partial block. It uses standard block padding (aka PKCS padding).
+ * The encrypted final data is written to out which should have sufficient space for one cipher block.
+ * The number of bytes written is placed in outl. After this function is called the encryption operation is finished and
+ * no further calls to EVP_EncryptUpdate() should be made.
+ */
+int EVP_EncryptFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl) {
+    assert(ctx != NULL);
+    assert(AWS_MEM_IS_WRITABLE(out, ctx->cipher->block_size));
+    if (ctx->padding == true) {
+        *outl = 0;
+    }
+    ctx->data_processed = true;
+    int rv;
+    __CPROVER_assume(rv == 0 || rv == 1);
+    return rv;
+}
+/*
+ * EVP_DecryptFinal_ex() is the corresponding decryption operation.
+ * EVP_DecryptFinal() will return an error code if padding is enabled and the final block is not correctly formatted.
+ * The parameters and restrictions are identical to the encryption operations except that if padding is enabled the
+ * decrypted data buffer out passed to EVP_DecryptUpdate() should have sufficient room for (inl + cipher_block_size)
+ * bytes unless the cipher block size is 1 in which case inl bytes is sufficient.
+ */
+int EVP_DecryptFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *outm, int *outl) {
+    assert(ctx != NULL);
+    assert(AWS_MEM_IS_WRITABLE(outm, ctx->cipher->block_size));
+    if (ctx->padding == true) {
+        *outl = 0;
+    }
+    ctx->data_processed = true;
+    int rv;
+    __CPROVER_assume(rv == 0 || rv == 1);
+    return rv;
 }
 
 enum evp_sha { EVP_SHA256, EVP_SHA384, EVP_SHA512 };
@@ -223,6 +494,19 @@ const EVP_MD *EVP_sha384() {
 const EVP_MD *EVP_sha512() {
     static const EVP_MD md = { EVP_SHA512, 64 };
     return &md;
+}
+
+/* Description: Return the size of the message digest when passed an EVP_MD or an EVP_MD_CTX structure, i.e. the size of
+ * the hash.
+ */
+int EVP_MD_size(const EVP_MD *md) {
+    if (md->from == EVP_SHA256) {
+        return 256;
+    }
+    if (md->from == EVP_SHA384) {
+        return 384;
+    }
+    return 512;
 }
 
 /* Abstraction of the EVP_MD_CTX struct */
@@ -396,7 +680,108 @@ int EVP_DigestVerifyFinal(EVP_MD_CTX *ctx, const unsigned char *sig, size_t sigl
     return nondet_int();
 }
 
+/* Abstraction of the HMAC_CTX struct has been moved to hmcac.h*/
+
+/*
+ * Description: HMAC_CTX_init() initialises a HMAC_CTX before first use. It must be called.
+ */
+void HMAC_CTX_init(HMAC_CTX *ctx) {
+    HMAC_CTX *ctx_new = can_fail_malloc(sizeof(HMAC_CTX));
+    __CPROVER_assume(ctx_new);  // cannot be null
+    ctx_new->is_initialized = true;
+    ctx_new->md             = malloc(sizeof(EVP_MD));
+    *ctx                    = *ctx_new;
+}
+
+/*
+HMAC() computes the message authentication code of the n bytes at d using the hash function evp_md and the
+key key which is key_len bytes long.
+It places the result in md (which must have space for the output of the hash function,
+which is no more than EVP_MAX_MD_SIZE bytes). If md is NULL, the digest is placed in a static array.
+The size of the output is placed in md_len, unless it is NULL.
+Note: passing a NULL value for md to use the static array is not thread safe.
+*/
+
+unsigned char *HMAC(
+    const EVP_MD *evp_md,
+    const void *key,
+    int key_len,
+    const unsigned char *d,
+    size_t n,
+    unsigned char *md,
+    unsigned int *md_len) {
+    assert(evp_md != NULL);
+    size_t amount_of_data_written;
+    __CPROVER_assume(amount_of_data_written <= EVP_MAX_MD_SIZE);
+    if (md != NULL) {
+        write_unconstrained_data(md, amount_of_data_written);
+        *md_len = amount_of_data_written;
+        return md;
+    }
+    // create a static array to return the result
+    unsigned char *res = malloc(sizeof(unsigned char) * (amount_of_data_written + 1));
+    write_unconstrained_data(res, amount_of_data_written);
+    return res;
+}
+
+/*
+* HMAC_Init_ex() initializes or reuses a HMAC_CTX structure to use the hash function evp_md and key key.
+* If both are NULL (or evp_md is the same as the previous digest used by ctx and key is NULL) the existing key is
+reused.
+* ctx must have been created with HMAC_CTX_new() before the first use of an HMAC_CTX in this function.
+* N.B. HMAC_Init() had this undocumented behaviour in previous versions of OpenSSL - failure to switch to HMAC_Init_ex()
+in
+* programs that expect it will cause them to stop working.
+
+* NB: if HMAC_Init_ex() is called with key NULL and evp_md is not the same as the previous digest used by ctx then an
+* error is returned because reuse of an existing key with a different digest is not supported.
+*
+* Return 1 for success or 0 if an error occurred.
+*/
+int HMAC_Init_ex(HMAC_CTX *ctx, const void *key, int len, const EVP_MD *md, ENGINE *impl) {
+    assert(hmac_ctx_is_valid(ctx));
+    if (md != NULL) {
+        if (key != NULL) {
+            ctx->md = md;
+        }
+    }
+    int rv;
+    __CPROVER_assume(rv == 1 || rv == 0);
+    return rv;
+}
+
+/*
+ * HMAC_Update() can be called repeatedly with chunks of the message to be authenticated (len bytes at data).
+ * Return 1 for success or 0 if an error occurred.
+ */
+int HMAC_Update(HMAC_CTX *ctx, const unsigned char *data, size_t len) {
+    assert(hmac_ctx_is_valid(ctx));
+    int rv;
+    __CPROVER_assume(rv == 1 || rv == 0);
+    return rv;
+}
+
+/*
+ *HMAC_Final() places the message authentication code in md, which must have space for the hash function output.
+ */
+int HMAC_Final(HMAC_CTX *ctx, unsigned char *md, unsigned int *len) {
+    assert(hmac_ctx_is_valid(ctx));
+    assert(ctx->md != NULL);
+    int md_size = EVP_MD_size(ctx->md);
+    AWS_MEM_IS_WRITABLE(md, md_size);
+    *len = md_size;
+    int rv;
+    __CPROVER_assume(rv == 1 || rv == 0);
+    __CPROVER_assume(AWS_MEM_IS_READABLE(md, md_size));
+    return rv;
+}
+
 /* CBMC helper functions */
+
+/* Helper function for CBMC proofs: checks if HMAC_CTX is valid. */
+bool hmac_ctx_is_valid(HMAC_CTX *ctx) {
+    return ctx && ctx->is_initialized;
+}
 
 /* Helper function for CBMC proofs: checks if EVP_PKEY is valid. */
 bool evp_pkey_is_valid(EVP_PKEY *pkey) {
@@ -426,7 +811,10 @@ void evp_pkey_unconditional_free(EVP_PKEY *pkey) {
 }
 
 bool evp_pkey_ctx_is_valid(EVP_PKEY_CTX *ctx) {
-    return ctx && ctx->is_initialized && evp_pkey_is_valid(ctx->pkey);
+    return ctx != NULL &&
+           // ctx->is_initialized_for_signing &&
+           // ctx->is_initialized_for_derivation &&
+           evp_pkey_is_valid(ctx->pkey);
 }
 
 bool evp_cipher_is_valid(EVP_CIPHER *cipher) {

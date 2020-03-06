@@ -14,33 +14,17 @@
  * permissions and limitations under the License.
  */
 
-#ifndef HEADER_OPENSSL_TYPES_H
-#define HEADER_OPENSSL_TYPES_H
+/* Empty header. Necessary just because it is included in cipher_openssl.c */
 
-#ifdef NO_ASN1_TYPEDEFS
-#    define ASN1_INTEGER ASN1_STRING
-#else
-typedef struct asn1_string_st ASN1_INTEGER;
-typedef struct asn1_string_st ASN1_STRING;
-#endif
+#ifndef HEADER_HMAC_H
+#define HEADER_HMAC_H
 
-#ifdef BIGNUM
-#    undef BIGNUM
-#endif
-typedef struct bio_st BIO;
-typedef struct bignum_st BIGNUM;
-
-typedef struct ec_key_st EC_KEY;
-
-typedef struct evp_pkey_ctx_st EVP_PKEY_CTX;
-typedef struct hmac_ctx_st HMAC_CTX;
-
-typedef struct evp_cipher_st EVP_CIPHER;
-typedef struct evp_cipher_ctx_st EVP_CIPHER_CTX;
-typedef struct evp_md_st EVP_MD;
-typedef struct evp_md_ctx_st EVP_MD_CTX;
-typedef struct evp_pkey_st EVP_PKEY;
-
-typedef struct engine_st ENGINE;
+struct hmac_ctx_st {
+    const EVP_MD *md;
+    EVP_MD_CTX *md_ctx;
+    EVP_MD_CTX *i_ctx;
+    EVP_MD_CTX *o_ctx;
+    bool is_initialized;
+};
 
 #endif

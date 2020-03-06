@@ -16,6 +16,8 @@
 #include <openssl/ec.h>
 #include <openssl/evp.h>
 
+#include <aws/cryptosdk/cipher.h>
+#include <aws/cryptosdk/private/hkdf.h>
 #include <cipher_openssl.h>
 #include <ec_utils.h>
 #include <evp_utils.h>
@@ -105,5 +107,20 @@ void ensure_cryptosdk_edk_list_has_allocated_list(struct aws_array_list *list) {
 void ensure_cryptosdk_edk_list_has_allocated_list_elements(struct aws_array_list *list) {
     for (size_t i = 0; i < list->length; ++i) {
         ensure_cryptosdk_edk_has_allocated_members(&(list->data[i]));
+    }
+}
+
+enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id alg_id) {
+    switch (alg_id) {
+        case ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384:
+        case ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384: return AWS_CRYPTOSDK_SHA384;
+        case ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256:
+        case ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256:
+        case ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256:
+        case ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256: return AWS_CRYPTOSDK_SHA256;
+        case ALG_AES256_GCM_IV12_TAG16_NO_KDF:
+        case ALG_AES192_GCM_IV12_TAG16_NO_KDF:
+        case ALG_AES128_GCM_IV12_TAG16_NO_KDF:
+        default: return AWS_CRYPTOSDK_NOSHA;
     }
 }

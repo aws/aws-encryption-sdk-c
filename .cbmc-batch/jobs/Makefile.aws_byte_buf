@@ -1,4 +1,4 @@
-# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You may not use
 # this file except in compliance with the License. A copy of the License is
@@ -11,20 +11,14 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-#########
-# if Makefile.local exists, use it. This provides a way to override the defaults
+##########
+# if Makefile.local exists, use it. This provides a way to override the defaults 
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
-#########
-ENTRY = MultiKeyringNew_harness
+# Sufficently long to get full coverage on the aws_byte_buf and aws_byte_cursor APIs
+# short enough that all proofs complete in less than a minute
+MAX_BUFFER_SIZE ?= 1028
 
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/error.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/multi_keyring.c
-
-###########
-include ../Makefile.common
+DEFINES += -DMAX_BUFFER_SIZE=$(MAX_BUFFER_SIZE)
