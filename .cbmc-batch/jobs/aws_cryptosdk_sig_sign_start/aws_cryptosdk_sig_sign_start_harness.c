@@ -48,14 +48,4 @@ void aws_cryptosdk_sig_sign_start_harness() {
     /* assertions */
     if (save_pub_key) assert(!pub_key || aws_string_is_valid(pub_key));
     assert(aws_string_is_valid(priv_key));
-
-    /* clean up */
-    if (ctx) {
-        ec_key_unconditional_free(ctx->keypair);
-        evp_pkey_unconditional_free(ctx->pkey);
-        evp_md_ctx_shallow_free(ctx->ctx);
-    }
-    aws_mem_release(alloc, ctx);
-    if (save_pub_key) free(pub_key);
-    free(priv_key);
 }

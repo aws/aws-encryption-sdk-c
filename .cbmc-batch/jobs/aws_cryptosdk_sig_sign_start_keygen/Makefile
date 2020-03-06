@@ -17,10 +17,9 @@ sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
-UNWINDSET += strcmp.0:11, aws_base64_encode.0:22 # computed according to MAX_PUBKEY_SIZE and the implementation of aws_base64_encode
+UNWINDSET += strcmp.0:11 # computed according to MAX_PUBKEY_SIZE and the implementation of aws_base64_encode
 
-# Added check for memory leaks
-CBMCFLAGS += --memory-leak-check
+ABSTRACTIONS += $(SRCDIR)/helper-stubs/aws_base64_encode.c
 
 ENTRY = aws_cryptosdk_sig_sign_start_keygen_harness
 
@@ -40,6 +39,8 @@ DEPENDENCIES += $(SRCDIR)/helper-src/openssl/bn_override.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/ec_override.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/evp_override.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/objects_override.goto
+
+REMOVE_FUNCTION_BODY += --remove-function-body aws_base64_encode
 
 ###########
 

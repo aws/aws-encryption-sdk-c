@@ -18,10 +18,6 @@ sinclude ../Makefile.local
 include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
 
-UNWINDSET += 
-
-CBMCFLAGS +=
-
 ENTRY = aws_cryptosdk_sign_header_harness
 
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.goto
