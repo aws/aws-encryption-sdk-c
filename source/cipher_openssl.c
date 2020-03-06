@@ -484,8 +484,9 @@ rethrow:
     return AWS_OP_ERR;
 }
 
+// TODO: add preconditions that if the ctx/pkey/keypair exist, they are valid.
 void aws_cryptosdk_sig_abort(struct aws_cryptosdk_sig_ctx *ctx) {
-    AWS_PRECONDITION(!ctx || (aws_cryptosdk_sig_ctx_is_valid(ctx) && AWS_OBJECT_PTR_IS_READABLE(ctx->alloc)));
+    AWS_PRECONDITION(ctx == NULL || aws_allocator_is_valid(ctx->alloc));
 
     if (!ctx) {
         return;
@@ -682,33 +683,35 @@ int aws_cryptosdk_sig_verify_start(
     struct aws_allocator *alloc,
     const struct aws_string *pub_key,
     const struct aws_cryptosdk_alg_properties *props) {
-    EC_KEY *key                       = NULL;
-    struct aws_cryptosdk_sig_ctx *ctx = NULL;
+    AWS_PRECONDITION(pctx);
+    AWS_PRECONDITION(alloc);
+    AWS_PRECONDITION(aws_string_is_valid(pub_key));
+    AWS_PRECONDITION(props);
 
     *pctx = NULL;
 
     if (!props->impl->curve_name) {
+        AWS_POSTCONDITION(!*pctx);
+        AWS_POSTCONDITION(aws_string_is_valid(pub_key));
         return AWS_OP_SUCCESS;
     }
 
-    if (load_pubkey(&key, props, pub_key)) {
-        return AWS_OP_ERR;
-    }
-
-    ctx = aws_mem_acquire(alloc, sizeof(*ctx));
+    struct aws_cryptosdk_sig_ctx *ctx = aws_mem_acquire(alloc, sizeof(*ctx));
     if (!ctx) {
         goto oom;
     }
-    memset(ctx, 0, sizeof(*ctx));
-    ctx->alloc = alloc;
-    ctx->props = props;
+
+    *ctx = (struct aws_cryptosdk_sig_ctx){
+        .alloc = alloc, .props = props, .keypair = NULL, .pkey = NULL, .is_sign = false
+    };
+
+    if (load_pubkey(&ctx->keypair, props, pub_key)) {
+        goto rethrow;
+    }
 
     if (!(ctx->pkey = EVP_PKEY_new())) {
         goto oom;
     }
-
-    ctx->keypair = key;
-    key          = NULL;
 
     if (!EVP_PKEY_set1_EC_KEY(ctx->pkey, ctx->keypair)) {
         goto oom;
@@ -723,19 +726,22 @@ int aws_cryptosdk_sig_verify_start(
         goto rethrow;
     }
 
-    ctx->is_sign = false;
-    *pctx        = ctx;
+    *pctx = ctx;
 
+    AWS_POSTCONDITION(aws_cryptosdk_sig_ctx_is_valid(*pctx));
+    AWS_POSTCONDITION(!(*pctx)->is_sign);
+    AWS_POSTCONDITION(aws_string_is_valid(pub_key));
     return AWS_OP_SUCCESS;
 
 oom:
     aws_raise_error(AWS_ERROR_OOM);
 rethrow:
-    EC_KEY_free(key);
     if (ctx) {
         aws_cryptosdk_sig_abort(ctx);
     }
 
+    AWS_POSTCONDITION(!*pctx);
+    AWS_POSTCONDITION(aws_string_is_valid(pub_key));
     return AWS_OP_ERR;
 }
 
@@ -760,7 +766,10 @@ int aws_cryptosdk_sig_update(struct aws_cryptosdk_sig_ctx *ctx, const struct aws
 }
 
 int aws_cryptosdk_sig_verify_finish(struct aws_cryptosdk_sig_ctx *ctx, const struct aws_string *signature) {
-    assert(!ctx->is_sign);
+    AWS_PRECONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+    AWS_PRECONDITION(ctx->alloc);
+    AWS_PRECONDITION(!ctx->is_sign);
+    AWS_PRECONDITION(aws_string_is_valid(signature));
     bool ok = EVP_DigestVerifyFinal(ctx->ctx, aws_string_bytes(signature), signature->len) == 1;
 
     aws_cryptosdk_sig_abort(ctx);
