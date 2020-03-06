@@ -484,8 +484,9 @@ rethrow:
     return AWS_OP_ERR;
 }
 
+// TODO: add preconditions that if the ctx/pkey/keypair exist, they are valid.
 void aws_cryptosdk_sig_abort(struct aws_cryptosdk_sig_ctx *ctx) {
-    AWS_PRECONDITION(!ctx || (aws_cryptosdk_sig_ctx_is_valid(ctx) && AWS_OBJECT_PTR_IS_READABLE(ctx->alloc)));
+    AWS_PRECONDITION(ctx == NULL || aws_allocator_is_valid(ctx->alloc));
 
     if (!ctx) {
         return;
@@ -686,8 +687,6 @@ int aws_cryptosdk_sig_verify_start(
     AWS_PRECONDITION(alloc);
     AWS_PRECONDITION(aws_string_is_valid(pub_key));
     AWS_PRECONDITION(props);
-    EC_KEY *key                       = NULL;
-    struct aws_cryptosdk_sig_ctx *ctx = NULL;
 
     *pctx = NULL;
 
@@ -697,26 +696,24 @@ int aws_cryptosdk_sig_verify_start(
         return AWS_OP_SUCCESS;
     }
 
-    if (load_pubkey(&key, props, pub_key)) {
+    struct aws_cryptosdk_sig_ctx *ctx = aws_mem_acquire(alloc, sizeof(*ctx));
+    if (!ctx) {
+        goto oom;
+    }
+
+    *ctx = (struct aws_cryptosdk_sig_ctx){
+        .alloc = alloc, .props = props, .keypair = NULL, .pkey = NULL, .is_sign = false
+    };
+
+    if (load_pubkey(&ctx->keypair, props, pub_key)) {
         AWS_POSTCONDITION(!*pctx);
         AWS_POSTCONDITION(aws_string_is_valid(pub_key));
         return AWS_OP_ERR;
     }
 
-    ctx = aws_mem_acquire(alloc, sizeof(*ctx));
-    if (!ctx) {
-        goto oom;
-    }
-    memset(ctx, 0, sizeof(*ctx));
-    ctx->alloc = alloc;
-    ctx->props = props;
-
     if (!(ctx->pkey = EVP_PKEY_new())) {
         goto oom;
     }
-
-    ctx->keypair = key;
-    key          = NULL;
 
     if (!EVP_PKEY_set1_EC_KEY(ctx->pkey, ctx->keypair)) {
         goto oom;
@@ -731,8 +728,7 @@ int aws_cryptosdk_sig_verify_start(
         goto rethrow;
     }
 
-    ctx->is_sign = false;
-    *pctx        = ctx;
+    *pctx = ctx;
 
     AWS_POSTCONDITION(aws_cryptosdk_sig_ctx_is_valid(*pctx));
     AWS_POSTCONDITION(!(*pctx)->is_sign);
@@ -742,7 +738,6 @@ int aws_cryptosdk_sig_verify_start(
 oom:
     aws_raise_error(AWS_ERROR_OOM);
 rethrow:
-    EC_KEY_free(key);
     if (ctx) {
         aws_cryptosdk_sig_abort(ctx);
     }

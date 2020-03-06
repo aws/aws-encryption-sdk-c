@@ -13,9 +13,10 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
 #include <openssl/objects.h>
-
 #include <proof_helpers/nondet.h>
+#include <string.h>
 
 /*
  * Description: OBJ_txt2nid() returns NID corresponding to text string <s>. s can be a long name, a short name or the
@@ -23,13 +24,14 @@
  */
 int OBJ_txt2nid(const char *s) {
     // Currently these are the only values used in the ESDK
-    assert(!s || strcmp(s, "prime256v1") == 0 || strcmp(s, "secp384r1") == 0);
-
     if (!s) {
         return NID_undef;
     } else if (strcmp(s, "prime256v1") == 0) {
         return NID_X9_62_prime256v1;
-    } else {  // s is "secp384r1"
+    } else if (strcmp(s, "secp384r1") == 0) {
         return NID_secp384r1;
+    } else {
+        __CPROVER_assert(0, "s had unexpected value");
     }
+    return nondet_int();
 }

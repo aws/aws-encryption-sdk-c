@@ -42,7 +42,12 @@ HARNESS_NAME ?= $(ENTRY).c
 
 ################################################################
 # Default CBMC flags
+
+#debugability
 CBMC_VERBOSITY ?= ""
+CBMCFLAGS += --flush
+
+#error checking
 CBMCFLAGS += --bounds-check
 CBMCFLAGS += --div-by-zero-check
 CBMCFLAGS += --float-overflow-check
@@ -293,6 +298,16 @@ report: cbmc.log property.xml coverage.xml
 	--result cbmc.log \
 	--srcdir $(SRCDIR) \
 	--srcexclude "(./verification|./tests|./tools|./lib/third_party)"
+
+propertyreport: cbmc.log property.xml 
+	$(VIEWER) \
+	--goto $(ENTRY).goto \
+	--htmldir html \
+	--property property.xml \
+	--result cbmc.log \
+	--srcdir $(SRCDIR) \
+	--srcexclude "(./verification|./tests|./tools|./lib/third_party)"
+
 
 clean:
 	$(RM) *.goto
