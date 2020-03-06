@@ -13,19 +13,18 @@
 
 
 #########
-# if Makefile.local exists, use it. This provides a way to override the defaults 
+# if Makefile.local exists, use it. This provides a way to override the defaults
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
-######### 
-ENTRY = MultiKeyringNew
-HARNESS_NAME = $(ENTRY)_harness.c
-OBJS = \
-	$(SRCDIR)/$(ENTRY)_harness.goto \
-	$(SRCDIR)/c-enc-sdk-src/multi_keyring.goto \
-	$(SRCDIR)/c-common-src/common.goto \
-	$(SRCDIR)/helper-src/proof_allocators.goto
+#########
+ENTRY = MultiKeyringNew_harness
+
+DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
+DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
+DEPENDENCIES += $(SRCDIR)/c-common-src/error.c
+DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/multi_keyring.c
 
 ###########
 

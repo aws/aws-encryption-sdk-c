@@ -13,9 +13,9 @@
  * limitations under the License.
  */
 
-#include "proof_helpers.h"
 #include <aws/cryptosdk/private/cipher.h>
 #include <openssl/evp.h>
+#include "proof_helpers.h"
 
 #define MSG_ID_LEN 16
 
@@ -35,12 +35,10 @@ void aws_cryptosdk_derive_key_verify(void) {
     ASSUME_VALID_MEMORY(props);
     props->impl = malloc(sizeof(&nondet_EVP_MD_ptr) + sizeof(&nondet_EVP_CIPHER_ptr));
 
-    props->impl->md_ctor = NULL;
+    props->impl->md_ctor     = NULL;
     props->impl->cipher_ctor = NULL;
-    if (nondet_int())
-        props->impl->md_ctor = &nondet_EVP_MD_ptr;
-    if (nondet_int())
-        props->impl->cipher_ctor = &nondet_EVP_CIPHER_ptr;
+    if (nondet_int()) props->impl->md_ctor = &nondet_EVP_MD_ptr;
+    if (nondet_int()) props->impl->cipher_ctor = &nondet_EVP_CIPHER_ptr;
 
     __CPROVER_assume(props->data_key_len <= MAX_DATA_KEY_SIZE);
 

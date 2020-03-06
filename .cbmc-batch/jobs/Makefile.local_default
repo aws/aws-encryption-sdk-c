@@ -24,5 +24,6 @@ SRCDIR ?= $(abspath ./link-farm)
 BASEDIR ?= $(abspath ../../../..)
 COMMON_REPO_NAME ?= aws-c-common-for-cryptosdk-proofs
 COMMONDIR ?= $(BASEDIR)/$(COMMON_REPO_NAME)
+COMMON_HELPERDIR ?= $(COMMONDIR)/.cbmc-batch
 SDKDIR ?= $(abspath ../../..)
 HELPERDIR ?= $(SDKDIR)/.cbmc-batch

@@ -1,0 +1,4 @@
+jobos: ubuntu16
+cbmcflags: "--memory-leak-check;--bounds-check;--div-by-zero-check;--float-overflow-check;--nan-check;--pointer-check;--pointer-overflow-check;--signed-overflow-check;--undefined-shift-check;--unsigned-overflow-check;--unwind;1;--unwinding-assertions;--unwindset;strcmp.0:11,,aws_base64_decode.0:16;--object-bits;8"
+goto: aws_cryptosdk_sig_verify_start_harness.goto
+expected: "SUCCESSFUL"
