@@ -426,6 +426,9 @@ int aws_cryptosdk_sig_sign_start_keygen(
     struct aws_allocator *alloc,
     struct aws_string **pub_key,
     const struct aws_cryptosdk_alg_properties *props) {
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_WRITABLE(pctx));
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(alloc));
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(props));
     EC_GROUP *group = NULL;
     EC_KEY *keypair = NULL;
 
@@ -435,6 +438,8 @@ int aws_cryptosdk_sig_sign_start_keygen(
     }
 
     if (!props->impl->curve_name) {
+        AWS_POSTCONDITION(!*pctx);
+        AWS_POSTCONDITION(!pub_key || !*pub_key);
         return AWS_OP_SUCCESS;
     }
 
@@ -459,6 +464,10 @@ int aws_cryptosdk_sig_sign_start_keygen(
         goto rethrow;
     }
 
+    // If pub_key is NULL the conversion form is never set, and so it differs between the EC_KEY and EC_GROUP objects.
+    // If this is not a problem this line can be removed, but ec_key_is_valid needs to be changed in the CBMC model.
+    EC_KEY_set_conv_form(keypair, POINT_CONVERSION_COMPRESSED);
+
     *pctx = sign_start(alloc, keypair, props);
     if (!*pctx) {
         goto rethrow;
@@ -467,6 +476,8 @@ int aws_cryptosdk_sig_sign_start_keygen(
     EC_KEY_free(keypair);
     EC_GROUP_free(group);
 
+    AWS_POSTCONDITION(aws_cryptosdk_sig_ctx_is_valid(*pctx) && (*pctx)->is_sign);
+    AWS_POSTCONDITION(!pub_key || aws_string_is_valid(*pub_key));
     return AWS_OP_SUCCESS;
 
 err:
@@ -475,12 +486,16 @@ rethrow:
     aws_cryptosdk_sig_abort(*pctx);
     *pctx = NULL;
 
-    aws_string_destroy(*pub_key);
-    *pub_key = NULL;
+    if (pub_key) {
+        aws_string_destroy(*pub_key);
+        *pub_key = NULL;
+    }
 
     EC_KEY_free(keypair);
     EC_GROUP_free(group);
 
+    AWS_POSTCONDITION(!*pctx);
+    AWS_POSTCONDITION(!pub_key || !*pub_key);
     return AWS_OP_ERR;
 }
 
@@ -505,6 +520,10 @@ int aws_cryptosdk_sig_sign_start(
     struct aws_string **pub_key_str,
     const struct aws_cryptosdk_alg_properties *props,
     const struct aws_string *priv_key) {
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_WRITABLE(ctx));
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(alloc));
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(props));
+    AWS_PRECONDITION(aws_string_is_valid(priv_key));
     /* See comments in aws_cryptosdk_sig_get_privkey re the serialized format */
 
     *ctx = NULL;
@@ -513,12 +532,18 @@ int aws_cryptosdk_sig_sign_start(
     }
 
     if (!props->impl->curve_name) {
+        AWS_POSTCONDITION(!*ctx);
+        AWS_POSTCONDITION(!pub_key_str || !*pub_key_str);
+        AWS_POSTCONDITION(aws_string_is_valid(priv_key));
         return AWS_OP_SUCCESS;
     }
 
     if (priv_key->len < 5) {
         // We don't have room for the algorithm ID plus the serialized private key.
         // Someone has apparently handed us a truncated private key?
+        AWS_POSTCONDITION(!*ctx);
+        AWS_POSTCONDITION(!pub_key_str || !*pub_key_str);
+        AWS_POSTCONDITION(aws_string_is_valid(priv_key));
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
@@ -542,6 +567,9 @@ int aws_cryptosdk_sig_sign_start(
 
     if (serialized_alg_id != props->alg_id) {
         // Algorithm mismatch
+        AWS_POSTCONDITION(!*ctx);
+        AWS_POSTCONDITION(!pub_key_str || !*pub_key_str);
+        AWS_POSTCONDITION(aws_string_is_valid(priv_key));
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
@@ -607,6 +635,9 @@ int aws_cryptosdk_sig_sign_start(
 
     if (pub_key_str && serialize_pubkey(alloc, keypair, pub_key_str)) {
         EC_KEY_free(keypair);
+        AWS_POSTCONDITION(!*ctx);
+        AWS_POSTCONDITION(!*pub_key_str);
+        AWS_POSTCONDITION(aws_string_is_valid(priv_key));
         return AWS_OP_ERR;
     }
 
@@ -619,6 +650,9 @@ int aws_cryptosdk_sig_sign_start(
 out:
     // EC_KEYs are reference counted
     EC_KEY_free(keypair);
+    AWS_POSTCONDITION(!*ctx || (aws_cryptosdk_sig_ctx_is_valid(*ctx) && (*ctx)->is_sign));
+    AWS_POSTCONDITION(!pub_key_str || (!*ctx && !*pub_key_str) || aws_string_is_valid(*pub_key_str));
+    AWS_POSTCONDITION(aws_string_is_valid(priv_key));
     return *ctx ? AWS_OP_SUCCESS : AWS_OP_ERR;
 }
 
