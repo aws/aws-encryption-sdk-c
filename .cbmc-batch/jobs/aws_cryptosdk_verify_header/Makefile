@@ -18,7 +18,7 @@ sinclude ../Makefile.local
 include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
 
-UNWINDSET += 
+UNWINDSET += __CPROVER_file_local_cipher_c_flush_openssl_errors.0:2
 
 CBMCFLAGS += 
 
@@ -36,6 +36,7 @@ DEPENDENCIES += $(SRCDIR)/helper-src/cbmc_invariants.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/bn_override.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/ec_override.goto
+DEPENDENCIES += $(SRCDIR)/helper-src/openssl/err_override.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/evp_override.goto
 
 ###########
