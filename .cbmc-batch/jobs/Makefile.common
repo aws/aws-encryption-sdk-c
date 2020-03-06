@@ -299,7 +299,7 @@ report: cbmc.log property.xml coverage.xml
 	--srcdir $(SRCDIR) \
 	--srcexclude "(./verification|./tests|./tools|./lib/third_party)"
 
-propertyreport: cbmc.log property.xml 
+propertyreport: cbmc.log property.xml
 	$(VIEWER) \
 	--goto $(ENTRY).goto \
 	--htmldir html \
