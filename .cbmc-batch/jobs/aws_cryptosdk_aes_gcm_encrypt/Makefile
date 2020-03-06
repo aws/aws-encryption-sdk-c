@@ -12,7 +12,7 @@
 # limitations under the License.
 
 ###########
-# if Makefile.local exists, use it. This provides a way to override the defaults 
+# if Makefile.local exists, use it. This provides a way to override the defaults
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
@@ -22,7 +22,7 @@ include ../Makefile.string
 
 UNWINDSET += flush_openssl_errors.0:1
 
-CBMCFLAGS += 
+CBMCFLAGS +=
 
 ENTRY = aws_cryptosdk_aes_gcm_encrypt_harness
 

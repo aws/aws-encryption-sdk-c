@@ -456,6 +456,19 @@ size_t max_derivation_size() {
     return derivation_size;
 }
 
+static size_t encryption_size;
+
+void initialize_max_encryption_size() {
+    size_t size;
+    // At different times, this value is stored in a size_t, a long and an int
+    __CPROVER_assume(0 < size && size <= INT_MAX);
+    encryption_size = size;
+}
+
+size_t max_encryption_size() {
+    return encryption_size;
+}
+
 /* Writes arbitrary data into the buffer out. */
 void write_unconstrained_data(unsigned char *out, size_t len) {
     assert(AWS_MEM_IS_WRITABLE(out, len));
