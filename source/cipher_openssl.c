@@ -706,9 +706,7 @@ int aws_cryptosdk_sig_verify_start(
     };
 
     if (load_pubkey(&ctx->keypair, props, pub_key)) {
-        AWS_POSTCONDITION(!*pctx);
-        AWS_POSTCONDITION(aws_string_is_valid(pub_key));
-        return AWS_OP_ERR;
+        goto rethrow;
     }
 
     if (!(ctx->pkey = EVP_PKEY_new())) {
