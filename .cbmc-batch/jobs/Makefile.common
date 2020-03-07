@@ -308,7 +308,6 @@ propertyreport: cbmc.log property.xml
 	--srcdir $(SRCDIR) \
 	--srcexclude "(./verification|./tests|./tools|./lib/third_party)"
 
-
 clean:
 	$(RM) *.goto
 	$(RM) $(DEPENDENT_GOTOS)
