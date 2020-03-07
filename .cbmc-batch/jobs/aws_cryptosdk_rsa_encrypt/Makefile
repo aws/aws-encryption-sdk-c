@@ -12,19 +12,18 @@
 # limitations under the License.
 
 ###########
-# if Makefile.local exists, use it. This provides a way to override the defaults
+# if Makefile.local exists, use it. This provides a way to override the defaults 
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
 include ../Makefile.string
 
+UNWINDSET += 
 
-UNWINDSET += flush_openssl_errors.0:1
+CBMCFLAGS += 
 
-CBMCFLAGS +=
-
-ENTRY = aws_cryptosdk_aes_gcm_decrypt_harness
+ENTRY = aws_cryptosdk_rsa_encrypt_harness
 
 DEPENDENCIES += $(COMMON_HELPERDIR)/stubs/memcpy_override_havoc.goto
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.goto
@@ -38,6 +37,7 @@ DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.goto
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/hkdf.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/cbmc_invariants.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.goto
+DEPENDENCIES += $(SRCDIR)/helper-src/openssl/bio_override.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/bn_override.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/ec_override.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/err_override.goto

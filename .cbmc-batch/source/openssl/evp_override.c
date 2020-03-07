@@ -18,6 +18,7 @@
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/kdf.h>
+#include <openssl/rsa.h>
 #include <proof_helpers/nondet.h>
 
 #define DEFAULT_IV_LEN 12       // For GCM AES and OCB AES the default is 12 (i.e. 96 bits).
@@ -90,6 +91,8 @@ void EVP_PKEY_free(EVP_PKEY *pkey) {
 struct evp_pkey_ctx_st {
     bool is_initialized_for_signing;
     bool is_initialized_for_derivation;
+    bool is_initialized_for_encryption;
+    int rsa_pad;
     EVP_PKEY *pkey;
 };
 
@@ -107,6 +110,7 @@ EVP_PKEY_CTX *EVP_PKEY_CTX_new(EVP_PKEY *pkey, ENGINE *e) {
     if (ctx) {
         ctx->is_initialized_for_signing    = false;
         ctx->is_initialized_for_derivation = false;
+        ctx->is_initialized_for_encryption = false;
         ctx->pkey                          = pkey;
         pkey->references += 1;
     }
@@ -128,6 +132,7 @@ EVP_PKEY_CTX *EVP_PKEY_CTX_new_id(int id, ENGINE *e) {
     if (ctx) {
         ctx->is_initialized_for_signing    = false;
         ctx->is_initialized_for_derivation = false;
+        ctx->is_initialized_for_encryption = false;
         ctx->pkey                          = NULL;
     }
 
@@ -259,11 +264,102 @@ int EVP_PKEY_derive(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *keylen) {
 }
 
 /*
- * Description: EVP_PKEY_CTX_free() frees up the context ctx. If ctx is NULL, nothing is done.
+ * The EVP_PKEY_encrypt_init() function initializes a public key algorithm context using key pkey for an encryption
+ * operation. EVP_PKEY_encrypt_init() and EVP_PKEY_encrypt() return 1 for success and 0 or a negative value for failure.
+ * In particular a return value of -2 indicates the operation is not supported by the public key algorithm.
+ */
+int EVP_PKEY_encrypt_init(EVP_PKEY_CTX *ctx) {
+    assert(ctx != NULL);
+    assert(ctx->pkey != NULL);
+    if (nondet_bool()) {
+        ctx->is_initialized_for_encryption = true;
+        return 1;
+    }
+    int rv;
+    __CPROVER_assume(rv <= 0);
+    return rv;
+}
+
+/*
+ * The macro EVP_PKEY_CTX_set_rsa_padding() sets the RSA padding mode for ctx. The pad parameter can take the value
+ * RSA_PKCS1_PADDING for PKCS#1 padding, RSA_SSLV23_PADDING for SSLv23 padding, RSA_NO_PADDING for no padding,
+ * RSA_PKCS1_OAEP_PADDING for OAEP padding (encrypt and decrypt only), RSA_X931_PADDING for X9.31 padding (signature
+ * operations only) and RSA_PKCS1_PSS_PADDING (sign and verify only).
+ *
+ */
+int EVP_PKEY_CTX_set_rsa_padding(EVP_PKEY_CTX *ctx, int pad) {
+    assert(ctx != NULL);
+    assert(
+        pad == RSA_PKCS1_PADDING || pad == RSA_SSLV23_PADDING || pad == RSA_NO_PADDING ||
+        pad == RSA_PKCS1_OAEP_PADDING || pad == RSA_X931_PADDING || pad == RSA_PKCS1_PSS_PADDING);
+    if (pad == RSA_X931_PADDING) {
+        assert(ctx->is_initialized_for_signing);
+    }
+    ctx->rsa_pad = pad;
+    int rv;
+    __CPROVER_assume(rv == 0 || rv == 1);
+    return rv;
+}
+/*
+ * The EVP_PKEY_CTX_set_rsa_oaep_md() macro sets the message digest type used in RSA OAEP to md.
+ * The padding mode must have been set to RSA_PKCS1_OAEP_PADDING.
+ */
+int EVP_PKEY_CTX_set_rsa_oaep_md(EVP_PKEY_CTX *ctx, const EVP_MD *md) {
+    assert(ctx != NULL);
+    assert(ctx->rsa_pad == RSA_PKCS1_OAEP_PADDING);
+    int rv;
+    __CPROVER_assume(rv == 0 || rv == 1);
+    return rv;
+}
+
+/*
+ * The EVP_PKEY_CTX_set_rsa_mgf1_md() macro sets the MGF1 digest for RSA padding schemes to md.
+ * If not explicitly set the signing digest is used. The padding mode must have been set to RSA_PKCS1_OAEP_PADDING or
+ * RSA_PKCS1_PSS_PADDING.
+ */
+int EVP_PKEY_CTX_set_rsa_mgf1_md(EVP_PKEY_CTX *ctx, const EVP_MD *md) {
+    assert(ctx != NULL);
+    assert(ctx->rsa_pad == RSA_PKCS1_OAEP_PADDING || ctx->rsa_pad == RSA_PKCS1_PSS_PADDING);
+    int rv;
+    __CPROVER_assume(rv == 0 || rv == 1);
+    return rv;
+}
+
+/*
+ * The EVP_PKEY_encrypt() function performs a public key encryption operation using ctx.
+ * The data to be encrypted is specified using the in and inlen parameters. If out is NULL then the maximum size of the
+ * output buffer is written to the outlen parameter. If out is not NULL then before the call the outlen parameter should
+ * contain the length of the out buffer, if the call is successful the encrypted data is written to out and the amount
+ * of data written to outlen.
+ */
+int EVP_PKEY_encrypt(EVP_PKEY_CTX *ctx, unsigned char *out, size_t *outlen, const unsigned char *in, size_t inlen) {
+    assert(ctx != NULL);
+    // Encyption size is nondeterministic but fixed. See ec_override.c for details.
+    size_t max_required_size = max_encryption_size();
+
+    if (nondet_bool()) {
+        int rv;
+        __CPROVER_assume(rv <= 0);
+        return rv;
+    }
+
+    if (!out) {
+        *outlen = max_required_size;
+    } else {
+        size_t amount_of_data_written;
+        __CPROVER_assume(amount_of_data_written <= *outlen);
+        write_unconstrained_data(out, amount_of_data_written);
+        *outlen = amount_of_data_written;
+    }
+
+    return 1;
+}
+
+/*
+ *EVP_PKEY_CTX_free() frees up the context ctx. If ctx is NULL, nothing is done.
  */
 void EVP_PKEY_CTX_free(EVP_PKEY_CTX *ctx) {
     if (ctx) {
-        EVP_PKEY_free(ctx->pkey);
         free(ctx);
     }
 }
@@ -842,7 +938,7 @@ bool hmac_ctx_is_valid(HMAC_CTX *ctx) {
 
 /* Helper function for CBMC proofs: checks if EVP_PKEY is valid. */
 bool evp_pkey_is_valid(EVP_PKEY *pkey) {
-    return pkey && (pkey->references > 0) && ec_key_is_valid(pkey->ec_key);
+    return pkey && (pkey->references > 0) && (pkey->ec_key == NULL || ec_key_is_valid(pkey->ec_key));
 }
 
 /* Helper function for CBMC proofs: allocates EVP_PKEY nondeterministically. */

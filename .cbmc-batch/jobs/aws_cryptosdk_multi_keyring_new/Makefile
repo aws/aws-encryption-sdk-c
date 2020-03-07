@@ -25,6 +25,5 @@ DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/error.c
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/multi_keyring.c
-
 ###########
 include ../Makefile.common

@@ -24,8 +24,6 @@
  */
 int OBJ_txt2nid(const char *s) {
     // Currently these are the only values used in the ESDK
-    assert(!s || strcmp(s, "prime256v1") == 0 || strcmp(s, "secp384r1") == 0);
-
     if (!s) {
         return NID_undef;
     } else if (strcmp(s, "prime256v1") == 0) {
