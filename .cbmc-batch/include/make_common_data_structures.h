@@ -15,6 +15,7 @@
 
 #include <aws/common/common.h>
 #include <aws/cryptosdk/cipher.h>
+#include <aws/cryptosdk/private/framefmt.h>
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
 #include <stdint.h>
@@ -30,3 +31,6 @@ void ensure_sig_ctx_has_allocated_members(struct aws_cryptosdk_sig_ctx *ctx);
 
 /* Makes internal function from cipher.c accessible for CBMC */
 enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id alg_id);
+
+void ensure_record_has_allocated_members(struct aws_cryptosdk_keyring_trace_record *record, size_t max_len);
+void ensure_trace_has_allocated_records(struct aws_array_list *trace, size_t max_len);

@@ -15,10 +15,38 @@
 #include <aws/cryptosdk/private/keyring_trace.h>
 #include <aws/cryptosdk/private/utils.h>
 
+bool aws_cryptosdk_keyring_trace_is_valid(const struct aws_array_list *trace) {
+    if (trace == NULL) {
+        return false;
+    }
+    AWS_FATAL_PRECONDITION(trace->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
+    /* iterate over each record in the list */
+    size_t num_records = aws_array_list_length(trace);
+    bool is_valid      = aws_array_list_is_valid(trace);
+    for (size_t idx = 0; idx < num_records; ++idx) {
+        struct aws_cryptosdk_keyring_trace_record *record;
+        if (!aws_array_list_get_at_ptr(trace, (void **)&record, idx)) {
+            /* check if each record is valid */
+            bool record_is_valid = aws_cryptosdk_keyring_trace_record_is_valid(record);
+            is_valid &= record_is_valid;
+        }
+    }
+    return is_valid;
+}
+
+bool aws_cryptosdk_keyring_trace_record_is_valid(struct aws_cryptosdk_keyring_trace_record *record) {
+    if (record == NULL) {
+        return false;
+    }
+    bool wk_namespace_is_valid = (record->wrapping_key_namespace != NULL);
+    bool wk_name_is_valid      = (record->wrapping_key_name != NULL);
+    return wk_namespace_is_valid && wk_name_is_valid;
+}
+
 void aws_cryptosdk_keyring_trace_record_clean_up(struct aws_cryptosdk_keyring_trace_record *record) {
-    AWS_OBJECT_PTR_IS_WRITABLE(record);
-    AWS_OBJECT_PTR_IS_WRITABLE(record->wrapping_key_name);
-    AWS_OBJECT_PTR_IS_WRITABLE(record->wrapping_key_namespace);
+    AWS_FATAL_PRECONDITION(record != NULL);
+    //    AWS_FATAL_PRECONDITION(record->wrapping_key_name != NULL);
+    //    AWS_FATAL_PRECONDITION(record->wrapping_key_namespace != NULL);
     aws_string_destroy(record->wrapping_key_namespace);
     aws_string_destroy(record->wrapping_key_name);
     record->flags                  = 0;
@@ -76,7 +104,7 @@ static inline int push_record_onto_trace(
     struct aws_array_list *trace, struct aws_cryptosdk_keyring_trace_record *record) {
     int ret = aws_array_list_push_back(trace, (void *)record);
     if (ret) aws_cryptosdk_keyring_trace_record_clean_up(record);
-
+    // TODO: check for post-condition aws_cryptosdk_keyring_trace_is_valid(trace)
     return ret;
 }
 
@@ -86,6 +114,12 @@ int aws_cryptosdk_keyring_trace_add_record(
     const struct aws_string *wk_namespace,
     const struct aws_string *wk_name,
     uint32_t flags) {
+    aws_allocator_is_valid(alloc);
+    AWS_FATAL_PRECONDITION(trace != NULL);
+    AWS_FATAL_PRECONDITION(wk_namespace != NULL);
+    AWS_FATAL_PRECONDITION(wk_name != NULL);
+    AWS_FATAL_PRECONDITION(aws_cryptosdk_keyring_trace_is_valid(trace));
+    AWS_FATAL_PRECONDITION(trace->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     struct aws_cryptosdk_keyring_trace_record record;
     int ret = record_init_from_strings(alloc, &record, wk_namespace, wk_name, flags);
     if (ret) return ret;
@@ -98,6 +132,12 @@ int aws_cryptosdk_keyring_trace_add_record_c_str(
     const char *wk_namespace,
     const char *wk_name,
     uint32_t flags) {
+    aws_allocator_is_valid(alloc);
+    AWS_FATAL_PRECONDITION(trace != NULL);
+    AWS_FATAL_PRECONDITION(wk_namespace != NULL);
+    AWS_FATAL_PRECONDITION(wk_name != NULL);
+    AWS_FATAL_PRECONDITION(aws_cryptosdk_keyring_trace_is_valid(trace));
+    AWS_FATAL_PRECONDITION(trace->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     struct aws_cryptosdk_keyring_trace_record record;
     int ret = record_init_from_c_strs(alloc, &record, wk_namespace, wk_name, flags);
     if (ret) return ret;
@@ -111,6 +151,14 @@ int aws_cryptosdk_keyring_trace_add_record_buf(
     const struct aws_byte_buf *wk_namespace,
     const struct aws_byte_buf *wk_name,
     uint32_t flags) {
+    aws_allocator_is_valid(alloc);
+    AWS_FATAL_PRECONDITION(trace != NULL);
+    AWS_FATAL_PRECONDITION(wk_namespace != NULL);
+    AWS_FATAL_PRECONDITION(wk_name != NULL);
+    AWS_FATAL_PRECONDITION(aws_byte_buf_is_valid(wk_namespace));
+    AWS_FATAL_PRECONDITION(aws_byte_buf_is_valid(wk_name));
+    AWS_FATAL_PRECONDITION(aws_cryptosdk_keyring_trace_is_valid(trace));
+    AWS_FATAL_PRECONDITION(trace->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     struct aws_cryptosdk_keyring_trace_record record;
     int ret = record_init_from_bufs(alloc, &record, wk_namespace, wk_name, flags);
     if (ret) return ret;
@@ -120,8 +168,8 @@ int aws_cryptosdk_keyring_trace_add_record_buf(
 
 int aws_cryptosdk_keyring_trace_init(struct aws_allocator *alloc, struct aws_array_list *trace) {
     // arbitrary starting point, list will resize as necessary
-    AWS_OBJECT_PTR_IS_WRITABLE(trace);
-    AWS_OBJECT_PTR_IS_WRITABLE(alloc);
+    AWS_FATAL_PRECONDITION(trace != NULL);
+    aws_allocator_is_valid(alloc);
     const int initial_size = 10;
     int r_val =
         aws_array_list_init_dynamic(trace, alloc, initial_size, sizeof(struct aws_cryptosdk_keyring_trace_record));
@@ -139,11 +187,11 @@ int aws_cryptosdk_keyring_trace_record_init_clone(
     struct aws_cryptosdk_keyring_trace_record *dest,
     const struct aws_cryptosdk_keyring_trace_record *src) {
     aws_allocator_is_valid(alloc);
-    AWS_OBJECT_PTR_IS_WRITABLE(dest);
-    AWS_OBJECT_PTR_IS_WRITABLE(src);
+    AWS_FATAL_PRECONDITION(dest != NULL);
+    AWS_FATAL_PRECONDITION(src != NULL);
 
-    AWS_FATAL_PRECONDITION(aws_string_is_valid(src->wrapping_key_namespace));
-    AWS_FATAL_PRECONDITION(aws_string_is_valid(src->wrapping_key_name));
+    AWS_FATAL_PRECONDITION(src->wrapping_key_namespace != NULL);
+    AWS_FATAL_PRECONDITION(src->wrapping_key_name != NULL);
 
     dest->wrapping_key_namespace = aws_cryptosdk_string_dup(alloc, src->wrapping_key_namespace);
     dest->wrapping_key_name      = aws_cryptosdk_string_dup(alloc, src->wrapping_key_name);
@@ -168,6 +216,8 @@ static bool aws_cryptosdk_keyring_trace_record_eq(
 }
 
 bool aws_cryptosdk_keyring_trace_eq(const struct aws_array_list *a, const struct aws_array_list *b) {
+    AWS_FATAL_PRECONDITION(aws_cryptosdk_keyring_trace_is_valid(a));
+    AWS_FATAL_PRECONDITION(aws_cryptosdk_keyring_trace_is_valid(b));
     size_t num_records = aws_array_list_length(a);
     if (num_records != aws_array_list_length(b)) return false;
 
@@ -183,6 +233,8 @@ bool aws_cryptosdk_keyring_trace_eq(const struct aws_array_list *a, const struct
 }
 
 void aws_cryptosdk_keyring_trace_clear(struct aws_array_list *trace) {
+    AWS_FATAL_PRECONDITION(aws_cryptosdk_keyring_trace_is_valid(trace));
+    AWS_FATAL_PRECONDITION(trace->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     size_t num_records = aws_array_list_length(trace);
     for (size_t idx = 0; idx < num_records; ++idx) {
         struct aws_cryptosdk_keyring_trace_record *record;
@@ -194,6 +246,8 @@ void aws_cryptosdk_keyring_trace_clear(struct aws_array_list *trace) {
 }
 
 void aws_cryptosdk_keyring_trace_clean_up(struct aws_array_list *trace) {
+    AWS_FATAL_PRECONDITION(aws_cryptosdk_keyring_trace_is_valid(trace));
+    AWS_FATAL_PRECONDITION(trace->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     aws_cryptosdk_keyring_trace_clear(trace);
     aws_array_list_clean_up(trace);
 }

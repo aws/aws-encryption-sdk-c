@@ -1,4 +1,4 @@
-jobos: ubuntu16
 cbmcflags: "--bounds-check;--div-by-zero-check;--float-overflow-check;--nan-check;--pointer-check;--pointer-overflow-check;--signed-overflow-check;--undefined-shift-check;--unsigned-overflow-check;--unwind;1;--unwinding-assertions;--unwindset;array_list_item_generator.0:3,aws_cryptosdk_enc_ctx_serialize.0:3;--object-bits;8"
-goto: aws_cryptosdk_enc_ctx_serialize_harness.goto
 expected: "SUCCESSFUL"
+goto: aws_cryptosdk_enc_ctx_serialize_harness.goto
+jobos: ubuntu16
