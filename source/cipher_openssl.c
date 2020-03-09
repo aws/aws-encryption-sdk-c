@@ -313,11 +313,19 @@ err:
 
 int aws_cryptosdk_sig_get_pubkey(
     const struct aws_cryptosdk_sig_ctx *ctx, struct aws_allocator *alloc, struct aws_string **pub_key_buf) {
-    return serialize_pubkey(alloc, ctx->keypair, pub_key_buf);
+    AWS_PRECONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(pub_key_buf));
+    int rv = serialize_pubkey(alloc, ctx->keypair, pub_key_buf);
+    AWS_POSTCONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+    AWS_POSTCONDITION((rv == AWS_OP_SUCCESS) ? aws_string_is_valid(*pub_key_buf) : !*pub_key_buf);
+    return rv;
 }
 
 int aws_cryptosdk_sig_get_privkey(
     const struct aws_cryptosdk_sig_ctx *ctx, struct aws_allocator *alloc, struct aws_string **priv_key) {
+    AWS_PRECONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+    AWS_PRECONDITION(ctx->is_sign);
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(priv_key));
     /*
      * When serializing private keys we use this ad-hoc format:
      *
@@ -418,6 +426,8 @@ err:
     // There is no error path that results in a non-NULL priv_key, so we don't need to
     // clean that up.
 
+    AWS_POSTCONDITION(AWS_OBJECT_PTR_IS_READABLE(priv_key));
+    AWS_POSTCONDITION(rv == AWS_OP_SUCCESS ? aws_string_is_valid(*priv_key) : !*priv_key);
     return rv;
 }
 
