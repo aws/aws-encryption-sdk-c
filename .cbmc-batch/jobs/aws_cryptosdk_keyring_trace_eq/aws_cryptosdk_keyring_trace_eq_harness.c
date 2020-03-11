@@ -13,6 +13,12 @@
  * permissions and limitations under the License.
  */
 
+/*
+ * Expected Runtime: 45 minutes
+ * Expected Coverage: 87%
+ * Requires more than 4 GB of memory, works with 8 GB
+ */
+
 #include <aws/cryptosdk/private/keyring_trace.h>
 #include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
@@ -23,14 +29,14 @@ void aws_cryptosdk_keyring_trace_eq_harness() {
     struct aws_array_list rhs;
 
     /* assumptions */
-    __CPROVER_assume(aws_array_list_is_bounded(&lhs, MAX_INITIAL_ITEM_ALLOCATION, MAX_ITEM_SIZE));
+    __CPROVER_assume(aws_array_list_is_bounded(&lhs, MAX_ITEM_SIZE, sizeof(struct aws_cryptosdk_keyring_trace_record)));
     __CPROVER_assume(lhs.item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     ensure_array_list_has_allocated_data_member(&lhs);
     __CPROVER_assume(aws_array_list_is_valid(&lhs));
     ensure_trace_has_allocated_records(&lhs, MAX_STRING_LEN);
     __CPROVER_assume(aws_cryptosdk_keyring_trace_is_valid(&lhs));
 
-    __CPROVER_assume(aws_array_list_is_bounded(&rhs, MAX_INITIAL_ITEM_ALLOCATION, MAX_ITEM_SIZE));
+    __CPROVER_assume(aws_array_list_is_bounded(&rhs, MAX_ITEM_SIZE, sizeof(struct aws_cryptosdk_keyring_trace_record)));
     __CPROVER_assume(rhs.item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     ensure_array_list_has_allocated_data_member(&rhs);
     __CPROVER_assume(aws_array_list_is_valid(&rhs));

@@ -13,6 +13,11 @@
  * permissions and limitations under the License.
  */
 
+/*
+ * Expected Runtime: 2 minutes, 30 seconds
+ * Expected Coverage: 92%
+ */
+
 #include <aws/common/array_list.h>
 #include <aws/common/string.h>
 #include <aws/cryptosdk/private/keyring_trace.h>
@@ -25,8 +30,8 @@ void aws_cryptosdk_keyring_trace_add_record_c_str_harness() {
     /* data structure */
     struct aws_allocator *alloc = can_fail_allocator(); /* Precondition: alloc must be non-null */
     struct aws_array_list trace;
-    const char *c_str_namespace = ensure_c_str_is_allocated(MAX_BUFFER_SIZE);
-    const char *c_str_name      = ensure_c_str_is_allocated(MAX_BUFFER_SIZE);
+    const char *c_str_namespace = ensure_c_str_is_allocated(MAX_STRING_LEN);
+    const char *c_str_name      = ensure_c_str_is_allocated(MAX_STRING_LEN);
     uint32_t flags;
 
     __CPROVER_assume(
