@@ -18,10 +18,8 @@
 #include <make_common_data_structures.h>
 
 void aws_cryptosdk_genrandom_harness() {
-    uint8_t *buf;
     size_t len;
-    __CPROVER_assume(len >= 0);
-    ASSUME_VALID_MEMORY(buf);
+    uint8_t *buf = can_fail_malloc(len);
     __CPROVER_assume(AWS_MEM_IS_WRITABLE(buf, len));
     aws_cryptosdk_genrandom(buf, len);
 }

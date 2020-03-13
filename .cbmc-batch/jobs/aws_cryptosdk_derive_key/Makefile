@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You may not use
 # this file except in compliance with the License. A copy of the License is
@@ -24,7 +24,6 @@ CBMCFLAGS +=
 
 ENTRY = aws_cryptosdk_derive_key_harness
 
-DEPENDENCIES += $(COMMON_HELPERDIR)/stubs/memcpy_override_havoc.goto
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.goto
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.goto
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.goto

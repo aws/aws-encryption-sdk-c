@@ -19,7 +19,6 @@ include ../Makefile.local_default
 
 CBMCFLAGS += 
 
-DEPENDENCIES += $(COMMON_HELPERDIR)/stubs/memcpy_override_havoc.goto
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.goto
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.goto
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.goto
