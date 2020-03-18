@@ -452,6 +452,11 @@ out:
 }
 
 int aws_cryptosdk_genrandom(uint8_t *buf, size_t len) {
+    AWS_FATAL_PRECONDITION(AWS_MEM_IS_WRITABLE(buf, len));
+
+    if (len == 0) {
+        return 0;
+    }
     int rc = RAND_bytes(buf, len);
 
     if (rc != 1) {
