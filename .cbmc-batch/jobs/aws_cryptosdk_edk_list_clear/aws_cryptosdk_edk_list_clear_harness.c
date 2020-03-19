@@ -39,5 +39,3 @@ void aws_cryptosdk_edk_list_clear_harness() {
 }
 
 #include <aws/common/error.inl>
-//#include <aws/common/array_list.inl>
-//#include <aws/common/math.inl>

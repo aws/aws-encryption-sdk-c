@@ -38,5 +38,3 @@ void aws_cryptosdk_edk_list_clean_up_harness() {
     assert(AWS_IS_ZEROED(edk_list));
 }
 #include <aws/common/error.inl>
-//#include <aws/common/array_list.inl>
-//#include <aws/common/math.inl>
