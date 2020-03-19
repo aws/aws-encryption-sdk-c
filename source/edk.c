@@ -76,9 +76,7 @@ bool aws_cryptosdk_edk_list_elements_are_valid(const struct aws_array_list *edk_
     for (size_t i = 0; i < len; ++i) {
         struct aws_cryptosdk_edk *edk;
         if (!aws_array_list_get_at_ptr(edk_list, (void **)&edk, i)) {
-            if (!aws_cryptosdk_edk_is_valid(edk) || !aws_allocator_is_valid(edk->provider_id.allocator) ||
-                !aws_allocator_is_valid(edk->provider_info.allocator) ||
-                !aws_allocator_is_valid(edk->ciphertext.allocator)) {
+            if (!aws_cryptosdk_edk_is_valid(edk)) {
                 return false;
             }
         }
