@@ -13,6 +13,11 @@
  * permissions and limitations under the License.
  */
 
+/*
+ * Expected Runtime: 2 minutes, 30 seconds
+ * Expected Coverage: 88%
+ */
+
 #include <aws/cryptosdk/private/keyring_trace.h>
 #include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
@@ -22,7 +27,8 @@ void aws_cryptosdk_keyring_trace_clean_up_harness() {
     struct aws_array_list trace;
 
     /* assumptions */
-    __CPROVER_assume(aws_array_list_is_bounded(&trace, MAX_INITIAL_ITEM_ALLOCATION, MAX_ITEM_SIZE));
+    __CPROVER_assume(
+        aws_array_list_is_bounded(&trace, MAX_ITEM_SIZE, sizeof(struct aws_cryptosdk_keyring_trace_record)));
     __CPROVER_assume(trace.item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     ensure_array_list_has_allocated_data_member(&trace);
     __CPROVER_assume(aws_array_list_is_valid(&trace));
@@ -32,5 +38,5 @@ void aws_cryptosdk_keyring_trace_clean_up_harness() {
     aws_cryptosdk_keyring_trace_clean_up(&trace);
 
     /* assertions */
-    assert(aws_array_list_length(&trace) == 0);
+    assert(trace.length == 0);
 }
