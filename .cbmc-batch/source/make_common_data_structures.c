@@ -106,7 +106,8 @@ bool aws_cryptosdk_edk_list_is_bounded(
 
 bool aws_cryptosdk_edk_list_elements_are_bounded(const struct aws_array_list *const list, const size_t max_item_size) {
     for (size_t i = 0; i < list->length; ++i) {
-        if (!aws_cryptosdk_edk_is_bounded(&(list->data[i]), max_item_size)) {
+        struct aws_cryptosdk_edk *data = (struct aws_cryptosdk_edk *)list->data;
+        if (!aws_cryptosdk_edk_is_bounded(&(data[i]), max_item_size)) {
             return false;
         }
     }
@@ -126,7 +127,8 @@ void ensure_cryptosdk_edk_list_has_allocated_list(struct aws_array_list *list) {
 
 void ensure_cryptosdk_edk_list_has_allocated_list_elements(struct aws_array_list *list) {
     for (size_t i = 0; i < list->length; ++i) {
-        ensure_cryptosdk_edk_has_allocated_members(&(list->data[i]));
+        struct aws_cryptosdk_edk *data = (struct aws_cryptosdk_edk *)list->data;
+        ensure_cryptosdk_edk_has_allocated_members(&(data[i]));
     }
 }
 
