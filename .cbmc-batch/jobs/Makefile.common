@@ -49,16 +49,20 @@ CBMCFLAGS += --flush
 
 #error checking
 CBMCFLAGS += --bounds-check
+CBMCFLAGS += --conversion-check
 CBMCFLAGS += --div-by-zero-check
+CBMCFLAGS += --enum-range-check
 CBMCFLAGS += --float-overflow-check
 CBMCFLAGS += --nan-check
 CBMCFLAGS += --pointer-check
 CBMCFLAGS += --pointer-overflow-check
+CBMCFLAGS += --pointer-primitive-check
 CBMCFLAGS += --signed-overflow-check
 CBMCFLAGS += --undefined-shift-check
 CBMCFLAGS += --unsigned-overflow-check
 CBMCFLAGS += --unwind 1
 CBMCFLAGS += --unwinding-assertions
+
 
 ################################################################
 # Preprocess the unwindset
