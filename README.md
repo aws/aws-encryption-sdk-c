@@ -7,6 +7,8 @@ the AWS Encryption SDKs in all languages, see the [Developer Guide](https://docs
 
 Also, see the [API documentation](https://aws.github.io/aws-encryption-sdk-c/html/) for the AWS Encryption SDK for C.
 
+[Security issue notifications](./CONTRIBUTING.md#security-issue-notifications)
+
 ## Dependencies
 
 The only direct dependencies of this code are OpenSSL 1.0.2 or higher or 1.1.0 or higher and
