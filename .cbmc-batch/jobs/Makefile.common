@@ -51,7 +51,7 @@ CBMCFLAGS += --flush
 CBMCFLAGS += --bounds-check
 CBMCFLAGS += --conversion-check
 CBMCFLAGS += --div-by-zero-check
-CBMCFLAGS += --enum-range-check
+#CBMCFLAGS += --enum-range-check
 CBMCFLAGS += --float-overflow-check
 CBMCFLAGS += --nan-check
 CBMCFLAGS += --pointer-check
@@ -85,8 +85,8 @@ SRCDIR ?= $(abspath ./link-farm)
 SDKDIR ?= $(abspath ../../..)
 HELPERDIR ?= $(SDKDIR)/.cbmc-batch
 LINKFARM = $(abspath ./link-farm)
-COMMON_REPO_NAME ?= aws-c-common-for-cryptosdk-proofs
-COMMONDIR ?= $(BASEDIR)/$(COMMON_REPO_NAME)
+COMMON_REPO_NAME ?= aws-c-common
+COMMONDIR ?= $(HELPERDIR)/$(COMMON_REPO_NAME)
 COMMON_HELPERDIR ?= $(COMMONDIR)/.cbmc-batch
 
 ################################################################
@@ -144,14 +144,13 @@ define make_symlink
 	fi
 endef
 
-################ Clone the necessary repos
+################
 common-git:
-	@if [ ! -d $(COMMONDIR) ] ;\
-	then \
-		cd $(BASEDIR); \
-		git clone --quiet --depth 1 https://github.com/awslabs/aws-c-common.git $(COMMON_REPO_NAME); \
+	@ if [ -d  "$(COMMONDIR)/include" ] ; then \
+		echo "Submodule looks good" ; \
 	else \
-		echo "c-common repo already exists. Nothing to do."; \
+		echo "Missing submodule for aws-c-common.  Try 'git submodule update --init --recursive'"; \
+		exit 1 ; \
 	fi
 
 linkfarm-dir:
@@ -322,9 +321,6 @@ clean:
 veryclean: clean
 	$(RM) -r html
 	$(RM) -r link-farm
-
-gitclean: veryclean
-	$(RM) -r $(COMMONDIR)
 
 .PHONY: cbmc property coverage report clean veryclean common-symlinks common-git harness-symlink fill-linkfarm helper-symlinks ci-yaml
 
