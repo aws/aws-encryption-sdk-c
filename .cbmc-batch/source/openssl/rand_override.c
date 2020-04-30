@@ -21,7 +21,7 @@
  * An error occurs if the PRNG has not been seeded with enough randomness to ensure an unpredictable byte sequence.
  * RAND_bytes() returns 1 on success, 0 otherwise.
  */
-int RAND_bytes(unsigned char *buf, int num) {
+int RAND_bytes(unsigned char *buf, size_t num) {
     assert(AWS_MEM_IS_WRITABLE(buf, num));
     int rv;
     __CPROVER_assume(rv == 0 || rv == 1);

@@ -32,6 +32,8 @@ CBMCFLAGS +=
 
 ENTRY = aws_cryptosdk_enc_ctx_clean_up_harness
 
+ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/aws_string_destroy_override.c
+
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.c
@@ -40,6 +42,8 @@ DEPENDENCIES += $(SRCDIR)/c-common-helper-stubs/memset_override_0.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/hash_table.c
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/enc_ctx.c
+
+REMOVE_FUNCTION_BODIES += --remove-function-body aws_string_destroy
 
 ###########
 
