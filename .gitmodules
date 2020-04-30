@@ -1,0 +1,3 @@
+[submodule ".cbmc-batch/aws-c-common"]
+	path = .cbmc-batch/aws-c-common
+	url = https://github.com/awslabs/aws-c-common.git
