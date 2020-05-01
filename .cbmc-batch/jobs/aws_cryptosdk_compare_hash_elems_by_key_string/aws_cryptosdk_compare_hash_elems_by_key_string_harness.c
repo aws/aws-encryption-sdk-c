@@ -23,7 +23,7 @@ void aws_cryptosdk_compare_hash_elems_by_key_string_harness() {
     struct aws_hash_element elem_a;
     elem_a.key = nondet_bool() ? ensure_string_is_allocated_bounded_length(MAX_STRING_LEN) : NULL;
     __CPROVER_assume(aws_string_is_valid(elem_a.key));
-    
+
     struct aws_hash_element elem_b;
     elem_b.key = nondet_bool() ? ensure_string_is_allocated_bounded_length(MAX_STRING_LEN) : NULL;
     __CPROVER_assume(aws_string_is_valid(elem_b.key));
@@ -31,11 +31,10 @@ void aws_cryptosdk_compare_hash_elems_by_key_string_harness() {
     bool nondet_parameter = nondet_bool();
 
     /* Operation under verification. */
-    if (aws_cryptosdk_compare_hash_elems_by_key_string(&elem_a,
-			                               nondet_parameter ? &elem_b : &elem_a)
-		    				       == AWS_OP_SUCCESS) {
-	const struct aws_string *key_a = (const struct aws_string *)elem_a.key;
-	const struct aws_string *key_b = (const struct aws_string *)elem_b.key;
+    if (aws_cryptosdk_compare_hash_elems_by_key_string(&elem_a, nondet_parameter ? &elem_b : &elem_a) ==
+        AWS_OP_SUCCESS) {
+        const struct aws_string *key_a = (const struct aws_string *)elem_a.key;
+        const struct aws_string *key_b = (const struct aws_string *)elem_b.key;
         if (nondet_parameter && key_a != NULL && key_b != NULL) {
             assert_bytes_match(key_a->bytes, key_b->bytes, key_a->len);
         }
