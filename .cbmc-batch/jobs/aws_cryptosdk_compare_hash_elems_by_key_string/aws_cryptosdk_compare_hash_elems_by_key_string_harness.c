@@ -21,8 +21,8 @@
 void aws_cryptosdk_compare_hash_elems_by_key_string_harness() {
     /* Non-deterministic inputs. */
     struct aws_hash_element *elem_a = can_fail_malloc(sizeof(*elem_a));
-    if(elem_a != NULL) {
-        if(nondet_bool()) {
+    if (elem_a != NULL) {
+        if (nondet_bool()) {
             elem_a->key = ensure_string_is_allocated_bounded_length(MAX_STRING_LEN);
             __CPROVER_assume(aws_string_is_valid(elem_a->key));
         } else {
@@ -31,8 +31,8 @@ void aws_cryptosdk_compare_hash_elems_by_key_string_harness() {
     }
 
     struct aws_hash_element *elem_b = can_fail_malloc(sizeof(*elem_b));
-    if(elem_b != NULL) {
-        if(nondet_bool()) {
+    if (elem_b != NULL) {
+        if (nondet_bool()) {
             elem_b->key = ensure_string_is_allocated_bounded_length(MAX_STRING_LEN);
             __CPROVER_assume(aws_string_is_valid(elem_b->key));
         } else {
@@ -47,8 +47,7 @@ void aws_cryptosdk_compare_hash_elems_by_key_string_harness() {
     __CPROVER_assume(elem_b != NULL);
 
     /* Operation under verification. */
-    if (aws_cryptosdk_compare_hash_elems_by_key_string(elem_a, nondet_lhs ? elem_b : elem_a) ==
-        AWS_OP_SUCCESS) {
+    if (aws_cryptosdk_compare_hash_elems_by_key_string(elem_a, nondet_lhs ? elem_b : elem_a) == AWS_OP_SUCCESS) {
         const struct aws_string *key_a = (const struct aws_string *)elem_a->key;
         const struct aws_string *key_b = (const struct aws_string *)elem_b->key;
         if (nondet_lhs && key_a != NULL && key_b != NULL) {
