@@ -18,39 +18,37 @@
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/utils.h>
 
+struct aws_hash_element *nondet_hash_string_element_allocation(size_t max_size) {
+    struct aws_hash_element *elem = can_fail_malloc(sizeof(*elem));
+    if (elem != NULL) {
+        if (nondet_bool()) {
+            elem->key = ensure_string_is_allocated_bounded_length(max_size);
+            __CPROVER_assume(aws_string_is_valid(elem->key));
+        } else {
+            elem->key = NULL;
+        }
+    }
+    return elem;
+}
+
 void aws_cryptosdk_compare_hash_elems_by_key_string_harness() {
     /* Non-deterministic inputs. */
-    struct aws_hash_element *elem_a = can_fail_malloc(sizeof(*elem_a));
-    if (elem_a != NULL) {
-        if (nondet_bool()) {
-            elem_a->key = ensure_string_is_allocated_bounded_length(MAX_STRING_LEN);
-            __CPROVER_assume(aws_string_is_valid(elem_a->key));
-        } else {
-            elem_a->key = NULL;
-        }
-    }
+    struct aws_hash_element *elem_a = nondet_hash_string_element_allocation(MAX_STRING_LEN);
 
-    struct aws_hash_element *elem_b = can_fail_malloc(sizeof(*elem_b));
-    if (elem_b != NULL) {
-        if (nondet_bool()) {
-            elem_b->key = ensure_string_is_allocated_bounded_length(MAX_STRING_LEN);
-            __CPROVER_assume(aws_string_is_valid(elem_b->key));
-        } else {
-            elem_b->key = NULL;
-        }
-    }
+    bool nondet_alias_elements = nondet_bool();
 
-    bool nondet_lhs = nondet_bool();
+    struct aws_hash_element *elem_b =
+        nondet_alias_elements ? elem_a : nondet_hash_string_element_allocation(MAX_STRING_LEN);
 
     /* Pre-conditions. */
     __CPROVER_assume(elem_a != NULL);
     __CPROVER_assume(elem_b != NULL);
 
     /* Operation under verification. */
-    if (aws_cryptosdk_compare_hash_elems_by_key_string(elem_a, nondet_lhs ? elem_b : elem_a) == AWS_OP_SUCCESS) {
+    if (aws_cryptosdk_compare_hash_elems_by_key_string(elem_a, elem_b) == AWS_OP_SUCCESS) {
         const struct aws_string *key_a = (const struct aws_string *)elem_a->key;
         const struct aws_string *key_b = (const struct aws_string *)elem_b->key;
-        if (nondet_lhs && key_a != NULL && key_b != NULL) {
+        if (!nondet_alias_elements && key_a != NULL && key_b != NULL) {
             assert_bytes_match(key_a->bytes, key_b->bytes, key_a->len);
         }
     }
