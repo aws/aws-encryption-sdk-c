@@ -646,7 +646,9 @@ int EVP_EncryptFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl) {
     assert(ctx != NULL);
     if (ctx->padding == true) {
         *outl = ctx->data_remaining;
-        assert(AWS_MEM_IS_WRITABLE(out, ctx->data_remaining));
+        if(ctx->data_remaining != 0) {
+          assert(AWS_MEM_IS_WRITABLE(out, ctx->data_remaining));
+        }
     }
     ctx->data_processed = true;
     int rv;
