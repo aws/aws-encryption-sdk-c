@@ -600,6 +600,9 @@ int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const 
         __CPROVER_assume(out_size <= inl);
         ctx->data_remaining = inl - out_size;
     }
+    if (__CPROVER_OBJECT_SIZE(out) < out_size) {
+        return 0;
+    }
     assert(AWS_MEM_IS_WRITABLE(out, out_size));
     *outl = out_size;
     return rv;
@@ -630,6 +633,9 @@ int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const 
         __CPROVER_assume(out_size <= inl);
         ctx->data_remaining = inl - out_size;
     }
+    if (__CPROVER_OBJECT_SIZE(out) < out_size) {
+        return 0;
+    }
     assert(AWS_MEM_IS_WRITABLE(out, out_size));
     *outl = out_size;
     return rv;
@@ -646,8 +652,8 @@ int EVP_EncryptFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl) {
     assert(ctx != NULL);
     if (ctx->padding == true) {
         *outl = ctx->data_remaining;
-        if(ctx->data_remaining != 0) {
-          assert(AWS_MEM_IS_WRITABLE(out, ctx->data_remaining));
+        if (ctx->data_remaining != 0) {
+            assert(AWS_MEM_IS_WRITABLE(out, ctx->data_remaining));
         }
     }
     ctx->data_processed = true;
