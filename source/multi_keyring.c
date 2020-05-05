@@ -174,6 +174,8 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(
 }
 
 int aws_cryptosdk_multi_keyring_add_child(struct aws_cryptosdk_keyring *multi, struct aws_cryptosdk_keyring *child) {
+    AWS_PRECONDITION(aws_cryptosdk_keyring_is_valid(multi));
+    AWS_PRECONDITION(aws_cryptosdk_keyring_is_valid(child));
     struct multi_keyring *self = (struct multi_keyring *)multi;
 
     aws_cryptosdk_keyring_retain(child);
