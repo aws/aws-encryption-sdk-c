@@ -15,6 +15,11 @@
 #include <aws/cryptosdk/private/keyring_trace.h>
 
 int aws_cryptosdk_transfer_list(struct aws_array_list *dest, struct aws_array_list *src) {
+    AWS_ERROR_PRECONDITION(src != dest);
+    AWS_ERROR_PRECONDITION(aws_array_list_is_valid(dest));
+    AWS_ERROR_PRECONDITION(aws_array_list_is_valid(src));
+    AWS_ERROR_PRECONDITION(dest->item_size == src->item_size);
+
     size_t src_len = aws_array_list_length(src);
     for (size_t src_idx = 0; src_idx < src_len; ++src_idx) {
         void *item_ptr;
