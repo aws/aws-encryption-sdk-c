@@ -416,6 +416,10 @@ int aws_cryptosdk_decrypt_body(
     const struct content_key *key,
     const uint8_t *tag,
     int body_frame_type) {
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(props));
+    AWS_PRECONDITION(aws_byte_buf_is_valid(outp));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(inp));
+    AWS_PRECONDITION(iv != NULL);
     if (inp->len != outp->capacity - outp->len) {
         return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     }
@@ -439,7 +443,11 @@ int aws_cryptosdk_decrypt_body(
          * just in case.
          */
         if (!aws_byte_cursor_advance_nospec(&incurs, in_len).ptr) goto out;
+#pragma CPROVER check push
+#pragma CPROVER check disable "conversion"
         outcurs.len += pt_len;
+#pragma CPROVER check pop
+
         if (outcurs.len > outcurs.capacity) {
             /* Somehow we ran over the output buffer. abort() to limit the damage. */
             abort();
