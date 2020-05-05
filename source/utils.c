@@ -17,6 +17,7 @@
 #include <aws/cryptosdk/private/utils.h>
 
 int aws_cryptosdk_compare_hash_elems_by_key_string(const void *elem_a, const void *elem_b) {
+    AWS_PRECONDITION(elem_a != NULL && elem_b != NULL);
     const struct aws_hash_element *a = (const struct aws_hash_element *)elem_a;
     const struct aws_hash_element *b = (const struct aws_hash_element *)elem_b;
     const struct aws_string *key_a   = (const struct aws_string *)a->key;
