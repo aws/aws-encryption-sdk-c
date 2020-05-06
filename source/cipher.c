@@ -380,10 +380,8 @@ int aws_cryptosdk_encrypt_body(
          * just in case.
          */
         if (!aws_byte_cursor_advance_nospec(&incurs, in_len).ptr) goto out;
-#pragma CPROVER check push
-#pragma CPROVER check disable "conversion"
-        outbuf.len += ct_len;
-#pragma CPROVER check pop
+
+        if (aws_add_size_checked(outbuf.len, ct_len, &outbuf.len)) goto out;
 
         if (outbuf.capacity < outbuf.len) {
             /* Somehow we ran over the output buffer. abort() to limit the damage. */
@@ -400,7 +398,6 @@ out:
         *outp = outbuf;
         return AWS_OP_SUCCESS;
     } else {
-        struct aws_byte_buf debug = *outp;
         aws_byte_buf_secure_zero(outp);
         return aws_raise_error(result);
     }
@@ -443,10 +440,8 @@ int aws_cryptosdk_decrypt_body(
          * just in case.
          */
         if (!aws_byte_cursor_advance_nospec(&incurs, in_len).ptr) goto out;
-#pragma CPROVER check push
-#pragma CPROVER check disable "conversion"
-        outcurs.len += pt_len;
-#pragma CPROVER check pop
+
+        if (aws_add_size_checked(outcurs.len, pt_len, &outcurs.len)) goto out;
 
         if (outcurs.len > outcurs.capacity) {
             /* Somehow we ran over the output buffer. abort() to limit the damage. */

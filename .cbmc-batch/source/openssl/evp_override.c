@@ -601,8 +601,11 @@ int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const 
         ctx->data_remaining = inl - out_size;
     }
     /*
-     * This check is redundant with the following AWS_MEM_IS_WRITABLE;
-     * however, it is necessary to properly emulate the function behaviour.
+     * This check is redundant with the following AWS_MEM_IS_WRITABLE.
+     * AWS_MEM_IS_WRITABLE is a macro for __CPROVER_w_ok primitive, which
+     * should return true if out is writable upt to out_size bytes;
+     * however, AWS_MEM_IS_WRITABLE has been replaced by a simple nullness check for now.
+     * Thus, we also include an additional check using __CPROVER_OBJECT_SIZE.
      */
     assert(__CPROVER_OBJECT_SIZE(out) >= out_size);
     assert(AWS_MEM_IS_WRITABLE(out, out_size));
@@ -636,8 +639,11 @@ int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const 
         ctx->data_remaining = inl - out_size;
     }
     /*
-     * This check is redundant with the following AWS_MEM_IS_WRITABLE;
-     * however, it is necessary to properly emulate the function behaviour.
+     * This check is redundant with the following AWS_MEM_IS_WRITABLE.
+     * AWS_MEM_IS_WRITABLE is a macro for __CPROVER_w_ok primitive, which
+     * should return true if out is writable upt to out_size bytes;
+     * however, AWS_MEM_IS_WRITABLE has been replaced by a simple nullness check for now.
+     * Thus, we also include an additional check using __CPROVER_OBJECT_SIZE.
      */
     assert(__CPROVER_OBJECT_SIZE(out) >= out_size);
     assert(AWS_MEM_IS_WRITABLE(out, out_size));
@@ -656,9 +662,7 @@ int EVP_EncryptFinal_ex(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl) {
     assert(ctx != NULL);
     if (ctx->padding == true) {
         *outl = ctx->data_remaining;
-        if (ctx->data_remaining != 0) {
-            assert(AWS_MEM_IS_WRITABLE(out, ctx->data_remaining));
-        }
+        assert(AWS_MEM_IS_WRITABLE(out, ctx->data_remaining));
     }
     ctx->data_processed = true;
     int rv;

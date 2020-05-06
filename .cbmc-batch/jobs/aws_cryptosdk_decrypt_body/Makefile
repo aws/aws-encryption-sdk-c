@@ -17,9 +17,12 @@ sinclude ../Makefile.local
 include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
 
+# Use a smaller bound for buffer so the proof runs on a reasonable time
+# Expected runtime is 2min for this bound
 MAX_BUFFER_SIZE = 4
-UNWINDSET += __CPROVER_file_local_cipher_c_flush_openssl_errors.0:2
+
 UNWINDSET += aws_cryptosdk_decrypt_body.0:$(shell echo $$((1 + $(MAX_BUFFER_SIZE))))
+# This bound must be 37 because it process a string of fixed size in update_frame_aad
 UNWINDSET += strlen.0:37
 
 CBMCFLAGS +=
@@ -37,10 +40,10 @@ DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/evp_override.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/err_override.goto
 
-REMOVE_FUNCTION_BODY += --remove-function-body EVP_EncryptUpdate
-REMOVE_FUNCTION_BODY += --remove-function-body nondet_compare
 REMOVE_FUNCTION_BODY += --remove-function-body aws_raise_error_private
+REMOVE_FUNCTION_BODY += --remove-function-body EVP_EncryptUpdate
 REMOVE_FUNCTION_BODY += --remove-function-body EVP_sha256
 REMOVE_FUNCTION_BODY += --remove-function-body EVP_sha384
+REMOVE_FUNCTION_BODY += --remove-function-body nondet_compare
 
 include ../Makefile.common
