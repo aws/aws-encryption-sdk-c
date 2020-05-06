@@ -595,14 +595,16 @@ int EVP_EncryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const 
     size_t out_size;
     __CPROVER_assume(out_size >= 0);
     if (ctx->cipher) {
-        __CPROVER_assume(out_size <= inl + DEFAULT_BLOCK_SIZE - 1);
+        __CPROVER_assume(out_size <= inl - 1);
     } else {
         __CPROVER_assume(out_size <= inl);
         ctx->data_remaining = inl - out_size;
     }
-    if (__CPROVER_OBJECT_SIZE(out) < out_size) {
-        return 0;
-    }
+    /*
+     * This check is redundant with the following AWS_MEM_IS_WRITABLE;
+     * however, it is necessary to properly emulate the function behaviour.
+     */
+    assert(__CPROVER_OBJECT_SIZE(out) >= out_size);
     assert(AWS_MEM_IS_WRITABLE(out, out_size));
     *outl = out_size;
     return rv;
@@ -627,15 +629,17 @@ int EVP_DecryptUpdate(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl, const 
     __CPROVER_assume(out_size >= 0);
     if (ctx->cipher) {
         if (ctx->padding) {
-            __CPROVER_assume(out_size <= inl + DEFAULT_BLOCK_SIZE);
+            __CPROVER_assume(out_size <= inl);
         }
     } else {
         __CPROVER_assume(out_size <= inl);
         ctx->data_remaining = inl - out_size;
     }
-    if (__CPROVER_OBJECT_SIZE(out) < out_size) {
-        return 0;
-    }
+    /*
+     * This check is redundant with the following AWS_MEM_IS_WRITABLE;
+     * however, it is necessary to properly emulate the function behaviour.
+     */
+    assert(__CPROVER_OBJECT_SIZE(out) >= out_size);
     assert(AWS_MEM_IS_WRITABLE(out, out_size));
     *outl = out_size;
     return rv;

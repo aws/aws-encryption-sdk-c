@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You may not use
 # this file except in compliance with the License. A copy of the License is
@@ -17,10 +17,9 @@ sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
-#include ../Makefile.string
 
 MAX_BUFFER_SIZE = 4
-UNWINDSET += aws_cryptosdk_encrypt_body.0:$(shell echo $$((1 + $(MAX_BUFFER_SIZE))))
+UNWINDSET += aws_cryptosdk_encrypt_body.0:14#$(shell echo $$((1 + $(MAX_BUFFER_SIZE))))
 UNWINDSET += strlen.0:37
 
 CBMCFLAGS +=
