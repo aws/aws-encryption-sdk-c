@@ -33,6 +33,10 @@ void aws_cryptosdk_multi_keyring_add_child_harness() {
 
     /* Operation under verification. */
     if (aws_cryptosdk_multi_keyring_add_child(multi, &child) == AWS_OP_SUCCESS) {
-        /* TODO */
+        assert(aws_array_list_length(&multi->children) > 0);
     }
+
+    /* Post-conditions. */
+    assert(aws_cryptosdk_keyring_is_valid(multi));
+    assert(aws_cryptosdk_keyring_is_valid(&child));
 }

@@ -17,13 +17,6 @@
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/multi_keyring.h>
 
-struct multi_keyring {
-    struct aws_cryptosdk_keyring base;
-    struct aws_allocator *alloc;
-    struct aws_cryptosdk_keyring *generator;
-    struct aws_array_list children;  // list of (struct aws_cryptosdk_keyring *)
-};
-
 static int call_on_encrypt_on_list(
     const struct aws_array_list *keyrings,
     struct aws_allocator *request_alloc,

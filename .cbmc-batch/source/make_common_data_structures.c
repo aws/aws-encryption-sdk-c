@@ -146,3 +146,9 @@ enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id
         default: return AWS_CRYPTOSDK_NOSHA;
     }
 }
+
+void ensure_cryptosdk_keyring_has_allocated_members(struct aws_cryptosdk_keyring *keyring
+                                                    struct aws_cryptosdk_keyring_vt ) {
+    keyring->refcount.value = can_fail_malloc(sizeof(size_t));
+    keyring->vtable         = can_fail_malloc(sizeof(struct aws_cryptosdk_keyring_vt *));
+}

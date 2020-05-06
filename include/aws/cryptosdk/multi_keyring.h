@@ -22,6 +22,13 @@
 extern "C" {
 #endif
 
+struct multi_keyring {
+    struct aws_cryptosdk_keyring base;
+    struct aws_allocator *alloc;
+    struct aws_cryptosdk_keyring *generator;
+    struct aws_array_list children;  // list of (struct aws_cryptosdk_keyring *)
+};
+
 /**
  * @addtogroup cmm_kr_highlevel
  * @{
