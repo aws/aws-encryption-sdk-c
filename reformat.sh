@@ -17,11 +17,11 @@
 #   clang-format --style=Google -dump-config
 
 echo "Checking version number"
-VER=$(clang-format --version|cut -f3 -d' '|cut -f1 -d'.')
+VER=$(clang-format-8 --version|cut -f3 -d' '|cut -f1 -d'.')
 if [ $VER -ge 8 ];then
-  set -euxo pipefail
-  find {.,aws-encryption-sdk-cpp}/{include,source,tests} examples -name '*.h' -or -name '*.c' -or -name '*.cpp' | xargs clang-format -i
+    set -euxo pipefail
+    find . -name '*.h' -or -name '*.c' -or -name '*.cpp' | xargs clang-format-8 -i
 else
-  echo "clang-format version 8 or greater is needed to read the format file."
+    echo "clang-format version 8 or greater is needed to read the format file."
+    exit 1
 fi
-

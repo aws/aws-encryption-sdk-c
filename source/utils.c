@@ -1,4 +1,7 @@
-/* Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+/*
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"). You may not use
  * this file except in compliance with the License. A copy of the License is
  * located at
  *
@@ -10,9 +13,11 @@
  * limitations under the License.
  */
 #include <assert.h>
+#include <aws/common/string.h>
 #include <aws/cryptosdk/private/utils.h>
 
 int aws_cryptosdk_compare_hash_elems_by_key_string(const void *elem_a, const void *elem_b) {
+    AWS_PRECONDITION(elem_a != NULL && elem_b != NULL);
     const struct aws_hash_element *a = (const struct aws_hash_element *)elem_a;
     const struct aws_hash_element *b = (const struct aws_hash_element *)elem_b;
     const struct aws_string *key_a   = (const struct aws_string *)a->key;
@@ -38,6 +43,9 @@ int aws_cryptosdk_hash_elems_array_init(
 }
 
 struct aws_string *aws_cryptosdk_string_dup(struct aws_allocator *alloc, const struct aws_string *str) {
-    if (str->allocator) return aws_string_new_from_string(alloc, str);
+    aws_allocator_is_valid(alloc);
+    if (str->allocator) {
+        return aws_string_new_from_string(alloc, str);
+    }
     return (struct aws_string *)str;
 }

@@ -79,10 +79,23 @@ struct aws_cryptosdk_sig_ctx {
     bool is_sign;
 };
 
+bool aws_cryptosdk_sig_ctx_is_valid(const struct aws_cryptosdk_sig_ctx *sig_ctx) {
+    return sig_ctx && AWS_OBJECT_PTR_IS_READABLE(sig_ctx->alloc) && AWS_OBJECT_PTR_IS_READABLE(sig_ctx->props) &&
+           sig_ctx->keypair && sig_ctx->pkey && sig_ctx->ctx &&
+#if OPENSSL_VERSION_NUMBER >= 0x10100000
+           (EVP_PKEY_get0_EC_KEY(sig_ctx->pkey) == sig_ctx->keypair) &&
+#endif
+           (sig_ctx->is_sign == (EC_KEY_get0_private_key(sig_ctx->keypair) != NULL));
+}
+
 struct aws_cryptosdk_md_context {
     struct aws_allocator *alloc;
     EVP_MD_CTX *evp_md_ctx;
 };
+
+bool aws_cryptosdk_md_context_is_valid(const struct aws_cryptosdk_md_context *md_context) {
+    return md_context && AWS_OBJECT_PTR_IS_READABLE(md_context->alloc) && md_context->evp_md_ctx;
+}
 
 int aws_cryptosdk_md_init(
     struct aws_allocator *alloc, struct aws_cryptosdk_md_context **md_context, enum aws_cryptosdk_md_alg md_alg) {
@@ -113,6 +126,7 @@ int aws_cryptosdk_md_init(
     (*md_context)->alloc      = alloc;
     (*md_context)->evp_md_ctx = evp_md_ctx;
 
+    AWS_POSTCONDITION(aws_cryptosdk_md_context_is_valid(*md_context));
     return AWS_OP_SUCCESS;
 err:
     EVP_MD_CTX_destroy(evp_md_ctx);
@@ -127,17 +141,27 @@ size_t aws_cryptosdk_md_size(enum aws_cryptosdk_md_alg md_alg) {
 }
 
 int aws_cryptosdk_md_update(struct aws_cryptosdk_md_context *md_context, const void *buf, size_t length) {
+    AWS_PRECONDITION(aws_cryptosdk_md_context_is_valid(md_context));
+    AWS_PRECONDITION(AWS_MEM_IS_READABLE(buf, length));
+
     if (1 != EVP_DigestUpdate(md_context->evp_md_ctx, buf, length)) {
+        AWS_POSTCONDITION(aws_cryptosdk_md_context_is_valid(md_context));
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
+    AWS_POSTCONDITION(aws_cryptosdk_md_context_is_valid(md_context));
     return AWS_OP_SUCCESS;
 }
 
 int aws_cryptosdk_md_finish(struct aws_cryptosdk_md_context *md_context, void *output_buf, size_t *length) {
+    AWS_PRECONDITION(aws_cryptosdk_md_context_is_valid(md_context));
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(length));
+    AWS_PRECONDITION(AWS_MEM_IS_WRITABLE(output_buf, *length));
+
     int rv            = AWS_OP_SUCCESS;
     unsigned int size = 0;
 
+    // Replace with AWS_FATAL_PRECONDITION once that version is integrated
     if (!output_buf) {
         abort();
     }
@@ -155,6 +179,7 @@ int aws_cryptosdk_md_finish(struct aws_cryptosdk_md_context *md_context, void *o
 }
 
 void aws_cryptosdk_md_abort(struct aws_cryptosdk_md_context *md_context) {
+    AWS_PRECONDITION(!md_context || aws_cryptosdk_md_context_is_valid(md_context));
     if (!md_context) {
         return;
     }
@@ -288,11 +313,19 @@ err:
 
 int aws_cryptosdk_sig_get_pubkey(
     const struct aws_cryptosdk_sig_ctx *ctx, struct aws_allocator *alloc, struct aws_string **pub_key_buf) {
-    return serialize_pubkey(alloc, ctx->keypair, pub_key_buf);
+    AWS_PRECONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(pub_key_buf));
+    int rv = serialize_pubkey(alloc, ctx->keypair, pub_key_buf);
+    AWS_POSTCONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+    AWS_POSTCONDITION((rv == AWS_OP_SUCCESS) ? aws_string_is_valid(*pub_key_buf) : !*pub_key_buf);
+    return rv;
 }
 
 int aws_cryptosdk_sig_get_privkey(
     const struct aws_cryptosdk_sig_ctx *ctx, struct aws_allocator *alloc, struct aws_string **priv_key) {
+    AWS_PRECONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+    AWS_PRECONDITION(ctx->is_sign);
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(priv_key));
     /*
      * When serializing private keys we use this ad-hoc format:
      *
@@ -393,6 +426,8 @@ err:
     // There is no error path that results in a non-NULL priv_key, so we don't need to
     // clean that up.
 
+    AWS_POSTCONDITION(AWS_OBJECT_PTR_IS_READABLE(priv_key));
+    AWS_POSTCONDITION(rv == AWS_OP_SUCCESS ? aws_string_is_valid(*priv_key) : !*priv_key);
     return rv;
 }
 
@@ -401,6 +436,9 @@ int aws_cryptosdk_sig_sign_start_keygen(
     struct aws_allocator *alloc,
     struct aws_string **pub_key,
     const struct aws_cryptosdk_alg_properties *props) {
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_WRITABLE(pctx));
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(alloc));
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(props));
     EC_GROUP *group = NULL;
     EC_KEY *keypair = NULL;
 
@@ -410,6 +448,8 @@ int aws_cryptosdk_sig_sign_start_keygen(
     }
 
     if (!props->impl->curve_name) {
+        AWS_POSTCONDITION(!*pctx);
+        AWS_POSTCONDITION(!pub_key || !*pub_key);
         return AWS_OP_SUCCESS;
     }
 
@@ -434,6 +474,10 @@ int aws_cryptosdk_sig_sign_start_keygen(
         goto rethrow;
     }
 
+    // If pub_key is NULL the conversion form is never set, and so it differs between the EC_KEY and EC_GROUP objects.
+    // If this is not a problem this line can be removed, but ec_key_is_valid needs to be changed in the CBMC model.
+    EC_KEY_set_conv_form(keypair, POINT_CONVERSION_COMPRESSED);
+
     *pctx = sign_start(alloc, keypair, props);
     if (!*pctx) {
         goto rethrow;
@@ -442,6 +486,8 @@ int aws_cryptosdk_sig_sign_start_keygen(
     EC_KEY_free(keypair);
     EC_GROUP_free(group);
 
+    AWS_POSTCONDITION(aws_cryptosdk_sig_ctx_is_valid(*pctx) && (*pctx)->is_sign);
+    AWS_POSTCONDITION(!pub_key || aws_string_is_valid(*pub_key));
     return AWS_OP_SUCCESS;
 
 err:
@@ -450,16 +496,23 @@ rethrow:
     aws_cryptosdk_sig_abort(*pctx);
     *pctx = NULL;
 
-    aws_string_destroy(*pub_key);
-    *pub_key = NULL;
+    if (pub_key) {
+        aws_string_destroy(*pub_key);
+        *pub_key = NULL;
+    }
 
     EC_KEY_free(keypair);
     EC_GROUP_free(group);
 
+    AWS_POSTCONDITION(!*pctx);
+    AWS_POSTCONDITION(!pub_key || !*pub_key);
     return AWS_OP_ERR;
 }
 
+// TODO: add preconditions that if the ctx/pkey/keypair exist, they are valid.
 void aws_cryptosdk_sig_abort(struct aws_cryptosdk_sig_ctx *ctx) {
+    AWS_PRECONDITION(ctx == NULL || aws_allocator_is_valid(ctx->alloc));
+
     if (!ctx) {
         return;
     }
@@ -477,6 +530,10 @@ int aws_cryptosdk_sig_sign_start(
     struct aws_string **pub_key_str,
     const struct aws_cryptosdk_alg_properties *props,
     const struct aws_string *priv_key) {
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_WRITABLE(ctx));
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(alloc));
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(props));
+    AWS_PRECONDITION(aws_string_is_valid(priv_key));
     /* See comments in aws_cryptosdk_sig_get_privkey re the serialized format */
 
     *ctx = NULL;
@@ -485,12 +542,18 @@ int aws_cryptosdk_sig_sign_start(
     }
 
     if (!props->impl->curve_name) {
+        AWS_POSTCONDITION(!*ctx);
+        AWS_POSTCONDITION(!pub_key_str || !*pub_key_str);
+        AWS_POSTCONDITION(aws_string_is_valid(priv_key));
         return AWS_OP_SUCCESS;
     }
 
     if (priv_key->len < 5) {
         // We don't have room for the algorithm ID plus the serialized private key.
         // Someone has apparently handed us a truncated private key?
+        AWS_POSTCONDITION(!*ctx);
+        AWS_POSTCONDITION(!pub_key_str || !*pub_key_str);
+        AWS_POSTCONDITION(aws_string_is_valid(priv_key));
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
@@ -514,6 +577,9 @@ int aws_cryptosdk_sig_sign_start(
 
     if (serialized_alg_id != props->alg_id) {
         // Algorithm mismatch
+        AWS_POSTCONDITION(!*ctx);
+        AWS_POSTCONDITION(!pub_key_str || !*pub_key_str);
+        AWS_POSTCONDITION(aws_string_is_valid(priv_key));
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
@@ -527,7 +593,11 @@ int aws_cryptosdk_sig_sign_start(
         goto out;
     }
 
-    EC_KEY_set_group(keypair, group);
+    if (!EC_KEY_set_group(keypair, group)) {
+        aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
+        EC_GROUP_free(group);
+        goto out;
+    }
     EC_GROUP_free(group);
     EC_KEY_set_conv_form(keypair, POINT_CONVERSION_COMPRESSED);
 
@@ -543,7 +613,7 @@ int aws_cryptosdk_sig_sign_start(
     field = aws_byte_cursor_advance(&cursor, privkey_len);
     bufp  = field.ptr;
 
-    if (!d2i_ASN1_INTEGER(&priv_key_asn1, &bufp, field.len) || bufp != field.ptr + field.len) {
+    if (!field.ptr || !d2i_ASN1_INTEGER(&priv_key_asn1, &bufp, field.len) || bufp != field.ptr + field.len) {
         ASN1_STRING_clear_free(priv_key_asn1);
         aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
         goto out;
@@ -575,6 +645,9 @@ int aws_cryptosdk_sig_sign_start(
 
     if (pub_key_str && serialize_pubkey(alloc, keypair, pub_key_str)) {
         EC_KEY_free(keypair);
+        AWS_POSTCONDITION(!*ctx);
+        AWS_POSTCONDITION(!*pub_key_str);
+        AWS_POSTCONDITION(aws_string_is_valid(priv_key));
         return AWS_OP_ERR;
     }
 
@@ -587,6 +660,9 @@ int aws_cryptosdk_sig_sign_start(
 out:
     // EC_KEYs are reference counted
     EC_KEY_free(keypair);
+    AWS_POSTCONDITION(!*ctx || (aws_cryptosdk_sig_ctx_is_valid(*ctx) && (*ctx)->is_sign));
+    AWS_POSTCONDITION(!pub_key_str || (!*ctx && !*pub_key_str) || aws_string_is_valid(*pub_key_str));
+    AWS_POSTCONDITION(aws_string_is_valid(priv_key));
     return *ctx ? AWS_OP_SUCCESS : AWS_OP_ERR;
 }
 
@@ -614,8 +690,15 @@ static int load_pubkey(
     }
 
     *key = EC_KEY_new();
+    if (*key == NULL) {
+        result = AWS_ERROR_OOM;
+        goto out;
+    }
     // We must set the group before decoding, to allow openssl to decompress the point
-    EC_KEY_set_group(*key, group);
+    if (!EC_KEY_set_group(*key, group)) {
+        result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
+        goto out;
+    }
     EC_KEY_set_conv_form(*key, POINT_CONVERSION_COMPRESSED);
 
     const unsigned char *pBuf = b64_decode_buf.buffer;
@@ -644,33 +727,36 @@ int aws_cryptosdk_sig_verify_start(
     struct aws_allocator *alloc,
     const struct aws_string *pub_key,
     const struct aws_cryptosdk_alg_properties *props) {
-    EC_KEY *key                       = NULL;
-    struct aws_cryptosdk_sig_ctx *ctx = NULL;
+    AWS_PRECONDITION(pctx);
+    AWS_PRECONDITION(alloc);
+    AWS_PRECONDITION(aws_string_is_valid(pub_key));
+    AWS_PRECONDITION(props);
 
     *pctx = NULL;
 
     if (!props->impl->curve_name) {
+        AWS_POSTCONDITION(!*pctx);
+        AWS_POSTCONDITION(aws_string_is_valid(pub_key));
         return AWS_OP_SUCCESS;
     }
 
-    if (load_pubkey(&key, props, pub_key)) {
-        return AWS_OP_ERR;
-    }
+    struct aws_cryptosdk_sig_ctx *ctx = aws_mem_acquire(alloc, sizeof(*ctx));
 
-    ctx = aws_mem_acquire(alloc, sizeof(*ctx));
     if (!ctx) {
         goto oom;
     }
-    memset(ctx, 0, sizeof(*ctx));
-    ctx->alloc = alloc;
-    ctx->props = props;
+
+    *ctx = (struct aws_cryptosdk_sig_ctx){
+        .alloc = alloc, .props = props, .keypair = NULL, .pkey = NULL, .is_sign = false
+    };
+
+    if (load_pubkey(&ctx->keypair, props, pub_key)) {
+        goto rethrow;
+    }
 
     if (!(ctx->pkey = EVP_PKEY_new())) {
         goto oom;
     }
-
-    ctx->keypair = key;
-    key          = NULL;
 
     if (!EVP_PKEY_set1_EC_KEY(ctx->pkey, ctx->keypair)) {
         goto oom;
@@ -685,32 +771,50 @@ int aws_cryptosdk_sig_verify_start(
         goto rethrow;
     }
 
-    ctx->is_sign = false;
-    *pctx        = ctx;
+    *pctx = ctx;
 
+    AWS_POSTCONDITION(aws_cryptosdk_sig_ctx_is_valid(*pctx));
+    AWS_POSTCONDITION(!(*pctx)->is_sign);
+    AWS_POSTCONDITION(aws_string_is_valid(pub_key));
     return AWS_OP_SUCCESS;
 
 oom:
     aws_raise_error(AWS_ERROR_OOM);
 rethrow:
-    EC_KEY_free(key);
     if (ctx) {
         aws_cryptosdk_sig_abort(ctx);
     }
 
+    AWS_POSTCONDITION(!*pctx);
+    AWS_POSTCONDITION(aws_string_is_valid(pub_key));
     return AWS_OP_ERR;
 }
 
 int aws_cryptosdk_sig_update(struct aws_cryptosdk_sig_ctx *ctx, const struct aws_byte_cursor cursor) {
+    AWS_PRECONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(&cursor));
+
+    if (cursor.len == 0) {
+        /* Nothing to do */
+        AWS_POSTCONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+        AWS_POSTCONDITION(aws_byte_cursor_is_valid(&cursor));
+        return AWS_OP_SUCCESS;
+    }
+
     if (EVP_DigestUpdate(ctx->ctx, cursor.ptr, cursor.len) != 1) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
+    AWS_POSTCONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+    AWS_POSTCONDITION(aws_byte_cursor_is_valid(&cursor));
     return AWS_OP_SUCCESS;
 }
 
 int aws_cryptosdk_sig_verify_finish(struct aws_cryptosdk_sig_ctx *ctx, const struct aws_string *signature) {
-    assert(!ctx->is_sign);
+    AWS_PRECONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+    AWS_PRECONDITION(ctx->alloc);
+    AWS_PRECONDITION(!ctx->is_sign);
+    AWS_PRECONDITION(aws_string_is_valid(signature));
     bool ok = EVP_DigestVerifyFinal(ctx->ctx, aws_string_bytes(signature), signature->len) == 1;
 
     aws_cryptosdk_sig_abort(ctx);
@@ -720,6 +824,11 @@ int aws_cryptosdk_sig_verify_finish(struct aws_cryptosdk_sig_ctx *ctx, const str
 
 int aws_cryptosdk_sig_sign_finish(
     struct aws_cryptosdk_sig_ctx *ctx, struct aws_allocator *alloc, struct aws_string **signature) {
+    AWS_PRECONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
+    AWS_PRECONDITION(ctx->alloc);
+    AWS_PRECONDITION(ctx->is_sign);
+    AWS_PRECONDITION(alloc);
+    AWS_PRECONDITION(signature);
     int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     /* This needs to be big enough for all digest algorithms in use */
     uint8_t digestbuf[64];
@@ -729,7 +838,6 @@ int aws_cryptosdk_sig_sign_finish(
     struct aws_byte_buf sigtmp = { 0 };
 
     size_t digestlen, siglen;
-    assert(ctx->is_sign);
 
     digestlen = EVP_MD_CTX_size(ctx->ctx);
 
@@ -844,6 +952,14 @@ int aws_cryptosdk_sig_sign_finish(
 
         ECDSA_SIG_free(sig);
         sig = NULL;
+
+#ifdef CBMC
+        /* Loop is potentially unbounded but has a high probability of terminating after one or two iterations. This
+         * assume forces the loop to terminate after one iteration during verification with CBMC. Since each iteration
+         * of the loop is independent of the others, we assume that every memory-safety error that could occur can occur
+         * in one iteration, and therefore would be caught by CBMC before reaching this assume. */
+        __CPROVER_assume(sigtmp.len == ctx->props->signature_len);
+#endif
     }
 
     *signature = aws_string_new_from_array(alloc, sigtmp.buffer, sigtmp.len);
@@ -869,5 +985,6 @@ rethrow:
         *signature = NULL;
     }
 
+    AWS_POSTCONDITION(result == AWS_OP_SUCCESS ? aws_string_is_valid(*signature) : !*signature);
     return result ? AWS_OP_ERR : AWS_OP_SUCCESS;
 }

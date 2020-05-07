@@ -88,6 +88,32 @@ static enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk
     }
 }
 
+static bool aws_cryptosdk_alg_properties_equal(
+    const struct aws_cryptosdk_alg_properties alg_props1, const struct aws_cryptosdk_alg_properties alg_props2) {
+    /* Note: We are not checking whether the names (md/cipher/alg) are
+     * equal */
+
+    /* Note: We are not checking whether the underlying alg_impl
+     * structs are equal. */
+    return alg_props1.data_key_len == alg_props2.data_key_len &&
+           alg_props1.content_key_len == alg_props2.content_key_len && alg_props1.iv_len == alg_props2.iv_len &&
+           alg_props1.tag_len == alg_props2.tag_len && alg_props1.signature_len == alg_props2.signature_len &&
+           alg_props1.alg_id == alg_props2.alg_id;
+}
+
+bool aws_cryptosdk_alg_properties_is_valid(const struct aws_cryptosdk_alg_properties *const alg_props) {
+    if (alg_props == NULL) {
+        return false;
+    }
+    enum aws_cryptosdk_alg_id id                             = alg_props->alg_id;
+    const struct aws_cryptosdk_alg_properties *std_alg_props = aws_cryptosdk_alg_props(id);
+    if (std_alg_props == NULL) {
+        return false;
+    }
+    return alg_props->md_name && alg_props->cipher_name && alg_props->alg_name &&
+           aws_cryptosdk_alg_properties_equal(*alg_props, *std_alg_props);
+}
+
 int aws_cryptosdk_derive_key(
     const struct aws_cryptosdk_alg_properties *props,
     struct content_key *content_key,
@@ -119,7 +145,7 @@ static EVP_CIPHER_CTX *evp_gcm_cipher_init(
     EVP_CIPHER_CTX *ctx = NULL;
 
     if (!(ctx = EVP_CIPHER_CTX_new())) goto err;
-    if (!EVP_CipherInit_ex(ctx, props->impl->cipher_ctor(), NULL, NULL, NULL, enc)) goto err;
+    if (!EVP_CipherInit_ex(ctx, props->impl->cipher_ctor(), NULL, NULL, NULL, (int)enc)) goto err;  // cast for CBMC
     if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, props->iv_len, NULL)) goto err;
     if (!EVP_CipherInit_ex(ctx, NULL, NULL, content_key->keybuf, iv, -1)) goto err;
 
@@ -203,8 +229,7 @@ int aws_cryptosdk_sign_header(
      */
     aws_secure_zero(iv, props->iv_len);
 
-    int result = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
-
+    int result          = AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     EVP_CIPHER_CTX *ctx = evp_gcm_cipher_init(props, content_key, iv, true);
     if (!ctx) goto out;
 
@@ -427,6 +452,11 @@ out:
 }
 
 int aws_cryptosdk_genrandom(uint8_t *buf, size_t len) {
+    AWS_FATAL_PRECONDITION(AWS_MEM_IS_WRITABLE(buf, len));
+
+    if (len == 0) {
+        return 0;
+    }
     int rc = RAND_bytes(buf, len);
 
     if (rc != 1) {
@@ -474,7 +504,6 @@ int aws_cryptosdk_aes_gcm_encrypt(
     int prev_len = out_len;
 
     if (!EVP_EncryptFinal_ex(ctx, cipher->buffer + out_len, &out_len)) goto openssl_err;
-
     if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, aes_gcm_tag_len, tag->buffer)) goto openssl_err;
 
     tag->len    = aes_gcm_tag_len;

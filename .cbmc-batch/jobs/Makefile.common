@@ -42,18 +42,27 @@ HARNESS_NAME ?= $(ENTRY).c
 
 ################################################################
 # Default CBMC flags
+
+#debugability
 CBMC_VERBOSITY ?= ""
+CBMCFLAGS += --flush
+
+#error checking
 CBMCFLAGS += --bounds-check
+CBMCFLAGS += --conversion-check
 CBMCFLAGS += --div-by-zero-check
+#CBMCFLAGS += --enum-range-check
 CBMCFLAGS += --float-overflow-check
 CBMCFLAGS += --nan-check
 CBMCFLAGS += --pointer-check
 CBMCFLAGS += --pointer-overflow-check
+CBMCFLAGS += --pointer-primitive-check
 CBMCFLAGS += --signed-overflow-check
 CBMCFLAGS += --undefined-shift-check
 CBMCFLAGS += --unsigned-overflow-check
 CBMCFLAGS += --unwind 1
 CBMCFLAGS += --unwinding-assertions
+
 
 ################################################################
 # Preprocess the unwindset
@@ -169,6 +178,7 @@ harness-symlink: linkfarm-dir
 helper-symlinks: linkfarm-dir
 	$(call make_symlink, $(LINKFARM), $(HELPERDIR)/include, helper-inc)
 	$(call make_symlink, $(LINKFARM), $(HELPERDIR)/source, helper-src)
+	$(call make_symlink, $(LINKFARM), $(HELPERDIR)/stubs, helper-stubs)
 
 
 fill-linkfarm: harness-symlink enc-sdk-symlinks common-symlinks common-helper-symlinks helper-symlinks
@@ -200,6 +210,7 @@ else
 		2>&1 | tee $(ENTRY)2.log ; exit $${PIPESTATUS[0]}
 endif
 
+
 # ABSTRACTIONS is a list of function stubs to use. If a function body
 # is missing and is not abstracted, then it returnes a non
 # deterministic value.
@@ -211,7 +222,6 @@ else
 	$(GOTO_CC) --function $(ENTRY) $(ABSTRACTIONS) $< $(INC) $(DEFINES) -o $@ \
 		2>&1 | tee $(ENTRY)2.log ; exit $${PIPESTATUS[0]}
 endif
-
 
 ## Temporarily skipped steps
 
@@ -293,11 +303,20 @@ report: cbmc.log property.xml coverage.xml
 	--srcdir $(SRCDIR) \
 	--srcexclude "(./verification|./tests|./tools|./lib/third_party)"
 
+propertyreport: cbmc.log property.xml
+	$(VIEWER) \
+	--goto $(ENTRY).goto \
+	--htmldir html \
+	--property property.xml \
+	--result cbmc.log \
+	--srcdir $(SRCDIR) \
+	--srcexclude "(./verification|./tests|./tools|./lib/third_party)"
+
 clean:
 	$(RM) *.goto
 	$(RM) $(DEPENDENT_GOTOS)
 	$(RM) *.log
-	$(RM) cbmc.log property.xml coverage.xml TAGS
+	$(RM) cbmc.log property.xml coverage.xml TAGS-*
 	$(RM) *~ \#*
 
 veryclean: clean

@@ -18,6 +18,19 @@ set -euxo pipefail
 PATH=$PWD/build-tools/bin:$PATH
 ROOT=$PWD
 
+# End to end tests require valid credentials (instance role, etc..)
+# Disable for local runs.
+if [ -f "/sys/hypervisor/uuid" ]; then
+        ONEC2=$(grep -c ec2 /sys/hypervisor/uuid)
+        if [ "${ONEC2}" -gt 0 ]; then
+            E2E="ON";
+        else
+            E2E="OFF";
+        fi
+else
+    E2E="OFF";
+fi
+
 debug() {
 # If the threading test does in fact fail, it does so by crashing.
 # Since this sort of bug might not be reproducible, make sure to dump
@@ -25,9 +38,6 @@ debug() {
     ulimit -c unlimited
     if ! "$@"; then
         if [ -e core.* ]; then
-            apt update
-            apt install gdb
-
             gdb -x "$ROOT/codebuild/gdb.commands" "$1" core.* 
             exit 1
         fi
@@ -41,13 +51,15 @@ run_test() {
     rm -rf build
     mkdir build
     (cd build
-    cmake -DBUILD_AWS_ENC_SDK_CPP=ON -DAWS_ENC_SDK_END_TO_END_TESTS=ON -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON \
+    #TODO: EC2 metadata service fails; fix an re-enable end2end tests.
+    cmake -DBUILD_AWS_ENC_SDK_CPP=ON -DAWS_ENC_SDK_END_TO_END_TESTS=${E2E} -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON \
         -DCMAKE_C_FLAGS="$CFLAGS" \
         -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
         -DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
         -DOPENSSL_ROOT_DIR=/deps/openssl \
         -DVALGRIND_OPTIONS="--gen-suppressions=all;--suppressions=$ROOT/valgrind.suppressions" \
         -DCMAKE_PREFIX_PATH="$PREFIX_PATH" \
+        -DBUILD_SHARED_LIBS="$BUILD_SHARED_LIBS" \
         -GNinja \
         .. "$@" 2>&1|head -n 1000)
     cmake --build $ROOT/build -- -v
@@ -59,9 +71,13 @@ run_test() {
 # Print env variables for debug purposes
 env
 
+
 # Run the full test suite without valgrind, and as a shared library
-run_test '/deps/install;/deps/shared/install' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=ON
+export BUILD_SHARED_LIBS=on
+run_test '/deps/install;/deps/shared/install' -DCMAKE_BUILD_TYPE=RelWithDebInfo
 # Also run the test suite as a debug build (probing for -DNDEBUG issues), and as a static library
-run_test '/deps/install;/deps/shared/install' -DCMAKE_BUILD_TYPE=Debug
+export BUILD_SHARED_LIBS=off
+run_test '/deps/install;/deps/static/install' -DCMAKE_BUILD_TYPE=Debug
 # Run a lighter weight test suite under valgrind
+export BUILD_SHARED_LIBS=off
 run_test '/deps/install;/deps/static/install' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREDUCE_TEST_ITERATIONS=TRUE -DVALGRIND_TEST_SUITE=ON

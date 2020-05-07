@@ -1,5 +1,5 @@
-#include <aws/cryptosdk/session.h>
 #include <aws/cryptosdk/cpp/kms_keyring.h>
+#include <aws/cryptosdk/session.h>
 
 int main() {
     Aws::Cryptosdk::KmsKeyring::Builder();
