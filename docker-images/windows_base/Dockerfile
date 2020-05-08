@@ -1,7 +1,7 @@
 # escape=`
 # latest is not a tag used by Microsoft see https://hub.docker.com/_/microsoft-windows-servercore
-# Note CodeBuilds last error indicated they are using 10.0.14393 build hosts.
-FROM mcr.microsoft.com/windows/servercore:1607-KB4512517
+# Note you must use a server version compatible with CodeBuild, ask or refer to their vended Windows Dockerfile.
+FROM mcr.microsoft.com/windows/servercore:ltsc2016
 
 LABEL Description="Base image for Build Testing"
 LABEL Vendor="AWS"
@@ -11,7 +11,9 @@ ADD https://download.microsoft.com/download/6/A/A/6AA4EDFF-645B-48C5-81CC-ED5963
 RUN start /wait C:\vc_redist.x64.exe /quiet /norestart
 
 # Install chocolatey
-RUN @powershell -NoProfile -ExecutionPolicy unrestricted -Command "(iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1'))) >$null 2>&1"
+# which needs TLS1.2 for powershell too be enabled. it's 2020.
+RUN @powershell -NoProfile -ExecutionPolicy unrestricted -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 ; (iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1'))) >$null 2>&1"
+
 
 RUN choco install git 7zip -y
 RUN choco install cmake --installargs 'ADD_CMAKE_TO_PATH=""System""' -y

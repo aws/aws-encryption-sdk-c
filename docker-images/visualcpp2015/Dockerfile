@@ -1,6 +1,6 @@
 # escape=`
 # Keep parity with the upstream tags at https://hub.docker.com/_/microsoft-windows-servercore
-FROM aws_encryption/windows_base:1607-KB4512517
+FROM aws_encryption/windows_base:ltsc2016
 
 LABEL Description="Build Testing image for VS2015"
 LABEL Vendor="AWS"
