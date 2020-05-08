@@ -46,6 +46,7 @@ typedef void (*clean_up_item_fn)(void *);
     const struct aws_array_list *src,
     clone_item_fn cloner,
     clean_up_item_fn cleaner) {
+    AWS_ERROR_PRECONDITION(aws_allocator_is_valid(alloc));
     AWS_ERROR_PRECONDITION(src != dest);
     AWS_ERROR_PRECONDITION(aws_array_list_is_valid(dest));
     AWS_ERROR_PRECONDITION(aws_array_list_is_valid(src));
