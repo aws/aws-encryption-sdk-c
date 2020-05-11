@@ -27,3 +27,5 @@ COMMONDIR ?= $(BASEDIR)/$(COMMON_REPO_NAME)
 COMMON_HELPERDIR ?= $(COMMONDIR)/.cbmc-batch
 SDKDIR ?= $(abspath ../../..)
 HELPERDIR ?= $(SDKDIR)/.cbmc-batch
+
+addone = $(shell echo $$(( $(1) + 1)))
