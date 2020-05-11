@@ -22,6 +22,11 @@
 #include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
+/** 
+ * The original aws_array_list_is_valid() has a 64 bit multiplication.
+ * CBMC performance dies trying to do all those multiplications.
+ * Replace with a stub until we can fix this issue.
+ */
 bool aws_array_list_is_valid(const struct aws_array_list *AWS_RESTRICT list) {
     if (!list) {
         return false;
@@ -33,13 +38,16 @@ bool aws_array_list_is_valid(const struct aws_array_list *AWS_RESTRICT list) {
     return data_is_valid && item_size_is_valid;
 }
 
+/**
+ * Copy of the original aws_array_list_is_valid() with the multiplication still in place.
+ * Useful for assumptions
+ */
 bool aws_array_list_is_valid_deep(const struct aws_array_list *AWS_RESTRICT list) {
     if (!list) {
         return false;
     }
     size_t required_size        = list->length * list->item_size;
     bool required_size_is_valid = true;
-    //        (aws_mul_size_checked(list->length, list->item_size, &required_size) == AWS_OP_SUCCESS);
     bool current_size_is_valid = (list->current_size >= required_size);
     bool data_is_valid =
         ((list->current_size == 0 && list->data == NULL) || AWS_MEM_IS_WRITABLE(list->data, list->current_size));
@@ -70,5 +78,3 @@ void aws_cryptosdk_transfer_list_harness() {
     assert(aws_array_list_is_valid(src));
     assert(aws_array_list_is_valid(dest));
 }
-
-#include <aws/common/error.inl>

@@ -22,6 +22,11 @@
 #include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
+/** 
+ * The original aws_array_list_is_valid() has a 64 bit multiplication.
+ * CBMC performance dies trying to do all those multiplications.
+ * Replace with a stub until we can fix this issue.
+ */
 bool aws_array_list_is_valid(const struct aws_array_list *AWS_RESTRICT list) {
     if (!list) {
         return false;
@@ -33,6 +38,10 @@ bool aws_array_list_is_valid(const struct aws_array_list *AWS_RESTRICT list) {
     return data_is_valid && item_size_is_valid;
 }
 
+/**
+ * Copy of the original aws_array_list_is_valid() with the multiplication still in place.
+ * Useful for assumptions
+ */
 bool aws_array_list_is_valid_deep(const struct aws_array_list *AWS_RESTRICT list) {
     if (!list) {
         return false;
@@ -52,6 +61,11 @@ typedef void (*clean_up_item_fn)(void *);
 
 const size_t g_item_size = sizeof(struct aws_cryptosdk_keyring_trace_record);
 
+/**
+ * The actual _clone() and _cleanup() functions do a bunch of work, which makes the proof too slow
+ * These stubs capture the key aspect of checking that the element is allocated.
+ * It writes/reads a magic constant to ensure that we only ever _clean_up() data that we cloned
+ */ 
 int aws_cryptosdk_keyring_trace_record_init_clone(struct aws_allocator *alloc, void *dest, const void *src) {
     assert(AWS_MEM_IS_READABLE(src, g_item_size));
     assert(AWS_MEM_IS_WRITABLE(dest, g_item_size));
@@ -91,5 +105,3 @@ void aws_cryptosdk_keyring_trace_copy_all_harness() {
     assert(aws_array_list_is_valid(src));
     assert(aws_array_list_is_valid(dest));
 }
-
-#include <aws/common/error.inl>
