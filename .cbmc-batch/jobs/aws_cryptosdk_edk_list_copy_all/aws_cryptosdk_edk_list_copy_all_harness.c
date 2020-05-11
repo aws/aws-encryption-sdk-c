@@ -22,7 +22,7 @@
 #include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
-/** 
+/**
  * The original aws_array_list_is_valid() has a 64 bit multiplication.
  * CBMC performance dies trying to do all those multiplications.
  * Replace with a stub until we can fix this issue.
@@ -65,7 +65,7 @@ const size_t g_item_size = sizeof(struct aws_cryptosdk_edk);
  * The actual _clone() and _cleanup() functions do a bunch of work, which makes the proof too slow
  * These stubs capture the key aspect of checking that the element is allocated.
  * It writes/reads a magic constant to ensure that we only ever _clean_up() data that we cloned
- */ 
+ */
 int aws_cryptosdk_edk_init_clone(struct aws_allocator *alloc, void *dest, const void *src) {
     assert(AWS_MEM_IS_READABLE(src, g_item_size));
     assert(AWS_MEM_IS_WRITABLE(dest, g_item_size));

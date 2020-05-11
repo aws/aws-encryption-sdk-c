@@ -49,7 +49,7 @@ ENTRY = aws_cryptosdk_edk_list_copy_all_harness
 # Replace with a stub until we can fix this issue.
 REMOVE_FUNCTION_BODIES += --remove-function-body aws_array_list_is_valid
 
-UNWINDSET += list_copy_all.5:$(call addone,$(NUM_ELEMS)) 
-UNWINDSET += list_copy_all.6:$(call addone,$(NUM_ELEMS)) 
+UNWINDSET += __CPROVER_file_local_list_utils_c_list_copy_all.5:$(call addone,$(NUM_ELEMS))
+UNWINDSET += __CPROVER_file_local_list_utils_c_list_copy_all.6:$(call addone,$(NUM_ELEMS))
 ###########
 include ../Makefile.common

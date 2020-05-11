@@ -22,7 +22,7 @@
 #include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
-/** 
+/**
  * The original aws_array_list_is_valid() has a 64 bit multiplication.
  * CBMC performance dies trying to do all those multiplications.
  * Replace with a stub until we can fix this issue.
@@ -64,7 +64,7 @@ size_t g_item_size;
 /**
  * These stubs capture the key aspect of checking that the element is allocated.
  * It writes/reads a magic constant to ensure that we only ever _clean_up() data that we cloned
- */ 
+ */
 int cloner(struct aws_allocator *alloc, void *dest, const void *src) {
     assert(AWS_MEM_IS_READABLE(src, g_item_size));
     assert(AWS_MEM_IS_WRITABLE(dest, g_item_size));
@@ -94,7 +94,9 @@ void list_copy_all_harness() {
     g_item_size                          = src->item_size;
     const struct aws_array_list old_dest = *dest;
     const struct aws_array_list old_src  = *src;
-    if (list_copy_all(can_fail_allocator(), dest, src, cloner, cleanup) == AWS_OP_SUCCESS) {
+    // Name mangled version of static function
+    if (__CPROVER_file_local_list_utils_c_list_copy_all(can_fail_allocator(), dest, src, cloner, cleanup) ==
+        AWS_OP_SUCCESS) {
         assert(src->length == old_src.length);
         assert(dest->length == old_dest.length + old_src.length);
     } else {

@@ -40,7 +40,7 @@ int aws_cryptosdk_transfer_list(struct aws_array_list *dest, struct aws_array_li
 typedef int (*clone_item_fn)(struct aws_allocator *, void *, const void *);
 typedef void (*clean_up_item_fn)(void *);
 
-/*static*/ int list_copy_all(
+static int list_copy_all(
     struct aws_allocator *alloc,
     struct aws_array_list *dest,
     const struct aws_array_list *src,

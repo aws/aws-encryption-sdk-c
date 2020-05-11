@@ -29,9 +29,7 @@ CBMCFLAGS +=
 
 DEFINES += -DNUM_ELEMS=$(NUM_ELEMS)
 DEFINES += -DITEM_SIZE=$(ITEM_SIZE)
-DEFINES += -DARRAY_LIST_TYPE="struct aws_cryptosdk_edk"
 DEFINES += -DAWS_NO_STATIC_IMPL
-DEFINES += -DARRAY_LIST_TYPE_HEADER=\"aws/cryptosdk/edk.h\"
 
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
@@ -51,7 +49,7 @@ ENTRY = list_copy_all_harness
 # See the comment in the harness about the stub
 REMOVE_FUNCTION_BODIES += --remove-function-body aws_array_list_is_valid
 
-UNWINDSET += list_copy_all.5:$(call addone,$(NUM_ELEMS)) 
-UNWINDSET += list_copy_all.6:$(call addone,$(NUM_ELEMS)) 
+UNWINDSET += __CPROVER_file_local_list_utils_c_list_copy_all.5:$(call addone,$(NUM_ELEMS))
+UNWINDSET += __CPROVER_file_local_list_utils_c_list_copy_all.6:$(call addone,$(NUM_ELEMS))
 ###########
 include ../Makefile.common
