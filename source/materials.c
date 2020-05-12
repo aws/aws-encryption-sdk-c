@@ -146,12 +146,3 @@ int aws_cryptosdk_keyring_on_decrypt(
     }
     return ret;
 }
-
-bool aws_cryptosdk_keyring_vt_is_valid(const struct aws_cryptosdk_keyring_vt *vtable) {
-    return vtable != NULL && vtable->vt_size == sizeof(struct aws_cryptosdk_keyring_vt);
-}
-
-bool aws_cryptosdk_keyring_is_valid(const struct aws_cryptosdk_keyring *keyring) {
-    return keyring != NULL && aws_atomic_var_is_valid(&keyring->refcount) &&
-           (keyring->vtable == NULL || aws_cryptosdk_keyring_vt_is_valid(keyring->vtable));
-}

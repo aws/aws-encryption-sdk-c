@@ -15,6 +15,7 @@
 
 #include <aws/common/common.h>
 #include <aws/cryptosdk/cipher.h>
+#include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/private/framefmt.h>
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
@@ -36,4 +37,6 @@ enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id
 void ensure_record_has_allocated_members(struct aws_cryptosdk_keyring_trace_record *record, size_t max_len);
 void ensure_trace_has_allocated_records(struct aws_array_list *trace, size_t max_len);
 
-void ensure_cryptosdk_keyring_has_allocated_members(struct aws_cryptosdk_keyring *keyring);
+/* Non-deterministically allocates a aws_cryptosdk_keyring structure */
+void ensure_cryptosdk_keyring_has_allocated_members(
+    struct aws_cryptosdk_keyring *keyring, const struct aws_cryptosdk_keyring_vt *vtable);

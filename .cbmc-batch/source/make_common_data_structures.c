@@ -13,19 +13,19 @@
  * limitations under the License.
  */
 
-#include <openssl/ec.h>
-#include <openssl/evp.h>
-
 #include <aws/cryptosdk/cipher.h>
+#include <aws/cryptosdk/keyring_trace.h>
+#include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/private/hkdf.h>
+#include <aws/cryptosdk/private/keyring_trace.h>
+#include <aws/cryptosdk/private/multi_keyring.h>
 #include <cipher_openssl.h>
 #include <ec_utils.h>
 #include <evp_utils.h>
-#include <make_common_data_structures.h>
 
-#include <aws/cryptosdk/keyring_trace.h>
-#include <aws/cryptosdk/private/keyring_trace.h>
-#include <proof_helpers/cryptosdk/make_common_data_structures.h>
+#include <openssl/ec.h>
+#include <openssl/evp.h>
+
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
 
@@ -147,8 +147,8 @@ enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id
     }
 }
 
-void ensure_cryptosdk_keyring_has_allocated_members(struct aws_cryptosdk_keyring *keyring
-                                                    struct aws_cryptosdk_keyring_vt ) {
+void ensure_cryptosdk_keyring_has_allocated_members(
+    struct aws_cryptosdk_keyring *keyring, const struct aws_cryptosdk_keyring_vt *vtable) {
     keyring->refcount.value = can_fail_malloc(sizeof(size_t));
-    keyring->vtable         = can_fail_malloc(sizeof(struct aws_cryptosdk_keyring_vt *));
+    keyring->vtable         = nondet_bool() ? NULL : vtable;
 }

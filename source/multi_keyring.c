@@ -15,7 +15,7 @@
 #include <assert.h>
 #include <aws/cryptosdk/list_utils.h>
 #include <aws/cryptosdk/materials.h>
-#include <aws/cryptosdk/multi_keyring.h>
+#include <aws/cryptosdk/private/multi_keyring.h>
 
 static int call_on_encrypt_on_list(
     const struct aws_array_list *keyrings,
@@ -151,6 +151,8 @@ static const struct aws_cryptosdk_keyring_vt vt = { .vt_size    = sizeof(struct 
 
 struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(
     struct aws_allocator *alloc, struct aws_cryptosdk_keyring *generator) {
+    AWS_PRECONDITION(aws_allocator_is_valid(alloc));
+    AWS_PRECONDITION(generator == NULL || aws_cryptosdk_keyring_is_valid(generator));
     struct multi_keyring *multi = aws_mem_acquire(alloc, sizeof(struct multi_keyring));
     if (!multi) return NULL;
     if (aws_array_list_init_dynamic(&multi->children, alloc, 4, sizeof(struct aws_cryptosdk_keyring *))) {
@@ -163,11 +165,21 @@ struct aws_cryptosdk_keyring *aws_cryptosdk_multi_keyring_new(
     if (generator) aws_cryptosdk_keyring_retain(generator);
     multi->generator = generator;
     multi->alloc     = alloc;
+    AWS_POSTCONDITION(aws_cryptosdk_multi_keyring_is_valid((struct aws_cryptosdk_keyring *)multi));
     return (struct aws_cryptosdk_keyring *)multi;
 }
 
+bool aws_cryptosdk_multi_keyring_is_valid(struct aws_cryptosdk_keyring *multi) {
+    if (multi == NULL) {
+        return false;
+    }
+    struct multi_keyring *self = (struct multi_keyring *)multi;
+    return (self->alloc != NULL) && (self->generator == NULL || aws_cryptosdk_keyring_is_valid(self->generator)) &&
+           aws_cryptosdk_keyring_is_valid(&self->base) && aws_array_list_is_valid(&self->children);
+}
+
 int aws_cryptosdk_multi_keyring_add_child(struct aws_cryptosdk_keyring *multi, struct aws_cryptosdk_keyring *child) {
-    AWS_PRECONDITION(aws_cryptosdk_keyring_is_valid(multi));
+    AWS_PRECONDITION(aws_cryptosdk_multi_keyring_is_valid(multi));
     AWS_PRECONDITION(aws_cryptosdk_keyring_is_valid(child));
     struct multi_keyring *self = (struct multi_keyring *)multi;
 
