@@ -164,6 +164,18 @@ struct aws_cryptosdk_dec_materials {
     enum aws_cryptosdk_alg_id alg;
 };
 
+AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_dec_materials_is_valid(
+    const struct aws_cryptosdk_dec_materials *materials) {
+    if (!AWS_OBJECT_PTR_IS_WRITABLE(materials)) {
+        return false;
+    }
+    bool allocator_valid            = aws_allocator_is_valid(materials->alloc);
+    bool unencrypted_data_key_valid = aws_byte_buf_is_valid(&materials->unencrypted_data_key);
+    bool keyring_trace_valid        = aws_cryptosdk_keyring_trace_is_valid(&materials->keyring_trace);
+    bool signctx_valid = (materials->signctx == NULL) || aws_cryptosdk_sig_ctx_is_valid(materials->signctx);
+    return allocator_valid && unencrypted_data_key_valid && keyring_trace_valid && signctx_valid;
+}
+
 #ifndef AWS_CRYPTOSDK_DOXYGEN /* do not document internal macros */
 
 /*
