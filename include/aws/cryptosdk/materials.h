@@ -473,11 +473,31 @@ struct aws_cryptosdk_keyring_vt {
 };
 
 /**
+ * Constant time check of data-structure invariants for struct aws_cryptosdk_keyring_vt.
+ */
+AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_keyring_vt_is_valid(const struct aws_cryptosdk_keyring_vt *vtable) {
+    return AWS_OBJECT_PTR_IS_READABLE(vtable) && aws_c_string_is_valid(vtable->name) &&
+           /* Always set to sizeof(struct aws_cryptosdk_keyring_vt). */
+           (vtable->vt_size == sizeof(struct aws_cryptosdk_keyring_vt));
+}
+
+/**
+ * Constant time check of data-structure invariants for struct aws_cryptosdk_keyring.
+ */
+AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_keyring_is_valid(const struct aws_cryptosdk_keyring *keyring) {
+    return AWS_OBJECT_PTR_IS_READABLE(keyring) && aws_atomic_var_is_valid(&keyring->refcount) &&
+           aws_atomic_load_int(&keyring->refcount) > 0 && aws_atomic_load_int(&keyring->refcount) <= SIZE_MAX &&
+           (keyring->vtable == NULL || aws_cryptosdk_keyring_vt_is_valid(keyring->vtable));
+}
+
+/**
  * Initialize the base structure for a keyring. The implementation of a keyring needs to call this function
  * to set up the vtable and reference count. On return, the reference count is initialized to 1.
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_keyring_base_init(
     struct aws_cryptosdk_keyring *keyring, const struct aws_cryptosdk_keyring_vt *vtable) {
+    AWS_PRECONDITION(keyring != NULL);
+    AWS_PRECONDITION(vtable == NULL || aws_cryptosdk_keyring_vt_is_valid(vtable));
     keyring->vtable = vtable;
     aws_atomic_init_int(&keyring->refcount, 1);
 }
