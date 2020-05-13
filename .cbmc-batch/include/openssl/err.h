@@ -23,4 +23,6 @@ void ERR_print_errors_fp(FILE *fp);
 
 signed int ERR_get_error(void);
 
+unsigned long ERR_peek_last_error(void);
+
 #endif
