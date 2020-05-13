@@ -17,6 +17,7 @@
 
 struct aws_cryptosdk_enc_materials *aws_cryptosdk_enc_materials_new(
     struct aws_allocator *alloc, enum aws_cryptosdk_alg_id alg) {
+    AWS_PRECONDITION(aws_allocator_is_valid(alloc));
     struct aws_cryptosdk_enc_materials *enc_mat;
     enc_mat = aws_mem_acquire(alloc, sizeof(struct aws_cryptosdk_enc_materials));
 
