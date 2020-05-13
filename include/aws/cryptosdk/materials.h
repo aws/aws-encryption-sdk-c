@@ -406,7 +406,7 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_cmm_release(struct aws_cryptosdk_
  */
 AWS_CRYPTOSDK_STATIC_INLINE struct aws_cryptosdk_cmm *aws_cryptosdk_cmm_retain(struct aws_cryptosdk_cmm *cmm) {
     AWS_PRECONDITION(aws_cryptosdk_cmm_base_is_valid(cmm));
-    AWS_PRECONDITION(AWS_ATOMIC_VAR_INTVAL(&cmm->refcount) < SIZE_MAX);
+    AWS_PRECONDITION(aws_atomic_load_int(&cmm->refcount) < SIZE_MAX);
     aws_cryptosdk_private_refcount_up(&cmm->refcount);
     AWS_POSTCONDITION(aws_cryptosdk_cmm_base_is_valid(cmm));
     return cmm;
