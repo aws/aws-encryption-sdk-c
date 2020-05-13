@@ -32,13 +32,13 @@ void aws_cryptosdk_keyring_retain_harness() {
     __CPROVER_assume(aws_atomic_load_int(&keyring.refcount) < SIZE_MAX);
 
     /* Save previous reference count. */
-    size_t prev_refcount = *((size_t *)AWS_ATOMIC_VAR_PTRVAL(&keyring.refcount));
+    size_t prev_refcount = aws_atomic_load_int(&keyring.refcount);
 
     /* Operation under verification. */
     aws_cryptosdk_keyring_retain(&keyring);
 
     /* Post-conditions. */
     assert(aws_cryptosdk_keyring_is_valid(&keyring));
-    size_t new = *((size_t *)AWS_ATOMIC_VAR_PTRVAL(&keyring.refcount));
+    size_t new = aws_atomic_load_int(&keyring.refcount);
     assert(new > prev_refcount);
 }

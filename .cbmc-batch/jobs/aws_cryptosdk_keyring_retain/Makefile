@@ -16,6 +16,8 @@ sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
+# Expect runtime for this proof is 10sec
+
 CBMCFLAGS +=
 
 # aws_atomic_fetch_add_explicit receives a volatile input, which is always model
