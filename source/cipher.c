@@ -320,7 +320,10 @@ int aws_cryptosdk_encrypt_body(
     uint8_t *tag,
     int body_frame_type) {
     AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(props));
-    AWS_PRECONDITION(aws_byte_buf_is_valid(outp));
+    AWS_PRECONDITION(
+        aws_byte_buf_is_valid(outp) ||
+        /* This happens when outp comes from a frame, which input plaintext_size was 0. */
+        (outp->len == 0 && outp->capacity == 0 && outp->buffer));
     AWS_PRECONDITION(aws_byte_cursor_is_valid(inp));
     AWS_PRECONDITION(iv != NULL);
     if (inp->len != outp->capacity) {
