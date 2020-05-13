@@ -319,6 +319,13 @@ int aws_cryptosdk_encrypt_body(
     const struct content_key *key,
     uint8_t *tag,
     int body_frame_type) {
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(props));
+    AWS_PRECONDITION(
+        aws_byte_buf_is_valid(outp) ||
+        /* This happens when outp comes from a frame, which input plaintext_size was 0. */
+        (outp->len == 0 && outp->capacity == 0 && outp->buffer));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(inp));
+    AWS_PRECONDITION(iv != NULL);
     if (inp->len != outp->capacity) {
         return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     }
@@ -376,7 +383,8 @@ int aws_cryptosdk_encrypt_body(
          * just in case.
          */
         if (!aws_byte_cursor_advance_nospec(&incurs, in_len).ptr) goto out;
-        outbuf.len += ct_len;
+
+        if (aws_add_size_checked(outbuf.len, ct_len, &outbuf.len)) goto out;
 
         if (outbuf.capacity < outbuf.len) {
             /* Somehow we ran over the output buffer. abort() to limit the damage. */
@@ -408,6 +416,10 @@ int aws_cryptosdk_decrypt_body(
     const struct content_key *key,
     const uint8_t *tag,
     int body_frame_type) {
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(props));
+    AWS_PRECONDITION(aws_byte_buf_is_valid(outp));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(inp));
+    AWS_PRECONDITION(iv != NULL);
     if (inp->len != outp->capacity - outp->len) {
         return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     }
@@ -431,7 +443,9 @@ int aws_cryptosdk_decrypt_body(
          * just in case.
          */
         if (!aws_byte_cursor_advance_nospec(&incurs, in_len).ptr) goto out;
-        outcurs.len += pt_len;
+
+        if (aws_add_size_checked(outcurs.len, pt_len, &outcurs.len)) goto out;
+
         if (outcurs.len > outcurs.capacity) {
             /* Somehow we ran over the output buffer. abort() to limit the damage. */
             abort();
