@@ -74,6 +74,7 @@ struct aws_cryptosdk_dec_materials *aws_cryptosdk_dec_materials_new(
 }
 
 void aws_cryptosdk_dec_materials_destroy(struct aws_cryptosdk_dec_materials *dec_mat) {
+    // AWS_PRECONDITION(dec_mat == NULL || aws_cryptosdk_dec_materials_is_valid(dec_mat));
     if (dec_mat) {
         aws_cryptosdk_sig_abort(dec_mat->signctx);
         aws_byte_buf_clean_up_secure(&dec_mat->unencrypted_data_key);
