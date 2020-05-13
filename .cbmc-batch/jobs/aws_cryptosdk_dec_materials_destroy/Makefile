@@ -22,6 +22,9 @@ include ../Makefile.aws_array_list
 
 #########
 # Local vars
+
+# 1 gets full coverage, runtime for property is 8min.
+# 2 doesn't increase coverage, runtime for property is 25 min.
 MAX_NUM_ITEMS ?= 1
 DEFINES += -DMAX_NUM_ITEMS=$(MAX_NUM_ITEMS)
 

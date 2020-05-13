@@ -30,6 +30,7 @@ void aws_cryptosdk_dec_materials_destroy_harness() {
     struct aws_cryptosdk_dec_materials *materials = can_fail_malloc(sizeof(*materials));
     if (materials) {
         materials->alloc = can_fail_allocator();
+        __CPROVER_assume(aws_allocator_is_valid(materials->alloc));
 
         // Set up the signctx
         materials->signctx = can_fail_malloc(sizeof(*materials->signctx));
@@ -41,8 +42,6 @@ void aws_cryptosdk_dec_materials_destroy_harness() {
         // Set up the unencrypted_data_key
         __CPROVER_assume(aws_byte_buf_is_bounded(&materials->unencrypted_data_key, MAX_NUM_ITEMS));
         ensure_byte_buf_has_allocated_buffer_member(&materials->unencrypted_data_key);
-        __CPROVER_assume(aws_allocator_is_valid(materials->alloc));
-        __CPROVER_assume(aws_allocator_is_valid(materials->alloc));
 
         // Set up the keyring trace
         __CPROVER_assume(aws_array_list_is_bounded(
