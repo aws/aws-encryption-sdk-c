@@ -42,6 +42,8 @@ struct aws_cryptosdk_enc_materials *aws_cryptosdk_enc_materials_new(
 }
 
 void aws_cryptosdk_enc_materials_destroy(struct aws_cryptosdk_enc_materials *enc_mat) {
+    AWS_PRECONDITION(enc_mat == NULL || aws_cryptosdk_enc_materials_is_valid(enc_mat));
+
     if (enc_mat) {
         aws_cryptosdk_sig_abort(enc_mat->signctx);
         aws_byte_buf_clean_up_secure(&enc_mat->unencrypted_data_key);

@@ -1,0 +1,4 @@
+cbmcflags: "--flush;--bounds-check;--conversion-check;--div-by-zero-check;--float-overflow-check;--nan-check;--pointer-check;--pointer-overflow-check;--pointer-primitive-check;--signed-overflow-check;--undefined-shift-check;--unsigned-overflow-check;--unwind;1;--unwinding-assertions;--unwindset;aws_cryptosdk_edk_list_clear.0:2,aws_cryptosdk_edk_list_elements_are_bounded.0:2,aws_cryptosdk_edk_list_elements_are_valid.0:2,aws_cryptosdk_edk_list_is_bounded.0:2,aws_cryptosdk_edk_list_is_valid.0:2,aws_cryptosdk_keyring_trace_clear.0:2,aws_cryptosdk_keyring_trace_is_valid.0:2,ensure_cryptosdk_edk_list_has_allocated_list_elements.0:2,ensure_cryptosdk_edk_list_has_allocated_members.0:2,ensure_trace_has_allocated_records.0:2;--object-bits;8"
+expected: "SUCCESSFUL"
+goto: aws_cryptosdk_enc_materials_destroy_harness.goto
+jobos: ubuntu16
