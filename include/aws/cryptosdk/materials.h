@@ -533,6 +533,7 @@ AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_keyring_base_init(
  * Decrements the reference count on the keyring; if the new reference count is zero, the keyring is destroyed.
  */
 AWS_CRYPTOSDK_STATIC_INLINE void aws_cryptosdk_keyring_release(struct aws_cryptosdk_keyring *keyring) {
+    AWS_PRECONDITION(!keyring || (aws_cryptosdk_keyring_is_valid(keyring) && keyring->vtable != NULL));
     if (keyring && aws_cryptosdk_private_refcount_down(&keyring->refcount)) {
         AWS_CRYPTOSDK_PRIVATE_VF_CALL_NO_RETURN(destroy, keyring);
     }
