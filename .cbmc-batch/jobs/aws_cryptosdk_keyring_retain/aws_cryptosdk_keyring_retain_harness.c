@@ -39,6 +39,6 @@ void aws_cryptosdk_keyring_retain_harness() {
 
     /* Post-conditions. */
     assert(aws_cryptosdk_keyring_is_valid(&keyring));
-    size_t new = aws_atomic_load_int(&keyring.refcount);
-    assert(new > prev_refcount);
+    size_t new_refcount = aws_atomic_load_int(&keyring.refcount);
+    assert(new_refcount > prev_refcount);
 }

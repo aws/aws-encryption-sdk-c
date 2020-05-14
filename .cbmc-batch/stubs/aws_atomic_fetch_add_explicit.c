@@ -13,13 +13,12 @@
  * limitations under the License.
  */
 
-/**
- * Takes the existing list, and simply returns it. If the list originally nondeterminstic,
- * this is sound (although it may lead to spurious proof failures if the code under test required the sorted property).
- */
-
 #include <aws/common/atomics.h>
 
+/**
+ *  For sequential proofs, we directly access the atomic value.
+ *  Adds n to *var, and returns the previous value of *var (ignoring order).
+ */
 size_t aws_atomic_fetch_add_explicit(struct aws_atomic_var *var, size_t n, enum aws_memory_order order) {
     size_t rval = *((size_t *)AWS_ATOMIC_VAR_PTRVAL(var));
     *((size_t *)AWS_ATOMIC_VAR_PTRVAL(var)) += n;
