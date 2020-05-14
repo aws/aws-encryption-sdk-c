@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <aws/common/atomics.h>
 #include <aws/common/common.h>
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/materials.h>
