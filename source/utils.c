@@ -28,7 +28,7 @@ int aws_cryptosdk_compare_hash_elems_by_key_string(const void *elem_a, const voi
 int aws_cryptosdk_hash_elems_array_init(
     struct aws_allocator *alloc, struct aws_array_list *elems, const struct aws_hash_table *map) {
     AWS_PRECONDITION(aws_allocator_is_valid(alloc));
-    AWS_PRECONDITION(elems != NULL);
+    AWS_PRECONDITION(AWS_OBJECT_PTR_IS_WRITABLE(elems));
     AWS_PRECONDITION(aws_hash_table_is_valid(map));
 
     size_t entry_count = aws_hash_table_get_entry_count(map);
