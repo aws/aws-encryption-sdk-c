@@ -26,13 +26,16 @@ REMOVE_FUNCTION_BODY += --remove-function-body aws_add_size_checked
 
 CBMCFLAGS +=
 
+DEFINES += -DAWS_NO_STATIC_IMPL
+
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
+DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/array_list.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/math.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/array_list.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/hash_table.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/error.c
+DEPENDENCIES += $(SRCDIR)/c-common-src/hash_table.c
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/utils.c
 DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
 
