@@ -16,9 +16,9 @@
 #include <aws/common/atomics.h>
 
 /*
- * For sequential proofs, we directly access the atomic value,
+ * For sequential proofs, it reads an atomic var as a pointer and returns the result,
  * so we can correctly propagate it through CBMC assumptions.
  */
-size_t aws_atomic_load_int(const struct aws_atomic_var *var) {
-    return *((size_t *)(var->value));
+void *aws_atomic_load_ptr(const struct aws_atomic_var *var) {
+    return (var->value);
 }
