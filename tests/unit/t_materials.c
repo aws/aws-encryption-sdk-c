@@ -74,9 +74,11 @@ int default_cmm_zero_keyring_dec_mat() {
     struct aws_cryptosdk_keyring *kr = aws_cryptosdk_zero_keyring_new(alloc);
     struct aws_cryptosdk_cmm *cmm    = aws_cryptosdk_default_cmm_new(alloc, kr);
 
-    struct aws_cryptosdk_dec_request req;
-    req.alg   = ALG_AES192_GCM_IV12_TAG16_NO_KDF;
-    req.alloc = aws_default_allocator();
+    struct aws_hash_table enc_ctx = { 0 };
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_ctx_init(alloc, &enc_ctx));
+    struct aws_cryptosdk_dec_request req = { .alg     = ALG_AES192_GCM_IV12_TAG16_NO_KDF,
+                                             .alloc   = aws_default_allocator(),
+                                             .enc_ctx = &enc_ctx };
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &req.encrypted_data_keys));
     struct aws_cryptosdk_edk edk;
@@ -93,6 +95,7 @@ int default_cmm_zero_keyring_dec_mat() {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
     // clang-format on
 
+    aws_hash_table_clean_up(&enc_ctx);
     aws_cryptosdk_dec_materials_destroy(dec_mat);
     aws_cryptosdk_cmm_release(cmm);
     aws_cryptosdk_keyring_release(kr);

@@ -155,6 +155,11 @@ struct aws_cryptosdk_dec_request {
     enum aws_cryptosdk_alg_id alg;
 };
 
+AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_dec_request_is_valid(const struct aws_cryptosdk_dec_request *request) {
+    return request && aws_allocator_is_valid(request->alloc) &&
+           aws_cryptosdk_edk_list_is_valid(&request->encrypted_data_keys) && aws_hash_table_is_valid(request->enc_ctx);
+}
+
 /**
  * Decryption materials returned from CMM to session
  */
@@ -453,6 +458,13 @@ AWS_CRYPTOSDK_STATIC_INLINE int aws_cryptosdk_cmm_decrypt_materials(
     struct aws_cryptosdk_cmm *cmm,
     struct aws_cryptosdk_dec_materials **output,
     struct aws_cryptosdk_dec_request *request) {
+    if (output) {
+        *output = NULL;
+    }
+    AWS_ERROR_PRECONDITION(aws_cryptosdk_cmm_base_is_valid(cmm), AWS_ERROR_UNIMPLEMENTED);
+    AWS_ERROR_PRECONDITION(output == NULL || AWS_OBJECT_PTR_IS_WRITABLE(output));
+    AWS_ERROR_PRECONDITION(request == NULL || aws_cryptosdk_dec_request_is_valid(request));
+
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(decrypt_materials, cmm, output, request);
     return ret;
 }
