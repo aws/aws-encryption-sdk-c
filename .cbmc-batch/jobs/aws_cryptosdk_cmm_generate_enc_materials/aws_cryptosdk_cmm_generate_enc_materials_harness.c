@@ -48,9 +48,9 @@ int generate_enc_materials(
     struct aws_cryptosdk_cmm *cmm,
     struct aws_cryptosdk_enc_materials **output,
     struct aws_cryptosdk_enc_request *request) {
-    // assert(aws_cryptosdk_cmm_base_is_valid(cmm));
-    // assert(__CPROVER_w_ok(output, sizeof(*output)));
-    // assert(aws_cryptosdk_enc_request_is_valid(request));
+    assert(aws_cryptosdk_cmm_base_is_valid(cmm));
+    assert(AWS_OBJECT_PTR_IS_WRITABLE(output));
+    assert(aws_cryptosdk_enc_request_is_valid(request));
 
     struct aws_cryptosdk_enc_materials *materials = can_fail_malloc(sizeof(*materials));
     if (materials == NULL) {
@@ -132,4 +132,7 @@ void aws_cryptosdk_cmm_generate_enc_materials_harness() {
     } else {
         assert(*output == NULL);
     }
+
+    assert(aws_cryptosdk_cmm_base_is_valid(cmm));
+    assert(aws_cryptosdk_enc_request_is_valid(request));
 }
