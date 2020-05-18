@@ -32,6 +32,12 @@ void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ct
 /* Allocates the members of the context and ensures that internal pointers are pointing to the correct objects. */
 void ensure_sig_ctx_has_allocated_members(struct aws_cryptosdk_sig_ctx *ctx);
 
+bool aws_cryptosdk_edk_list_is_bounded(
+    const struct aws_array_list *const list, const size_t max_initial_item_allocation);
+bool aws_cryptosdk_edk_list_elements_are_bounded(const struct aws_array_list *const list, const size_t max_item_size);
+void ensure_cryptosdk_edk_list_has_allocated_list(struct aws_array_list *list);
+void ensure_cryptosdk_edk_list_has_allocated_list_elements(struct aws_array_list *list);
+
 /* Makes internal function from cipher.c accessible for CBMC */
 enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id alg_id);
 
