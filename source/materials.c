@@ -141,6 +141,12 @@ int aws_cryptosdk_keyring_on_decrypt(
     const struct aws_array_list *edks,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
+    AWS_PRECONDITION(aws_allocator_is_valid(request_alloc));
+    AWS_PRECONDITION(aws_cryptosdk_keyring_is_valid(keyring) && (keyring->vtable != NULL));
+    AWS_PRECONDITION(aws_byte_buf_is_valid(unencrypted_data_key));
+    AWS_PRECONDITION(aws_cryptosdk_keyring_trace_is_valid(keyring_trace));
+    AWS_PRECONDITION(aws_cryptosdk_edk_list_is_valid(edks));
+
     /* Precondition: data key buffer must be unset. */
     if (unencrypted_data_key->buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(
@@ -152,7 +158,8 @@ int aws_cryptosdk_keyring_on_decrypt(
      */
     if (unencrypted_data_key->buffer) {
         const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
-        if (unencrypted_data_key->len != props->data_key_len) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
+        if (props == NULL || unencrypted_data_key->len != props->data_key_len)
+            return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
     }
     return ret;
 }
