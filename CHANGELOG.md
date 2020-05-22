@@ -1,6 +1,12 @@
 # Changelog
 
 
+## 1.1.1 -- 2020-05-22
+
+* Remove OpenSSL from interface includes (#546) 
+* Many CBMC proof and harness improvements
+* Windows dockerupdate2020 (#517)
+
 ## 1.1.0 -- 2020-02-17
 
 * Add security reporting instruction. (#467)
