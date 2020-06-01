@@ -146,6 +146,7 @@ int aws_cryptosdk_keyring_on_decrypt(
     AWS_PRECONDITION(aws_byte_buf_is_valid(unencrypted_data_key));
     AWS_PRECONDITION(aws_cryptosdk_keyring_trace_is_valid(keyring_trace));
     AWS_PRECONDITION(aws_cryptosdk_edk_list_is_valid(edks));
+    AWS_PRECONDITION(enc_ctx == NULL || aws_hash_table_is_valid(enc_ctx));
 
     /* Precondition: data key buffer must be unset. */
     if (unencrypted_data_key->buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
