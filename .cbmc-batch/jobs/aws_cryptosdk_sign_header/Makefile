@@ -11,7 +11,6 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-###########
 # if Makefile.local exists, use it. This provides a way to override the defaults 
 sinclude ../Makefile.local
 #otherwise, use the default values
@@ -29,7 +28,6 @@ DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.goto
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.goto
 DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.goto
 DEPENDENCIES += $(SRCDIR)/c-common-src/common.goto
-DEPENDENCIES += $(SRCDIR)/c-common-src/error.goto
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher.goto
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/cbmc_invariants.goto
@@ -38,6 +36,10 @@ DEPENDENCIES += $(SRCDIR)/helper-src/openssl/bn_override.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/ec_override.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/evp_override.goto
 
-###########
+# We abstract these functions because manual inspection demonstrates that they are unreachable,
+# which leads to improvements in coverage metrics
+REMOVE_FUNCTION_BODY += --remove-function-body EVP_DecryptUpdate
+REMOVE_FUNCTION_BODY += --remove-function-body EVP_sha256
+REMOVE_FUNCTION_BODY += --remove-function-body EVP_sha384
 
 include ../Makefile.common
