@@ -92,25 +92,24 @@ std::string decrypt(
     return std::string(buffer.begin(), buffer.end());
 }
 
-std::string base64_encode(struct aws_allocator *alloc, const std::vector<uint8_t> &vec) {
+std::string base64_encode(const std::vector<uint8_t> &vec) {
     size_t b64_len;
 
     if (aws_base64_compute_encoded_len(vec.size(), &b64_len)) {
         error("aws_base64_compute_encoded_len");
     }
 
-    struct aws_byte_cursor cursor = aws_byte_cursor_from_array(vec.data(), vec.size());
+    std::vector<uint8_t> tmp;
+    tmp.resize(b64_len);
 
-    struct aws_byte_buf b64_buf;
-    if (aws_byte_buf_init(&b64_buf, alloc, b64_len)) {
-        error("aws_byte_buf_init");
-    }
+    struct aws_byte_cursor cursor = aws_byte_cursor_from_array(vec.data(), vec.size());
+    struct aws_byte_buf b64_buf   = aws_byte_buf_from_empty_array(tmp.data(), tmp.size());
 
     if (aws_base64_encode(&cursor, &b64_buf)) {
         error("aws_base64_encode");
     }
 
-    return std::string(reinterpret_cast<const char *>(b64_buf.buffer), b64_buf.len);
+    return std::string(tmp.begin(), tmp.end());
 }
 
 struct aws_cryptosdk_cmm *setup_cmm(struct aws_allocator *alloc, const char *key_arn) {
@@ -168,7 +167,7 @@ int main(int argc, char **argv) {
         std::string str(argv[i]);
 
         std::vector<uint8_t> ciphertext = encrypt(alloc, cmm, str);
-        std::cout << "Ciphertext for string \"" << str << "\":\n" << base64_encode(alloc, ciphertext) << "\n\n" << std::flush;
+        std::cout << "Ciphertext for string \"" << str << "\":\n" << base64_encode(ciphertext) << "\n\n" << std::flush;
         ciphertexts.push_back(std::move(ciphertext));
     }
 
