@@ -16,7 +16,10 @@ SHELL=/bin/bash
 default: report
 
 # if Makefile.local exists, use it. This provides a way to override the defaults
-sinclude Makefile.local
+sinclude ../Makefile.local
+
+# otherwise, use Makefile.local_default
+include ../Makefile.local_default
 
 ################################################################
 # Define some constants that are hard to reference otherwise
@@ -25,15 +28,6 @@ COMMA :=,
 
 ################################################################
 # Useful functions
-
-################################################################
-# Setup paths to binaries
-# By default, use the version on your path; this can be overriden to select particular
-# versions of the tools. /usr/bin/goto-analyzer or ${HOME}/sw/goto-analyzer etc
-GOTO_ANALYZER ?= goto-analyzer
-GOTO_CC ?= goto-cc
-GOTO_INSTRUMENT ?= goto-instrument
-VIEWER ?= cbmc-viewer
 
 ################################################################
 # Define locations and binaries
@@ -77,17 +71,6 @@ CBMC_OBJECT_BITS ?= 8
 CBMCFLAGS +=  --object-bits $(CBMC_OBJECT_BITS)
 DEFINES += -DCBMC_OBJECT_BITS=$(CBMC_OBJECT_BITS)
 DEFINES += -DCBMC=1
-
-################################################################
-# Setup directory aliases
-BASEDIR ?= $(abspath ../../../..)
-SRCDIR ?= $(abspath ./link-farm)
-SDKDIR ?= $(abspath ../../..)
-HELPERDIR ?= $(SDKDIR)/.cbmc-batch
-LINKFARM = $(abspath ./link-farm)
-COMMON_REPO_NAME ?= aws-c-common-for-cryptosdk-proofs
-COMMONDIR ?= $(BASEDIR)/$(COMMON_REPO_NAME)
-COMMON_HELPERDIR ?= $(COMMONDIR)/.cbmc-batch
 
 ################################################################
 # Setup include directory order
@@ -330,4 +313,4 @@ gitclean: veryclean
 
 .PHONY: setup_dependencies cbmc property coverage report clean veryclean
 
-include $(HELPERDIR)/jobs/Makefile.cbmc_batch
+include $(HELPERDIR)/proofs/Makefile.cbmc_batch
