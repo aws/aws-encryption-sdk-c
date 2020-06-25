@@ -24,14 +24,14 @@ VIEWER ?= cbmc-viewer
 
 ################################################################
 # Setup directory aliases
-BASEDIR ?= $(abspath ../../../..)
+BASEDIR ?= $(abspath ../../../../..)
 COMMONDIR ?= $(BASEDIR)/$(COMMON_REPO_NAME)
 COMMON_HELPERDIR ?= $(COMMONDIR)/.cbmc-batch
 COMMON_REPO_NAME ?= aws-c-common-for-cryptosdk-proofs
 LINKFARM ?= $(abspath ./link-farm)
-SDKDIR ?= $(abspath ../../..)
+SDKDIR ?= $(abspath ../../../../..)
 SRCDIR ?= $(abspath ./link-farm)
 
-HELPERDIR ?= $(SDKDIR)/cbmc
+HELPERDIR ?= $(SDKDIR)/verification/cbmc
 
 addone = $(shell echo $$(( $(1) + 1)))

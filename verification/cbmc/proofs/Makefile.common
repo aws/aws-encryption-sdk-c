@@ -13,13 +13,16 @@
 
 SHELL=/bin/bash
 
+## https://timmurphy.org/2015/09/27/how-to-get-a-makefile-directory-path/
+MAKEFILE_COMMON_LOCATION=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
+
 default: report
 
 # if Makefile.local exists, use it. This provides a way to override the defaults
-sinclude ../Makefile.local
+sinclude $(MAKEFILE_COMMON_LOCATION)/Makefile.local
 
 # otherwise, use Makefile.local_default
-include ../Makefile.local_default
+include $(MAKEFILE_COMMON_LOCATION)/Makefile.local_default
 
 ################################################################
 # Define some constants that are hard to reference otherwise
@@ -313,4 +316,4 @@ gitclean: veryclean
 
 .PHONY: setup_dependencies cbmc property coverage report clean veryclean
 
-include $(HELPERDIR)/proofs/Makefile.cbmc_batch
+include $(MAKEFILE_COMMON_LOCATION)/Makefile.cbmc_batch
