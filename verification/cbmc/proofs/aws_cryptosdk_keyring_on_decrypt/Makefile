@@ -11,10 +11,10 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# if Makefile.local exists, use it. This provides a way to override the defaults
-sinclude ../Makefile.local
-#otherwise, use the default values
-include ../Makefile.local_default
+
+
+
+
 include ../Makefile.string
 include ../Makefile.aws_array_list
 include ../Makefile.aws_byte_buf

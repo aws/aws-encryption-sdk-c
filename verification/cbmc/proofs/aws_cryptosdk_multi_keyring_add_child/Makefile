@@ -11,10 +11,10 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-# if Makefile.local exists, use it. This provides a way to override the defaults
-sinclude ../Makefile.local
-#otherwise, use the default values
-include ../Makefile.local_default
+
+
+
+
 
 ENTRY = aws_cryptosdk_multi_keyring_add_child_harness
 

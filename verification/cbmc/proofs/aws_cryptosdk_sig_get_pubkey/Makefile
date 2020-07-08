@@ -1,4 +1,4 @@
-# Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"). You may not use
 # this file except in compliance with the License. A copy of the License is
@@ -12,10 +12,10 @@
 # limitations under the License.
 
 ###########
-# if Makefile.local exists, use it. This provides a way to override the defaults
-sinclude ../Makefile.local
-#otherwise, use the default values
-include ../Makefile.local_default
+
+
+
+
 
 UNWINDSET += aws_base64_encode.0:22 # computed according to MAX_PUBKEY_SIZE and the implementation of aws_base64_encode
 # Added check for memory leaks

@@ -13,19 +13,47 @@
 # Makefile.common.
 ################################################################
 
+# The analogue of $(PROOF_SOURCE) and $(PROOF_STUB) in the aws-c-common
+# submodule, which E-SDK proofs depend on.
+COMMON_CBMC_ROOT = $(CBMC_ROOT)/aws-c-common/verification/cbmc
+COMMON_PROOF_SOURCE = $(COMMON_CBMC_ROOT)/sources
+COMMON_PROOF_STUB = $(COMMON_CBMC_ROOT)/stubs
+
 # Flags to pass to goto-cc for compilation (typically those passed to gcc -c)
-# COMPILE_FLAGS =
+COMPILE_FLAGS +=
 
 # Flags to pass to goto-cc for linking (typically those passed to gcc)
-# LINK_FLAGS =
+LINK_FLAGS +=
 
 # Preprocessor include paths -I...
-# Consider adding
-#     INCLUDES += -I$(CBMC_ROOT)/include
-# You will want to decide what order that comes in relative to the other
-# include directories in your project.
-#
-# INCLUDES =
+INCLUDES += -I$(CBMC_ROOT)/include
+INCLUDES += -I$(SRCDIR)/include
+INCLUDES += -I$(CBMC_ROOT)/aws-c-common/include
+INCLUDES += -I$(COMMON_CBMC_ROOT)/include
 
 # Preprocessor definitions -D...
-# DEFINES =
+AWS_DEEP_CHECKS ?= 0
+DEFINES += -DAWS_DEEP_CHECKS=$(AWS_DEEP_CHECKS)
+
+CBMCFLAGS += --pointer-primitive-check
+
+# We always override allocator functions with our own allocator
+# Removing the function from the goto program helps CBMC's
+# function pointer analysis.
+REMOVE_FUNCTION_BODY += aws_default_allocator
+REMOVE_FUNCTION_BODY += s_cf_allocator_allocate
+REMOVE_FUNCTION_BODY += s_cf_allocator_copy_description
+REMOVE_FUNCTION_BODY += s_cf_allocator_deallocate
+REMOVE_FUNCTION_BODY += s_cf_allocator_preferred_size
+REMOVE_FUNCTION_BODY += s_cf_allocator_reallocate
+REMOVE_FUNCTION_BODY += s_default_calloc
+REMOVE_FUNCTION_BODY += s_default_free
+REMOVE_FUNCTION_BODY += s_default_malloc
+REMOVE_FUNCTION_BODY += s_default_realloc
+
+# We override abort() to be assert(0), as it is not caught by
+# CBMC as a violation.
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/abort_override_assert_false.c
+REMOVE_FUNCTION_BODY += abort
+
+addone = $(shell echo $$(( $(@) + 1)))
