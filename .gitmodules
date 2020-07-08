@@ -1,3 +1,6 @@
 [submodule "verification/cbmc/aws-c-common"]
 	path = verification/cbmc/aws-c-common
 	url = https://github.com/awslabs/aws-c-common
+[submodule "verification/cbmc/aws-templates-for-cbmc-proofs"]
+	path = verification/cbmc/aws-templates-for-cbmc-proofs
+	url = https://github.com/awslabs/aws-templates-for-cbmc-proofs.git
