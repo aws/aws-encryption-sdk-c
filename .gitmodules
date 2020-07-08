@@ -1,0 +1,3 @@
+[submodule "verification/cbmc/aws-c-common"]
+	path = verification/cbmc/aws-c-common
+	url = https://github.com/awslabs/aws-c-common
