@@ -11,20 +11,18 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
+#########
 
 #########
- 
+HARNESS_ENTRY = aws_cryptosdk_enc_ctx_init_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
+PROOF_SOURCES += $(HARNESS_FILE)
 
-
-
-######### 
-ENTRY = aws_cryptosdk_enc_ctx_init_harness
-
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/enc_ctx.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/hash_table.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
+PROJECT_SOURCES += $(SRCDIR)/source/enc_ctx.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 
 ###########
 

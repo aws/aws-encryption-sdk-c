@@ -11,12 +11,7 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 #########
- 
-
-
-
 
 MAX_TABLE_SIZE ?= 4
 
@@ -30,20 +25,23 @@ UNWINDSET += memset_override_0_impl.0:$(shell echo $$((1 + $(TABLE_SIZE_IN_WORDS
 
 CBMCFLAGS +=
 
-ENTRY = aws_cryptosdk_enc_ctx_clean_up_harness
+HARNESS_ENTRY = aws_cryptosdk_enc_ctx_clean_up_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/aws_string_destroy_override.c
+PROOF_SOURCES += $(HARNESS_FILE)
 
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-stubs/error.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-stubs/memset_override_0.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/hash_table.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/enc_ctx.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_destroy_override.c
 
-REMOVE_FUNCTION_BODIES += --remove-function-body aws_string_destroy
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/memset_override_0.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
+PROJECT_SOURCES += $(SRCDIR)/source/enc_ctx.c
+
+REMOVE_FUNCTION_BODY += aws_string_destroy
 
 ###########
 

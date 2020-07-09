@@ -12,28 +12,27 @@
 # limitations under the License.
 
 ###########
- 
 
-
-
-
-UNWINDSET += 
+UNWINDSET +=
 
 # Adds check for memory leaks for this proof
 # Turning this flag on globally would require all proofs to carefully release objects, which they don't do.
 # But might as well do it when its easy
 CBMCFLAGS += --memory-leak-check
 
-ENTRY = aws_cryptosdk_md_init_harness
+HARNESS_ENTRY = aws_cryptosdk_md_init_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.goto
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.goto
-DEPENDENCIES += $(SRCDIR)/c-common-src/error.goto
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/cbmc_invariants.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/openssl/bn_override.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/openssl/ec_override.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/openssl/evp_override.goto
+PROOF_SOURCES += $(HARNESS_FILE)
+
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
+PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c
+PROOF_SOURCES += $(PROOF_SOURCE)/openssl/bn_override.c
+PROOF_SOURCES += $(PROOF_SOURCE)/openssl/ec_override.c
+PROOF_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
 
 ###########
 

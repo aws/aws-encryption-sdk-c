@@ -11,20 +11,18 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
+HARNESS_ENTRY = aws_cryptosdk_multi_keyring_add_child_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
+PROOF_SOURCES += $(HARNESS_FILE)
 
-
-
-
-ENTRY = aws_cryptosdk_multi_keyring_add_child_harness
-
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/array_list.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/materials.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/multi_keyring.c
-DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/array_list.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(SRCDIR)/source/materials.c
+PROJECT_SOURCES += $(SRCDIR)/source/multi_keyring.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
 include ../Makefile.common

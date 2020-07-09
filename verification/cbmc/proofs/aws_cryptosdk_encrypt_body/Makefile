@@ -11,10 +11,6 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-
-
-
 include ../Makefile.aws_byte_buf
 
 # Use a smaller bound for buffer so the proof runs on a reasonable time
@@ -27,22 +23,25 @@ UNWINDSET += strlen.0:37
 
 CBMCFLAGS +=
 
-ENTRY = aws_cryptosdk_encrypt_body_harness
+HARNESS_ENTRY = aws_cryptosdk_encrypt_body_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.goto
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.goto
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.goto
-DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.goto
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.goto
-DEPENDENCIES += $(SRCDIR)/c-common-src/error.goto
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/openssl/evp_override.goto
+PROOF_SOURCES += $(HARNESS_FILE)
 
-REMOVE_FUNCTION_BODY += --remove-function-body aws_raise_error_private
-REMOVE_FUNCTION_BODY += --remove-function-body EVP_DecryptUpdate
-REMOVE_FUNCTION_BODY += --remove-function-body EVP_sha256
-REMOVE_FUNCTION_BODY += --remove-function-body EVP_sha384
-REMOVE_FUNCTION_BODY += --remove-function-body nondet_compare
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
+
+REMOVE_FUNCTION_BODY += aws_raise_error_private
+REMOVE_FUNCTION_BODY += EVP_DecryptUpdate
+REMOVE_FUNCTION_BODY += EVP_sha256
+REMOVE_FUNCTION_BODY += EVP_sha384
+REMOVE_FUNCTION_BODY += nondet_compare
 
 include ../Makefile.common

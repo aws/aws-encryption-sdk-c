@@ -13,17 +13,13 @@
 
 #########
 
-
-
-
-
 #########
 # Local vars
 NUM_ELEMS = 2 # Sufficient for full coverage
 ITEM_SIZE = 4 # Sufficient for full coverage
 
 #########
-ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/error.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 
 CBMCFLAGS +=
 
@@ -31,23 +27,26 @@ DEFINES += -DNUM_ELEMS=$(NUM_ELEMS)
 DEFINES += -DITEM_SIZE=$(ITEM_SIZE)
 DEFINES += -DAWS_NO_STATIC_IMPL
 
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/array_list.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/error.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/math.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/array_list.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/math.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/list_utils.c
-DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
+PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/error.c
+PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/array_list.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
+PROJECT_SOURCES += $(SRCDIR)/source/list_utils.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
-ENTRY = list_copy_all_harness
+HARNESS_ENTRY = list_copy_all_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
+
+PROOF_SOURCES += $(HARNESS_FILE)
 
 # See the comment in the harness about the stub
-REMOVE_FUNCTION_BODIES += --remove-function-body aws_array_list_is_valid
+REMOVE_FUNCTION_BODY += aws_array_list_is_valid
 
 UNWINDSET += __CPROVER_file_local_list_utils_c_list_copy_all.5:$(call addone,$(NUM_ELEMS))
 UNWINDSET += __CPROVER_file_local_list_utils_c_list_copy_all.6:$(call addone,$(NUM_ELEMS))

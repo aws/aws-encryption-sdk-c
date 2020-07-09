@@ -11,12 +11,7 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 #########
- 
-
-
-
 
 MAX_TABLE_SIZE ?= 16
 
@@ -33,23 +28,26 @@ CBMCFLAGS +=
 # Use the generator from the harness
 DEFINES += -DHASH_ITER_ELEMENT_GENERATOR=hash_iterator_generator2
 
-ENTRY = aws_cryptosdk_enc_ctx_size_harness
+HARNESS_ENTRY = aws_cryptosdk_enc_ctx_size_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/aws_hash_iter_overrides.c
-ADDITIONAL_REMOVE_FUNCTION_BODY += --remove-function-body aws_hash_iter_begin
-ADDITIONAL_REMOVE_FUNCTION_BODY += --remove-function-body aws_hash_iter_delete
-ADDITIONAL_REMOVE_FUNCTION_BODY += --remove-function-body aws_hash_iter_done
-ADDITIONAL_REMOVE_FUNCTION_BODY += --remove-function-body aws_hash_iter_next
+PROOF_SOURCES += $(HARNESS_FILE)
 
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-stubs/error.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-stubs/memset_override_0.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/hash_table.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/math.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/enc_ctx.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_hash_iter_overrides.c
+REMOVE_FUNCTION_BODY += aws_hash_iter_begin
+REMOVE_FUNCTION_BODY += aws_hash_iter_delete
+REMOVE_FUNCTION_BODY += aws_hash_iter_done
+REMOVE_FUNCTION_BODY += aws_hash_iter_next
+
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/memset_override_0.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
+PROJECT_SOURCES += $(SRCDIR)/source/enc_ctx.c
 
 ###########
 

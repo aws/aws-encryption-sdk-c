@@ -13,15 +13,11 @@
 
 #########
 
-
-
-
-
 #########
 # Local vars
 
 #########
-ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/error.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 
 AWS_DEEP_CHECKS = 1
 
@@ -29,20 +25,23 @@ CBMCFLAGS +=
 
 DEFINES +=
 
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/math.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/materials.c
-DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/atomics.c
-ENTRY = aws_cryptosdk_cmm_release_harness
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
+PROJECT_SOURCES += $(SRCDIR)/source/materials.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
+HARNESS_ENTRY = aws_cryptosdk_cmm_release_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
+
+PROOF_SOURCES += $(HARNESS_FILE)
 
 #REMOVE_FUNCTION_BODIES += --remove-function-body nondet_compare
 
-UNWINDSET += 
+UNWINDSET +=
 
 ###########
 include ../Makefile.common

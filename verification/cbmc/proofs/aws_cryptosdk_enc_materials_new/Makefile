@@ -11,45 +11,43 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-
-
-
-
 include ../Makefile.string
 
 # Expected runtime 38sec
 
-ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/error.c
-ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/aws_hash_table_no_slots_override.c
-ABSTRACTIONS += $(SRCDIR)/helper-src/openssl/ec_override.c
-ABSTRACTIONS += $(SRCDIR)/helper-src/openssl/bn_override.c
-ABSTRACTIONS += $(SRCDIR)/helper-src/openssl/evp_override.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_hash_table_no_slots_override.c
+PROOF_SOURCES += $(PROOF_SOURCE)/openssl/ec_override.c
+PROOF_SOURCES += $(PROOF_SOURCE)/openssl/bn_override.c
+PROOF_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
 
 AWS_DEEP_CHECKS = 1
 
 CBMCFLAGS +=
 
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/math.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/materials.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/keyring_trace.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/edk.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher.c
-DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/atomics.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
+PROJECT_SOURCES += $(SRCDIR)/source/materials.c
+PROJECT_SOURCES += $(SRCDIR)/source/keyring_trace.c
+PROJECT_SOURCES += $(SRCDIR)/source/edk.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
 
-REMOVE_FUNCTION_BODY += --remove-function-body aws_array_list_get_at_ptr
-REMOVE_FUNCTION_BODY += --remove-function-body aws_cryptosdk_edk_is_valid
-REMOVE_FUNCTION_BODY += --remove-function-body aws_cryptosdk_edk_clean_up
-REMOVE_FUNCTION_BODY += --remove-function-body aws_cryptosdk_keyring_trace_record_is_valid
-REMOVE_FUNCTION_BODY += --remove-function-body aws_cryptosdk_sig_ctx_is_valid
+REMOVE_FUNCTION_BODY += aws_array_list_get_at_ptr
+REMOVE_FUNCTION_BODY += aws_cryptosdk_edk_is_valid
+REMOVE_FUNCTION_BODY += aws_cryptosdk_edk_clean_up
+REMOVE_FUNCTION_BODY += aws_cryptosdk_keyring_trace_record_is_valid
+REMOVE_FUNCTION_BODY += aws_cryptosdk_sig_ctx_is_valid
 
-ENTRY = aws_cryptosdk_enc_materials_new_harness
+HARNESS_ENTRY = aws_cryptosdk_enc_materials_new_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
+
+PROOF_SOURCES += $(HARNESS_FILE)
 
 include ../Makefile.common

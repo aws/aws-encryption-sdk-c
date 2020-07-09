@@ -13,18 +13,17 @@
 
 ###########
 
-
-
-
-
 UNWINDSET +=
 
 CBMCFLAGS +=
 
-ENTRY = aws_cryptosdk_alg_props_harness
+HARNESS_ENTRY = aws_cryptosdk_alg_props_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher.goto
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.goto
+PROOF_SOURCES += $(HARNESS_FILE)
+
+PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
 
 ###########
 

@@ -12,9 +12,6 @@
 # limitations under the License.
 
 ###########
- 
-
-
 
 include ../Makefile.string
 include ../Makefile.aws_array_list
@@ -23,20 +20,21 @@ CBMC_UNWINDSET += --unwindset aws_cryptosdk_keyring_trace_is_valid.0:$(shell ech
 
 CBMCFLAGS +=
 
-ENTRY = aws_cryptosdk_keyring_trace_clean_up_harness
+HARNESS_ENTRY = aws_cryptosdk_keyring_trace_clean_up_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-DEPENDENCIES +=	$(SRCDIR)/c-enc-sdk-src/keyring_trace.c
-DEPENDENCIES +=	$(SRCDIR)/c-enc-sdk-src/cipher.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-src/common.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-src/error.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-src/byte_buf.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-src/string.c
-DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/make_common_data_structures.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/proof_allocators.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/utils.c
+PROOF_SOURCES += $(HARNESS_FILE)
 
-
+PROJECT_SOURCES += $(SRCDIR)/source/keyring_trace.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/string.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
 
 ###########
 

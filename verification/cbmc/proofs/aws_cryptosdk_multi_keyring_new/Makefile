@@ -11,19 +11,17 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 #########
 
-
-
-
-
 #########
-ENTRY = MultiKeyringNew_harness
+HARNESS_ENTRY = MultiKeyringNew_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/error.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/multi_keyring.c
+PROOF_SOURCES += $(HARNESS_FILE)
+
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
+PROJECT_SOURCES += $(SRCDIR)/source/multi_keyring.c
 ###########
 include ../Makefile.common

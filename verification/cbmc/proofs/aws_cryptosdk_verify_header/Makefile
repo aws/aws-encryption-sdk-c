@@ -11,33 +11,32 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-
-
-
 include ../Makefile.aws_byte_buf
 
 UNWINDSET += __CPROVER_file_local_cipher_c_flush_openssl_errors.0:2
 
 CBMCFLAGS +=
 
-ENTRY = aws_cryptosdk_verify_header_harness
+HARNESS_ENTRY = aws_cryptosdk_verify_header_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.goto
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.goto
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.goto
-DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.goto
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.goto
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher.goto
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/cbmc_invariants.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/openssl/bn_override.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/openssl/ec_override.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/openssl/err_override.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/openssl/evp_override.goto
+PROOF_SOURCES += $(HARNESS_FILE)
 
-REMOVE_FUNCTION_BODY += --remove-function-body EVP_sha256
-REMOVE_FUNCTION_BODY += --remove-function-body EVP_sha384
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
+PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(PROOF_SOURCE)/openssl/bn_override.c
+PROOF_SOURCES += $(PROOF_SOURCE)/openssl/ec_override.c
+PROOF_SOURCES += $(PROOF_SOURCE)/openssl/err_override.c
+PROOF_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
+
+REMOVE_FUNCTION_BODY += EVP_sha256
+REMOVE_FUNCTION_BODY += EVP_sha384
 
 include ../Makefile.common

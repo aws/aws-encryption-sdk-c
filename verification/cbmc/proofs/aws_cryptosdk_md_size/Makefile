@@ -13,13 +13,12 @@
 
 ###########
 
+HARNESS_ENTRY = aws_cryptosdk_md_size_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
+PROOF_SOURCES += $(HARNESS_FILE)
 
-
-
-ENTRY = aws_cryptosdk_md_size_harness
-
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.goto
+PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
 
 ###########
 
