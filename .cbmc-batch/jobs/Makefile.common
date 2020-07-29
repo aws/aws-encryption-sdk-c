@@ -145,6 +145,7 @@ define make_symlink
 endef
 
 ################ Clone the necessary repos
+# We must update the C Common version
 common-git:
 	@if [ ! -d $(COMMONDIR) ] ;\
 	then \
