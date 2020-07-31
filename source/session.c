@@ -46,7 +46,6 @@ int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_
     session->header_copy = NULL;
     session->header_size = 0;
     aws_cryptosdk_hdr_clear(&session->header);
-    aws_cryptosdk_keyring_trace_clear(&session->keyring_trace);
     /* session->frame_size is preserved */
     session->input_size_estimate  = 1;
     session->output_size_estimate = 1;
@@ -86,16 +85,9 @@ static struct aws_cryptosdk_session *aws_cryptosdk_session_new(
         return NULL;
     }
 
-    if (aws_cryptosdk_keyring_trace_init(allocator, &session->keyring_trace)) {
-        aws_cryptosdk_hdr_clean_up(&session->header);
-        aws_mem_release(allocator, session);
-        return NULL;
-    }
-
     // This can fail due to invalid mode
     if (aws_cryptosdk_session_reset(session, mode)) {
         aws_cryptosdk_hdr_clean_up(&session->header);
-        aws_cryptosdk_keyring_trace_clean_up(&session->keyring_trace);
         aws_mem_release(allocator, session);
         return NULL;
     }
@@ -140,7 +132,6 @@ void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session) {
         session, AWS_CRYPTOSDK_DECRYPT);  // frees dynamically allocated stuff (except for the header itself)
 
     aws_cryptosdk_hdr_clean_up(&session->header);
-    aws_cryptosdk_keyring_trace_clean_up(&session->keyring_trace);
     aws_cryptosdk_cmm_release(session->cmm);
 
     aws_secure_zero(session, sizeof(*session));
@@ -485,11 +476,5 @@ struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr_mut(struct aws_cryp
     if (session->mode == AWS_CRYPTOSDK_ENCRYPT && session->state == ST_CONFIG) {
         return &session->header.enc_ctx;
     }
-    return NULL;
-}
-
-const struct aws_array_list *aws_cryptosdk_session_get_keyring_trace_ptr(const struct aws_cryptosdk_session *session) {
-    if (session->cmm_success) return &session->keyring_trace;
-
     return NULL;
 }

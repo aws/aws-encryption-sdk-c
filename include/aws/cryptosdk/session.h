@@ -265,27 +265,6 @@ const struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr(const struct 
 AWS_CRYPTOSDK_API
 struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr_mut(struct aws_cryptosdk_session *session);
 
-/**
- * Returns a read-only pointer to the keyring trace held by the session.
- * This will return NULL if called too early in the encryption or
- * decryption process. For best results, call after checking that
- * aws_cryptosdk_session_is_done returns true.
- *
- * When this returns a non-NULL pointer, it will always point to an
- * already initialized aws_array_list with elements of type
- * struct aws_cryptosdk_keyring_trace_record.
- *
- * See keyring_trace.h for more information on the format of the trace.
- *
- * The trace pointed to by this pointer lives until the session is
- * reset or destroyed. If you want a copy of the trace that will
- * outlive the session, you should duplicate it with
- * aws_cryptosdk_keyring_trace_copy_all and then deallocate the
- * copy with aws_cryptosdk_keyring_trace_clean_up when done with it.
- */
-AWS_CRYPTOSDK_API
-const struct aws_array_list *aws_cryptosdk_session_get_keyring_trace_ptr(const struct aws_cryptosdk_session *session);
-
 #ifdef __cplusplus
 }
 #endif

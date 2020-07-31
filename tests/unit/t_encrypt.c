@@ -143,24 +143,12 @@ static int check_ciphertext_and_trace(bool zero_keyring) {  // bool = false mean
     const char *wrapping_key_namespace = zero_keyring ? "null" : "test_counting";
     const char *wrapping_key_name      = zero_keyring ? "null" : "test_counting_prov_info";
 
-    /* Check trace of encrypt session. */
-    const struct aws_array_list *enc_trace = aws_cryptosdk_session_get_keyring_trace_ptr(session);
-    TEST_ASSERT_ADDR_NOT_NULL(enc_trace);
-    TEST_ASSERT_INT_EQ(aws_array_list_length(enc_trace), 1);
-    TEST_ASSERT_SUCCESS(assert_keyring_trace_record(
-        enc_trace,
-        0,
-        wrapping_key_namespace,
-        wrapping_key_name,
-        AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY));
-
     /* Flip to decrypt session, and verify neither trace nor encryption context are
      * available before processing data.
      */
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT));
     TEST_ASSERT_ADDR_NULL(aws_cryptosdk_session_get_enc_ctx_ptr(session));
     TEST_ASSERT_ADDR_NULL(aws_cryptosdk_session_get_enc_ctx_ptr_mut(session));
-    TEST_ASSERT_ADDR_NULL(aws_cryptosdk_session_get_keyring_trace_ptr(session));
 
     /* Do the decrypt and verify it is done. */
     uint8_t *pt_check_buf = aws_mem_acquire(aws_default_allocator(), pt_size);
@@ -178,13 +166,6 @@ static int check_ciphertext_and_trace(bool zero_keyring) {  // bool = false mean
     TEST_ASSERT_INT_EQ(in_read, ct_size);
     TEST_ASSERT_INT_EQ(0, memcmp(pt_check_buf, pt_buf, pt_size));
     TEST_ASSERT(aws_cryptosdk_session_is_done(session));
-
-    /* Check trace of decrypt session. */
-    const struct aws_array_list *dec_trace = aws_cryptosdk_session_get_keyring_trace_ptr(session);
-    TEST_ASSERT_ADDR_NOT_NULL(dec_trace);
-    TEST_ASSERT_INT_EQ(aws_array_list_length(dec_trace), 1);
-    TEST_ASSERT_SUCCESS(assert_keyring_trace_record(
-        dec_trace, 0, wrapping_key_namespace, wrapping_key_name, AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
 
     aws_mem_release(aws_default_allocator(), pt_check_buf);
 
@@ -274,9 +255,6 @@ int test_simple_roundtrip() {
 
     /* Put something in the encryption context. */
     TEST_ASSERT_SUCCESS(test_enc_ctx_fill(enc_ctx));
-
-    /* We cannot get access to trace before processing data. */
-    TEST_ASSERT_ADDR_NULL(aws_cryptosdk_session_get_keyring_trace_ptr(session));
 
     /* Do the encryption. */
     if (pump_ciphertext(2048, &ct_consumed, pt_size, &pt_consumed)) return 1;
