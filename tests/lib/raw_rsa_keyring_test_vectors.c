@@ -93,15 +93,6 @@ struct aws_cryptosdk_keyring *raw_rsa_keyring_tv_new_with_wrong_key(
         rsa_padding_mode);
 }
 
-int raw_rsa_keyring_tv_trace_updated_properly(struct aws_array_list *trace, uint32_t flags) {
-    return assert_keyring_trace_record(
-        trace,
-        aws_array_list_length(trace) - 1,
-        (const char *)raw_rsa_keyring_tv_provider_id->bytes,
-        (const char *)raw_rsa_keyring_tv_master_key_id->bytes,
-        flags);
-}
-
 struct aws_cryptosdk_edk edk_init(const uint8_t *edk_bytes, size_t edk_len) {
     struct aws_cryptosdk_edk edk;
     edk.ciphertext = aws_byte_buf_from_array(edk_bytes, edk_len);

@@ -82,9 +82,6 @@ static int generate_decrypt_from_data_key() {
             TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(
                 kr2, alloc, &unencrypted_data_key, &keyring_trace, &edks, NULL, alg_ids[alg_idx]));
             TEST_ASSERT_ADDR_NOT_NULL(unencrypted_data_key.buffer);
-            TEST_ASSERT_SUCCESS(raw_rsa_keyring_tv_trace_updated_properly(
-                &keyring_trace,
-                AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY));
 
             const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_ids[alg_idx]);
             TEST_ASSERT_INT_EQ(unencrypted_data_key.len, props->data_key_len);
@@ -93,8 +90,6 @@ static int generate_decrypt_from_data_key() {
             TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(
                 kr2, alloc, &decrypted_data_key, &keyring_trace, &edks, NULL, alg_ids[alg_idx]));
             TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &decrypted_data_key));
-            TEST_ASSERT_SUCCESS(raw_rsa_keyring_tv_trace_updated_properly(
-                &keyring_trace, AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
 
             tear_down_encrypt_decrypt();
         }
@@ -116,14 +111,10 @@ static int encrypt_decrypt_data_key_from_test_vectors() {
         TEST_ASSERT_SUCCESS(
             aws_cryptosdk_keyring_on_encrypt(kr2, alloc, &unencrypted_data_key, &keyring_trace, &edks, NULL, tv->alg));
         TEST_ASSERT_INT_EQ(aws_array_list_length(&edks), 1);
-        TEST_ASSERT_SUCCESS(
-            raw_rsa_keyring_tv_trace_updated_properly(&keyring_trace, AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY));
 
         TEST_ASSERT_SUCCESS(
             aws_cryptosdk_keyring_on_decrypt(kr2, alloc, &decrypted_data_key, &keyring_trace, &edks, NULL, tv->alg));
         TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &decrypted_data_key));
-        TEST_ASSERT_SUCCESS(
-            raw_rsa_keyring_tv_trace_updated_properly(&keyring_trace, AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
 
         tear_down_encrypt_decrypt();
     }
