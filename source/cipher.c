@@ -166,9 +166,7 @@ static int evp_gcm_encrypt_final(const struct aws_cryptosdk_alg_properties *prop
         return AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     }
 
-    if (outlen != 0) {
-        abort();  // wrong output size - potentially smashed stack
-    }
+    AWS_FATAL_POSTCONDITION(outlen == 0);
 
     if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, props->tag_len, (void *)tag)) {
         return AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
@@ -203,10 +201,7 @@ static int evp_gcm_decrypt_final(
         }
         return AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     }
-
-    if (outlen != 0) {
-        abort();  // wrong output size - potentially smashed stack
-    }
+    AWS_FATAL_POSTCONDITION(outlen == 0); // wrong output size - potentially smashed stack
 
     return AWS_ERROR_SUCCESS;
 }
@@ -234,7 +229,7 @@ int aws_cryptosdk_sign_header(
     if (!ctx) goto out;
 
     int outlen;
-    if (!EVP_CipherUpdate(ctx, NULL, &outlen, header->buffer, header->len)) goto out;
+    if (!EVP_EncryptUpdate(ctx, NULL, &outlen, header->buffer, header->len)) goto out;
 
     result = evp_gcm_encrypt_final(props, ctx, tag);
 out:
