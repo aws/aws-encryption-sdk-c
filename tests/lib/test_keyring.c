@@ -28,7 +28,6 @@ static int test_keyring_on_encrypt(
     struct aws_cryptosdk_keyring *kr,
     struct aws_allocator *request_alloc,
     struct aws_byte_buf *unencrypted_data_key,
-    struct aws_array_list *keyring_trace,
     struct aws_array_list *edks,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
@@ -36,10 +35,8 @@ static int test_keyring_on_encrypt(
     struct test_keyring *self = (struct test_keyring *)kr;
 
     if (!self->ret && !self->skip_output) {
-        uint32_t flags = AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY;
         if (!unencrypted_data_key->buffer) {
             *unencrypted_data_key = self->generated_data_key_to_return;
-            flags |= AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY;
         }
 
         static struct aws_cryptosdk_edk edk;
@@ -47,13 +44,6 @@ static int test_keyring_on_encrypt(
         edk.provider_id   = aws_byte_buf_from_c_str("test keyring generate provider id");
         edk.provider_info = aws_byte_buf_from_c_str("test keyring generate provider info");
         aws_array_list_push_back(edks, &edk);
-
-        // This should only fail on memory allocation errors.
-        // In production code we ignore errors from this, as there isn't really
-        // a sensible way to handle them. But here we check for failure just to
-        // make sure this code has actually run properly.
-        TEST_ASSERT_SUCCESS(
-            aws_cryptosdk_keyring_trace_add_record(request_alloc, keyring_trace, name_space, name, flags));
     }
 
     self->on_encrypt_called = true;
@@ -64,7 +54,6 @@ static int test_keyring_on_decrypt(
     struct aws_cryptosdk_keyring *kr,
     struct aws_allocator *request_alloc,
     struct aws_byte_buf *unencrypted_data_key,
-    struct aws_array_list *keyring_trace,
     const struct aws_array_list *edks,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
@@ -74,12 +63,6 @@ static int test_keyring_on_decrypt(
     struct test_keyring *self = (struct test_keyring *)kr;
     if (!self->ret && !self->skip_output) {
         *unencrypted_data_key = self->decrypted_data_key_to_return;
-        if (self->decrypted_data_key_to_return.buffer) {
-            if (aws_cryptosdk_keyring_trace_add_record(
-                    request_alloc, keyring_trace, name_space, name, AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY)) {
-                abort();
-            }
-        }
     }
     self->on_decrypt_called = true;
     return self->ret;

@@ -18,7 +18,6 @@
 #include <aws/cryptosdk/list_utils.h>
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/private/cipher.h>
-#include <aws/cryptosdk/private/keyring_trace.h>
 
 #include "cache_test_lib.h"
 #include "testutil.h"
@@ -50,16 +49,6 @@ void gen_enc_materials(
         byte_buf_printf(&edk.provider_info, alloc, "Provider info #%d.%d", index, i);
 
         if (aws_array_list_push_back(&materials->encrypted_data_keys, &edk)) {
-            abort();
-        }
-
-        if (aws_cryptosdk_keyring_trace_add_record_buf(
-                alloc,
-                &materials->keyring_trace,
-                &edk.provider_id,
-                &edk.provider_info,
-                AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
-                    AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX)) {
             abort();
         }
     }
@@ -99,13 +88,12 @@ bool materials_eq(const struct aws_cryptosdk_enc_materials *a, const struct aws_
         if (!aws_byte_buf_eq(&edk_a->provider_info, &edk_b->provider_info)) return false;
     }
 
-    return aws_cryptosdk_keyring_trace_eq(&a->keyring_trace, &b->keyring_trace);
+    return true;
 }
 
 bool dec_materials_eq(const struct aws_cryptosdk_dec_materials *a, const struct aws_cryptosdk_dec_materials *b) {
     return (a->alg == b->alg) && (aws_byte_buf_eq(&a->unencrypted_data_key, &b->unencrypted_data_key)) &&
-           (!!a->signctx == !!b->signctx) && (!a->signctx || same_signing_key(a->signctx, b->signctx)) &&
-           aws_cryptosdk_keyring_trace_eq(&a->keyring_trace, &b->keyring_trace);
+           (!!a->signctx == !!b->signctx) && (!a->signctx || same_signing_key(a->signctx, b->signctx));
 }
 
 bool same_signing_key(struct aws_cryptosdk_sig_ctx *a, struct aws_cryptosdk_sig_ctx *b) {
@@ -287,8 +275,6 @@ static struct aws_cryptosdk_enc_materials *clone_enc_materials(
     if (aws_cryptosdk_edk_list_copy_all(
             allocator, &new_materials->encrypted_data_keys, &materials->encrypted_data_keys))
         abort();
-    if (aws_cryptosdk_keyring_trace_copy_all(allocator, &new_materials->keyring_trace, &materials->keyring_trace))
-        abort();
 
     if (materials->signctx) {
         struct aws_string *priv_key_buf;
@@ -338,10 +324,6 @@ static struct aws_cryptosdk_dec_materials *clone_dec_materials(
     }
 
     if (aws_byte_buf_init_copy(&materials->unencrypted_data_key, allocator, &input->unencrypted_data_key)) {
-        abort();
-    }
-
-    if (aws_cryptosdk_keyring_trace_copy_all(allocator, &materials->keyring_trace, &input->keyring_trace)) {
         abort();
     }
 
@@ -556,15 +538,6 @@ static int mock_decrypt_materials(
         abort();
     }
     materials->unencrypted_data_key.len = props->data_key_len;
-
-    if (aws_cryptosdk_keyring_trace_add_record_c_str(
-            request->alloc,
-            &materials->keyring_trace,
-            "namespace",
-            "name",
-            AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX)) {
-        abort();
-    }
 
     aws_string_destroy(cmm->last_pubkey);
     cmm->last_pubkey = NULL;

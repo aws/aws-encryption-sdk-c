@@ -40,16 +40,6 @@ AWS_CRYPTOSDK_API
 int aws_cryptosdk_edk_list_copy_all(
     struct aws_allocator *alloc, struct aws_array_list *dest, const struct aws_array_list *src);
 
-/**
- * _Copies_ all aws_cryptosdk_keyring_trace_records in the list at src, appending the copies to dest.
- * dest must already be initialized.
- *
- * On failure, the destination list is unchanged.
- */
-AWS_CRYPTOSDK_API
-int aws_cryptosdk_keyring_trace_copy_all(
-    struct aws_allocator *alloc, struct aws_array_list *dest, const struct aws_array_list *src);
-
 #ifdef __cplusplus
 }
 #endif

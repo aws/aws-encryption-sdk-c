@@ -42,7 +42,6 @@ struct test_case *test_groups[] = { header_test_cases,
                                     raw_rsa_keyring_encrypt_test_cases,
                                     local_cache_test_cases,
                                     caching_cmm_test_cases,
-                                    keyring_trace_test_cases,
                                     NULL };
 
 struct test_case *test_cases;

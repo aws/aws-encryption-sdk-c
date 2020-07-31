@@ -68,7 +68,6 @@ static int raw_rsa_keyring_on_encrypt(
     struct aws_cryptosdk_keyring *kr,
     struct aws_allocator *request_alloc,
     struct aws_byte_buf *unencrypted_data_key,
-    struct aws_array_list *keyring_trace,
     struct aws_array_list *edks,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
@@ -76,7 +75,7 @@ static int raw_rsa_keyring_on_encrypt(
     struct raw_rsa_keyring *self = (struct raw_rsa_keyring *)kr;
     if (!self->rsa_public_key_pem) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
 
-    uint32_t flags = 0;
+    bool wrapping_key_generated_data_key = false;
     if (!unencrypted_data_key->buffer) {
         const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
         size_t data_key_len                              = props->data_key_len;
@@ -87,17 +86,12 @@ static int raw_rsa_keyring_on_encrypt(
             aws_byte_buf_clean_up(unencrypted_data_key);
             return AWS_OP_ERR;
         }
-        flags                     = AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY;
+        wrapping_key_generated_data_key = true;
         unencrypted_data_key->len = unencrypted_data_key->capacity;
     }
     int ret = encrypt_data_key(kr, request_alloc, unencrypted_data_key, edks);
-    if (ret && flags) {
+    if (ret && wrapping_key_generated_data_key) {
         aws_byte_buf_clean_up(unencrypted_data_key);
-    }
-    if (!ret) {
-        flags |= AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY;
-        aws_cryptosdk_keyring_trace_add_record(
-            request_alloc, keyring_trace, self->key_namespace, self->key_name, flags);
     }
     return ret;
 }
@@ -106,7 +100,6 @@ static int raw_rsa_keyring_on_decrypt(
     struct aws_cryptosdk_keyring *kr,
     struct aws_allocator *request_alloc,
     struct aws_byte_buf *unencrypted_data_key,
-    struct aws_array_list *keyring_trace,
     const struct aws_array_list *edks,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
@@ -139,12 +132,6 @@ static int raw_rsa_keyring_on_decrypt(
              */
             aws_reset_error();
         } else {
-            aws_cryptosdk_keyring_trace_add_record(
-                request_alloc,
-                keyring_trace,
-                self->key_namespace,
-                self->key_name,
-                AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY);
             return AWS_OP_SUCCESS;
         }
     }

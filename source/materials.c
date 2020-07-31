@@ -32,12 +32,6 @@ struct aws_cryptosdk_enc_materials *aws_cryptosdk_enc_materials_new(
         return NULL;
     }
 
-    if (aws_cryptosdk_keyring_trace_init(alloc, &enc_mat->keyring_trace)) {
-        aws_cryptosdk_edk_list_clean_up(&enc_mat->encrypted_data_keys);
-        aws_mem_release(alloc, enc_mat);
-        return NULL;
-    }
-
     return enc_mat;
 }
 
@@ -48,7 +42,6 @@ void aws_cryptosdk_enc_materials_destroy(struct aws_cryptosdk_enc_materials *enc
         aws_cryptosdk_sig_abort(enc_mat->signctx);
         aws_byte_buf_clean_up_secure(&enc_mat->unencrypted_data_key);
         aws_cryptosdk_edk_list_clean_up(&enc_mat->encrypted_data_keys);
-        aws_cryptosdk_keyring_trace_clean_up(&enc_mat->keyring_trace);
         aws_mem_release(enc_mat->alloc, enc_mat);
     }
 }
@@ -67,10 +60,6 @@ struct aws_cryptosdk_dec_materials *aws_cryptosdk_dec_materials_new(
     dec_mat->unencrypted_data_key.allocator = NULL;
     dec_mat->alg                            = alg;
     dec_mat->signctx                        = NULL;
-    if (aws_cryptosdk_keyring_trace_init(alloc, &dec_mat->keyring_trace)) {
-        aws_mem_release(alloc, dec_mat);
-        return NULL;
-    }
 
     return dec_mat;
 }
@@ -80,7 +69,6 @@ void aws_cryptosdk_dec_materials_destroy(struct aws_cryptosdk_dec_materials *dec
     if (dec_mat) {
         aws_cryptosdk_sig_abort(dec_mat->signctx);
         aws_byte_buf_clean_up_secure(&dec_mat->unencrypted_data_key);
-        aws_cryptosdk_keyring_trace_clean_up(&dec_mat->keyring_trace);
         aws_mem_release(dec_mat->alloc, dec_mat);
     }
 }
@@ -89,14 +77,12 @@ int aws_cryptosdk_keyring_on_encrypt(
     struct aws_cryptosdk_keyring *keyring,
     struct aws_allocator *request_alloc,
     struct aws_byte_buf *unencrypted_data_key,
-    struct aws_array_list *keyring_trace,
     struct aws_array_list *edks,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
     AWS_PRECONDITION(aws_allocator_is_valid(request_alloc));
     AWS_PRECONDITION(aws_cryptosdk_keyring_is_valid(keyring) && (keyring->vtable != NULL));
     AWS_PRECONDITION(aws_byte_buf_is_valid(unencrypted_data_key));
-    AWS_PRECONDITION(aws_cryptosdk_keyring_trace_is_valid(keyring_trace));
     AWS_PRECONDITION(aws_cryptosdk_edk_list_is_valid(edks) && aws_cryptosdk_edk_list_elements_are_valid(edks));
     AWS_PRECONDITION(enc_ctx == NULL || aws_hash_table_is_valid(enc_ctx));
 
@@ -111,7 +97,7 @@ int aws_cryptosdk_keyring_on_encrypt(
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
 
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(
-        on_encrypt, keyring, request_alloc, unencrypted_data_key, keyring_trace, edks, enc_ctx, alg);
+        on_encrypt, keyring, request_alloc, unencrypted_data_key, edks, enc_ctx, alg);
 
     /* Postcondition: If this keyring generated data key, it must be the right length. */
     if (!precall_data_key_buf.buffer && unencrypted_data_key->buffer) {
@@ -137,21 +123,19 @@ int aws_cryptosdk_keyring_on_decrypt(
     struct aws_cryptosdk_keyring *keyring,
     struct aws_allocator *request_alloc,
     struct aws_byte_buf *unencrypted_data_key,
-    struct aws_array_list *keyring_trace,
     const struct aws_array_list *edks,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
     AWS_PRECONDITION(aws_allocator_is_valid(request_alloc));
     AWS_PRECONDITION(aws_cryptosdk_keyring_is_valid(keyring) && (keyring->vtable != NULL));
     AWS_PRECONDITION(aws_byte_buf_is_valid(unencrypted_data_key));
-    AWS_PRECONDITION(aws_cryptosdk_keyring_trace_is_valid(keyring_trace));
     AWS_PRECONDITION(aws_cryptosdk_edk_list_is_valid(edks));
     AWS_PRECONDITION(enc_ctx == NULL || aws_hash_table_is_valid(enc_ctx));
 
     /* Precondition: data key buffer must be unset. */
     if (unencrypted_data_key->buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     AWS_CRYPTOSDK_PRIVATE_VF_CALL(
-        on_decrypt, keyring, request_alloc, unencrypted_data_key, keyring_trace, edks, enc_ctx, alg);
+        on_decrypt, keyring, request_alloc, unencrypted_data_key, edks, enc_ctx, alg);
 
     /* Postcondition: if data key was decrypted, its length must agree with algorithm
      * specification. If this is not the case, it either means ciphertext was tampered

@@ -110,7 +110,6 @@ static struct aws_cryptosdk_edk wrong_iv_bytes() {
 static struct aws_allocator *alloc;
 static struct aws_cryptosdk_keyring *kr;
 static struct aws_hash_table enc_ctx;
-static struct aws_array_list keyring_trace;
 static struct aws_array_list edks;
 static struct aws_byte_buf unencrypted_data_key = { 0 };
 
@@ -124,7 +123,6 @@ static int set_up_all_the_things(
     TEST_ASSERT_ADDR_NOT_NULL(kr);
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_enc_ctx_init(alloc, &enc_ctx));
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_init(alloc, &keyring_trace));
 
     for (size_t key_idx = 0; key_idx < num_kv_pairs; ++key_idx) {
         struct aws_hash_element *elem;
@@ -139,7 +137,6 @@ static int set_up_all_the_things(
 static void tear_down_all_the_things() {
     aws_cryptosdk_edk_list_clean_up(&edks);
     aws_cryptosdk_enc_ctx_clean_up(&enc_ctx);
-    aws_cryptosdk_keyring_trace_clean_up(&keyring_trace);
     aws_cryptosdk_keyring_release(kr);
     aws_byte_buf_clean_up(&unencrypted_data_key);
 }
@@ -168,16 +165,13 @@ int decrypt_data_key_test_vectors() {
             aws_array_list_push_back(&edks, (void *)&edk);
 
             TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(
-                kr, alloc, &unencrypted_data_key, &keyring_trace, &edks, &enc_ctx, tv->alg));
+                kr, alloc, &unencrypted_data_key, &edks, &enc_ctx, tv->alg));
 
             if (corrupt_enc_ctx) {
                 TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
             } else if (unencrypted_data_key.buffer) {
                 struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv->data_key, tv->data_key_len);
                 TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &known_answer));
-                TEST_ASSERT_SUCCESS(raw_aes_keyring_tv_trace_updated_properly(
-                    &keyring_trace,
-                    AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX | AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
             }
 
             tear_down_all_the_things();
@@ -214,13 +208,11 @@ int decrypt_data_key_multiple_edks() {
 
     TEST_ASSERT_INT_EQ(
         AWS_OP_SUCCESS,
-        aws_cryptosdk_keyring_on_decrypt(kr, alloc, &unencrypted_data_key, &keyring_trace, &edks, &enc_ctx, tv.alg));
+        aws_cryptosdk_keyring_on_decrypt(kr, alloc, &unencrypted_data_key, &edks, &enc_ctx, tv.alg));
     TEST_ASSERT_ADDR_NOT_NULL(unencrypted_data_key.buffer);
 
     struct aws_byte_buf known_answer = aws_byte_buf_from_array(tv.data_key, tv.data_key_len);
     TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &known_answer));
-    TEST_ASSERT_SUCCESS(raw_aes_keyring_tv_trace_updated_properly(
-        &keyring_trace, AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX | AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
 
     tear_down_all_the_things();
     return 0;
@@ -240,9 +232,8 @@ int decrypt_data_key_no_good_edk() {
 
     TEST_ASSERT_INT_EQ(
         AWS_OP_SUCCESS,
-        aws_cryptosdk_keyring_on_decrypt(kr, alloc, &unencrypted_data_key, &keyring_trace, &edks, &enc_ctx, tv.alg));
+        aws_cryptosdk_keyring_on_decrypt(kr, alloc, &unencrypted_data_key, &edks, &enc_ctx, tv.alg));
     TEST_ASSERT_ADDR_NULL(unencrypted_data_key.buffer);
-    TEST_ASSERT(!aws_array_list_length(&keyring_trace));
 
     tear_down_all_the_things();
     return 0;
@@ -275,7 +266,6 @@ int decrypt_data_key_with_sig() {
         kr,
         alloc,
         &unencrypted_data_key,
-        &keyring_trace,
         &edks,
         &enc_ctx,
         ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));
@@ -288,8 +278,6 @@ int decrypt_data_key_with_sig() {
         0x4a, 0x8c, 0xc7, 0x9f, 0xfa, 0x3a, 0xe7, 0xa2, 0xa4, 0xa8, 0x1e, 0x83, 0xba, 0x38, 0x23, 0x16);
     // clang-format on
 
-    TEST_ASSERT_SUCCESS(raw_aes_keyring_tv_trace_updated_properly(
-        &keyring_trace, AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX | AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
     tear_down_all_the_things();
     return 0;
 }
@@ -330,7 +318,6 @@ int decrypt_data_key_with_sig_and_enc_ctx() {
         kr,
         alloc,
         &unencrypted_data_key,
-        &keyring_trace,
         &edks,
         &enc_ctx,
         ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));
@@ -342,9 +329,6 @@ int decrypt_data_key_with_sig_and_enc_ctx() {
         0xaf, 0x4e, 0xaa, 0x6f, 0x3e, 0x34, 0xfa, 0x50, 0x48, 0xd1, 0x48, 0x02, 0x33, 0x86, 0xc5, 0x98,
         0x2c, 0x64, 0xe3, 0x54, 0xc4, 0x27, 0xe3, 0x66, 0x39, 0x28, 0x94, 0x89, 0xf5, 0x71, 0x68, 0xcd);
     // clang-format on
-
-    TEST_ASSERT_SUCCESS(raw_aes_keyring_tv_trace_updated_properly(
-        &keyring_trace, AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX | AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY));
 
     tear_down_all_the_things();
     return 0;

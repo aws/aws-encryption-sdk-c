@@ -36,15 +36,6 @@ struct aws_cryptosdk_keyring *raw_aes_keyring_tv_new(
         raw_key_len);
 }
 
-int raw_aes_keyring_tv_trace_updated_properly(struct aws_array_list *trace, uint32_t flags) {
-    return assert_keyring_trace_record(
-        trace,
-        aws_array_list_length(trace) - 1,
-        (const char *)raw_aes_keyring_tv_provider_id->bytes,
-        (const char *)raw_aes_keyring_tv_master_key_id->bytes,
-        flags);
-}
-
 struct aws_cryptosdk_edk build_test_edk_init(const uint8_t *edk_bytes, size_t edk_len, const uint8_t *iv) {
     static const uint8_t edk_provider_prefix[] =
         "asdfhasiufhiasuhviawurhgiuawrhefiuawhf"  // master key ID

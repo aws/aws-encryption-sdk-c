@@ -21,7 +21,6 @@ static int call_on_encrypt_on_list(
     const struct aws_array_list *keyrings,
     struct aws_allocator *request_alloc,
     struct aws_byte_buf *unencrypted_data_key,
-    struct aws_array_list *keyring_trace,
     struct aws_array_list *edks,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
@@ -30,7 +29,7 @@ static int call_on_encrypt_on_list(
         struct aws_cryptosdk_keyring *child;
         if (aws_array_list_get_at(keyrings, (void *)&child, list_idx)) return AWS_OP_ERR;
         if (aws_cryptosdk_keyring_on_encrypt(
-                child, request_alloc, unencrypted_data_key, keyring_trace, edks, enc_ctx, alg))
+                child, request_alloc, unencrypted_data_key, edks, enc_ctx, alg))
             return AWS_OP_ERR;
     }
     return AWS_OP_SUCCESS;
@@ -40,7 +39,6 @@ static int multi_keyring_on_encrypt(
     struct aws_cryptosdk_keyring *multi,
     struct aws_allocator *request_alloc,
     struct aws_byte_buf *unencrypted_data_key,
-    struct aws_array_list *keyring_trace,
     struct aws_array_list *edks,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
@@ -48,16 +46,11 @@ static int multi_keyring_on_encrypt(
 
     struct aws_array_list my_edks;
     if (aws_cryptosdk_edk_list_init(request_alloc, &my_edks)) return AWS_OP_ERR;
-    struct aws_array_list my_trace;
-    if (aws_cryptosdk_keyring_trace_init(request_alloc, &my_trace)) {
-        aws_cryptosdk_edk_list_clean_up(&my_edks);
-        return AWS_OP_ERR;
-    }
 
     int ret = AWS_OP_SUCCESS;
     if (self->generator &&
         aws_cryptosdk_keyring_on_encrypt(
-            self->generator, request_alloc, unencrypted_data_key, &my_trace, &my_edks, enc_ctx, alg)) {
+            self->generator, request_alloc, unencrypted_data_key, &my_edks, enc_ctx, alg)) {
         ret = AWS_OP_ERR;
         goto out;
     }
@@ -76,16 +69,14 @@ static int multi_keyring_on_encrypt(
     }
 
     if (call_on_encrypt_on_list(
-            &self->children, request_alloc, unencrypted_data_key, &my_trace, &my_edks, enc_ctx, alg) ||
+            &self->children, request_alloc, unencrypted_data_key, &my_edks, enc_ctx, alg) ||
         aws_cryptosdk_transfer_list(edks, &my_edks)) {
         ret = AWS_OP_ERR;
         goto out;
     }
-    aws_cryptosdk_transfer_list(keyring_trace, &my_trace);
 
 out:
     aws_cryptosdk_edk_list_clean_up(&my_edks);
-    aws_cryptosdk_keyring_trace_clean_up(&my_trace);
     return ret;
 }
 
@@ -93,7 +84,6 @@ static int multi_keyring_on_decrypt(
     struct aws_cryptosdk_keyring *multi,
     struct aws_allocator *request_alloc,
     struct aws_byte_buf *unencrypted_data_key,
-    struct aws_array_list *keyring_trace,
     const struct aws_array_list *edks,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
@@ -107,7 +97,7 @@ static int multi_keyring_on_decrypt(
 
     if (self->generator) {
         int decrypt_err = aws_cryptosdk_keyring_on_decrypt(
-            self->generator, request_alloc, unencrypted_data_key, keyring_trace, edks, enc_ctx, alg);
+            self->generator, request_alloc, unencrypted_data_key, edks, enc_ctx, alg);
         if (unencrypted_data_key->buffer) return AWS_OP_SUCCESS;
         if (decrypt_err) ret_if_no_decrypt = AWS_OP_ERR;
     }
@@ -119,7 +109,7 @@ static int multi_keyring_on_decrypt(
 
         // if decrypt data key fails, keep trying with other keyrings
         int decrypt_err = aws_cryptosdk_keyring_on_decrypt(
-            child, request_alloc, unencrypted_data_key, keyring_trace, edks, enc_ctx, alg);
+            child, request_alloc, unencrypted_data_key, edks, enc_ctx, alg);
         if (unencrypted_data_key->buffer) return AWS_OP_SUCCESS;
         if (decrypt_err) ret_if_no_decrypt = AWS_OP_ERR;
     }

@@ -444,8 +444,7 @@ static int copy_enc_materials(
     struct aws_cryptosdk_enc_materials *out,
     const struct aws_cryptosdk_enc_materials *in) {
     if (aws_byte_buf_init_copy(&out->unencrypted_data_key, alloc, &in->unencrypted_data_key) ||
-        aws_cryptosdk_edk_list_copy_all(alloc, &out->encrypted_data_keys, &in->encrypted_data_keys) ||
-        aws_cryptosdk_keyring_trace_copy_all(alloc, &out->keyring_trace, &in->keyring_trace)) {
+        aws_cryptosdk_edk_list_copy_all(alloc, &out->encrypted_data_keys, &in->encrypted_data_keys)) {
         return AWS_OP_ERR;
     }
 
@@ -460,8 +459,7 @@ static int copy_dec_materials(
     struct aws_allocator *alloc,
     struct aws_cryptosdk_dec_materials *out,
     const struct aws_cryptosdk_dec_materials *in) {
-    if (aws_byte_buf_init_copy(&out->unencrypted_data_key, alloc, &in->unencrypted_data_key) ||
-        aws_cryptosdk_keyring_trace_copy_all(alloc, &out->keyring_trace, &in->keyring_trace)) {
+    if (aws_byte_buf_init_copy(&out->unencrypted_data_key, alloc, &in->unencrypted_data_key)) {
         return AWS_OP_ERR;
     }
 

@@ -12,7 +12,6 @@
 #include <assert.h>
 #include <aws/cryptosdk/edk.h>
 #include <aws/cryptosdk/list_utils.h>
-#include <aws/cryptosdk/private/keyring_trace.h>
 
 int aws_cryptosdk_transfer_list(struct aws_array_list *dest, struct aws_array_list *src) {
     AWS_ERROR_PRECONDITION(src != dest);
@@ -109,14 +108,4 @@ int aws_cryptosdk_edk_list_copy_all(
     struct aws_allocator *alloc, struct aws_array_list *dest, const struct aws_array_list *src) {
     return list_copy_all(
         alloc, dest, src, (clone_item_fn)aws_cryptosdk_edk_init_clone, (clean_up_item_fn)aws_cryptosdk_edk_clean_up);
-}
-
-int aws_cryptosdk_keyring_trace_copy_all(
-    struct aws_allocator *alloc, struct aws_array_list *dest, const struct aws_array_list *src) {
-    return list_copy_all(
-        alloc,
-        dest,
-        src,
-        (clone_item_fn)aws_cryptosdk_keyring_trace_record_init_clone,
-        (clean_up_item_fn)aws_cryptosdk_keyring_trace_record_clean_up);
 }

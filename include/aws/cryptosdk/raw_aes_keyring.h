@@ -46,11 +46,6 @@ extern "C" {
  * purposes. A raw AES keyring which attempts to decrypt data previously encrypted
  * by another raw AES keyring must specify the same name and namespace.
  *
- * Note: when this keyring is used, it generates a trace that includes copies of
- * the namespace and name strings for each call. If you generate either or both of
- * the namespace and name strings using the AWS_STATIC_STRING_FROM_LITERAL macro,
- * all copies of these strings will be optimized out.
- *
  * On failure returns NULL and sets an internal AWS error code.
  */
 AWS_CRYPTOSDK_API

@@ -67,7 +67,6 @@ static int default_cmm_generate_enc_materials(
             self->kr,
             request->alloc,
             &enc_mat->unencrypted_data_key,
-            &enc_mat->keyring_trace,
             &enc_mat->encrypted_data_keys,
             request->enc_ctx,
             request->requested_alg))
@@ -95,7 +94,6 @@ static int default_cmm_decrypt_materials(
             self->kr,
             request->alloc,
             &dec_mat->unencrypted_data_key,
-            &dec_mat->keyring_trace,
             &request->encrypted_data_keys,
             request->enc_ctx,
             request->alg))

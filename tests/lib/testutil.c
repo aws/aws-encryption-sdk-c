@@ -19,7 +19,6 @@
 #include <aws/common/hash_table.h>
 #include <aws/common/string.h>
 #include <aws/cryptosdk/enc_ctx.h>
-#include <aws/cryptosdk/keyring_trace.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdarg.h>
@@ -188,21 +187,4 @@ struct aws_byte_buf easy_b64_decode(const char *b64_string) {
     }
 
     return output;
-}
-
-TESTLIB_API
-int assert_keyring_trace_record(
-    const struct aws_array_list *keyring_trace, size_t idx, const char *name_space, const char *name, uint32_t flags) {
-    struct aws_cryptosdk_keyring_trace_record record;
-    TEST_ASSERT_SUCCESS(aws_array_list_get_at(keyring_trace, (void *)&record, idx));
-    TEST_ASSERT_INT_EQ(record.flags, flags);
-    if (name_space) {
-        const struct aws_byte_cursor ns = aws_byte_cursor_from_c_str(name_space);
-        TEST_ASSERT(aws_string_eq_byte_cursor(record.wrapping_key_namespace, &ns));
-    }
-    if (name) {
-        const struct aws_byte_cursor n = aws_byte_cursor_from_c_str(name);
-        TEST_ASSERT(aws_string_eq_byte_cursor(record.wrapping_key_name, &n));
-    }
-    return 0;
 }

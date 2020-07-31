@@ -145,7 +145,6 @@ static int raw_aes_keyring_on_encrypt(
     struct aws_cryptosdk_keyring *kr,
     struct aws_allocator *request_alloc,
     struct aws_byte_buf *unencrypted_data_key,
-    struct aws_array_list *keyring_trace,
     struct aws_array_list *edks,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
@@ -155,7 +154,6 @@ static int raw_aes_keyring_on_encrypt(
     uint8_t iv[RAW_AES_KR_IV_LEN];
     if (aws_cryptosdk_genrandom(iv, RAW_AES_KR_IV_LEN)) return AWS_OP_ERR;
 
-    uint32_t flags = 0;
     if (!unencrypted_data_key->buffer) {
         if (aws_byte_buf_init(unencrypted_data_key, request_alloc, data_key_len)) return AWS_OP_ERR;
 
@@ -163,21 +161,13 @@ static int raw_aes_keyring_on_encrypt(
             aws_byte_buf_clean_up(unencrypted_data_key);
             return AWS_OP_ERR;
         }
-        flags                     = AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY;
         unencrypted_data_key->len = unencrypted_data_key->capacity;
     }
 
     int ret = aws_cryptosdk_raw_aes_keyring_encrypt_data_key_with_iv(
         kr, request_alloc, unencrypted_data_key, edks, enc_ctx, alg, iv);
-    if (ret && flags) {
+    if (ret) {
         aws_byte_buf_clean_up(unencrypted_data_key);
-    }
-    if (!ret) {
-        struct raw_aes_keyring *self = (struct raw_aes_keyring *)kr;
-
-        flags |= AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX;
-        aws_cryptosdk_keyring_trace_add_record(
-            request_alloc, keyring_trace, self->key_namespace, self->key_name, flags);
     }
     return ret;
 }
@@ -186,7 +176,6 @@ static int raw_aes_keyring_on_decrypt(
     struct aws_cryptosdk_keyring *kr,
     struct aws_allocator *request_alloc,
     struct aws_byte_buf *unencrypted_data_key,
-    struct aws_array_list *keyring_trace,
     const struct aws_array_list *edks,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
@@ -240,12 +229,6 @@ static int raw_aes_keyring_on_decrypt(
              */
             aws_reset_error();
         } else {
-            aws_cryptosdk_keyring_trace_add_record(
-                request_alloc,
-                keyring_trace,
-                self->key_namespace,
-                self->key_name,
-                AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX);
             goto success;
         }
     }

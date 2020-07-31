@@ -31,7 +31,6 @@
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/exports.h>
 #include <aws/cryptosdk/header.h>
-#include <aws/cryptosdk/keyring_trace.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -136,8 +135,6 @@ AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_enc_request_is_valid(const struct
 struct aws_cryptosdk_enc_materials {
     struct aws_allocator *alloc;
     struct aws_byte_buf unencrypted_data_key;
-    /** Contains a trace of which wrapping keys took which actions in this request */
-    struct aws_array_list keyring_trace;
     /** List of struct aws_cryptosdk_edk objects */
     struct aws_array_list encrypted_data_keys;
     /** Trailing signature context, or NULL if no trailing signature is needed for this algorithm */
@@ -166,8 +163,6 @@ AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_dec_request_is_valid(const struct
 struct aws_cryptosdk_dec_materials {
     struct aws_allocator *alloc;
     struct aws_byte_buf unencrypted_data_key;
-    /** Contains a trace of which wrapping keys took which actions in this request */
-    struct aws_array_list keyring_trace;
     /** Trailing signature context, or NULL if no trailing signature is needed for this algorithm */
     struct aws_cryptosdk_sig_ctx *signctx;
     enum aws_cryptosdk_alg_id alg;
@@ -180,10 +175,9 @@ AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_enc_materials_is_valid(
     }
     bool allocator_valid            = aws_allocator_is_valid(materials->alloc);
     bool unencrypted_data_key_valid = aws_byte_buf_is_valid(&materials->unencrypted_data_key);
-    bool keyring_trace_valid        = aws_cryptosdk_keyring_trace_is_valid(&materials->keyring_trace);
     bool encrypted_data_keys_valid  = aws_cryptosdk_edk_list_is_valid(&materials->encrypted_data_keys);
     bool signctx_valid = (materials->signctx == NULL) || aws_cryptosdk_sig_ctx_is_valid(materials->signctx);
-    return allocator_valid && unencrypted_data_key_valid && keyring_trace_valid && encrypted_data_keys_valid &&
+    return allocator_valid && unencrypted_data_key_valid && encrypted_data_keys_valid &&
            signctx_valid;
 }
 
@@ -194,9 +188,8 @@ AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_dec_materials_is_valid(
     }
     bool allocator_valid            = aws_allocator_is_valid(materials->alloc);
     bool unencrypted_data_key_valid = aws_byte_buf_is_valid(&materials->unencrypted_data_key);
-    bool keyring_trace_valid        = aws_cryptosdk_keyring_trace_is_valid(&materials->keyring_trace);
     bool signctx_valid = (materials->signctx == NULL) || aws_cryptosdk_sig_ctx_is_valid(materials->signctx);
-    return allocator_valid && unencrypted_data_key_valid && keyring_trace_valid && signctx_valid;
+    return allocator_valid && unencrypted_data_key_valid && signctx_valid;
 }
 
 #ifndef AWS_CRYPTOSDK_DOXYGEN /* do not document internal macros */
@@ -497,7 +490,6 @@ struct aws_cryptosdk_keyring_vt {
         struct aws_cryptosdk_keyring *keyring,
         struct aws_allocator *request_alloc,
         struct aws_byte_buf *unencrypted_data_key,
-        struct aws_array_list *keyring_trace,
         struct aws_array_list *edks,
         const struct aws_hash_table *enc_ctx,
         enum aws_cryptosdk_alg_id alg);
@@ -514,7 +506,6 @@ struct aws_cryptosdk_keyring_vt {
         struct aws_cryptosdk_keyring *keyring,
         struct aws_allocator *request_alloc,
         struct aws_byte_buf *unencrypted_data_key,
-        struct aws_array_list *keyring_trace,
         const struct aws_array_list *edks,
         const struct aws_hash_table *enc_ctx,
         enum aws_cryptosdk_alg_id alg);
@@ -595,7 +586,6 @@ int aws_cryptosdk_keyring_on_encrypt(
     struct aws_cryptosdk_keyring *keyring,
     struct aws_allocator *request_alloc,
     struct aws_byte_buf *unencrypted_data_key,
-    struct aws_array_list *keyring_trace,
     struct aws_array_list *edks,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg);
@@ -617,7 +607,6 @@ int aws_cryptosdk_keyring_on_decrypt(
     struct aws_cryptosdk_keyring *keyring,
     struct aws_allocator *request_alloc,
     struct aws_byte_buf *unencrypted_data_key,
-    struct aws_array_list *keyring_trace,
     const struct aws_array_list *edks,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg);

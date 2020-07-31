@@ -55,7 +55,6 @@ static int counting_keyring_on_encrypt(
     struct aws_cryptosdk_keyring *kr,
     struct aws_allocator *request_alloc,
     struct aws_byte_buf *unencrypted_data_key,
-    struct aws_array_list *keyring_trace,
     struct aws_array_list *edks,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
@@ -63,7 +62,6 @@ static int counting_keyring_on_encrypt(
     (void)kr;
 
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
-    uint32_t flags                                   = AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY;
 
     if (unencrypted_data_key->buffer) {
         if (unencrypted_data_key->len != props->data_key_len) {
@@ -85,7 +83,6 @@ static int counting_keyring_on_encrypt(
         for (size_t i = 0; i < props->data_key_len; i++) {
             unencrypted_data_key->buffer[i] = (uint8_t)i;
         }
-        flags |= AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY;
     }
 
     struct aws_cryptosdk_edk edk;
@@ -93,7 +90,6 @@ static int counting_keyring_on_encrypt(
         return AWS_OP_ERR;
     }
 
-    aws_cryptosdk_keyring_trace_add_record(request_alloc, keyring_trace, prov_name, prov_info, flags);
     return aws_array_list_push_back(edks, &edk);
 }
 
@@ -101,7 +97,6 @@ static int counting_keyring_on_decrypt(
     struct aws_cryptosdk_keyring *kr,
     struct aws_allocator *request_alloc,
     struct aws_byte_buf *unencrypted_data_key,
-    struct aws_array_list *keyring_trace,
     const struct aws_array_list *edks,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
@@ -124,8 +119,6 @@ static int counting_keyring_on_decrypt(
             for (size_t i = 0; i < unencrypted_data_key->len; i++) {
                 unencrypted_data_key->buffer[i] = (uint8_t)i;
             }
-            aws_cryptosdk_keyring_trace_add_record(
-                request_alloc, keyring_trace, prov_name, prov_info, AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY);
             return AWS_OP_SUCCESS;
         }
     }

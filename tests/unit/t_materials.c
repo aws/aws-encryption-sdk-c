@@ -372,7 +372,6 @@ static struct test_keyring test_kr;
 static struct aws_cryptosdk_keyring *kr;
 static struct aws_allocator *alloc;
 static struct aws_array_list edks;
-static struct aws_array_list keyring_trace;
 
 static void reset_test_keyring() {
     memset(&test_kr, 0, sizeof(test_kr));
@@ -384,13 +383,11 @@ static int setup_condition_violation_test() {
     alloc = aws_default_allocator();
     reset_test_keyring();
     TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &edks));
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_init(alloc, &keyring_trace));
     return 0;
 }
 
 static void teardown_condition_violation_test() {
     aws_cryptosdk_edk_list_clean_up(&edks);
-    aws_cryptosdk_keyring_trace_clean_up(&keyring_trace);
 }
 
 int on_encrypt_precondition_violation() {
@@ -403,7 +400,7 @@ int on_encrypt_precondition_violation() {
 
     TEST_ASSERT_ERROR(
         AWS_CRYPTOSDK_ERR_BAD_STATE,
-        aws_cryptosdk_keyring_on_encrypt(kr, alloc, &unencrypted_data_key, &keyring_trace, &edks, NULL, 0));
+        aws_cryptosdk_keyring_on_encrypt(kr, alloc, &unencrypted_data_key, &edks, NULL, 0));
 
     TEST_ASSERT(!test_kr.on_encrypt_called);
 
@@ -424,7 +421,6 @@ int on_encrypt_postcondition_violation() {
             kr,
             alloc,
             &unencrypted_data_key,
-            &keyring_trace,
             &edks,
             NULL,
             ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));
@@ -442,7 +438,7 @@ int on_decrypt_precondition_violation() {
     struct aws_byte_buf unencrypted_data_key = aws_byte_buf_from_c_str("Oops, already set!");
     TEST_ASSERT_ERROR(
         AWS_CRYPTOSDK_ERR_BAD_STATE,
-        aws_cryptosdk_keyring_on_decrypt(kr, alloc, &unencrypted_data_key, &keyring_trace, &edks, NULL, 0));
+        aws_cryptosdk_keyring_on_decrypt(kr, alloc, &unencrypted_data_key, &edks, NULL, 0));
 
     TEST_ASSERT(!test_kr.on_decrypt_called);
 
@@ -464,7 +460,6 @@ int on_decrypt_postcondition_violation() {
             kr,
             alloc,
             &unencrypted_data_key,
-            &keyring_trace,
             &edks,
             NULL,
             ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));

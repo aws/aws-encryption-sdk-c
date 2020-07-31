@@ -21,7 +21,6 @@ static struct aws_allocator *alloc;
 // FIXME: refactor to use one keyring pointer and one setup/teardown function pair
 static struct aws_cryptosdk_keyring *kr1;
 static struct aws_cryptosdk_keyring *kr2;
-static struct aws_array_list keyring_trace;
 static struct aws_array_list edks;
 static struct aws_byte_buf unencrypted_data_key = { 0 };
 // same key, after it has been encrypted and then decrypted
@@ -40,7 +39,6 @@ static int set_up_encrypt_with_wrong_key(enum aws_cryptosdk_rsa_padding_mode rsa
     kr1   = raw_rsa_keyring_tv_new_with_wrong_key(alloc, rsa_padding_mode);
     TEST_ASSERT_ADDR_NOT_NULL(kr1);
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_init(alloc, &keyring_trace));
     TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &edks));
 
     return 0;
@@ -49,7 +47,6 @@ static int set_up_encrypt_with_wrong_key(enum aws_cryptosdk_rsa_padding_mode rsa
 static void tear_down_encrypt() {
     aws_cryptosdk_keyring_release(kr1);
     aws_cryptosdk_edk_list_clean_up(&edks);
-    aws_cryptosdk_keyring_trace_clean_up(&keyring_trace);
     aws_byte_buf_clean_up(&unencrypted_data_key);
 }
 
@@ -58,7 +55,6 @@ static int set_up_encrypt_decrypt(enum aws_cryptosdk_rsa_padding_mode rsa_paddin
     kr2   = raw_rsa_keyring_tv_new(alloc, rsa_padding_mode);
     TEST_ASSERT_ADDR_NOT_NULL(kr2);
 
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_trace_init(alloc, &keyring_trace));
     TEST_ASSERT_SUCCESS(aws_cryptosdk_edk_list_init(alloc, &edks));
 
     return 0;
@@ -67,7 +63,6 @@ static int set_up_encrypt_decrypt(enum aws_cryptosdk_rsa_padding_mode rsa_paddin
 static void tear_down_encrypt_decrypt() {
     aws_cryptosdk_keyring_release(kr2);
     aws_cryptosdk_edk_list_clean_up(&edks);
-    aws_cryptosdk_keyring_trace_clean_up(&keyring_trace);
     aws_byte_buf_clean_up(&unencrypted_data_key);
     aws_byte_buf_clean_up(&decrypted_data_key);
 }
@@ -80,7 +75,7 @@ static int generate_decrypt_from_data_key() {
         for (int alg_idx = 0; alg_idx < sizeof(alg_ids) / sizeof(enum aws_cryptosdk_alg_id); ++alg_idx) {
             TEST_ASSERT_SUCCESS(set_up_encrypt_decrypt(rsa_padding_mode[wrap_idx]));
             TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_encrypt(
-                kr2, alloc, &unencrypted_data_key, &keyring_trace, &edks, NULL, alg_ids[alg_idx]));
+                kr2, alloc, &unencrypted_data_key, &edks, NULL, alg_ids[alg_idx]));
             TEST_ASSERT_ADDR_NOT_NULL(unencrypted_data_key.buffer);
 
             const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_ids[alg_idx]);
@@ -88,7 +83,7 @@ static int generate_decrypt_from_data_key() {
             TEST_ASSERT_INT_EQ(aws_array_list_length(&edks), 1);
 
             TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(
-                kr2, alloc, &decrypted_data_key, &keyring_trace, &edks, NULL, alg_ids[alg_idx]));
+                kr2, alloc, &decrypted_data_key, &edks, NULL, alg_ids[alg_idx]));
             TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &decrypted_data_key));
 
             tear_down_encrypt_decrypt();
@@ -109,11 +104,11 @@ static int encrypt_decrypt_data_key_from_test_vectors() {
         unencrypted_data_key = aws_byte_buf_from_array(data_key_dup, tv->data_key_len);
 
         TEST_ASSERT_SUCCESS(
-            aws_cryptosdk_keyring_on_encrypt(kr2, alloc, &unencrypted_data_key, &keyring_trace, &edks, NULL, tv->alg));
+            aws_cryptosdk_keyring_on_encrypt(kr2, alloc, &unencrypted_data_key, &edks, NULL, tv->alg));
         TEST_ASSERT_INT_EQ(aws_array_list_length(&edks), 1);
 
         TEST_ASSERT_SUCCESS(
-            aws_cryptosdk_keyring_on_decrypt(kr2, alloc, &decrypted_data_key, &keyring_trace, &edks, NULL, tv->alg));
+            aws_cryptosdk_keyring_on_decrypt(kr2, alloc, &decrypted_data_key, &edks, NULL, tv->alg));
         TEST_ASSERT(aws_byte_buf_eq(&unencrypted_data_key, &decrypted_data_key));
 
         tear_down_encrypt_decrypt();
@@ -132,9 +127,8 @@ static int encrypt_data_key_from_bad_rsa_public_key() {
     unencrypted_data_key = aws_byte_buf_from_array(data_key_dup, tv.data_key_len);
     TEST_ASSERT_ERROR(
         AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN,
-        aws_cryptosdk_keyring_on_encrypt(kr1, alloc, &unencrypted_data_key, &keyring_trace, &edks, NULL, tv.alg));
+        aws_cryptosdk_keyring_on_encrypt(kr1, alloc, &unencrypted_data_key, &edks, NULL, tv.alg));
     TEST_ASSERT_INT_EQ(aws_array_list_length(&edks), 0);
-    TEST_ASSERT(!aws_array_list_length(&keyring_trace));
     tear_down_encrypt();
 
     return 0;
