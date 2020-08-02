@@ -23,15 +23,13 @@ void aws_cryptosdk_sign_header_harness() {
 
     struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
 
+
     struct content_key *c_key;
     struct aws_byte_buf authtag;
     struct aws_byte_buf header;
 
     /* assumptions*/
-    __CPROVER_assume(props);
-    __CPROVER_assume(
-        props->impl->cipher_ctor == EVP_aes_128_gcm || props->impl->cipher_ctor == EVP_aes_192_gcm ||
-        props->impl->cipher_ctor == EVP_aes_256_gcm);
+    __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(props));
 
     __CPROVER_assume(aws_byte_buf_is_bounded(&authtag, MAX_BUFFER_SIZE));
     ensure_byte_buf_has_allocated_buffer_member(&authtag);
