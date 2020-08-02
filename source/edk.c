@@ -101,3 +101,9 @@ bool aws_cryptosdk_edk_list_is_valid(const struct aws_array_list *edk_list) {
     return true;
 #endif /* AWS_DEEP_CHECKS == 1 */
 }
+
+bool aws_cryptosdk_empty_edk_list_is_valid(const struct aws_array_list *edk_list) {
+    assert(edk_list->length == 0); //ensure that the list is empty
+    return AWS_OBJECT_PTR_IS_READABLE(edk_list) && aws_array_list_is_valid(edk_list) &&
+    (edk_list->item_size == sizeof(struct aws_cryptosdk_edk));
+}
