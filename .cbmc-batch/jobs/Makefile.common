@@ -150,9 +150,9 @@ common-git:
 	then \
 		cd $(BASEDIR); \
 		git clone --quiet --depth 30 https://github.com/awslabs/aws-c-common.git $(COMMON_REPO_NAME); \
-		cd $(COMMON_REPO_NAME); \
-		git reset --hard dd600468fbd25c6f31828010c28056c4d5c3ab35; \
-		cd $(BASEDIR); \
+    cd $(COMMON_REPO_NAME); \
+    git reset --hard dd600468fbd25c6f31828010c28056c4d5c3ab35; \
+    cd $(BASEDIR); \
 	else \
 		echo "c-common repo already exists. Nothing to do."; \
 	fi
