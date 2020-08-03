@@ -201,7 +201,7 @@ static int evp_gcm_decrypt_final(
         }
         return AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     }
-    AWS_FATAL_POSTCONDITION(outlen == 0); // wrong output size - potentially smashed stack
+    AWS_FATAL_POSTCONDITION(outlen == 0);  // wrong output size - potentially smashed stack
 
     return AWS_ERROR_SUCCESS;
 }

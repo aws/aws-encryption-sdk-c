@@ -23,7 +23,6 @@ void aws_cryptosdk_sign_header_harness() {
 
     struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
 
-
     struct content_key *c_key;
     struct aws_byte_buf authtag;
     struct aws_byte_buf header;
