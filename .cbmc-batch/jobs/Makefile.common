@@ -140,7 +140,7 @@ DEPENDENT_GOTOS = $(patsubst %.c,%.goto,$(DEPENDENCIES))
 define make_symlink
 	@ cd $(1) ; \
 	if [ ! -h $(3) ] ; then \
-		ln -s $(2) $(3) ; \
+	  ln -s $(2) $(3) ; \
 	fi
 endef
 
@@ -148,13 +148,13 @@ endef
 common-git:
 	@if [ ! -d $(COMMONDIR) ] ;\
 	then \
-		cd $(BASEDIR); \
-		git clone --quiet --depth 30 https://github.com/awslabs/aws-c-common.git $(COMMON_REPO_NAME); \
+	  cd $(BASEDIR); \
+	  git clone --quiet --depth 30 https://github.com/awslabs/aws-c-common.git $(COMMON_REPO_NAME); \
     cd $(COMMON_REPO_NAME); \
     git reset --hard dd600468fbd25c6f31828010c28056c4d5c3ab35; \
     cd $(BASEDIR); \
 	else \
-		echo "c-common repo already exists. Nothing to do."; \
+	  echo "c-common repo already exists. Nothing to do."; \
 	fi
 
 linkfarm-dir:
@@ -210,7 +210,7 @@ ifeq ($(REMOVE_FUNCTION_BODY), "")
 	echo "Not removing function bodies" | tee $(ENTRY)1.log ; exit $${PIPESTATUS[0]}
 else
 	$(GOTO_INSTRUMENT) $(REMOVE_FUNCTION_BODY) $< $@ \
-		2>&1 | tee $(ENTRY)2.log ; exit $${PIPESTATUS[0]}
+	  2>&1 | tee $(ENTRY)2.log ; exit $${PIPESTATUS[0]}
 endif
 
 
@@ -223,7 +223,7 @@ ifeq ($(ABSTRACTIONS), "")
 	echo "Not implementing abstractions" | tee $(ENTRY)2.log ; exit $${PIPESTATUS[0]}
 else
 	$(GOTO_CC) --function $(ENTRY) $(ABSTRACTIONS) $< $(INC) $(DEFINES) -o $@ \
-		2>&1 | tee $(ENTRY)2.log ; exit $${PIPESTATUS[0]}
+	  2>&1 | tee $(ENTRY)2.log ; exit $${PIPESTATUS[0]}
 endif
 
 ## Temporarily skipped steps
@@ -232,7 +232,7 @@ endif
 $(ENTRY)3.goto: $(ENTRY)2.goto
 ifeq ($(UNWIND_GOTO), 1)
 	$(GOTO_INSTRUMENT) $(UNWINDING) $< $@ \
-		2>&1 | tee $(ENTRY)3.log ; exit $${PIPESTATUS[0]}
+	  2>&1 | tee $(ENTRY)3.log ; exit $${PIPESTATUS[0]}
 else
 	cp $< $@
 	echo "Not unwinding goto program" | tee $(ENTRY)3.log ; exit $${PIPESTATUS[0]}
@@ -242,7 +242,7 @@ endif
 $(ENTRY)4.goto: $(ENTRY)3.goto
 ifeq ($(SIMPLIFY), 1)
 	$(GOTO_INSTRUMENT) --generate-function-body '.*' $< $@ \
-		2>&1 | tee $(ENTRY)4.log ; exit $${PIPESTATUS[0]}
+	  2>&1 | tee $(ENTRY)4.log ; exit $${PIPESTATUS[0]}
 else
 	cp $< $@
 	echo "Not generating-function-bodies in goto program" | tee $(ENTRY)4.log ; exit $${PIPESTATUS[0]}
@@ -252,7 +252,7 @@ endif
 $(ENTRY)5.goto: $(ENTRY)4.goto
 ifeq ($(SIMPLIFY), 1)
 	$(GOTO_ANALYZER) --simplify $@ $< \
-		2>&1 | tee $(ENTRY)5.log ; exit $${PIPESTATUS[0]}
+	  2>&1 | tee $(ENTRY)5.log ; exit $${PIPESTATUS[0]}
 else
 	cp $< $@
 	echo "Not simplfying goto program" | tee $(ENTRY)5.log ; exit $${PIPESTATUS[0]}
@@ -261,13 +261,13 @@ endif
 # Simplify the goto program by removing any unused function bodies
 $(ENTRY)6.goto: $(ENTRY)5.goto
 	$(GOTO_INSTRUMENT) --drop-unused-functions $< $@ \
-		2>&1 | tee $(ENTRY)6.log ; exit $${PIPESTATUS[0]}
+	  2>&1 | tee $(ENTRY)6.log ; exit $${PIPESTATUS[0]}
 
 # Simplify the goto program by slicing away initializations of unused
 # global variables
 $(ENTRY)7.goto: $(ENTRY)6.goto
 	$(GOTO_INSTRUMENT) --slice-global-inits $< $@ \
-		2>&1 | tee $(ENTRY)7.log ; exit $${PIPESTATUS[0]}
+	  2>&1 | tee $(ENTRY)7.log ; exit $${PIPESTATUS[0]}
 
 $(ENTRY).goto: $(ENTRY)7.goto
 	cp $< $@
