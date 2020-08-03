@@ -210,7 +210,7 @@ ifeq ($(REMOVE_FUNCTION_BODY), "")
 	echo "Not removing function bodies" | tee $(ENTRY)1.log ; exit $${PIPESTATUS[0]}
 else
 	$(GOTO_INSTRUMENT) $(REMOVE_FUNCTION_BODY) $< $@ \
-	  2>&1 | tee $(ENTRY)2.log ; exit $${PIPESTATUS[0]}
+	  2>&1 | tee $(ENTRY)1.log ; exit $${PIPESTATUS[0]}
 endif
 
 
