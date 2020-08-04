@@ -64,4 +64,7 @@ void ECDSA_SIG_free(ECDSA_SIG *sig);
 ECDSA_SIG *d2i_ECDSA_SIG(ECDSA_SIG **sig, const unsigned char **pp, long len);
 int i2d_ECDSA_SIG(const ECDSA_SIG *sig, unsigned char **pp);
 
+void initialize_max_encryption_size();
+void initialize_max_decryption_size();
+
 #endif
