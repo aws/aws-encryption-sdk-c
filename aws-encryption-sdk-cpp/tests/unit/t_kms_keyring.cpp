@@ -67,7 +67,6 @@ struct TestValues {
     aws_byte_buf pt_aws_byte;
     struct aws_hash_table encryption_context;
     struct aws_array_list edks;  // used in encrypt and generate, not decrypt
-    struct aws_array_list keyring_trace;
     Aws::Vector<Aws::String> grant_tokens;
 
     TestValues() : TestValues({ key_id }){};
@@ -82,7 +81,6 @@ struct TestValues {
           pt_aws_byte(aws_byte_buf_from_c_str(pt)),
           grant_tokens(grant_tokens) {
         if (aws_cryptosdk_enc_ctx_init(allocator, &encryption_context)) abort();
-        if (aws_cryptosdk_keyring_trace_init(allocator, &keyring_trace)) abort();
         if (aws_cryptosdk_edk_list_init(allocator, &edks)) abort();
     }
 
@@ -111,7 +109,6 @@ struct TestValues {
     ~TestValues() {
         aws_cryptosdk_keyring_release(kms_keyring);
         aws_cryptosdk_enc_ctx_clean_up(&encryption_context);
-        aws_cryptosdk_keyring_trace_clean_up(&keyring_trace);
         aws_cryptosdk_edk_list_clean_up(&edks);
     }
 };
@@ -261,12 +258,8 @@ class DecryptValues : public TestValues {
 static int t_encrypt_with_single_key_success(TestValues &tv, bool generated) {
     TEST_ASSERT_SUCCESS(t_assert_edks_with_single_element_contains_expected_values(
         &tv.edks, tv.ct, tv.key_id, tv.provider_id, tv.allocator));
-    TEST_ASSERT_INT_EQ(aws_array_list_length(&tv.keyring_trace), 1);
 
-    uint32_t flags = AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX;
-    if (generated) flags |= AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY;
-
-    return assert_keyring_trace_record(&tv.keyring_trace, 0, tv.provider_id, tv.key_id, flags);
+    return 0;
 }
 
 int encrypt_validInputs_returnSuccess() {
@@ -277,7 +270,6 @@ int encrypt_validInputs_returnSuccess() {
         ev.kms_keyring,
         ev.allocator,
         &ev.unencrypted_data_key,
-        &ev.keyring_trace,
         &ev.edks,
         &ev.encryption_context,
         ev.alg));
@@ -312,14 +304,6 @@ const Aws::Vector<Aws::String> fake_arns = { "arn:aws:kms:us-fake-1:999999999999
                                              "arn:aws:kms:us-fake-1:999999999999:key/2",
                                              "arn:aws:kms:us-fake-1:999999999999:key/3" };
 
-static int t_encrypt_multiple_keys_trace_success(struct aws_array_list *keyring_trace) {
-    uint32_t flags = AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX;
-    for (unsigned int i = 0; i < fake_arns.size(); i++) {
-        TEST_ASSERT_SUCCESS(assert_keyring_trace_record(keyring_trace, i, "aws-kms", fake_arns[i].c_str(), flags));
-    }
-    return 0;
-}
-
 int encrypt_validInputsMultipleKeys_returnSuccess() {
     EncryptTestValues ev(fake_arns);
     struct aws_array_list expected_edks;
@@ -333,12 +317,10 @@ int encrypt_validInputsMultipleKeys_returnSuccess() {
         ev.kms_keyring,
         ev.allocator,
         &ev.unencrypted_data_key,
-        &ev.keyring_trace,
         &ev.edks,
         &ev.encryption_context,
         ev.alg));
     TEST_ASSERT_SUCCESS(t_assert_edks_equals(&ev.edks, &expected_edks));
-    TEST_ASSERT_SUCCESS(t_encrypt_multiple_keys_trace_success(&ev.keyring_trace));
 
     TEST_ASSERT(!ev.kms_client_mock->ExpectingOtherCalls());
 
@@ -366,12 +348,10 @@ int encrypt_validInputsMultipleKeysWithGrantTokensAndEncContext_returnSuccess() 
         ev.kms_keyring,
         ev.allocator,
         &ev.unencrypted_data_key,
-        &ev.keyring_trace,
         &ev.edks,
         &ev.encryption_context,
         ev.alg));
     TEST_ASSERT_SUCCESS(t_assert_edks_equals(&ev.edks, &expected_edks));
-    TEST_ASSERT_SUCCESS(t_encrypt_multiple_keys_trace_success(&ev.keyring_trace));
 
     TEST_ASSERT(!ev.kms_client_mock->ExpectingOtherCalls());
 
@@ -394,7 +374,6 @@ int encrypt_multipleKeysOneFails_returnFail() {
             ev.kms_keyring,
             ev.allocator,
             &ev.unencrypted_data_key,
-            &ev.keyring_trace,
             &ev.edks,
             &ev.encryption_context,
             ev.alg));
@@ -429,7 +408,6 @@ int encrypt_multipleKeysOneFails_initialEdksAreNotAffected() {
             ev.kms_keyring,
             ev.allocator,
             &ev.unencrypted_data_key,
-            &ev.keyring_trace,
             &ev.edks,
             &ev.encryption_context,
             ev.alg));
@@ -453,7 +431,6 @@ int encrypt_kmsFails_returnError() {
             ev.kms_keyring,
             ev.allocator,
             &ev.unencrypted_data_key,
-            &ev.keyring_trace,
             &ev.edks,
             &ev.encryption_context,
             ev.alg));
@@ -462,12 +439,7 @@ int encrypt_kmsFails_returnError() {
 
 static int t_decrypt_success(DecryptValues &dv) {
     TEST_ASSERT(aws_byte_buf_eq(&dv.unencrypted_data_key, &dv.pt_aws_byte));
-    return assert_keyring_trace_record(
-        &dv.keyring_trace,
-        aws_array_list_length(&dv.keyring_trace) - 1,
-        "aws-kms",
-        dv.key_id,
-        AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX);
+    return 0;
 }
 
 int decrypt_validInputs_returnSuccess() {
@@ -483,7 +455,6 @@ int decrypt_validInputs_returnSuccess() {
         dv.kms_keyring,
         dv.allocator,
         &dv.unencrypted_data_key,
-        &dv.keyring_trace,
         &dv.edks.encrypted_data_keys,
         &dv.encryption_context,
         dv.alg));
@@ -503,11 +474,9 @@ int decrypt_validInputsButNoKeyMatched_returnSuccess() {
         dv.kms_keyring,
         dv.allocator,
         &dv.unencrypted_data_key,
-        &dv.keyring_trace,
         &dv.edks.encrypted_data_keys,
         &dv.encryption_context,
         dv.alg));
-    TEST_ASSERT(!aws_array_list_length(&dv.keyring_trace));
     TEST_ASSERT_ADDR_EQ(0, dv.unencrypted_data_key.buffer);
     TEST_ASSERT(!dv.kms_client_mock->ExpectingOtherCalls());
     return 0;
@@ -521,11 +490,9 @@ int decrypt_noKeys_returnSuccess() {
         dv.kms_keyring,
         dv.allocator,
         &dv.unencrypted_data_key,
-        &dv.keyring_trace,
         &dv.edks.encrypted_data_keys,
         &dv.encryption_context,
         dv.alg));
-    TEST_ASSERT(!aws_array_list_length(&dv.keyring_trace));
     TEST_ASSERT_ADDR_EQ(0, dv.unencrypted_data_key.buffer);
     TEST_ASSERT(!dv.kms_client_mock->ExpectingOtherCalls());
     return 0;
@@ -572,7 +539,6 @@ int decrypt_validInputsWithMultipleEdks_returnSuccess() {
         dv.kms_keyring,
         dv.allocator,
         &dv.unencrypted_data_key,
-        &dv.keyring_trace,
         &dv.edks.encrypted_data_keys,
         &dv.encryption_context,
         dv.alg));
@@ -594,7 +560,6 @@ int decrypt_validInputsWithMultipleEdksWithGrantTokensAndEncContext_returnSucces
         dv.kms_keyring,
         dv.allocator,
         &dv.unencrypted_data_key,
-        &dv.keyring_trace,
         &dv.edks.encrypted_data_keys,
         &dv.encryption_context,
         dv.alg));
@@ -613,7 +578,6 @@ int generateDataKey_validInputs_returnSuccess() {
         gv.kms_keyring,
         gv.allocator,
         &gv.unencrypted_data_key,
-        &gv.keyring_trace,
         &gv.edks,
         &gv.encryption_context,
         gv.alg));
@@ -641,7 +605,6 @@ int generateDataKey_validInputsWithGrantTokensAndEncContext_returnSuccess() {
         gv.kms_keyring,
         gv.allocator,
         &gv.unencrypted_data_key,
-        &gv.keyring_trace,
         &gv.edks,
         &gv.encryption_context,
         gv.alg));
@@ -666,12 +629,10 @@ int generateDataKey_kmsFails_returnFailure() {
             gv.kms_keyring,
             gv.allocator,
             &gv.unencrypted_data_key,
-            &gv.keyring_trace,
             &gv.edks,
             &gv.encryption_context,
             gv.alg));
     TEST_ASSERT(!aws_array_list_length(&gv.edks));
-    TEST_ASSERT(!aws_array_list_length(&gv.keyring_trace));
     TEST_ASSERT(!gv.kms_client_mock->ExpectingOtherCalls());
 
     return 0;
@@ -703,7 +664,6 @@ int t_assert_encrypt_with_default_values(aws_cryptosdk_keyring *kms_keyring, Enc
         kms_keyring,
         ev.allocator,
         &ev.unencrypted_data_key,
-        &ev.keyring_trace,
         &ev.edks,
         &ev.encryption_context,
         ev.alg));

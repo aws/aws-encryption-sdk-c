@@ -48,7 +48,6 @@ static int OnDecrypt(
     struct aws_cryptosdk_keyring *keyring,
     struct aws_allocator *request_alloc,
     struct aws_byte_buf *unencrypted_data_key,
-    struct aws_array_list *keyring_trace,
     const struct aws_array_list *edks,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
@@ -120,17 +119,8 @@ static int OnDecrypt(
 
         const Aws::String &outcome_key_id = outcome.GetResult().GetKeyId();
         if (outcome_key_id == key_arn) {
-            int ret = aws_byte_buf_dup_from_aws_utils(
+            return aws_byte_buf_dup_from_aws_utils(
                 request_alloc, unencrypted_data_key, outcome.GetResult().GetPlaintext());
-            if (ret == AWS_OP_SUCCESS) {
-                aws_cryptosdk_keyring_trace_add_record_c_str(
-                    request_alloc,
-                    keyring_trace,
-                    KEY_PROVIDER_STR,
-                    key_arn.c_str(),
-                    AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX);
-            }
-            return ret;
         }
     }
 
@@ -145,7 +135,6 @@ static int OnEncrypt(
     struct aws_cryptosdk_keyring *keyring,
     struct aws_allocator *request_alloc,
     struct aws_byte_buf *unencrypted_data_key,
-    struct aws_array_list *keyring_trace,
     struct aws_array_list *edk_list,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
@@ -185,10 +174,7 @@ static int OnEncrypt(
     }
 
     ListRaii my_edks(aws_cryptosdk_edk_list_init, aws_cryptosdk_edk_list_clean_up);
-    ListRaii my_keyring_trace(aws_cryptosdk_keyring_trace_init, aws_cryptosdk_keyring_trace_clean_up);
     int rv = my_edks.Create(request_alloc);
-    if (rv) return rv;
-    rv = my_keyring_trace.Create(request_alloc);
     if (rv) return rv;
 
     const auto enc_ctx_cpp = aws_map_from_c_aws_hash_table(enc_ctx);
@@ -237,13 +223,6 @@ static int OnEncrypt(
         rv = aws_byte_buf_dup_from_aws_utils(request_alloc, unencrypted_data_key, outcome.GetResult().GetPlaintext());
         if (rv != AWS_OP_SUCCESS) return rv;
         generated_new_data_key = true;
-        aws_cryptosdk_keyring_trace_add_record_c_str(
-            request_alloc,
-            &my_keyring_trace.list,
-            KEY_PROVIDER_STR,
-            key_id.c_str(),
-            AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY |
-                AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX);
     }
 
     const auto unencrypted_data_key_cpp = aws_utils_byte_buffer_from_c_aws_byte_buf(unencrypted_data_key);
@@ -290,17 +269,8 @@ static int OnEncrypt(
         if (rv != AWS_OP_SUCCESS) {
             goto out;
         }
-        aws_cryptosdk_keyring_trace_add_record_c_str(
-            request_alloc,
-            &my_keyring_trace.list,
-            KEY_PROVIDER_STR,
-            key_id.c_str(),
-            AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_SIGNED_ENC_CTX);
     }
     rv = aws_cryptosdk_transfer_list(edk_list, &my_edks.list);
-    if (rv == AWS_OP_SUCCESS) {
-        aws_cryptosdk_transfer_list(keyring_trace, &my_keyring_trace.list);
-    }
 out:
     if (rv != AWS_OP_SUCCESS && generated_new_data_key) {
         aws_byte_buf_clean_up(unencrypted_data_key);
