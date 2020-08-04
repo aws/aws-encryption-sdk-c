@@ -312,9 +312,10 @@ int EVP_PKEY_CTX_set_rsa_padding(EVP_PKEY_CTX *ctx, int pad) {
     assert(
         pad == RSA_PKCS1_PADDING || pad == RSA_SSLV23_PADDING || pad == RSA_NO_PADDING ||
         pad == RSA_PKCS1_OAEP_PADDING || pad == RSA_X931_PADDING || pad == RSA_PKCS1_PSS_PADDING);
-    if (pad == RSA_X931_PADDING) {
+    IMPLIES(pad == RSA_X931_PADDING, ctx->is_initialized_for_signing);
+    /*if (pad == RSA_X931_PADDING) {
         assert(ctx->is_initialized_for_signing);
-    }
+    }*/
     ctx->rsa_pad = pad;
     int rv;
     __CPROVER_assume(rv == 0 || rv == 1);
