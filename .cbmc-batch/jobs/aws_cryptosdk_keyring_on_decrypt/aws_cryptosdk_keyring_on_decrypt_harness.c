@@ -18,7 +18,6 @@
 
 #include <aws/cryptosdk/edk.h>
 #include <aws/cryptosdk/materials.h>
-#include <aws/cryptosdk/private/keyring_trace.h>
 
 #include <make_common_data_structures.h>
 
@@ -41,7 +40,6 @@ int on_decrypt(
     struct aws_cryptosdk_keyring *keyring,
     struct aws_allocator *request_alloc,
     struct aws_byte_buf *unencrypted_data_key,
-    struct aws_array_list *keyring_trace,
     struct aws_array_list *edks,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
@@ -49,7 +47,6 @@ int on_decrypt(
     assert(aws_cryptosdk_keyring_is_valid(keyring));
     assert(aws_allocator_is_valid(request_alloc));
     assert(aws_byte_buf_is_valid(unencrypted_data_key));
-    assert(aws_cryptosdk_keyring_trace_is_valid(keyring_trace));
     assert(aws_cryptosdk_edk_list_is_valid(edks));
     assert(aws_cryptosdk_edk_list_elements_are_valid(edks));
     assert((enc_ctx == NULL) || aws_hash_table_is_valid(enc_ctx));
@@ -88,15 +85,6 @@ void aws_cryptosdk_keyring_on_decrypt_harness() {
     struct aws_allocator *request_alloc = can_fail_allocator();
     __CPROVER_assume(aws_allocator_is_valid(request_alloc));
 
-    struct aws_array_list keyring_trace;
-    __CPROVER_assume(
-        aws_array_list_is_bounded(&keyring_trace, MAX_ITEM_SIZE, sizeof(struct aws_cryptosdk_keyring_trace_record)));
-    __CPROVER_assume(keyring_trace.item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
-    ensure_array_list_has_allocated_data_member(&keyring_trace);
-    __CPROVER_assume(aws_array_list_is_valid(&keyring_trace));
-    ensure_trace_has_allocated_records(&keyring_trace, MAX_STRING_LEN);
-    __CPROVER_assume(aws_cryptosdk_keyring_trace_is_valid(&keyring_trace));
-
     struct aws_byte_buf unencrypted_data_key;
     if (nondet_bool()) {
         /* The caller could send an empty unencrypted_data_key. */
@@ -127,14 +115,13 @@ void aws_cryptosdk_keyring_on_decrypt_harness() {
 
     /* Operation under verification. */
     if (aws_cryptosdk_keyring_on_decrypt(
-            &keyring, request_alloc, &unencrypted_data_key, &keyring_trace, &edks, enc_ctx, alg) == AWS_OP_SUCCESS) {
+            &keyring, request_alloc, &unencrypted_data_key, &edks, enc_ctx, alg) == AWS_OP_SUCCESS) {
         assert(aws_byte_buf_is_valid(&unencrypted_data_key));
     }
 
     /* Post-conditions. */
     assert(aws_cryptosdk_keyring_is_valid(&keyring));
     assert(aws_allocator_is_valid(request_alloc));
-    assert(aws_cryptosdk_keyring_trace_is_valid(&keyring_trace));
     assert(aws_cryptosdk_edk_list_is_valid(&edks));
     assert(aws_cryptosdk_edk_list_elements_are_valid(&edks));
     if (enc_ctx != NULL) assert(aws_hash_table_is_valid(enc_ctx));

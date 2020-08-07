@@ -41,7 +41,6 @@ DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/math.c
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/materials.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/keyring_trace.c
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/edk.c
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.c
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher.c

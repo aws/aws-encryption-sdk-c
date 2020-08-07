@@ -37,7 +37,6 @@ DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/math.c
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/materials.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/keyring_trace.c
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/edk.c
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.c
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher.c
@@ -47,7 +46,6 @@ DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/atomics.c
 REMOVE_FUNCTION_BODY += --remove-function-body aws_array_list_get_at_ptr
 REMOVE_FUNCTION_BODY += --remove-function-body aws_cryptosdk_edk_is_valid
 REMOVE_FUNCTION_BODY += --remove-function-body aws_cryptosdk_edk_clean_up
-REMOVE_FUNCTION_BODY += --remove-function-body aws_cryptosdk_keyring_trace_record_is_valid
 REMOVE_FUNCTION_BODY += --remove-function-body aws_cryptosdk_sig_ctx_is_valid
 
 ENTRY = aws_cryptosdk_enc_materials_new_harness

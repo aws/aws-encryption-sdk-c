@@ -17,7 +17,6 @@
  */
 
 #include <aws/cryptosdk/materials.h>
-#include <aws/cryptosdk/private/keyring_trace.h>
 #include <cbmc_invariants.h>
 #include <cipher_openssl.h>
 #include <make_common_data_structures.h>
@@ -64,14 +63,6 @@ void aws_cryptosdk_enc_materials_destroy_harness() {
         ensure_cryptosdk_edk_list_has_allocated_list_elements(&materials->encrypted_data_keys);
         __CPROVER_assume(aws_cryptosdk_edk_list_elements_are_valid(&materials->encrypted_data_keys));
         */
-        // Set up the keyring trace
-        __CPROVER_assume(aws_array_list_is_bounded(
-            &materials->keyring_trace, MAX_NUM_ITEMS, sizeof(struct aws_cryptosdk_keyring_trace_record)));
-        __CPROVER_assume(materials->keyring_trace.item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
-        ensure_array_list_has_allocated_data_member(&materials->keyring_trace);
-        __CPROVER_assume(aws_array_list_is_valid(&materials->keyring_trace));
-        ensure_trace_has_allocated_records(&materials->keyring_trace, MAX_STRING_LEN);
-        __CPROVER_assume(aws_cryptosdk_keyring_trace_is_valid(&materials->keyring_trace));
 
         __CPROVER_assume(aws_cryptosdk_enc_materials_is_valid(materials));
     }

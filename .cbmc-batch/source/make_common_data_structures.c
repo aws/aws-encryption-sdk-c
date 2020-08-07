@@ -14,10 +14,8 @@
  */
 
 #include <aws/cryptosdk/cipher.h>
-#include <aws/cryptosdk/keyring_trace.h>
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/private/hkdf.h>
-#include <aws/cryptosdk/private/keyring_trace.h>
 #include <aws/cryptosdk/private/multi_keyring.h>
 #include <cipher_openssl.h>
 #include <ec_utils.h>
@@ -36,24 +34,6 @@ void ensure_alg_properties_attempt_allocation(struct aws_cryptosdk_alg_propertie
     alg_props->cipher_name = can_fail_malloc(cipher_name_size);
     size_t alg_name_size;
     alg_props->alg_name = can_fail_malloc(alg_name_size);
-}
-
-void ensure_record_has_allocated_members(struct aws_cryptosdk_keyring_trace_record *record, size_t max_len) {
-    record->wrapping_key_namespace = ensure_string_is_allocated_bounded_length(max_len);
-    record->wrapping_key_name      = ensure_string_is_allocated_bounded_length(max_len);
-    record->flags                  = malloc(sizeof(uint32_t));
-}
-
-void ensure_trace_has_allocated_records(struct aws_array_list *trace, size_t max_len) {
-    /* iterate over each record in the keyring trace */
-    size_t num_records = aws_array_list_length(trace);
-    for (size_t idx = 0; idx < num_records; ++idx) {
-        struct aws_cryptosdk_keyring_trace_record *record;
-        if (!aws_array_list_get_at_ptr(trace, (void **)&record, idx)) {
-            /* make sure each record is valid */
-            ensure_record_has_allocated_members(record, max_len);
-        }
-    }
 }
 
 void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ctx) {

@@ -60,7 +60,6 @@ DEPENDENCIES += $(SRCDIR)/c-common-src/string.c
 
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher.c
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/edk.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/keyring_trace.c
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/materials.c
 
 DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
@@ -72,8 +71,6 @@ addone = $(shell echo $$(( $(1) + 1)))
 # memcmp is invoked to compare two aws_byte_buf objetcs,
 # so the upper bound limit is the size of aws_byte_buf + 1
 UNWINDSET += memcmp.0:33
-UNWINDSET += aws_cryptosdk_keyring_trace_is_valid.0:$(call addone,$(MAX_ITEM_SIZE))
-UNWINDSET += ensure_trace_has_allocated_records.0:$(call addone,$(MAX_ITEM_SIZE))
 UNWINDSET += aws_cryptosdk_edk_list_elements_are_bounded.0:$(call addone,$(NUM_ELEMS))
 UNWINDSET += aws_cryptosdk_edk_list_elements_are_valid.0:$(call addone,$(NUM_ELEMS))
 UNWINDSET += aws_cryptosdk_edk_list_is_bounded.0:$(call addone,$(NUM_ELEMS))
