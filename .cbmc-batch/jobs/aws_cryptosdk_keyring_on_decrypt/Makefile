@@ -26,9 +26,9 @@ DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
 NUM_ELEMS = 1
 DEFINES += -DNUM_ELEMS=$(NUM_ELEMS)
 
-DEFINES += -DARRAY_LIST_TYPE="struct aws_cryptosdk_keyring_trace_record"
+DEFINES += -DARRAY_LIST_TYPE="struct aws_cryptosdk_edk"
 DEFINES += -DAWS_NO_STATIC_IMPL
-DEFINES += -DARRAY_LIST_TYPE_HEADER=\"aws/cryptosdk/keyring_trace.h\"
+DEFINES += -DARRAY_LIST_TYPE_HEADER=\"aws/cryptosdk/edk.h\"
 
 CBMCFLAGS +=
 
