@@ -28,4 +28,7 @@ COMMON_HELPERDIR ?= $(COMMONDIR)/.cbmc-batch
 SDKDIR ?= $(abspath ../../..)
 HELPERDIR ?= $(SDKDIR)/.cbmc-batch
 
+CWD = $(abspath .)
+GOTO_DIR = $(CWD)/gotos
+
 addone = $(shell echo $$(( $(1) + 1)))

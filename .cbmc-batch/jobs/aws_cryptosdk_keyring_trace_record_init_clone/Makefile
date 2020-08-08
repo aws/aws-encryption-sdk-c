@@ -27,7 +27,7 @@ DEPENDENCIES +=	$(SRCDIR)/c-common-src/string.c
 DEPENDENCIES +=	$(SRCDIR)/c-enc-sdk-src/cipher.c
 DEPENDENCIES +=	$(SRCDIR)/c-enc-sdk-src/keyring_trace.c
 DEPENDENCIES +=	$(SRCDIR)/c-enc-sdk-src/utils.c
-DEPENDENCIES += $(COMMON_HELPERDIR)/stubs/memcmp_override.c
+DEPENDENCIES += $(GOTODIR)/$(COMMON_HELPERDIR)/stubs/memcmp_override.c
 DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
 
 ENTRY = aws_cryptosdk_keyring_trace_record_init_clone_harness

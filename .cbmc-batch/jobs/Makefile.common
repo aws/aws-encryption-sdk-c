@@ -80,14 +80,18 @@ DEFINES += -DCBMC=1
 
 ################################################################
 # Setup directory aliases
-BASEDIR ?= $(abspath ../../../..)
+
+PROOF_ROOT ?= $(dir $(abspath $(filter %/Makefile.common,$(MAKEFILE_LIST))))
+BASEDIR ?= $(abspath $(PROOF_ROOT)/../..)
 SRCDIR ?= $(abspath ./link-farm)
-SDKDIR ?= $(abspath ../../..)
+SDKDIR ?= $(abspath $(PROOF_ROOT)/../..)
 HELPERDIR ?= $(SDKDIR)/.cbmc-batch
 LINKFARM = $(abspath ./link-farm)
 COMMON_REPO_NAME ?= aws-c-common-for-cryptosdk-proofs
 COMMONDIR ?= $(BASEDIR)/$(COMMON_REPO_NAME)
 COMMON_HELPERDIR ?= $(COMMONDIR)/.cbmc-batch
+
+LITANI ?= $(PROOF_ROOT)/../litani/litani
 
 ################################################################
 # Setup include directory order
@@ -149,36 +153,35 @@ common-git:
 	@if [ ! -d $(COMMONDIR) ] ;\
 	then \
 	  cd $(BASEDIR); \
-	  git clone --quiet --depth 30 https://github.com/awslabs/aws-c-common.git $(COMMON_REPO_NAME); \
+	  git clone --quiet --depth 30 https://github.com/awslabs/aws-c-common.git $(COMMONDIR); \
     cd $(COMMON_REPO_NAME); \
     git reset --hard dd600468fbd25c6f31828010c28056c4d5c3ab35; \
-    cd $(BASEDIR); \
 	else \
-	  echo "c-common repo already exists. Nothing to do."; \
+	  echo "c-common repo already exists; not cloning."; \
 	fi
 
-linkfarm-dir:
-	mkdir -p link-farm
+$(LINKFARM):
+	mkdir -p $@
 
 # If we have dangling links here, batch is not happy. So make them as needed.
-common-symlinks: common-git linkfarm-dir
+common-symlinks: $(LINKFARM)
 	$(call make_symlink, $(LINKFARM), $(COMMONDIR)/include, c-common-inc)
 	$(call make_symlink, $(LINKFARM), $(COMMONDIR)/source, c-common-src)
 
-common-helper-symlinks: common-git linkfarm-dir
+common-helper-symlinks: $(LINKFARM)
 	$(call make_symlink, $(LINKFARM), $(COMMON_HELPERDIR)/include, c-common-helper-inc)
 	$(call make_symlink, $(LINKFARM), $(COMMON_HELPERDIR)/source, c-common-helper-src)
 	$(call make_symlink, $(LINKFARM), $(COMMON_HELPERDIR)/stubs, c-common-helper-stubs)
 	$(call make_symlink, $(LINKFARM), $(COMMON_HELPERDIR)/uninline, c-common-helper-uninline)
 
-enc-sdk-symlinks: linkfarm-dir
+enc-sdk-symlinks: $(LINKFARM)
 	$(call make_symlink, $(LINKFARM), $(SDKDIR)/include, c-enc-sdk-inc)
 	$(call make_symlink, $(LINKFARM), $(SDKDIR)/source, c-enc-sdk-src)
 
-harness-symlink: linkfarm-dir
+harness-symlink: $(LINKFARM)
 	$(call make_symlink, $(LINKFARM), ../$(HARNESS_NAME), $(HARNESS_NAME));
 
-helper-symlinks: linkfarm-dir
+helper-symlinks: $(LINKFARM)
 	$(call make_symlink, $(LINKFARM), $(HELPERDIR)/include, helper-inc)
 	$(call make_symlink, $(LINKFARM), $(HELPERDIR)/source, helper-src)
 	$(call make_symlink, $(LINKFARM), $(HELPERDIR)/stubs, helper-stubs)
@@ -190,105 +193,230 @@ fill-linkfarm: harness-symlink enc-sdk-symlinks common-symlinks common-helper-sy
 # Other libraries that use this Makefile template may wish to do
 # actual work here
 setup_dependencies: fill-linkfarm
-	echo "Setting up dependencies"
 
 # Here, whenever there is a change in any of ANSI-C source
 # dependency files, make will take action. However, to make
 # sure changes in the headers files will also trigger make,
 # the user must run make clean first.
-$(ENTRY)0.goto: setup_dependencies $(ENTRY).c $(DEPENDENT_GOTOS)
-	$(GOTO_CC) $(ENTRY).c $(DEPENDENT_GOTOS) \
-	  --export-file-local-symbols $(CBMC_VERBOSITY) \
-	  --function $(ENTRY) $(DEPENDENT_GOTOS) $(INC) $(DEFINES) -o $@ \
-	  2>&1 | tee $(ENTRY)1.log ; exit $${PIPESTATUS[0]}
+$(GOTO_DIR)/$(ENTRY)0.goto: setup_dependencies $(CWD)/$(ENTRY).c $(DEPENDENT_GOTOS)
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage build \
+	  --interleave-stdout-stderr \
+	  --description "$(ENTRY): building initial goto-binary"\
+	  --command \
+	    '$(GOTO_CC) $(ENTRY).c $(DEPENDENT_GOTOS) \
+	      --export-file-local-symbols $(CBMC_VERBOSITY) \
+	      --function $(ENTRY) $(DEPENDENT_GOTOS) $(INC) $(DEFINES) -o $@'
 
 # Removes specified function bodies. This allows us to replace
 # function definitions with ABSTRACTIONS.
-$(ENTRY)1.goto: $(ENTRY)0.goto
+$(GOTO_DIR)/$(ENTRY)1.goto: $(GOTO_DIR)/$(ENTRY)0.goto
 ifeq ($(REMOVE_FUNCTION_BODY), "")
-	cp $< $@
-	echo "Not removing function bodies" | tee $(ENTRY)1.log ; exit $${PIPESTATUS[0]}
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage build \
+	  --interleave-stdout-stderr \
+	  --description "$(ENTRY): not removing function bodies"\
+	  --command 'cp $< $@'
 else
-	$(GOTO_INSTRUMENT) $(REMOVE_FUNCTION_BODY) $< $@ \
-	  2>&1 | tee $(ENTRY)1.log ; exit $${PIPESTATUS[0]}
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage build \
+	  --interleave-stdout-stderr \
+	  --description "$(ENTRY): removing function bodies"\
+	  --command '$(GOTO_INSTRUMENT) $(REMOVE_FUNCTION_BODY) $< $@'
 endif
 
 
 # ABSTRACTIONS is a list of function stubs to use. If a function body
 # is missing and is not abstracted, then it returnes a non
 # deterministic value.
-$(ENTRY)2.goto: $(ENTRY)1.goto
+$(GOTO_DIR)/$(ENTRY)2.goto: $(GOTO_DIR)/$(ENTRY)1.goto
 ifeq ($(ABSTRACTIONS), "")
-	cp $< $@
-	echo "Not implementing abstractions" | tee $(ENTRY)2.log ; exit $${PIPESTATUS[0]}
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage build \
+	  --interleave-stdout-stderr \
+	  --description "$(ENTRY): not implementing abstractions"\
+	  --command 'cp $< $@'
 else
-	$(GOTO_CC) --function $(ENTRY) $(ABSTRACTIONS) $< $(INC) $(DEFINES) -o $@ \
-	  2>&1 | tee $(ENTRY)2.log ; exit $${PIPESTATUS[0]}
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage build \
+	  --interleave-stdout-stderr \
+	  --description "$(ENTRY): linking in abstractions" \
+	  --command \
+	    '$(GOTO_CC) --function $(ENTRY) $(ABSTRACTIONS) $< $(INC) $(DEFINES) -o $@'
 endif
 
 ## Temporarily skipped steps
 
 # Simplify and constant propagation may benefit from unwinding first
-$(ENTRY)3.goto: $(ENTRY)2.goto
+$(GOTO_DIR)/$(ENTRY)3.goto: $(GOTO_DIR)/$(ENTRY)2.goto
 ifeq ($(UNWIND_GOTO), 1)
-	$(GOTO_INSTRUMENT) $(UNWINDING) $< $@ \
-	  2>&1 | tee $(ENTRY)3.log ; exit $${PIPESTATUS[0]}
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage build \
+	  --interleave-stdout-stderr \
+	  --description "$(ENTRY): unwinding loops"\
+	  --command '$(GOTO_INSTRUMENT) $(UNWINDING) $< $@'
 else
-	cp $< $@
-	echo "Not unwinding goto program" | tee $(ENTRY)3.log ; exit $${PIPESTATUS[0]}
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage build \
+	  --interleave-stdout-stderr \
+	  --description "$(ENTRY): not unwinding loops"\
+	  --command 'cp $< $@'
 endif
 
 # Skip simplify (and hence generate-function-body) until missing source locations debugged
-$(ENTRY)4.goto: $(ENTRY)3.goto
+$(GOTO_DIR)/$(ENTRY)4.goto: $(GOTO_DIR)/$(ENTRY)3.goto
 ifeq ($(SIMPLIFY), 1)
-	$(GOTO_INSTRUMENT) --generate-function-body '.*' $< $@ \
-	  2>&1 | tee $(ENTRY)4.log ; exit $${PIPESTATUS[0]}
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage build \
+	  --interleave-stdout-stderr \
+	  --description "$(ENTRY): generating bodies for functions"\
+	  --command '$(GOTO_INSTRUMENT) --generate-function-body '.*' $< $@'
 else
-	cp $< $@
-	echo "Not generating-function-bodies in goto program" | tee $(ENTRY)4.log ; exit $${PIPESTATUS[0]}
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage build \
+	  --interleave-stdout-stderr \
+	  --description "$(ENTRY): not generating bodies for functions"\
+	  --command 'cp $< $@'
 endif
 
 # Skip simplify (and hence generate-function-body) until missing source locations debugged
-$(ENTRY)5.goto: $(ENTRY)4.goto
+$(GOTO_DIR)/$(ENTRY)5.goto: $(GOTO_DIR)/$(ENTRY)4.goto
 ifeq ($(SIMPLIFY), 1)
-	$(GOTO_ANALYZER) --simplify $@ $< \
-	  2>&1 | tee $(ENTRY)5.log ; exit $${PIPESTATUS[0]}
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage build \
+	  --interleave-stdout-stderr \
+	  --description "$(ENTRY): simplifying goto program"\
+	  --command '$(GOTO_ANALYZER) --simplify $@ $<'
 else
-	cp $< $@
-	echo "Not simplfying goto program" | tee $(ENTRY)5.log ; exit $${PIPESTATUS[0]}
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage build \
+	  --interleave-stdout-stderr \
+	  --description "$(ENTRY): not simplifying goto program"\
+	  --command 'cp $< $@'
 endif
 
 # Simplify the goto program by removing any unused function bodies
-$(ENTRY)6.goto: $(ENTRY)5.goto
-	$(GOTO_INSTRUMENT) --drop-unused-functions $< $@ \
-	  2>&1 | tee $(ENTRY)6.log ; exit $${PIPESTATUS[0]}
+$(GOTO_DIR)/$(ENTRY)6.goto: $(GOTO_DIR)/$(ENTRY)5.goto
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage build \
+	  --interleave-stdout-stderr \
+	  --description "$(ENTRY): dropping unused functions"\
+	  --command '$(GOTO_INSTRUMENT) --drop-unused-functions $< $@'
 
 # Simplify the goto program by slicing away initializations of unused
 # global variables
-$(ENTRY)7.goto: $(ENTRY)6.goto
-	$(GOTO_INSTRUMENT) --slice-global-inits $< $@ \
-	  2>&1 | tee $(ENTRY)7.log ; exit $${PIPESTATUS[0]}
+$(GOTO_DIR)/$(ENTRY)7.goto: $(GOTO_DIR)/$(ENTRY)6.goto
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage build \
+	  --interleave-stdout-stderr \
+	  --description "$(ENTRY): slicing inits of unused globals" \
+	  --command '$(GOTO_INSTRUMENT) --slice-global-inits $< $@'
 
-$(ENTRY).goto: $(ENTRY)7.goto
-	cp $< $@
+$(GOTO_DIR)/$(ENTRY).goto: $(GOTO_DIR)/$(ENTRY)7.goto
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage build \
+	  --interleave-stdout-stderr \
+	  --description "$(ENTRY): copying final goto-binary" \
+	  --command 'cp $< $@'
 
 # Catch-all used for building goto-binaries of the individual
-# dependencies, which are then linked in the $(ENTRY)0.goto rule above
+# dependencies, which are then linked in the $(ENTRY)0.goto rule above.
+# This builds each dependency of each proof under the gotos subdirectory
+# of that proof, so that the same dependency can be built for multiple
+# proofs.
 %.goto: %.c
-	$(GOTO_CC) -c $< --export-file-local-symbols $(CBMC_VERBOSITY) \
-	  $(INC) $(DEFINES) -o $@ \
-	  2>&1 | tee $(dir $<)/$(notdir $<).log ; exit $${PIPESTATUS[0]}
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage build \
+	  --interleave-stdout-stderr \
+	  --description "$(ENTRY): building dependency '$(basename $@)'" \
+	  --command \
+	    'mkdir -p $(dirname $@) && \
+	     $(GOTO_CC) -c $< --export-file-local-symbols $(CBMC_VERBOSITY) \
+	       $(INC) $(DEFINES) -o $@'
 
 goto: $(ENTRY).goto
 
-cbmc.log: $(ENTRY).goto
-	cbmc $(CBMCFLAGS) --trace $< 2>&1 | tee $@
+$(CWD)/cbmc.log: $(GOTO_DIR)/$(ENTRY).goto
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage test \
+	  --interleave-stdout-stderr \
+	  --stdout-file $@ \
+	  --description "$(ENTRY): running safety checks" \
+	  --tags "stats-group:safety checks" \
+	  --ignore-returns 10 \
+	  --command 'cbmc $(CBMCFLAGS) --trace'
 
-property.xml: $(ENTRY).goto
-	cbmc $(CBMCFLAGS) --show-properties --xml-ui $< 2>&1 > $@
+$(CWD)/property.xml: $(GOTO_DIR)/$(ENTRY).goto
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage test \
+	  --interleave-stdout-stderr \
+	  --stdout-file $@ \
+	  --description "$(ENTRY): printing properties" \
+	  --command 'cbmc $(CBMCFLAGS) --show-properties --xml-ui $<'
 
-coverage.xml: $(ENTRY).goto
-	cbmc $(filter-out --unwinding-assertions,$(CBMCFLAGS)) --cover location --xml-ui $< 2>&1 > $@
+$(CWD)/coverage.xml: $(GOTO_DIR)/$(ENTRY).goto
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage test \
+	  --interleave-stdout-stderr \
+	  --stdout-file $@ \
+	  --tags "stats-group:coverage computation" \
+	  --description "$(ENTRY): computing coverage" \
+	  --command \
+	    'cbmc $(filter-out --unwinding-assertions,$(CBMCFLAGS)) --cover location --xml-ui $<'
 
 cbmc: cbmc.log
 
@@ -296,15 +424,24 @@ property: property.xml
 
 coverage: coverage.xml
 
-report: cbmc.log property.xml coverage.xml
-	$(VIEWER) \
-	--block coverage.xml \
-	--goto $(ENTRY).goto \
-	--htmldir html \
-	--property property.xml \
-	--result cbmc.log \
-	--srcdir $(SRCDIR) \
-	--srcexclude "(./verification|./tests|./tools|./lib/third_party)"
+_report: $(CWD)/cbmc.log $(CWD)/property.xml $(CWD)/coverage.xml
+	$(LITANI) add-job \
+	  --inputs $^ \
+	  --outputs $(CWD)/html \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage report \
+	  --interleave-stdout-stderr \
+	  --tags "stats-group:report generation" \
+	  --description "$(ENTRY): generating report" \
+	  --command \
+	    '$(VIEWER) \
+	      --block $(CWD)/coverage.xml \
+	      --goto $(ENTRY).goto \
+	      --htmldir $(CWD)/html \
+	      --property $(CWD)/property.xml \
+	      --result $(CWD)/cbmc.log \
+	      --srcdir $(SRCDIR) \
+	      --srcexclude "(./verification|./tests|./tools|./lib/third_party)"'
 
 propertyreport: cbmc.log property.xml
 	$(VIEWER) \
@@ -313,7 +450,7 @@ propertyreport: cbmc.log property.xml
 	--property property.xml \
 	--result cbmc.log \
 	--srcdir $(SRCDIR) \
-	--srcexclude "(./verification|./tests|./tools|./lib/third_party)"
+	--srcexclude '(./verification|./tests|./tools|./lib/third_party)'
 
 clean:
 	$(RM) *.goto
@@ -329,8 +466,11 @@ veryclean: clean
 gitclean: veryclean
 	$(RM) -r $(COMMONDIR)
 
+litani-path:
+	@echo $(LITANI)
+
 .PHONY: cbmc property coverage report clean veryclean common-symlinks common-git harness-symlink fill-linkfarm helper-symlinks ci-yaml
 
-.PHONY: setup_dependencies cbmc property coverage report clean veryclean
+.PHONY: setup_dependencies cbmc property coverage report clean veryclean litani-path
 
 include $(HELPERDIR)/jobs/Makefile.cbmc_batch
