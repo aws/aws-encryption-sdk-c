@@ -5,8 +5,10 @@ why the uncovered lines of code are unreachable code.
 
 Some functions contain unreachable blocks of code:
 
-* aws_array_list_is_valid
+* `aws_array_list_is_valid`
+
     * list is never NULL
 
-* aws_mul_u64_checked
+* `aws_mul_u64_checked`
+
     *  Multiplication never results in an overflow. 
