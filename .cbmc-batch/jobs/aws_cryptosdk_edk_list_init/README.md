@@ -1,10 +1,12 @@
-# Expected Coverage 
+# Memory safety proof for aws_cryptosdk_edk_list_init
 
-0.97 (62 lines out of 64 statically-reachable lines in 13 functions reached)
-0.97 (62 lines out of 64 statically-reachable lines in 13 statically-reachable functions)
+This proof harness attains 97% code coverage.  The following comments explain
+why the uncovered lines of code are unreachable code.
 
-## Expected Functions with Incomplete Coverage 
+Some functions contain unreachable blocks of code:
 
-(10/11)	aws_array_list_is_valid: list is never NULL
+* aws_array_list_is_valid
+    * list is never NULL
 
-(4/5) aws_mul_u64_checked: Multiplication never results in an overflow. 
+* aws_mul_u64_checked
+    *  Multiplication never results in an overflow. 
