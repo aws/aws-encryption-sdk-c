@@ -41,8 +41,8 @@ void aws_cryptosdk_decrypt_body_harness() {
 
     struct content_key *content_key;
 
+    /* Need to allocate tag_len bytes for writing the tag */
     uint8_t *tag = malloc(props->tag_len);
-    // possible that more memory could be allocated, but need to be able to write tag_len bytes to buffer tag.
 
     int body_frame_type;
 

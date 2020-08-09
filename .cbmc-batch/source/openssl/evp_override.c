@@ -502,16 +502,20 @@ int EVP_CipherInit_ex(
 int EVP_CIPHER_CTX_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg, void *ptr) {
     if (type == EVP_CTRL_GCM_SET_IVLEN || type == EVP_CTRL_AEAD_SET_IVLEN) {
         assert(ctx->iv_set == false);
-        assert(arg > 0);  // IV length must be positive.
+        /* iv length must be positive */
+        assert(arg > 0);
         ctx->iv_len = arg;
     }
-    assert(IMPLIES(type == EVP_CTRL_GCM_GET_TAG, ctx->encrypt == 1));  // only legal when encrypting data
+
+    /* Only legal when encrypting data. */
+    assert(IMPLIES(type == EVP_CTRL_GCM_GET_TAG, ctx->encrypt == 1));
     assert(IMPLIES(type == EVP_CTRL_GCM_GET_TAG, ctx->data_processed == true));
-    // need to be able to write taglen (arg) bytes to buffer ptr.
+    /* Need to be able to write taglen (arg) bytes to buffer ptr. */
     assert(IMPLIES(type == EVP_CTRL_GCM_GET_TAG, AWS_MEM_IS_WRITABLE(ptr, arg)));
 
-    assert(IMPLIES(type == EVP_CTRL_GCM_SET_TAG, ctx->encrypt == 0));  // only legal when decrypting data
-    // need to be able to write taglen (arg) bytes to buffer ptr.
+    /* Only legal when decrypting data. */
+    assert(IMPLIES(type == EVP_CTRL_GCM_SET_TAG, ctx->encrypt == 0));
+    /* Need to be able to write taglen (arg) bytes to buffer ptr. */
     assert(IMPLIES(type == EVP_CTRL_GCM_SET_TAG, AWS_MEM_IS_WRITABLE(ptr, arg)));
 
     int rv;
