@@ -1,18 +1,44 @@
-# Expected Coverage 
+# Memory safety proof for aws_cryptosdk_md_finish
 
-0.91 (73 lines out of 80 statically-reachable lines in 19 functions reached)
-0.70 (73 lines out of 105 statically-reachable lines in 27 statically-reachable functions)
+This proof harness attains 70% code coverage.  The following comments explain
+why the uncovered lines of code are unreachable code.
 
-## Expected Functions with Incomplete Coverage 
+Some functions contain unreachable blocks of code:
 
-(4/5) aws_cryptosdk_md_abort: md_context is never NULL
-(4/6) aws_raise_error_private: 
-(2/6) EVP_PKEY_free: pkey field of EVP_MD_CTX is always NULL, therefore there is nothing to free. 
-(0/2) BN_clear_free: function never reached, part of chain originating with EVP_PKEY_free
-(0/2) BN_free: function never reached, part of chain originating with EVP_PKEY_free
-(0/2) bignum_is_valid: function never called, part of chain originating with evp_md_ctx_is_valid. 
-(0/4) EC_GROUP_free: function never reached, part of chain originating with EVP_PKEY_free
-(0/7) EC_KEY_free: function never reached, part of chain originating with EVP_PKEY_free
-(0/3) ec_group_is_valid: function never called, part of chain originating with evp_md_ctx_is_valid. 
-(0/3) ec_key_is_valid: function never called, part of chain originating with evp_md_ctx_is_valid. 
-(0/2) evp_pkey_is_valid: Since pkey is always NULL, this is never called from evp_md_ctx_is_valid. 
+* `aws_cryptosdk_md_abort`:
+
+    * md_context is never NULL
+
+* `EVP_PKEY_free`:
+
+    * pkey field of EVP_MD_CTX is always NULL, therefore there is nothing to free
+
+Some functions are simply unreachable:
+
+* `BN_clear_free`
+
+    * Only function call is from a chain starting at the unreachable block of EVP_PKEY_free
+
+* `bignum_is_valid`
+
+    * Only function call is from a chain starting at an unreachable condition in evp_md_ctx_is_valid
+
+* `EC_GROUP_free`
+
+    * Only function call is from a chain starting at the unreachable block of EVP_PKEY_free
+
+* `EC_KEY_free`
+
+    * Only function call is from a chain starting at the unreachable block of EVP_PKEY_free
+
+* `ec_group_is_valid`
+
+    * Only function call is from a chain starting at an unreachable condition in evp_md_ctx_is_valid
+
+* `ec_key_is_valid`
+
+    * Only function call is from a chain starting at an unreachable condition in evp_md_ctx_is_valid
+
+* `evp_pkey_is_valid`
+
+    * Only function call is from a chain starting at an unreachable condition in evp_md_ctx_is_valid
