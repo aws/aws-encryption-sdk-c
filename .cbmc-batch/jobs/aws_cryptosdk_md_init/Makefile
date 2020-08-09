@@ -27,8 +27,8 @@ CBMCFLAGS += --memory-leak-check
 ENTRY = aws_cryptosdk_md_init_harness
 
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.goto
+DEPENDENCIES += $(SRCDIR)/c-common-helper-stubs/error.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/common.goto
-DEPENDENCIES += $(SRCDIR)/c-common-src/error.goto
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/cbmc_invariants.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/bn_override.goto
