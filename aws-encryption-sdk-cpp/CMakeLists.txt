@@ -101,6 +101,14 @@ if (AWS_ENC_SDK_KNOWN_GOOD_TESTS)
         ${PROJECT_SOURCE_DIR}/tests/integration
         $<INSTALL_INTERFACE:include>
         )
+
+    # Also unzip the test vectors from the aws-encryption-sdk-test-vectors submodule
+    message(STATUS "Unzipping test vectors")
+    set(TEST_VECTORS_ZIP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_vectors/aws-encryption-sdk-test-vectors/vectors/awses-decrypt/python-1.3.8.zip)
+    set(TEST_VECTORS_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python-1.3.8-test-vectors)
+    file(MAKE_DIRECTORY ${TEST_VECTORS_DIRECTORY})
+    execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ${TEST_VECTORS_ZIP_FILE}
+        WORKING_DIRECTORY ${TEST_VECTORS_DIRECTORY})
 else()
     message(STATUS "Static known good tests off")
 endif()
