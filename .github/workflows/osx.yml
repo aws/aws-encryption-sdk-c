@@ -21,6 +21,8 @@ jobs:
 
       - name: Checkout PR
         uses: actions/checkout@v2
+        with:
+          submodule: recursive
 
       - name: Checkout AWS C++ SDK
         uses: actions/checkout@v2
