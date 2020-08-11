@@ -110,7 +110,8 @@ if (AWS_ENC_SDK_KNOWN_GOOD_TESTS)
     set(TEST_VECTORS_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python-1.3.8-test-vectors)
     file(MAKE_DIRECTORY ${TEST_VECTORS_DIRECTORY})
     execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ${TEST_VECTORS_ZIP_FILE}
-        WORKING_DIRECTORY ${TEST_VECTORS_DIRECTORY})
+        WORKING_DIRECTORY ${TEST_VECTORS_DIRECTORY}
+        RESULT_VARIABLE _exit_code)
     if(${_exit_code})
         message(FATAL_ERROR "Unzipping test vectors failed")
     endif()
