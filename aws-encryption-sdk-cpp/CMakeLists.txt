@@ -111,6 +111,9 @@ if (AWS_ENC_SDK_KNOWN_GOOD_TESTS)
     file(MAKE_DIRECTORY ${TEST_VECTORS_DIRECTORY})
     execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ${TEST_VECTORS_ZIP_FILE}
         WORKING_DIRECTORY ${TEST_VECTORS_DIRECTORY})
+    if(${_exit_code})
+        message(FATAL_ERROR "Unzipping test vectors failed")
+    endif()
 
     aws_add_test(static_test_vectors ${CMAKE_CURRENT_BINARY_DIR}/static_test_vectors ${TEST_VECTORS_DIRECTORY})
 else()
