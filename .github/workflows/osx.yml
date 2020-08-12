@@ -56,4 +56,4 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          path: build-aws-encryption-sdk-c/aws_sdk_*.log
+          path: build-aws-encryption-sdk-c/aws-encryption-sdk-cpp/aws_sdk_*.log
