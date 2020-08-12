@@ -467,6 +467,7 @@ int main(int argc, char **argv) {
     }
     aws_cryptosdk_load_error_strings();
     SDKOptions options;
+    options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
     int rv = test_vector_runner(argv[1]);
     Aws::ShutdownAPI(options);

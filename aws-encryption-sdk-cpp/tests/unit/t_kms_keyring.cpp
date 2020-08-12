@@ -714,6 +714,7 @@ int t_assert_encrypt_with_default_values(aws_cryptosdk_keyring *kms_keyring, Enc
 
 int main() {
     Aws::SDKOptions *options = Aws::New<Aws::SDKOptions>(CLASS_TAG);
+    options->loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(*options);
 
     aws_cryptosdk_load_error_strings();

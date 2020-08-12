@@ -116,7 +116,7 @@ if (AWS_ENC_SDK_KNOWN_GOOD_TESTS)
         message(FATAL_ERROR "Unzipping test vectors failed")
     endif()
 
-    aws_add_test(static_test_vectors ${CMAKE_CURRENT_BINARY_DIR}/static_test_vectors ${TEST_VECTORS_DIRECTORY})
+    # aws_add_test(static_test_vectors ${CMAKE_CURRENT_BINARY_DIR}/static_test_vectors ${TEST_VECTORS_DIRECTORY})
 else()
     message(STATUS "Static known good tests off")
 endif()
