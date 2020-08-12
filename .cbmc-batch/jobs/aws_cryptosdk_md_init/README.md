@@ -15,6 +15,10 @@ Some functions are simply unreachable:
 
     * Only function call is from a chain starting at the unreachable block of EVP_PKEY_free
 
+* `BN_free`
+
+    * Only function call is from a chain starting at the unreachable block of EVP_PKEY_free
+
 * `bignum_is_valid`
 
     * Only function call is from a chain starting at an unreachable condition in evp_md_ctx_is_valid
