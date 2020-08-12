@@ -123,10 +123,14 @@ static bool get_padding_mode(
 
 static int process_test_scenarios(
     struct aws_allocator *alloc,
+    std::string test_name,
     std::string pt_filename,
     std::string ct_filename,
     json_object *master_keys_obj,
     json_object *keys_obj) {
+
+    fprintf(stderr, "Starting test: %s\n", test_name.c_str());
+
     json_object *key_type_obj             = NULL;
     json_object *key_obj                  = NULL;
     json_object *provider_id_obj          = NULL;
@@ -443,7 +447,7 @@ static int test_vector_runner(const char *path) {
         ct_filename.replace(ct_filename.find(find_str), find_str.length(), path);
 
         TEST_ASSERT(json_object_object_get_ex(val, "master-keys", &master_keys_obj));
-        TEST_ASSERT_SUCCESS(process_test_scenarios(alloc, pt_filename, ct_filename, master_keys_obj, keys_obj));
+        TEST_ASSERT_SUCCESS(process_test_scenarios(alloc, key, pt_filename, ct_filename, master_keys_obj, keys_obj));
     }
     printf("Decryption successfully completed for %d test cases and failed for %d.\n", passed, failed);
     printf(
