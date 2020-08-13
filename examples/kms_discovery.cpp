@@ -24,12 +24,11 @@
  * consumers of the Encryption SDK want to limit their calls to KMS either to
  * specific sets of CMKs or to specific regions.
  *
- * The code is completely functional except for the two example KMS Customer Master
- * Key ARNs. If you want to test the functionality yourself, replace the ARNs with
- * those for keys of your own in two separate regions.
+ * To test this functionality yourself, you must provide the two KMS Customer
+ * Master Key ARNs as command-line arguments. The first key must be in
+ * us-west-2, and the second key must be in eu-central-1. By changing the
+ * KmsKeyring builder arguments, you can also use keys in other regions.
  */
-const char *KEY_ARN_US_WEST_2    = "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab";
-const char *KEY_ARN_EU_CENTRAL_1 = "arn:aws:kms:eu-central-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab";
 
 void encrypt_string(
     struct aws_allocator *alloc,
@@ -37,9 +36,11 @@ void encrypt_string(
     size_t out_ciphertext_buf_sz,
     size_t *out_ciphertext_len,
     const uint8_t *in_plaintext,
-    size_t in_plaintext_len) {
+    size_t in_plaintext_len,
+    const char *key_arn_us_west_2,
+    const char *key_arn_eu_central_1) {
     struct aws_cryptosdk_keyring *kms_keyring =
-        Aws::Cryptosdk::KmsKeyring::Builder().Build(KEY_ARN_US_WEST_2, { KEY_ARN_EU_CENTRAL_1 });
+        Aws::Cryptosdk::KmsKeyring::Builder().Build(key_arn_us_west_2, { key_arn_eu_central_1 });
     if (!kms_keyring) {
         abort();
     }
@@ -106,6 +107,19 @@ std::shared_ptr<Aws::KMS::KMSClient> create_kms_client(const Aws::String &region
 #define BUFFER_SIZE 1024
 
 int main(int argc, char **argv) {
+    if (argc != 3) {
+        fprintf(
+            stderr,
+            "Usage: %s <key_arn_us_west_2> <key_arn_eu_central_1>\n"
+            "key_arn_us_west_2 must be a KMS key in us-west-2,"
+            "and key_arn_eu_central_1 must be a KMS key in eu-central-1.\n",
+            argv[0]);
+        exit(1);
+    }
+
+    const char *key_arn_us_west_2    = argv[1];
+    const char *key_arn_eu_central_1 = argv[2];
+
     struct aws_allocator *alloc         = aws_default_allocator();
     const char *plaintext_original      = "Hello world!";
     const size_t plaintext_original_len = strlen(plaintext_original);
@@ -123,7 +137,7 @@ int main(int argc, char **argv) {
      * can decrypt it.
      */
     encrypt_string(
-        alloc, ciphertext, BUFFER_SIZE, &ciphertext_len, (const uint8_t *)plaintext_original, plaintext_original_len);
+        alloc, ciphertext, BUFFER_SIZE, &ciphertext_len, (const uint8_t *)plaintext_original, plaintext_original_len, key_arn_us_west_2, key_arn_eu_central_1);
     printf(">> Encrypted to ciphertext of length %zu\n", ciphertext_len);
 
     /* We will decrypt the same encrypted text repeatedly with several
@@ -135,25 +149,25 @@ int main(int argc, char **argv) {
      * It might call KMS in either region to decrypt, depending on whether it
      * comes across the first or second key ARN first as it scans the messages.
      * In this example, it will actually do its decryption using
-     * KEY_ARN_US_WEST_2, because that was the first ARN used for *encryption*.
+     * key_arn_us_west_2, because that was the first ARN used for *encryption*.
      * However, if KMS in us-west-2 declines to decrypt the data key for any
      * reason, (e.g., permissions) it could still successfully decrypt the
-     * string using KEY_ARN_EU_CENTRAL_1.
+     * string using key_arn_eu_central_1.
      */
     decryption_keyrings.push_back(
-        Aws::Cryptosdk::KmsKeyring::Builder().Build(KEY_ARN_EU_CENTRAL_1, { KEY_ARN_US_WEST_2 }));
+        Aws::Cryptosdk::KmsKeyring::Builder().Build(key_arn_eu_central_1, { key_arn_us_west_2 }));
 
     /* This keyring is guaranteed to only call KMS to attempt decryptions
      * in us-west-2, and it will only attempt to do so when it sees that
      * the message has been encrypted by this specific CMK.
      */
-    decryption_keyrings.push_back(Aws::Cryptosdk::KmsKeyring::Builder().Build(KEY_ARN_US_WEST_2));
+    decryption_keyrings.push_back(Aws::Cryptosdk::KmsKeyring::Builder().Build(key_arn_us_west_2));
 
     /* This keyring is guaranteed to only call KMS to attempt decryptions
      * in eu-central-1, and it will only attempt to do so when it sees that
      * the message has beeen encrypted by this specific CMK.
      */
-    decryption_keyrings.push_back(Aws::Cryptosdk::KmsKeyring::Builder().Build(KEY_ARN_EU_CENTRAL_1));
+    decryption_keyrings.push_back(Aws::Cryptosdk::KmsKeyring::Builder().Build(key_arn_eu_central_1));
 
     /* This is a discovery keyring, which you do not need to configure at all.
      * It will detect from the metadata in the encrypted message itself which
