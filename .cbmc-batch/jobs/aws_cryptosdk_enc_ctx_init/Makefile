@@ -22,8 +22,10 @@ include ../Makefile.local_default
 ENTRY = aws_cryptosdk_enc_ctx_init_harness
 
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/enc_ctx.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/hash_table.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
+DEPENDENCIES += $(SRCDIR)/c-common-src/error.c
+DEPENDENCIES += $(SRCDIR)/c-common-src/hash_table.c
+DEPENDENCIES += $(SRCDIR)/c-common-src/math.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
 
 ###########
