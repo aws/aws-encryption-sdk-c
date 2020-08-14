@@ -39,26 +39,28 @@ if (BUILD_AWS_ENC_SDK_CPP)
         set_target_properties(${EXAMPLE_NAME} PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
     endforeach ()
 
-    list(APPEND example_env_vars
-        AWS_ENC_SDK_EXAMPLE_KEY_ARN
-        AWS_ENC_SDK_EXAMPLE_KEY_ARN_US_WEST_2
-        AWS_ENC_SDK_EXAMPLE_KEY_ARN_EU_CENTRAL_1)
-    foreach (env_var ${example_env_vars})
-        if (NOT DEFINED ENV{${env_var}})
-            message(SEND_ERROR ${env_var} " environment variable not set; some examples may fail")
-        endif()
-    endforeach()
+    if (AWS_ENC_SDK_END_TO_END_TESTS)
+        list(APPEND example_env_vars
+            AWS_ENC_SDK_EXAMPLE_KEY_ARN
+            AWS_ENC_SDK_EXAMPLE_KEY_ARN_US_WEST_2
+            AWS_ENC_SDK_EXAMPLE_KEY_ARN_EU_CENTRAL_1)
+        foreach (env_var ${example_env_vars})
+            if (NOT DEFINED ENV{${env_var}})
+                message(SEND_ERROR ${env_var} " environment variable not set; some examples may fail")
+            endif()
+        endforeach()
 
-    aws_add_test(example_caching_cmm ${CMAKE_CURRENT_BINARY_DIR}/caching_cmm
-      $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN} example hello world)
-    aws_add_test(example_file_streaming ${CMAKE_CURRENT_BINARY_DIR}/file_streaming
-      $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN} ${CMAKE_CURRENT_SOURCE_DIR}/example_data/hello_world.txt)
-    aws_add_test(example_kms_discovery ${CMAKE_CURRENT_BINARY_DIR}/kms_discovery
-      $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN_US_WEST_2} $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN_EU_CENTRAL_1})
-    aws_add_test(example_multi_keyring ${CMAKE_CURRENT_BINARY_DIR}/multi_keyring
-      $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN} ${CMAKE_CURRENT_SOURCE_DIR}/example_data/aes_256_key)
-    aws_add_test(example_string ${CMAKE_CURRENT_BINARY_DIR}/string
-      $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN})
+        aws_add_test(example_caching_cmm ${CMAKE_CURRENT_BINARY_DIR}/caching_cmm
+          $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN} example hello world)
+        aws_add_test(example_file_streaming ${CMAKE_CURRENT_BINARY_DIR}/file_streaming
+          $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN} ${CMAKE_CURRENT_SOURCE_DIR}/example_data/hello_world.txt)
+        aws_add_test(example_kms_discovery ${CMAKE_CURRENT_BINARY_DIR}/kms_discovery
+          $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN_US_WEST_2} $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN_EU_CENTRAL_1})
+        aws_add_test(example_multi_keyring ${CMAKE_CURRENT_BINARY_DIR}/multi_keyring
+          $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN} ${CMAKE_CURRENT_SOURCE_DIR}/example_data/aes_256_key)
+        aws_add_test(example_string ${CMAKE_CURRENT_BINARY_DIR}/string
+          $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN})
+    endif()
 else()
     message(STATUS "Build of C++ components was skipped, so skipping C++ examples also")
 endif()
