@@ -137,7 +137,14 @@ int main(int argc, char **argv) {
      * can decrypt it.
      */
     encrypt_string(
-        alloc, ciphertext, BUFFER_SIZE, &ciphertext_len, (const uint8_t *)plaintext_original, plaintext_original_len, key_arn_us_west_2, key_arn_eu_central_1);
+        alloc,
+        ciphertext,
+        BUFFER_SIZE,
+        &ciphertext_len,
+        (const uint8_t *)plaintext_original,
+        plaintext_original_len,
+        key_arn_us_west_2,
+        key_arn_eu_central_1);
     printf(">> Encrypted to ciphertext of length %zu\n", ciphertext_len);
 
     /* We will decrypt the same encrypted text repeatedly with several
