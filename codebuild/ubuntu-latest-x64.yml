@@ -16,6 +16,6 @@ version: 0.2
 phases:
   build:
     commands:
-      - unzip aws-encryption-sdk-cpp/tests/test_vectors/aws-encryption-sdk-test-vectors/vectors/awses-decrypt/python-1.3.8.zip
+      - cmake -E tar xvf aws-encryption-sdk-cpp/tests/test_vectors/aws-encryption-sdk-test-vectors/vectors/awses-decrypt/python-1.3.8.zip
       - codebuild/bin/codebuild-test.sh
 
