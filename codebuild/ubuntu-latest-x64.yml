@@ -16,5 +16,6 @@ version: 0.2
 phases:
   build:
     commands:
+      - df -h
       - codebuild/bin/codebuild-test.sh
 
