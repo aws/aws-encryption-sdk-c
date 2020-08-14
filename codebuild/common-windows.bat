@@ -22,9 +22,6 @@ cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_BUILD_TYPE="Release" -DCMAKE_TOO
 msbuild.exe ALL_BUILD.vcxproj /p:Configuration=Release || goto error
 msbuild.exe INSTALL.vcxproj /p:Configuration=Release || goto error
 
-REM TODO-RS: Update Dockerfile instead
-c:\vcpkg\vcpkg install json-c
-
 cd \build
 mkdir build-aws-encryption-sdk-c
 cd build-aws-encryption-sdk-c
