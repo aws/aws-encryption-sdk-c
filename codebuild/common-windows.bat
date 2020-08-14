@@ -28,7 +28,8 @@ c:\vcpkg\vcpkg install json-c
 cd \build
 mkdir build-aws-encryption-sdk-c
 cd build-aws-encryption-sdk-c
-cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE="Release" -DBUILD_AWS_ENC_SDK_CPP=ON -DAWS_ENC_SDK_END_TO_END_TESTS=ON -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON %ROOT_SRC_DIR% || goto error
+REM TODO-RS: Add -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON (need to update Docker images to add json-c)
+cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE="Release" -DBUILD_AWS_ENC_SDK_CPP=ON -DAWS_ENC_SDK_END_TO_END_TESTS=ON %ROOT_SRC_DIR% || goto error
 msbuild.exe ALL_BUILD.vcxproj /p:Configuration=Release || goto error
 ctest -V --output-on-failure -j4 || goto error
 
