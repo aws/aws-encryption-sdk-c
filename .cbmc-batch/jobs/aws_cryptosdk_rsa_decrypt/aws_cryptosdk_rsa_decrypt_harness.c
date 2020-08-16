@@ -39,6 +39,9 @@ void aws_cryptosdk_rsa_decrypt_harness() {
     struct store_byte_from_buffer old_byte_from_cipher;
     save_byte_from_array(cipher.ptr, cipher.len, &old_byte_from_cipher);
 
+    /*initialize a nondeterministic but fixed max decryption size between 0 and INT_MAX */
+    initialize_max_decryption_size();
+
     if (aws_cryptosdk_rsa_decrypt(&plain, alloc, cipher, key, rsa_padding_mode) == AWS_OP_SUCCESS) {
         assert(aws_byte_buf_is_valid(&plain));
     }
