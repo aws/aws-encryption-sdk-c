@@ -19,12 +19,10 @@ include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
 include ../Makefile.aws_string
 
-
-UNWINDSET += 
+ABSTRACTIONS += $(SRCDIR)/helper-stubs/EVP_PKEY_free_stub.c
+ABSTRACTIONS += $(SRCDIR)/helper-stubs/evp_pkey_is_valid_stub.c
 
 CBMCFLAGS += 
-
-ENTRY = aws_cryptosdk_rsa_decrypt_harness
 
 DEPENDENCIES += $(COMMON_HELPERDIR)/stubs/memcpy_override_havoc.goto
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.goto
@@ -43,6 +41,13 @@ DEPENDENCIES += $(SRCDIR)/helper-src/openssl/bn_override.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/ec_override.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/err_override.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/evp_override.goto
+
+ENTRY = aws_cryptosdk_rsa_decrypt_harness
+
+REMOVE_FUNCTION_BODIES += --remove-function-body EVP_PKEY_FREE
+REMOVE_FUNCTION_BODIES += --remove-function-body evp_pkey_is_valid
+
+UNWINDSET +=
 
 ###########
 
