@@ -39,7 +39,8 @@ if (BUILD_AWS_ENC_SDK_CPP)
         set_target_properties(${EXAMPLE_NAME} PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
     endforeach ()
 
-    if (AWS_ENC_SDK_END_TO_END_TESTS)
+    if (AWS_ENC_SDK_END_TO_END_EXAMPLES)
+        message(STATUS "End to end examples on")
         list(APPEND example_env_vars
             AWS_ENC_SDK_EXAMPLE_KEY_ARN
             AWS_ENC_SDK_EXAMPLE_KEY_ARN_US_WEST_2
