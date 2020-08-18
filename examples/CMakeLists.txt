@@ -15,6 +15,15 @@
 include(CTest)
 enable_testing()
 
+if (WIN32)
+  add_test(example_cleanup ${CMAKE_CURRENT_SOURCE_DIR}/cleanup.bat)
+else()
+  add_test(example_cleanup ${CMAKE_CURRENT_SOURCE_DIR}/cleanup.sh)
+endif()
+set_tests_properties(example_cleanup PROPERTIES
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/example_data
+  FIXTURES_CLEANUP Examples)
+
 message(STATUS "Building C examples")
 file(GLOB example_c_sources FOLLOW_SYMLINKS *.c)
 foreach (source ${example_c_sources})
@@ -61,6 +70,8 @@ if (BUILD_AWS_ENC_SDK_CPP)
           $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN} ${CMAKE_CURRENT_SOURCE_DIR}/example_data/aes_256_key)
         aws_add_test(example_string ${CMAKE_CURRENT_BINARY_DIR}/string
           $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN})
+
+        set_tests_properties(example_file_streaming PROPERTIES FIXTURES_REQUIRED Examples)
     endif()
 else()
     message(STATUS "Build of C++ components was skipped, so skipping C++ examples also")
