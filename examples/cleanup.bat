@@ -11,5 +11,5 @@ REM "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express 
 REM implied. See the License for the specific language governing permissions and
 REM limitations under the License.
 
-if exists hello_world.txt.encrypted del hello_world.txt.encrypted
-if exists hello_world.txt.decrypted del hello_world.txt.decrypted
+if exist hello_world.txt.encrypted del hello_world.txt.encrypted
+if exist hello_world.txt.decrypted del hello_world.txt.decrypted
