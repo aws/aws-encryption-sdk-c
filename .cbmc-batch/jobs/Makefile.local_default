@@ -21,7 +21,7 @@ BATCH ?= cbmc-batch
 VIEWER ?= cbmc-viewer
 
 SRCDIR ?= $(abspath ./link-farm)
-BASEDIR ?= $(abspath ../../../..)
+BASEDIR ?= $(abspath ../../..)
 COMMON_REPO_NAME ?= aws-c-common-for-cryptosdk-proofs
 COMMONDIR ?= $(BASEDIR)/$(COMMON_REPO_NAME)
 COMMON_HELPERDIR ?= $(COMMONDIR)/.cbmc-batch

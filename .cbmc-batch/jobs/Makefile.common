@@ -135,8 +135,9 @@ ABSTRACTIONS += $(LINKFARM)/c-common-helper-stubs/abort_override_assert_false.c
 REMOVE_FUNCTION_BODY += --remove-function-body abort
 ################################################################
 
+C_DEPENDENCIES = $(patsubst %.goto,%.c,$(DEPENDENCIES))
 REMOVE_FUNCTION_BODY += $(ADDITIONAL_REMOVE_FUNCTION_BODY)
-DEPENDENT_GOTOS = $(patsubst %.c,%.goto,$(DEPENDENCIES))
+DEPENDENT_GOTOS = $(patsubst %.c,$(GOTO_DIR)/%.goto,$(C_DEPENDENCIES))
 
 ################################################################
 # makes a symlink if one doesn't already exist
@@ -159,9 +160,6 @@ common-git:
 	else \
 	  echo "c-common repo already exists; not cloning."; \
 	fi
-
-$(LINKFARM):
-	mkdir -p $@
 
 # If we have dangling links here, batch is not happy. So make them as needed.
 common-symlinks: $(LINKFARM)
@@ -194,11 +192,21 @@ fill-linkfarm: harness-symlink enc-sdk-symlinks common-symlinks common-helper-sy
 # actual work here
 setup_dependencies: fill-linkfarm
 
+$(LINKFARM):
+	$(LITANI) add-job \
+	  --outputs $@ \
+	  --pipeline-name $(ENTRY) \
+	  --ci-stage build \
+	  --interleave-stdout-stderr \
+	  --description "$(ENTRY): Setting up dependencies"\
+	  --command "mkdir -p $@; $(MAKE) setup_dependencies" \
+	  --cwd "$(CWD)"
+
 # Here, whenever there is a change in any of ANSI-C source
 # dependency files, make will take action. However, to make
 # sure changes in the headers files will also trigger make,
 # the user must run make clean first.
-$(GOTO_DIR)/$(ENTRY)0.goto: setup_dependencies $(CWD)/$(ENTRY).c $(DEPENDENT_GOTOS)
+$(GOTO_DIR)/$(ENTRY)0.goto: $(LINKFARM) $(CWD)/$(ENTRY).c $(DEPENDENT_GOTOS)
 	$(LITANI) add-job \
 	  --inputs $^ \
 	  --outputs $@ \
@@ -207,7 +215,7 @@ $(GOTO_DIR)/$(ENTRY)0.goto: setup_dependencies $(CWD)/$(ENTRY).c $(DEPENDENT_GOT
 	  --interleave-stdout-stderr \
 	  --description "$(ENTRY): building initial goto-binary"\
 	  --command \
-	    '$(GOTO_CC) $(ENTRY).c $(DEPENDENT_GOTOS) \
+	    '$(GOTO_CC) $(CWD)/$(ENTRY).c $(DEPENDENT_GOTOS) \
 	      --export-function-local-symbols $(CBMC_VERBOSITY) \
 	      --function $(ENTRY) $(DEPENDENT_GOTOS) $(INC) $(DEFINES) -o $@'
 
@@ -222,7 +230,7 @@ ifeq ($(REMOVE_FUNCTION_BODY), "")
 	  --ci-stage build \
 	  --interleave-stdout-stderr \
 	  --description "$(ENTRY): not removing function bodies"\
-	  --command 'cp $< $@'
+	  --command 'cp $^ $@'
 else
 	$(LITANI) add-job \
 	  --inputs $^ \
@@ -231,7 +239,7 @@ else
 	  --ci-stage build \
 	  --interleave-stdout-stderr \
 	  --description "$(ENTRY): removing function bodies"\
-	  --command '$(GOTO_INSTRUMENT) $(REMOVE_FUNCTION_BODY) $< $@'
+	  --command '$(GOTO_INSTRUMENT) $(REMOVE_FUNCTION_BODY) $^ $@'
 endif
 
 
@@ -247,7 +255,7 @@ ifeq ($(ABSTRACTIONS), "")
 	  --ci-stage build \
 	  --interleave-stdout-stderr \
 	  --description "$(ENTRY): not implementing abstractions"\
-	  --command 'cp $< $@'
+	  --command 'cp $^ $@'
 else
 	$(LITANI) add-job \
 	  --inputs $^ \
@@ -257,7 +265,7 @@ else
 	  --interleave-stdout-stderr \
 	  --description "$(ENTRY): linking in abstractions" \
 	  --command \
-	    '$(GOTO_CC) --function $(ENTRY) $(ABSTRACTIONS) $< $(INC) $(DEFINES) -o $@'
+	    '$(GOTO_CC) --function $(ENTRY) $(ABSTRACTIONS) $^ $(INC) $(DEFINES) -o $@'
 endif
 
 ## Temporarily skipped steps
@@ -272,7 +280,7 @@ ifeq ($(UNWIND_GOTO), 1)
 	  --ci-stage build \
 	  --interleave-stdout-stderr \
 	  --description "$(ENTRY): unwinding loops"\
-	  --command '$(GOTO_INSTRUMENT) $(UNWINDING) $< $@'
+	  --command '$(GOTO_INSTRUMENT) $(UNWINDING) $^ $@'
 else
 	$(LITANI) add-job \
 	  --inputs $^ \
@@ -281,7 +289,7 @@ else
 	  --ci-stage build \
 	  --interleave-stdout-stderr \
 	  --description "$(ENTRY): not unwinding loops"\
-	  --command 'cp $< $@'
+	  --command 'cp $^ $@'
 endif
 
 # Skip simplify (and hence generate-function-body) until missing source locations debugged
@@ -294,7 +302,7 @@ ifeq ($(SIMPLIFY), 1)
 	  --ci-stage build \
 	  --interleave-stdout-stderr \
 	  --description "$(ENTRY): generating bodies for functions"\
-	  --command '$(GOTO_INSTRUMENT) --generate-function-body '.*' $< $@'
+	  --command '$(GOTO_INSTRUMENT) --generate-function-body '.*' $^ $@'
 else
 	$(LITANI) add-job \
 	  --inputs $^ \
@@ -303,7 +311,7 @@ else
 	  --ci-stage build \
 	  --interleave-stdout-stderr \
 	  --description "$(ENTRY): not generating bodies for functions"\
-	  --command 'cp $< $@'
+	  --command 'cp $^ $@'
 endif
 
 # Skip simplify (and hence generate-function-body) until missing source locations debugged
@@ -316,7 +324,7 @@ ifeq ($(SIMPLIFY), 1)
 	  --ci-stage build \
 	  --interleave-stdout-stderr \
 	  --description "$(ENTRY): simplifying goto program"\
-	  --command '$(GOTO_ANALYZER) --simplify $@ $<'
+	  --command '$(GOTO_ANALYZER) --simplify $@ $^'
 else
 	$(LITANI) add-job \
 	  --inputs $^ \
@@ -325,7 +333,7 @@ else
 	  --ci-stage build \
 	  --interleave-stdout-stderr \
 	  --description "$(ENTRY): not simplifying goto program"\
-	  --command 'cp $< $@'
+	  --command 'cp $^ $@'
 endif
 
 # Simplify the goto program by removing any unused function bodies
@@ -337,7 +345,7 @@ $(GOTO_DIR)/$(ENTRY)6.goto: $(GOTO_DIR)/$(ENTRY)5.goto
 	  --ci-stage build \
 	  --interleave-stdout-stderr \
 	  --description "$(ENTRY): dropping unused functions"\
-	  --command '$(GOTO_INSTRUMENT) --drop-unused-functions $< $@'
+	  --command '$(GOTO_INSTRUMENT) --drop-unused-functions $^ $@'
 
 # Simplify the goto program by slicing away initializations of unused
 # global variables
@@ -349,7 +357,7 @@ $(GOTO_DIR)/$(ENTRY)7.goto: $(GOTO_DIR)/$(ENTRY)6.goto
 	  --ci-stage build \
 	  --interleave-stdout-stderr \
 	  --description "$(ENTRY): slicing inits of unused globals" \
-	  --command '$(GOTO_INSTRUMENT) --slice-global-inits $< $@'
+	  --command '$(GOTO_INSTRUMENT) --slice-global-inits $^ $@'
 
 $(GOTO_DIR)/$(ENTRY).goto: $(GOTO_DIR)/$(ENTRY)7.goto
 	$(LITANI) add-job \
@@ -359,14 +367,14 @@ $(GOTO_DIR)/$(ENTRY).goto: $(GOTO_DIR)/$(ENTRY)7.goto
 	  --ci-stage build \
 	  --interleave-stdout-stderr \
 	  --description "$(ENTRY): copying final goto-binary" \
-	  --command 'cp $< $@'
+	  --command 'cp $^ $@'
 
 # Catch-all used for building goto-binaries of the individual
 # dependencies, which are then linked in the $(ENTRY)0.goto rule above.
 # This builds each dependency of each proof under the gotos subdirectory
 # of that proof, so that the same dependency can be built for multiple
 # proofs.
-%.goto: %.c
+$(GOTO_DIR)/%.goto: %.c
 	$(LITANI) add-job \
 	  --inputs $^ \
 	  --outputs $@ \
@@ -375,8 +383,8 @@ $(GOTO_DIR)/$(ENTRY).goto: $(GOTO_DIR)/$(ENTRY)7.goto
 	  --interleave-stdout-stderr \
 	  --description "$(ENTRY): building dependency '$(basename $@)'" \
 	  --command \
-	    'mkdir -p $(dirname $@) && \
-	     $(GOTO_CC) -c $< --export-function-local-symbols $(CBMC_VERBOSITY) \
+	    'mkdir -p $(dir $@) && \
+	     $(GOTO_CC) -c $^ --export-function-local-symbols $(CBMC_VERBOSITY) \
 	       $(INC) $(DEFINES) -o $@'
 
 goto: $(ENTRY).goto
@@ -392,7 +400,7 @@ $(CWD)/cbmc.log: $(GOTO_DIR)/$(ENTRY).goto
 	  --description "$(ENTRY): running safety checks" \
 	  --tags "stats-group:safety checks" \
 	  --ignore-returns 10 \
-	  --command 'cbmc $(CBMCFLAGS) --trace'
+	  --command 'cbmc $(CBMCFLAGS) --trace $^'
 
 $(CWD)/property.xml: $(GOTO_DIR)/$(ENTRY).goto
 	$(LITANI) add-job \
@@ -403,7 +411,7 @@ $(CWD)/property.xml: $(GOTO_DIR)/$(ENTRY).goto
 	  --interleave-stdout-stderr \
 	  --stdout-file $@ \
 	  --description "$(ENTRY): printing properties" \
-	  --command 'cbmc $(CBMCFLAGS) --show-properties --xml-ui $<'
+	  --command 'cbmc $(CBMCFLAGS) --show-properties --xml-ui $^'
 
 $(CWD)/coverage.xml: $(GOTO_DIR)/$(ENTRY).goto
 	$(LITANI) add-job \
@@ -416,7 +424,7 @@ $(CWD)/coverage.xml: $(GOTO_DIR)/$(ENTRY).goto
 	  --tags "stats-group:coverage computation" \
 	  --description "$(ENTRY): computing coverage" \
 	  --command \
-	    'cbmc $(filter-out --unwinding-assertions,$(CBMCFLAGS)) --cover location --xml-ui $<'
+	    'cbmc $(filter-out --unwinding-assertions,$(CBMCFLAGS)) --cover location --xml-ui $^'
 
 cbmc: cbmc.log
 
@@ -436,7 +444,7 @@ _report: $(CWD)/cbmc.log $(CWD)/property.xml $(CWD)/coverage.xml
 	  --command \
 	    '$(VIEWER) \
 	      --block $(CWD)/coverage.xml \
-	      --goto $(ENTRY).goto \
+	      --goto $(GOTO_DIR)/$(ENTRY).goto \
 	      --htmldir $(CWD)/html \
 	      --property $(CWD)/property.xml \
 	      --result $(CWD)/cbmc.log \

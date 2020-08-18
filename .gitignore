@@ -6,3 +6,5 @@ build
 *.goto
 *.log
 .litani_cache_dir
+*.ninja_deps
+*.ninja_log
