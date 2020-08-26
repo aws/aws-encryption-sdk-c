@@ -14,7 +14,7 @@
 FROM ubuntu:latest
 
 # Needed for setup-apt-cache.sh
-ADD https://mirrors.kernel.org/ubuntu/pool/main/n/net-tools/net-tools_1.60+git20161116.90da8a0-2ubuntu1_amd64.deb /tmp
+ADD https://mirrors.kernel.org/ubuntu/pool/main/n/net-tools/net-tools_1.60+git20180626.aebd88e-1ubuntu1_amd64.deb /tmp
 ADD https://mirrors.kernel.org/ubuntu/pool/universe/n/netcat/netcat-traditional_1.10-40_amd64.deb /tmp
 RUN dpkg -i /tmp/net-tools_*.deb /tmp/netcat-*.deb
 
