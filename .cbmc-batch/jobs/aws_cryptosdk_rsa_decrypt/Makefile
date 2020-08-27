@@ -19,8 +19,9 @@ include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
 include ../Makefile.aws_string
 
-ABSTRACTIONS += $(SRCDIR)/helper-stubs/EVP_PKEY_free_stub.c
-ABSTRACTIONS += $(SRCDIR)/helper-stubs/evp_pkey_is_valid_stub.c
+# We abstract these functions as manual inspection shows there is no ec_key associated with the PKEY.
+ABSTRACTIONS += $(SRCDIR)/helper-stubs/EVP_PKEY_free_no_ec_key_stub.c
+ABSTRACTIONS += $(SRCDIR)/helper-stubs/evp_pkey_is_valid_no_ec_key_stub.c
 
 CBMCFLAGS += 
 
@@ -28,9 +29,9 @@ DEPENDENCIES += $(COMMON_HELPERDIR)/stubs/memcpy_override_havoc.goto
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.goto
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.goto
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.goto
+DEPENDENCIES += $(SRCDIR)/c-common-helper-stubs/error.goto
 DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.goto
 DEPENDENCIES += $(SRCDIR)/c-common-src/common.goto
-DEPENDENCIES += $(SRCDIR)/c-common-src/error.goto
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher.goto
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.goto
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/hkdf.goto
@@ -43,9 +44,6 @@ DEPENDENCIES += $(SRCDIR)/helper-src/openssl/err_override.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/evp_override.goto
 
 ENTRY = aws_cryptosdk_rsa_decrypt_harness
-
-REMOVE_FUNCTION_BODIES += --remove-function-body EVP_PKEY_FREE
-REMOVE_FUNCTION_BODIES += --remove-function-body evp_pkey_is_valid
 
 UNWINDSET +=
 
