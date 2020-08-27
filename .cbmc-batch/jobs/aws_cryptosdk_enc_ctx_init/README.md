@@ -1,17 +1,17 @@
 # Memory safety proof for aws_cryptosdk_enc_ctx_init
 
 This proof harness attains 91% code coverage.  The following comments explain
-why the uncovered lines of code are unreachable code.
+why the uncovered lines of code are unreachable code, instrinsic to the function.
 
 Some functions contain unreachable blocks of code:
 
 * `aws_hash_table_init`
 
-    * s_update_template_size never returns an error
+    * s_update_template_size never returns an error due to choice of initial_size in aws_cryptosdk_enc_ctx_init
 
 * `hash_table_state_is_valid`
 
-    *  map is never NULL
+    *  map is never NULL, as ensured by precondition in source code. 
 
 * `aws_mem_calloc`
 
@@ -19,7 +19,7 @@ Some functions contain unreachable blocks of code:
 
 * `aws_round_up_to_power_of_two`
 
-    *  n is always != 0 and <= SIZE_MAX_POWER_OF_TWO 
+    *  n is always != 0 and <= SIZE_MAX_POWER_OF_TWO  due to choice of initial_size in aws_cryptosdk_enc_ctx_init
 
 * `aws_add_u64_checked`
 
@@ -31,4 +31,4 @@ Some functions contain unreachable blocks of code:
 
 * `hash_table_state_required_bytes`
 
-    *  Overflow never occurs
+    *  Overflow never occurs when computing total number of bytes needed for a hash-table with "initial_size" slots. hash_table_state_required_bytes
