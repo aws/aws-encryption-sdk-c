@@ -15,8 +15,8 @@
 
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/private/cipher.h>
-#include <make_common_data_structures.h>
 #include <ec_utils.h>
+#include <make_common_data_structures.h>
 
 #define KEY_LEN 256
 
