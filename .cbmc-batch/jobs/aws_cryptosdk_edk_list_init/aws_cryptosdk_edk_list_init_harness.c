@@ -23,6 +23,6 @@ void aws_cryptosdk_edk_list_init_harness() {
 
     int rval = aws_cryptosdk_edk_list_init(can_fail_allocator(), &edk_list);
     if (rval == AWS_OP_SUCCESS) {
-        aws_cryptosdk_empty_edk_list_is_valid(&edk_list);
+        assert(aws_cryptosdk_empty_edk_list_is_valid(&edk_list));
     }
 }
