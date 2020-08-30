@@ -1,7 +1,7 @@
 # Memory safety proof for aws_cryptosdk_enc_ctx_serialize
 
 This proof harness attains 95% code coverage.  The following comments explain
-why the uncovered lines of code are unreachable code.
+why the uncovered lines of code are unreachable code, instrinsic to the function.
 
 Some functions contain unreachable blocks of code:
 
@@ -19,7 +19,7 @@ Some functions contain unreachable blocks of code:
 
 * `aws_byte_buf_write_from_whole_string`
 
-    *  Neither buf nor src are even NULL
+    *  Neither buf nor src are ever NULL
 
 * `aws_add_u64_checked`
 
