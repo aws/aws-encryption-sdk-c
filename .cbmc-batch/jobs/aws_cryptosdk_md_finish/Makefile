@@ -17,8 +17,10 @@ sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
-ABSTRACTIONS += $(SRCDIR)/helper-stubs/EVP_MD_CTX_free_stub.c
-ABSTRACTIONS += $(SRCDIR)/helper-stubs/evp_md_ctx_is_valid_stub.c
+# We abstract these functions as manual inspection shows there is no pkey associated with the MD_ctx.
+
+ABSTRACTIONS += $(SRCDIR)/helper-stubs/EVP_MD_CTX_free_no_pkey_stub.c
+ABSTRACTIONS += $(SRCDIR)/helper-stubs/evp_md_ctx_is_valid_no_pkey_stub.c
 
 # Adds check for memory leaks for this proof
 # Turning this flag on globally would require all proofs to carefully release objects, which they don't do.
