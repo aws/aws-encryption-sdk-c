@@ -42,7 +42,8 @@ void aws_cryptosdk_decrypt_body_harness() {
     struct content_key *content_key;
 
     /* Need to allocate tag_len bytes for writing the tag */
-    uint8_t *tag = malloc(props->tag_len);
+    uint8_t *tag = can_fail_malloc(props->tag_len);
+    __CPROVER_assume(tag != NULL);
 
     int body_frame_type;
 

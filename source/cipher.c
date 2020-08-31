@@ -323,6 +323,7 @@ int aws_cryptosdk_encrypt_body(
         (outp->len == 0 && outp->capacity == 0 && outp->buffer));
     AWS_PRECONDITION(aws_byte_cursor_is_valid(inp));
     AWS_PRECONDITION(iv != NULL);
+    AWS_PRECONDITION(AWS_MEM_IS_WRITABLE(tag, props->tag_len));
     if (inp->len != outp->capacity) {
         return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     }
@@ -417,6 +418,7 @@ int aws_cryptosdk_decrypt_body(
     AWS_PRECONDITION(aws_byte_buf_is_valid(outp));
     AWS_PRECONDITION(aws_byte_cursor_is_valid(inp));
     AWS_PRECONDITION(iv != NULL);
+    AWS_PRECONDITION(AWS_MEM_IS_WRITABLE(tag, props->tag_len));
     if (inp->len != outp->capacity - outp->len) {
         return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     }
