@@ -17,8 +17,8 @@ sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
-ABSTRACTIONS += $(SRCDIR)/helper-stubs/EVP_MD_CTX_free_stub.c
-ABSTRACTIONS += $(SRCDIR)/helper-stubs/evp_md_ctx_is_valid_stub.c
+ABSTRACTIONS += $(SRCDIR)/helper-stubs/EVP_MD_CTX_free_no_pkey_stub.c
+ABSTRACTIONS += $(SRCDIR)/helper-stubs/evp_md_ctx_is_valid_no_pkey_stub.c
 
 # Adds check for memory leaks for this proof
 # Turning this flag on globally would require all proofs to carefully release objects, which they don't do.
@@ -29,7 +29,7 @@ ENTRY = aws_cryptosdk_md_update_harness
 
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.goto
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.goto
-DEPENDENCIES += $(SRCDIR)/c-common-src/error.goto
+DEPENDENCIES += $(SRCDIR)/c-common-helper-stubs/error.goto
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/cbmc_invariants.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.goto
