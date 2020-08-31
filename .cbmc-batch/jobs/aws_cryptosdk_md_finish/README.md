@@ -7,4 +7,4 @@ Some functions contain unreachable blocks of code:
 
 * `aws_cryptosdk_md_abort`:
 
-    * md_context is never NULL
+    * md_context is never NULL (part of satisyfing the md_context_is_valid precondition)
