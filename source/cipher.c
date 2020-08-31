@@ -214,6 +214,7 @@ int aws_cryptosdk_sign_header(
     if (authtag->len != props->iv_len + props->tag_len) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(props));
 
     uint8_t *iv  = authtag->buffer;
     uint8_t *tag = authtag->buffer + props->iv_len;
@@ -255,6 +256,7 @@ int aws_cryptosdk_verify_header(
     if (authtag->len != props->iv_len + props->tag_len) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
     }
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(props));
 
     const uint8_t *iv  = authtag->buffer;
     const uint8_t *tag = authtag->buffer + props->iv_len;
