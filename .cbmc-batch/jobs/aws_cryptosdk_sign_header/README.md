@@ -11,8 +11,8 @@ Some functions contain unreachable blocks of code:
 
 * `aws_cryptosdk_alg_properties_is_valid`
 
-    * std_alg_props is never NULL
+    * std_alg_props is never NULL as it is constructed from a aws_cryptosdk_alg_id
 
 * `EVP_EncryptUpdate`
 
-    * Variable out is always NULL, so only that function behavior is explored. 
+    * Variable out is always NULL as hard-coded in the aws_cryptosdk_sign_header function 
