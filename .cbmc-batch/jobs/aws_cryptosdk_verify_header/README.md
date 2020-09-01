@@ -7,7 +7,9 @@ Some functions contain unreachable blocks of code:
 
 * `assert_byte_buf_equivalence`
 
-    * lhs==rhs never holds. 
+    * lhs==rhs never holds
+    * This assertion is called from the harness
+    * To check desired property, header==old_header does not hold by design though assert_byte_buf_equivalence should
 
 * `aws_cryptosdk_alg_properties_is_valid`
 
