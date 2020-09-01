@@ -166,7 +166,7 @@ static int evp_gcm_encrypt_final(const struct aws_cryptosdk_alg_properties *prop
         return AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     }
 
-    AWS_FATAL_POSTCONDITION(outlen == 0);
+    AWS_FATAL_POSTCONDITION(outlen == 0);  // wrong output size - potentially smashed stack
 
     if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, props->tag_len, (void *)tag)) {
         return AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
