@@ -26,6 +26,7 @@ ENTRY = aws_cryptosdk_sign_header_harness
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.goto
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.goto
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.goto
+DEPENDENCIES += $(SRCDIR)/c-common-helper-stubs/error.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.goto
 DEPENDENCIES += $(SRCDIR)/c-common-src/common.goto
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher.goto
