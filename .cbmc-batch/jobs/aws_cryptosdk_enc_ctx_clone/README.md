@@ -16,8 +16,14 @@ Some functions contain unreachable blocks of code:
 
 * `aws_string_eq`
 
-    *  a !=b and neither a nor b are even NULL
+    * a !=b and neither a nor b are even NULL
+    * dest_elem->value!=iter.element.value by construction in aws_cryptosdk_enc_ctx_clone
+    * A NULL check on dest_elem precedes the call to this function 
+    * iter.element.value is not NULL by construction of loop
+
 
 * `aws_hash_iter_is_valid`
 
-    *  Data structure invariants always hold
+    * Data structure invariants always hold
+    * iter is never NULL by construction 
+    * A precondition on iter->map ensures it is always a valid hash table
