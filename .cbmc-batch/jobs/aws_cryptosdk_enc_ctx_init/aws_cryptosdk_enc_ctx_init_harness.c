@@ -16,8 +16,7 @@
 #include <aws/cryptosdk/enc_ctx.h>
 #include <proof_helpers/proof_allocators.h>
 
-// This is a memory safety proof for aws_cryptosdk_multi_keyring() defined in
-// https://github.com/aws/aws-encryption-sdk-c/blob/master/source/multi_keyring.c
+// This is a memory safety proof for aws_cryptosdk_enc_ctx_init
 void aws_cryptosdk_enc_ctx_init_harness() {
     struct aws_allocator *alloc = can_fail_allocator();
     struct aws_hash_table enc_ctx;
