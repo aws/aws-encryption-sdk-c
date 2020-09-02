@@ -24,12 +24,6 @@
 #define DEFAULT_IV_LEN 12       // For GCM AES and OCB AES the default is 12 (i.e. 96 bits).
 #define DEFAULT_BLOCK_SIZE 128  // For GCM AES, the default block size is 128
 
-/* Abstraction of the EVP_PKEY struct */
-struct evp_pkey_st {
-    int references;
-    EC_KEY *ec_key;
-};
-
 /*
  * Description: The EVP_PKEY_new() function allocates an empty EVP_PKEY structure which is used by OpenSSL to store
  * public and private keys. The reference count is set to 1. Return values: EVP_PKEY_new() returns either the newly
@@ -726,13 +720,6 @@ int EVP_MD_size(const EVP_MD *md) {
     }
     return 512;
 }
-
-/* Abstraction of the EVP_MD_CTX struct */
-struct evp_md_ctx_st {
-    bool is_initialized;
-    EVP_PKEY *pkey;
-    size_t digest_size;
-};
 
 /*
  * Description: Allocates and returns a digest context.

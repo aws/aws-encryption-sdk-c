@@ -21,13 +21,6 @@
 #include <openssl/rsa.h>
 #include <proof_helpers/nondet.h>
 
-/* Abstraction of the EVP_MD_CTX struct */
-struct evp_md_ctx_st {
-    bool is_initialized;
-    EVP_PKEY *pkey;
-    size_t digest_size;
-};
-
 /* Helper function for CBMC proofs: checks if EVP_MD_CTX is valid.
  * Use this stub when we are *certain* there is no pkey associated with the digest context.
  */
