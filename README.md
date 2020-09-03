@@ -185,7 +185,7 @@ Now skip to the "Mac: Build and install the AWS Encryption SDK for C" section be
 
 Build and install aws-c-common:
 
-    git clone -b v0.3.15 https://github.com/awslabs/aws-c-common.git
+    git clone -b v0.4.42 https://github.com/awslabs/aws-c-common.git
     mkdir build-aws-c-common && cd build-aws-c-common
     cmake -G Xcode -DBUILD_SHARED_LIBS=ON ../aws-c-common
     xcodebuild -target install ; cd ..

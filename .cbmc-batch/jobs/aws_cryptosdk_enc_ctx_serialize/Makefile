@@ -34,22 +34,22 @@ ABSTRACTIONS += $(SRCDIR)/helper-stubs/aws_array_list_sort_noop_stub.c
 ABSTRACTIONS += $(SRCDIR)/helper-stubs/aws_cryptosdk_enc_ctx_size_stub.c
 ABSTRACTIONS += $(SRCDIR)/helper-stubs/aws_cryptosdk_hash_elems_array_init_stub.c
 
-#Remove function bodies to deal with CBMC function pointer removal
-ADDITIONAL_REMOVE_FUNCTION_BODY += --remove-function-body aws_array_list_sort
-ADDITIONAL_REMOVE_FUNCTION_BODY += --remove-function-body aws_byte_buf_write
-ADDITIONAL_REMOVE_FUNCTION_BODY += --remove-function-body aws_cryptosdk_enc_ctx_size
-ADDITIONAL_REMOVE_FUNCTION_BODY += --remove-function-body aws_cryptosdk_hash_elems_array_init
-
 CBMCFLAGS +=
 
 DEFINES += -DAWS_CRYPTOSDK_HASH_ELEMS_ARRAY_INIT_GENERATOR=array_list_item_generator
 DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
 DEFINES += -DMEMCPY_STUB_MAX=128
+DEFINES += -DAWS_NO_STATIC_IMPL
 
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-stubs/error.c
+DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/array_list.c
+DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/byte_order.c
+DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/error.c
+DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/math.c
+DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/string.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/hash_table.c
@@ -59,6 +59,11 @@ DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/enc_ctx.c
 
 ENTRY = aws_cryptosdk_enc_ctx_serialize_harness
 
+#Remove function bodies to deal with CBMC function pointer removal
+REMOVE_FUNCTION_BODIES += --remove-function-body aws_array_list_sort
+REMOVE_FUNCTION_BODIES += --remove-function-body aws_byte_buf_write
+REMOVE_FUNCTION_BODIES += --remove-function-body aws_cryptosdk_enc_ctx_size
+REMOVE_FUNCTION_BODIES += --remove-function-body aws_cryptosdk_hash_elems_array_init
 
 UNWINDSET += array_list_item_generator.0:$(shell echo $$((1 + $(MAX_TABLE_SIZE))))
 UNWINDSET += aws_cryptosdk_enc_ctx_serialize.0:$(shell echo $$((1 + $(MAX_TABLE_SIZE))))
