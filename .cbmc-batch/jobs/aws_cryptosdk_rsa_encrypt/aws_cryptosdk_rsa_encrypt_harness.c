@@ -15,6 +15,7 @@
 
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/private/cipher.h>
+#include <ec_utils.h>
 #include <make_common_data_structures.h>
 
 #define KEY_LEN 256
@@ -38,6 +39,9 @@ void aws_cryptosdk_rsa_encrypt_harness() {
     struct aws_byte_cursor old_plain = plain;
     struct store_byte_from_buffer old_byte_from_plain;
     save_byte_from_array(plain.ptr, plain.len, &old_byte_from_plain);
+
+    /*initialize a nondeterministic but fixed max encryption size between 0 and INT_MAX */
+    initialize_max_encryption_size();
 
     if (aws_cryptosdk_rsa_encrypt(&cipher, alloc, plain, key, rsa_padding_mode) == AWS_OP_SUCCESS) {
         assert(aws_byte_buf_is_valid(&cipher));
