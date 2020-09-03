@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"). You may not use
  * this file except in compliance with the License. A copy of the License is
@@ -13,13 +13,19 @@
  * limitations under the License.
  */
 
-#include <aws/cryptosdk/enc_ctx.h>
-#include <proof_helpers/proof_allocators.h>
+#include <make_common_data_structures.h>
+#include <openssl/evp.h>
 
-// This is a memory safety proof for aws_cryptosdk_enc_ctx_init
-void aws_cryptosdk_enc_ctx_init_harness() {
-    struct aws_allocator *alloc = can_fail_allocator();
-    struct aws_hash_table enc_ctx;
+/* Abstraction of the EVP_PKEY struct */
+struct evp_pkey_st {
+    int references;
+    EC_KEY *ec_key;
+};
 
-    aws_cryptosdk_enc_ctx_init(alloc, &enc_ctx);
+/**
+ * Helper function for CBMC proofs: checks if EVP_PKEY is valid.
+ * Use this stub when we are *certain* there is no ec_key associated with the key.
+ */
+bool evp_pkey_is_valid(EVP_PKEY *pkey) {
+    return pkey && (pkey->references > 0) && (pkey->ec_key == NULL);
 }
