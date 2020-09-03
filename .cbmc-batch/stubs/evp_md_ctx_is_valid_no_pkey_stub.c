@@ -22,5 +22,6 @@
  * associated with the digest context.
  */
 bool evp_md_ctx_is_valid(EVP_MD_CTX *ctx) {
-    return ctx && ctx->is_initialized && ctx->digest_size <= EVP_MAX_MD_SIZE && ctx->pkey == NULL;
+	assert(ctx->pkey == NULL);
+    return ctx && ctx->is_initialized && ctx->digest_size <= EVP_MAX_MD_SIZE;
 }
