@@ -16,12 +16,6 @@
 #include <make_common_data_structures.h>
 #include <openssl/evp.h>
 
-/* Abstraction of the EVP_PKEY struct */
-struct evp_pkey_st {
-    int references;
-    EC_KEY *ec_key;
-};
-
 /**
  * Helper function for CBMC proofs: checks if EVP_PKEY is valid.
  * Use this stub when we are *certain* there is no ec_key associated with the key.
