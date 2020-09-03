@@ -13,16 +13,11 @@
  * limitations under the License.
  */
 
-#include <ec_utils.h>
 #include <make_common_data_structures.h>
 #include <openssl/evp.h>
-#include <openssl/hmac.h>
-#include <openssl/kdf.h>
-#include <openssl/rsa.h>
-#include <proof_helpers/nondet.h>
 
 /*
- * Description: Cleans up digest context ctx and frees up the space allocated to it.
+ * Frees up the space allocated to ctx context.
  * Use this stub when we are *certain* there is no pkey associated with the digest context.
  */
 void EVP_MD_CTX_free(EVP_MD_CTX *ctx) {

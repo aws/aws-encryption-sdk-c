@@ -15,14 +15,11 @@
 
 #include <ec_utils.h>
 #include <make_common_data_structures.h>
-#include <openssl/evp.h>
-#include <openssl/hmac.h>
-#include <openssl/kdf.h>
-#include <openssl/rsa.h>
-#include <proof_helpers/nondet.h>
 
-/* Helper function for CBMC proofs: checks if EVP_MD_CTX is valid.
- * Use this stub when we are *certain* there is no pkey associated with the digest context.
+/*
+ * Checks whether EVP_MD_CTX is a valid object.
+ * Use this stub when we are certain there is no pkey
+ * associated with the digest context.
  */
 bool evp_md_ctx_is_valid(EVP_MD_CTX *ctx) {
     return ctx && ctx->is_initialized && ctx->digest_size <= EVP_MAX_MD_SIZE && ctx->pkey == NULL;
