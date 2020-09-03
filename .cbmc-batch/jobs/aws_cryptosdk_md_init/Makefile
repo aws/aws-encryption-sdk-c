@@ -18,7 +18,6 @@ sinclude ../Makefile.local
 include ../Makefile.local_default
 
 # We abstract these functions as manual inspection shows there is no pkey associated with the MD_ctx.
-
 ABSTRACTIONS += $(SRCDIR)/helper-stubs/EVP_MD_CTX_free_no_pkey_stub.c
 ABSTRACTIONS += $(SRCDIR)/helper-stubs/evp_md_ctx_is_valid_no_pkey_stub.c
 
