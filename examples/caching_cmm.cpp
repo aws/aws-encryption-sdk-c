@@ -99,11 +99,9 @@ std::string base64_encode(const std::vector<uint8_t> &vec) {
         error("aws_base64_compute_encoded_len");
     }
 
-    std::vector<uint8_t> tmp;
-    tmp.resize(b64_len);
-
+    std::vector<uint8_t> tmp(b64_len);
     struct aws_byte_cursor cursor = aws_byte_cursor_from_array(vec.data(), vec.size());
-    struct aws_byte_buf b64_buf   = aws_byte_buf_from_array(tmp.data(), tmp.size());
+    struct aws_byte_buf b64_buf   = aws_byte_buf_from_empty_array(tmp.data(), tmp.size());
 
     if (aws_base64_encode(&cursor, &b64_buf)) {
         error("aws_base64_encode");

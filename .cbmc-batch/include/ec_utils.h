@@ -37,10 +37,14 @@ void initialize_max_derivation_size();
 
 size_t max_derivation_size();
 
+/* This function initializes a fixed nondeterministic value meant to represent the maximum possible amount of encrypted
+ * data to be written to the output buffer (see EVP_PKEY_decrypt for an example of its use) */
 void initialize_max_encryption_size();
 
 size_t max_encryption_size();
 
+/* This function initializes a fixed nondeterministic value meant to represent the maximum possible amount of decrypted
+ * data to be written to the output buffer (see EVP_PKEY_encrypt for an example of its use) */
 void initialize_max_decryption_size();
 
 size_t max_decryption_size();

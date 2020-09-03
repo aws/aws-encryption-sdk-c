@@ -166,9 +166,7 @@ static int evp_gcm_encrypt_final(const struct aws_cryptosdk_alg_properties *prop
         return AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     }
 
-    if (outlen != 0) {
-        abort();  // wrong output size - potentially smashed stack
-    }
+    AWS_FATAL_POSTCONDITION(outlen == 0);  // wrong output size - potentially smashed stack
 
     if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, props->tag_len, (void *)tag)) {
         return AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
@@ -203,10 +201,7 @@ static int evp_gcm_decrypt_final(
         }
         return AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     }
-
-    if (outlen != 0) {
-        abort();  // wrong output size - potentially smashed stack
-    }
+    AWS_FATAL_POSTCONDITION(outlen == 0);  // wrong output size - potentially smashed stack
 
     return AWS_ERROR_SUCCESS;
 }
@@ -219,6 +214,7 @@ int aws_cryptosdk_sign_header(
     if (authtag->len != props->iv_len + props->tag_len) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(props));
 
     uint8_t *iv  = authtag->buffer;
     uint8_t *tag = authtag->buffer + props->iv_len;
@@ -234,7 +230,7 @@ int aws_cryptosdk_sign_header(
     if (!ctx) goto out;
 
     int outlen;
-    if (!EVP_CipherUpdate(ctx, NULL, &outlen, header->buffer, header->len)) goto out;
+    if (!EVP_EncryptUpdate(ctx, NULL, &outlen, header->buffer, header->len)) goto out;
 
     result = evp_gcm_encrypt_final(props, ctx, tag);
 out:
@@ -260,6 +256,7 @@ int aws_cryptosdk_verify_header(
     if (authtag->len != props->iv_len + props->tag_len) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
     }
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(props));
 
     const uint8_t *iv  = authtag->buffer;
     const uint8_t *tag = authtag->buffer + props->iv_len;
@@ -326,6 +323,7 @@ int aws_cryptosdk_encrypt_body(
         (outp->len == 0 && outp->capacity == 0 && outp->buffer));
     AWS_PRECONDITION(aws_byte_cursor_is_valid(inp));
     AWS_PRECONDITION(iv != NULL);
+    AWS_PRECONDITION(AWS_MEM_IS_WRITABLE(tag, props->tag_len));
     if (inp->len != outp->capacity) {
         return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     }
@@ -420,6 +418,7 @@ int aws_cryptosdk_decrypt_body(
     AWS_PRECONDITION(aws_byte_buf_is_valid(outp));
     AWS_PRECONDITION(aws_byte_cursor_is_valid(inp));
     AWS_PRECONDITION(iv != NULL);
+    AWS_PRECONDITION(AWS_MEM_IS_WRITABLE(tag, props->tag_len));
     if (inp->len != outp->capacity - outp->len) {
         return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
     }

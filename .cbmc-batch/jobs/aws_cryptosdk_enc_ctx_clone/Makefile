@@ -29,6 +29,7 @@ ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/aws_string_destroy_override.c
 ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/aws_string_new_from_array_override.c
 ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/error.c
 ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/hash_table_generators.c
+ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/memcmp_override_no_op.c
 
 CBMCFLAGS +=
 
@@ -42,6 +43,7 @@ DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/math.c
+DEPENDENCIES += $(SRCDIR)/c-common-src/string.c
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/enc_ctx.c
 
 ENTRY = aws_cryptosdk_enc_ctx_clone_harness

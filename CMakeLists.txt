@@ -68,6 +68,8 @@ if(AWS_ENC_SDK_END_TO_END_TESTS)
     include(FindCURL)
 endif()
 
+option(AWS_ENC_SDK_END_TO_END_EXAMPLES "Enable end-to-end examples. If set to FALSE (the default), runs local examples only.")
+
 option(PERFORM_HEADER_CHECK "Performs compile-time checks that each header can be included independently. Requires a C++ compiler.")
 
 option(VALGRIND_TEST_SUITE "Run the test suite under valgrind")
