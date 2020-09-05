@@ -17,10 +17,19 @@
 #   clang-format --style=Google -dump-config
 
 echo "Checking version number"
-VER=$(clang-format-8 --version|cut -f3 -d' '|cut -f1 -d'.')
-if [ $VER -ge 8 ];then
+if command -v clang-format-8; then
+    CLANG_FORMAT=clang-format-8
+elif command -v clang-format; then
+    CLANG_FORMAT=clang-format
+else
+    echo "clang-format-8 or clang-format not found"
+    exit 1
+fi
+VER=$($CLANG_FORMAT --version | cut -f3 -d' ' | cut -f1 -d'.')
+
+if [ "$VER" -ge 8 ]; then
     set -euxo pipefail
-    find . -name '*.h' -or -name '*.c' -or -name '*.cpp' | xargs clang-format-8 -i
+    find . -name '*.h' -or -name '*.c' -or -name '*.cpp' | xargs "$CLANG_FORMAT" -i
 else
     echo "clang-format version 8 or greater is needed to read the format file."
     exit 1
