@@ -52,7 +52,7 @@ run_test() {
     mkdir build
     (cd build
     #TODO: EC2 metadata service fails; fix an re-enable end2end tests.
-    cmake -DBUILD_AWS_ENC_SDK_CPP=ON -DAWS_ENC_SDK_END_TO_END_TESTS=${E2E} -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON \
+    cmake -DBUILD_AWS_ENC_SDK_CPP=ON -DAWS_ENC_SDK_END_TO_END_TESTS=${E2E} -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON -DAWS_ENC_SDK_END_TO_END_EXAMPLES=${E2E} \
         -DCMAKE_C_FLAGS="$CFLAGS" \
         -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
         -DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \

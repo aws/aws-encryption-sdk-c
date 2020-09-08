@@ -312,9 +312,7 @@ int EVP_PKEY_CTX_set_rsa_padding(EVP_PKEY_CTX *ctx, int pad) {
     assert(
         pad == RSA_PKCS1_PADDING || pad == RSA_SSLV23_PADDING || pad == RSA_NO_PADDING ||
         pad == RSA_PKCS1_OAEP_PADDING || pad == RSA_X931_PADDING || pad == RSA_PKCS1_PSS_PADDING);
-    if (pad == RSA_X931_PADDING) {
-        assert(ctx->is_initialized_for_signing);
-    }
+    assert(IMPLIES(pad == RSA_X931_PADDING, ctx->is_initialized_for_signing));
     ctx->rsa_pad = pad;
     int rv;
     __CPROVER_assume(rv == 0 || rv == 1);
@@ -502,18 +500,22 @@ int EVP_CipherInit_ex(
 int EVP_CIPHER_CTX_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg, void *ptr) {
     if (type == EVP_CTRL_GCM_SET_IVLEN || type == EVP_CTRL_AEAD_SET_IVLEN) {
         assert(ctx->iv_set == false);
-        assert(arg > 0);  // IV length must be positive.
+        /* iv length must be positive */
+        assert(arg > 0);
         ctx->iv_len = arg;
     }
-    if (type == EVP_CTRL_GCM_GET_TAG) {
-        assert(ctx->encrypt == 1);  // only legal when encrypting data
-        assert(ctx->data_processed == true);
-        AWS_MEM_IS_WRITABLE(ptr, arg);  // need to be able to write taglen (arg) bytes to buffer ptr.
-    }
-    if (type == EVP_CTRL_GCM_SET_TAG) {
-        assert(ctx->encrypt == 0);      // only legal when decrypting data
-        AWS_MEM_IS_WRITABLE(ptr, arg);  // need to be able to write taglen (arg) bytes to buffer ptr.
-    }
+
+    /* Only legal when encrypting data. */
+    assert(IMPLIES(type == EVP_CTRL_GCM_GET_TAG, ctx->encrypt == 1));
+    assert(IMPLIES(type == EVP_CTRL_GCM_GET_TAG, ctx->data_processed == true));
+    /* Need to be able to write taglen (arg) bytes to buffer ptr. */
+    assert(IMPLIES(type == EVP_CTRL_GCM_GET_TAG, AWS_MEM_IS_WRITABLE(ptr, arg)));
+
+    /* Only legal when decrypting data. */
+    assert(IMPLIES(type == EVP_CTRL_GCM_SET_TAG, ctx->encrypt == 0));
+    /* Need to be able to write taglen (arg) bytes to buffer ptr. */
+    assert(IMPLIES(type == EVP_CTRL_GCM_SET_TAG, AWS_MEM_IS_WRITABLE(ptr, arg)));
+
     int rv;
     __CPROVER_assume(rv == 0 || rv == 1);
     return rv;
