@@ -62,6 +62,12 @@ AWS_CRYPTOSDK_API
 bool aws_cryptosdk_edk_list_is_valid(const struct aws_array_list *edk_list);
 
 /**
+ * Evaluates the set of properties that define the shape of a valid empty edk_list.
+ */
+AWS_CRYPTOSDK_API
+bool aws_cryptosdk_empty_edk_list_is_valid(const struct aws_array_list *edk_list);
+
+/**
  * Evaluates the set of properties that define the shape of a valid edk_list.
  * Takes time O(list->length) as it loops through all elements of the list;
  */
