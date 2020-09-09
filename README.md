@@ -12,7 +12,7 @@ Also, see the [API documentation](https://aws.github.io/aws-encryption-sdk-c/htm
 ## Dependencies
 
 The only direct dependencies of this code are OpenSSL 1.0.2 or higher or 1.1.0 or higher and
-[aws-c-common](https://github.com/awslabs/aws-c-common) v0.3.15. You will also need
+[aws-c-common](https://github.com/awslabs/aws-c-common) v0.4.42. You will also need
 a C compiler and CMake 3.9 or higher.
 
 To integrate with [KMS](https://aws.amazon.com/kms/) the AWS Encryption SDK for C also requires
@@ -22,7 +22,7 @@ For best results when doing a build with KMS integration, do not install aws-c-c
 Build and install the AWS SDK for C++, which will build and install aws-c-common for you (see the C++ SDK dependancies
  [here](https://github.com/aws/aws-sdk-cpp/blob/master/third-party/CMakeLists.txt#L18)). If
 you install aws-c-common before building the AWS SDK for C++, this will fool the AWS SDK for
-C++ install logic, and you will be forced to install several other dependencies manually. Version 1.7.231 of the 
+C++ install logic, and you will be forced to install several other dependencies manually. Version 1.8.32 of the
 AWS SDK for C++ is supported by version v1.0.1 of the AWS Encryption SDK for C.
 
 You need to compile both the AWS Encryption SDK for C and its dependencies as either all
@@ -174,7 +174,7 @@ aws-c-common for you.
 Do a KMS-only build of the AWS SDK for C++. If you want to use the AWS SDK for C++ for
 other AWS services, you can omit the `-DBUILD_ONLY="kms"` argument, but the build will take much longer.
 
-    git clone -b v1.7.231 https://github.com/aws/aws-sdk-cpp.git
+    git clone -b 1.8.32 https://github.com/aws/aws-sdk-cpp.git
     mkdir build-aws-sdk-cpp && cd build-aws-sdk-cpp
     cmake -G Xcode -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="kms" -DENABLE_UNITY_BUILD=ON ../aws-sdk-cpp 
     xcodebuild -target install ; cd ..
