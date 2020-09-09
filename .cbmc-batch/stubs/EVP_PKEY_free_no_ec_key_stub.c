@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#include <make_common_data_structures.h>
 #include <openssl/evp.h>
+#include <stdlib.h>
 
 /**
  * Description: EVP_PKEY_free() decrements the reference count of key and, if the reference count is zero, frees it up.

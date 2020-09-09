@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#include <make_common_data_structures.h>
 #include <openssl/evp.h>
+#include <stdlib.h>
 
 /*
  * Frees up the space allocated to ctx context.

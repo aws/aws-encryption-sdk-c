@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-#include <make_common_data_structures.h>
 #include <openssl/evp.h>
 
 /**

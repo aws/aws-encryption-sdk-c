@@ -13,8 +13,7 @@
  * limitations under the License.
  */
 
-#include <ec_utils.h>
-#include <make_common_data_structures.h>
+#include <openssl/evp.h>
 
 /*
  * Checks whether EVP_MD_CTX is a valid object.
