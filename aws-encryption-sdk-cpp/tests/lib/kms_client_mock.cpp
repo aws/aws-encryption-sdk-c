@@ -87,6 +87,10 @@ Model::DecryptOutcome KmsClientMock::Decrypt(const Model::DecryptRequest &reques
         throw logic_error("Got other encryption context than expected");
     }
 
+    if (request.GetKeyId() != edv.expected_dec_request.GetKeyId()) {
+        throw logic_error("Got other key ID than expected");
+    }
+
     return edv.return_decrypt;
 }
 

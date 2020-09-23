@@ -46,9 +46,14 @@ void encrypt_string(
     }
 
     struct aws_cryptosdk_session *session =
-        aws_cryptosdk_session_new_from_keyring(alloc, AWS_CRYPTOSDK_ENCRYPT, kms_keyring);
+        aws_cryptosdk_session_new_from_keyring_2(alloc, AWS_CRYPTOSDK_ENCRYPT, kms_keyring);
     if (!session) abort();
     aws_cryptosdk_keyring_release(kms_keyring);
+
+    if (aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT)) {
+        fprintf(stderr, "set_commitment_policy failed: %s", aws_error_debug_str(aws_last_error()));
+        abort();
+    }
 
     if (AWS_OP_SUCCESS != aws_cryptosdk_session_set_message_size(session, in_plaintext_len)) {
         abort();
@@ -79,8 +84,13 @@ void decrypt_string(
     const uint8_t *in_ciphertext,
     size_t in_ciphertext_len) {
     struct aws_cryptosdk_session *session =
-        aws_cryptosdk_session_new_from_keyring(alloc, AWS_CRYPTOSDK_DECRYPT, kms_keyring);
+        aws_cryptosdk_session_new_from_keyring_2(alloc, AWS_CRYPTOSDK_DECRYPT, kms_keyring);
     if (!session) abort();
+
+    if (aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT)) {
+        fprintf(stderr, "set_commitment_policy failed: %s", aws_error_debug_str(aws_last_error()));
+        abort();
+    }
 
     size_t in_ciphertext_consumed;
     if (AWS_OP_SUCCESS != aws_cryptosdk_session_process(
@@ -127,6 +137,7 @@ int main(int argc, char **argv) {
     uint8_t ciphertext[BUFFER_SIZE];
     size_t ciphertext_len;
 
+    aws_common_library_init(aws_default_allocator());
     aws_cryptosdk_load_error_strings();
     Aws::SDKOptions options;
     Aws::InitAPI(options);

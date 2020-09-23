@@ -24,6 +24,7 @@ static const EVP_MD *aws_cryptosdk_get_evp_md(enum aws_cryptosdk_sha_version whi
     switch (which_sha) {
         case AWS_CRYPTOSDK_SHA256: return EVP_sha256();
         case AWS_CRYPTOSDK_SHA384: return EVP_sha384();
+        case AWS_CRYPTOSDK_SHA512: return EVP_sha512();
         default: return NULL;
     }
 }

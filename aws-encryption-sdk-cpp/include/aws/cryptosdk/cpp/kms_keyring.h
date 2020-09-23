@@ -20,6 +20,7 @@
 #include <aws/core/Aws.h>
 #include <aws/core/utils/Outcome.h>
 #include <aws/core/utils/memory/stl/AWSMap.h>
+#include <aws/core/utils/memory/stl/AWSSet.h>
 #include <aws/core/utils/memory/stl/AWSString.h>
 #include <aws/core/utils/memory/stl/AWSVector.h>
 #include <aws/cryptosdk/materials.h>
@@ -31,6 +32,7 @@ namespace Aws {
 namespace Cryptosdk {
 namespace KmsKeyring {
 class ClientSupplier;
+class DiscoveryFilter;
 
 /**
  * @defgroup kms_keyring KMS keyring (AWS SDK for C++)
@@ -144,6 +146,28 @@ class AWS_CRYPTOSDK_CPP_API Builder {
      */
     aws_cryptosdk_keyring *BuildDiscovery() const;
 
+    /**
+     * Creates a new KmsKeyring object in discovery mode (i.e., no KMS keys
+     * configured) but with a DiscoveryFilter. This means the following:
+     *
+     * (1) As in discovery mode without a DiscoveryFilter, this KmsKeyring will
+     * not do anything on encryption attempts.
+     *
+     * (2) On attempts to decrypt, the AWS Encryption SDK will attempt KMS
+     *     DecryptDataKey calls for every KMS key that was used to encrypt the
+     *     data until it finds one that:
+     *
+     *       (a) you have permission to use, and
+     *       (b) that is in an account specified by the DiscoveryFilter.
+     *
+     *     This may include calls to any region, unless prevented by policies
+     *     on the IAM user or role.
+     *
+     * The discovery_filter argument must not be nullptr, or else this function
+     * fails and returns nullptr.
+     */
+    aws_cryptosdk_keyring *BuildDiscovery(std::shared_ptr<KmsKeyring::DiscoveryFilter> discovery_filter) const;
+
    private:
     std::shared_ptr<KMS::KMSClient> kms_client;
     Aws::Vector<Aws::String> grant_tokens;
@@ -211,6 +235,73 @@ class AWS_CRYPTOSDK_CPP_API SingleClientSupplier : public ClientSupplier {
 
    private:
     std::shared_ptr<KMS::KMSClient> kms_client;
+};
+
+static const char *AWS_CRYPTO_SDK_DISCOVERY_FILTER_CLASS_TAG = "DiscoveryFilter";
+
+/**
+ * Builder for DiscoveryFilter objects.
+ */
+class AWS_CRYPTOSDK_CPP_API DiscoveryFilterBuilder {
+   public:
+    /**
+     * Constructs a builder with no authorized account IDs.
+     */
+    DiscoveryFilterBuilder(Aws::String partition) : partition(partition) {}
+
+    /**
+     * Adds an account ID to the set of authorized account IDs.
+     */
+    DiscoveryFilterBuilder &AddAccount(const Aws::String &account_id);
+
+    /**
+     * Adds account IDs to the set of authorized account IDs.
+     */
+    DiscoveryFilterBuilder &AddAccounts(const Aws::Vector<Aws::String> &account_ids);
+
+    /**
+     * Replaces the set of authorized account IDs.
+     */
+    DiscoveryFilterBuilder &WithAccounts(const Aws::Vector<Aws::String> &account_ids);
+
+    /**
+     * Creates a new DiscoveryFilter object, or returns NULL if no account
+     * IDs have been added.
+     */
+    std::shared_ptr<DiscoveryFilter> Build() const;
+
+   private:
+    Aws::String partition;
+    Aws::Set<Aws::String> account_ids;
+};
+
+/**
+ * The KmsKeyring can be configured with a DiscoveryFilter in order to limit
+ * the key ARNs used to decrypt EDKs in discovery mode.
+ */
+class AWS_CRYPTOSDK_CPP_API DiscoveryFilter {
+   public:
+    /**
+     * Returns true if the given key ARN is authorized for usage by a
+     * KmsKeyring in discovery mode, according to the configured partition and
+     * account IDs, or false otherwise.
+     */
+    bool IsAuthorized(const Aws::String &key_arn) const;
+
+    DiscoveryFilter() = delete;
+
+    /**
+     * Constructs a DiscoveryFilterBuilder with no authorized account IDs and no partition.
+     */
+    static DiscoveryFilterBuilder Builder(Aws::String partition);
+
+   protected:
+    DiscoveryFilter(Aws::String partition, Aws::Set<Aws::String> account_ids)
+        : partition(partition), account_ids(account_ids) {}
+
+   private:
+    Aws::String partition;
+    Aws::Set<Aws::String> account_ids;
 };
 
 /** @} */  // doxygen group kms_keyring

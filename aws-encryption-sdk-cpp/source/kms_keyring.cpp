@@ -14,6 +14,7 @@
  */
 #include <aws/cryptosdk/private/kms_keyring.h>
 
+#include <aws/core/utils/ARN.h>
 #include <aws/core/utils/Outcome.h>
 #include <aws/core/utils/logging/LogMacros.h>
 #include <aws/core/utils/memory/MemorySystemInterface.h>
@@ -78,16 +79,26 @@ static int OnDecrypt(
         const Aws::String key_arn = Private::aws_string_from_c_aws_byte_buf(&edk->provider_info);
 
         /* If there are no key IDs in the list, keyring is in "discovery" mode and will attempt KMS calls with
-         * every ARN it comes across in the message. If there are key IDs in the list, it will cross check the
-         * ARN it reads with that list before attempting KMS calls. Note that if caller provided key IDs in
-         * anything other than a CMK ARN format, the SDK will not attempt to decrypt those data keys, because
-         * the EDK data format always specifies the CMK with the full (non-alias) ARN.
+         * every key ARN it comes across in the message, so long as the key ARN is authorized by the
+         * DiscoveryFilter (matches the partition and an account ID).
+         *
+         * If there are key IDs in the list, it will cross check the ARN it reads with that list
+         * before attempting KMS calls. Note that if caller provided key IDs in anything other than
+         * a CMK ARN format, the SDK will not attempt to decrypt those data keys, because the EDK
+         * data format always specifies the CMK with the full (non-alias) ARN.
          */
         if (self->key_ids.size() &&
             std::find(self->key_ids.begin(), self->key_ids.end(), key_arn) == self->key_ids.end()) {
             // This keyring does not have access to the CMK used to encrypt this data key. Skip.
             continue;
         }
+        // self->discovery_filter is non-null only if self was constructed via BuildDiscovery, which
+        // in turn implies discovery mode
+        if (self->discovery_filter && !self->discovery_filter->IsAuthorized(key_arn)) {
+            // The DiscoveryFilter blocks the CMK used to encrypt this data key. Skip.
+            continue;
+        }
+
         Aws::String kms_region = Private::parse_region_from_kms_key_arn(key_arn);
         if (kms_region.empty()) {
             error_buf << "Error: Malformed ciphertext. Provider ID field of KMS EDK is invalid KMS CMK ARN: " << key_arn
@@ -104,6 +115,7 @@ static int OnDecrypt(
 
         Aws::KMS::Model::DecryptRequest kms_request;
         kms_request.WithGrantTokens(self->grant_tokens)
+            .WithKeyId(key_arn)
             .WithCiphertextBlob(aws_utils_byte_buffer_from_c_aws_byte_buf(&edk->ciphertext))
             .WithEncryptionContext(enc_ctx_cpp);
 
@@ -131,6 +143,10 @@ static int OnDecrypt(
                     AWS_CRYPTOSDK_WRAPPING_KEY_DECRYPTED_DATA_KEY | AWS_CRYPTOSDK_WRAPPING_KEY_VERIFIED_ENC_CTX);
             }
             return ret;
+        } else {
+            // Since we specified the key ARN explicitly in the request,
+            // KMS had better use that key to decrypt
+            return aws_raise_error(AWS_ERROR_INVALID_STATE);
         }
     }
 
@@ -419,6 +435,20 @@ aws_cryptosdk_keyring *KmsKeyring::Builder::BuildDiscovery() const {
         BuildClientSupplier(empty_key_ids_list, kms_client, client_supplier));
 }
 
+aws_cryptosdk_keyring *KmsKeyring::Builder::BuildDiscovery(std::shared_ptr<DiscoveryFilter> discovery_filter) const {
+    if (!discovery_filter) {
+        return nullptr;
+    }
+
+    Aws::Vector<Aws::String> empty_key_ids_list;
+    return Aws::New<Private::KmsKeyringImpl>(
+        AWS_CRYPTO_SDK_KMS_CLASS_TAG,
+        empty_key_ids_list,
+        grant_tokens,
+        BuildClientSupplier(empty_key_ids_list, kms_client, client_supplier),
+        discovery_filter);
+}
+
 KmsKeyring::Builder &KmsKeyring::Builder::WithGrantTokens(const Aws::Vector<Aws::String> &grant_tokens) {
     this->grant_tokens.insert(this->grant_tokens.end(), grant_tokens.begin(), grant_tokens.end());
     return *this;
@@ -438,6 +468,60 @@ KmsKeyring::Builder &KmsKeyring::Builder::WithClientSupplier(
 KmsKeyring::Builder &KmsKeyring::Builder::WithKmsClient(const std::shared_ptr<KMS::KMSClient> &kms_client) {
     this->kms_client = kms_client;
     return *this;
+}
+
+bool KmsKeyring::DiscoveryFilter::IsAuthorized(const Aws::String &key_arn) const {
+    Utils::ARN arn(key_arn);
+    if (!arn) {
+        return false;
+    }
+
+    bool matching_partition = arn.GetPartition() == partition;
+    bool matching_account   = account_ids.find(arn.GetAccountId()) != account_ids.end();
+    return matching_partition && matching_account;
+}
+
+KmsKeyring::DiscoveryFilterBuilder KmsKeyring::DiscoveryFilter::Builder(Aws::String partition) {
+    KmsKeyring::DiscoveryFilterBuilder builder(partition);
+    return builder;
+}
+
+KmsKeyring::DiscoveryFilterBuilder &KmsKeyring::DiscoveryFilterBuilder::AddAccount(const Aws::String &account_id) {
+    this->account_ids.insert(account_id);
+    return *this;
+}
+
+KmsKeyring::DiscoveryFilterBuilder &KmsKeyring::DiscoveryFilterBuilder::AddAccounts(
+    const Aws::Vector<Aws::String> &account_ids) {
+    this->account_ids.insert(account_ids.begin(), account_ids.end());
+    return *this;
+}
+
+KmsKeyring::DiscoveryFilterBuilder &KmsKeyring::DiscoveryFilterBuilder::WithAccounts(
+    const Aws::Vector<Aws::String> &account_ids) {
+    this->account_ids.clear();
+    return this->AddAccounts(account_ids);
+}
+
+std::shared_ptr<KmsKeyring::DiscoveryFilter> KmsKeyring::DiscoveryFilterBuilder::Build() const {
+    // Must have at least one account ID, and partition and account IDs cannot be the empty string
+    if (account_ids.empty()) {
+        AWS_LOGSTREAM_ERROR(
+            AWS_CRYPTO_SDK_KMS_CLASS_TAG, "Invalid DiscoveryFilterBuilder: account IDs cannot be empty");
+        return nullptr;
+    }
+    if (partition.empty()) {
+        AWS_LOGSTREAM_ERROR(AWS_CRYPTO_SDK_KMS_CLASS_TAG, "Invalid DiscoveryFilterBuilder: partition cannot be blank");
+        return nullptr;
+    }
+    if (account_ids.find("") != account_ids.end()) {
+        AWS_LOGSTREAM_ERROR(
+            AWS_CRYPTO_SDK_KMS_CLASS_TAG, "Invalid DiscoveryFilterBuilder: account IDs cannot be blank");
+        return nullptr;
+    }
+
+    return Aws::MakeShared<Private::DiscoveryFilterImpl>(
+        KmsKeyring::AWS_CRYPTO_SDK_DISCOVERY_FILTER_CLASS_TAG, partition, account_ids);
 }
 
 }  // namespace Cryptosdk

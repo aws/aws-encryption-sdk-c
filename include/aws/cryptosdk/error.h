@@ -49,6 +49,8 @@ enum aws_cryptosdk_err {
     AWS_CRYPTOSDK_ERR_RESERVED_NAME,
     /** An unsupported format version was encountered on decrypt */
     AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT,
+    /** Attempted encrypt/decrypt that would violate the configured key commitment policy */
+    AWS_CRYPTOSDK_ERR_COMMITMENT_POLICY_VIOLATION,
     AWS_CRYPTOSDK_ERR_END_RANGE = 0x2400
 };
 

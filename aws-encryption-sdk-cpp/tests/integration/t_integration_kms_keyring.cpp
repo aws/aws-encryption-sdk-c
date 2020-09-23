@@ -14,6 +14,7 @@
  */
 
 #include <aws/common/encoding.h>
+#include <aws/core/utils/ARN.h>
 #include <aws/core/utils/logging/AWSLogging.h>
 #include <aws/core/utils/logging/ConsoleLogSystem.h>
 #include <aws/cryptosdk/cpp/kms_keyring.h>
@@ -34,6 +35,7 @@ const char *CLASS_CTAG = "Test KMS";
  */
 const char *KEY_ARN_STR1        = "arn:aws:kms:us-west-2:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
 const char *KEY_ARN_STR1_REGION = Aws::Region::US_WEST_2;
+const char *KEY_ACCOUNT_STR1    = "658956600833";
 const char *KEY_ARN_STR2        = "arn:aws:kms:eu-central-1:658956600833:key/75414c93-5285-4b57-99c9-30c1cf0a22c2";
 const char *KEY_ARN_STR2_REGION = Aws::Region::EU_CENTRAL_1;
 /* For testing that discovery keyring fails cleanly when it gets a key it cannot decrypt with */
@@ -312,6 +314,32 @@ static const char *edk_bytes[2] = {
     "r8JCHVnMaySHGncvyb73O1deYukuy/iPRJ2Ts8Q486xow2LOhl/6QMsMGY+NHoqC61cNJfr6w="
 };
 
+/**
+ * Given a KmsKeyring in discovery mode, when attempting to decrypt a message
+ * where the keyring cannot decrypt with any EDK in the message, then the
+ * operation succeeds but does not produce an unencrypted data key.
+ */
+int dataKeyDecrypt_discoveryKeyringCannotAccessAnyKeys_returnSuccess() {
+    TEST_ASSERT_SUCCESS(setup_dataKeyEncryptAndDecrypt_tests(false));
+    const auto my_alg = ALG_AES256_GCM_IV12_TAG16_NO_KDF;
+    Testing::Edks edks(alloc);
+
+    aws_cryptosdk_edk edk = create_kms_edk(alloc, key_arns[0], edk_bytes[0]);
+    TEST_ASSERT_SUCCESS(aws_array_list_push_back(&edks.encrypted_data_keys, &edk));
+    auto kms_keyring               = KmsKeyring::Builder().BuildDiscovery();
+    struct aws_byte_buf pt_datakey = easy_b64_decode("sVCsYPf6v/zGp0clol/ffyVrdkqXrw4LwTxB0pRGvok=");
+
+    struct aws_byte_buf result_output = { 0 };
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(
+        kms_keyring, alloc, &result_output, &keyring_trace, &edks.encrypted_data_keys, &enc_ctx, my_alg));
+    TEST_ASSERT_ADDR_NULL(result_output.buffer);
+
+    aws_byte_buf_clean_up(&pt_datakey);
+    teardown_dataKeyEncryptAndDecrypt_tests();
+    aws_cryptosdk_keyring_release(kms_keyring);
+    return 0;
+}
+
 int dataKeyDecrypt_discoveryKeyringHandlesKeyItCannotAccess_returnSuccess() {
     TEST_ASSERT_SUCCESS(setup_dataKeyEncryptAndDecrypt_tests(false));
     const auto my_alg = ALG_AES256_GCM_IV12_TAG16_NO_KDF;
@@ -469,6 +497,110 @@ int dataKeyEncryptAndDecrypt_twoKeysSharedBuilderAndCache_returnSuccess() {
     return 0;
 }
 
+/**
+ * A keyring in non-discovery mode must fail to encrypt a data key if the given
+ * key name is not an ARN.
+ */
+int dataKeyEncrypt_singleKeyNameCannotBeUsed_returnsErr() {
+    TEST_ASSERT_ADDR_NULL(KmsKeyring::Builder().Build("alias/is_invalid_for_encrypt"));
+
+    Aws::Vector<Aws::String> additional_key_ids = { KEY_ARN_STR1, KEY_ARN_STR2, "alias/is_invalid_for_encrypt" };
+    TEST_ASSERT_ADDR_NULL(KmsKeyring::Builder().Build("alias/is_invalid_for_encrypt", additional_key_ids));
+    TEST_ASSERT_ADDR_NULL(KmsKeyring::Builder().Build(KEY_ARN_STR1, additional_key_ids));
+    return 0;
+}
+
+/**
+ * If a discovery-mode keyring with a discovery filter is called to decrypt
+ * with a list of EDKs, one of which is authorized by the discovery filter,
+ * then the decrypt operation must succeed.
+ */
+int dataKeyDecrypt_discoveryFilterAuthorized_returnSuccess() {
+    TEST_ASSERT_SUCCESS(setup_dataKeyEncryptAndDecrypt_tests(false));
+    const auto my_alg = ALG_AES256_GCM_IV12_TAG16_NO_KDF;
+    Testing::Edks edks(alloc);
+
+    for (int i = 0; i < 2; ++i) {
+        aws_cryptosdk_edk edk = create_kms_edk(alloc, key_arns[i], edk_bytes[i]);
+        TEST_ASSERT_SUCCESS(aws_array_list_push_back(&edks.encrypted_data_keys, &edk));
+    }
+
+    Aws::Utils::ARN key_arn(key_arns[1]);
+    std::shared_ptr<KmsKeyring::DiscoveryFilter> discovery_filter(
+        KmsKeyring::DiscoveryFilter::Builder("aws").WithAccounts({ key_arn.GetAccountId() }).Build());
+    auto keyring = KmsKeyring::Builder().BuildDiscovery(discovery_filter);
+
+    struct aws_byte_buf pt_datakey = easy_b64_decode("sVCsYPf6v/zGp0clol/ffyVrdkqXrw4LwTxB0pRGvok=");
+    TEST_ASSERT_SUCCESS(test_keyring_datakey_decrypt_and_compare_with_pt_datakey(
+        alloc, &pt_datakey, keyring, &edks.encrypted_data_keys, &enc_ctx, my_alg, key_arns[1]));
+
+    aws_byte_buf_clean_up(&pt_datakey);
+    teardown_dataKeyEncryptAndDecrypt_tests();
+    aws_cryptosdk_keyring_release(keyring);
+    return 0;
+}
+
+/**
+ * If a discovery-mode keyring with a discovery filter is called to decrypt
+ * with a list of EDKs, none of which have a CMK in an account of the discovery
+ * filter, then the decrypt operation must fail.
+ */
+int dataKeyDecrypt_discoveryFilterAccountMismatch_returnErr() {
+    TEST_ASSERT_SUCCESS(setup_dataKeyEncryptAndDecrypt_tests(false));
+    const auto my_alg = ALG_AES256_GCM_IV12_TAG16_NO_KDF;
+    Testing::Edks edks(alloc);
+
+    for (int i = 0; i < 2; ++i) {
+        aws_cryptosdk_edk edk = create_kms_edk(alloc, key_arns[i], edk_bytes[i]);
+        TEST_ASSERT_SUCCESS(aws_array_list_push_back(&edks.encrypted_data_keys, &edk));
+    }
+
+    std::shared_ptr<KmsKeyring::DiscoveryFilter> discovery_filter(
+        KmsKeyring::DiscoveryFilter::Builder("aws").WithAccounts({ "000011110000", "111122221111" }).Build());
+    auto keyring = KmsKeyring::Builder().BuildDiscovery(discovery_filter);
+
+    struct aws_byte_buf output = { 0 };
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(
+        keyring, alloc, &output, &keyring_trace, &edks.encrypted_data_keys, &enc_ctx, my_alg));
+    TEST_ASSERT_ADDR_NULL(output.buffer);
+
+    teardown_dataKeyEncryptAndDecrypt_tests();
+    aws_cryptosdk_keyring_release(keyring);
+    return 0;
+}
+
+/**
+ * If a discovery-mode keyring with a discovery filter is called to decrypt
+ * with a list of EDKs, none of which have a CMK in the partition of the
+ * discovery filter, then the decrypt operation must fail.
+ */
+int dataKeyDecrypt_discoveryFilterPartitionMismatch_returnErr() {
+    TEST_ASSERT_SUCCESS(setup_dataKeyEncryptAndDecrypt_tests(false));
+    const auto my_alg = ALG_AES256_GCM_IV12_TAG16_NO_KDF;
+    Testing::Edks edks(alloc);
+
+    for (int i = 0; i < 2; ++i) {
+        aws_cryptosdk_edk edk = create_kms_edk(alloc, key_arns[i], edk_bytes[i]);
+        TEST_ASSERT_SUCCESS(aws_array_list_push_back(&edks.encrypted_data_keys, &edk));
+    }
+
+    Aws::Utils::ARN key_arn(key_arns[1]);
+    std::shared_ptr<KmsKeyring::DiscoveryFilter> discovery_filter(
+        KmsKeyring::DiscoveryFilter::Builder("aws-us-gov")
+            .WithAccounts({ key_arn.GetAccountId(), "000011110000" })
+            .Build());
+    auto keyring = KmsKeyring::Builder().BuildDiscovery(discovery_filter);
+
+    struct aws_byte_buf output = { 0 };
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_keyring_on_decrypt(
+        keyring, alloc, &output, &keyring_trace, &edks.encrypted_data_keys, &enc_ctx, my_alg));
+    TEST_ASSERT_ADDR_NULL(output.buffer);
+
+    teardown_dataKeyEncryptAndDecrypt_tests();
+    aws_cryptosdk_keyring_release(keyring);
+    return 0;
+}
+
 // todo add more tests for grantTokens
 
 /*
@@ -558,6 +690,8 @@ int main() {
     logging.clear();
     RUN_TEST(dataKeyDecrypt_discoveryKeyringHandlesKeyItCannotAccess_returnSuccess());
     logging.clear();
+    RUN_TEST(dataKeyDecrypt_discoveryKeyringCannotAccessAnyKeys_returnSuccess());
+    logging.clear();
     RUN_TEST(dataKeyDecrypt_doNotReturnDataKeyWhenKeyIdMismatchFromKms_returnSuccess());
     logging.clear();
     RUN_TEST(dataKeyEncryptAndDecrypt_singleKey_returnSuccess());
@@ -565,6 +699,15 @@ int main() {
     RUN_TEST(dataKeyEncryptAndDecrypt_twoKeys_returnSuccess());
     logging.clear();
     RUN_TEST(dataKeyEncryptAndDecrypt_twoKeysSharedBuilderAndCache_returnSuccess());
+    logging.clear();
+    RUN_TEST(dataKeyEncrypt_singleKeyNameCannotBeUsed_returnsErr());
+    logging.clear();
+
+    RUN_TEST(dataKeyDecrypt_discoveryFilterAuthorized_returnSuccess());
+    logging.clear();
+    RUN_TEST(dataKeyDecrypt_discoveryFilterAccountMismatch_returnErr());
+    logging.clear();
+    RUN_TEST(dataKeyDecrypt_discoveryFilterPartitionMismatch_returnErr());
     logging.clear();
 
     Aws::ShutdownAPI(options);

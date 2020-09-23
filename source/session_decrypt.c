@@ -70,18 +70,39 @@ static int derive_data_key(struct aws_cryptosdk_session *session, struct aws_cry
     if (materials->unencrypted_data_key.len != session->alg_props->data_key_len) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
+    if (!aws_cryptosdk_priv_algorithm_allowed_for_decrypt(session->alg_props->alg_id, session->commitment_policy)) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_COMMITMENT_POLICY_VIOLATION);
+    }
 
     // TODO - eliminate the struct data_key type and use the unencrypted_data_key buffer directly
     struct data_key data_key = { { 0 } };
     memcpy(&data_key.keybuf, materials->unencrypted_data_key.buffer, materials->unencrypted_data_key.len);
 
-    return aws_cryptosdk_derive_key(session->alg_props, &session->content_key, &data_key, session->header.message_id);
+    assert(session->alg_props->commitment_len <= sizeof(session->key_commitment_arr));
+
+    struct aws_byte_buf expected_commitment =
+        aws_byte_buf_from_array(session->key_commitment_arr, session->alg_props->commitment_len);
+
+    int rv = aws_cryptosdk_private_derive_key(
+        session->alg_props, &session->content_key, &data_key, &expected_commitment, &session->header.message_id);
+
+    if (rv != 0) {
+        return aws_raise_error(rv);
+    }
+
+    if (!aws_cryptosdk_private_commitment_eq(&expected_commitment, &session->header.alg_suite_data)) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
+    }
+
+    return AWS_OP_SUCCESS;
 }
 
 static int validate_header(struct aws_cryptosdk_session *session) {
     // Perform header validation
-    int header_size    = aws_cryptosdk_hdr_size(&session->header);
-    size_t authtag_len = session->alg_props->tag_len + session->alg_props->iv_len;
+    size_t header_size = aws_cryptosdk_hdr_size(&session->header);
+    size_t authtag_len = aws_cryptosdk_private_authtag_len(session->alg_props);
+
+    assert(header_size == session->header_size);
 
     if (header_size == 0) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
@@ -236,11 +257,12 @@ int aws_cryptosdk_priv_try_decrypt_body(
     // We have everything we need, try to decrypt
     struct aws_byte_cursor ciphertext_cursor =
         aws_byte_cursor_from_array(frame.ciphertext.buffer, frame.ciphertext.len);
+
     int rv = aws_cryptosdk_decrypt_body(
         session->alg_props,
         &output,
         &ciphertext_cursor,
-        session->header.message_id,
+        &session->header.message_id,
         frame.sequence_number,
         frame.iv.buffer,
         &session->content_key,

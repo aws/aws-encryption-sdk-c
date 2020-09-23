@@ -423,6 +423,7 @@ void decrypt_test_vector(
 }
 
 int main() {
+    aws_common_library_init(aws_default_allocator());
     aws_cryptosdk_load_error_strings();
 
     // clang-format off

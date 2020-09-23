@@ -53,8 +53,14 @@ static int process_file(
     auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build(key_arn);
 
     /* Initialize the session object. */
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_keyring(allocator, mode, kms_keyring);
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_keyring_2(allocator, mode, kms_keyring);
     if (!session) abort();
+
+    if (aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT)) {
+        fprintf(stderr, "set_commitment_policy failed: %s", aws_error_debug_str(aws_last_error()));
+        abort();
+    }
+
     /* Since the session now holds a reference to the keyring, we can release the local reference. */
     aws_cryptosdk_keyring_release(kms_keyring);
 
@@ -184,6 +190,7 @@ int main(int argc, char *argv[]) {
     snprintf(encrypted_filename, filename_len, "%s.encrypted", input_filename);
     snprintf(decrypted_filename, filename_len, "%s.decrypted", input_filename);
 
+    aws_common_library_init(aws_default_allocator());
     aws_cryptosdk_load_error_strings();
 
     Aws::SDKOptions options;
