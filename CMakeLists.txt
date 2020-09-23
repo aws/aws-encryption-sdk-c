@@ -50,7 +50,7 @@ set(PROJECT_NAME aws-encryption-sdk)
 
 # Version number of the SDK to be consumed by C code and Doxygen
 set(MAJOR 1)
-set(MINOR 1)
+set(MINOR 7)
 set(PATCH 0)
 
 # Compiler feature tests and feature flags
@@ -161,6 +161,7 @@ target_link_libraries(aws-encryption-sdk-test PRIVATE ${PLATFORM_LIBS} ${OPENSSL
 target_link_libraries(aws-encryption-sdk-test PUBLIC AWS::aws-c-common)
 target_compile_definitions(aws-encryption-sdk-test PRIVATE AWS_CRYPTOSDK_TEST_STATIC=)
 target_compile_definitions(aws-encryption-sdk-test PUBLIC AWS_ENCRYPTION_SDK_FORCE_STATIC)
+target_compile_definitions(aws-encryption-sdk-test PRIVATE UNIT_TEST_ONLY_ALLOW_ENCRYPT_WITH_COMMITMENT)
 
 include(CodeCoverageTargets)
 

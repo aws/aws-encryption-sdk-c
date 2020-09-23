@@ -91,6 +91,25 @@ struct aws_cryptosdk_alg_properties {
      * The algorithm ID for this algorithm suite
      */
     enum aws_cryptosdk_alg_id alg_id;
+
+    /**
+     * The message format version
+     */
+    enum aws_cryptosdk_hdr_version msg_format_version;
+
+    /**
+     * Length of the Algorithm Suite Data for this algorithm suite
+     */
+    size_t alg_suite_data_len;
+
+    /**
+     * Length of commitment value for algorithm suite (or 0 if this algorithm
+     * suite does not support commitment)
+     */
+    size_t commitment_len;
+
+    /** The name of the digest algorithm used for the signature algorithm, or NULL if no signature is used. */
+    const char *sig_md_name;
 };
 
 /**

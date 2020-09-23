@@ -31,17 +31,20 @@ target_link_libraries(testlib ${PROJECT_NAME} ${OPENSSL_LDFLAGS})
 set_target_properties(testlib PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 target_include_directories(testlib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 target_compile_definitions(testlib PRIVATE IN_TESTLIB_BUILD)
+target_compile_definitions(testlib PRIVATE UNIT_TEST_ONLY_ALLOW_ENCRYPT_WITH_COMMITMENT)
 
 add_library(testlib_static STATIC EXCLUDE_FROM_ALL ${TEST_LIB})
 target_link_libraries(testlib_static PUBLIC aws-encryption-sdk-test ${OPENSSL_LDFLAGS})
 set_target_properties(testlib_static PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 target_include_directories(testlib_static PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 target_compile_definitions(testlib_static PRIVATE IN_TESTLIB_BUILD)
+target_compile_definitions(testlib_static PRIVATE UNIT_TEST_ONLY_ALLOW_ENCRYPT_WITH_COMMITMENT)
 
 add_executable(unit-test-suite ${UNIT_TEST_SRC})
 target_link_libraries(unit-test-suite ${OPENSSL_LDFLAGS} testlib_static)
 set_target_properties(unit-test-suite PROPERTIES LINKER_LANGUAGE C C_STANDARD 99)
 target_include_directories(unit-test-suite PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/unit)
+target_compile_definitions(unit-test-suite PRIVATE UNIT_TEST_ONLY_ALLOW_ENCRYPT_WITH_COMMITMENT)
 
 if (REDUCE_TEST_ITERATIONS)
     target_compile_definitions(unit-test-suite PRIVATE REDUCE_TEST_ITERATIONS)
@@ -84,6 +87,7 @@ if(AWS_ENC_SDK_END_TO_END_TESTS AND CURL_FOUND)
 endif(AWS_ENC_SDK_END_TO_END_TESTS AND CURL_FOUND)
 
 aws_add_test(cipher ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite cipher)
+aws_add_test(commitment ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite commitment)
 aws_add_test(header ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite header)
 aws_add_test(materials ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite materials)
 aws_add_test(enc_ctx ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite enc_ctx)
@@ -109,4 +113,8 @@ aws_add_test(decrypt_hello
     ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt ${TEST_DATA}/hello.bin ${TEST_DATA}/hello.bin.pt)
 aws_add_test(decrypt_hello_tiny
     ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt ${TEST_DATA}/hello.tinyframes.bin ${TEST_DATA}/hello.bin.pt)
+aws_add_test(bad_commitment
+    ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt --xfail --gcmkey ${TEST_DATA}/ct_bad_commitment.bin ${TEST_DATA}/bad_commitment.pt)
+aws_add_test(good_commitment
+    ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt --gcmkey ${TEST_DATA}/ct_good_commitment.bin ${TEST_DATA}/good_commitment.pt)
 aws_add_test(decryption_vectors ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decryption_vectors)

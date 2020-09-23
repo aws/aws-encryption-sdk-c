@@ -51,6 +51,7 @@ struct aws_cryptosdk_session {
     int error;
     enum aws_cryptosdk_mode mode;
     enum session_state state;
+    enum aws_cryptosdk_commitment_policy commitment_policy;
 
     struct aws_cryptosdk_cmm *cmm;
 
@@ -81,6 +82,9 @@ struct aws_cryptosdk_session {
 
     /* Decrypted, derived (if applicable) content key */
     struct content_key content_key;
+    /* Key commitment array, and byte_buf wrapping this array */
+    uint8_t key_commitment_arr[32];
+    struct aws_byte_buf key_commitment;
 
     /* In-progress trailing signature context (if applicable) */
     struct aws_cryptosdk_sig_ctx *signctx;
@@ -106,6 +110,8 @@ int aws_cryptosdk_priv_try_decrypt_body(
     struct aws_byte_cursor *AWS_RESTRICT pinput);
 int aws_cryptosdk_priv_check_trailer(
     struct aws_cryptosdk_session *AWS_RESTRICT session, struct aws_byte_cursor *AWS_RESTRICT pinput);
+bool aws_cryptosdk_priv_algorithm_allowed_for_decrypt(
+    enum aws_cryptosdk_alg_id alg_id, enum aws_cryptosdk_commitment_policy commitment_policy);
 
 /* Encrypt path */
 void aws_cryptosdk_priv_encrypt_compute_body_estimate(struct aws_cryptosdk_session *session);
@@ -118,5 +124,11 @@ int aws_cryptosdk_priv_try_encrypt_body(
     struct aws_byte_cursor *AWS_RESTRICT pinput);
 int aws_cryptosdk_priv_write_trailer(
     struct aws_cryptosdk_session *AWS_RESTRICT session, struct aws_byte_buf *AWS_RESTRICT poutput);
+bool aws_cryptosdk_priv_algorithm_allowed_for_encrypt(
+    enum aws_cryptosdk_alg_id alg_id, enum aws_cryptosdk_commitment_policy commitment_policy);
+
+#ifdef UNIT_TEST_ONLY_ALLOW_ENCRYPT_WITH_COMMITMENT
+extern bool unit_test_only_allow_encrypt_with_commitment;
+#endif
 
 #endif

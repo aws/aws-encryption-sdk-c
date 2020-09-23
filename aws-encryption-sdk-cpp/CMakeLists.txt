@@ -13,6 +13,8 @@
 # limitations under the License.
 #
 
+set(TEST_DATA ${CMAKE_CURRENT_SOURCE_DIR}/tests/data)
+
 file(GLOB AWS_CRYPTOSDK_CPP_HEADERS
     # Headers subject to API/ABI stability guarantees
     "${CMAKE_CURRENT_SOURCE_DIR}/include/aws/cryptosdk/cpp/*.h"
@@ -72,6 +74,16 @@ if (AWS_ENC_SDK_END_TO_END_TESTS)
         )
     set_target_properties(t_integration_kms_keyring PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
     aws_add_test(integration_kms_mk ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/t_integration_kms_keyring)
+
+    add_executable(t_commitment_known_answer tests/integration/t_commitment_known_answer.cpp)
+    target_link_libraries(t_commitment_known_answer testlibcpp)
+    target_include_directories(t_commitment_known_answer PUBLIC ${PROJECT_SOURCE_DIR}/tests/lib
+        ${PROJECT_SOURCE_DIR}/tests/unit
+        ${PROJECT_SOURCE_DIR}/tests/integration
+        $<INSTALL_INTERFACE:include>
+        )
+    set_target_properties(t_commitment_known_answer PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
+    aws_add_test(commitment_known_answer ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/t_commitment_known_answer ${TEST_DATA}/commitment_known_answer_tests.json)
 else()
     message(STATUS "End to end tests off")
 endif()

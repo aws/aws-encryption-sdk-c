@@ -30,8 +30,13 @@ void encrypt_or_decrypt_with_keyring(
     size_t input_len,
     enum aws_cryptosdk_mode mode,
     struct aws_cryptosdk_keyring *keyring) {
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_keyring(alloc, mode, keyring);
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_keyring_2(alloc, mode, keyring);
     if (!session) abort();
+
+    if (aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT)) {
+        fprintf(stderr, "set_commitment_policy failed: %s", aws_error_debug_str(aws_last_error()));
+        abort();
+    }
 
     if (mode == AWS_CRYPTOSDK_ENCRYPT) {
         if (AWS_OP_SUCCESS != aws_cryptosdk_session_set_message_size(session, input_len)) abort();
@@ -63,6 +68,9 @@ void encrypt_or_decrypt_with_keyring(
  * any of the others using the same wrapping key.
  */
 int main(int argc, char **argv) {
+    aws_common_library_init(aws_default_allocator());
+    aws_cryptosdk_load_error_strings();
+
     if (argc < 2) {
         /* To run this test just generate a file of 128, 192, or 256 random bits
          * to use as your wrapping key and give the filename as the argument.

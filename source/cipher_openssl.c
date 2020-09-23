@@ -242,7 +242,7 @@ static struct aws_cryptosdk_sig_ctx *sign_start(
      * We perform the digest and signature separately, as we might need to re-sign to get the right
      * signature size.
      */
-    if (!(EVP_DigestInit(ctx->ctx, props->impl->md_ctor()))) {
+    if (!(EVP_DigestInit(ctx->ctx, props->impl->sig_md_ctor()))) {
         aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
         goto rethrow;
     }
@@ -766,7 +766,7 @@ int aws_cryptosdk_sig_verify_start(
         goto oom;
     }
 
-    if (!(EVP_DigestVerifyInit(ctx->ctx, NULL, props->impl->md_ctor(), NULL, ctx->pkey))) {
+    if (!(EVP_DigestVerifyInit(ctx->ctx, NULL, props->impl->sig_md_ctor(), NULL, ctx->pkey))) {
         aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
         goto rethrow;
     }

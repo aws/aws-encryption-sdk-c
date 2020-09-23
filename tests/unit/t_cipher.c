@@ -15,28 +15,110 @@
 
 #include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/private/header.h>
+#include "testutil.h"
+
 #include <stdlib.h>
 #include "testing.h"
+#include "testutil.h"
 
 #ifdef _MSC_VER
 #    include <malloc.h>
 #    define alloca _alloca
 #endif
 
+static int test_kdf_committing(
+    enum aws_cryptosdk_alg_id alg_id,
+    const char *msg_id,
+    const char *data_key,
+    const char *expected_key_str,
+    const char *expected_commitment_str) {
+    struct aws_byte_buf data_key_buf = easy_b64_decode(data_key);
+    struct data_key key;
+
+    assert(data_key_buf.len == sizeof(key.keybuf));
+    memcpy(key.keybuf, data_key_buf.buffer, data_key_buf.len);
+
+    aws_byte_buf_clean_up_secure(&data_key_buf);
+
+    struct aws_byte_buf msgid_buf = easy_b64_decode(msg_id);
+    assert(msgid_buf.len == 32);
+
+    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
+
+    struct aws_byte_buf commitment;
+
+    struct content_key key_out = { { 0 } };
+
+    if (aws_byte_buf_init(&commitment, aws_default_allocator(), props->commitment_len)) abort();
+
+    struct aws_byte_buf expected_key    = easy_b64_decode(expected_key_str);
+    struct aws_byte_buf expected_commit = easy_b64_decode(expected_commitment_str);
+
+    TEST_ASSERT_INT_EQ(
+        AWS_OP_SUCCESS,
+        aws_cryptosdk_private_derive_key(aws_cryptosdk_alg_props(alg_id), &key_out, &key, &commitment, &msgid_buf));
+
+    if (expected_key.len != props->content_key_len ||
+        memcmp(expected_key.buffer, key_out.keybuf, props->content_key_len)) {
+        struct aws_string *str = easy_b64_encode(key_out.keybuf, props->content_key_len);
+        fprintf(stderr, "Unexpected data key: Expected {%s} got {%s}\n", expected_key_str, str->bytes);
+        aws_string_destroy(str);
+    }
+
+    if (expected_commit.len != props->commitment_len ||
+        memcmp(expected_commit.buffer, commitment.buffer, props->commitment_len)) {
+        struct aws_string *str = easy_b64_encode(commitment.buffer, props->commitment_len);
+        fprintf(stderr, "Unexpected commitment: Expected {%s} got {%s}\n", expected_commitment_str, str->bytes);
+        aws_string_destroy(str);
+    }
+
+    TEST_ASSERT_INT_EQ(props->content_key_len, expected_key.len);
+    TEST_ASSERT_INT_EQ(props->commitment_len, expected_commit.len);
+    TEST_ASSERT_INT_EQ(0, memcmp(key_out.keybuf, expected_key.buffer, props->content_key_len));
+    TEST_ASSERT_INT_EQ(0, memcmp(commitment.buffer, expected_commit.buffer, props->commitment_len));
+
+    aws_byte_buf_clean_up(&expected_commit);
+    aws_byte_buf_clean_up(&expected_key);
+    aws_byte_buf_clean_up(&commitment);
+    aws_byte_buf_clean_up(&msgid_buf);
+
+    return 0;
+}
+
 static int test_kdf() {
-    static const struct data_key key = { { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a,
+    static const struct data_key key   = { { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a,
                                            0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
                                            0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f } };
-    static const uint8_t msgid[16]   = { 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77,
+    static const uint8_t msgid[16]     = { 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77,
                                        0x78, 0x79, 0x7a, 0x7b, 0x7c, 0x7d, 0x7e, 0x7f };
+    struct aws_byte_buf msgid_buf      = aws_byte_buf_from_array(msgid, sizeof(msgid));
+    struct aws_byte_buf key_commitment = aws_byte_buf_from_array(msgid, 0);
 
-#define ASSERT_KDF(alg_id, ...)                                                                                \
-    do {                                                                                                       \
-        uint8_t expected[MAX_DATA_KEY_SIZE + 1] = { __VA_ARGS__, 0 };                                          \
-        struct content_key key_out              = { { 0 } };                                                   \
-        TEST_ASSERT_INT_EQ(                                                                                    \
-            AWS_OP_SUCCESS, aws_cryptosdk_derive_key(aws_cryptosdk_alg_props(alg_id), &key_out, &key, msgid)); \
-        TEST_ASSERT_INT_EQ(0, memcmp(key_out.keybuf, expected, MAX_DATA_KEY_SIZE));                            \
+    if (test_kdf_committing(
+            ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY,
+            "MzlttCC+7kgGqr+24I4GB+njRl14Njecy9Adm0UrggQ=",  // message id
+            "vygtxterAtNjVoXCpsoxdgAorgJCLj61QiFpqpoUu5k=",  // data key
+            "U5U2XRpCt3ZGvAYL8ZGgi1ofTzyDnrywnLkbyQzK5EI=",  // content key
+            "wGXUCB4Zox9NKaJSi+QNu8ve712ct1/VPT6leVovkrU=")  // commitment
+    )
+        return 1;
+    if (test_kdf_committing(
+            ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384,
+            "MzlttCC+7kgGqr+24I4GB+njRl14Njecy9Adm0UrggQ=",
+            "vygtxterAtNjVoXCpsoxdgAorgJCLj61QiFpqpoUu5k=",
+            "zFPKfCoowtpjsaApxPP9VtMOtgaDkf7oCI4B7BX95u0=",
+            "wGXUCB4Zox9NKaJSi+QNu8ve712ct1/VPT6leVovkrU="))
+        return 1;
+
+#define ASSERT_KDF(alg_id, ...)                                                                 \
+    do {                                                                                        \
+        uint8_t expected[MAX_DATA_KEY_SIZE + 1] = { __VA_ARGS__, 0 };                           \
+        struct content_key key_out              = { { 0 } };                                    \
+        TEST_ASSERT_INT_EQ(                                                                     \
+            AWS_OP_SUCCESS,                                                                     \
+            aws_cryptosdk_private_derive_key(                                                   \
+                aws_cryptosdk_alg_props(alg_id), &key_out, &key, &key_commitment, &msgid_buf)); \
+        TEST_ASSERT_INT_EQ(0, memcmp(key_out.keybuf, expected, MAX_DATA_KEY_SIZE));             \
     } while (0)
 
     // clang-format off
@@ -68,8 +150,10 @@ static int test_decrypt_frame_aad() {
         struct content_key key = {
             { 0xdd, 0xd0, 0x36, 0x6d, 0xb2, 0x59, 0xa9, 0xef, 0x22, 0x6b, 0x03, 0x8c, 0x91, 0xe2, 0x05, 0x1f, 0 }
         };
-        uint8_t messageId[]                 = { 0x22, 0x9b, 0xf1, 0x19, 0x2e, 0xf2, 0x94, 0x32,
-                                0x28, 0x72, 0x9d, 0xfd, 0x93, 0x98, 0x9b, 0x45 };
+        uint8_t messageId_arr[]       = { 0x22, 0x9b, 0xf1, 0x19, 0x2e, 0xf2, 0x94, 0x32,
+                                    0x28, 0x72, 0x9d, 0xfd, 0x93, 0x98, 0x9b, 0x45 };
+        struct aws_byte_buf messageId = aws_byte_buf_from_array(messageId_arr, sizeof(messageId_arr));
+
         uint8_t plaintext[]                 = { 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64 };
         uint8_t zero_buf[sizeof(plaintext)] = { 0 };
         uint32_t seqno                      = 1;
@@ -88,7 +172,7 @@ static int test_decrypt_frame_aad() {
                 aws_cryptosdk_alg_props(ALG_AES128_GCM_IV12_TAG16_NO_KDF),
                 &out,
                 &in,
-                messageId,
+                &messageId,
                 seqno,
                 iv,
                 &key,
@@ -97,7 +181,7 @@ static int test_decrypt_frame_aad() {
         TEST_ASSERT_INT_EQ(0, memcmp(plaintext, actual, sizeof(plaintext)));
 
         // Verify that we are checking the tag
-        messageId[0]++;
+        messageId.buffer[0]++;
         out.len = 0;
         TEST_ASSERT_INT_EQ(
             AWS_OP_ERR,
@@ -105,14 +189,14 @@ static int test_decrypt_frame_aad() {
                 aws_cryptosdk_alg_props(ALG_AES128_GCM_IV12_TAG16_NO_KDF),
                 &out,
                 &in,
-                messageId,
+                &messageId,
                 seqno,
                 iv,
                 &key,
                 tag,
                 FRAME_TYPE_FRAME));
         TEST_ASSERT_INT_EQ(0, memcmp(zero_buf, actual, sizeof(zero_buf)));
-        messageId[0]--;
+        messageId.buffer[0]--;
 
         tag[0]++;
         out.len = 0;
@@ -122,7 +206,7 @@ static int test_decrypt_frame_aad() {
                 aws_cryptosdk_alg_props(ALG_AES128_GCM_IV12_TAG16_NO_KDF),
                 &out,
                 &in,
-                messageId,
+                &messageId,
                 seqno,
                 iv,
                 &key,
@@ -135,280 +219,191 @@ static int test_decrypt_frame_aad() {
     return 0;
 }
 
+static int test_frame_enc_dec(
+    enum aws_cryptosdk_alg_id alg_id,
+    const char *ct_b64,
+    const char *pt_b64,
+    const char *msgid_b64,
+    const char *content_key_b64,
+    uint32_t seqno,
+    const char *iv_b64,
+    const char *tag_b64,
+    enum aws_cryptosdk_frame_type frame_type) {
+    int failed = 0;
+
+    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
+
+    struct aws_byte_buf ciphertext      = easy_b64_decode(ct_b64);
+    struct aws_byte_buf plaintext       = easy_b64_decode(pt_b64);
+    struct aws_byte_buf msgid           = easy_b64_decode(msgid_b64);
+    struct aws_byte_buf content_key_buf = easy_b64_decode(content_key_b64);
+
+    struct content_key content_key;
+    assert(content_key_buf.len <= sizeof(content_key.keybuf));
+    memcpy(&content_key.keybuf, content_key_buf.buffer, content_key_buf.len);
+
+    struct aws_byte_buf iv  = easy_b64_decode(iv_b64);
+    struct aws_byte_buf tag = easy_b64_decode(tag_b64);
+
+    struct aws_byte_cursor in;
+    struct aws_byte_buf out;
+
+    uint8_t out_tag[16];
+    uint8_t out_iv[12];
+
+    if (aws_byte_buf_init(&out, aws_default_allocator(), ciphertext.len)) abort();
+
+    in = aws_byte_cursor_from_buf(&plaintext);
+    TEST_ASSERT_SUCCESS(
+        aws_cryptosdk_encrypt_body(props, &out, &in, &msgid, seqno, out_iv, &content_key, out_tag, frame_type));
+
+    if (out.len != ciphertext.len || memcmp(out.buffer, ciphertext.buffer, out.len)) {
+        struct aws_string *out_b64 = easy_b64_encode(out.buffer, out.len);
+
+        fprintf(
+            stderr, "[%s] Ciphertext mismatch; expected={%s} computed={%s}\n", props->alg_name, ct_b64, out_b64->bytes);
+
+        aws_string_destroy(out_b64);
+        failed = 1;
+    }
+
+    if (tag.len != sizeof(out_tag) || memcmp(tag.buffer, out_tag, tag.len)) {
+        struct aws_string *out_b64 = easy_b64_encode(out_tag, sizeof(out_tag));
+
+        fprintf(stderr, "[%s] Tag mismatch; expected={%s} computed={%s}\n", props->alg_name, tag_b64, out_b64->bytes);
+
+        aws_string_destroy(out_b64);
+        failed = 1;
+    }
+
+    if (iv.len != sizeof(out_iv) || memcmp(iv.buffer, out_iv, iv.len)) {
+        struct aws_string *out_b64 = easy_b64_encode(out_iv, sizeof(out_iv));
+
+        fprintf(stderr, "[%s] Tag mismatch; expected={%s} computed={%s}\n", props->alg_name, iv_b64, out_b64->bytes);
+
+        aws_string_destroy(out_b64);
+        failed = 1;
+    }
+
+    in      = aws_byte_cursor_from_buf(&ciphertext);
+    out.len = 0;
+
+    TEST_ASSERT_SUCCESS(
+        aws_cryptosdk_decrypt_body(props, &out, &in, &msgid, seqno, iv.buffer, &content_key, tag.buffer, frame_type));
+    TEST_ASSERT(aws_byte_buf_eq(&out, &plaintext));
+
+    aws_byte_buf_clean_up(&ciphertext);
+    aws_byte_buf_clean_up(&plaintext);
+    aws_byte_buf_clean_up(&msgid);
+    aws_byte_buf_clean_up(&content_key_buf);
+    aws_byte_buf_clean_up(&iv);
+    aws_byte_buf_clean_up(&tag);
+    aws_byte_buf_clean_up(&out);
+
+    return failed;
+}
+
 static int test_decrypt_frame_all_algos() {
-    {
-        static const uint8_t key_buf[] = { 0x55, 0xa8, 0xb2, 0xbb, 0x44, 0x27, 0x10, 0x31,
-                                           0xb7, 0x34, 0x3b, 0x80, 0x08, 0xfe, 0xad, 0x52 };
-        struct content_key key         = { { 0 } };
-        memcpy(key.keybuf, key_buf, sizeof(key_buf));
-        static const uint8_t messageId[]  = { 0x1a, 0x66, 0xd8, 0xe0, 0x0d, 0x30, 0xeb, 0x3d,
-                                             0x14, 0xaf, 0x5b, 0xb6, 0x69, 0xc4, 0x09, 0xbc };
-        static const uint8_t plaintext[]  = { 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64 };
-        uint32_t seqno                    = 1;
-        static const uint8_t iv[]         = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
-        static const uint8_t ciphertext[] = { 0xeb, 0xe5, 0xf4, 0xb4, 0x7f, 0xee, 0x77, 0x3d, 0xe9, 0xa3, 0x72 };
-        static const uint8_t tag[]        = { 0x0f, 0xb0, 0x07, 0xd4, 0x37, 0x0d, 0x75, 0x2a,
-                                       0xe2, 0x52, 0xef, 0xff, 0xa0, 0x87, 0x7e, 0x5e };
-        uint8_t actual[11]                = { 0 };
-        struct aws_byte_cursor in         = aws_byte_cursor_from_array(ciphertext, sizeof(ciphertext));
-        struct aws_byte_buf out           = aws_byte_buf_from_empty_array(actual, sizeof(actual));
-        TEST_ASSERT_INT_EQ(
-            AWS_OP_SUCCESS,
-            aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(ALG_AES128_GCM_IV12_TAG16_NO_KDF),
-                &out,
-                &in,
-                messageId,
-                seqno,
-                iv,
-                &key,
-                tag,
-                FRAME_TYPE_FRAME));
-        TEST_ASSERT_INT_EQ(0, memcmp(plaintext, actual, sizeof(plaintext)));
-    }
-    {
-        static const uint8_t key_buf[] = { 0x39, 0xd1, 0x1b, 0xa6, 0x29, 0xb3, 0x35, 0x98, 0x7a, 0x21, 0x8c, 0x04,
-                                           0xec, 0x4f, 0x2b, 0xa6, 0xd4, 0x8e, 0x66, 0x5b, 0x71, 0x8a, 0xf7, 0xe5 };
-        struct content_key key         = { { 0 } };
-        memcpy(key.keybuf, key_buf, sizeof(key_buf));
-        static const uint8_t messageId[]  = { 0xbc, 0xd0, 0xec, 0x61, 0x0c, 0x3d, 0xdc, 0x3b,
-                                             0xb8, 0x32, 0x8f, 0xb4, 0xd0, 0x38, 0xf9, 0x3b };
-        static const uint8_t plaintext[]  = { 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64 };
-        uint32_t seqno                    = 1;
-        static const uint8_t iv[]         = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
-        static const uint8_t ciphertext[] = { 0x2e, 0x8f, 0x8c, 0x82, 0x12, 0x7f, 0x4a, 0x1a, 0xdb, 0xd3, 0x26 };
-        static const uint8_t tag[]        = { 0x71, 0xb6, 0x78, 0x58, 0x38, 0x3f, 0xc6, 0xc9,
-                                       0x31, 0xc0, 0xa8, 0x13, 0xeb, 0x17, 0x79, 0x50 };
-        uint8_t actual[11]                = { 0 };
-        struct aws_byte_cursor in         = aws_byte_cursor_from_array(ciphertext, sizeof(ciphertext));
-        struct aws_byte_buf out           = aws_byte_buf_from_empty_array(actual, sizeof(actual));
-        TEST_ASSERT_INT_EQ(
-            AWS_OP_SUCCESS,
-            aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(ALG_AES192_GCM_IV12_TAG16_NO_KDF),
-                &out,
-                &in,
-                messageId,
-                seqno,
-                iv,
-                &key,
-                tag,
-                FRAME_TYPE_FRAME));
-        TEST_ASSERT_INT_EQ(0, memcmp(plaintext, actual, sizeof(plaintext)));
-    }
-    {
-        static const uint8_t key_buf[] = { 0xca, 0x1d, 0xe0, 0x19, 0x55, 0x7b, 0x92, 0x6b, 0x86, 0x8c, 0x25,
-                                           0xeb, 0x28, 0x1c, 0x3f, 0x14, 0x42, 0x33, 0xfc, 0xbd, 0x1d, 0xce,
-                                           0xd6, 0x71, 0xd0, 0x63, 0x0c, 0xbb, 0x61, 0x56, 0xfd, 0xef };
-        struct content_key key         = { { 0 } };
-        memcpy(key.keybuf, key_buf, sizeof(key_buf));
-        static const uint8_t messageId[]  = { 0xd0, 0x79, 0x31, 0x33, 0x4f, 0xfe, 0xd2, 0xe1,
-                                             0x75, 0x3e, 0x59, 0xcd, 0x33, 0xf2, 0x78, 0x4a };
-        static const uint8_t plaintext[]  = { 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64 };
-        uint32_t seqno                    = 1;
-        static const uint8_t iv[]         = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
-        static const uint8_t ciphertext[] = { 0xd2, 0x7f, 0xc1, 0x11, 0x1a, 0xc7, 0x09, 0x90, 0x05, 0xf4, 0x9a };
-        static const uint8_t tag[]        = { 0x9d, 0x3f, 0x3a, 0xd7, 0x66, 0x3e, 0xb5, 0x71,
-                                       0x0b, 0xa4, 0x89, 0x3e, 0x39, 0x53, 0xd1, 0xfa };
-        uint8_t actual[11]                = { 0 };
-        struct aws_byte_cursor in         = aws_byte_cursor_from_array(ciphertext, sizeof(ciphertext));
-        struct aws_byte_buf out           = aws_byte_buf_from_empty_array(actual, sizeof(actual));
-        TEST_ASSERT_INT_EQ(
-            AWS_OP_SUCCESS,
-            aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(ALG_AES256_GCM_IV12_TAG16_NO_KDF),
-                &out,
-                &in,
-                messageId,
-                seqno,
-                iv,
-                &key,
-                tag,
-                FRAME_TYPE_FRAME));
-        TEST_ASSERT_INT_EQ(0, memcmp(plaintext, actual, sizeof(plaintext)));
-    }
-    {
-        static const uint8_t key_buf[] = { 0xac, 0x20, 0xca, 0x57, 0x42, 0x2e, 0x14, 0x64,
-                                           0x5a, 0x03, 0x19, 0x19, 0x7d, 0xa1, 0x19, 0x14 };
-        struct content_key key         = { { 0 } };
-        memcpy(key.keybuf, key_buf, sizeof(key_buf));
-        static const uint8_t messageId[]  = { 0x42, 0x19, 0xa0, 0x32, 0x0a, 0xc4, 0xbd, 0xe8,
-                                             0x89, 0xe4, 0xcd, 0x55, 0x1d, 0xe5, 0x14, 0x71 };
-        static const uint8_t plaintext[]  = { 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64 };
-        uint32_t seqno                    = 1;
-        static const uint8_t iv[]         = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
-        static const uint8_t ciphertext[] = { 0xaf, 0x5e, 0x27, 0x89, 0x98, 0x3b, 0xea, 0x45, 0x17, 0x70, 0x7a };
-        static const uint8_t tag[]        = { 0x10, 0x7f, 0x33, 0x2e, 0x49, 0x73, 0xc1, 0x25,
-                                       0x1d, 0xb4, 0x12, 0x99, 0xf2, 0xf6, 0xb7, 0x8b };
-        uint8_t actual[11]                = { 0 };
-        struct aws_byte_cursor in         = aws_byte_cursor_from_array(ciphertext, sizeof(ciphertext));
-        struct aws_byte_buf out           = aws_byte_buf_from_empty_array(actual, sizeof(actual));
-        TEST_ASSERT_INT_EQ(
-            AWS_OP_SUCCESS,
-            aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256),
-                &out,
-                &in,
-                messageId,
-                seqno,
-                iv,
-                &key,
-                tag,
-                FRAME_TYPE_FRAME));
-        TEST_ASSERT_INT_EQ(0, memcmp(plaintext, actual, sizeof(plaintext)));
-    }
-    {
-        static const uint8_t key_buf[] = { 0xbe, 0xca, 0x0b, 0x92, 0xa3, 0xd9, 0xa6, 0x15, 0x5b, 0x3d, 0x8d,
-                                           0x7f, 0x03, 0x76, 0x66, 0x5b, 0xba, 0xf5, 0x03, 0x9b, 0xd7, 0x99,
-                                           0xa7, 0x7a, 0xc8, 0x91, 0x33, 0x4f, 0x8a, 0x13, 0xd6, 0xa3 };
-        struct content_key key         = { { 0 } };
-        memcpy(key.keybuf, key_buf, sizeof(key_buf));
-        static const uint8_t messageId[]  = { 0x61, 0xd1, 0xcc, 0xf2, 0x3e, 0x1c, 0x8f, 0xa3,
-                                             0x6e, 0x56, 0x5f, 0xf7, 0xd0, 0x29, 0x7a, 0xc6 };
-        static const uint8_t plaintext[]  = { 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64 };
-        uint32_t seqno                    = 1;
-        static const uint8_t iv[]         = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
-        static const uint8_t ciphertext[] = { 0x82, 0x3f, 0x90, 0xb0, 0x40, 0xe6, 0x04, 0x3d, 0xb3, 0x7a, 0x7b };
-        static const uint8_t tag[]        = { 0xc6, 0xff, 0x63, 0xda, 0x4d, 0xd6, 0x00, 0xee,
-                                       0xe1, 0xdf, 0xd8, 0xb2, 0xcf, 0x44, 0xae, 0xc3 };
-        uint8_t actual[11]                = { 0 };
-        struct aws_byte_cursor in         = aws_byte_cursor_from_array(ciphertext, sizeof(ciphertext));
-        struct aws_byte_buf out           = aws_byte_buf_from_empty_array(actual, sizeof(actual));
-        TEST_ASSERT_INT_EQ(
-            AWS_OP_SUCCESS,
-            aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256),
-                &out,
-                &in,
-                messageId,
-                seqno,
-                iv,
-                &key,
-                tag,
-                FRAME_TYPE_FRAME));
-        TEST_ASSERT_INT_EQ(0, memcmp(plaintext, actual, sizeof(plaintext)));
-    }
-    {
-        static const uint8_t key_buf[] = { 0x3e, 0x77, 0x37, 0x02, 0x14, 0x76, 0x44, 0x7e, 0xb6, 0xe1, 0x42, 0x8a,
-                                           0xea, 0xc5, 0xf4, 0xe7, 0xd0, 0xe8, 0xb8, 0xd9, 0x48, 0x53, 0x8c, 0xbe };
-        struct content_key key         = { { 0 } };
-        memcpy(key.keybuf, key_buf, sizeof(key_buf));
-        static const uint8_t messageId[]  = { 0xdf, 0xd3, 0x03, 0x84, 0xc4, 0x55, 0x8a, 0x17,
-                                             0xb5, 0x29, 0xd8, 0x2e, 0x75, 0x3e, 0x2e, 0x81 };
-        static const uint8_t plaintext[]  = { 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64 };
-        uint32_t seqno                    = 1;
-        static const uint8_t iv[]         = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
-        static const uint8_t ciphertext[] = { 0x0c, 0x95, 0x2c, 0x37, 0xf5, 0xe3, 0x9e, 0xcf, 0x0c, 0x56, 0x4c };
-        static const uint8_t tag[]        = { 0x5b, 0xf9, 0x29, 0x2d, 0xae, 0x2e, 0x12, 0x1a,
-                                       0x86, 0xcd, 0xdd, 0x9e, 0x58, 0xc2, 0xd3, 0x00 };
-        uint8_t actual[11]                = { 0 };
-        struct aws_byte_cursor in         = aws_byte_cursor_from_array(ciphertext, sizeof(ciphertext));
-        struct aws_byte_buf out           = aws_byte_buf_from_empty_array(actual, sizeof(actual));
-        TEST_ASSERT_INT_EQ(
-            AWS_OP_SUCCESS,
-            aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256),
-                &out,
-                &in,
-                messageId,
-                seqno,
-                iv,
-                &key,
-                tag,
-                FRAME_TYPE_FRAME));
-        TEST_ASSERT_INT_EQ(0, memcmp(plaintext, actual, sizeof(plaintext)));
-    }
-    {
-        static const uint8_t key_buf[] = { 0x7f, 0x2b, 0x62, 0x45, 0x36, 0x2c, 0x5c, 0x46, 0x5c, 0x5e, 0x0f, 0xb3,
-                                           0x36, 0xeb, 0x27, 0xf1, 0x70, 0x11, 0xf8, 0xa7, 0x9f, 0xe2, 0xa7, 0xaf };
-        struct content_key key         = { { 0 } };
-        memcpy(key.keybuf, key_buf, sizeof(key_buf));
-        static const uint8_t messageId[]  = { 0x15, 0x3f, 0xb2, 0x29, 0xaa, 0xc8, 0x33, 0x8a,
-                                             0x96, 0x92, 0x90, 0x8e, 0x13, 0x02, 0x2b, 0x91 };
-        static const uint8_t plaintext[]  = { 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64 };
-        uint32_t seqno                    = 1;
-        static const uint8_t iv[]         = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
-        static const uint8_t ciphertext[] = { 0x16, 0xc0, 0x32, 0x5d, 0x28, 0xea, 0x49, 0xb4, 0x4e, 0x8e, 0x1d };
-        static const uint8_t tag[]        = { 0x9e, 0xcf, 0xc8, 0xf6, 0xe5, 0xea, 0xb9, 0x74,
-                                       0x43, 0x7a, 0x6d, 0x11, 0xb6, 0xe7, 0x38, 0x56 };
-        uint8_t actual[11]                = { 0 };
-        struct aws_byte_cursor in         = aws_byte_cursor_from_array(ciphertext, sizeof(ciphertext));
-        struct aws_byte_buf out           = aws_byte_buf_from_empty_array(actual, sizeof(actual));
-        TEST_ASSERT_INT_EQ(
-            AWS_OP_SUCCESS,
-            aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384),
-                &out,
-                &in,
-                messageId,
-                seqno,
-                iv,
-                &key,
-                tag,
-                FRAME_TYPE_FRAME));
-        TEST_ASSERT_INT_EQ(0, memcmp(plaintext, actual, sizeof(plaintext)));
-    }
-    {
-        static const uint8_t key_buf[] = { 0x2e, 0x7a, 0x9a, 0x94, 0x88, 0xaa, 0x53, 0xc6,
-                                           0x82, 0x74, 0xcc, 0x7e, 0xe3, 0x7e, 0x46, 0xf1 };
-        struct content_key key         = { { 0 } };
-        memcpy(key.keybuf, key_buf, sizeof(key_buf));
-        static const uint8_t messageId[]  = { 0x36, 0xbb, 0xf9, 0x10, 0xff, 0xe7, 0xf2, 0xf7,
-                                             0x6c, 0x41, 0x26, 0x2d, 0xa7, 0x44, 0xa3, 0xd2 };
-        static const uint8_t plaintext[]  = { 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64 };
-        uint32_t seqno                    = 1;
-        static const uint8_t iv[]         = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
-        static const uint8_t ciphertext[] = { 0x21, 0xf6, 0xd1, 0x07, 0x8e, 0x4d, 0x2f, 0x95, 0x2e, 0x9b, 0x9e };
-        static const uint8_t tag[]        = { 0xe1, 0xa0, 0x0e, 0xde, 0x53, 0x7b, 0xea, 0xf4,
-                                       0xfc, 0x90, 0xc9, 0x77, 0x11, 0x74, 0xf9, 0x27 };
-        uint8_t actual[11]                = { 0 };
-        struct aws_byte_cursor in         = aws_byte_cursor_from_array(ciphertext, sizeof(ciphertext));
-        struct aws_byte_buf out           = aws_byte_buf_from_empty_array(actual, sizeof(actual));
-        TEST_ASSERT_INT_EQ(
-            AWS_OP_SUCCESS,
-            aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256),
-                &out,
-                &in,
-                messageId,
-                seqno,
-                iv,
-                &key,
-                tag,
-                FRAME_TYPE_FRAME));
-        TEST_ASSERT_INT_EQ(0, memcmp(plaintext, actual, sizeof(plaintext)));
-    }
-    {
-        static const uint8_t key_buf[] = { 0xd7, 0xad, 0x1e, 0x05, 0x32, 0x2e, 0x46, 0x62, 0x0e, 0xcc, 0xfc,
-                                           0x7a, 0xd6, 0xc8, 0x33, 0xf0, 0x77, 0x16, 0xe4, 0x64, 0x1f, 0xa8,
-                                           0xb0, 0xe7, 0x34, 0x1b, 0x14, 0x09, 0x67, 0x12, 0xd7, 0xb6 };
-        struct content_key key         = { { 0 } };
-        memcpy(key.keybuf, key_buf, sizeof(key_buf));
-        static const uint8_t messageId[]  = { 0x80, 0xbc, 0x85, 0x15, 0x81, 0x79, 0x67, 0x8f,
-                                             0x5a, 0x33, 0x5d, 0x04, 0xda, 0x0d, 0x83, 0x32 };
-        static const uint8_t plaintext[]  = { 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x77, 0x6f, 0x72, 0x6c, 0x64 };
-        uint32_t seqno                    = 1;
-        static const uint8_t iv[]         = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
-        static const uint8_t ciphertext[] = { 0x3a, 0xed, 0xa7, 0x27, 0x9f, 0xc0, 0xaa, 0xe2, 0x22, 0x34, 0x97 };
-        static const uint8_t tag[]        = { 0x76, 0x60, 0x23, 0xbf, 0xf3, 0x7e, 0x0b, 0x80,
-                                       0x8d, 0xe1, 0xe9, 0x59, 0x32, 0x26, 0x79, 0xe7 };
-        uint8_t actual[11]                = { 0 };
-        struct aws_byte_cursor in         = aws_byte_cursor_from_array(ciphertext, sizeof(ciphertext));
-        struct aws_byte_buf out           = aws_byte_buf_from_empty_array(actual, sizeof(actual));
-        TEST_ASSERT_INT_EQ(
-            AWS_OP_SUCCESS,
-            aws_cryptosdk_decrypt_body(
-                aws_cryptosdk_alg_props(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384),
-                &out,
-                &in,
-                messageId,
-                seqno,
-                iv,
-                &key,
-                tag,
-                FRAME_TYPE_FRAME));
-        TEST_ASSERT_INT_EQ(0, memcmp(plaintext, actual, sizeof(plaintext)));
-    }
+    if (test_frame_enc_dec(
+            ALG_AES128_GCM_IV12_TAG16_NO_KDF,
+            "6+X0tH/udz3po3I=",          // Ciphertext
+            "aGVsbG8gd29ybGQ=",          // Plaintext
+            "GmbY4A0w6z0Ur1u2acQJvA==",  // Message ID
+            "Vaiyu0QnEDG3NDuACP6tUg==",  // Content key
+            1,                           // seqno
+            "AAAAAAAAAAAAAAAB",          // IV
+            "D7AH1DcNdSriUu//oId+Xg==",  // Tag
+            FRAME_TYPE_FRAME))
+        return 1;
+    if (test_frame_enc_dec(
+            ALG_AES192_GCM_IV12_TAG16_NO_KDF,
+            "Lo+MghJ/Shrb0yY=",                  // Ciphertext
+            "aGVsbG8gd29ybGQ=",                  // Plaintext
+            "vNDsYQw93Du4Mo+00Dj5Ow==",          // Message ID
+            "OdEbpimzNZh6IYwE7E8rptSOZltxivfl",  // Content key
+            1,                                   // seqno
+            "AAAAAAAAAAAAAAAB",                  // IV
+            "cbZ4WDg/xskxwKgT6xd5UA==",          // Tag
+            FRAME_TYPE_FRAME))
+        return 1;
+    if (test_frame_enc_dec(
+            ALG_AES256_GCM_IV12_TAG16_NO_KDF,
+            "0n/BERrHCZAF9Jo=",                              // Ciphertext
+            "aGVsbG8gd29ybGQ=",                              // Plaintext
+            "0HkxM0/+0uF1PlnNM/J4Sg==",                      // Message ID
+            "yh3gGVV7kmuGjCXrKBw/FEIz/L0dztZx0GMMu2FW/e8=",  // Content key
+            1,                                               // seqno
+            "AAAAAAAAAAAAAAAB",                              // IV
+            "nT8612Y+tXELpIk+OVPR+g==",                      // Tag
+            FRAME_TYPE_FRAME))
+        return 1;
+    if (test_frame_enc_dec(
+            ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256,
+            "r14niZg76kUXcHo=",          // Ciphertext
+            "aGVsbG8gd29ybGQ=",          // Plaintext
+            "QhmgMgrEveiJ5M1VHeUUcQ==",  // Message ID
+            "rCDKV0IuFGRaAxkZfaEZFA==",  // Content key
+            1,                           // seqno
+            "AAAAAAAAAAAAAAAB",          // IV
+            "EH8zLklzwSUdtBKZ8va3iw==",  // Tag
+            FRAME_TYPE_FRAME))
+        return 1;
+    if (test_frame_enc_dec(
+            ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256,
+            "gj+QsEDmBD2zens=",                              // Ciphertext
+            "aGVsbG8gd29ybGQ=",                              // Plaintext
+            "YdHM8j4cj6NuVl/30Cl6xg==",                      // Message ID
+            "vsoLkqPZphVbPY1/A3ZmW7r1A5vXmad6yJEzT4oT1qM=",  // Content key
+            1,                                               // seqno
+            "AAAAAAAAAAAAAAAB",                              // IV
+            "xv9j2k3WAO7h39iyz0Suww==",                      // Tag
+            FRAME_TYPE_FRAME))
+        return 1;
+    if (test_frame_enc_dec(
+            ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256,
+            "DJUsN/Xjns8MVkw=",                  // Ciphertext
+            "aGVsbG8gd29ybGQ=",                  // Plaintext
+            "39MDhMRVihe1KdgudT4ugQ==",          // Message ID
+            "Pnc3AhR2RH624UKK6sX059DouNlIU4y+",  // Content key
+            1,                                   // seqno
+            "AAAAAAAAAAAAAAAB",                  // IV
+            "W/kpLa4uEhqGzd2eWMLTAA==",          // Tag
+            FRAME_TYPE_FRAME))
+        return 1;
+    if (test_frame_enc_dec(
+            ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+            "FsAyXSjqSbROjh0=",                  // Ciphertext
+            "aGVsbG8gd29ybGQ=",                  // Plaintext
+            "FT+yKarIM4qWkpCOEwIrkQ==",          // Message ID
+            "fytiRTYsXEZcXg+zNusn8XAR+Kef4qev",  // Content key
+            1,                                   // seqno
+            "AAAAAAAAAAAAAAAB",                  // IV
+            "ns/I9uXquXRDem0Rtuc4Vg==",          // Tag
+            FRAME_TYPE_FRAME))
+        return 1;
+    if (test_frame_enc_dec(
+            ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
+            "IfbRB45NL5Uum54=",          // Ciphertext
+            "aGVsbG8gd29ybGQ=",          // Plaintext
+            "Nrv5EP/n8vdsQSYtp0Sj0g==",  // Message ID
+            "LnqalIiqU8aCdMx+435G8Q==",  // Content key
+            1,                           // seqno
+            "AAAAAAAAAAAAAAAB",          // IV
+            "4aAO3lN76vT8kMl3EXT5Jw==",  // Tag
+            FRAME_TYPE_FRAME))
+        return 1;
+    if (test_frame_enc_dec(
+            ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+            "Ou2nJ5/AquIiNJc=",                              // Ciphertext
+            "aGVsbG8gd29ybGQ=",                              // Plaintext
+            "gLyFFYF5Z49aM10E2g2DMg==",                      // Message ID
+            "160eBTIuRmIOzPx61sgz8HcW5GQfqLDnNBsUCWcS17Y=",  // Content key
+            1,                                               // seqno
+            "AAAAAAAAAAAAAAAB",                              // IV
+            "dmAjv/N+C4CN4elZMiZ55w==",                      // Tag
+            FRAME_TYPE_FRAME))
+        return 1;
+
     return 0;
 }
 
@@ -423,12 +418,24 @@ static int testHeaderAuth(
     struct data_key data_key;
 
     const struct aws_cryptosdk_alg_properties *alg = aws_cryptosdk_alg_props(alg_id);
+    struct aws_allocator *alloc                    = aws_default_allocator();
 
     // We assume our test vector keys are appropriately sized
     memcpy(data_key.keybuf, key, sizeof(data_key.keybuf));
 
     // XXX: Properly parse header instead of blindly getting the message ID from it
-    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_derive_key(alg, &derived_key, &data_key, header + 4));
+    struct aws_byte_buf msgid;
+
+    if (alg->msg_format_version == AWS_CRYPTOSDK_HEADER_VERSION_1_0) {
+        msgid = aws_byte_buf_from_array(header + 4, 16);
+    } else {
+        msgid = aws_byte_buf_from_array(header + 3, 32);
+    }
+    struct aws_byte_buf key_commitment;
+    TEST_ASSERT_SUCCESS(aws_byte_buf_init(&key_commitment, aws_default_allocator(), alg->commitment_len));
+
+    TEST_ASSERT_INT_EQ(
+        AWS_OP_SUCCESS, aws_cryptosdk_private_derive_key(alg, &derived_key, &data_key, &key_commitment, &msgid));
 
     struct aws_byte_buf headerbuf = aws_byte_buf_from_array(header, headerlen);
     struct aws_byte_buf authbuf   = aws_byte_buf_from_array(authtag, taglen);
@@ -455,6 +462,8 @@ static int testHeaderAuth(
 
         TEST_ASSERT_INT_EQ(AWS_OP_ERR, aws_cryptosdk_verify_header(alg, &derived_key, &authbuf, &headerbuf));
     }
+
+    aws_byte_buf_clean_up(&key_commitment);
 
     return 0;
 }
@@ -624,6 +633,27 @@ static int test_verify_header() {
                 ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384))
             return 1;
     }
+    {
+        struct aws_byte_buf header = easy_b64_decode(
+            "AgR4TfvRMU2dVZJbgXIyxeNtbj5eIw8BiTDiwsHyQ/Z9wXkAAAABAAxQcm92aWRlck5hbWUAGUtl"
+            "eUlkAAAAgAAAAAz45sc3cDvJZ7D4P3sAMKE7d/w8ziQt2C0qHsy1Qu2E2q92eIGE/kLnF/Y003HK"
+            "vTxx7xv2Zv83YuOdwHML5QIAABAAF88I9zPbUQSfOlzLXv+uIY2+m/E6j2PMsbgeHVH/L0w=");
+        struct aws_byte_buf content_key = easy_b64_decode("+p6+whPVw9kOrYLZFMRBJ2n6Vli6T/7TkjDouS+25s0=");
+        static const uint8_t authtag[]  = { 0x0b, 0xa9, 0x09, 0x58, 0xfb, 0x90, 0x8b, 0xd3,
+                                           0x3d, 0xf1, 0x9c, 0xd3, 0x8c, 0x21, 0x96, 0x9e };
+
+        if (testHeaderAuth(
+                header.buffer,
+                header.len,
+                authtag,
+                sizeof(authtag),
+                content_key.buffer,
+                ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY))
+            return 1;
+
+        aws_byte_buf_clean_up(&content_key);
+        aws_byte_buf_clean_up(&header);
+    }
     return 0;
 }
 
@@ -640,17 +670,17 @@ static int test_random() {
     return 0;
 }
 
-static const enum aws_cryptosdk_alg_id known_algorithms[] = {
-    ALG_AES128_GCM_IV12_TAG16_NO_KDF,
-    ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256,
-    ALG_AES192_GCM_IV12_TAG16_NO_KDF,
-    ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256,
-    ALG_AES256_GCM_IV12_TAG16_NO_KDF,
-    ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256,
-    ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
-    ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
-    ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
-};
+static const enum aws_cryptosdk_alg_id known_algorithms[] = { ALG_AES128_GCM_IV12_TAG16_NO_KDF,
+                                                              ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256,
+                                                              ALG_AES192_GCM_IV12_TAG16_NO_KDF,
+                                                              ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256,
+                                                              ALG_AES256_GCM_IV12_TAG16_NO_KDF,
+                                                              ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256,
+                                                              ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
+                                                              ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+                                                              ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+                                                              ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY,
+                                                              ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384 };
 
 static const size_t test_sizes[] = {
     1,
@@ -702,29 +732,34 @@ static int test_encrypt_body() {
         for (size_t i = 0; i < sizeof(known_algorithms) / sizeof(known_algorithms[0]); i++) {
             enum aws_cryptosdk_alg_id alg_id               = known_algorithms[i];
             const struct aws_cryptosdk_alg_properties *alg = aws_cryptosdk_alg_props(alg_id);
+            size_t message_id_len                          = aws_cryptosdk_private_algorithm_message_id_len(alg);
 
             // SINGLE, FRAME, FINAL
             for (int frame_type = 0; frame_type <= FRAME_TYPE_FINAL; frame_type++) {
                 uint8_t iv[12];
                 uint8_t tag[16];
-                uint8_t msg_id[MESSAGE_ID_LEN];
+                struct aws_byte_buf msg_id;
+
+                TEST_ASSERT_SUCCESS(aws_byte_buf_init(&msg_id, aws_default_allocator(), message_id_len));
+                msg_id.len = msg_id.capacity;
+
                 memset(iv, 0xFF, sizeof(iv));
                 memset(tag, 0xFF, sizeof(tag));
 
                 aws_byte_buf_secure_zero(&ct_buf);
                 ct_buf.len = 0;
-                aws_cryptosdk_genrandom(msg_id, sizeof(msg_id));
+                aws_cryptosdk_genrandom(msg_id.buffer, msg_id.len);
 
                 struct aws_byte_cursor pt_cursor = aws_byte_cursor_from_buf(&pt_buf);
 
                 TEST_ASSERT_SUCCESS(
-                    aws_cryptosdk_encrypt_body(alg, &ct_buf, &pt_cursor, msg_id, seqno, iv, &key, tag, frame_type));
+                    aws_cryptosdk_encrypt_body(alg, &ct_buf, &pt_cursor, &msg_id, seqno, iv, &key, tag, frame_type));
 
                 struct aws_byte_cursor ct_cursor = aws_byte_cursor_from_buf(&ct_buf);
                 decrypt_buf.len                  = 0;
 
                 TEST_ASSERT_SUCCESS(aws_cryptosdk_decrypt_body(
-                    alg, &decrypt_buf, &ct_cursor, msg_id, seqno, iv, &key, tag, frame_type));
+                    alg, &decrypt_buf, &ct_cursor, &msg_id, seqno, iv, &key, tag, frame_type));
 
                 TEST_ASSERT_INT_EQ(0, memcmp(decrypt_buf.buffer, pt_buf.buffer, pt_buf.len));
 
@@ -736,6 +771,8 @@ static int test_encrypt_body() {
                 expected_iv[alg->iv_len - 1] = 0xEF;
 
                 TEST_ASSERT_INT_EQ(0, memcmp(expected_iv, iv, alg->iv_len));
+
+                aws_byte_buf_clean_up(&msg_id);
             }
         }
 
@@ -765,7 +802,13 @@ static int test_sign_header() {
             enum aws_cryptosdk_alg_id alg_id               = known_algorithms[i];
             const struct aws_cryptosdk_alg_properties *alg = aws_cryptosdk_alg_props(alg_id);
 
-            size_t auth_tag_size = alg->iv_len + alg->tag_len;
+            size_t auth_tag_size;
+            if (alg->msg_format_version == AWS_CRYPTOSDK_HEADER_VERSION_1_0) {
+                auth_tag_size = alg->iv_len + alg->tag_len;
+            } else {
+                auth_tag_size = alg->tag_len;
+            }
+
             uint8_t auth_tag[256];
             memset(auth_tag, 0xFF, auth_tag_size);
 
@@ -775,9 +818,11 @@ static int test_sign_header() {
 
             TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_verify_header(alg, &key, &auth_buf, &header_buf));
 
-            uint8_t expected_iv[256];
-            memset(expected_iv, 0, alg->iv_len);
-            TEST_ASSERT_INT_EQ(0, memcmp(expected_iv, auth_tag, alg->iv_len));
+            if (alg->msg_format_version == AWS_CRYPTOSDK_HEADER_VERSION_1_0) {
+                uint8_t expected_iv[256];
+                memset(expected_iv, 0, alg->iv_len);
+                TEST_ASSERT_INT_EQ(0, memcmp(expected_iv, auth_tag, alg->iv_len));
+            }
         }
 
         aws_byte_buf_clean_up(&header_buf);

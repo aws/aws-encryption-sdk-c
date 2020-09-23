@@ -177,6 +177,25 @@ int assert_enc_ctx_fill(const struct aws_hash_table *enc_ctx) {
 }
 
 TESTLIB_API
+struct aws_string *easy_b64_encode(const uint8_t *data, size_t len) {
+    struct aws_byte_cursor input = aws_byte_cursor_from_array(data, len);
+    struct aws_byte_buf output;
+    size_t encoded_len;
+
+    if (aws_base64_compute_encoded_len(input.len, &encoded_len) ||
+        aws_byte_buf_init(&output, aws_default_allocator(), encoded_len) || aws_base64_encode(&input, &output)) {
+        abort();
+    }
+
+    struct aws_string *str = aws_string_new_from_array(aws_default_allocator(), output.buffer, encoded_len);
+    if (!str) abort();
+
+    aws_byte_buf_clean_up(&output);
+
+    return str;
+}
+
+TESTLIB_API
 struct aws_byte_buf easy_b64_decode(const char *b64_string) {
     struct aws_byte_cursor input = aws_byte_cursor_from_c_str(b64_string);
     struct aws_byte_buf output;
