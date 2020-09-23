@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.0.0 -- 2020-09-24
+
+* Updates to the AWS Encryption SDK. 13e0f81
+
+  This change includes fixes for issues that were reported by Thai Duong from
+  Google's Security team, and for issues that were identified by AWS
+  Cryptography.
+
+  See: <https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/migration.html>
+
+### BREAKING CHANGES
+
+* AWS KMS KeyIDs must be specified explicitly or Discovery mode explicitly
+  chosen.
+* Key committing suites are now default.
+* CommitmentPolicy requires commitment by default.
+
 ## 1.7.0 -- 2020-09-24
 
 * Updates to the AWS Encryption SDK. cbed43b
