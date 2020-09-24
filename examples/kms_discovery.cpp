@@ -50,7 +50,10 @@ void encrypt_string(
     if (!session) abort();
     aws_cryptosdk_keyring_release(kms_keyring);
 
-    if (aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT)) {
+    /* For clarity, we set the commitment policy explicitly. The COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT
+     * policy is selected by default in v2.0, so this is not required.
+     */
+    if (aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT)) {
         fprintf(stderr, "set_commitment_policy failed: %s", aws_error_debug_str(aws_last_error()));
         abort();
     }
@@ -87,7 +90,10 @@ void decrypt_string(
         aws_cryptosdk_session_new_from_keyring_2(alloc, AWS_CRYPTOSDK_DECRYPT, kms_keyring);
     if (!session) abort();
 
-    if (aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT)) {
+    /* For clarity, we set the commitment policy explicitly. The COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT
+     * policy is selected by default in v2.0, so this is not required.
+     */
+    if (aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT)) {
         fprintf(stderr, "set_commitment_policy failed: %s", aws_error_debug_str(aws_last_error()));
         abort();
     }

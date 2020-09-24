@@ -33,7 +33,7 @@ static int precise_size_set = 0;
 static int create_session(enum aws_cryptosdk_mode mode, struct aws_cryptosdk_keyring *kr) {
     if (session) aws_cryptosdk_session_destroy(session);
 
-    session = aws_cryptosdk_session_new_from_keyring(aws_default_allocator(), mode, kr);
+    session = aws_cryptosdk_session_new_from_keyring_2(aws_default_allocator(), mode, kr);
     if (!session) abort();
 
     aws_cryptosdk_keyring_release(kr);
@@ -49,7 +49,7 @@ static struct aws_cryptosdk_cmm *create_session_with_cmm(
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
     if (!cmm) abort();
 
-    session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), mode, cmm);
+    session = aws_cryptosdk_session_new_from_cmm_2(aws_default_allocator(), mode, cmm);
     if (!session) abort();
 
     aws_cryptosdk_keyring_release(kr);
@@ -356,7 +356,7 @@ static int test_algorithm_override_once(enum aws_cryptosdk_alg_id alg_id) {
     struct aws_cryptosdk_cmm *cmm =
         create_session_with_cmm(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_counting_keyring_new(aws_default_allocator()));
     if (!aws_cryptosdk_algorithm_is_committing(alg_id)) {
-        aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT);
+        session->commitment_policy = COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT;
     }
     TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, alg_id));
     aws_cryptosdk_session_set_message_size(session, pt_size);
@@ -381,19 +381,17 @@ static int test_algorithm_override_once(enum aws_cryptosdk_alg_id alg_id) {
 }
 
 int test_algorithm_override() {
-    int non_committing_alg_failed = test_algorithm_override_once(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256) ||
-                                    test_algorithm_override_once(ALG_AES192_GCM_IV12_TAG16_NO_KDF) ||
-                                    test_algorithm_override_once(ALG_AES256_GCM_IV12_TAG16_NO_KDF) ||
-                                    test_algorithm_override_once(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256) ||
-                                    test_algorithm_override_once(ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384) ||
-                                    test_algorithm_override_once(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384) ||
-                                    test_algorithm_override_once(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256) ||
-                                    test_algorithm_override_once(ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256) ||
-                                    test_algorithm_override_once(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256);
-    unit_test_only_allow_encrypt_with_commitment = true;
-    int commiting_alg_failed = test_algorithm_override_once(ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY) ||
-                               test_algorithm_override_once(ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384);
-    return non_committing_alg_failed || commiting_alg_failed;
+    return test_algorithm_override_once(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256) ||
+           test_algorithm_override_once(ALG_AES192_GCM_IV12_TAG16_NO_KDF) ||
+           test_algorithm_override_once(ALG_AES256_GCM_IV12_TAG16_NO_KDF) ||
+           test_algorithm_override_once(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256) ||
+           test_algorithm_override_once(ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384) ||
+           test_algorithm_override_once(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384) ||
+           test_algorithm_override_once(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256) ||
+           test_algorithm_override_once(ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256) ||
+           test_algorithm_override_once(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256) ||
+           test_algorithm_override_once(ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY) ||
+           test_algorithm_override_once(ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384);
 }
 
 int test_null_estimates() {
@@ -508,43 +506,6 @@ int test_using_estimates() {
     return 0;
 }
 
-/**
- * Attempts to encrypt with a committing algorithm suite.
- */
-int t_committing_algorithm_suite_fails(enum aws_cryptosdk_alg_id alg_id) {
-    init_bufs(1);
-
-    size_t ct_consumed = 0;
-    size_t pt_consumed = 0;
-    size_t ct_window   = 2048;
-    enum aws_cryptosdk_alg_id reported_alg_id;
-    struct aws_cryptosdk_cmm *cmm =
-        create_session_with_cmm(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_counting_keyring_new(aws_default_allocator()));
-    TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, alg_id));
-    aws_cryptosdk_session_set_message_size(session, pt_size);
-
-    grow_buf(&ct_buf, &ct_buf_size, ct_size + ct_window);
-    TEST_ASSERT_ERROR(
-        AWS_CRYPTOSDK_ERR_COMMITMENT_POLICY_VIOLATION,
-        aws_cryptosdk_session_process(
-            session, ct_buf + ct_size, ct_window, &ct_consumed, pt_buf + pt_offset, pt_size, &pt_consumed));
-
-    aws_cryptosdk_cmm_release(cmm);
-    free_bufs();
-
-    return 0;
-}
-
-/**
- * Encrypting in v1.7 must fail when attempting to encrypt with any committing
- * algorithm suite.
- */
-int test_committing_algorithm_suites_fail() {
-    TEST_ASSERT_SUCCESS(t_committing_algorithm_suite_fails(ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY));
-    TEST_ASSERT_SUCCESS(t_committing_algorithm_suite_fails(ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384));
-    return 0;
-}
-
 struct test_case encrypt_test_cases[] = {
     { "encrypt", "test_simple_roundtrip", test_simple_roundtrip },
     { "encrypt", "test_small_buffers", test_small_buffers },
@@ -553,6 +514,5 @@ struct test_case encrypt_test_cases[] = {
     { "encrypt", "test_algorithm_override", &test_algorithm_override },
     { "encrypt", "test_null_estimates", &test_null_estimates },
     { "encrypt", "test_using_estimates", &test_using_estimates },
-    { "encrypt", "test_committing_algorithm_suites_fail", &test_committing_algorithm_suites_fail },
     { NULL }
 };

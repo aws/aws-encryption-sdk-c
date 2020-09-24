@@ -73,9 +73,11 @@ static int trailing_sig_no_key() {
     struct aws_cryptosdk_cmm *enc_cmm    = (struct aws_cryptosdk_cmm *)&strip_key_cmm_s;
     aws_cryptosdk_cmm_base_init(&strip_key_cmm_s.base, &strip_key_cmm_vt);
 
-    session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, enc_cmm);
+    session = aws_cryptosdk_session_new_from_cmm_2(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, enc_cmm);
     TEST_ASSERT_ADDR_NOT_NULL(session);
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_message_size(session, 1));
+    TEST_ASSERT_SUCCESS(
+        aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT));
 
     size_t ignored;
     TEST_ASSERT_SUCCESS(
@@ -84,8 +86,10 @@ static int trailing_sig_no_key() {
 
     aws_cryptosdk_session_destroy(session);
 
-    session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm);
+    session = aws_cryptosdk_session_new_from_cmm_2(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm);
     TEST_ASSERT_ADDR_NOT_NULL(session);
+    TEST_ASSERT_SUCCESS(
+        aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT));
 
     uint8_t outbuf[256];
     size_t ignored2;
@@ -113,9 +117,11 @@ static int trailing_sig_no_sig() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));
     TEST_ASSERT_SUCCESS(aws_byte_buf_init(&buf, aws_default_allocator(), 1024));
 
-    session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm);
+    session = aws_cryptosdk_session_new_from_cmm_2(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm);
     TEST_ASSERT_ADDR_NOT_NULL(session);
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_message_size(session, 1));
+    TEST_ASSERT_SUCCESS(
+        aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT));
 
     size_t ignored;
     TEST_ASSERT_SUCCESS(
@@ -128,8 +134,10 @@ static int trailing_sig_no_sig() {
     // signature length.
     buf.len -= aws_cryptosdk_alg_props(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384)->signature_len + 2;
 
-    session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm);
+    session = aws_cryptosdk_session_new_from_cmm_2(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm);
     TEST_ASSERT_ADDR_NOT_NULL(session);
+    TEST_ASSERT_SUCCESS(
+        aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT));
 
     uint8_t outbuf[256];
     size_t ignored2;
@@ -158,9 +166,11 @@ static int trailing_sig_bad_sig() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));
     TEST_ASSERT_SUCCESS(aws_byte_buf_init(&buf, aws_default_allocator(), 1024));
 
-    session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm);
+    session = aws_cryptosdk_session_new_from_cmm_2(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm);
     TEST_ASSERT_ADDR_NOT_NULL(session);
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_message_size(session, 1));
+    TEST_ASSERT_SUCCESS(
+        aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT));
 
     size_t ignored;
     TEST_ASSERT_SUCCESS(
@@ -172,8 +182,10 @@ static int trailing_sig_bad_sig() {
     // Corrupt the signature
     buf.buffer[buf.len - 1]++;
 
-    session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm);
+    session = aws_cryptosdk_session_new_from_cmm_2(aws_default_allocator(), AWS_CRYPTOSDK_DECRYPT, cmm);
     TEST_ASSERT_ADDR_NOT_NULL(session);
+    TEST_ASSERT_SUCCESS(
+        aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT));
 
     uint8_t outbuf[256];
     size_t ignored2;

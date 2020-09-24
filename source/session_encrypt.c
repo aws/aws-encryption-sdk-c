@@ -27,12 +27,6 @@
 #include <aws/cryptosdk/private/session.h>
 #include <aws/cryptosdk/session.h>
 
-#ifdef UNIT_TEST_ONLY_ALLOW_ENCRYPT_WITH_COMMITMENT
-bool unit_test_only_allow_encrypt_with_commitment = false;
-#else
-#    define unit_test_only_allow_encrypt_with_commitment false
-#endif
-
 static int build_header(struct aws_cryptosdk_session *session, struct aws_cryptosdk_enc_materials *materials);
 static int sign_header(struct aws_cryptosdk_session *session);
 
@@ -62,8 +56,9 @@ int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
     request.alloc   = session->alloc;
     request.enc_ctx = &session->header.enc_ctx;
     // The default CMM will fill this in.
-    request.requested_alg  = 0;
-    request.plaintext_size = session->precise_size_known ? session->precise_size : session->size_bound;
+    request.requested_alg     = 0;
+    request.plaintext_size    = session->precise_size_known ? session->precise_size : session->size_bound;
+    request.commitment_policy = session->commitment_policy;
 
     if (aws_cryptosdk_cmm_generate_enc_materials(session->cmm, &materials, &request)) {
         goto rethrow;
@@ -77,8 +72,7 @@ int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
     if (!aws_array_list_length(&materials->encrypted_data_keys)) goto out;
     // We should have a signature context iff this is a signed alg suite
     if (!!session->alg_props->signature_len != !!materials->signctx) goto out;
-    if (!aws_cryptosdk_priv_algorithm_allowed_for_encrypt(materials->alg, session->commitment_policy) &&
-        !unit_test_only_allow_encrypt_with_commitment) {
+    if (!aws_cryptosdk_priv_algorithm_allowed_for_encrypt(materials->alg, session->commitment_policy)) {
         result = AWS_CRYPTOSDK_ERR_COMMITMENT_POLICY_VIOLATION;
         goto out;
     }
@@ -101,8 +95,7 @@ int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
     }
     session->header.message_id.len = message_id_len;
 
-    if (aws_cryptosdk_commitment_policy_should_commit_on_encrypt(session->commitment_policy) ||
-        unit_test_only_allow_encrypt_with_commitment) {
+    if (aws_cryptosdk_commitment_policy_encrypt_must_include_commitment(session->commitment_policy)) {
         assert(session->alg_props->commitment_len <= sizeof(session->key_commitment_arr));
         session->header.alg_suite_data =
             aws_byte_buf_from_array(session->key_commitment_arr, session->alg_props->commitment_len);

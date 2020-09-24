@@ -99,7 +99,36 @@ struct aws_cryptosdk_keyring {
 };
 
 /**
- * Encryption request passed from the session to a CMM
+ * Governs how a @ref aws_cryptosdk_session behaves during configuration,
+ * encryption, and decryption, with respect to key commitment.
+ */
+enum aws_cryptosdk_commitment_policy {
+    /**
+     * Algorithm suite must support key commitment. Key commitment will be
+     * included in ciphertext on encrypt. Valid key commitment must be present
+     * in ciphertext on decrypt.
+     */
+    COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT = 0x598f396c,
+
+    /**
+     * Algorithm suite must support key commitment. Key commitment will be
+     * included in ciphertext on encrypt. On decrypt, if a key commitment is
+     * present on the ciphertext, then the key commitment must be valid.
+     */
+    COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT = 0x493769b7,
+
+    /**
+     * Algorithm suite must NOT support key commitment. Key commitment will NOT
+     * be included in ciphertext on encrypt. On decrypt, if a key commitment is
+     * present on the ciphertext, then the key commitment must be valid.
+     */
+    COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT = 0x2735f98a,
+};
+
+/**
+ * Encryption request passed from the session to a CMM. In general, you should
+ * not allocate or construct struct manually, since we may add additional
+ * fields.
  */
 struct aws_cryptosdk_enc_request {
     struct aws_allocator *alloc;
@@ -124,6 +153,14 @@ struct aws_cryptosdk_enc_request {
      * this will be UINT64_MAX.
      */
     uint64_t plaintext_size;
+    /**
+     * The key commitment policy to enforce when processing the encryption
+     * request. The CMM is responsible for selecting an algorithm that
+     * satisfies the commitment policy: if the commitment policy requires key
+     * commitment, then the algorithm must be a key-committing one; otherwise,
+     * the algorithm must NOT be a key-committing one.
+     */
+    enum aws_cryptosdk_commitment_policy commitment_policy;
 };
 
 AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_enc_request_is_valid(const struct aws_cryptosdk_enc_request *request) {
@@ -662,53 +699,26 @@ AWS_CRYPTOSDK_API
 void aws_cryptosdk_dec_materials_destroy(struct aws_cryptosdk_dec_materials *dec_mat);
 
 /**
- * Governs how a @ref aws_cryptosdk_session behaves during configuration,
- * encryption, and decryption, with respect to key commitment.
- */
-enum aws_cryptosdk_commitment_policy {
-    /**
-     * Algorithm suite must support key commitment. Key commitment will be
-     * included in ciphertext on encrypt. Valid key commitment must be present
-     * in ciphertext on decrypt.
-     */
-    // COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT = 0x598f396c,
-
-    /**
-     * Algorithm suite must support key commitment. Key commitment will be
-     * included in ciphertext on encrypt. On decrypt, if a key commitment is
-     * present on the ciphertext, then the key commitment must be valid.
-     */
-    // COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT = 0x493769b7,
-
-    /**
-     * Algorithm suite must NOT support key commitment. Key commitment will NOT
-     * be included in ciphertext on encrypt. On decrypt, if a key commitment is
-     * present on the ciphertext, then the key commitment must be valid.
-     */
-    COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT = 0x2735f98a,
-};
-
-/**
  * Returns true if the given uint32_t is a valid @ref aws_cryptosdk_commitment_policy, or false otherwise.
  */
 AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_commitment_policy_is_valid(uint32_t commitment_policy) {
     switch (commitment_policy) {
-        // case COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT:
-        // case COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT:
+        case COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT:
+        case COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT:
         case COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT: return true;
         default: return false;
     }
 }
 
 /**
- * Returns true if encryption should include key commitment under the given key
+ * Returns true if encryption must include key commitment under the given key
  * commitment policy, or false otherwise.
  */
-AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_commitment_policy_should_commit_on_encrypt(
+AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_commitment_policy_encrypt_must_include_commitment(
     enum aws_cryptosdk_commitment_policy commitment_policy) {
     switch (commitment_policy) {
-        // case COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT:
-        // case COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT: return true;
+        case COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT:
+        case COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT: return true;
         case COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT: return false;
         default: return false;
     }

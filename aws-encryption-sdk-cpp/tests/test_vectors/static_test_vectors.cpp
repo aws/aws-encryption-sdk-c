@@ -305,11 +305,12 @@ static int process_test_scenarios(
             goto next_test_scenario;
         }
 
-        if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) {
+        if (!(session = aws_cryptosdk_session_new_from_cmm_2(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) {
             failed++;
             fprintf(stderr, "Failed to initialize aws_cryptosdk_session, %s\n", aws_error_str(aws_last_error()));
             goto next_test_scenario;
         }
+        aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT);
 
         if (test_loadfile(ct_filename.c_str(), &ciphertext, &ct_len)) {
             failed++;

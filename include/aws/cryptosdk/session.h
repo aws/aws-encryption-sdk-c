@@ -59,32 +59,6 @@ enum aws_cryptosdk_mode { AWS_CRYPTOSDK_ENCRYPT = 0x9000, AWS_CRYPTOSDK_DECRYPT 
 /**
  * Creates a new encryption or decryption session from an underlying keyring.
  *
- * \deprecated {
- *   This function will be removed in v2.0.
- *
- *   Before migrating to v2.0, replace calls to @ref aws_cryptosdk_session_new_from_keyring
- *   by calls to @ref aws_cryptosdk_session_new_from_keyring_2, followed by
- *   setting the key commitment policy using @ref aws_cryptosdk_session_set_commitment_policy.
- *
- *   See the v2.0 migration guide for details.
- * }
- *
- * @return The new session, or NULL on failure (in which case, an AWS error code is set)
- *
- * @param allocator The allocator to use for the session object and any temporary
- *                  data allocated for the session
- * @param mode The mode (AWS_CRYPTOSDK_ENCRYPT or AWS_CRYPTOSDK_DECRYPT) to start
- *             in. This can be changed later with @ref aws_cryptosdk_session_reset
- * @param keyring The keyring which will encrypt or decrypt data keys for this session.
- *                This function uses a default CMM to link the session and keyring.
- */
-AWS_CRYPTOSDK_API
-struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_keyring(
-    struct aws_allocator *allocator, enum aws_cryptosdk_mode mode, struct aws_cryptosdk_keyring *keyring);
-
-/**
- * Creates a new encryption or decryption session from an underlying keyring.
- *
  * @return The new session, or NULL on failure (in which case, an AWS error code is set)
  *
  * @param allocator The allocator to use for the session object and any temporary
@@ -97,32 +71,6 @@ struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_keyring(
 AWS_CRYPTOSDK_API
 struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_keyring_2(
     struct aws_allocator *allocator, enum aws_cryptosdk_mode mode, struct aws_cryptosdk_keyring *keyring);
-
-/**
- * Creates a new encryption or decryption session from an underlying CMM.
- *
- * \deprecated {
- *   This function will be removed in v2.0.
- *
- *   Before migrating to v2.0, replace calls to @ref aws_cryptosdk_session_new_from_cmm
- *   by calls to @ref aws_cryptosdk_session_new_from_cmm_2, followed by setting
- *   the key commitment policy using @ref aws_cryptosdk_session_set_commitment_policy.
- *
- *   See the v2.0 migration guide for details.
- * }
- *
- * @return The new session, or NULL on failure (in which case, an AWS error code is set)
- *
- * @param allocator The allocator to use for the session object and any temporary
- *                  data allocated for the session
- * @param mode The mode (AWS_CRYPTOSDK_ENCRYPT or AWS_CRYPTOSDK_DECRYPT) to start
- *             in. This can be changed later with @ref aws_cryptosdk_session_reset
- * @param cmm The crypto material manager which will provide key material for this
- *            session.
- */
-AWS_CRYPTOSDK_API
-struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm(
-    struct aws_allocator *allocator, enum aws_cryptosdk_mode mode, struct aws_cryptosdk_cmm *cmm);
 
 /**
  * Creates a new encryption or decryption session from an underlying CMM.

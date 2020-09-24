@@ -356,7 +356,7 @@ static int session_updates_cmm_refcount() {
 
     TEST_ASSERT_INT_EQ(aws_atomic_load_int(&cmm.refcount), 1);
 
-    session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, &cmm);
+    session = aws_cryptosdk_session_new_from_cmm_2(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, &cmm);
     TEST_ASSERT_INT_EQ(aws_atomic_load_int(&cmm.refcount), 2);
 
     aws_cryptosdk_cmm_release(&cmm);

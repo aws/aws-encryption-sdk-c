@@ -103,31 +103,16 @@ static struct aws_cryptosdk_session *aws_cryptosdk_session_new(
     return session;
 }
 
-struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm(
-    struct aws_allocator *allocator, enum aws_cryptosdk_mode mode, struct aws_cryptosdk_cmm *cmm) {
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm_2(allocator, mode, cmm);
-    if (!session) return NULL;
-    aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT);
-    return session;
-}
-
 struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm_2(
     struct aws_allocator *allocator, enum aws_cryptosdk_mode mode, struct aws_cryptosdk_cmm *cmm) {
     struct aws_cryptosdk_session *session = aws_cryptosdk_session_new(allocator, mode);
 
     if (session) {
         session->cmm = cmm;
+        aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT);
         aws_cryptosdk_cmm_retain(cmm);
     }
 
-    return session;
-}
-
-struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_keyring(
-    struct aws_allocator *allocator, enum aws_cryptosdk_mode mode, struct aws_cryptosdk_keyring *keyring) {
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_keyring_2(allocator, mode, keyring);
-    if (!session) return NULL;
-    aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT);
     return session;
 }
 
@@ -145,6 +130,8 @@ struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_keyring_2(
     session->cmm = cmm;
     // CMM reference count is now 1 and the session owns the reference, which will be released
     // when session is destroyed.
+
+    aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT);
 
     return session;
 }
@@ -215,11 +202,24 @@ int aws_cryptosdk_session_set_message_bound(struct aws_cryptosdk_session *sessio
 
 int aws_cryptosdk_session_set_commitment_policy(
     struct aws_cryptosdk_session *session, enum aws_cryptosdk_commitment_policy commitment_policy) {
+    /*
+     * We set the commitment policy _first_ in order to ensure that, if someone ignores the INVALID_ARGUMENT error,
+     * we'll fail subsequent operations.
+     */
+    session->commitment_policy = commitment_policy;
+
     if (!aws_cryptosdk_commitment_policy_is_valid(commitment_policy)) {
         return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
     }
 
-    session->commitment_policy = commitment_policy;
+    /*
+     * If we're in the middle of an encrypt/decrypt operation, fail the operation (since we might not have validated
+     * this policy for this message)
+     */
+    if (session->state != ST_CONFIG) {
+        return aws_cryptosdk_priv_fail_session(session, AWS_CRYPTOSDK_ERR_BAD_STATE);
+    }
+
     return AWS_OP_SUCCESS;
 }
 
@@ -525,8 +525,8 @@ bool aws_cryptosdk_priv_algorithm_allowed_for_encrypt(
     bool alg_committing = aws_cryptosdk_algorithm_is_committing(alg_id);
     assert(aws_cryptosdk_commitment_policy_is_valid(commitment_policy));
     switch (commitment_policy) {
-        // case COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT:
-        // case COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT: return alg_committing;
+        case COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT:
+        case COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT: return alg_committing;
         case COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT: return !alg_committing;
         default: return false;
     }
@@ -535,11 +535,10 @@ bool aws_cryptosdk_priv_algorithm_allowed_for_encrypt(
 bool aws_cryptosdk_priv_algorithm_allowed_for_decrypt(
     enum aws_cryptosdk_alg_id alg_id, enum aws_cryptosdk_commitment_policy commitment_policy) {
     bool alg_committing = aws_cryptosdk_algorithm_is_committing(alg_id);
-    (void)alg_committing;
     assert(aws_cryptosdk_commitment_policy_is_valid(commitment_policy));
     switch (commitment_policy) {
-        // case COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT: return alg_committing;
-        // case COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT:
+        case COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT: return alg_committing;
+        case COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT:
         case COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT: return true;
         default: return false;
     }
