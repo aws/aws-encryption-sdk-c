@@ -127,8 +127,4 @@ int aws_cryptosdk_priv_write_trailer(
 bool aws_cryptosdk_priv_algorithm_allowed_for_encrypt(
     enum aws_cryptosdk_alg_id alg_id, enum aws_cryptosdk_commitment_policy commitment_policy);
 
-#ifdef UNIT_TEST_ONLY_ALLOW_ENCRYPT_WITH_COMMITMENT
-extern bool unit_test_only_allow_encrypt_with_commitment;
-#endif
-
 #endif

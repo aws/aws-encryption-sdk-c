@@ -25,6 +25,7 @@
 #include <aws/common/error.h>
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/session.h>
 
 #include "testutil.h"
@@ -59,7 +60,8 @@ static void decrypt_test_oneshot(
 
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) unexpected_error();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) unexpected_error();
-    if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
+    if (!(session = aws_cryptosdk_session_new_from_cmm_2(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
+    aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT);
     aws_cryptosdk_keyring_release(kr);
     kr = NULL;
     aws_cryptosdk_cmm_release(cmm);
@@ -131,7 +133,8 @@ static void decrypt_test_incremental(
 
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) unexpected_error();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) unexpected_error();
-    if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
+    if (!(session = aws_cryptosdk_session_new_from_cmm_2(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
+    aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT);
     aws_cryptosdk_keyring_release(kr);
     kr = NULL;
     aws_cryptosdk_cmm_release(cmm);
@@ -327,7 +330,8 @@ static void decrypt_test_badciphertext(
 
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) unexpected_error();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) unexpected_error();
-    if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
+    if (!(session = aws_cryptosdk_session_new_from_cmm_2(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
+    aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT);
     aws_cryptosdk_keyring_release(kr);
     kr = NULL;
     aws_cryptosdk_cmm_release(cmm);

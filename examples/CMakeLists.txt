@@ -70,6 +70,10 @@ if (BUILD_AWS_ENC_SDK_CPP)
           $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN} ${CMAKE_CURRENT_SOURCE_DIR}/example_data/aes_256_key)
         aws_add_test(example_string ${CMAKE_CURRENT_BINARY_DIR}/string
           $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN})
+        aws_add_test(example_string_alternate_algorithm_suite ${CMAKE_CURRENT_BINARY_DIR}/string_alternate_algorithm_suite
+          $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN})
+        aws_add_test(example_string_legacy_compatibility ${CMAKE_CURRENT_BINARY_DIR}/string_legacy_compatibility
+          $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN})
 
         set_tests_properties(example_file_streaming PROPERTIES FIXTURES_REQUIRED Examples)
     endif()

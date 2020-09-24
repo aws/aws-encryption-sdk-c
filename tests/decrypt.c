@@ -23,6 +23,7 @@
 #include <aws/common/error.h>
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/raw_aes_keyring.h>
 #include <aws/cryptosdk/session.h>
 
@@ -80,7 +81,8 @@ int test_decrypt() {
         if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) unexpected_error();
     }
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) unexpected_error();
-    if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
+    if (!(session = aws_cryptosdk_session_new_from_cmm_2(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
+    aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT);
 
     uint8_t *outp      = output_buf;
     const uint8_t *inp = ciphertext;

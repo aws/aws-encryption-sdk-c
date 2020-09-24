@@ -123,8 +123,7 @@ int main(int argc, char **argv) {
         }
 
         fprintf(stderr, "[RUNNING] %s.%s ...\r", pCase->group, pCase->name);
-        unit_test_only_allow_encrypt_with_commitment = false;
-        pCase->result                                = pCase->test_fn();
+        pCase->result = pCase->test_fn();
         fprintf(stderr, "%s %s.%s    \n", pCase->result ? "\n[ FAILED]" : "[ PASSED]", pCase->group, pCase->name);
 
         if (pCase->result) {

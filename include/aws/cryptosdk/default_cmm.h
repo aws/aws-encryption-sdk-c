@@ -47,8 +47,10 @@ extern "C" {
  *
  * If a CMM that delegates to the default CMM selects an algorithm suite, that
  * algorithm suite will be used. Otherwise, the default CMM will select a default
- * algorithm suite. This is initially ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
- * but can be overridden using aws_cryptosdk_default_cmm_set_alg_id.
+ * algorithm suite. This is initially ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384
+ * or ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384, depending on the
+ * session's configured key commitment policy, but can be overridden using
+ * aws_cryptosdk_default_cmm_set_alg_id.
  *
  * On success allocates a CMM and returns a pointer to it. Be sure to call
  * aws_cryptosdk_cmm_release when you are done using the pointer so that the

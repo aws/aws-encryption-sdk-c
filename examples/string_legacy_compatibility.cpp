@@ -46,10 +46,11 @@ int encrypt_string(
         return AWS_OP_ERR;
     }
 
-    /* For clarity, we set the commitment policy explicitly. The COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT
-     * policy is selected by default in v2.0, so this is not required.
+    /* In order to allow older (pre-1.7) versions of the AWS Encryption SDK to read our
+     * ciphertexts, disable commitment on encrypt. Note that we recommend using commitment
+     * wherever possible.
      */
-    if (aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT)) {
+    if (aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT)) {
         fprintf(stderr, "set_commitment_policy failed: %s", aws_error_debug_str(aws_last_error()));
         return AWS_OP_ERR;
     }
@@ -121,7 +122,11 @@ int decrypt_string_and_verify_encryption_context(
         return AWS_OP_ERR;
     }
 
-    if (aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT)) {
+    /* Because this ciphertext was generated without commitment, set the commitment policy on decrypt
+     * to not require messages to be committed. Note that we recommend enforcing commitment on decrypt
+     * wherever possible (this is the default).
+     */
+    if (aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT)) {
         fprintf(stderr, "set_commitment_policy failed: %s", aws_error_debug_str(aws_last_error()));
         return AWS_OP_ERR;
     }
