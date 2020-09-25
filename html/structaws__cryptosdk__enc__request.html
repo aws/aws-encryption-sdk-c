@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">AWS Encryption SDK for C
-   &#160;<span id="projectnumber">v1.7</span>
+   &#160;<span id="projectnumber">v2.0</span>
    </div>
   </td>
  </tr>
@@ -81,11 +81,13 @@ Data Fields</h2></td></tr>
 <tr class="separator:af3895f76e74e3583c18d630650b83a6c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a05bf93a03acc904658eb93a18f6c8f46"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structaws__cryptosdk__enc__request.html#a05bf93a03acc904658eb93a18f6c8f46">plaintext_size</a></td></tr>
 <tr class="separator:a05bf93a03acc904658eb93a18f6c8f46"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae7f90d7994688affc0a58e0b86816db3"><td class="memItemLeft" align="right" valign="top">enum <a class="el" href="group__cmm__kr__lowlevel.html#ga4d939a2c3d0fa58fd4312cbc6e384145">aws_cryptosdk_commitment_policy</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structaws__cryptosdk__enc__request.html#ae7f90d7994688affc0a58e0b86816db3">commitment_policy</a></td></tr>
+<tr class="separator:ae7f90d7994688affc0a58e0b86816db3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Encryption request passed from the session to a CMM </p>
+<div class="textblock"><p>Encryption request passed from the session to a CMM. In general, you should not allocate or construct struct manually, since we may add additional fields. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00104">104</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00133">133</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 </div><h2 class="groupheader">Field Documentation</h2>
 <a id="a0eaa416d808e4ef77c441aade1fe8d82"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0eaa416d808e4ef77c441aade1fe8d82">&#9670;&nbsp;</a></span>alloc</h2>
@@ -99,7 +101,24 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00105">105</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00134">134</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+
+</div>
+</div>
+<a id="ae7f90d7994688affc0a58e0b86816db3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae7f90d7994688affc0a58e0b86816db3">&#9670;&nbsp;</a></span>commitment_policy</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="group__cmm__kr__lowlevel.html#ga4d939a2c3d0fa58fd4312cbc6e384145">aws_cryptosdk_commitment_policy</a> aws_cryptosdk_enc_request::commitment_policy</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>The key commitment policy to enforce when processing the encryption request. The CMM is responsible for selecting an algorithm that satisfies the commitment policy: if the commitment policy requires key commitment, then the algorithm must be a key-committing one; otherwise, the algorithm must NOT be a key-committing one. </p>
+
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00155">155</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -116,7 +135,7 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 <p>The encryption context for this message. CMMs are permitted to modify this hash table in order to inject additional keys or otherwise modify the encryption context. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00111">111</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00140">140</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -133,7 +152,7 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 <p>An upper-bound on the plaintext size to be encrypted (comes from <a class="el" href="group__session.html#gae545ae41942c20835f17fade547b5aee">aws_cryptosdk_session_set_message_bound</a> or <a class="el" href="group__session.html#ga74b000edb8c79cf35a9b131e23b933ba">aws_cryptosdk_session_set_message_size</a>). If no bound has been set, this will be UINT64_MAX. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00126">126</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00155">155</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -150,7 +169,7 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 <p>The session will initially call generate_enc_materials on the CMM with a zero requested_alg; it's up to one of the CMMs in the chain to fill this in before the keyring is invoked. In particular, the default CMM will fill in the algorithm ID it has been configured with, unless a CMM before the default CMM filled in a different algorithm ID. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00111">111</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00140">140</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>

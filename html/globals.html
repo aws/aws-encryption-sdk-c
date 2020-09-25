@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">AWS Encryption SDK for C
-   &#160;<span id="projectnumber">v1.7</span>
+   &#160;<span id="projectnumber">v2.0</span>
    </div>
   </td>
  </tr>
@@ -164,11 +164,11 @@ $(function() {
 <li>aws_cryptosdk_commitment_policy
 : <a class="el" href="group__cmm__kr__lowlevel.html#ga4d939a2c3d0fa58fd4312cbc6e384145">materials.h</a>
 </li>
+<li>aws_cryptosdk_commitment_policy_encrypt_must_include_commitment()
+: <a class="el" href="group__cmm__kr__lowlevel.html#ga8d061e17ada56e719cd366302b834e05">materials.h</a>
+</li>
 <li>aws_cryptosdk_commitment_policy_is_valid()
 : <a class="el" href="group__cmm__kr__lowlevel.html#gafe78dad26cd22cff79498796e970a206">materials.h</a>
-</li>
-<li>aws_cryptosdk_commitment_policy_should_commit_on_encrypt()
-: <a class="el" href="group__cmm__kr__lowlevel.html#gace10ebaf6bb49a18068f48c52bd39efb">materials.h</a>
 </li>
 <li>aws_cryptosdk_dec_materials_destroy()
 : <a class="el" href="group__cmm__kr__lowlevel.html#gabc3c91032aafde829aa359036142fb33">materials.h</a>
@@ -410,14 +410,8 @@ $(function() {
 <li>aws_cryptosdk_session_is_done()
 : <a class="el" href="group__session.html#ga02df3f7639fb1ad34c6b0893d1ffc0b5">session.h</a>
 </li>
-<li>aws_cryptosdk_session_new_from_cmm()
-: <a class="el" href="group__session.html#gae0942539031b2b8c1a14abfc81845f16">session.h</a>
-</li>
 <li>aws_cryptosdk_session_new_from_cmm_2()
 : <a class="el" href="group__session.html#ga7e39b2320d1c1fc14b2e01883cbb57d2">session.h</a>
-</li>
-<li>aws_cryptosdk_session_new_from_keyring()
-: <a class="el" href="group__session.html#ga763808ac375e579ebd07a0ee9285a3ba">session.h</a>
 </li>
 <li>aws_cryptosdk_session_new_from_keyring_2()
 : <a class="el" href="group__session.html#ga1286194d93d0f956aabbd18f9ec27650">session.h</a>
@@ -506,6 +500,12 @@ $(function() {
 <h3><a id="index_c"></a>- c -</h3><ul>
 <li>COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT
 : <a class="el" href="group__cmm__kr__lowlevel.html#gga4d939a2c3d0fa58fd4312cbc6e384145a61ae21af214069fb76d3f36b80494614">materials.h</a>
+</li>
+<li>COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT
+: <a class="el" href="group__cmm__kr__lowlevel.html#gga4d939a2c3d0fa58fd4312cbc6e384145a174e0c654141130dbd940cfe957e5cb8">materials.h</a>
+</li>
+<li>COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT
+: <a class="el" href="group__cmm__kr__lowlevel.html#gga4d939a2c3d0fa58fd4312cbc6e384145a099f3d3291107d67d1e4b9fbb7e3ed1c">materials.h</a>
 </li>
 </ul>
 </div><!-- contents -->

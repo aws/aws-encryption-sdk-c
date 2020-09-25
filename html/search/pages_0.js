@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['deprecated_20list_492',['Deprecated List',['../deprecated.html',1,'']]]
+  ['the_20aws_20encryption_20sdk_20for_20c_493',['The AWS Encryption SDK for C',['../index.html',1,'']]]
 ];

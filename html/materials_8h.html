@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">AWS Encryption SDK for C
-   &#160;<span id="projectnumber">v1.7</span>
+   &#160;<span id="projectnumber">v2.0</span>
    </div>
   </td>
  </tr>
@@ -155,7 +155,9 @@ Data Structures</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
-<tr class="memitem:ga4d939a2c3d0fa58fd4312cbc6e384145"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__cmm__kr__lowlevel.html#ga4d939a2c3d0fa58fd4312cbc6e384145">aws_cryptosdk_commitment_policy</a> { <a class="el" href="group__cmm__kr__lowlevel.html#gga4d939a2c3d0fa58fd4312cbc6e384145a61ae21af214069fb76d3f36b80494614">COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT</a> = 0x2735f98a
+<tr class="memitem:ga4d939a2c3d0fa58fd4312cbc6e384145"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__cmm__kr__lowlevel.html#ga4d939a2c3d0fa58fd4312cbc6e384145">aws_cryptosdk_commitment_policy</a> { <a class="el" href="group__cmm__kr__lowlevel.html#gga4d939a2c3d0fa58fd4312cbc6e384145a099f3d3291107d67d1e4b9fbb7e3ed1c">COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT</a> = 0x598f396c, 
+<a class="el" href="group__cmm__kr__lowlevel.html#gga4d939a2c3d0fa58fd4312cbc6e384145a174e0c654141130dbd940cfe957e5cb8">COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT</a> = 0x493769b7, 
+<a class="el" href="group__cmm__kr__lowlevel.html#gga4d939a2c3d0fa58fd4312cbc6e384145a61ae21af214069fb76d3f36b80494614">COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT</a> = 0x2735f98a
  }</td></tr>
 <tr class="separator:ga4d939a2c3d0fa58fd4312cbc6e384145"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -209,8 +211,8 @@ Functions</h2></td></tr>
 <tr class="separator:gabc3c91032aafde829aa359036142fb33"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gafe78dad26cd22cff79498796e970a206"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__cmm__kr__lowlevel.html#gafe78dad26cd22cff79498796e970a206">aws_cryptosdk_commitment_policy_is_valid</a> (uint32_t commitment_policy)</td></tr>
 <tr class="separator:gafe78dad26cd22cff79498796e970a206"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gace10ebaf6bb49a18068f48c52bd39efb"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__cmm__kr__lowlevel.html#gace10ebaf6bb49a18068f48c52bd39efb">aws_cryptosdk_commitment_policy_should_commit_on_encrypt</a> (enum <a class="el" href="group__cmm__kr__lowlevel.html#ga4d939a2c3d0fa58fd4312cbc6e384145">aws_cryptosdk_commitment_policy</a> commitment_policy)</td></tr>
-<tr class="separator:gace10ebaf6bb49a18068f48c52bd39efb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8d061e17ada56e719cd366302b834e05"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__cmm__kr__lowlevel.html#ga8d061e17ada56e719cd366302b834e05">aws_cryptosdk_commitment_policy_encrypt_must_include_commitment</a> (enum <a class="el" href="group__cmm__kr__lowlevel.html#ga4d939a2c3d0fa58fd4312cbc6e384145">aws_cryptosdk_commitment_policy</a> commitment_policy)</td></tr>
+<tr class="separator:ga8d061e17ada56e719cd366302b834e05"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 </div><!-- contents -->
 <!-- start footer part -->

@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">AWS Encryption SDK for C
-   &#160;<span id="projectnumber">v1.7</span>
+   &#160;<span id="projectnumber">v2.0</span>
    </div>
   </td>
  </tr>
@@ -113,7 +113,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>Decrements the reference count on the CMM. If the new reference count is zero, the CMM is destroyed. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00405">405</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00442">442</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -134,7 +134,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>Increments the reference count on the CMM. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00416">416</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00453">453</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -166,7 +166,7 @@ Functions</h2></td></tr>
 <p>Instantiate the default (non-caching) implementation of the Crypto Materials Manager (CMM). A Keyring must have already been instantiated and a pointer to it passed in. This CMM implements all of the CMM virtual functions.</p>
 <p>On each call to Generate Encryption Materials, it makes a call to the keyring's On Encrypt function to generate and encrypt a data key. If an algorithm suite that does not include signing is used, this is the only thing that the Generate Encryption Materials does. If an algorithm suite that does include signing is used, then the call additionally begins the calculation of the trailing signature, which will be completed by the session.</p>
 <p>On each call to Decrypt Materials, it passes the full list of EDKs to the keyring and asks it to find one to decrypt, via the keyring's On Decrypt function. If an algorithm suite that does not include signing is used, this is the only thing that the Decrypt Materials call does. If an algorithm suite that does include signing is used, then the call additionally begins the verification of the trailing signature, which will be completed by the session.</p>
-<p>If a CMM that delegates to the default CMM selects an algorithm suite, that algorithm suite will be used. Otherwise, the default CMM will select a default algorithm suite. This is initially ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384, but can be overridden using aws_cryptosdk_default_cmm_set_alg_id.</p>
+<p>If a CMM that delegates to the default CMM selects an algorithm suite, that algorithm suite will be used. Otherwise, the default CMM will select a default algorithm suite. This is initially ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384 or ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384, depending on the session's configured key commitment policy, but can be overridden using aws_cryptosdk_default_cmm_set_alg_id.</p>
 <p>On success allocates a CMM and returns a pointer to it. Be sure to call aws_cryptosdk_cmm_release when you are done using the pointer so that the memory is properly deallocated.</p>
 <p>On failure returns NULL and sets an internal AWS error code. </p>
 
@@ -218,7 +218,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>Decrements the reference count on the keyring; if the new reference count is zero, the keyring is destroyed. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00557">557</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00594">594</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -239,7 +239,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>Increments the reference count on the keyring. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00568">568</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00605">605</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
