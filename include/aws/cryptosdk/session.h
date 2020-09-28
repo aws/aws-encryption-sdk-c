@@ -57,7 +57,7 @@ struct aws_cryptosdk_session;
 enum aws_cryptosdk_mode { AWS_CRYPTOSDK_ENCRYPT = 0x9000, AWS_CRYPTOSDK_DECRYPT = 0x9001 };
 
 /**
- * Creates a new encryption or decryption session.
+ * Creates a new encryption or decryption session from an underlying keyring.
  *
  * @return The new session, or NULL on failure (in which case, an AWS error code is set)
  *
@@ -69,11 +69,11 @@ enum aws_cryptosdk_mode { AWS_CRYPTOSDK_ENCRYPT = 0x9000, AWS_CRYPTOSDK_DECRYPT 
  *                This function uses a default CMM to link the session and keyring.
  */
 AWS_CRYPTOSDK_API
-struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_keyring(
+struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_keyring_2(
     struct aws_allocator *allocator, enum aws_cryptosdk_mode mode, struct aws_cryptosdk_keyring *keyring);
 
 /**
- * Creates a new encryption or decryption session.
+ * Creates a new encryption or decryption session from an underlying CMM.
  *
  * @return The new session, or NULL on failure (in which case, an AWS error code is set)
  *
@@ -85,7 +85,7 @@ struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_keyring(
  *            session.
  */
 AWS_CRYPTOSDK_API
-struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm(
+struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm_2(
     struct aws_allocator *allocator, enum aws_cryptosdk_mode mode, struct aws_cryptosdk_cmm *cmm);
 
 /** Destroys a previously allocated session */
@@ -95,7 +95,8 @@ void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);
 /**
  * Resets the session, preparing it for a new message. This function can also change
  * a session from encrypt to decrypt, or vice versa. After reset, the currently
- * configured allocator, CMM, and frame size to use for encryption are preserved.
+ * configured allocator, CMM, key commitment policy, and frame size to use for
+ * encryption are preserved.
  *
  * @param session The session to reset
  * @param mode The new mode of the session
@@ -153,6 +154,14 @@ int aws_cryptosdk_session_set_message_size(struct aws_cryptosdk_session *session
  */
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_session_set_message_bound(struct aws_cryptosdk_session *session, uint64_t max_message_size);
+
+/**
+ * Sets the key commitment policy to use for encryption and decryption. The key
+ * commitment policy must be set before encryption or decryption.
+ */
+AWS_CRYPTOSDK_API
+int aws_cryptosdk_session_set_commitment_policy(
+    struct aws_cryptosdk_session *session, enum aws_cryptosdk_commitment_policy commitment_policy);
 
 /**
  * Attempts to process some data through the cryptosdk session.

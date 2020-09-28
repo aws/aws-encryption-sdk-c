@@ -21,7 +21,6 @@
 #include "aws/cryptosdk/header.h"
 #include "aws/cryptosdk/materials.h"  // struct aws_cryptosdk_edk
 
-#define MESSAGE_ID_LEN 16
 struct aws_cryptosdk_hdr {
     struct aws_allocator *alloc;
 
@@ -29,9 +28,7 @@ struct aws_cryptosdk_hdr {
 
     uint32_t frame_len;
 
-    struct aws_byte_buf iv, auth_tag;
-
-    uint8_t message_id[MESSAGE_ID_LEN];
+    struct aws_byte_buf iv, auth_tag, message_id, alg_suite_data;
 
     // aws_string * -> aws_string *
     struct aws_hash_table enc_ctx;
@@ -40,11 +37,6 @@ struct aws_cryptosdk_hdr {
     // number of bytes of header except for IV and auth tag,
     // i.e., exactly the bytes that get authenticated
     size_t auth_len;
-};
-
-enum aws_cryptosdk_hdr_version {
-    // Only one version is currently defined.
-    AWS_CRYPTOSDK_HEADER_VERSION_1_0 = 0x01
 };
 
 enum aws_cryptosdk_hdr_type {
@@ -111,11 +103,27 @@ int aws_cryptosdk_hdr_write(const struct aws_cryptosdk_hdr *hdr, size_t *bytes_w
 /**
  * Returns number of bytes in auth tag for known algorithms, -1 for unknown algorithms.
  */
-int aws_cryptosdk_algorithm_taglen(uint16_t alg_id);
+int aws_cryptosdk_private_algorithm_taglen(uint16_t alg_id);
 
 /**
  * Returns number of bytes in IV for known algorithms, -1 for unknown algorithms.
  */
-int aws_cryptosdk_algorithm_ivlen(uint16_t alg_id);
+int aws_cryptosdk_private_algorithm_ivlen(uint16_t alg_id);
+
+/**
+ * Returns the total length of statically sized fields for known header
+ * versions, or -1 for unknown header versions.
+ */
+int aws_cryptosdk_private_header_version_static_fields_len(uint8_t header_version);
+
+/**
+ * Returns true for known algorithms, or false for unknown algorithms.
+ */
+bool aws_cryptosdk_algorithm_is_known(uint16_t alg_id);
+
+/**
+ * Returns true for key-committing algorithms, or false otherwise.
+ */
+bool aws_cryptosdk_algorithm_is_committing(uint16_t alg_id);
 
 #endif  // AWS_CRYPTOSDK_PRIVATE_HEADER_H

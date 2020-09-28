@@ -23,7 +23,13 @@ static const struct aws_error_info error_info[] = {
     AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED, "Limit exceeded", "cryptosdk"),
     AWS_DEFINE_ERROR_INFO(AWS_CRYPTOSDK_ERR_RESERVED_NAME, "Contains name reserved for usage by AWS", "cryptosdk"),
     AWS_DEFINE_ERROR_INFO(
-        AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT, "Unsupported format version or bad ciphertext", "cryptosdk")
+        AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT, "Unsupported format version or bad ciphertext", "cryptosdk"),
+    AWS_DEFINE_ERROR_INFO(
+        AWS_CRYPTOSDK_ERR_COMMITMENT_POLICY_VIOLATION,
+        "Configuration conflict: Cannot encrypt or decrypt because the algorithm suite is forbidden under the "
+        "configured key commitment policy. See: "
+        "https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/troubleshooting-migration.html",
+        "cryptosdk")
 };
 
 static const struct aws_error_info_list error_info_list = { .error_list = error_info,

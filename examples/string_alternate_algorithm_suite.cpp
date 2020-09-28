@@ -14,6 +14,7 @@
  */
 
 #include <aws/cryptosdk/cpp/kms_keyring.h>
+#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/enc_ctx.h>
 #include <aws/cryptosdk/session.h>
 
@@ -32,15 +33,29 @@ int encrypt_string(
         return AWS_OP_ERR;
     }
 
-    struct aws_cryptosdk_session *session =
-        aws_cryptosdk_session_new_from_keyring_2(alloc, AWS_CRYPTOSDK_ENCRYPT, kms_keyring);
+    /* To set an alternate algorithm suite, we must explicitly create a Crypto Materials Manager.
+     */
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kms_keyring);
 
-    /* The session has a reference to the keyring now. We release our reference so that
-     * the keyring will be destroyed when the session is. If session failed to allocate,
+    /* The CMM has a reference to the keyring now. We release our reference so that
+     * the keyring will be destroyed when the cMM is. If CMM failed to allocate,
      * this causes an immediate deallocation of the keyring and prevents a memory leak
      * when this function exits.
      */
     aws_cryptosdk_keyring_release(kms_keyring);
+
+    /* Select the ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY algorithm.
+     * Note that we recommend using the default algorithm (currently, ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384)
+     * wherever possible. Changing algorithms should only be done in specialized circumstances.
+     */
+    if (AWS_OP_SUCCESS != aws_cryptosdk_default_cmm_set_alg_id(cmm, ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY)) {
+        abort();
+    }
+
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm_2(alloc, AWS_CRYPTOSDK_ENCRYPT, cmm);
+
+    /* Similarly to the keyring, the session now has a reference to the CMM, which we can now release. */
+    aws_cryptosdk_cmm_release(cmm);
 
     if (!session) {
         return AWS_OP_ERR;
@@ -121,10 +136,15 @@ int decrypt_string_and_verify_encryption_context(
         return AWS_OP_ERR;
     }
 
+    /* For clarity, we set the commitment policy explicitly. The COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT
+     * policy is selected by default in v2.0, so this is not required.
+     */
     if (aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT)) {
         fprintf(stderr, "set_commitment_policy failed: %s", aws_error_debug_str(aws_last_error()));
         return AWS_OP_ERR;
     }
+
+    fprintf(stderr, "!!!\n");
 
     size_t ciphertext_consumed;
     if (AWS_OP_SUCCESS !=

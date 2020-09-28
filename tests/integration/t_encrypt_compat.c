@@ -30,15 +30,19 @@
 #include <curl/curl.h>
 #include <openssl/rand.h>
 
-static enum aws_cryptosdk_alg_id known_algorithms[] = { ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
-                                                        ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
-                                                        ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
-                                                        ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256,
-                                                        ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256,
-                                                        ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256,
-                                                        ALG_AES256_GCM_IV12_TAG16_NO_KDF,
-                                                        ALG_AES192_GCM_IV12_TAG16_NO_KDF,
-                                                        ALG_AES128_GCM_IV12_TAG16_NO_KDF };
+static enum aws_cryptosdk_alg_id known_algorithms[] = {
+    // ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY,
+    // ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384,
+    ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+    ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384,
+    ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256,
+    ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256,
+    ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256,
+    ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256,
+    ALG_AES256_GCM_IV12_TAG16_NO_KDF,
+    ALG_AES192_GCM_IV12_TAG16_NO_KDF,
+    ALG_AES128_GCM_IV12_TAG16_NO_KDF,
+};
 
 static enum aws_cryptosdk_alg_id alg_to_use;
 
@@ -191,7 +195,10 @@ static int test_basic() {
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) abort();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) abort();
     if (aws_cryptosdk_default_cmm_set_alg_id(cmm, alg_to_use)) abort();
-    if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_ENCRYPT, cmm))) abort();
+    if (!(session = aws_cryptosdk_session_new_from_cmm_2(alloc, AWS_CRYPTOSDK_ENCRYPT, cmm))) abort();
+    if (!aws_cryptosdk_alg_props(alg_to_use)->commitment_len) {
+        aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT);
+    }
     aws_cryptosdk_keyring_release(kr);
     aws_cryptosdk_cmm_release(cmm);
 
@@ -227,7 +234,10 @@ static int test_framesize(size_t plaintext_sz, size_t framesize, bool early_size
     if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) abort();
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) abort();
     if (aws_cryptosdk_default_cmm_set_alg_id(cmm, alg_to_use)) abort();
-    if (!(session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm))) abort();
+    if (!(session = aws_cryptosdk_session_new_from_cmm_2(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm))) abort();
+    if (!aws_cryptosdk_alg_props(alg_to_use)->commitment_len) {
+        aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT);
+    }
     aws_cryptosdk_keyring_release(kr);
     aws_cryptosdk_cmm_release(cmm);
 

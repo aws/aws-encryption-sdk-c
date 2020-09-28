@@ -66,8 +66,15 @@ std::vector<uint8_t> process_loop(struct aws_cryptosdk_session *session, const u
 }
 
 std::vector<uint8_t> encrypt(struct aws_allocator *alloc, struct aws_cryptosdk_cmm *cmm, const std::string &str) {
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_ENCRYPT, cmm);
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm_2(alloc, AWS_CRYPTOSDK_ENCRYPT, cmm);
     if (!session) abort();
+
+    /* For clarity, we set the commitment policy explicitly. The COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT
+     * policy is selected by default in v2.0, so this is not required.
+     */
+    if (aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT)) {
+        error("set_commitment_policy");
+    }
 
     if (aws_cryptosdk_session_set_message_size(session, str.size())) {
         error("set_message_size");
@@ -82,8 +89,15 @@ std::vector<uint8_t> encrypt(struct aws_allocator *alloc, struct aws_cryptosdk_c
 
 std::string decrypt(
     struct aws_allocator *alloc, struct aws_cryptosdk_cmm *cmm, const std::vector<uint8_t> &ciphertext) {
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm);
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm_2(alloc, AWS_CRYPTOSDK_DECRYPT, cmm);
     if (!session) abort();
+
+    /* For clarity, we set the commitment policy explicitly. The COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT
+     * policy is selected by default in v2.0, so this is not required.
+     */
+    if (aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT)) {
+        error("set_commitment_policy");
+    }
 
     std::vector<uint8_t> buffer = process_loop(session, ciphertext.data(), ciphertext.size());
 

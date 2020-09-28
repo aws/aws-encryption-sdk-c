@@ -76,6 +76,13 @@ TESTLIB_API
 struct aws_byte_buf easy_b64_decode(const char *b64_string);
 
 /**
+ * Encodes base64 to an aws_string.
+ * Aborts if anything goes wrong.
+ */
+TESTLIB_API
+struct aws_string *easy_b64_encode(const uint8_t *data, size_t len);
+
+/**
  * Verify that the idx'th element of keyring trace has all the
  * specified attributes. name_space and/or name may be set to
  * NULL to ignore those checks.

@@ -84,6 +84,7 @@ if(AWS_ENC_SDK_END_TO_END_TESTS AND CURL_FOUND)
 endif(AWS_ENC_SDK_END_TO_END_TESTS AND CURL_FOUND)
 
 aws_add_test(cipher ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite cipher)
+aws_add_test(commitment ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite commitment)
 aws_add_test(header ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite header)
 aws_add_test(materials ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite materials)
 aws_add_test(enc_ctx ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite enc_ctx)
@@ -109,4 +110,8 @@ aws_add_test(decrypt_hello
     ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt ${TEST_DATA}/hello.bin ${TEST_DATA}/hello.bin.pt)
 aws_add_test(decrypt_hello_tiny
     ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt ${TEST_DATA}/hello.tinyframes.bin ${TEST_DATA}/hello.bin.pt)
+aws_add_test(bad_commitment
+    ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt --xfail --gcmkey ${TEST_DATA}/ct_bad_commitment.bin ${TEST_DATA}/bad_commitment.pt)
+aws_add_test(good_commitment
+    ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decrypt --gcmkey ${TEST_DATA}/ct_good_commitment.bin ${TEST_DATA}/good_commitment.pt)
 aws_add_test(decryption_vectors ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/test_decryption_vectors)

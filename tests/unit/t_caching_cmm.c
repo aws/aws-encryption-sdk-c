@@ -1174,7 +1174,7 @@ static int set_message_bound_with_caching_cmm() {
 
     aws_cryptosdk_keyring_release(kr);
 
-    session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_ENCRYPT, caching_cmm);
+    session = aws_cryptosdk_session_new_from_cmm_2(alloc, AWS_CRYPTOSDK_ENCRYPT, caching_cmm);
     TEST_ASSERT_ADDR_NOT_NULL(session);
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_frame_size(session, 50));
@@ -1210,7 +1210,7 @@ static int message_bound_error_code() {
     setup_mocks();
     size_t message_bound_size = 128;
     struct aws_cryptosdk_session *session =
-        aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm);
+        aws_cryptosdk_session_new_from_cmm_2(aws_default_allocator(), AWS_CRYPTOSDK_ENCRYPT, cmm);
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_session_set_message_bound(session, message_bound_size));
     /* Since we are setting the message_size value to be greater that the message_bound value set

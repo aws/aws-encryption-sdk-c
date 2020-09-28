@@ -23,6 +23,8 @@
 #include <aws/common/error.h>
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/error.h>
+#include <aws/cryptosdk/materials.h>
+#include <aws/cryptosdk/raw_aes_keyring.h>
 #include <aws/cryptosdk/session.h>
 
 #include "testutil.h"
@@ -31,6 +33,8 @@
 /* Braindead option parser for now */
 const char *ciphertext_filename, *plaintext_filename;
 bool expect_failure = false;
+/* Uses an AES-GCM key (consisting of all zeroes) instead of a fixed zeroes data key */
+bool gcm_key = false;
 
 uint8_t *ciphertext, *plaintext;
 size_t ct_size, pt_size;
@@ -62,9 +66,23 @@ int test_decrypt() {
     struct aws_cryptosdk_session *session = NULL;
     struct aws_cryptosdk_cmm *cmm         = NULL;
 
-    if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) unexpected_error();
+    if (gcm_key) {
+        struct aws_string *provName = aws_string_new_from_c_str(aws_default_allocator(), "ProviderName");
+        struct aws_string *keyId    = aws_string_new_from_c_str(aws_default_allocator(), "KeyId");
+        const uint8_t ZERO_KEY[32]  = { 0 };
+
+        if (!(kr = aws_cryptosdk_raw_aes_keyring_new(
+                  aws_default_allocator(), provName, keyId, ZERO_KEY, AWS_CRYPTOSDK_AES256)))
+            unexpected_error();
+
+        aws_string_destroy(provName);
+        aws_string_destroy(keyId);
+    } else {
+        if (!(kr = aws_cryptosdk_zero_keyring_new(alloc))) unexpected_error();
+    }
     if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) unexpected_error();
-    if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
+    if (!(session = aws_cryptosdk_session_new_from_cmm_2(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) unexpected_error();
+    aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT);
 
     uint8_t *outp      = output_buf;
     const uint8_t *inp = ciphertext;
@@ -92,11 +110,12 @@ int test_decrypt() {
         if (pt_size != out_produced) {
             fprintf(
                 stderr,
-                "Wrong output size: Expected %zu got %zu (consumed %zu of %zu)\n",
+                "Wrong output size: Expected %zu got %zu (consumed %zu of %zu) completed=%d\n",
                 pt_size,
-                (size_t)(outp - output_buf),
-                (size_t)(inp - ciphertext),
-                ct_size);
+                out_produced,
+                in_consumed,
+                ct_size,
+                (int)aws_cryptosdk_session_is_done(session));
             return 1;
         }
 
@@ -128,6 +147,8 @@ void parse_args(int argc, char **argv) {
     for (i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--xfail")) {
             expect_failure = true;
+        } else if (!strcmp(argv[i], "--gcmkey")) {
+            gcm_key = true;
         } else if (argv[i][0] == '-') {
             fprintf(stderr, "Unknown argument: %s\n", argv[i]);
             usage();
