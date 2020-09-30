@@ -87,7 +87,7 @@ HELPERDIR ?= $(SDKDIR)/.cbmc-batch
 LINKFARM = $(abspath ./link-farm)
 COMMON_REPO_NAME ?= aws-c-common
 COMMONDIR ?= $(HELPERDIR)/$(COMMON_REPO_NAME)
-COMMON_HELPERDIR ?= $(COMMONDIR)/.cbmc-batch
+COMMON_HELPERDIR ?= $(COMMONDIR)/verification/cbmc
 
 ################################################################
 # Setup include directory order
@@ -155,7 +155,7 @@ common-symlinks: linkfarm-dir
 
 common-helper-symlinks: linkfarm-dir
 	$(call make_symlink, $(LINKFARM), $(COMMON_HELPERDIR)/include, c-common-helper-inc)
-	$(call make_symlink, $(LINKFARM), $(COMMON_HELPERDIR)/source, c-common-helper-src)
+	$(call make_symlink, $(LINKFARM), $(COMMON_HELPERDIR)/sources, c-common-helper-src)
 	$(call make_symlink, $(LINKFARM), $(COMMON_HELPERDIR)/stubs, c-common-helper-stubs)
 	$(call make_symlink, $(LINKFARM), $(COMMON_HELPERDIR)/uninline, c-common-helper-uninline)
 
