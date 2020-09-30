@@ -85,8 +85,8 @@ SRCDIR ?= $(abspath ./link-farm)
 SDKDIR ?= $(abspath ../../..)
 HELPERDIR ?= $(SDKDIR)/.cbmc-batch
 LINKFARM = $(abspath ./link-farm)
-COMMON_REPO_NAME ?= aws-c-common-for-cryptosdk-proofs
-COMMONDIR ?= $(BASEDIR)/$(COMMON_REPO_NAME)
+COMMON_REPO_NAME ?= aws-c-common
+COMMONDIR ?= $(HELPERDIR)/$(COMMON_REPO_NAME)
 COMMON_HELPERDIR ?= $(COMMONDIR)/.cbmc-batch
 
 ################################################################
@@ -144,28 +144,16 @@ define make_symlink
 	fi
 endef
 
-################ Clone the necessary repos
-common-git:
-	@if [ ! -d $(COMMONDIR) ] ;\
-	then \
-		cd $(BASEDIR); \
-		git clone --quiet https://github.com/awslabs/aws-c-common.git $(COMMON_REPO_NAME); \
-    cd $(COMMON_REPO_NAME); \
-    git reset --hard dd600468fbd25c6f31828010c28056c4d5c3ab35; \
-    cd $(BASEDIR); \
-	else \
-		echo "c-common repo already exists. Nothing to do."; \
-	fi
-
+################ Make the linkfarm
 linkfarm-dir:
 	mkdir -p link-farm
 
 # If we have dangling links here, batch is not happy. So make them as needed.
-common-symlinks: common-git linkfarm-dir
+common-symlinks: linkfarm-dir
 	$(call make_symlink, $(LINKFARM), $(COMMONDIR)/include, c-common-inc)
 	$(call make_symlink, $(LINKFARM), $(COMMONDIR)/source, c-common-src)
 
-common-helper-symlinks: common-git linkfarm-dir
+common-helper-symlinks: linkfarm-dir
 	$(call make_symlink, $(LINKFARM), $(COMMON_HELPERDIR)/include, c-common-helper-inc)
 	$(call make_symlink, $(LINKFARM), $(COMMON_HELPERDIR)/source, c-common-helper-src)
 	$(call make_symlink, $(LINKFARM), $(COMMON_HELPERDIR)/stubs, c-common-helper-stubs)
@@ -329,7 +317,7 @@ veryclean: clean
 gitclean: veryclean
 	$(RM) -r $(COMMONDIR)
 
-.PHONY: cbmc property coverage report clean veryclean common-symlinks common-git harness-symlink fill-linkfarm helper-symlinks ci-yaml
+.PHONY: cbmc property coverage report clean veryclean common-symlinks harness-symlink fill-linkfarm helper-symlinks ci-yaml
 
 .PHONY: setup_dependencies cbmc property coverage report clean veryclean
 
