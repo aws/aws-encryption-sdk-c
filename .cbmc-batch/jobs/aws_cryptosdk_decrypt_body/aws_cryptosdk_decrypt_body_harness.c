@@ -22,6 +22,7 @@ void aws_cryptosdk_decrypt_body_harness() {
     struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
     __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(props));
 
+    /* Outp, inp and message_id cannot be NULL (ensured by aws_byte_buf_is_valid)*/
     struct aws_byte_buf outp;
     __CPROVER_assume(aws_byte_buf_is_bounded(&outp, MAX_BUFFER_SIZE));
     ensure_byte_buf_has_allocated_buffer_member(&outp);
