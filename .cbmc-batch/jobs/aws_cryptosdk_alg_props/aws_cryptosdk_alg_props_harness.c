@@ -17,16 +17,18 @@
 #include <aws/cryptosdk/private/cipher.h>
 
 void aws_cryptosdk_alg_props_harness() {
-    /* arguments */
+    /* Nondet Inputs. */
     enum aws_cryptosdk_alg_id alg_id;
 
-    /* operation under verification */
+    /* Operation under verification*/
     struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
 
-    /* assertions */
+    /* Post-conditions. */
     if (props) {
+        assert(aws_cryptosdk_alg_properties_is_valid(props));
         assert(
-            props->impl->md_ctor == NULL || props->impl->md_ctor == EVP_sha256 || props->impl->md_ctor == EVP_sha384);
+            props->impl->md_ctor == NULL || props->impl->md_ctor == EVP_sha256 || props->impl->md_ctor == EVP_sha384 ||
+            props->impl->md_ctor == EVP_sha512);
         assert(
             props->impl->cipher_ctor == NULL || props->impl->cipher_ctor == EVP_aes_128_gcm ||
             props->impl->cipher_ctor == EVP_aes_192_gcm || props->impl->cipher_ctor == EVP_aes_256_gcm);
