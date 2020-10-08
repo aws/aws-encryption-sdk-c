@@ -2,7 +2,7 @@
 
 ## 1.7.0 -- 2020-09-24
 
-* Updates to the AWS Encryption SDK. cbed43b
+* Updates to the AWS Encryption SDK. 4ba5825
 
   This change includes fixes for issues that were reported by Thai Duong from
   Google's Security team, and for issues that were identified by AWS
