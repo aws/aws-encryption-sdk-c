@@ -23,23 +23,23 @@
 #include <proof_helpers/proof_allocators.h>
 
 void aws_cryptosdk_sig_verify_start_harness() {
-    /* arguments */
+    /* Nondet input */
     struct aws_cryptosdk_sig_ctx *ctx;
     struct aws_allocator *alloc = can_fail_allocator();
     struct aws_string *pub_key  = ensure_string_is_allocated_bounded_length(MAX_PUBKEY_SIZE);
     enum aws_cryptosdk_alg_id alg_id;
     struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
 
-    /* assumptions */
-    __CPROVER_assume(props);
-    assert(aws_string_is_valid(pub_key));
+    /* Assumptions */
+    __CPROVER_assume(props != NULL);
+    __CPROVER_assume(aws_string_is_valid(pub_key));
 
-    /* operation under verification */
+    /* Operation under verification */
     if (aws_cryptosdk_sig_verify_start(&ctx, alloc, pub_key, props) == AWS_OP_SUCCESS) {
-        /* assertions */
+        /* Post-conditions */
         assert((!props->impl->curve_name && !ctx) || (aws_cryptosdk_sig_ctx_is_valid_cbmc(ctx) && !ctx->is_sign));
     }
 
-    /* assertions */
+    /* Post-conditions */
     assert(aws_string_is_valid(pub_key));
 }

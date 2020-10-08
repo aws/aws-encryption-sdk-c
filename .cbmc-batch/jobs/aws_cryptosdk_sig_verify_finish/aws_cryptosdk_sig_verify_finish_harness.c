@@ -33,12 +33,12 @@ void aws_cryptosdk_sig_verify_finish_harness() {
     __CPROVER_assume(!ctx->is_sign);
     __CPROVER_assume(aws_string_is_valid(signature));
 
-    /* saving state */
+    /* Saving state */
     EC_KEY *keypair        = ctx->keypair;
     int keypair_references = ec_key_get_reference_count(keypair);
     EVP_PKEY *pkey         = ctx->pkey;
     int pkey_references    = evp_pkey_get_reference_count(pkey);
 
-    /* operation under verification */
+    /* Operation under verification */
     aws_cryptosdk_sig_verify_finish(ctx, signature);
 }
