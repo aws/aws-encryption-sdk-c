@@ -49,6 +49,7 @@ void aws_cryptosdk_enc_ctx_serialize_harness() {
     ensure_allocated_hash_table(map, MAX_TABLE_SIZE);
     __CPROVER_assume(aws_hash_table_is_valid(map));
     ensure_hash_table_has_valid_destroy_functions(map);
+
     size_t empty_slot_idx;
     __CPROVER_assume(aws_hash_table_has_an_empty_slot(map, &empty_slot_idx));
 

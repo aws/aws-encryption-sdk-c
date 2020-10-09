@@ -29,6 +29,8 @@ void aws_cryptosdk_sig_get_privkey_harness() {
     struct aws_string *priv_key       = ensure_string_is_allocated_nondet_length();
 
     /* Assumptions */
+    __CPROVER_assume(ctx != NULL);
+    ensure_sig_ctx_has_allocated_members(ctx);
     __CPROVER_assume(aws_cryptosdk_sig_ctx_is_valid_cbmc(ctx));
     __CPROVER_assume(ctx->is_sign);  // context has to be in signing mode, otherwise private key is NULL
     __CPROVER_assume(AWS_OBJECT_PTR_IS_READABLE(priv_key));
