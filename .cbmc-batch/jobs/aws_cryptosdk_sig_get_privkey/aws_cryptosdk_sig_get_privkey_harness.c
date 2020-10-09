@@ -23,28 +23,28 @@
 #include <cipher_openssl.h>
 
 void aws_cryptosdk_sig_get_privkey_harness() {
-    /* arguments */
+    /* Nondet Input */
     struct aws_cryptosdk_sig_ctx *ctx = can_fail_malloc(sizeof(struct aws_cryptosdk_sig_ctx));
     struct aws_allocator *alloc       = can_fail_allocator();
     struct aws_string *priv_key;
 
-    /* assumptions */
-    __CPROVER_assume(ctx);
+    /* Assumptions */
+    __CPROVER_assume(ctx != NULL);
     ensure_sig_ctx_has_allocated_members(ctx);
     __CPROVER_assume(aws_cryptosdk_sig_ctx_is_valid_cbmc(ctx));
     __CPROVER_assume(ctx->is_sign);  // context has to be in signing mode, otherwise private key is NULL
 
-    /* operation under verification */
+    /* Operation under verification */
     if (aws_cryptosdk_sig_get_privkey(ctx, alloc, &priv_key) == AWS_OP_SUCCESS) {
         assert(aws_string_is_valid(priv_key));
     } else {
         assert(!priv_key);
     }
 
-    /* assertions */
+    /* Post-conditions */
     assert(aws_cryptosdk_sig_ctx_is_valid_cbmc(ctx));
 
-    /* clean up */
+    /* Clean up */
     EVP_MD_CTX_free(ctx->ctx);
     evp_pkey_unconditional_free(ctx->pkey);
     ec_key_unconditional_free(ctx->keypair);

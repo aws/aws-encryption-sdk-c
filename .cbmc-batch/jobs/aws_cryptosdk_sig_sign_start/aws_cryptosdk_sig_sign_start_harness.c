@@ -23,7 +23,7 @@
 #include <cipher_openssl.h>
 
 void aws_cryptosdk_sig_sign_start_harness() {
-    /* arguments */
+    /* Nondet Inputs */
     struct aws_cryptosdk_sig_ctx *ctx;
     struct aws_allocator *alloc = can_fail_allocator();
     struct aws_string *pub_key;
@@ -31,21 +31,22 @@ void aws_cryptosdk_sig_sign_start_harness() {
     enum aws_cryptosdk_alg_id alg_id;
     struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
 
-    /* assumptions */
-    __CPROVER_assume(props);
+    /* Assumptions */
+    __CPROVER_assume(props != NULL);
+    __CPROVER_assume(priv_key != NULL);
     assert(aws_string_is_valid(priv_key));
 
     bool save_pub_key = nondet_bool();
 
-    /* operation under verification */
+    /* Operation under verification */
     if (aws_cryptosdk_sig_sign_start(
             &ctx, alloc, save_pub_key ? &pub_key : NULL, props, priv_key /* priv_key can't be NULL */) ==
         AWS_OP_SUCCESS) {
-        /* assertion: on success, context is initialized unless no curve name was given */
+        /* Post-condition: on success, context is initialized unless no curve name was given */
         assert((!props->impl->curve_name && !ctx) || (aws_cryptosdk_sig_ctx_is_valid_cbmc(ctx) && ctx->is_sign));
     }
 
-    /* assertions */
+    /* Post-conditions */
     if (save_pub_key) assert(!pub_key || aws_string_is_valid(pub_key));
     assert(aws_string_is_valid(priv_key));
 }
