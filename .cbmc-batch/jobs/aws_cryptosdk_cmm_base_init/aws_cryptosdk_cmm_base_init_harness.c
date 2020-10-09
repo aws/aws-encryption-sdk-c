@@ -23,10 +23,17 @@
 #include <proof_helpers/utils.h>
 
 void aws_cryptosdk_cmm_base_init_harness() {
+    /* Nondet input */
     struct aws_cryptosdk_cmm cmm;
     const struct aws_cryptosdk_cmm_vt vtable;
+
+    /* Assumptions */
     *(char **)(&vtable.name) = ensure_c_str_is_allocated(SIZE_MAX);
     __CPROVER_assume(aws_cryptosdk_cmm_vtable_is_valid(&vtable));
+
+    /* Operation under verification */
     aws_cryptosdk_cmm_base_init(&cmm, &vtable);
+
+    /* Post-conditions */
     assert(aws_cryptosdk_cmm_base_is_valid(&cmm));
 }

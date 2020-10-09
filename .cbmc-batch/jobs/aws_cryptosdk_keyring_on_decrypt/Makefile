@@ -49,6 +49,7 @@ DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/array_list.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/atomics.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/math.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/string.c
+DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/error.c
 
 DEPENDENCIES += $(SRCDIR)/c-common-src/array_list.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.c
