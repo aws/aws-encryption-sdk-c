@@ -31,22 +31,27 @@ void hash_iterator_generator(struct aws_hash_iter *new_iter, const struct aws_ha
 void hash_iterator_generator2(struct aws_hash_iter *new_iter, const struct aws_hash_iter *old_iter) {
     (void)old_iter;
     if (new_iter->status == AWS_HASH_ITER_STATUS_READY_FOR_USE) {
-        new_iter->element.key   = malloc(sizeof(struct aws_string));
+        new_iter->element.key = malloc(sizeof(struct aws_string));
+        __CPROVER_assume(new_iter->element.key != NULL);
         new_iter->element.value = malloc(sizeof(struct aws_string));
+        __CPROVER_assume(new_iter->element.value != NULL);
     }
 }
 
 void aws_cryptosdk_enc_ctx_size_harness() {
+    /* Nondet Input */
     struct aws_hash_table map;
+    size_t size;
+
+    /* Assumptions */
     ensure_allocated_hash_table(&map, MAX_TABLE_SIZE);
     __CPROVER_assume(aws_hash_table_is_valid(&map));
     ensure_hash_table_has_valid_destroy_functions(&map);
-
     size_t empty_slot_idx;
     __CPROVER_assume(aws_hash_table_has_an_empty_slot(&map, &empty_slot_idx));
 
-    size_t size;
-    // Precondition: both params are backed by valid memory
+    /* Operation udner test */
     int rval = aws_cryptosdk_enc_ctx_size(&size, &map);
+    /* Post-conditions */
     assert(aws_hash_table_is_valid(&map));
 }
