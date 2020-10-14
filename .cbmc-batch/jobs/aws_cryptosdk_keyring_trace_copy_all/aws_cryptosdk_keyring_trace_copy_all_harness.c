@@ -17,7 +17,7 @@
  */
 
 #include <aws/cryptosdk/keyring_trace.h>
-#include <proof_helpers/cryptosdk/make_common_data_structures.h>
+#include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
@@ -68,7 +68,6 @@ const size_t g_item_size = sizeof(struct aws_cryptosdk_keyring_trace_record);
  */
 int aws_cryptosdk_keyring_trace_record_init_clone(struct aws_allocator *alloc, void *dest, const void *src) {
     assert(AWS_MEM_IS_READABLE(src, g_item_size));
-    assert(AWS_MEM_IS_WRITABLE(dest, g_item_size));
     uint8_t *d = (uint8_t *)dest;
     *d         = 0xab;
     return nondet_int();
@@ -80,28 +79,38 @@ void aws_cryptosdk_keyring_trace_record_clean_up(void *p) {
 }
 
 void aws_cryptosdk_keyring_trace_copy_all_harness() {
+    /* Nondet Inputs */
     struct aws_array_list *dest = can_fail_malloc(sizeof(*dest));
+    struct aws_array_list *src  = can_fail_malloc(sizeof(*src));
+
+    /* Assumptions */
     __CPROVER_assume(dest != NULL);
-    __CPROVER_assume(aws_array_list_is_bounded(dest, NUM_ELEMS, sizeof(struct aws_cryptosdk_edk)));
+    __CPROVER_assume(aws_array_list_is_bounded(dest, NUM_ELEMS, sizeof(struct aws_cryptosdk_keyring_trace_record)));
+    __CPROVER_assume(dest->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     ensure_array_list_has_allocated_data_member(dest);
     __CPROVER_assume(aws_array_list_is_valid_deep(dest));
+    __CPROVER_assume(ensure_trace_has_readable_records(dest));
 
-    struct aws_array_list *src = can_fail_malloc(sizeof(*src));
     __CPROVER_assume(src != NULL);
-    __CPROVER_assume(aws_array_list_is_bounded(src, NUM_ELEMS, sizeof(struct aws_cryptosdk_edk)));
+    __CPROVER_assume(aws_array_list_is_bounded(src, NUM_ELEMS, sizeof(struct aws_cryptosdk_keyring_trace_record)));
+    __CPROVER_assume(src->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     ensure_array_list_has_allocated_data_member(src);
     __CPROVER_assume(aws_array_list_is_valid_deep(src));
+    __CPROVER_assume(ensure_trace_has_readable_records(src));
 
     const struct aws_array_list old_dest = *dest;
     const struct aws_array_list old_src  = *src;
 
+    /* Operation under verification */
     if (aws_cryptosdk_keyring_trace_copy_all(can_fail_allocator(), dest, src) == AWS_OP_SUCCESS) {
+        /* Post-conditions */
         assert(src->length == old_src.length);
         assert(dest->length == old_dest.length + old_src.length);
     } else {
         assert(src->length == old_src.length);
         assert(dest->length == old_dest.length);
     }
+    /* Post-conditions */
     assert(aws_array_list_is_valid(src));
     assert(aws_array_list_is_valid(dest));
 }
