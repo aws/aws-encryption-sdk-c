@@ -20,7 +20,7 @@ include ../Makefile.local_default
 
 #########
 # Local vars
-MAX_NUM_ELEMS = 4
+MAX_TABLE_SIZE ?= 2
 # Time on my laptop: 4m50s
 #########
 #if we don't include the hash_table.c, we don't need to remove their function bodies
@@ -35,13 +35,14 @@ CBMCFLAGS +=
 
 DEFINES += -DHASH_ITER_ELEMENT_GENERATOR=hash_iterator_string_string_generator
 DEFINES += -DHASH_TABLE_FIND_ELEMENT_GENERATOR=hash_find_string_string_generator
-DEFINES += -DMAX_NUM_ELEMS=$(MAX_NUM_ELEMS)
+DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
 
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
+DEPENDENCIES += $(SRCDIR)/c-common-src/hash_table.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/math.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/string.c
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/enc_ctx.c
@@ -51,8 +52,7 @@ ENTRY = aws_cryptosdk_enc_ctx_clone_harness
 REMOVE_FUNCTION_BODIES += --remove-function-body aws_string_destroy
 REMOVE_FUNCTION_BODIES += --remove-function-body aws_string_new_from_array
 
-UNWINDSET += aws_cryptosdk_enc_ctx_clone.0:$(shell echo $$(($(MAX_NUM_ELEMS) + 1)))
-UNWINDSET += aws_cryptosdk_enc_ctx_clone.1:$(shell echo $$(($(MAX_NUM_ELEMS) + 1)))
-
+UNWINDSET += aws_cryptosdk_enc_ctx_clone.0:$(shell echo $$((1 + $(MAX_TABLE_SIZE))))
+UNWINDSET += aws_cryptosdk_enc_ctx_clone.1:$(shell echo $$((1 + $(MAX_TABLE_SIZE))))
 ###########
 include ../Makefile.common

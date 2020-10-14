@@ -20,19 +20,24 @@
 #include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
-void make_hash_table_with_no_backing_store(struct aws_hash_table *map, size_t max_table_entries);
-
-/**
- * The actual proof
- */
 void aws_cryptosdk_enc_ctx_clone_harness() {
+    /* Nondet Input */
     struct aws_hash_table dest;
-    make_hash_table_with_no_backing_store(&dest, MAX_NUM_ELEMS);
-    __CPROVER_assume(aws_hash_table_is_valid(&dest));
-
     struct aws_hash_table src;
-    make_hash_table_with_no_backing_store(&src, MAX_NUM_ELEMS);
-    __CPROVER_assume(aws_hash_table_is_valid(&src));
 
+    /* Assumptions */
+    ensure_allocated_hash_table(&dest, MAX_TABLE_SIZE);
+    __CPROVER_assume(dest.p_impl != NULL);
+    __CPROVER_assume(dest.p_impl->entry_count <= MAX_TABLE_SIZE);
+    __CPROVER_assume(aws_hash_table_is_valid(&dest));
+    ensure_hash_table_has_valid_destroy_functions(&dest);
+
+    ensure_allocated_hash_table(&src, MAX_TABLE_SIZE);
+    __CPROVER_assume(src.p_impl != NULL);
+    __CPROVER_assume(src.p_impl->entry_count <= MAX_TABLE_SIZE);
+    __CPROVER_assume(aws_hash_table_is_valid(&src));
+    ensure_hash_table_has_valid_destroy_functions(&src);
+
+    /* Operation under verification */
     int rval = aws_cryptosdk_enc_ctx_clone(can_fail_allocator(), &dest, &src);
 }
