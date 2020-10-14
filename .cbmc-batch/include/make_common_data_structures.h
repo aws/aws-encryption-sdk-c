@@ -35,6 +35,7 @@ void ensure_sig_ctx_has_allocated_members(struct aws_cryptosdk_sig_ctx *ctx);
 bool aws_cryptosdk_edk_list_is_bounded(
     const struct aws_array_list *const list, const size_t max_initial_item_allocation);
 bool aws_cryptosdk_edk_list_elements_are_bounded(const struct aws_array_list *const list, const size_t max_item_size);
+bool ensure_cryptosdk_edk_list_elements_are_readable(const struct aws_array_list *const list);
 void ensure_cryptosdk_edk_list_has_allocated_list(struct aws_array_list *list);
 void ensure_cryptosdk_edk_list_has_allocated_list_elements(struct aws_array_list *list);
 
