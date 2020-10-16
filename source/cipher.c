@@ -814,6 +814,13 @@ int aws_cryptosdk_aes_gcm_encrypt(
     const struct aws_byte_cursor iv,
     const struct aws_byte_cursor aad,
     const struct aws_string *key) {
+    AWS_PRECONDITION(aws_byte_buf_is_valid(cipher));
+    AWS_PRECONDITION(cipher->buffer != NULL);
+    AWS_PRECONDITION(aws_byte_buf_is_valid(tag));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(&plain));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(&iv));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(&aad));
+    AWS_PRECONDITION(aws_string_is_valid(key));
     const EVP_CIPHER *alg = get_alg_from_key_size(key->len);
     if (!alg || iv.len != aes_gcm_iv_len || tag->capacity < aes_gcm_tag_len || cipher->capacity < plain.len)
         return aws_raise_error(AWS_ERROR_INVALID_BUFFER_SIZE);
@@ -854,6 +861,13 @@ int aws_cryptosdk_aes_gcm_decrypt(
     const struct aws_byte_cursor iv,
     const struct aws_byte_cursor aad,
     const struct aws_string *key) {
+    AWS_PRECONDITION(aws_byte_buf_is_valid(plain));
+    AWS_PRECONDITION(plain->buffer != NULL);
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(&cipher));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(&tag));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(&iv));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(&aad));
+    AWS_PRECONDITION(aws_string_is_valid(key));
     bool openssl_err      = true;
     const EVP_CIPHER *alg = get_alg_from_key_size(key->len);
     if (!alg || iv.len != aes_gcm_iv_len || tag.len != aes_gcm_tag_len || plain->capacity < cipher.len)
