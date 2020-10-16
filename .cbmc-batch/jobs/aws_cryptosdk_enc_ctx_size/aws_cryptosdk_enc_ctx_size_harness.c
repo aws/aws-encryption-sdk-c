@@ -40,18 +40,20 @@ void hash_iterator_generator2(struct aws_hash_iter *new_iter, const struct aws_h
 
 void aws_cryptosdk_enc_ctx_size_harness() {
     /* Nondet Input */
-    struct aws_hash_table map;
-    size_t size;
+    struct aws_hash_table *map = can_fail_malloc(sizeof(*map));
+    size_t *size = can_fail_malloc(sizeof(size));
 
     /* Assumptions */
-    ensure_allocated_hash_table(&map, MAX_TABLE_SIZE);
-    __CPROVER_assume(aws_hash_table_is_valid(&map));
-    ensure_hash_table_has_valid_destroy_functions(&map);
+    __CPROVER_assume(map != NULL);
+    ensure_allocated_hash_table(map, MAX_TABLE_SIZE);
+    __CPROVER_assume(aws_hash_table_is_valid(map));
+    ensure_hash_table_has_valid_destroy_functions(map);
     size_t empty_slot_idx;
-    __CPROVER_assume(aws_hash_table_has_an_empty_slot(&map, &empty_slot_idx));
+    __CPROVER_assume(aws_hash_table_has_an_empty_slot(map, &empty_slot_idx));
+    __CPROVER_assume(size != NULL);
 
-    /* Operation udner test */
-    int rval = aws_cryptosdk_enc_ctx_size(&size, &map);
+    /* Operation under verification */
+    int rval = aws_cryptosdk_enc_ctx_size(size, map);
     /* Post-conditions */
-    assert(aws_hash_table_is_valid(&map));
+    assert(aws_hash_table_is_valid(map));
 }
