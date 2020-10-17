@@ -89,7 +89,6 @@ void aws_cryptosdk_keyring_on_encrypt_harness() {
                                                      .on_decrypt = nondet_voidp() };
     struct aws_cryptosdk_keyring keyring;
     ensure_cryptosdk_keyring_has_allocated_members(&keyring, &vtable);
-    __CPROVER_assume(keyring.refcount.value != NULL);
     __CPROVER_assume(aws_cryptosdk_keyring_is_valid(&keyring));
     __CPROVER_assume(keyring.vtable != NULL);
 
