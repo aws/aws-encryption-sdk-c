@@ -23,11 +23,11 @@ void aws_cryptosdk_keyring_trace_record_init_clone_harness() {
     struct aws_cryptosdk_keyring_trace_record dest_record;   /* Precondition: record is non-null */
     struct aws_allocator *alloc = can_fail_allocator();      /* Precondition: alloc must be non-null */
 
-    source_record.wrapping_key_namespace = ensure_string_is_allocated_bounded_length(MAX_STRING_LEN);
-    __CPROVER_assume(source_record.wrapping_key_namespace != NULL);
+    source_record.wrapping_key_namespace = nondet_allocate_string_bounded_length(MAX_STRING_LEN);
+    __CPROVER_assume(aws_string_is_valid(source_record.wrapping_key_namespace));
 
-    source_record.wrapping_key_name = ensure_string_is_allocated_bounded_length(MAX_STRING_LEN);
-    __CPROVER_assume(source_record.wrapping_key_name != NULL);
+    source_record.wrapping_key_name = nondet_allocate_string_bounded_length(MAX_STRING_LEN);
+    __CPROVER_assume(aws_string_is_valid(source_record.wrapping_key_name));
 
     if (aws_cryptosdk_keyring_trace_record_init_clone(alloc, &dest_record, &source_record) == AWS_OP_SUCCESS) {
         /* assertions */

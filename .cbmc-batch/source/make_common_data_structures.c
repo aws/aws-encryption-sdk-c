@@ -39,8 +39,8 @@ void ensure_alg_properties_attempt_allocation(struct aws_cryptosdk_alg_propertie
 }
 
 void ensure_record_has_allocated_members(struct aws_cryptosdk_keyring_trace_record *record, size_t max_len) {
-    record->wrapping_key_namespace = ensure_string_is_allocated_bounded_length(max_len);
-    record->wrapping_key_name      = ensure_string_is_allocated_bounded_length(max_len);
+    record->wrapping_key_namespace = nondet_allocate_string_bounded_length(max_len);
+    record->wrapping_key_name      = nondet_allocate_string_bounded_length(max_len);
     record->flags                  = malloc(sizeof(uint32_t));
 }
 
