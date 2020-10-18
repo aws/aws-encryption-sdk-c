@@ -912,7 +912,7 @@ int aws_cryptosdk_rsa_encrypt(
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
     AWS_PRECONDITION(aws_byte_buf_is_valid(cipher));
     AWS_PRECONDITION(aws_byte_cursor_is_valid(&plain));
-    AWS_PRECONDITION(rsa_public_key_pem != NULL);
+    AWS_PRECONDITION(aws_string_is_valid(rsa_public_key_pem));
     if (cipher->buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     int padding = get_openssl_rsa_padding_mode(rsa_padding_mode);
     if (padding < 0) return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
@@ -963,7 +963,7 @@ int aws_cryptosdk_rsa_decrypt(
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode) {
     AWS_PRECONDITION(aws_byte_buf_is_valid(plain));
     AWS_PRECONDITION(aws_byte_cursor_is_valid(&cipher));
-    AWS_PRECONDITION(rsa_private_key_pem != NULL);
+    AWS_PRECONDITION(aws_string_is_valid(rsa_private_key_pem));
     if (plain->buffer) return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
     int padding = get_openssl_rsa_padding_mode(rsa_padding_mode);
     if (padding < 0) return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);

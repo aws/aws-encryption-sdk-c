@@ -25,11 +25,12 @@ void aws_cryptosdk_rsa_encrypt_harness() {
     struct aws_byte_buf cipher;
     struct aws_allocator *alloc = can_fail_allocator();
     struct aws_byte_cursor plain;
-    struct aws_string *key = ensure_string_is_allocated_bounded_length(KEY_LEN);
+    struct aws_string *key = ensure_string_is_allocated_nondet_length();
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode;
 
     /* Assumptions */
-    __CPROVER_assume(key != NULL);
+    __CPROVER_assume(aws_string_is_valid(key));
+    __CPROVER_assume(key->len <= KEY_LEN);
 
     __CPROVER_assume(aws_byte_buf_is_bounded(&cipher, MAX_BUFFER_SIZE));
     ensure_byte_buf_has_allocated_buffer_member(&cipher);
