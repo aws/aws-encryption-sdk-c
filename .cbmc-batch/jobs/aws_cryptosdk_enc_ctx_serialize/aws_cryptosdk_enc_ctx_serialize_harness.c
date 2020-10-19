@@ -28,10 +28,14 @@ void array_list_item_generator(struct aws_array_list *elems) {
         struct aws_hash_element *val = (struct aws_hash_element *)((uint8_t *)elems->data + (elems->item_size * index));
         // Due to the checks in aws_cryptosdk_enc_ctx_size, no string can have a length > UINT16_MAX
         __CPROVER_assume(val != NULL);
-        val->key = ensure_string_is_allocated_bounded_length(UINT16_MAX);
-        __CPROVER_assume(val->key != NULL);
-        val->value = ensure_string_is_allocated_bounded_length(UINT16_MAX);
-        __CPROVER_assume(val->value != NULL);
+        struct aws_string *key = ensure_string_is_allocated_nondet_length();
+        __CPROVER_assume(aws_string_is_valid(key));
+        __CPROVER_assume(key->len <= UINT16_MAX);
+        val->key                 = key;
+        struct aws_string *value = ensure_string_is_allocated_nondet_length();
+        __CPROVER_assume(aws_string_is_valid(value));
+        __CPROVER_assume(value->len <= UINT16_MAX);
+        val->value = value;
     }
 }
 

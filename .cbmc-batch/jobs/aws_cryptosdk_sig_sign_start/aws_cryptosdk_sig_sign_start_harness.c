@@ -32,9 +32,8 @@ void aws_cryptosdk_sig_sign_start_harness() {
     struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
 
     /* Assumptions */
-    __CPROVER_assume(props != NULL);
-    __CPROVER_assume(priv_key != NULL);
-    assert(aws_string_is_valid(priv_key));
+    __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(NULL));
+    __CPROVER_assume(aws_string_is_valid(NULL));
 
     bool save_pub_key = nondet_bool();
 
