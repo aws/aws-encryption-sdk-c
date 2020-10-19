@@ -18,8 +18,8 @@
 
 void aws_cryptosdk_keyring_base_init_harness() {
     /* Nondet input. */
-    struct aws_cryptosdk_keyring *keyring   = bounded_malloc(sizeof(*keyring));
-    struct aws_cryptosdk_keyring_vt *vtable = bounded_malloc(sizeof(*vtable));
+    struct aws_cryptosdk_keyring *keyring   = malloc(sizeof(*keyring));
+    struct aws_cryptosdk_keyring_vt *vtable = malloc(sizeof(*vtable));
 
     /* Assumptions. */
     __CPROVER_assume(keyring != NULL);

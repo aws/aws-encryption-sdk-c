@@ -17,7 +17,7 @@
  */
 
 #include <aws/cryptosdk/materials.h>
-#include <proof_helpers/cryptosdk/make_common_data_structures.h>
+#include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
@@ -28,7 +28,7 @@ void aws_cryptosdk_cmm_base_init_harness() {
     const struct aws_cryptosdk_cmm_vt vtable;
 
     /* Assumptions */
-    *(char **)(&vtable.name) = ensure_c_str_is_allocated(SIZE_MAX);
+    ensure_vtable_has_allocated_members(&vtable, SIZE_MAX);
     __CPROVER_assume(aws_cryptosdk_cmm_vtable_is_valid(&vtable));
 
     /* Operation under verification */
