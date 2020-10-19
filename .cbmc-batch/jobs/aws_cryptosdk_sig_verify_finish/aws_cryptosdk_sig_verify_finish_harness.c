@@ -23,11 +23,10 @@
 #include <proof_helpers/proof_allocators.h>
 
 void aws_cryptosdk_sig_verify_finish_harness() {
-    /* arguments */
+    /* Nondet Input */
     struct aws_cryptosdk_sig_ctx *ctx = ensure_nondet_sig_ctx_has_allocated_members();
     struct aws_string *signature      = ensure_string_is_allocated_nondet_length();
 
-    /* assumptions */
     __CPROVER_assume(aws_cryptosdk_sig_ctx_is_valid_cbmc(ctx));
     __CPROVER_assume(ctx->alloc);
     __CPROVER_assume(!ctx->is_sign);
