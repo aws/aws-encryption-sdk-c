@@ -729,7 +729,7 @@ int aws_cryptosdk_sig_verify_start(
     const struct aws_string *pub_key,
     const struct aws_cryptosdk_alg_properties *props) {
     AWS_PRECONDITION(aws_string_is_valid(pub_key));
-    AWS_PRECONDITION(props != NULL);
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(props));
 
     *pctx = NULL;
 
@@ -810,7 +810,6 @@ int aws_cryptosdk_sig_update(struct aws_cryptosdk_sig_ctx *ctx, const struct aws
 }
 
 int aws_cryptosdk_sig_verify_finish(struct aws_cryptosdk_sig_ctx *ctx, const struct aws_string *signature) {
-    AWS_PRECONDITION(ctx != NULL);
     AWS_PRECONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
     AWS_PRECONDITION(aws_string_is_valid(signature));
     bool ok = EVP_DigestVerifyFinal(ctx->ctx, aws_string_bytes(signature), signature->len) == 1;
