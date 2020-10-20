@@ -80,8 +80,8 @@ void aws_cryptosdk_keyring_trace_record_clean_up(void *p) {
 
 void aws_cryptosdk_keyring_trace_copy_all_harness() {
     /* Nondet Inputs */
-    struct aws_array_list *dest = can_fail_malloc(sizeof(*dest));
-    struct aws_array_list *src  = can_fail_malloc(sizeof(*src));
+    struct aws_array_list *dest = malloc(sizeof(*dest));
+    struct aws_array_list *src  = malloc(sizeof(*src));
 
     /* Assumptions */
     __CPROVER_assume(dest != NULL);
