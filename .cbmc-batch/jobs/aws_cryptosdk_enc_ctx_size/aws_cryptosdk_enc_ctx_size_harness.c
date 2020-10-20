@@ -31,17 +31,17 @@ void hash_iterator_generator(struct aws_hash_iter *new_iter, const struct aws_ha
 void hash_iterator_generator2(struct aws_hash_iter *new_iter, const struct aws_hash_iter *old_iter) {
     (void)old_iter;
     if (new_iter->status == AWS_HASH_ITER_STATUS_READY_FOR_USE) {
-        new_iter->element.key = malloc(sizeof(struct aws_string));
-        __CPROVER_assume(new_iter->element.key != NULL);
-        new_iter->element.value = malloc(sizeof(struct aws_string));
-        __CPROVER_assume(new_iter->element.value != NULL);
+        new_iter->element.key = ensure_string_is_allocated_nondet_length();
+        __CPROVER_assume(aws_string_is_valid(new_iter->element.key));
+        new_iter->element.value = ensure_string_is_allocated_nondet_length();
+        __CPROVER_assume(aws_string_is_valid(new_iter->element.value));
     }
 }
 
 void aws_cryptosdk_enc_ctx_size_harness() {
     /* Nondet Input */
-    struct aws_hash_table *map = can_fail_malloc(sizeof(*map));
-    size_t *size = can_fail_malloc(sizeof(size));
+    struct aws_hash_table *map = malloc(sizeof(*map));
+    size_t *size               = malloc(sizeof(size));
 
     /* Assumptions */
     __CPROVER_assume(map != NULL);
@@ -54,6 +54,7 @@ void aws_cryptosdk_enc_ctx_size_harness() {
 
     /* Operation under verification */
     int rval = aws_cryptosdk_enc_ctx_size(size, map);
+
     /* Post-conditions */
     assert(aws_hash_table_is_valid(map));
 }
