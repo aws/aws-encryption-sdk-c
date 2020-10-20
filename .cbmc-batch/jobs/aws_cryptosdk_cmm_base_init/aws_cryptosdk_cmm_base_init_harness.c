@@ -28,7 +28,7 @@ void aws_cryptosdk_cmm_base_init_harness() {
     const struct aws_cryptosdk_cmm_vt vtable;
 
     /* Assumptions */
-    ensure_vtable_has_allocated_members(&vtable, SIZE_MAX);
+    ensure_nondet_allocate_vtable_members(&vtable, SIZE_MAX);
     __CPROVER_assume(aws_cryptosdk_cmm_vtable_is_valid(&vtable));
 
     /* Operation under verification */
