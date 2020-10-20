@@ -28,13 +28,11 @@ void aws_cryptosdk_enc_ctx_clone_harness() {
     /* Assumptions */
     ensure_allocated_hash_table(dest, MAX_TABLE_SIZE);
     __CPROVER_assume(aws_hash_table_is_valid(dest));
-    __CPROVER_assume(dest->p_impl != NULL);
     __CPROVER_assume(dest->p_impl->entry_count <= MAX_TABLE_SIZE);
     ensure_hash_table_has_valid_destroy_functions(dest);
 
     ensure_allocated_hash_table(src, MAX_TABLE_SIZE);
     __CPROVER_assume(aws_hash_table_is_valid(src));
-    __CPROVER_assume(src->p_impl != NULL);
     __CPROVER_assume(src->p_impl->entry_count <= MAX_TABLE_SIZE);
     ensure_hash_table_has_valid_destroy_functions(src);
 

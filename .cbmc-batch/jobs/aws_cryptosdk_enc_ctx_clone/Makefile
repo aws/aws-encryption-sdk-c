@@ -21,7 +21,7 @@ include ../Makefile.local_default
 #########
 # Local vars
 MAX_TABLE_SIZE ?= 4
-# Time on my laptop: 4m50s
+# Time on my laptop: 5m10s
 #########
 #if we don't include the hash_table.c, we don't need to remove their function bodies
 ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/aws_hash_table_no_slots_override.c
