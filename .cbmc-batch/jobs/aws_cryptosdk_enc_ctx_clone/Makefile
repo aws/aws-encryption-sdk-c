@@ -20,7 +20,7 @@ include ../Makefile.local_default
 
 #########
 # Local vars
-MAX_TABLE_SIZE ?= 2
+MAX_TABLE_SIZE ?= 4
 # Time on my laptop: 4m50s
 #########
 #if we don't include the hash_table.c, we don't need to remove their function bodies
