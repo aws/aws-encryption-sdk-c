@@ -24,16 +24,14 @@
 
 void aws_cryptosdk_sig_verify_finish_harness() {
     /* arguments */
-    struct aws_cryptosdk_sig_ctx *ctx = can_fail_malloc(sizeof(struct aws_cryptosdk_sig_ctx));
+    struct aws_cryptosdk_sig_ctx *ctx = ensure_sig_ctx_has_allocated_members();
     struct aws_string *signature      = ensure_string_is_allocated_nondet_length();
 
     /* assumptions */
-    __CPROVER_assume(ctx);
-    ensure_sig_ctx_has_allocated_members(ctx);
     __CPROVER_assume(aws_cryptosdk_sig_ctx_is_valid_cbmc(ctx));
     __CPROVER_assume(ctx->alloc);
     __CPROVER_assume(!ctx->is_sign);
-    assert(aws_string_is_valid(signature));
+    __CPROVER_assume(aws_string_is_valid(signature));
 
     /* saving state */
     EC_KEY *keypair        = ctx->keypair;

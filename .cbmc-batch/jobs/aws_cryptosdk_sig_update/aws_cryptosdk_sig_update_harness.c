@@ -25,12 +25,10 @@
 
 void aws_cryptosdk_sig_update_harness() {
     /* arguments */
-    struct aws_cryptosdk_sig_ctx *ctx = can_fail_malloc(sizeof(struct aws_cryptosdk_sig_ctx));
+    struct aws_cryptosdk_sig_ctx *ctx = ensure_nondet_sig_ctx_has_allocated_members();
     struct aws_byte_cursor buf;
 
     /* assumptions */
-    __CPROVER_assume(ctx);
-    ensure_sig_ctx_has_allocated_members(ctx);
     __CPROVER_assume(aws_cryptosdk_sig_ctx_is_valid_cbmc(ctx));
     ensure_byte_cursor_has_allocated_buffer_member(&buf);
     __CPROVER_assume(aws_byte_cursor_is_valid(&buf));
