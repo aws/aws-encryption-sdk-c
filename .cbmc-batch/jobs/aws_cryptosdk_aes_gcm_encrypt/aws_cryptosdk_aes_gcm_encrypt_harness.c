@@ -16,10 +16,12 @@
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/private/cipher.h>
 #include <make_common_data_structures.h>
+#include <proof_helpers/make_common_data_structures.h>
 
 #define KEY_LEN 256
 
 void aws_cryptosdk_aes_gcm_encrypt_harness() {
+    /* Nondet Input */
     struct aws_byte_buf cipher;
     struct aws_byte_buf tag;
     struct aws_byte_cursor plain;
@@ -27,8 +29,10 @@ void aws_cryptosdk_aes_gcm_encrypt_harness() {
     struct aws_byte_cursor aad;
     struct aws_string *key;
 
+    /* Assumptions */
     __CPROVER_assume(aws_byte_buf_is_bounded(&cipher, MAX_BUFFER_SIZE));
     ensure_byte_buf_has_allocated_buffer_member(&cipher);
+    __CPROVER_assume(cipher.buffer != NULL);
     __CPROVER_assume(aws_byte_buf_is_valid(&cipher));
 
     __CPROVER_assume(aws_byte_buf_is_bounded(&tag, MAX_BUFFER_SIZE));
@@ -47,8 +51,11 @@ void aws_cryptosdk_aes_gcm_encrypt_harness() {
     ensure_byte_cursor_has_allocated_buffer_member(&aad);
     __CPROVER_assume(aws_byte_cursor_is_valid(&aad));
 
-    /* save current state of the data structure */
+    key = ensure_string_is_allocated_nondet_length();
+    __CPROVER_assume(key != NULL);
+    __CPROVER_assume(aws_string_is_valid(key));
 
+    /* Save current state of the data structure */
     struct aws_byte_cursor old_plain = plain;
     struct store_byte_from_buffer old_byte_from_plain;
     save_byte_from_array(plain.ptr, plain.len, &old_byte_from_plain);
@@ -61,12 +68,12 @@ void aws_cryptosdk_aes_gcm_encrypt_harness() {
     struct store_byte_from_buffer old_byte_from_aad;
     save_byte_from_array(aad.ptr, aad.len, &old_byte_from_aad);
 
-    key = ensure_string_is_allocated_bounded_length(KEY_LEN);
-
+    /* Operation under verification */
     if (aws_cryptosdk_aes_gcm_encrypt(&cipher, &tag, plain, iv, aad, key) == AWS_OP_SUCCESS) {
+        /* Postconditions */
         assert(cipher.len == plain.len);
     }
-
+    /* Postconditions */
     assert(aws_byte_buf_is_valid(&cipher));
     if (plain.len != 0) {
         assert_byte_from_buffer_matches(plain.ptr, &old_byte_from_plain);
