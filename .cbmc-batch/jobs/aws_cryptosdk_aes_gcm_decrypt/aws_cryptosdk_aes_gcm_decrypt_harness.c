@@ -20,6 +20,7 @@
 #define KEY_LEN 256
 
 void aws_cryptosdk_aes_gcm_decrypt_harness() {
+    /* Nondet inputs */
     struct aws_byte_buf plain;
     struct aws_byte_cursor cipher;
     struct aws_byte_cursor tag;
@@ -27,8 +28,10 @@ void aws_cryptosdk_aes_gcm_decrypt_harness() {
     struct aws_byte_cursor aad;
     struct aws_string *key;
 
+    /* Assumptions */
     __CPROVER_assume(aws_byte_buf_is_bounded(&plain, MAX_BUFFER_SIZE));
     ensure_byte_buf_has_allocated_buffer_member(&plain);
+    __CPROVER_assume(plain.buffer != NULL);
     __CPROVER_assume(aws_byte_buf_is_valid(&plain));
 
     __CPROVER_assume(aws_byte_cursor_is_bounded(&cipher, MAX_BUFFER_SIZE));
@@ -47,9 +50,11 @@ void aws_cryptosdk_aes_gcm_decrypt_harness() {
     ensure_byte_cursor_has_allocated_buffer_member(&aad);
     __CPROVER_assume(aws_byte_cursor_is_valid(&aad));
 
-    key = ensure_string_is_allocated_bounded_length(KEY_LEN);
+    key = ensure_string_is_allocated_nondet_length();
+    __CPROVER_assume(key != NULL);
+    __CPROVER_assume(aws_string_is_valid(key));
 
-    /* save current state of the data structure */
+    /* Save current state of the data structure */
     struct aws_byte_cursor old_cipher = cipher;
     struct store_byte_from_buffer old_byte_from_cipher;
     save_byte_from_array(cipher.ptr, cipher.len, &old_byte_from_cipher);
@@ -66,9 +71,12 @@ void aws_cryptosdk_aes_gcm_decrypt_harness() {
     struct store_byte_from_buffer old_byte_from_aad;
     save_byte_from_array(aad.ptr, aad.len, &old_byte_from_aad);
 
+    /* Operation under verification */
     if (aws_cryptosdk_aes_gcm_decrypt(&plain, cipher, tag, iv, aad, key) == AWS_OP_SUCCESS) {
+        /* Postconditions */
         assert(plain.len == cipher.len);
     }
+    /* Postconditions */
     assert(aws_byte_buf_is_valid(&plain));
     if (cipher.len != 0) {
         assert_byte_from_buffer_matches(cipher.ptr, &old_byte_from_cipher);

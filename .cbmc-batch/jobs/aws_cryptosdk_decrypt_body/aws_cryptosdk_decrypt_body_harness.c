@@ -22,17 +22,23 @@ void aws_cryptosdk_decrypt_body_harness() {
     struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
     __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(props));
 
-    struct aws_byte_buf outp;
-    __CPROVER_assume(aws_byte_buf_is_bounded(&outp, MAX_BUFFER_SIZE));
-    ensure_byte_buf_has_allocated_buffer_member(&outp);
-    __CPROVER_assume(aws_byte_buf_is_valid(&outp));
+    struct aws_byte_buf *outp = can_fail_malloc(sizeof(*outp));
+    __CPROVER_assume(outp != NULL);
+    __CPROVER_assume(aws_byte_buf_is_bounded(outp, MAX_BUFFER_SIZE));
+    ensure_byte_buf_has_allocated_buffer_member(outp);
+    __CPROVER_assume(aws_byte_buf_is_valid(outp));
 
-    struct aws_byte_cursor inp;
-    __CPROVER_assume(aws_byte_cursor_is_bounded(&inp, MAX_BUFFER_SIZE));
-    ensure_byte_cursor_has_allocated_buffer_member(&inp);
-    __CPROVER_assume(aws_byte_cursor_is_valid(&inp));
+    struct aws_byte_cursor *inp = can_fail_malloc(sizeof(*inp));
+    __CPROVER_assume(inp != NULL);
+    __CPROVER_assume(aws_byte_cursor_is_bounded(inp, MAX_BUFFER_SIZE));
+    ensure_byte_cursor_has_allocated_buffer_member(inp);
+    __CPROVER_assume(aws_byte_cursor_is_valid(inp));
 
-    uint8_t *message_id = can_fail_malloc(MAX_BUFFER_SIZE);
+    struct aws_byte_buf *message_id = can_fail_malloc(sizeof(*message_id));
+    __CPROVER_assume(message_id != NULL);
+    __CPROVER_assume(aws_byte_buf_is_bounded(message_id, MAX_BUFFER_SIZE));
+    ensure_byte_buf_has_allocated_buffer_member(message_id);
+    __CPROVER_assume(aws_byte_buf_is_valid(message_id));
 
     uint32_t seqno;
 
@@ -48,23 +54,30 @@ void aws_cryptosdk_decrypt_body_harness() {
     int body_frame_type;
 
     /* save current state of outp */
-    struct aws_byte_cursor old_inp = inp;
-    struct aws_byte_buf old_outp   = outp;
+    struct aws_byte_cursor old_inp = *inp;
+
+    struct aws_byte_buf old_outp = *outp;
     struct store_byte_from_buffer old_byte;
-    save_byte_from_array(outp.buffer, outp.len, &old_byte);
+    save_byte_from_array(outp->buffer, outp->len, &old_byte);
+
+    struct aws_byte_buf old_message_id = *message_id;
+    struct store_byte_from_buffer old_message_id_byte;
+    save_byte_from_array(message_id->buffer, message_id->len, &old_message_id_byte);
 
     /* Operation under verification. */
-    if (aws_cryptosdk_decrypt_body(props, &outp, &inp, message_id, seqno, iv, content_key, tag, body_frame_type) ==
+    if (aws_cryptosdk_decrypt_body(props, outp, inp, message_id, seqno, iv, content_key, tag, body_frame_type) ==
         AWS_OP_SUCCESS) {
-        assert(inp.len == old_outp.capacity - old_outp.len);
-        assert(outp.len >= old_outp.len && outp.len <= old_outp.len + inp.len);
+        assert(inp->len == old_outp.capacity - old_outp.len);
+        assert(outp->len >= old_outp.len && outp->len <= old_outp.len + inp->len);
     } else {
-        assert(inp.len == old_inp.len);
-        assert(outp.len == old_outp.len || outp.len == 0);
+        assert(inp->len == old_inp.len);
+        assert(outp->len == old_outp.len || outp->len == 0);
     }
 
     /* Post-conditions. */
     assert(aws_cryptosdk_alg_properties_is_valid(props));
-    assert(aws_byte_buf_is_valid(&outp));
-    assert(aws_byte_cursor_is_valid(&inp));
+    assert(aws_byte_buf_is_valid(outp));
+    assert(aws_byte_cursor_is_valid(inp));
+    assert(aws_byte_buf_is_valid(message_id));
+    assert_byte_buf_equivalence(message_id, &old_message_id, &old_message_id_byte);
 }
