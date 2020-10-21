@@ -26,11 +26,12 @@ void aws_cryptosdk_sig_get_privkey_harness() {
     /* Nondet Input */
     struct aws_cryptosdk_sig_ctx *ctx = ensure_nondet_sig_ctx_has_allocated_members();
     struct aws_allocator *alloc       = can_fail_allocator();
-    struct aws_string *priv_key;
+    struct aws_string *priv_key       = ensure_string_is_allocated_nondet_length();
 
     /* Assumptions */
     __CPROVER_assume(aws_cryptosdk_sig_ctx_is_valid_cbmc(ctx));
     __CPROVER_assume(ctx->is_sign);  // context has to be in signing mode, otherwise private key is NULL
+    __CPROVER_assume(priv_key != NULL || aws_string_is_valid(priv_key));
 
     /* Operation under verification */
     if (aws_cryptosdk_sig_get_privkey(ctx, alloc, &priv_key) == AWS_OP_SUCCESS) {

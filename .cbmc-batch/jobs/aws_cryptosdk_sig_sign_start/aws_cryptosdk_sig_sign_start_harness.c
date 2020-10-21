@@ -24,16 +24,17 @@
 
 void aws_cryptosdk_sig_sign_start_harness() {
     /* Nondet Inputs */
-    struct aws_cryptosdk_sig_ctx *ctx;
-    struct aws_allocator *alloc = can_fail_allocator();
+    struct aws_cryptosdk_sig_ctx *ctx = ensure_nondet_sig_ctx_has_allocated_members();
+    struct aws_allocator *alloc       = can_fail_allocator();
     struct aws_string *pub_key;
     struct aws_string *priv_key = ensure_string_is_allocated_nondet_length();
     enum aws_cryptosdk_alg_id alg_id;
     struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
 
     /* Assumptions */
-    __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(NULL));
-    __CPROVER_assume(aws_string_is_valid(NULL));
+    __CPROVER_assume(ctx == NULL || aws_cryptosdk_sig_ctx_is_valid_cbmc(ctx));
+    __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(props));
+    __CPROVER_assume(aws_string_is_valid(priv_key));
 
     bool save_pub_key = nondet_bool();
 
