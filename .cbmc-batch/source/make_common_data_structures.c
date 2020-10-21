@@ -114,21 +114,6 @@ bool aws_cryptosdk_edk_list_elements_are_bounded(const struct aws_array_list *co
     return true;
 }
 
-bool ensure_cryptosdk_edk_list_elements_are_readable(struct aws_array_list *list) {
-    assert(list->item_size == sizeof(struct aws_cryptosdk_edk));
-    bool rval = true;
-    for (size_t index = 0; index < list->length; ++index) {
-        void *src_item;
-
-        if (aws_array_list_get_at_ptr(list, &src_item, index)) {
-            return false;
-        }
-        if (!AWS_MEM_IS_READABLE(src_item, list->item_size)) {
-            rval = false;
-        }
-    }
-}
-
 void ensure_cryptosdk_edk_list_has_allocated_list(struct aws_array_list *list) {
     if (list->current_size == 0) {
         __CPROVER_assume(list->data == NULL);

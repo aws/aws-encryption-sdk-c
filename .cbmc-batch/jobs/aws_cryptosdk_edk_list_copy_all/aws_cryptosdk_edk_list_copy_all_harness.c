@@ -66,14 +66,14 @@ const size_t g_item_size = sizeof(struct aws_cryptosdk_edk);
  * These stubs capture the key aspect of checking that the element is allocated.
  * It writes/reads a magic constant to ensure that we only ever _clean_up() data that we cloned
  */
-int aws_cryptosdk_edk_init_clone(struct aws_allocator *alloc, void *dest, const void *src) {
+int aws_cryptosdk_edk_init_clone(struct aws_allocator *alloc, struct aws_cryptosdk_edk *dest, const struct aws_cryptosdk_edk *src) {
     assert(AWS_MEM_IS_READABLE(src, g_item_size));
     uint8_t *d = (uint8_t *)dest;
     *d         = 0xab;
     return nondet_int();
 }
 
-void aws_cryptosdk_edk_clean_up(void *p) {
+void aws_cryptosdk_edk_clean_up(struct aws_cryptosdk_edk *p) {
     uint8_t *d = (uint8_t *)p;
     assert(*d == 0xab);
 }
@@ -95,7 +95,7 @@ void aws_cryptosdk_edk_list_copy_all_harness() {
     __CPROVER_assume(src->item_size == sizeof(struct aws_cryptosdk_edk));
     ensure_array_list_has_allocated_data_member(src);
     __CPROVER_assume(aws_array_list_is_valid_deep(src));
-    __CPROVER_assume(ensure_cryptosdk_edk_list_elements_are_readable(src));
+    __CPROVER_assume(aws_cryptosdk_edk_list_elements_are_valid(src));
 
     const struct aws_array_list old_dest = *dest;
     const struct aws_array_list old_src  = *src;
