@@ -19,11 +19,13 @@
 #include <proof_helpers/utils.h>
 
 struct aws_hash_element *nondet_hash_string_element_allocation(size_t max_size) {
-    struct aws_hash_element *elem = can_fail_malloc(sizeof(*elem));
+    struct aws_hash_element *elem = malloc(sizeof(*elem));
     if (elem != NULL) {
         if (nondet_bool()) {
-            elem->key = ensure_string_is_allocated_bounded_length(max_size);
-            __CPROVER_assume(aws_string_is_valid(elem->key));
+            struct aws_string *key = ensure_string_is_allocated_nondet_length(max_size);
+            __CPROVER_assume(aws_string_is_valid(key));
+            __CPROVER_assume(key->len <= max_size);
+            elem->key = key;
         } else {
             elem->key = NULL;
         }

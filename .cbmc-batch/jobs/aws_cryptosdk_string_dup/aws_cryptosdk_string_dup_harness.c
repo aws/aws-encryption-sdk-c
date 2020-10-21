@@ -23,7 +23,10 @@
 void aws_cryptosdk_string_dup_harness() {
     /* data structure */
     struct aws_allocator *alloc = can_fail_allocator(); /* Precondition: alloc must be non-null */
-    struct aws_string *str_a    = ensure_string_is_allocated_bounded_length(MAX_STRING_LEN);
+    struct aws_string *str_a    = ensure_string_is_allocated_nondet_length();
+
+    __CPROVER_assume(aws_string_is_valid(str_a));
+    __CPROVER_assume(str_a->len < MAX_STRING_LEN);
 
     struct aws_string *str_b = aws_cryptosdk_string_dup(alloc, str_a);
     /* assertions */
