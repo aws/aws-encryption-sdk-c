@@ -61,7 +61,7 @@ void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ct
     ctx->evp_md_ctx = evp_md_ctx_nondet_alloc();
 }
 
-struct aws_cryptosdk_sig_ctx *ensure_sig_ctx_has_allocated_members() {
+struct aws_cryptosdk_sig_ctx *ensure_nondet_sig_ctx_has_allocated_members() {
     struct aws_cryptosdk_sig_ctx *ctx = malloc(sizeof(*ctx));
     if (ctx == NULL) {
         return NULL;
