@@ -35,7 +35,7 @@ void aws_cryptosdk_dec_materials_destroy_harness() {
         // Set up the signctx
         materials->signctx = can_fail_malloc(sizeof(*materials->signctx));
         if (materials->signctx) {
-            ensure_sig_ctx_has_allocated_members(materials->signctx);
+            ensure_nondet_sig_ctx_has_allocated_members(materials->signctx);
             __CPROVER_assume(aws_cryptosdk_sig_ctx_is_valid_cbmc(materials->signctx));
         }
 

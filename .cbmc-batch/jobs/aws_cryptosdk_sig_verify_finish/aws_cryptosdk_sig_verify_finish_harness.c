@@ -24,7 +24,7 @@
 
 void aws_cryptosdk_sig_verify_finish_harness() {
     /* arguments */
-    struct aws_cryptosdk_sig_ctx *ctx = ensure_sig_ctx_has_allocated_members();
+    struct aws_cryptosdk_sig_ctx *ctx = ensure_nondet_sig_ctx_has_allocated_members();
     struct aws_string *signature      = ensure_string_is_allocated_nondet_length();
 
     /* assumptions */

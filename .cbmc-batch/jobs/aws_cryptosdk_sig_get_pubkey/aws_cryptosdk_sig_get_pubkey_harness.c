@@ -24,7 +24,7 @@
 
 void aws_cryptosdk_sig_get_pubkey_harness() {
     /* arguments */
-    struct aws_cryptosdk_sig_ctx *ctx = ensure_sig_ctx_has_allocated_members();
+    struct aws_cryptosdk_sig_ctx *ctx = ensure_nondet_sig_ctx_has_allocated_members();
     struct aws_allocator *alloc       = can_fail_allocator();
     struct aws_string *pubkey;
 
