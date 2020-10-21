@@ -57,9 +57,9 @@ int aws_cryptosdk_enc_ctx_size(size_t *size, const struct aws_hash_table *enc_ct
     for (struct aws_hash_iter iter = aws_hash_iter_begin(enc_ctx); !aws_hash_iter_done(&iter);
          aws_hash_iter_next(&iter)) {
         const struct aws_string *key = iter.element.key;
-        AWS_PRECONDITION(aws_string_is_valid(key));
+        assert(aws_string_is_valid(key));
         const struct aws_string *value = iter.element.value;
-        AWS_PRECONDITION(aws_string_is_valid(value));
+        assert(aws_string_is_valid(value));
 
         // Overflow safe addition:
         // serialized_len +=  key->len + value->len + 4 [2 bytes for key len, 2 bytes for value len]
