@@ -41,18 +41,18 @@ void array_list_item_generator(struct aws_array_list *elems) {
 
 void aws_cryptosdk_enc_ctx_serialize_harness() {
     /* Nondet Input */
-    struct aws_byte_buf output;
-    struct aws_hash_table map;
+    struct aws_byte_buf *output = malloc(sizeof(*output));
+    struct aws_hash_table *map  = malloc(sizeof(*map));
 
     /* Assumptions */
-    ensure_byte_buf_has_allocated_buffer_member(&output);
-    __CPROVER_assume(aws_byte_buf_is_valid(&output));
-    ensure_allocated_hash_table(&map, MAX_TABLE_SIZE);
-    __CPROVER_assume(aws_hash_table_is_valid(&map));
-    ensure_hash_table_has_valid_destroy_functions(&map);
+    ensure_byte_buf_has_allocated_buffer_member(output);
+    __CPROVER_assume(aws_byte_buf_is_valid(output));
+    ensure_allocated_hash_table(map, MAX_TABLE_SIZE);
+    __CPROVER_assume(aws_hash_table_is_valid(map));
+    ensure_hash_table_has_valid_destroy_functions(map);
     size_t empty_slot_idx;
-    __CPROVER_assume(aws_hash_table_has_an_empty_slot(&map, &empty_slot_idx));
+    __CPROVER_assume(aws_hash_table_has_an_empty_slot(map, &empty_slot_idx));
 
     /* Operation under verification */
-    aws_cryptosdk_enc_ctx_serialize(can_fail_allocator(), &output, &map);
+    aws_cryptosdk_enc_ctx_serialize(can_fail_allocator(), output, map);
 }
