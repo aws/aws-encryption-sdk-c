@@ -26,7 +26,7 @@ void aws_cryptosdk_string_dup_harness() {
     struct aws_string *str_a    = ensure_string_is_allocated_nondet_length();
 
     __CPROVER_assume(aws_string_is_valid(str_a));
-    __CPROVER_assume(str_a->len < MAX_STRING_LEN);
+    __CPROVER_assume(str_a->len <= MAX_STRING_LEN);
 
     struct aws_string *str_b = aws_cryptosdk_string_dup(alloc, str_a);
     /* assertions */
