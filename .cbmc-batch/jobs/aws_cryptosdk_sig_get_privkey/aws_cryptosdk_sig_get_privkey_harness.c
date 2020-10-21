@@ -42,11 +42,4 @@ void aws_cryptosdk_sig_get_privkey_harness() {
 
     /* Post-conditions */
     assert(aws_cryptosdk_sig_ctx_is_valid_cbmc(ctx));
-
-    /* Clean up */
-    EVP_MD_CTX_free(ctx->ctx);
-    evp_pkey_unconditional_free(ctx->pkey);
-    ec_key_unconditional_free(ctx->keypair);
-    free(ctx);
-    free(priv_key);
 }

@@ -27,7 +27,6 @@ void array_list_item_generator(struct aws_array_list *elems) {
     for (size_t index = 0; index < elems->length; ++index) {
         struct aws_hash_element *val = (struct aws_hash_element *)((uint8_t *)elems->data + (elems->item_size * index));
         // Due to the checks in aws_cryptosdk_enc_ctx_size, no string can have a length > UINT16_MAX
-        __CPROVER_assume(val != NULL);
         struct aws_string *key = ensure_string_is_allocated_nondet_length();
         __CPROVER_assume(aws_string_is_valid(key));
         __CPROVER_assume(key->len <= UINT16_MAX);
