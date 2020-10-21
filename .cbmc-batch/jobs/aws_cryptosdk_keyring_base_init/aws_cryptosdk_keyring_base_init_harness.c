@@ -23,7 +23,7 @@ void aws_cryptosdk_keyring_base_init_harness() {
 
     /* Assumptions. */
     __CPROVER_assume(keyring != NULL);
-    ensure_nondet_allocate_vtable_members(vtable, MAX_STRING_LEN);
+    ensure_nondet_allocate_keyring_vtable_members(vtable, MAX_STRING_LEN);
     __CPROVER_assume(aws_cryptosdk_keyring_vt_is_valid(vtable));
 
     /* Operation under verification. */

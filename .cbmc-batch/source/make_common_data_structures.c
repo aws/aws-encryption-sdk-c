@@ -153,7 +153,13 @@ void ensure_cryptosdk_keyring_has_allocated_members(
     keyring->vtable         = nondet_bool() ? NULL : vtable;
 }
 
-void ensure_nondet_allocate_vtable_members(struct aws_cryptosdk_keyring_vt *vtable, size_t max_len) {
+void ensure_nondet_allocate_keyring_vtable_members(struct aws_cryptosdk_keyring_vt *vtable, size_t max_len) {
+    if (vtable) {
+        vtable->name = ensure_c_str_is_allocated(max_len);
+    }
+}
+
+void ensure_nondet_allocate_cmm_vtable_members(struct aws_cryptosdk_cmm_vt *vtable, size_t max_len) {
     if (vtable) {
         vtable->name = ensure_c_str_is_allocated(max_len);
     }
