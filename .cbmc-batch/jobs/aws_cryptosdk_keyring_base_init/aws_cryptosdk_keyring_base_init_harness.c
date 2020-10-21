@@ -17,13 +17,14 @@
 #include <make_common_data_structures.h>
 
 void aws_cryptosdk_keyring_base_init_harness() {
-    /* Non-deterministic inputs. */
-    struct aws_cryptosdk_keyring *keyring   = can_fail_malloc(sizeof(*keyring));
-    struct aws_cryptosdk_keyring_vt *vtable = can_fail_malloc(sizeof(*vtable));
+    /* Nondet input. */
+    struct aws_cryptosdk_keyring *keyring   = malloc(sizeof(*keyring));
+    struct aws_cryptosdk_keyring_vt *vtable = malloc(sizeof(*vtable));
 
-    /* Pre-conditions. */
+    /* Assumptions. */
     __CPROVER_assume(keyring != NULL);
-    __CPROVER_assume(IMPLIES(vtable != NULL, aws_cryptosdk_keyring_vt_is_valid(vtable)));
+    ensure_nondet_allocate_keyring_vtable_members(vtable, MAX_STRING_LEN);
+    __CPROVER_assume(aws_cryptosdk_keyring_vt_is_valid(vtable));
 
     /* Operation under verification. */
     aws_cryptosdk_keyring_base_init(keyring, vtable);
