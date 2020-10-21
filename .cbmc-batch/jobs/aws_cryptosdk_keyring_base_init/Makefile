@@ -16,6 +16,7 @@
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
+include ../Makefile.string
 
 CBMCFLAGS +=
 

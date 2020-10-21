@@ -47,3 +47,7 @@ void ensure_trace_has_allocated_records(struct aws_array_list *trace, size_t max
 /* Non-deterministically allocates a aws_cryptosdk_keyring structure */
 void ensure_cryptosdk_keyring_has_allocated_members(
     struct aws_cryptosdk_keyring *keyring, const struct aws_cryptosdk_keyring_vt *vtable);
+/* Non-deterministically allocates a aws_cryptosdk_keyring_vt structure with a valid name*/
+void ensure_nondet_allocate_keyring_vtable_members(struct aws_cryptosdk_keyring_vt *vtable, size_t max_len);
+/* Non-deterministically allocates a aws_cryptosdk_cmm_vt structure with a valid name*/
+void ensure_nondet_allocate_cmm_vtable_members(struct aws_cryptosdk_cmm_vt *vtable, size_t max_len);
