@@ -41,7 +41,7 @@ void hash_iterator_generator2(struct aws_hash_iter *new_iter, const struct aws_h
 void aws_cryptosdk_enc_ctx_size_harness() {
     /* Nondet Input */
     struct aws_hash_table *map = malloc(sizeof(*map));
-    size_t *size               = malloc(sizeof(size));
+    size_t *size               = malloc(sizeof(*size));
 
     /* Assumptions */
     __CPROVER_assume(map != NULL);
