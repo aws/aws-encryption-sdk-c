@@ -12,6 +12,7 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <assert.h>
 
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/private/enc_ctx.h>
