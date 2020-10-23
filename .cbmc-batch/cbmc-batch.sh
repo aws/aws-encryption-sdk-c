@@ -22,6 +22,7 @@ fi
 while getopts ":sec" opt; do
     case $opt in
         s ) # Start CBMC Batch Jobs
+            python3 prepare.py
             for job in jobs/*/; do
                 job=${job%/} #remove trailing slash
                 job=${job#*/} #job name
