@@ -51,6 +51,6 @@ REMOVE_FUNCTION_BODIES += --remove-function-body aws_array_list_is_valid
 
 UNWINDSET += __CPROVER_file_local_list_utils_c_list_copy_all.5:$(call addone,$(NUM_ELEMS))
 UNWINDSET += __CPROVER_file_local_list_utils_c_list_copy_all.6:$(call addone,$(NUM_ELEMS))
-UNWINDSET += ensure_trace_has_readable_records.0:$(call addone,$(NUM_ELEMS))
+UNWINDSET += aws_cryptosdk_keyring_trace_is_valid.0:$(call addone,$(NUM_ELEMS))
 ###########
 include ../Makefile.common

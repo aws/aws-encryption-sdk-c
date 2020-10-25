@@ -89,14 +89,14 @@ void aws_cryptosdk_keyring_trace_copy_all_harness() {
     __CPROVER_assume(dest->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     ensure_array_list_has_allocated_data_member(dest);
     __CPROVER_assume(aws_array_list_is_valid_deep(dest));
-    __CPROVER_assume(ensure_trace_has_readable_records(dest));
+    __CPROVER_assume(aws_cryptosdk_keyring_trace_is_valid(dest));
 
     __CPROVER_assume(src != NULL);
     __CPROVER_assume(aws_array_list_is_bounded(src, NUM_ELEMS, sizeof(struct aws_cryptosdk_keyring_trace_record)));
     __CPROVER_assume(src->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     ensure_array_list_has_allocated_data_member(src);
     __CPROVER_assume(aws_array_list_is_valid_deep(src));
-    __CPROVER_assume(ensure_trace_has_readable_records(src));
+    __CPROVER_assume(aws_cryptosdk_keyring_trace_is_valid(src));
 
     const struct aws_array_list old_dest = *dest;
     const struct aws_array_list old_src  = *src;
