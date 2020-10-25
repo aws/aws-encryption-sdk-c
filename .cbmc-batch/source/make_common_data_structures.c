@@ -56,22 +56,6 @@ void ensure_trace_has_allocated_records(struct aws_array_list *trace, size_t max
     }
 }
 
-bool ensure_trace_has_readable_records(struct aws_array_list *trace) {
-    /* iterate over each record in the keyring trace */
-    assert(trace->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
-    bool rval = true;
-    for (size_t index = 0; index < trace->length; ++index) {
-        void *dest_item;
-        if (aws_array_list_get_at_ptr(trace, &dest_item, index)) {
-            return false;
-        }
-        if (!AWS_MEM_IS_READABLE(dest_item, trace->item_size)) {
-            rval = false;
-        }
-    }
-    return rval;
-}
-
 void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ctx) {
     ctx->alloc      = nondet_bool() ? NULL : can_fail_allocator();
     ctx->evp_md_ctx = evp_md_ctx_nondet_alloc();
