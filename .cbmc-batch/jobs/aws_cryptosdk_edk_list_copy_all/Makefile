@@ -49,11 +49,9 @@ ENTRY = aws_cryptosdk_edk_list_copy_all_harness
 # CBMC performance dies trying to do all those multiplications.
 # Replace with a stub until we can fix this issue.
 REMOVE_FUNCTION_BODIES += --remove-function-body aws_array_list_is_valid
-REMOVE_FUNCTION_BODIES += --remove-function-body aws_cryptosdk_edk_clean_up
 
 UNWINDSET += __CPROVER_file_local_list_utils_c_list_copy_all.5:$(call addone,$(NUM_ELEMS))
 UNWINDSET += __CPROVER_file_local_list_utils_c_list_copy_all.6:$(call addone,$(NUM_ELEMS))
 UNWINDSET += aws_cryptosdk_edk_list_elements_are_valid.0:$(call addone,$(NUM_ELEMS))
-
 ###########
 include ../Makefile.common
