@@ -326,7 +326,6 @@ int aws_cryptosdk_sig_get_privkey(
     AWS_PRECONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
     AWS_PRECONDITION(ctx->is_sign);
     AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(priv_key));
-    AWS_PRECONDITION(*priv_key != NULL || aws_string_is_valid(*priv_key));
     /*
      * When serializing private keys we use this ad-hoc format:
      *
