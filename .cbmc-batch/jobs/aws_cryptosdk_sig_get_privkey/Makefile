@@ -20,12 +20,12 @@ include ../Makefile.local_default
 ## At the moment this is not used in the Makefile.common of encryption-sdk
 UNWINDSET +=
 
-# Added check for memory leaks
-CBMCFLAGS += --memory-leak-check
+CBMCFLAGS +=
 
 ENTRY = aws_cryptosdk_sig_get_privkey_harness
 
 DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/proof_allocators.goto
+DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/make_common_data_structures.goto
 DEPENDENCIES +=	$(SRCDIR)/c-common-src/byte_buf.goto
 DEPENDENCIES +=	$(SRCDIR)/c-common-src/common.goto
 DEPENDENCIES +=	$(SRCDIR)/c-common-src/error.goto

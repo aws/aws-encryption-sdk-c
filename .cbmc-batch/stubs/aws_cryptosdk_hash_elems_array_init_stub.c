@@ -49,6 +49,8 @@ int aws_cryptosdk_hash_elems_array_init(
     elems->length      = entry_count;
     __CPROVER_assume(elems->current_size >= elems->length * elems->item_size);
     elems->data = bounded_malloc(elems->current_size);
+    /* Malloc can return NULL, assume that elems->data (which would come from map) isn't NULL */
+    __CPROVER_assume(elems->data != NULL);
 
 #ifdef AWS_CRYPTOSDK_HASH_ELEMS_ARRAY_INIT_GENERATOR
     AWS_CRYPTOSDK_HASH_ELEMS_ARRAY_INIT_GENERATOR(elems);

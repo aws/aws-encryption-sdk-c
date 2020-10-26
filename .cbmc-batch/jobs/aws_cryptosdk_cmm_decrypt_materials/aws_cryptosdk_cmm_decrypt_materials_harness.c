@@ -77,11 +77,8 @@ int decrypt_materials(
     __CPROVER_assume(aws_cryptosdk_keyring_trace_is_valid(&materials->keyring_trace));
 
     // Set up the signctx
-    materials->signctx = can_fail_malloc(sizeof(*materials->signctx));
-    if (materials->signctx) {
-        ensure_sig_ctx_has_allocated_members(materials->signctx);
-        __CPROVER_assume(aws_cryptosdk_sig_ctx_is_valid_cbmc(materials->signctx));
-    }
+    materials->signctx = ensure_nondet_sig_ctx_has_allocated_members();
+    __CPROVER_assume(aws_cryptosdk_sig_ctx_is_valid_cbmc(materials->signctx));
 
     *output = materials;
     return AWS_OP_SUCCESS;

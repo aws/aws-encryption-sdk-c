@@ -530,6 +530,7 @@ int aws_cryptosdk_sig_sign_start(
     AWS_PRECONDITION(AWS_OBJECT_PTR_IS_WRITABLE(ctx));
     AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(alloc));
     AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(props));
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(props));
     AWS_PRECONDITION(aws_string_is_valid(priv_key));
     /* See comments in aws_cryptosdk_sig_get_privkey re the serialized format */
 

@@ -39,9 +39,15 @@ void ensure_alg_properties_attempt_allocation(struct aws_cryptosdk_alg_propertie
 }
 
 void ensure_record_has_allocated_members(struct aws_cryptosdk_keyring_trace_record *record, size_t max_len) {
-    record->wrapping_key_namespace = ensure_string_is_allocated_bounded_length(max_len);
-    record->wrapping_key_name      = ensure_string_is_allocated_bounded_length(max_len);
-    record->flags                  = malloc(sizeof(uint32_t));
+    record->wrapping_key_namespace = ensure_string_is_allocated_nondet_length();
+    if (record->wrapping_key_namespace) {
+        __CPROVER_assume(record->wrapping_key_namespace->len <= max_len);
+    }
+    record->wrapping_key_name = ensure_string_is_allocated_nondet_length();
+    if (record->wrapping_key_name) {
+        __CPROVER_assume(record->wrapping_key_name->len <= max_len);
+    }
+    record->flags = malloc(sizeof(uint32_t));
 }
 
 void ensure_trace_has_allocated_records(struct aws_array_list *trace, size_t max_len) {
@@ -61,7 +67,11 @@ void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ct
     ctx->evp_md_ctx = evp_md_ctx_nondet_alloc();
 }
 
-void ensure_sig_ctx_has_allocated_members(struct aws_cryptosdk_sig_ctx *ctx) {
+struct aws_cryptosdk_sig_ctx *ensure_nondet_sig_ctx_has_allocated_members() {
+    struct aws_cryptosdk_sig_ctx *ctx = malloc(sizeof(*ctx));
+    if (ctx == NULL) {
+        return NULL;
+    }
     ctx->alloc = nondet_bool() ? NULL : can_fail_allocator();
     enum aws_cryptosdk_alg_id alg_id;
     ctx->props   = aws_cryptosdk_alg_props(alg_id);
@@ -78,6 +88,7 @@ void ensure_sig_ctx_has_allocated_members(struct aws_cryptosdk_sig_ctx *ctx) {
         // Need to ensure consistency of reference count later by assuming ctx is valid
         evp_md_ctx_set0_evp_pkey(ctx->ctx, ctx->pkey);
     }
+    return ctx;
 }
 
 bool aws_cryptosdk_edk_is_bounded(const struct aws_cryptosdk_edk *edk, const size_t max_size) {
