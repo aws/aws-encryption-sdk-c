@@ -19,7 +19,7 @@ include ../Makefile.local_default
 
 #########
 # Local vars
-NUM_ELEMS = 2 #Gets full coverage. Property check takes 3m20s on my laptop. 
+NUM_ELEMS = 1 #Pushing just to test. 
 
 #########
 ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/error.c
