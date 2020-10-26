@@ -40,7 +40,6 @@ DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/math.c
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/list_utils.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/edk.c
 DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
 
 ENTRY = aws_cryptosdk_edk_list_copy_all_harness
@@ -52,6 +51,5 @@ REMOVE_FUNCTION_BODIES += --remove-function-body aws_array_list_is_valid
 
 UNWINDSET += __CPROVER_file_local_list_utils_c_list_copy_all.5:$(call addone,$(NUM_ELEMS))
 UNWINDSET += __CPROVER_file_local_list_utils_c_list_copy_all.6:$(call addone,$(NUM_ELEMS))
-UNWINDSET += aws_cryptosdk_edk_list_elements_are_valid.0:$(call addone,$(NUM_ELEMS))
 ###########
 include ../Makefile.common

@@ -95,7 +95,6 @@ void aws_cryptosdk_edk_list_copy_all_harness() {
     __CPROVER_assume(src->item_size == sizeof(struct aws_cryptosdk_edk));
     ensure_array_list_has_allocated_data_member(src);
     __CPROVER_assume(aws_array_list_is_valid_deep(src));
-    __CPROVER_assume(aws_cryptosdk_edk_list_elements_are_valid(src));
 
     const struct aws_array_list old_dest = *dest;
     const struct aws_array_list old_src  = *src;
