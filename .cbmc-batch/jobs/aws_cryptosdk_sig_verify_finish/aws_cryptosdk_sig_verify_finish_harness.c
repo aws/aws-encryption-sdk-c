@@ -28,8 +28,6 @@ void aws_cryptosdk_sig_verify_finish_harness() {
     struct aws_string *signature      = ensure_string_is_allocated_nondet_length();
 
     __CPROVER_assume(aws_cryptosdk_sig_ctx_is_valid_cbmc(ctx));
-    __CPROVER_assume(ctx->alloc);
-    __CPROVER_assume(!ctx->is_sign);
     __CPROVER_assume(aws_string_is_valid(signature));
 
     /* Saving state */
