@@ -19,7 +19,7 @@ include ../Makefile.local_default
 
 #########
 # Local vars
-NUM_ELEMS = 2 #Time on my laptop is 1 minute, 45 seconds
+NUM_ELEMS = 2 # Expected runtime is 2min. 
 
 #########
 ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/error.c
