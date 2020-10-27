@@ -61,8 +61,8 @@ CHECKFLAGS += --signed-overflow-check
 CHECKFLAGS += --undefined-shift-check
 CHECKFLAGS += --unsigned-overflow-check
 CHECKFLAGS += --unwinding-assertions
-
-CBMCFLAGS += $(CHECKFLAGS)
+CHECKFLAGS += --malloc-may-fail
+CHECKFLAGS += --malloc-fail-null
 
 ################################################################
 # Preprocess the unwindset
@@ -276,7 +276,7 @@ property.xml: $(ENTRY).goto
 	cbmc $(CBMCFLAGS) --show-properties --xml-ui $< 2>&1 > $@
 
 coverage.xml: $(ENTRY).goto
-	cbmc $(filter-out $(CHECKFLAGS),$(CBMCFLAGS)) --cover location --xml-ui $< 2>&1 > $@
+	cbmc $(filter-out $(CHECKFLAGS),$(CBMCFLAGS)) --malloc-may-fail --malloc-fail-null --cover location --xml-ui $< 2>&1 > $@
 
 cbmc: cbmc.log
 
