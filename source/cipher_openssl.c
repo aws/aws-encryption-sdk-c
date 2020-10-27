@@ -161,10 +161,7 @@ int aws_cryptosdk_md_finish(struct aws_cryptosdk_md_context *md_context, void *o
     int rv            = AWS_OP_SUCCESS;
     unsigned int size = 0;
 
-    // Replace with AWS_FATAL_PRECONDITION once that version is integrated
-    if (!output_buf) {
-        abort();
-    }
+    AWS_FATAL_PRECONDITION(output_buf != NULL);
 
     if (1 != EVP_DigestFinal_ex(md_context->evp_md_ctx, output_buf, &size)) {
         rv   = aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);

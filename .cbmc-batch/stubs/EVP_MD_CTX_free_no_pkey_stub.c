@@ -14,11 +14,15 @@
  */
 
 #include <openssl/evp.h>
+#include <stdlib.h>
 
-/**
- * Helper function for CBMC proofs: checks if EVP_PKEY is valid.
- * Use this stub when we are *certain* there is no ec_key associated with the key.
+/*
+ * Frees up the space allocated to ctx context.
+ * Use this stub when we are *certain* there is no pkey associated with the digest context.
  */
-bool evp_pkey_is_valid(EVP_PKEY *pkey) {
-    return pkey && (pkey->references > 0) && (pkey->ec_key == NULL);
+void EVP_MD_CTX_free(EVP_MD_CTX *ctx) {
+    if (ctx) {
+        assert(ctx->pkey == NULL);
+        free(ctx);
+    }
 }
