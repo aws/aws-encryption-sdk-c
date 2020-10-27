@@ -42,24 +42,28 @@ uint16_t aws_byte_cursor_read_be16_generator_for_enc_ctx_deserialize(const struc
  * The actual proof
  */
 void aws_cryptosdk_enc_ctx_deserialize_harness() {
-    // Precondition: byte_buf is valid
-    struct aws_byte_cursor cursor;
-    ensure_byte_cursor_has_allocated_buffer_member(&cursor);
-    __CPROVER_assume(aws_byte_cursor_is_valid(&cursor));
+    /* Nondet Input */
+    struct aws_byte_cursor *cursor = malloc(sizeof(*cursor));
+    struct aws_hash_table *map     = malloc(sizeof(*map));
+
+    /* Assumptions */
+    ensure_byte_cursor_has_allocated_buffer_member(cursor);
+    __CPROVER_assume(aws_byte_cursor_is_valid(cursor));
 
     /* the number of elements is stored in big endian format */
-    if (cursor.len >= 2) {
-        cursor.ptr[0] = 0;
-        cursor.ptr[1] = MAX_NUM_ELEMS;
-        // __CPROVER_assume(cursor.ptr[1] <= MAX_NUM_ELEMS);
+    if (cursor->len >= 2) {
+        cursor->ptr[0] = 0;
+        cursor->ptr[1] = MAX_NUM_ELEMS;
     }
 
-    // Precondition: enc_ctx is valid
-    struct aws_hash_table map;
-    make_hash_table_with_no_backing_store(&map, SIZE_MAX);
-    __CPROVER_assume(aws_hash_table_is_valid(&map));
+    ensure_allocated_hash_table(map, SIZE_MAX);
+    make_hash_table_with_no_backing_store(map, SIZE_MAX);
+    __CPROVER_assume(aws_hash_table_is_valid(map));
 
-    int rval = aws_cryptosdk_enc_ctx_deserialize(can_fail_allocator(), &map, &cursor);
-    assert(aws_hash_table_is_valid(&map));
-    assert(aws_byte_cursor_is_valid(&cursor));
+    /* Function under verification */
+    int rval = aws_cryptosdk_enc_ctx_deserialize(can_fail_allocator(), map, cursor);
+
+    /* Post-conditions */
+    assert(aws_hash_table_is_valid(map));
+    assert(aws_byte_cursor_is_valid(cursor));
 }
