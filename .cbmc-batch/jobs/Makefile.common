@@ -48,26 +48,26 @@ CBMC_VERBOSITY ?= ""
 CBMCFLAGS += --flush
 
 #error checking
-CBMCFLAGS += --bounds-check
-CBMCFLAGS += --conversion-check
-CBMCFLAGS += --div-by-zero-check
-#CBMCFLAGS += --enum-range-check
-CBMCFLAGS += --float-overflow-check
-CBMCFLAGS += --nan-check
-CBMCFLAGS += --pointer-check
-CBMCFLAGS += --pointer-overflow-check
-CBMCFLAGS += --pointer-primitive-check
-CBMCFLAGS += --signed-overflow-check
-CBMCFLAGS += --undefined-shift-check
-CBMCFLAGS += --unsigned-overflow-check
-CBMCFLAGS += --unwind 1
-CBMCFLAGS += --unwinding-assertions
+CHECKFLAGS += --bounds-check
+CHECKFLAGS += --conversion-check
+CHECKFLAGS += --div-by-zero-check
+#CHECKFLAGS += --enum-range-check
+CHECKFLAGS += --float-overflow-check
+CHECKFLAGS += --nan-check
+CHECKFLAGS += --pointer-check
+CHECKFLAGS += --pointer-overflow-check
+CHECKFLAGS += --pointer-primitive-check
+CHECKFLAGS += --signed-overflow-check
+CHECKFLAGS += --undefined-shift-check
+CHECKFLAGS += --unsigned-overflow-check
+CHECKFLAGS += --unwinding-assertions
 
+CBMCFLAGS += $(CHECKFLAGS)
 
 ################################################################
 # Preprocess the unwindset
 ifneq ($(UNWINDSET),)
-CBMC_UNWINDSET := --unwindset $(subst $(SPACE),$(COMMA),$(strip $(UNWINDSET)))
+CBMC_UNWINDSET := --unwind 1 --unwindset $(subst $(SPACE),$(COMMA),$(strip $(UNWINDSET)))
 endif
 CBMCFLAGS += $(CBMC_UNWINDSET)
 
@@ -276,7 +276,7 @@ property.xml: $(ENTRY).goto
 	cbmc $(CBMCFLAGS) --show-properties --xml-ui $< 2>&1 > $@
 
 coverage.xml: $(ENTRY).goto
-	cbmc $(filter-out --unwinding-assertions,$(CBMCFLAGS)) --cover location --xml-ui $< 2>&1 > $@
+	cbmc $(filter-out $(CHECKFLAGS),$(CBMCFLAGS)) --cover location --xml-ui $< 2>&1 > $@
 
 cbmc: cbmc.log
 
