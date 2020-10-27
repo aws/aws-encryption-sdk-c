@@ -13,14 +13,8 @@
  * limitations under the License.
  */
 
-#include <make_common_data_structures.h>
 #include <openssl/evp.h>
-
-/* Abstraction of the EVP_PKEY struct */
-struct evp_pkey_st {
-    int references;
-    EC_KEY *ec_key;
-};
+#include <stdlib.h>
 
 /**
  * Description: EVP_PKEY_free() decrements the reference count of key and, if the reference count is zero, frees it up.
