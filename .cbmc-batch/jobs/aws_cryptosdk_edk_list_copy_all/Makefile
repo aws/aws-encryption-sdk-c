@@ -19,7 +19,7 @@ include ../Makefile.local_default
 
 #########
 # Local vars
-NUM_ELEMS = 1 #Pushing just to test. 
+NUM_ELEMS = 2 #Time on my laptop is 1 minute, 45 seconds
 
 #########
 ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/error.c
@@ -47,7 +47,11 @@ ENTRY = aws_cryptosdk_edk_list_copy_all_harness
 # The original aws_array_list_is_valid() has a 64 bit multiplication.
 # CBMC performance dies trying to do all those multiplications.
 # Replace with a stub until we can fix this issue.
+# aws_array_list_push_back and aws_array_list_pop_back also hurt
+# CBMC performance ( > 2hr proof). We stub them for performance.
 REMOVE_FUNCTION_BODIES += --remove-function-body aws_array_list_is_valid
+REMOVE_FUNCTION_BODIES += --remove-function-body aws_array_list_push_back
+REMOVE_FUNCTION_BODIES += --remove-function-body aws_array_list_pop_back
 
 UNWINDSET += __CPROVER_file_local_list_utils_c_list_copy_all.5:$(call addone,$(NUM_ELEMS))
 UNWINDSET += __CPROVER_file_local_list_utils_c_list_copy_all.6:$(call addone,$(NUM_ELEMS))
