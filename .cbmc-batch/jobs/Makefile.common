@@ -64,6 +64,8 @@ CHECKFLAGS += --unwinding-assertions
 CHECKFLAGS += --malloc-may-fail
 CHECKFLAGS += --malloc-fail-null
 
+CBMCFLAGS += $(CHECKFLAGS)
+
 ################################################################
 # Preprocess the unwindset
 ifneq ($(UNWINDSET),)
