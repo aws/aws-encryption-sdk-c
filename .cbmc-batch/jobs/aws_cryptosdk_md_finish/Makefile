@@ -17,7 +17,9 @@ sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
-UNWINDSET += 
+# We abstract these functions as manual inspection shows there is no pkey associated with the MD_ctx.
+ABSTRACTIONS += $(SRCDIR)/helper-stubs/EVP_MD_CTX_free_no_pkey_stub.c
+ABSTRACTIONS += $(SRCDIR)/helper-stubs/evp_md_ctx_is_valid_no_pkey_stub.c
 
 # Adds check for memory leaks for this proof
 # Turning this flag on globally would require all proofs to carefully release objects, which they don't do.
@@ -27,15 +29,17 @@ CBMCFLAGS += --memory-leak-check
 ENTRY = aws_cryptosdk_md_finish_harness
 
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.goto
+DEPENDENCIES += $(SRCDIR)/c-common-helper-stubs/error.goto
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.goto
 DEPENDENCIES += $(SRCDIR)/c-common-src/common.goto
-DEPENDENCIES += $(SRCDIR)/c-common-src/error.goto
 DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/cbmc_invariants.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/bn_override.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/ec_override.goto
 DEPENDENCIES += $(SRCDIR)/helper-src/openssl/evp_override.goto
+
+UNWINDSET +=
 
 ###########
 
