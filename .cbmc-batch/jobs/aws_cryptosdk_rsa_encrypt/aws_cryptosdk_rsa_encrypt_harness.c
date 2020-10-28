@@ -21,31 +21,39 @@
 #define KEY_LEN 256
 
 void aws_cryptosdk_rsa_encrypt_harness() {
+    /* Nondet Inputs */
     struct aws_byte_buf cipher;
     struct aws_allocator *alloc = can_fail_allocator();
     struct aws_byte_cursor plain;
-    struct aws_string *key = ensure_string_is_allocated_bounded_length(KEY_LEN);
+    struct aws_string *key = ensure_string_is_allocated_nondet_length();
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode;
 
+    /* Assumptions */
+    __CPROVER_assume(aws_string_is_valid(key));
+    __CPROVER_assume(key->len <= KEY_LEN);
+
     __CPROVER_assume(aws_byte_buf_is_bounded(&cipher, MAX_BUFFER_SIZE));
-    // ensure_byte_buf_has_allocated_buffer_member(&cipher);
+    ensure_byte_buf_has_allocated_buffer_member(&cipher);
     __CPROVER_assume(aws_byte_buf_is_valid(&cipher));
 
     __CPROVER_assume(aws_byte_cursor_is_bounded(&plain, MAX_BUFFER_SIZE));
     ensure_byte_cursor_has_allocated_buffer_member(&plain);
     __CPROVER_assume(aws_byte_cursor_is_valid(&plain));
 
-    /* save current state of the data structure */
+    /* Save current state of the data structure */
     struct aws_byte_cursor old_plain = plain;
     struct store_byte_from_buffer old_byte_from_plain;
     save_byte_from_array(plain.ptr, plain.len, &old_byte_from_plain);
 
-    /*initialize a nondeterministic but fixed max encryption size between 0 and INT_MAX */
+    /* Initialize a nondeterministic but fixed max encryption size between 0 and INT_MAX */
     initialize_max_encryption_size();
 
+    /* Operation under verification */
     if (aws_cryptosdk_rsa_encrypt(&cipher, alloc, plain, key, rsa_padding_mode) == AWS_OP_SUCCESS) {
+        /* Post-conditions. */
         assert(aws_byte_buf_is_valid(&cipher));
     }
+    /* Post-conditions. */
     if (plain.len != 0) {
         assert_byte_from_buffer_matches(plain.ptr, &old_byte_from_plain);
     }

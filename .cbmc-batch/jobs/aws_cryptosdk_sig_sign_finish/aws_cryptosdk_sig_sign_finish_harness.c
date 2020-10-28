@@ -25,16 +25,13 @@
 
 void aws_cryptosdk_sig_sign_finish_harness() {
     /* arguments */
-    struct aws_cryptosdk_sig_ctx *ctx = can_fail_malloc(sizeof(struct aws_cryptosdk_sig_ctx));
+    struct aws_cryptosdk_sig_ctx *ctx = ensure_nondet_sig_ctx_has_allocated_members();
     struct aws_allocator *alloc       = can_fail_allocator();
     struct aws_string *signature;
     /* Max signature size is queried inside the function. This call initializes the value nondeterministically. */
     initialize_max_signature_size();
 
     /* assumptions */
-    __CPROVER_assume(ctx);
-    ensure_sig_ctx_has_allocated_members(ctx);
-    __CPROVER_assume(ctx->alloc);
     __CPROVER_assume(aws_cryptosdk_sig_ctx_is_valid_cbmc(ctx));
     __CPROVER_assume(ctx->is_sign);
     /* Reference count of pkey is incremented and decremented inside the function. This is an overestimation; reference

@@ -12,6 +12,7 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <assert.h>
 
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/private/enc_ctx.h>
@@ -56,8 +57,10 @@ int aws_cryptosdk_enc_ctx_size(size_t *size, const struct aws_hash_table *enc_ct
     size_t serialized_len = 2;  // First two bytes are the number of k-v pairs
     for (struct aws_hash_iter iter = aws_hash_iter_begin(enc_ctx); !aws_hash_iter_done(&iter);
          aws_hash_iter_next(&iter)) {
-        const struct aws_string *key   = iter.element.key;
+        const struct aws_string *key = iter.element.key;
+        assert(aws_string_is_valid(key));
         const struct aws_string *value = iter.element.value;
+        assert(aws_string_is_valid(value));
 
         // Overflow safe addition:
         // serialized_len +=  key->len + value->len + 4 [2 bytes for key len, 2 bytes for value len]
