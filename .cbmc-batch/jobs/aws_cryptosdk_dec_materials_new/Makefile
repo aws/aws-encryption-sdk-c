@@ -22,6 +22,7 @@ include ../Makefile.string
 #########
 # Local vars
 # Expected runtime 2min
+KEYRING_TRACE_SIZE = 10 # Value is hardcoded in aws_cryptosdk_keyring_trace_init
 
 #########
 ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/error.c
@@ -50,5 +51,6 @@ DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/atomics.c
 
 ENTRY = aws_cryptosdk_dec_materials_new_harness
 
+UNWINDSET += aws_cryptosdk_keyring_trace_is_valid.0:$(shell echo $$(($(KEYRING_TRACE_SIZE) + 1)))
 ###########
 include ../Makefile.common
