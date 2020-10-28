@@ -2,5 +2,5 @@
 	path = aws-encryption-sdk-cpp/tests/test_vectors/aws-encryption-sdk-test-vectors
 	url = https://github.com/awslabs/aws-encryption-sdk-test-vectors.git
 [submodule ".cbmc-batch/aws-c-common"]
-	path = .cbmc-batch/aws-c-common
+	path = verification/cbmc/aws-c-common
 	url = https://github.com/awslabs/aws-c-common.git
