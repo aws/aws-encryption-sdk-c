@@ -27,24 +27,31 @@ void array_list_item_generator(struct aws_array_list *elems) {
     for (size_t index = 0; index < elems->length; ++index) {
         struct aws_hash_element *val = (struct aws_hash_element *)((uint8_t *)elems->data + (elems->item_size * index));
         // Due to the checks in aws_cryptosdk_enc_ctx_size, no string can have a length > UINT16_MAX
-        val->key   = ensure_string_is_allocated_bounded_length(UINT16_MAX);
-        val->value = ensure_string_is_allocated_bounded_length(UINT16_MAX);
+        struct aws_string *key = ensure_string_is_allocated_nondet_length();
+        __CPROVER_assume(aws_string_is_valid(key));
+        __CPROVER_assume(key->len <= UINT16_MAX);
+        val->key                 = key;
+        struct aws_string *value = ensure_string_is_allocated_nondet_length();
+        __CPROVER_assume(aws_string_is_valid(value));
+        __CPROVER_assume(value->len <= UINT16_MAX);
+        val->value = value;
     }
 }
 
 void aws_cryptosdk_enc_ctx_serialize_harness() {
-    // Precondition: byte_buf is valid
-    struct aws_byte_buf output;
-    ensure_byte_buf_has_allocated_buffer_member(&output);
-    __CPROVER_assume(aws_byte_buf_is_valid(&output));
+    /* Nondet Input */
+    struct aws_byte_buf *output = malloc(sizeof(*output));
+    struct aws_hash_table *map  = malloc(sizeof(*map));
 
-    // Precondition: enc_ctx is valid
-    struct aws_hash_table map;
-    ensure_allocated_hash_table(&map, MAX_TABLE_SIZE);
-    __CPROVER_assume(aws_hash_table_is_valid(&map));
-    ensure_hash_table_has_valid_destroy_functions(&map);
+    /* Assumptions */
+    ensure_byte_buf_has_allocated_buffer_member(output);
+    __CPROVER_assume(aws_byte_buf_is_valid(output));
+    ensure_allocated_hash_table(map, MAX_TABLE_SIZE);
+    __CPROVER_assume(aws_hash_table_is_valid(map));
+    ensure_hash_table_has_valid_destroy_functions(map);
     size_t empty_slot_idx;
-    __CPROVER_assume(aws_hash_table_has_an_empty_slot(&map, &empty_slot_idx));
+    __CPROVER_assume(aws_hash_table_has_an_empty_slot(map, &empty_slot_idx));
 
-    aws_cryptosdk_enc_ctx_serialize(can_fail_allocator(), &output, &map);
+    /* Operation under verification */
+    aws_cryptosdk_enc_ctx_serialize(can_fail_allocator(), output, map);
 }

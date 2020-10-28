@@ -107,12 +107,20 @@ err:
 
 int aws_cryptosdk_edk_list_copy_all(
     struct aws_allocator *alloc, struct aws_array_list *dest, const struct aws_array_list *src) {
+    AWS_PRECONDITION(aws_array_list_is_valid(src));
+    AWS_PRECONDITION(aws_array_list_is_valid(dest));
+    AWS_PRECONDITION(src->item_size == sizeof(struct aws_cryptosdk_edk));
+    AWS_PRECONDITION(dest->item_size == sizeof(struct aws_cryptosdk_edk));
     return list_copy_all(
         alloc, dest, src, (clone_item_fn)aws_cryptosdk_edk_init_clone, (clean_up_item_fn)aws_cryptosdk_edk_clean_up);
 }
 
 int aws_cryptosdk_keyring_trace_copy_all(
     struct aws_allocator *alloc, struct aws_array_list *dest, const struct aws_array_list *src) {
+    AWS_PRECONDITION(aws_array_list_is_valid(dest));
+    AWS_PRECONDITION(aws_array_list_is_valid(src));
+    AWS_PRECONDITION(src->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
+    AWS_PRECONDITION(dest->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     return list_copy_all(
         alloc,
         dest,

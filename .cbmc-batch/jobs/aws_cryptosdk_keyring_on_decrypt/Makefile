@@ -35,12 +35,6 @@ CBMCFLAGS +=
 ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/error.c
 ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/aws_array_list_defined_type.c
 
-ABSTRACTIONS += $(LINKFARM)/helper-stubs/aws_atomic_load_int.c
-REMOVE_FUNCTION_BODY += --remove-function-body aws_atomic_load_int
-
-ABSTRACTIONS += $(LINKFARM)/helper-stubs/aws_atomic_load_ptr.c
-REMOVE_FUNCTION_BODY += --remove-function-body aws_atomic_load_ptr
-
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.c
@@ -49,6 +43,7 @@ DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/array_list.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/atomics.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/math.c
 DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/string.c
+DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/error.c
 
 DEPENDENCIES += $(SRCDIR)/c-common-src/array_list.c
 DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.c
