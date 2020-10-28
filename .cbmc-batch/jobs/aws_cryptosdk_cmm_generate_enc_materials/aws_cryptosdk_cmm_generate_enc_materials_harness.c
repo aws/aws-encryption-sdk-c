@@ -63,11 +63,8 @@ int generate_enc_materials(
     __CPROVER_assume(aws_allocator_is_valid(materials->alloc));
 
     // Set up the signctx
-    materials->signctx = can_fail_malloc(sizeof(*materials->signctx));
-    if (materials->signctx) {
-        ensure_sig_ctx_has_allocated_members(materials->signctx);
-        __CPROVER_assume(aws_cryptosdk_sig_ctx_is_valid_cbmc(materials->signctx));
-    }
+    materials->signctx = ensure_nondet_sig_ctx_has_allocated_members();
+    __CPROVER_assume(aws_cryptosdk_sig_ctx_is_valid_cbmc(materials->signctx));
 
     // Set up the unencrypted_data_key
     __CPROVER_assume(aws_byte_buf_is_bounded(&materials->unencrypted_data_key, MAX_NUM_ITEMS));
