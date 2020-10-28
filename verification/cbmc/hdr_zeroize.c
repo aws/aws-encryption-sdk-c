@@ -14,7 +14,7 @@
  */
 
 #include <stdlib.h>
-#include <../source/header.c>
+#include <../../source/header.c>
 
 static inline void hdr_zeroize_verify(struct aws_cryptosdk_hdr *hdr) {
     // Assume hdr is allocated

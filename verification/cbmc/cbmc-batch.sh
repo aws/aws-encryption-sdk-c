@@ -22,17 +22,17 @@ fi
 while getopts ":sec" opt; do
     case $opt in
         s ) # Start CBMC Batch Jobs
-            for job in jobs/*/; do
+            for job in proofs/*/; do
                 job=${job%/} #remove trailing slash
                 job=${job#*/} #job name
                 echo "Starting job $job"
                 cbmc-batch \
                     --no-report \
                     --no-coverage \
-                    --wsdir jobs/$job \
+                    --wsdir proofs/$job \
                     --srcdir ../ \
                     --jobprefix $job-local \
-                    --yaml jobs/$job/cbmc-batch.yaml
+                    --yaml proofs/$job/cbmc-batch.yaml
             done
             ;;
         e ) # Check CBMC Batch Job Results
@@ -45,7 +45,7 @@ while getopts ":sec" opt; do
                 make -f $Makefile copy
                 dir=${Makefile#*-} # directory name from copy
                 job=${dir%-local-*-*} # original job name
-                check="$( ./check_result.py $dir jobs/$job/cbmc-batch.yaml )"
+                check="$( ./check_result.py $dir proofs/$job/cbmc-batch.yaml )"
                 echo "$job: $check" >> $result
             done
             ;;
