@@ -84,8 +84,8 @@ DEFINES += -DCBMC=1
 # Setup directory aliases
 BASEDIR ?= $(abspath ../../../..)
 SRCDIR ?= $(abspath ./link-farm)
-SDKDIR ?= $(abspath ../../..)
-HELPERDIR ?= $(SDKDIR)/.cbmc-batch
+SDKDIR ?= $(abspath ../../../..)
+HELPERDIR ?= $(SDKDIR)/verification/cbmc
 LINKFARM = $(abspath ./link-farm)
 COMMON_REPO_NAME ?= aws-c-common
 COMMONDIR ?= $(HELPERDIR)/$(COMMON_REPO_NAME)
@@ -170,7 +170,7 @@ harness-symlink: linkfarm-dir
 
 helper-symlinks: linkfarm-dir
 	$(call make_symlink, $(LINKFARM), $(HELPERDIR)/include, helper-inc)
-	$(call make_symlink, $(LINKFARM), $(HELPERDIR)/source, helper-src)
+	$(call make_symlink, $(LINKFARM), $(HELPERDIR)/sources, helper-src)
 	$(call make_symlink, $(LINKFARM), $(HELPERDIR)/stubs, helper-stubs)
 
 
@@ -323,4 +323,4 @@ gitclean: veryclean
 
 .PHONY: setup_dependencies cbmc property coverage report clean veryclean
 
-include $(HELPERDIR)/jobs/Makefile.cbmc_batch
+include $(HELPERDIR)/proofs/Makefile.cbmc_batch
