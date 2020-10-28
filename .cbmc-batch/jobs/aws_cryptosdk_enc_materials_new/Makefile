@@ -18,6 +18,7 @@ include ../Makefile.local_default
 
 include ../Makefile.string
 
+KEYRING_TRACE_SIZE = 10 # Value is hardcoded in aws_cryptosdk_keyring_trace_init
 # Expected runtime 38sec
 
 ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/error.c
@@ -51,5 +52,7 @@ REMOVE_FUNCTION_BODY += --remove-function-body aws_cryptosdk_keyring_trace_recor
 REMOVE_FUNCTION_BODY += --remove-function-body aws_cryptosdk_sig_ctx_is_valid
 
 ENTRY = aws_cryptosdk_enc_materials_new_harness
+
+UNWINDSET += aws_cryptosdk_keyring_trace_is_valid.0:$(shell echo $$(($(KEYRING_TRACE_SIZE) + 1)))
 
 include ../Makefile.common

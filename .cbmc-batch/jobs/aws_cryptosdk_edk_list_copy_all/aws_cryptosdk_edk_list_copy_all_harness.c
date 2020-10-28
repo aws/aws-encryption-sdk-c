@@ -17,7 +17,7 @@
  */
 
 #include <aws/cryptosdk/edk.h>
-#include <proof_helpers/cryptosdk/make_common_data_structures.h>
+#include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
@@ -54,7 +54,6 @@ bool aws_array_list_is_valid_deep(const struct aws_array_list *AWS_RESTRICT list
     bool item_size_is_valid = (list->item_size != 0);
     return required_size_is_valid && current_size_is_valid && data_is_valid && item_size_is_valid;
 }
-
 // allocator, dest, src
 typedef int (*clone_item_fn)(struct aws_allocator *, void *, const void *);
 typedef void (*clean_up_item_fn)(void *);
@@ -66,9 +65,8 @@ const size_t g_item_size = sizeof(struct aws_cryptosdk_edk);
  * These stubs capture the key aspect of checking that the element is allocated.
  * It writes/reads a magic constant to ensure that we only ever _clean_up() data that we cloned
  */
-int aws_cryptosdk_edk_init_clone(struct aws_allocator *alloc, void *dest, const void *src) {
+int aws_cryptosdk_edk_init_clone(struct aws_allocator *alloc, void *dest, void *src) {
     assert(AWS_MEM_IS_READABLE(src, g_item_size));
-    assert(AWS_MEM_IS_WRITABLE(dest, g_item_size));
     uint8_t *d = (uint8_t *)dest;
     *d         = 0xab;
     return nondet_int();
@@ -79,29 +77,67 @@ void aws_cryptosdk_edk_clean_up(void *p) {
     assert(*d == 0xab);
 }
 
+/**
+ * We stub aws_array_list_push_back and aws_array_list_pop_back for performance.
+ * For compatibility with the aws_cryptosdk_edk_clean_up stub, push_back writes the magic constant in case of success.
+ * Otherwise, we only keep track of the length of the array list.
+ */
+int aws_array_list_push_back(struct aws_array_list *AWS_RESTRICT list, const void *val) {
+    assert(aws_array_list_is_valid(list));
+    assert(val && AWS_MEM_IS_READABLE(val, list->item_size));
+    if (nondet_bool()) {
+        if (aws_array_list_ensure_capacity(list, list->length)) {
+            return AWS_OP_ERR;
+        }
+        uint8_t *d = ((uint8_t *)list->data + (list->item_size * list->length));
+        *d         = 0xab;
+        list->length++;
+        return AWS_OP_SUCCESS;
+    }
+    return AWS_OP_ERR;
+}
+
+int aws_array_list_pop_back(struct aws_array_list *AWS_RESTRICT list) {
+    assert(aws_array_list_is_valid(list));
+    if (list->length > 0) {
+        assert(list->data);
+        list->length--;
+        return AWS_OP_SUCCESS;
+    }
+    return AWS_OP_ERR;
+}
+
 void aws_cryptosdk_edk_list_copy_all_harness() {
-    struct aws_array_list *dest = can_fail_malloc(sizeof(*dest));
+    /* Nondet Inputs */
+    struct aws_array_list *dest = malloc(sizeof(*dest));
+    struct aws_array_list *src  = malloc(sizeof(*src));
+
+    /* Assumptions */
     __CPROVER_assume(dest != NULL);
     __CPROVER_assume(aws_array_list_is_bounded(dest, NUM_ELEMS, sizeof(struct aws_cryptosdk_edk)));
+    __CPROVER_assume(dest->item_size == sizeof(struct aws_cryptosdk_edk));
     ensure_array_list_has_allocated_data_member(dest);
     __CPROVER_assume(aws_array_list_is_valid_deep(dest));
 
-    struct aws_array_list *src = can_fail_malloc(sizeof(*src));
     __CPROVER_assume(src != NULL);
     __CPROVER_assume(aws_array_list_is_bounded(src, NUM_ELEMS, sizeof(struct aws_cryptosdk_edk)));
+    __CPROVER_assume(src->item_size == sizeof(struct aws_cryptosdk_edk));
     ensure_array_list_has_allocated_data_member(src);
     __CPROVER_assume(aws_array_list_is_valid_deep(src));
 
     const struct aws_array_list old_dest = *dest;
     const struct aws_array_list old_src  = *src;
 
+    /* Operation under verification */
     if (aws_cryptosdk_edk_list_copy_all(can_fail_allocator(), dest, src) == AWS_OP_SUCCESS) {
+        /* Post-conditions */
         assert(src->length == old_src.length);
         assert(dest->length == old_dest.length + old_src.length);
     } else {
         assert(src->length == old_src.length);
         assert(dest->length == old_dest.length);
     }
+    /* Post-conditions */
     assert(aws_array_list_is_valid(src));
     assert(aws_array_list_is_valid(dest));
 }

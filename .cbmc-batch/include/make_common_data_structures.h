@@ -30,7 +30,7 @@ void ensure_alg_properties_attempt_allocation(struct aws_cryptosdk_alg_propertie
 void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ctx);
 
 /* Allocates the members of the context and ensures that internal pointers are pointing to the correct objects. */
-void ensure_sig_ctx_has_allocated_members(struct aws_cryptosdk_sig_ctx *ctx);
+struct aws_cryptosdk_sig_ctx *ensure_nondet_sig_ctx_has_allocated_members();
 
 bool aws_cryptosdk_edk_list_is_bounded(
     const struct aws_array_list *const list, const size_t max_initial_item_allocation);
@@ -47,3 +47,7 @@ void ensure_trace_has_allocated_records(struct aws_array_list *trace, size_t max
 /* Non-deterministically allocates a aws_cryptosdk_keyring structure */
 void ensure_cryptosdk_keyring_has_allocated_members(
     struct aws_cryptosdk_keyring *keyring, const struct aws_cryptosdk_keyring_vt *vtable);
+/* Non-deterministically allocates a aws_cryptosdk_keyring_vt structure with a valid name*/
+void ensure_nondet_allocate_keyring_vtable_members(struct aws_cryptosdk_keyring_vt *vtable, size_t max_len);
+/* Non-deterministically allocates a aws_cryptosdk_cmm_vt structure with a valid name*/
+void ensure_nondet_allocate_cmm_vtable_members(struct aws_cryptosdk_cmm_vt *vtable, size_t max_len);

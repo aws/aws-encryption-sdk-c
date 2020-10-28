@@ -42,6 +42,9 @@ void aws_cryptosdk_keyring_trace_add_record_c_str_harness() {
     ensure_trace_has_allocated_records(&trace, MAX_STRING_LEN);
     __CPROVER_assume(aws_cryptosdk_keyring_trace_is_valid(&trace));
 
+    __CPROVER_assume(aws_c_string_is_valid(c_str_namespace));
+    __CPROVER_assume(aws_c_string_is_valid(c_str_name));
+
     struct aws_array_list old = trace;
     struct store_byte_from_buffer old_byte;
     save_byte_from_array((uint8_t *)trace.data, trace.current_size, &old_byte);

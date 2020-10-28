@@ -28,10 +28,12 @@ void aws_cryptosdk_keyring_trace_add_record_harness() {
     __CPROVER_assume(aws_allocator_is_valid(alloc));
     struct aws_array_list trace; /* Precondition: trace must be non-null */
     struct aws_string *namespace =
-        ensure_string_is_allocated_bounded_length(MAX_STRING_LEN); /* Precondition: namespace must be non-null */
-    struct aws_string *name =
-        ensure_string_is_allocated_bounded_length(MAX_STRING_LEN); /* Precondition: name must be non-null */
+        ensure_string_is_allocated_nondet_length();                       /* Precondition: namespace must be non-null */
+    struct aws_string *name = ensure_string_is_allocated_nondet_length(); /* Precondition: name must be non-null */
     uint32_t flags;
+
+    __CPROVER_assume(aws_string_is_valid(namespace));
+    __CPROVER_assume(aws_string_is_valid(name));
 
     __CPROVER_assume(
         aws_array_list_is_bounded(&trace, MAX_ITEM_SIZE, sizeof(struct aws_cryptosdk_keyring_trace_record)));
