@@ -19,27 +19,30 @@ include ../Makefile.aws_hash_table
 
 # Expected runtime for this harness is 2min
 
-ABSTRACTIONS += $(SRCDIR)/helper-stubs/aws_hash_iter_overrides.c
+PROOF_SOURCES += $(PROOF_STUB)/aws_hash_iter_overrides.c
 
-ABSTRACTIONS += $(LINKFARM)/helper-stubs/aws_add_size_checked.c
-REMOVE_FUNCTION_BODY += --remove-function-body aws_add_size_checked
+PROOF_SOURCES += $(PROOF_STUB)/aws_add_size_checked.c
+REMOVE_FUNCTION_BODY += aws_add_size_checked
 
 CBMCFLAGS +=
 
 DEFINES += -DAWS_NO_STATIC_IMPL
 
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/array_list.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/math.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/array_list.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/error.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/hash_table.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/utils.c
-DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
+PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/array_list.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
+PROJECT_SOURCES += $(SRCDIR)/source/utils.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
-ENTRY = aws_cryptosdk_hash_elems_array_init_harness
+HARNESS_ENTRY = aws_cryptosdk_hash_elems_array_init_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
+
+PROOF_SOURCES += $(HARNESS_FILE)
 
 UNWINDSET += aws_cryptosdk_hash_elems_array_init.0:$(call addone,$(MAX_TABLE_SIZE))
 

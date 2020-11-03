@@ -20,16 +20,19 @@ include ../Makefile.string
 
 CBMCFLAGS +=
 
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/error.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/materials.c
-DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
+PROJECT_SOURCES += $(SRCDIR)/source/materials.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
-ENTRY = aws_cryptosdk_keyring_base_init_harness
+HARNESS_ENTRY = aws_cryptosdk_keyring_base_init_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-REMOVE_FUNCTION_BODY += --remove-function-body aws_atomic_priv_xlate_order
+PROOF_SOURCES += $(HARNESS_FILE)
+
+REMOVE_FUNCTION_BODY += aws_atomic_priv_xlate_order
 
 UNWINDSET +=
 
