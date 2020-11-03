@@ -12,21 +12,24 @@
 # limitations under the License.
 
 ###########
-# if Makefile.local exists, use it. This provides a way to override the defaults 
+# if Makefile.local exists, use it. This provides a way to override the defaults
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
-ENTRY = aws_cryptosdk_serialize_frame_harness
+HARNESS_ENTRY = aws_cryptosdk_serialize_frame_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/error.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/framefmt.c
-DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
+PROOF_SOURCES += $(HARNESS_FILE)
+
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
+PROJECT_SOURCES += $(SRCDIR)/source/framefmt.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
 ###########
 

@@ -12,32 +12,35 @@
 # limitations under the License.
 
 ###########
-# if Makefile.local exists, use it. This provides a way to override the defaults 
+# if Makefile.local exists, use it. This provides a way to override the defaults
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
-UNWINDSET += 
+UNWINDSET +=
 
 # Added check for memory leaks
 CBMCFLAGS += --memory-leak-check
 
-ENTRY = aws_cryptosdk_sig_abort_harness
+HARNESS_ENTRY = aws_cryptosdk_sig_abort_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.goto
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.goto
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.goto
-DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.goto
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.goto
-DEPENDENCIES += $(SRCDIR)/c-common-src/error.goto
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.goto
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher.goto
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/framefmt.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/cbmc_invariants.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/openssl/bn_override.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/openssl/ec_override.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/openssl/evp_override.goto
+PROOF_SOURCES += $(HARNESS_FILE)
+
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
+PROJECT_SOURCES += $(SRCDIR)/source/framefmt.c
+PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
+PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/bn_override.c
+PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/ec_override.c
+PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
 
 ###########
 

@@ -11,22 +11,24 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 #########
-# if Makefile.local exists, use it. This provides a way to override the defaults 
+# if Makefile.local exists, use it. This provides a way to override the defaults
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
-######### 
-ENTRY = aws_cryptosdk_enc_ctx_init_harness
+#########
+HARNESS_ENTRY = aws_cryptosdk_enc_ctx_init_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/enc_ctx.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/error.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/hash_table.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/math.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
+PROOF_SOURCES += $(HARNESS_FILE)
+
+PROJECT_SOURCES += $(SRCDIR)/source/enc_ctx.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 
 ###########
 
