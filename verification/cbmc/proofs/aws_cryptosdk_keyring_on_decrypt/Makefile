@@ -32,37 +32,40 @@ DEFINES += -DARRAY_LIST_TYPE_HEADER=\"aws/cryptosdk/keyring_trace.h\"
 
 CBMCFLAGS +=
 
-ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/error.c
-ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/aws_array_list_defined_type.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_array_list_defined_type.c
 
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
 
-DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/array_list.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/atomics.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/math.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/string.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/error.c
+PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
+PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
+PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
+PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/string.c
+PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/error.c
 
-DEPENDENCIES += $(SRCDIR)/c-common-src/array_list.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/error.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/hash_table.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/math.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/string.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/array_list.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/string.c
 
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/edk.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/keyring_trace.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/materials.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
+PROJECT_SOURCES += $(SRCDIR)/source/edk.c
+PROJECT_SOURCES += $(SRCDIR)/source/keyring_trace.c
+PROJECT_SOURCES += $(SRCDIR)/source/materials.c
 
-DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
-ENTRY = aws_cryptosdk_keyring_on_decrypt_harness
+HARNESS_ENTRY = aws_cryptosdk_keyring_on_decrypt_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-addone = $(shell echo $$(( $(1) + 1)))
+PROOF_SOURCES += $(HARNESS_FILE)
+
+
 
 # memcmp is invoked to compare two aws_byte_buf objetcs,
 # so the upper bound limit is the size of aws_byte_buf + 1
