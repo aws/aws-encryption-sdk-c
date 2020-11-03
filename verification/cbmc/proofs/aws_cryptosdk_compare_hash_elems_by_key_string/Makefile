@@ -17,15 +17,18 @@ CBMC_UNWINDSET += --unwindset memcmp.0:$(shell echo $$((1 + $(MAX_STRING_LEN))))
 
 CBMCFLAGS +=
 
-DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/make_common_data_structures.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/proof_allocators.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-helper-src/utils.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-src/common.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-src/error.c
-DEPENDENCIES +=	$(SRCDIR)/c-common-src/string.c
-DEPENDENCIES +=	$(SRCDIR)/c-enc-sdk-src/utils.c
-DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/string.c
+PROJECT_SOURCES += $(SRCDIR)/source/utils.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
-ENTRY = aws_cryptosdk_compare_hash_elems_by_key_string_harness
+HARNESS_ENTRY = aws_cryptosdk_compare_hash_elems_by_key_string_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
+
+PROOF_SOURCES += $(HARNESS_FILE)
 
 include ../Makefile.common
