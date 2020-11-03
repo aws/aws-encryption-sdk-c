@@ -17,9 +17,12 @@ sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
-ENTRY = aws_cryptosdk_md_size_harness
+HARNESS_ENTRY = aws_cryptosdk_md_size_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.goto
+PROOF_SOURCES += $(HARNESS_FILE)
+
+PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
 
 ###########
 

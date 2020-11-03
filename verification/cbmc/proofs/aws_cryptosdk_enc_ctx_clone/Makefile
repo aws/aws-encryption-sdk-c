@@ -11,7 +11,6 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 #########
 # if Makefile.local exists, use it. This provides a way to override the defaults
 sinclude ../Makefile.local
@@ -24,12 +23,12 @@ MAX_TABLE_SIZE ?= 4
 # Time on my laptop: 5m10s
 #########
 #if we don't include the hash_table.c, we don't need to remove their function bodies
-ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/aws_hash_table_no_slots_override.c
-ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/aws_string_destroy_override.c
-ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/aws_string_new_from_array_override.c
-ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/error.c
-ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/hash_table_generators.c
-ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/memcmp_override_no_op.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_hash_table_no_slots_override.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_destroy_override.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_new_from_array_override.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/hash_table_generators.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcmp_override_no_op.c
 
 CBMCFLAGS +=
 
@@ -37,20 +36,23 @@ DEFINES += -DHASH_ITER_ELEMENT_GENERATOR=hash_iterator_string_string_generator
 DEFINES += -DHASH_TABLE_FIND_ELEMENT_GENERATOR=hash_find_string_string_generator
 DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
 
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/hash_table.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/math.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/string.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/enc_ctx.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/string.c
+PROJECT_SOURCES += $(SRCDIR)/source/enc_ctx.c
 
-ENTRY = aws_cryptosdk_enc_ctx_clone_harness
+HARNESS_ENTRY = aws_cryptosdk_enc_ctx_clone_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
-REMOVE_FUNCTION_BODIES += --remove-function-body aws_string_destroy
-REMOVE_FUNCTION_BODIES += --remove-function-body aws_string_new_from_array
+PROOF_SOURCES += $(HARNESS_FILE)
+
+REMOVE_FUNCTION_BODY += aws_string_destroy
+REMOVE_FUNCTION_BODY += aws_string_new_from_array
 
 UNWINDSET += aws_cryptosdk_enc_ctx_clone.0:$(shell echo $$((1 + $(MAX_TABLE_SIZE))))
 UNWINDSET += aws_cryptosdk_enc_ctx_clone.1:$(shell echo $$((1 + $(MAX_TABLE_SIZE))))

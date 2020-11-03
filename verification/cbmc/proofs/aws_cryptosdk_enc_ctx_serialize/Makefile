@@ -11,9 +11,8 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 #########
-# if Makefile.local exists, use it. This provides a way to override the defaults 
+# if Makefile.local exists, use it. This provides a way to override the defaults
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
@@ -29,10 +28,10 @@ TABLE_SIZE_IN_WORDS=$(shell echo $$(($$((3 * $(MAX_TABLE_SIZE))) + 10)))
 #########
 # Vars for Makefile.common
 
-ABSTRACTIONS += $(SRCDIR)/c-common-helper-stubs/aws_byte_buf_write_stub.c
-ABSTRACTIONS += $(SRCDIR)/helper-stubs/aws_array_list_sort_noop_stub.c
-ABSTRACTIONS += $(SRCDIR)/helper-stubs/aws_cryptosdk_enc_ctx_size_stub.c
-ABSTRACTIONS += $(SRCDIR)/helper-stubs/aws_cryptosdk_hash_elems_array_init_stub.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_byte_buf_write_stub.c
+PROOF_SOURCES += $(PROOF_STUB)/aws_array_list_sort_noop_stub.c
+PROOF_SOURCES += $(PROOF_STUB)/aws_cryptosdk_enc_ctx_size_stub.c
+PROOF_SOURCES += $(PROOF_STUB)/aws_cryptosdk_hash_elems_array_init_stub.c
 
 CBMCFLAGS +=
 
@@ -41,29 +40,32 @@ DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
 DEFINES += -DMEMCPY_STUB_MAX=128
 DEFINES += -DAWS_NO_STATIC_IMPL
 
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-stubs/error.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/array_list.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/byte_order.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/error.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/math.c
-DEPENDENCIES += $(SRCDIR)/c-common-helper-uninline/string.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/hash_table.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/math.c
-DEPENDENCIES += $(SRCDIR)/c-common-src/string.c
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/enc_ctx.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
+PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
+PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/byte_order.c
+PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/error.c
+PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
+PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/string.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/string.c
+PROJECT_SOURCES += $(SRCDIR)/source/enc_ctx.c
 
-ENTRY = aws_cryptosdk_enc_ctx_serialize_harness
+HARNESS_ENTRY = aws_cryptosdk_enc_ctx_serialize_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
+
+PROOF_SOURCES += $(HARNESS_FILE)
 
 #Remove function bodies to deal with CBMC function pointer removal
-REMOVE_FUNCTION_BODIES += --remove-function-body aws_array_list_sort
-REMOVE_FUNCTION_BODIES += --remove-function-body aws_byte_buf_write
-REMOVE_FUNCTION_BODIES += --remove-function-body aws_cryptosdk_enc_ctx_size
-REMOVE_FUNCTION_BODIES += --remove-function-body aws_cryptosdk_hash_elems_array_init
+REMOVE_FUNCTION_BODY += aws_array_list_sort
+REMOVE_FUNCTION_BODY += aws_byte_buf_write
+REMOVE_FUNCTION_BODY += aws_cryptosdk_enc_ctx_size
+REMOVE_FUNCTION_BODY += aws_cryptosdk_hash_elems_array_init
 
 UNWINDSET += array_list_item_generator.0:$(shell echo $$((1 + $(MAX_TABLE_SIZE))))
 UNWINDSET += aws_cryptosdk_enc_ctx_serialize.0:$(shell echo $$((1 + $(MAX_TABLE_SIZE))))
