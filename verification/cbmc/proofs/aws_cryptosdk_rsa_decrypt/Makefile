@@ -12,7 +12,7 @@
 # limitations under the License.
 
 ###########
-# if Makefile.local exists, use it. This provides a way to override the defaults 
+# if Makefile.local exists, use it. This provides a way to override the defaults
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
@@ -20,32 +20,38 @@ include ../Makefile.aws_byte_buf
 include ../Makefile.aws_string
 
 # We abstract these functions as manual inspection shows there is no ec_key associated with the PKEY.
-ABSTRACTIONS += $(SRCDIR)/helper-stubs/EVP_PKEY_free_no_ec_key_stub.c
-ABSTRACTIONS += $(SRCDIR)/helper-stubs/evp_pkey_is_valid_no_ec_key_stub.c
+PROOF_SOURCES += $(PROOF_STUB)/EVP_PKEY_free_no_ec_key_stub.c
+PROOF_SOURCES += $(PROOF_STUB)/evp_pkey_is_valid_no_ec_key_stub.c
 
-CBMCFLAGS += 
+CBMCFLAGS +=
 
-DEPENDENCIES += $(COMMON_HELPERDIR)/stubs/memcpy_override_havoc.goto
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/make_common_data_structures.goto
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/proof_allocators.goto
-DEPENDENCIES += $(SRCDIR)/c-common-helper-src/utils.goto
-DEPENDENCIES += $(SRCDIR)/c-common-helper-stubs/error.goto
-DEPENDENCIES += $(SRCDIR)/c-common-src/byte_buf.goto
-DEPENDENCIES += $(SRCDIR)/c-common-src/common.goto
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher.goto
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/cipher_openssl.goto
-DEPENDENCIES += $(SRCDIR)/c-enc-sdk-src/hkdf.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/cbmc_invariants.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/make_common_data_structures.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/openssl/bio_override.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/openssl/bn_override.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/openssl/ec_override.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/openssl/err_override.goto
-DEPENDENCIES += $(SRCDIR)/helper-src/openssl/evp_override.goto
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcpy_override_havoc.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
+PROJECT_SOURCES += $(SRCDIR)/source/hkdf.c
+PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
+PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/bio_override.c
+PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/bn_override.c
+PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/ec_override.c
+PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/err_override.c
+PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
 
-ENTRY = aws_cryptosdk_rsa_decrypt_harness
+HARNESS_ENTRY = aws_cryptosdk_rsa_decrypt_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
+
+PROOF_SOURCES += $(HARNESS_FILE)
 
 UNWINDSET +=
+
+REMOVE_FUNCTION_BODY += EVP_PKEY_free
+REMOVE_FUNCTION_BODY += evp_pkey_is_valid
 
 ###########
 
