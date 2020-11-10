@@ -14,8 +14,6 @@
 ###########
 include ../Makefile.string
 
-CBMC_UNWINDSET += --unwindset memcmp.0:$(shell echo $$((1 + $(MAX_STRING_LEN))))
-
 CBMCFLAGS +=
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
@@ -34,6 +32,7 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(HARNESS_FILE)
 
+UNWINDSET += memcmp.0:$(call addone,$(MAX_STRING_LEN))
 ###########
 
 include ../Makefile.common
