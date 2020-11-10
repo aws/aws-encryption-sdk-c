@@ -43,7 +43,7 @@ PROJECT_SOURCES += $(SRCDIR)/source/edk.c
 PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
 PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
 
 REMOVE_FUNCTION_BODY += aws_array_list_get_at_ptr
 REMOVE_FUNCTION_BODY += aws_cryptosdk_edk_is_valid

@@ -21,6 +21,36 @@
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
+// #include <aws/cryptosdk/private/keyring_trace.h>
+
+bool aws_cryptosdk_keyring_trace_is_valid(const struct aws_array_list *trace) {
+    if (trace == NULL) {
+        return false;
+    }
+    AWS_FATAL_PRECONDITION(trace->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
+    /* iterate over each record in the list */
+    size_t num_records = aws_array_list_length(trace);
+    bool is_valid      = aws_array_list_is_valid(trace);
+    for (size_t idx = 0; idx < num_records; ++idx) {
+        struct aws_cryptosdk_keyring_trace_record *record;
+        if (!aws_array_list_get_at_ptr(trace, (void **)&record, idx)) {
+            /* check if each record is valid */
+            bool record_is_valid = aws_cryptosdk_keyring_trace_record_is_valid(record);
+            is_valid &= record_is_valid;
+        }
+    }
+    return is_valid;
+}
+
+bool aws_cryptosdk_keyring_trace_record_is_valid(struct aws_cryptosdk_keyring_trace_record *record) {
+    if (record == NULL) {
+        return false;
+    }
+    bool wk_namespace_is_valid = (record->wrapping_key_namespace != NULL);
+    bool wk_name_is_valid      = (record->wrapping_key_name != NULL);
+    bool record_readable       = AWS_OBJECT_PTR_IS_READABLE(record);
+    return wk_namespace_is_valid && wk_name_is_valid && record_readable;
+}
 
 /**
  * The original aws_array_list_is_valid() has a 64 bit multiplication.

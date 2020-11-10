@@ -36,7 +36,6 @@ PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/bn_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/ec_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
 
-
 DEFINES += -DAWS_DEEP_CHECKS=1
 
 CBMCFLAGS +=
@@ -54,7 +53,7 @@ PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
 PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
 
 HARNESS_ENTRY = aws_cryptosdk_dec_materials_destroy_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
