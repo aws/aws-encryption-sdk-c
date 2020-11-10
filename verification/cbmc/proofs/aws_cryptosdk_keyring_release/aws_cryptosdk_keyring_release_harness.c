@@ -28,7 +28,7 @@ void aws_cryptosdk_keyring_release_harness() {
                                                      .destroy    = nondet_bool() ? destroy : NULL,
                                                      .on_encrypt = nondet_voidp(),
                                                      .on_decrypt = nondet_voidp() };
-    struct aws_cryptosdk_keyring *keyring        = can_fail_malloc(sizeof(struct aws_cryptosdk_keyring));
+    struct aws_cryptosdk_keyring *keyring        = malloc(sizeof(*keyring));
 
     /* Pre-conditions. */
     if (keyring != NULL) {

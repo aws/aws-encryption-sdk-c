@@ -28,7 +28,7 @@ void aws_cryptosdk_keyring_retain_harness() {
 
     /* Pre-conditions. */
     __CPROVER_assume(aws_cryptosdk_keyring_is_valid(&keyring));
-    __CPROVER_assume(aws_atomic_var_is_valid(&keyring.refcount));
+    __CPROVER_assume(aws_atomic_var_is_valid_int(&keyring.refcount));
     __CPROVER_assume(aws_atomic_load_int(&keyring.refcount) < SIZE_MAX);
 
     /* Save previous reference count. */
