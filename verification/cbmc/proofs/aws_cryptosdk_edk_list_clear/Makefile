@@ -27,7 +27,7 @@ PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcmp_override_no_op.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_array_list_defined_type.c
 
-#AWS_DEEP_CHECKS = 1
+#DEFINES += -DAWS_DEEP_CHECKS = 1
 
 CBMCFLAGS +=
 
@@ -54,7 +54,6 @@ PROOF_SOURCES += $(HARNESS_FILE)
 
 REMOVE_FUNCTION_BODY += aws_array_list_get_at_ptr
 REMOVE_FUNCTION_BODY += nondet_compare
-
 
 
 UNWINDSET += aws_cryptosdk_edk_list_clear.0:$(call addone,$(NUM_ELEMS))

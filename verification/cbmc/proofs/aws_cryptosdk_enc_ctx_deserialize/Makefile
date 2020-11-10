@@ -53,7 +53,7 @@ REMOVE_FUNCTION_BODY += aws_byte_cursor_read_be16
 REMOVE_FUNCTION_BODY += aws_string_destroy
 REMOVE_FUNCTION_BODY += aws_string_new_from_array
 
-UNWINDSET += aws_cryptosdk_enc_ctx_deserialize.0:$(shell echo $$(($(MAX_NUM_ELEMS) + 1)))
+UNWINDSET += aws_cryptosdk_enc_ctx_deserialize.0:$(call addone,$(MAX_NUM_ELEMS))
 
 ###########
 include ../Makefile.common

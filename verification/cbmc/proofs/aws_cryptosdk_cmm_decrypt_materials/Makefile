@@ -35,7 +35,7 @@ PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/ec_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
 
 # Enable after https://github.com/diffblue/cbmc/issues/5344 is fixed
-#AWS_DEEP_CHECKS = 1
+#DEFINES += -DAWS_DEEP_CHECKS=1
 
 CBMCFLAGS +=
 

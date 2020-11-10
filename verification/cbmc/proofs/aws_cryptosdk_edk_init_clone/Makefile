@@ -23,11 +23,9 @@ include ../Makefile.local_default
 #########
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 
-AWS_DEEP_CHECKS = 1
-
 CBMCFLAGS +=
 
-DEFINES +=
+DEFINES += -DAWS_DEEP_CHECKS=1
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
