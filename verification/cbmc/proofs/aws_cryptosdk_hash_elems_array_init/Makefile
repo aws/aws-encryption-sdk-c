@@ -30,8 +30,8 @@ DEFINES += -DAWS_NO_STATIC_IMPL
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
-PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
-PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/array_list.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
