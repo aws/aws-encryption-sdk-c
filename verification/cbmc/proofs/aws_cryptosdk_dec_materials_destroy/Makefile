@@ -36,7 +36,8 @@ PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/bn_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/ec_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
 
-AWS_DEEP_CHECKS = 1
+
+DEFINES += -DAWS_DEEP_CHECKS=1
 
 CBMCFLAGS +=
 

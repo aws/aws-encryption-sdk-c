@@ -23,7 +23,7 @@ include ../Makefile.local_default
 #########
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 
-AWS_DEEP_CHECKS = 1
+DEFINES += -DAWS_DEEP_CHECKS=1
 
 CBMCFLAGS +=
 

@@ -25,8 +25,8 @@ DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
 TABLE_SIZE_IN_WORDS=$(shell echo $$(($$((3 * $(MAX_TABLE_SIZE))) + 10)))
 
 UNWINDSET += aws_add_size_checked_varargs.0:5
-UNWINDSET += aws_cryptosdk_enc_ctx_size.0:$(shell echo $$((1 + $(MAX_TABLE_SIZE))))
-UNWINDSET += memset_override_0_impl.0:$(shell echo $$((1 + $(TABLE_SIZE_IN_WORDS))))
+UNWINDSET += aws_cryptosdk_enc_ctx_size.0:$(call addone,$(MAX_TABLE_SIZE))
+UNWINDSET += memset_override_0_impl.0:$(call addone,$(TABLE_SIZE_IN_WORDS))
 CBMCFLAGS +=
 
 # Use the generator from the harness
