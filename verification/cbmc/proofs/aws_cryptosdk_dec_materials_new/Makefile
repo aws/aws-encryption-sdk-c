@@ -48,7 +48,7 @@ PROJECT_SOURCES += $(SRCDIR)/source/edk.c
 PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
 PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
 
 HARNESS_ENTRY = aws_cryptosdk_dec_materials_new_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c

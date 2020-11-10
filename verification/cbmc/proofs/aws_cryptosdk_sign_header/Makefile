@@ -45,5 +45,6 @@ PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
 REMOVE_FUNCTION_BODY += EVP_DecryptUpdate
 REMOVE_FUNCTION_BODY += EVP_sha256
 REMOVE_FUNCTION_BODY += EVP_sha384
+REMOVE_FUNCTION_BODY += EVP_sha512
 
 include ../Makefile.common

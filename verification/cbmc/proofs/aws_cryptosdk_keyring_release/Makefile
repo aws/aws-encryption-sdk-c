@@ -45,6 +45,7 @@ PROOF_SOURCES += $(HARNESS_FILE)
 
 REMOVE_FUNCTION_BODY += hash_proof_destroy_noop
 REMOVE_FUNCTION_BODY += aws_raise_error_private
+REMOVE_FUNCTION_BODY += __CPROVER_file_local_atomics_gnu_inl_aws_atomic_fetch_sub_explicit$link5
 
 UNWINDSET +=
 
