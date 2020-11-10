@@ -67,8 +67,8 @@ REMOVE_FUNCTION_BODY += aws_byte_buf_write
 REMOVE_FUNCTION_BODY += aws_cryptosdk_enc_ctx_size
 REMOVE_FUNCTION_BODY += aws_cryptosdk_hash_elems_array_init
 
-UNWINDSET += array_list_item_generator.0:$(shell echo $$((1 + $(MAX_TABLE_SIZE))))
-UNWINDSET += aws_cryptosdk_enc_ctx_serialize.0:$(shell echo $$((1 + $(MAX_TABLE_SIZE))))
+UNWINDSET += array_list_item_generator.0:$(call addone,$(MAX_TABLE_SIZE))
+UNWINDSET += aws_cryptosdk_enc_ctx_serialize.0:$(call addone,$(MAX_TABLE_SIZE))
 
 ###########
 

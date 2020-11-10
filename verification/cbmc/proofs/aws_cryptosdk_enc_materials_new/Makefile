@@ -18,7 +18,7 @@ include ../Makefile.local_default
 
 include ../Makefile.string
 
-KEYRING_TRACE_SIZE = 10 # Value is hardcoded in aws_cryptosdk_keyring_trace_init
+DEFINES += -DKEYRING_TRACE_SIZE=10 # Value is hardcoded in aws_cryptosdk_keyring_trace_init
 # Expected runtime 38sec
 
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
@@ -27,7 +27,7 @@ PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/ec_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/bn_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
 
-AWS_DEEP_CHECKS = 1
+DEFINES += -DAWS_DEEP_CHECKS=1
 
 CBMCFLAGS +=
 
@@ -56,6 +56,6 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(HARNESS_FILE)
 
-UNWINDSET += aws_cryptosdk_keyring_trace_is_valid.0:$(shell echo $$(($(KEYRING_TRACE_SIZE) + 1)))
+UNWINDSET += aws_cryptosdk_keyring_trace_is_valid.0:$(call addone,$(KEYRING_TRACE_SIZE))
 
 include ../Makefile.common

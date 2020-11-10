@@ -21,11 +21,13 @@ include ../Makefile.aws_byte_buf
 # Expected runtime is 2min for this bound
 MAX_BUFFER_SIZE = 4
 
-UNWINDSET += aws_cryptosdk_decrypt_body.0:$(shell echo $$((1 + $(MAX_BUFFER_SIZE))))
+UNWINDSET += aws_cryptosdk_decrypt_body.0:$(call addone,$(MAX_BUFFER_SIZE))
 # This bound must be 37 because it process a string of fixed size in update_frame_aad
 UNWINDSET += strlen.0:37
 
 CBMCFLAGS +=
+
+DEFINES += -DMAX_BUFFER_SIZE=$(MAX_BUFFER_SIZE)
 
 HARNESS_ENTRY = aws_cryptosdk_decrypt_body_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
