@@ -24,8 +24,8 @@ DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
 #A table has 10 words for the struct, plus 3 words for each entry
 TABLE_SIZE_IN_WORDS=$(shell echo $$(($$((3 * $(MAX_TABLE_SIZE))) + 10)))
 
-UNWINDSET += aws_hash_table_clear.0:$(shell echo $$((1 + $(MAX_TABLE_SIZE))))
-UNWINDSET += memset_override_0_impl.0:$(shell echo $$((1 + $(TABLE_SIZE_IN_WORDS))))
+UNWINDSET += aws_hash_table_clear.0:$(call addone,$(MAX_TABLE_SIZE))
+UNWINDSET += memset_override_0_impl.0:$(call addone,$(TABLE_SIZE_IN_WORDS))
 
 CBMCFLAGS +=
 

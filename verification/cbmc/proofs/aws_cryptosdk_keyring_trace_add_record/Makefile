@@ -15,8 +15,6 @@
 include ../Makefile.string
 include ../Makefile.aws_array_list
 
-CBMC_UNWINDSET += --unwindset aws_cryptosdk_keyring_trace_is_valid.0:$(shell echo $$((2 + $(MAX_ITEM_SIZE)))),ensure_trace_has_allocated_records.0:$(shell echo $$((1 + $(MAX_ITEM_SIZE)))),aws_string_new_from_array.0:$(shell echo $$((1 + $(MAX_STRING_LEN))))
-
 HARNESS_ENTRY = aws_cryptosdk_keyring_trace_add_record_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
@@ -35,6 +33,10 @@ PROJECT_SOURCES += $(SRCDIR)/source/keyring_trace.c
 PROJECT_SOURCES += $(SRCDIR)/source/utils.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcpy_override_havoc.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
+
+UNWINDSET += aws_cryptosdk_keyring_trace_is_valid.0:$(shell echo $$((2 + $(MAX_ITEM_SIZE))))
+UNWINDSET += ensure_trace_has_allocated_records.0:$(call addone,$(MAX_ITEM_SIZE))
+UNWINDSET += aws_string_new_from_array.0:$(call addone,$(MAX_STRING_LEN))
 ###########
 
 include ../Makefile.common
