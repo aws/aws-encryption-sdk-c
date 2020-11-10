@@ -23,7 +23,6 @@ NUM_ELEMS = 2
 #2: 2m
 
 #########
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcmp_override_no_op.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_array_list_defined_type.c
 
@@ -39,8 +38,9 @@ DEFINES += -DARRAY_LIST_TYPE_HEADER=\"aws/cryptosdk/edk.h\"
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
-PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
-PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/error.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
@@ -54,7 +54,6 @@ PROOF_SOURCES += $(HARNESS_FILE)
 
 REMOVE_FUNCTION_BODY += aws_array_list_get_at_ptr
 REMOVE_FUNCTION_BODY += nondet_compare
-
 
 UNWINDSET += aws_cryptosdk_edk_list_clear.0:$(call addone,$(NUM_ELEMS))
 UNWINDSET += aws_cryptosdk_edk_list_elements_are_bounded.0:$(call addone,$(NUM_ELEMS))
