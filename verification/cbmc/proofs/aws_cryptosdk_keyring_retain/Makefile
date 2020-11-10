@@ -37,7 +37,7 @@ PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
 PROJECT_SOURCES += $(SRCDIR)/source/materials.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
 
 HARNESS_ENTRY = aws_cryptosdk_keyring_retain_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c

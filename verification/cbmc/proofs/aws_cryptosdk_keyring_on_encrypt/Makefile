@@ -39,11 +39,11 @@ PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
 
-PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
-PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
-PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/error.c
-PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
-PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/string.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/error.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/string.c
 
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/array_list.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
@@ -64,8 +64,6 @@ HARNESS_ENTRY = aws_cryptosdk_keyring_on_encrypt_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 PROOF_SOURCES += $(HARNESS_FILE)
-
-
 
 # memcmp is invoked to compare two aws_byte_buf objetcs,
 # so the upper bound limit is the size of aws_byte_buf + 1
