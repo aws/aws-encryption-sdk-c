@@ -7,3 +7,6 @@
 [submodule "verification/cbmc/templates"]
 	path = verification/cbmc/templates
 	url = https://github.com/awslabs/aws-templates-for-cbmc-proofs.git
+[submodule "verification/litani"]
+	path = verification/litani
+	url = https://github.com/awslabs/aws-build-accumulator

@@ -55,10 +55,11 @@ PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
 
-HARNESS_ENTRY = aws_cryptosdk_dec_materials_destroy_harness
+PROOF_UID = aws_cryptosdk_dec_materials_destroy
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 UNWINDSET += aws_cryptosdk_keyring_trace_is_valid.0:$(call addone,$(MAX_NUM_ITEMS))
 UNWINDSET += ensure_trace_has_allocated_records.0:$(call addone,$(MAX_NUM_ITEMS))

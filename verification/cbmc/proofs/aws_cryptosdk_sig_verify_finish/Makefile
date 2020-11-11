@@ -19,10 +19,11 @@ include ../Makefile.local_default
 
 UNWINDSET +=
 
-HARNESS_ENTRY = aws_cryptosdk_sig_verify_finish_harness
+PROOF_UID = aws_cryptosdk_sig_verify_finish
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c

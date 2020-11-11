@@ -27,10 +27,11 @@ PROJECT_SOURCES += $(SRCDIR)/source/utils.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcmp_override.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
-HARNESS_ENTRY = aws_cryptosdk_string_dup_harness
+PROOF_UID = aws_cryptosdk_string_dup
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 UNWINDSET += memcmp.0:$(call addone,$(MAX_STRING_LEN))
 ###########

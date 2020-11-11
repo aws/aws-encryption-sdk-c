@@ -51,10 +51,11 @@ REMOVE_FUNCTION_BODY += aws_cryptosdk_edk_clean_up
 REMOVE_FUNCTION_BODY += aws_cryptosdk_keyring_trace_record_is_valid
 REMOVE_FUNCTION_BODY += aws_cryptosdk_sig_ctx_is_valid
 
-HARNESS_ENTRY = aws_cryptosdk_enc_materials_new_harness
+PROOF_UID = aws_cryptosdk_enc_materials_new
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 UNWINDSET += aws_cryptosdk_keyring_trace_is_valid.0:$(call addone,$(KEYRING_TRACE_SIZE))
 

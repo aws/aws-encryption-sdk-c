@@ -21,10 +21,11 @@ UNWINDSET += aws_base64_encode.0:22 # computed according to MAX_PUBKEY_SIZE and 
 # Added check for memory leaks
 CBMCFLAGS += --memory-leak-check
 
-HARNESS_ENTRY = aws_cryptosdk_sig_get_pubkey_harness
+PROOF_UID = aws_cryptosdk_sig_get_pubkey
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c

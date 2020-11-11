@@ -56,10 +56,11 @@ PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/string.c
 PROJECT_SOURCES += $(SRCDIR)/source/enc_ctx.c
 
-HARNESS_ENTRY = aws_cryptosdk_enc_ctx_serialize_harness
+PROOF_UID = aws_cryptosdk_enc_ctx_serialize
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 #Remove function bodies to deal with CBMC function pointer removal
 REMOVE_FUNCTION_BODY += aws_array_list_sort
