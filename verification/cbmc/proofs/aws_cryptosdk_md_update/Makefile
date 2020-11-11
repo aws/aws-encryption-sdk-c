@@ -26,10 +26,11 @@ PROOF_SOURCES += $(PROOF_STUB)/evp_md_ctx_is_valid_no_pkey_stub.c
 # But might as well do it when its easy
 CBMCFLAGS += --memory-leak-check
 
-HARNESS_ENTRY = aws_cryptosdk_md_update_harness
+PROOF_UID = aws_cryptosdk_md_update
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c

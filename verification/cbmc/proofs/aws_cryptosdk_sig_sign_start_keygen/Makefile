@@ -21,10 +21,11 @@ UNWINDSET += strcmp.0:11 # computed according to MAX_PUBKEY_SIZE and the impleme
 
 PROOF_SOURCES += $(PROOF_STUB)/aws_base64_encode.c
 
-HARNESS_ENTRY = aws_cryptosdk_sig_sign_start_keygen_harness
+PROOF_UID = aws_cryptosdk_sig_sign_start_keygen
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c

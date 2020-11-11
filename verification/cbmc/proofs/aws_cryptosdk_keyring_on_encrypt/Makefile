@@ -60,10 +60,11 @@ PROJECT_SOURCES += $(SRCDIR)/source/materials.c
 
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
-HARNESS_ENTRY = aws_cryptosdk_keyring_on_encrypt_harness
+PROOF_UID = aws_cryptosdk_keyring_on_encrypt
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 # memcmp is invoked to compare two aws_byte_buf objetcs,
 # so the upper bound limit is the size of aws_byte_buf + 1

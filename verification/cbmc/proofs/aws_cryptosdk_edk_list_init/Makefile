@@ -35,10 +35,11 @@ PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
 PROJECT_SOURCES += $(SRCDIR)/source/edk.c
 
-HARNESS_ENTRY = aws_cryptosdk_edk_list_init_harness
+PROOF_UID = aws_cryptosdk_edk_list_init
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 REMOVE_FUNCTION_BODY += nondet_compare
 

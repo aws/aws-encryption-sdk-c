@@ -44,10 +44,11 @@ PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
 PROJECT_SOURCES += $(SRCDIR)/source/enc_ctx.c
 
-HARNESS_ENTRY = aws_cryptosdk_enc_ctx_deserialize_harness
+PROOF_UID = aws_cryptosdk_enc_ctx_deserialize
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 REMOVE_FUNCTION_BODY += aws_byte_cursor_read_be16
 REMOVE_FUNCTION_BODY += aws_string_destroy

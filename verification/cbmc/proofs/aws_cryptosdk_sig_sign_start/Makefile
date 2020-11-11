@@ -19,10 +19,11 @@ include ../Makefile.local_default
 
 UNWINDSET += strcmp.0:11 # computed according to MAX_PUBKEY_SIZE
 
-HARNESS_ENTRY = aws_cryptosdk_sig_sign_start_harness
+PROOF_UID = aws_cryptosdk_sig_sign_start
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROOF_SOURCES += $(PROOF_STUB)/aws_base64_encode.c
 
