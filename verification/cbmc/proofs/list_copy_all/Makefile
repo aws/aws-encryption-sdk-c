@@ -44,10 +44,11 @@ PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
 PROJECT_SOURCES += $(SRCDIR)/source/list_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
-HARNESS_ENTRY = list_copy_all_harness
+PROOF_UID = list_copy_all
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 # See the comment in the harness about the stub
 REMOVE_FUNCTION_BODY += aws_array_list_is_valid

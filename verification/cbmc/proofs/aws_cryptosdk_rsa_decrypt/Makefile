@@ -43,10 +43,11 @@ PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/ec_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/err_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
 
-HARNESS_ENTRY = aws_cryptosdk_rsa_decrypt_harness
+PROOF_UID = aws_cryptosdk_rsa_decrypt
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 UNWINDSET +=
 

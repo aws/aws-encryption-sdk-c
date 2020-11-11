@@ -22,10 +22,11 @@ UNWINDSET +=
 
 CBMCFLAGS +=
 
-HARNESS_ENTRY = aws_cryptosdk_derive_key_harness
+PROOF_UID = aws_cryptosdk_derive_key
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c

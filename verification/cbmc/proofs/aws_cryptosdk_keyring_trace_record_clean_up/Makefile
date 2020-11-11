@@ -27,10 +27,11 @@ PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
 PROJECT_SOURCES += $(SRCDIR)/source/keyring_trace.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
-HARNESS_ENTRY = aws_cryptosdk_keyring_trace_record_clean_up_harness
+PROOF_UID = aws_cryptosdk_keyring_trace_record_clean_up
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 ###########
 
