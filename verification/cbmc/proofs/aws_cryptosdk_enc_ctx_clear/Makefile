@@ -29,10 +29,11 @@ UNWINDSET += memset_override_0_impl.0:$(call addone,$(TABLE_SIZE_IN_WORDS))
 
 CBMCFLAGS +=
 
-HARNESS_ENTRY = aws_cryptosdk_enc_ctx_clear_harness
+PROOF_UID = aws_cryptosdk_enc_ctx_clear
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_destroy_override.c
 

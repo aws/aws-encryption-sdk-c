@@ -43,10 +43,11 @@ PROJECT_SOURCES += $(SRCDIR)/source/list_utils.c
 # PROJECT_SOURCES += $(SRCDIR)/source/keyring_trace.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
-HARNESS_ENTRY = aws_cryptosdk_keyring_trace_copy_all_harness
+PROOF_UID = aws_cryptosdk_keyring_trace_copy_all
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 # The original aws_array_list_is_valid() has a 64 bit multiplication.
 # CBMC performance dies trying to do all those multiplications.

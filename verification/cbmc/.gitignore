@@ -1,2 +1,5 @@
 jobs/*/link-farm
 jobs/*/html
+
+# Written by litani on each proof run
+.litani_cache_dir
