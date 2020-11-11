@@ -18,10 +18,11 @@ sinclude ../Makefile.local
 include ../Makefile.local_default
 
 #########
-HARNESS_ENTRY = aws_cryptosdk_enc_ctx_init_harness
+PROOF_UID = aws_cryptosdk_enc_ctx_init
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROJECT_SOURCES += $(SRCDIR)/source/enc_ctx.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c

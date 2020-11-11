@@ -39,10 +39,11 @@ PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
 PROJECT_SOURCES += $(SRCDIR)/source/utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
-HARNESS_ENTRY = aws_cryptosdk_hash_elems_array_init_harness
+PROOF_UID = aws_cryptosdk_hash_elems_array_init
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 UNWINDSET += aws_cryptosdk_hash_elems_array_init.0:$(call addone,$(MAX_TABLE_SIZE))
 

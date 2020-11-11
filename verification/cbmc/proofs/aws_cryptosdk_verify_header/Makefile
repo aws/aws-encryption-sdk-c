@@ -21,10 +21,11 @@ UNWINDSET += __CPROVER_file_local_cipher_c_flush_openssl_errors.0:2
 
 CBMCFLAGS +=
 
-HARNESS_ENTRY = aws_cryptosdk_verify_header_harness
+PROOF_UID = aws_cryptosdk_verify_header
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c

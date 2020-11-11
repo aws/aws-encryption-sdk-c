@@ -18,10 +18,11 @@ sinclude ../Makefile.local
 include ../Makefile.local_default
 
 #########
-HARNESS_ENTRY = MultiKeyringNew_harness
+PROOF_UID = MultiKeyringNew
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c

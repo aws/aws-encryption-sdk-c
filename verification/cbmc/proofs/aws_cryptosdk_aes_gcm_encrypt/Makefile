@@ -23,10 +23,11 @@ UNWINDSET += flush_openssl_errors.0:1
 
 CBMCFLAGS +=
 
-HARNESS_ENTRY = aws_cryptosdk_aes_gcm_encrypt_harness
+PROOF_UID = aws_cryptosdk_aes_gcm_encrypt
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcpy_override_havoc.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c

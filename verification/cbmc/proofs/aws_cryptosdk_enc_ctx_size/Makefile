@@ -32,10 +32,11 @@ CBMCFLAGS +=
 # Use the generator from the harness
 DEFINES += -DHASH_ITER_ELEMENT_GENERATOR=hash_iterator_generator2
 
-HARNESS_ENTRY = aws_cryptosdk_enc_ctx_size_harness
+PROOF_UID = aws_cryptosdk_enc_ctx_size
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_hash_iter_overrides.c
 REMOVE_FUNCTION_BODY += aws_hash_iter_begin
