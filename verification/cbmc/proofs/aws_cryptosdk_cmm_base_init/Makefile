@@ -36,10 +36,11 @@ PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
 PROJECT_SOURCES += $(SRCDIR)/source/materials.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
-HARNESS_ENTRY = aws_cryptosdk_cmm_base_init_harness
+PROOF_UID = aws_cryptosdk_cmm_base_init
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 #REMOVE_FUNCTION_BODIES += --remove-function-body nondet_compare
 

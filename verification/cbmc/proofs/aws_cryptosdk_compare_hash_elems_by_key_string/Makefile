@@ -24,10 +24,11 @@ PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/string.c
 PROJECT_SOURCES += $(SRCDIR)/source/utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
-HARNESS_ENTRY = aws_cryptosdk_compare_hash_elems_by_key_string_harness
+PROOF_UID = aws_cryptosdk_compare_hash_elems_by_key_string
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 UNWINDSET += memcmp.0:$(call addone,$(MAX_STRING_LEN))
 

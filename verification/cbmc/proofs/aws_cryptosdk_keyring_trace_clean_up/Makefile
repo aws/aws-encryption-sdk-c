@@ -21,10 +21,11 @@ include ../Makefile.aws_array_list
 
 CBMCFLAGS +=
 
-HARNESS_ENTRY = aws_cryptosdk_keyring_trace_clean_up_harness
+PROOF_UID = aws_cryptosdk_keyring_trace_clean_up
+HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(HARNESS_FILE)
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROJECT_SOURCES += $(SRCDIR)/source/keyring_trace.c
 PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
