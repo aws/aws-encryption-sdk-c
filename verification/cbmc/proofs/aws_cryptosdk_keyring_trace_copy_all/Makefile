@@ -22,32 +22,33 @@ include ../Makefile.local_default
 NUM_ELEMS = 2 #Gets full coverage. Property check takes 3m20s on my laptop.
 
 #########
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
+
+PROOF_UID = aws_cryptosdk_keyring_trace_copy_all
+
+HARNESS_ENTRY = $(PROOF_UID)_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
 CBMCFLAGS +=
 
-DEFINES += -DNUM_ELEMS=$(NUM_ELEMS)
 DEFINES += -DAWS_NO_STATIC_IMPL
+DEFINES += -DNUM_ELEMS=$(NUM_ELEMS)
 
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
-PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
-PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/error.c
-PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/array_list.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/error.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
+#PROJECT_SOURCES += $(SRCDIR)/source/keyring_trace.c
 PROJECT_SOURCES += $(SRCDIR)/source/list_utils.c
-# PROJECT_SOURCES += $(SRCDIR)/source/keyring_trace.c
-PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
-PROOF_UID = aws_cryptosdk_keyring_trace_copy_all
-HARNESS_ENTRY = $(PROOF_UID)_harness
-HARNESS_FILE = $(HARNESS_ENTRY).c
-
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
 # The original aws_array_list_is_valid() has a 64 bit multiplication.
 # CBMC performance dies trying to do all those multiplications.
