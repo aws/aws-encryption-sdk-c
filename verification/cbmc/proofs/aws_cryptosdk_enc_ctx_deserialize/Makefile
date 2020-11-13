@@ -23,11 +23,11 @@ include ../Makefile.local_default
 MAX_NUM_ELEMS = 2
 
 #########
-#if we don't include the hash_table.c, we don't need to remove their function bodies
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_byte_cursor_read_be16_override.c
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_hash_table_no_slots_override.c
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_destroy_override.c
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_new_from_array_override.c
+
+PROOF_UID = aws_cryptosdk_enc_ctx_deserialize
+
+HARNESS_ENTRY = $(PROOF_UID)_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
 CBMCFLAGS +=
 
@@ -37,24 +37,24 @@ DEFINES += -DMAX_NUM_ELEMS=$(MAX_NUM_ELEMS)
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+#if we don't include the hash_table.c, we don't need to remove their function bodies
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_byte_cursor_read_be16_override.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_hash_table_no_slots_override.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_destroy_override.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_new_from_array_override.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
+
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
 PROJECT_SOURCES += $(SRCDIR)/source/enc_ctx.c
 
-PROOF_UID = aws_cryptosdk_enc_ctx_deserialize
-HARNESS_ENTRY = $(PROOF_UID)_harness
-HARNESS_FILE = $(HARNESS_ENTRY).c
-
-PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
-
 REMOVE_FUNCTION_BODY += aws_byte_cursor_read_be16
 REMOVE_FUNCTION_BODY += aws_string_destroy
 REMOVE_FUNCTION_BODY += aws_string_new_from_array
 
 UNWINDSET += aws_cryptosdk_enc_ctx_deserialize.0:$(call addone,$(MAX_NUM_ELEMS))
-
 ###########
 include ../Makefile.common

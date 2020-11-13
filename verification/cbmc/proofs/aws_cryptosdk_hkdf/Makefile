@@ -18,31 +18,31 @@ sinclude ../Makefile.local
 include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
 
-UNWINDSET +=
-
-CBMCFLAGS +=
-
 PROOF_UID = aws_cryptosdk_hkdf
+
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
+CBMCFLAGS +=
 
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcpy_override_havoc.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
-PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
-PROJECT_SOURCES += $(SRCDIR)/source/hkdf.c
-PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c
-PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/bn_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/ec_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
+PROJECT_SOURCES += $(SRCDIR)/source/hkdf.c
 
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcpy_override_havoc.c
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
+PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
+
+UNWINDSET +=
 ###########
 
 include ../Makefile.common
