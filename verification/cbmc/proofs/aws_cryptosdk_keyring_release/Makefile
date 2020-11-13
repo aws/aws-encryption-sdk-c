@@ -18,35 +18,34 @@ include ../Makefile.local_default
 
 # Expect runtime for this proof is 8 seconds
 
-CBMCFLAGS +=
-
-# aws_atomic_fetch_sub_explicit receives a volatile input, which is always model
-# as non-deterministic in CBMC; thus, we need a deterministic stub for it
-PROOF_SOURCES += $(PROOF_STUB)/aws_atomic_fetch_sub_explicit.c
-REMOVE_FUNCTION_BODY += aws_atomic_fetch_sub_explicit
-
-PROOF_SOURCES += $(PROOF_STUB)/aws_atomic_load_int.c
-REMOVE_FUNCTION_BODY += aws_atomic_load_int
-
-PROOF_SOURCES += $(PROOF_STUB)/aws_atomic_priv_xlate_order.c
-REMOVE_FUNCTION_BODY += aws_atomic_priv_xlate_order
-
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
-PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
-PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
-PROJECT_SOURCES += $(SRCDIR)/source/materials.c
-PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
-
 PROOF_UID = aws_cryptosdk_keyring_release
+
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
+CBMCFLAGS +=
 
-REMOVE_FUNCTION_BODY += hash_proof_destroy_noop
-REMOVE_FUNCTION_BODY += aws_raise_error_private
+
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
+PROJECT_SOURCES += $(SRCDIR)/source/materials.c
+
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
+# aws_atomic_fetch_sub_explicit receives a volatile input, which is always model
+# as non-deterministic in CBMC; thus, we need a deterministic stub for it
+PROOF_SOURCES += $(PROOF_STUB)/aws_atomic_fetch_sub_explicit.c
+PROOF_SOURCES += $(PROOF_STUB)/aws_atomic_load_int.c
+PROOF_SOURCES += $(PROOF_STUB)/aws_atomic_priv_xlate_order.c
+
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_atomics_gnu_inl_aws_atomic_fetch_sub_explicit$link5
+REMOVE_FUNCTION_BODY += aws_atomic_fetch_sub_explicit
+REMOVE_FUNCTION_BODY += aws_atomic_load_int
+REMOVE_FUNCTION_BODY += aws_atomic_priv_xlate_order
+REMOVE_FUNCTION_BODY += aws_raise_error_private
+REMOVE_FUNCTION_BODY += hash_proof_destroy_noop
 
 UNWINDSET +=
 

@@ -19,41 +19,40 @@ include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
 include ../Makefile.string
 
-# We abstract these functions as manual inspection shows there is no ec_key associated with the PKEY.
-PROOF_SOURCES += $(PROOF_STUB)/EVP_PKEY_free_no_ec_key_stub.c
-PROOF_SOURCES += $(PROOF_STUB)/evp_pkey_is_valid_no_ec_key_stub.c
+PROOF_UID = aws_cryptosdk_rsa_encrypt
+
+HARNESS_ENTRY = $(PROOF_UID)_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
 CBMCFLAGS +=
 
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcpy_override_havoc.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
-PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
-PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
-PROJECT_SOURCES += $(SRCDIR)/source/hkdf.c
-PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c
-PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/bio_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/bn_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/ec_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/err_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
+PROJECT_SOURCES += $(SRCDIR)/source/hkdf.c
 
-PROOF_UID = aws_cryptosdk_rsa_encrypt
-HARNESS_ENTRY = $(PROOF_UID)_harness
-HARNESS_FILE = $(HARNESS_ENTRY).c
-
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcpy_override_havoc.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
-
-UNWINDSET +=
+PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
+# We abstract these functions as manual inspection shows there is no ec_key associated with the PKEY.
+PROOF_SOURCES += $(PROOF_STUB)/EVP_PKEY_free_no_ec_key_stub.c
+PROOF_SOURCES += $(PROOF_STUB)/evp_pkey_is_valid_no_ec_key_stub.c
 
 REMOVE_FUNCTION_BODY += EVP_PKEY_free
 REMOVE_FUNCTION_BODY += evp_pkey_is_valid
 
+UNWINDSET +=
 ###########
 
 include ../Makefile.common
