@@ -21,31 +21,31 @@ include ../Makefile.local_default
 # Local vars
 
 #########
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
+
+PROOF_UID = aws_cryptosdk_cmm_retain
+
+HARNESS_ENTRY = $(PROOF_UID)_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
 CBMCFLAGS +=
 
-DEFINES += -DAWS_DEEP_CHECKS = 1
+DEFINES += -DAWS_DEEP_CHECKS=1
+
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
+PROJECT_SOURCES += $(SRCDIR)/source/materials.c
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
-PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
-PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
-PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
-PROJECT_SOURCES += $(SRCDIR)/source/materials.c
-PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
-PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
-
-PROOF_UID = aws_cryptosdk_cmm_retain
-HARNESS_ENTRY = $(PROOF_UID)_harness
-HARNESS_FILE = $(HARNESS_ENTRY).c
-
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
 #REMOVE_FUNCTION_BODIES += --remove-function-body nondet_compare
 
 UNWINDSET +=
-
 ###########
 include ../Makefile.common

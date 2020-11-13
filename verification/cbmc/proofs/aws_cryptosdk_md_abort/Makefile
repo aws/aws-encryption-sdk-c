@@ -17,35 +17,34 @@ sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
-# We abstract these functions as manual inspection shows there is no pkey associated with the MD_ctx.
-PROOF_SOURCES += $(PROOF_STUB)/EVP_MD_CTX_free_no_pkey_stub.c
-PROOF_SOURCES += $(PROOF_STUB)/evp_md_ctx_is_valid_no_pkey_stub.c
+PROOF_UID = aws_cryptosdk_md_abort
+
+HARNESS_ENTRY = $(PROOF_UID)_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
 # Adds check for memory leaks for this proof
 # Turning this flag on globally would require all proofs to carefully release objects, which they don't do.
 # But might as well do it when its easy
 CBMCFLAGS += --memory-leak-check
 
-PROOF_UID = aws_cryptosdk_md_abort
-HARNESS_ENTRY = $(PROOF_UID)_harness
-HARNESS_FILE = $(HARNESS_ENTRY).c
-
-PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
-
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
-PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
-PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c
-PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/bn_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/ec_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
 
-UNWINDSET +=
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
+PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
+# We abstract these functions as manual inspection shows there is no pkey associated with the MD_ctx.
+PROOF_SOURCES += $(PROOF_STUB)/EVP_MD_CTX_free_no_pkey_stub.c
+PROOF_SOURCES += $(PROOF_STUB)/evp_md_ctx_is_valid_no_pkey_stub.c
 
 REMOVE_FUNCTION_BODY += EVP_MD_CTX_free
 REMOVE_FUNCTION_BODY += evp_md_ctx_is_valid
 
+UNWINDSET +=
 ###########
 
 include ../Makefile.common

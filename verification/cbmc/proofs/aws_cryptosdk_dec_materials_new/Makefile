@@ -25,36 +25,36 @@ include ../Makefile.string
 KEYRING_TRACE_SIZE = 10 # Value is hardcoded in aws_cryptosdk_keyring_trace_init
 
 #########
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_hash_table_no_slots_override.c
-PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/ec_override.c
-PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/bn_override.c
-PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
+PROOF_UID = aws_cryptosdk_dec_materials_new
+
+HARNESS_ENTRY = $(PROOF_UID)_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
+
+CBMCFLAGS +=
 
 DEFINES += -DKEYRING_TRACE_SIZE=$(KEYRING_TRACE_SIZE)
 DEFINES += -DAWS_DEEP_CHECKS=1
 
-CBMCFLAGS +=
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
+PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/bn_override.c
+PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/ec_override.c
+PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
+PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
+PROJECT_SOURCES += $(SRCDIR)/source/edk.c
+PROJECT_SOURCES += $(SRCDIR)/source/keyring_trace.c
+PROJECT_SOURCES += $(SRCDIR)/source/materials.c
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
-PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
-PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
-PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
-PROJECT_SOURCES += $(SRCDIR)/source/materials.c
-PROJECT_SOURCES += $(SRCDIR)/source/keyring_trace.c
-PROJECT_SOURCES += $(SRCDIR)/source/edk.c
-PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
-PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
-PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
-PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
-
-PROOF_UID = aws_cryptosdk_dec_materials_new
-HARNESS_ENTRY = $(PROOF_UID)_harness
-HARNESS_FILE = $(HARNESS_ENTRY).c
-
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_hash_table_no_slots_override.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
+PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
 UNWINDSET += aws_cryptosdk_keyring_trace_is_valid.0:$(shell echo $$(($(KEYRING_TRACE_SIZE) + 1)))
 ###########

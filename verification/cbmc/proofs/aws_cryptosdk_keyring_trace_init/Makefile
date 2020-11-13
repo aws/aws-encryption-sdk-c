@@ -17,25 +17,25 @@ sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
+PROOF_UID = aws_cryptosdk_keyring_trace_init
+
+HARNESS_ENTRY = $(PROOF_UID)_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
+
 CBMCFLAGS +=
 
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
 PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
 PROJECT_SOURCES += $(SRCDIR)/source/keyring_trace.c
+
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
-PROOF_UID = aws_cryptosdk_keyring_trace_init
-HARNESS_ENTRY = $(PROOF_UID)_harness
-HARNESS_FILE = $(HARNESS_ENTRY).c
-
-PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
-
 UNWINDSET +=
-
 ###########
 
 include ../Makefile.common
