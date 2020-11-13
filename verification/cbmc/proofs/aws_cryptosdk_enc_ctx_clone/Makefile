@@ -22,13 +22,11 @@ include ../Makefile.local_default
 MAX_TABLE_SIZE ?= 4
 # Time on my laptop: 5m10s
 #########
-#if we don't include the hash_table.c, we don't need to remove their function bodies
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_hash_table_no_slots_override.c
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_destroy_override.c
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_new_from_array_override.c
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/hash_table_generators.c
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcmp_override_no_op.c
+
+PROOF_UID = aws_cryptosdk_enc_ctx_clone
+
+HARNESS_ENTRY = $(PROOF_UID)_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
 CBMCFLAGS +=
 
@@ -39,6 +37,15 @@ DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+#if we don't include the hash_table.c, we don't need to remove their function bodies
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_hash_table_no_slots_override.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_destroy_override.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_new_from_array_override.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/hash_table_generators.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcmp_override_no_op.c
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
+
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
@@ -46,11 +53,7 @@ PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/string.c
 PROJECT_SOURCES += $(SRCDIR)/source/enc_ctx.c
 
-PROOF_UID = aws_cryptosdk_enc_ctx_clone
-HARNESS_ENTRY = $(PROOF_UID)_harness
-HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 REMOVE_FUNCTION_BODY += aws_string_destroy
 REMOVE_FUNCTION_BODY += aws_string_new_from_array

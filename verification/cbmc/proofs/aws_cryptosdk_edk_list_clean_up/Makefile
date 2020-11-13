@@ -23,39 +23,39 @@ NUM_ELEMS = 2
 #2: 2m
 
 #########
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcmp_override_no_op.c
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_array_list_defined_type.c
 
-#DEFINES += -DAWS_DEEP_CHECKS=1
+PROOF_UID = aws_cryptosdk_edk_list_clean_up
+
+HARNESS_ENTRY = $(PROOF_UID)_harness
+HARNESS_FILE = $(HARNESS_ENTRY).c
 
 CBMCFLAGS +=
 
-DEFINES += -DNUM_ELEMS=$(NUM_ELEMS)
 DEFINES += -DARRAY_LIST_TYPE="struct aws_cryptosdk_edk"
-DEFINES += -DAWS_NO_STATIC_IMPL
 DEFINES += -DARRAY_LIST_TYPE_HEADER=\"aws/cryptosdk/edk.h\"
+#DEFINES += -DAWS_DEEP_CHECKS=1
+DEFINES += -DAWS_NO_STATIC_IMPL
+DEFINES += -DNUM_ELEMS=$(NUM_ELEMS)
+
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/error.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
+PROJECT_SOURCES += $(SRCDIR)/source/edk.c
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
-PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
-PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
-PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/error.c
-PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
-PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
-PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
-PROJECT_SOURCES += $(SRCDIR)/source/edk.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_array_list_defined_type.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcmp_override_no_op.c
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
-PROOF_UID = aws_cryptosdk_edk_list_clean_up
-HARNESS_ENTRY = $(PROOF_UID)_harness
-HARNESS_FILE = $(HARNESS_ENTRY).c
-
-PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
-
 REMOVE_FUNCTION_BODY += aws_array_list_get_at_ptr
-REMOVE_FUNCTION_BODY += nondet_compare
 REMOVE_FUNCTION_BODY += aws_raise_error_private
+REMOVE_FUNCTION_BODY += nondet_compare
 
 UNWINDSET += aws_cryptosdk_edk_list_clear.0:$(call addone,$(NUM_ELEMS))
 UNWINDSET += aws_cryptosdk_edk_list_elements_are_bounded.0:$(call addone,$(NUM_ELEMS))
