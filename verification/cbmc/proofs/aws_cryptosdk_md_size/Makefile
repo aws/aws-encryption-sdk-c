@@ -18,13 +18,13 @@ sinclude ../Makefile.local
 include ../Makefile.local_default
 
 PROOF_UID = aws_cryptosdk_md_size
+
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
-
 PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
 
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 ###########
 
 include ../Makefile.common

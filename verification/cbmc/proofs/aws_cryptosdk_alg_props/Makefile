@@ -17,19 +17,19 @@ sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
-UNWINDSET +=
-
-CBMCFLAGS +=
-
 PROOF_UID = aws_cryptosdk_alg_props
+
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
+CBMCFLAGS +=
 
 PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
 PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
 
+PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
+
+UNWINDSET +=
 ###########
 
 include ../Makefile.common
