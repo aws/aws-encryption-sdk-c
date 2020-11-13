@@ -47,6 +47,7 @@ REMOVE_FUNCTION_BODY += aws_raise_error_private
 REMOVE_FUNCTION_BODY += EVP_DecryptUpdate
 REMOVE_FUNCTION_BODY += EVP_sha256
 REMOVE_FUNCTION_BODY += EVP_sha384
+REMOVE_FUNCTION_BODY += EVP_sha512
 REMOVE_FUNCTION_BODY += nondet_compare
 
 include ../Makefile.common
