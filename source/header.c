@@ -458,7 +458,7 @@ WRITE_ERR:
     return aws_raise_error(AWS_ERROR_SHORT_BUFFER);
 }
 
-bool aws_cryptosdk_hdr_is_valid(struct aws_cryptosdk_hdr *hdr) {
+bool aws_cryptosdk_hdr_is_valid(const struct aws_cryptosdk_hdr *hdr) {
     /* header is not NULL and each field is valid */
     return hdr != NULL && aws_cryptosdk_edk_list_is_valid(&hdr->edk_list) &&
            aws_cryptosdk_edk_list_elements_are_valid(&hdr->edk_list) && aws_byte_buf_is_valid(&hdr->message_id) &&
