@@ -15,13 +15,11 @@
 
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/keyring_trace.h>
-#include <aws/cryptosdk/materials.h>
-
+#include <aws/cryptosdk/materias.h>
 #include <aws/cryptosdk/private/header.h>
 #include <aws/cryptosdk/private/hkdf.h>
 #include <aws/cryptosdk/private/keyring_trace.h>
 #include <aws/cryptosdk/private/multi_keyring.h>
-
 #include <cipher_openssl.h>
 #include <ec_utils.h>
 #include <evp_utils.h>
