@@ -19,7 +19,6 @@
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/private/framefmt.h>
 #include <aws/cryptosdk/private/header.h>
-#include <aws/cryptosdk/private/session.h>
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
