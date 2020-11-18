@@ -126,4 +126,9 @@ bool aws_cryptosdk_algorithm_is_known(uint16_t alg_id);
  */
 bool aws_cryptosdk_algorithm_is_committing(uint16_t alg_id);
 
+/**
+ * Returns true if aws_cryptosdk_hdr is valid and false otherwise.
+ */
+bool aws_cryptosdk_hdr_is_valid(const struct aws_cryptosdk_hdr *hdr);
+
 #endif  // AWS_CRYPTOSDK_PRIVATE_HEADER_H
