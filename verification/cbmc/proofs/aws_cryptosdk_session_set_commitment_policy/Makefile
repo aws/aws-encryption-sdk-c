@@ -16,7 +16,7 @@ sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 
-PROOF_UID = aws_cryptosdk_priv_algorithm_allowed_for_encrypt
+PROOF_UID = aws_cryptosdk_session_set_commitment_policy
 
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c

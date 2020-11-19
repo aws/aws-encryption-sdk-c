@@ -15,7 +15,6 @@
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
-include ../Makefile.aws_byte_buf
 
 PROOF_UID = aws_cryptosdk_priv_algorithm_allowed_for_decrypt
 
