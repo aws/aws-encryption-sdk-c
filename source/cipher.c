@@ -357,7 +357,10 @@ static int aws_cryptosdk_private_derive_key_v2(
     const struct aws_byte_buf myikm  = aws_byte_buf_from_array(data_key->keybuf, props->data_key_len);
 
     memset(content_key->keybuf, 0, sizeof(content_key->keybuf));
-    memset(commitment->buffer, 0, props->commitment_len);
+    if (props->commitment_len) {
+        assert(AWS_MEM_IS_WRITABLE(commitment->buffer, props->commitment_len));
+        memset(commitment->buffer, 0, props->commitment_len);
+    }
 
     uint8_t derivekey_info_array[] = "\0\0DERIVEKEY";
     derivekey_info_array[0]        = props->alg_id >> 8;
