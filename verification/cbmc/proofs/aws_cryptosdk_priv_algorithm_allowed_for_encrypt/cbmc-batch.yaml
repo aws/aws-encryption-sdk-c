@@ -1,8 +1,4 @@
-build_memory: 32000
-cbmcflags: "--unwind;1;--flush;--object-bits;8;--external-sat-solver;kissat;--malloc-may-fail;--malloc-fail-null;--bounds-check;--conversion-check;--div-by-zero-check;--float-overflow-check;--nan-check;--pointer-check;--pointer-overflow-check;--pointer-primitive-check;--signed-overflow-check;--undefined-shift-check;--unsigned-overflow-check;--unwinding-assertions;--malloc-may-fail;--malloc-fail-null"
-coverage_memory: 32000
-expected: SUCCESSFUL
-goto: /Users/tegab/clean/aws-encryption-sdk-c/verification/cbmc/proofs/aws_cryptosdk_priv_algorithm_allowed_for_encrypt/gotos/aws_cryptosdk_priv_algorithm_allowed_for_encrypt_harness.c.goto
-jobos: ubuntu16
-property_memory: 32000
-report_memory: 32000
+:
+  This file marks this directory as containing a CBMC proof. This file
+  is automatically clobbered in CI and replaced with parameters for
+  running the proof.
