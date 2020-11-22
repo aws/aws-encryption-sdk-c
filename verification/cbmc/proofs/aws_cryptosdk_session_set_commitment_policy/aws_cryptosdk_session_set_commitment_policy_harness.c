@@ -26,8 +26,7 @@ void aws_cryptosdk_session_set_commitment_policy_harness() {
     __CPROVER_assume(session != NULL);
 
     /* Function under test */
-    int ret = aws_cryptosdk_session_set_commitment_policy(session, policy);
-    if (ret == AWS_OP_SUCCESS) {
+    if (aws_cryptosdk_session_set_commitment_policy(session, policy) == AWS_OP_SUCCESS) {
         /* Assertions */
         assert(aws_cryptosdk_commitment_policy_is_valid(session->commitment_policy));
         assert(session->state == ST_CONFIG);
