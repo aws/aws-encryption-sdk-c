@@ -127,7 +127,8 @@ bool aws_cryptosdk_algorithm_is_known(uint16_t alg_id);
 bool aws_cryptosdk_algorithm_is_committing(uint16_t alg_id);
 
 /**
- * Returns true if aws_cryptosdk_hdr is valid and false otherwise.
+ * Evaluates the set of properties that define the shape of all valid aws_cryptosdk_hdr structures.
+ * It is also a cheap check, in the sense it run in constant time (i.e., no loops or recursion).
  */
 bool aws_cryptosdk_hdr_is_valid(const struct aws_cryptosdk_hdr *hdr);
 

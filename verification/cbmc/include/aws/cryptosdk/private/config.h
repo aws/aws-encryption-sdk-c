@@ -15,6 +15,7 @@
 
 #pragma once
 
-/* aws-encryption-sdk-crequires a configuration file.
- * We do not currently need to set any options.
+/*
+ * AWS Encryption SDK for C requires a configuration file.
+ * We do not currently need to set any options for CBMC proofs.
  */
