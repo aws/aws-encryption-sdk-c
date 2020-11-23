@@ -20,10 +20,9 @@
 
 void aws_cryptosdk_hdr_size_harness() {
     /* Nondet Input */
-    struct aws_cryptosdk_hdr *hdr = ensure_nondet_hdr_has_allocated_members();
+    struct aws_cryptosdk_hdr *hdr = ensure_nondet_hdr_has_allocated_members(MAX_TABLE_SIZE);
 
     /* Assumptions */
-    ensure_hdr_members_have_allocated_members(hdr, MAX_TABLE_SIZE);
     __CPROVER_assume(aws_cryptosdk_hdr_members_are_bounded(hdr, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE));
 
     /* Precondition: The edk list has allocated list elements */
