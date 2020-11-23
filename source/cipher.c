@@ -358,7 +358,7 @@ static int aws_cryptosdk_private_derive_key_v2(
 
     memset(content_key->keybuf, 0, sizeof(content_key->keybuf));
     if (props->commitment_len) {
-        assert(AWS_MEM_IS_WRITABLE(commitment->buffer, props->commitment_len));
+        assert(commitment->buffer);
         memset(commitment->buffer, 0, props->commitment_len);
     }
 
