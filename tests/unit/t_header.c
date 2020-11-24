@@ -258,6 +258,7 @@ static struct aws_cryptosdk_hdr test_header_1_hdr() {
         .iv         = { .buffer = test_header_1_iv_arr, .len = sizeof(test_header_1_iv_arr) },
         .auth_tag   = { .buffer = test_header_1_auth_tag_arr, .len = sizeof(test_header_1_auth_tag_arr) },
         .message_id = { .buffer = test_header_1_message_id_arr, .len = sizeof(test_header_1_message_id_arr) },
+        .alg_suite_data = { .buffer = NULL, .len = 0 },
         //        .aad_tbl = test_header_1_aad_tbl,
         //        .edk_tbl = test_header_1_edk_tbl,
         .auth_len = sizeof(test_header_1) - 29  // not used by aws_cryptosdk_hdr_size/write
