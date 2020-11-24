@@ -22,13 +22,14 @@ PROOF_UID = aws_cryptosdk_hdr_size
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
+# Increasing the length of the edk_list or enc_ctx beyond 2 does not improve coverage.
+# There we set both to 2 for performance.
 MAX_EDK_LIST_ITEMS ?= 2
 MAX_TABLE_SIZE ?= 2
 
 DEFINES += -DAWS_NO_STATIC_IMPL
 DEFINES += -DMAX_EDK_LIST_ITEMS=$(MAX_EDK_LIST_ITEMS)
 DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
-DEFINES += -DMEMCPY_STUB_MAX=128
 DEFINES += -DARRAY_LIST_TYPE="struct aws_cryptosdk_edk"
 DEFINES += -DARRAY_LIST_TYPE_HEADER=\"aws/cryptosdk/edk.h\"
 
@@ -64,6 +65,6 @@ UNWINDSET += aws_cryptosdk_edk_list_elements_are_bounded.0:$(call addone,$(MAX_E
 UNWINDSET += aws_cryptosdk_edk_list_elements_are_valid.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
 UNWINDSET += aws_cryptosdk_hdr_size.0:$(call addone,$(MAX_EDK_LIST_ITEMS)) 
 UNWINDSET += ensure_cryptosdk_edk_list_has_allocated_list_elements.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
-UNWINDSET += memcmp.0:$(shell echo $$(($(MAX_BUFFER_SIZE) + 1)))
+UNWINDSET += memcmp.0:$(call addone,$(MAX_BUFFER_SIZE))
 
 include ../Makefile.common
