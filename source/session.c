@@ -215,6 +215,7 @@ int aws_cryptosdk_session_set_message_bound(struct aws_cryptosdk_session *sessio
 
 int aws_cryptosdk_session_set_commitment_policy(
     struct aws_cryptosdk_session *session, enum aws_cryptosdk_commitment_policy commitment_policy) {
+    AWS_PRECONDITION(session != NULL);
     /*
      * We set the commitment policy _first_ in order to ensure that, if someone ignores the INVALID_ARGUMENT error,
      * we'll fail subsequent operations.
