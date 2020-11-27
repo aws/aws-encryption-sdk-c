@@ -31,13 +31,14 @@
 #include <proof_helpers/proof_allocators.h>
 
 void ensure_alg_properties_attempt_allocation(struct aws_cryptosdk_alg_properties *const alg_props) {
-    if (alg_props == NULL) return;
-    size_t md_name_size;
-    alg_props->md_name = malloc(md_name_size);
-    size_t cipher_name_size;
-    alg_props->cipher_name = malloc(cipher_name_size);
-    size_t alg_name_size;
-    alg_props->alg_name = malloc(alg_name_size);
+    if (alg_props) {
+        size_t md_name_size;
+        alg_props->md_name = malloc(md_name_size);
+        size_t cipher_name_size;
+        alg_props->cipher_name = malloc(cipher_name_size);
+        size_t alg_name_size;
+        alg_props->alg_name = malloc(alg_name_size);
+    }
 }
 
 void ensure_record_has_allocated_members(struct aws_cryptosdk_keyring_trace_record *record, size_t max_len) {
