@@ -1,0 +1,116 @@
+/*
+ * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"). You may not
+ * use
+ * this file except in compliance with the License. A copy of the License is
+ * located at
+ *
+ *     http://aws.amazon.com/apache2.0/
+ *
+ * or in the "license" file accompanying this file. This file is distributed on
+ * an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or
+ * implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <aws/cryptosdk/default_cmm.h>
+#include <aws/cryptosdk/materials.h>
+#include <make_common_data_structures.h>
+
+int on_encrypt(
+    struct aws_cryptosdk_keyring *keyring,
+    struct aws_allocator *request_alloc,
+    struct aws_byte_buf *unencrypted_data_key,
+    struct aws_array_list *keyring_trace,
+    struct aws_array_list *edks,
+    const struct aws_hash_table *enc_ctx,
+    enum aws_cryptosdk_alg_id alg) {
+    /* Check validity for all inputs to avoid memory-safety violations. */
+    assert(aws_cryptosdk_keyring_is_valid(keyring));
+    assert(aws_allocator_is_valid(request_alloc));
+    assert(aws_byte_buf_is_valid(unencrypted_data_key));
+    assert(aws_cryptosdk_keyring_trace_is_valid(keyring_trace));
+    assert(aws_cryptosdk_edk_list_is_valid(edks));
+    assert(aws_cryptosdk_edk_list_elements_are_valid(edks));
+    assert((enc_ctx == NULL) || aws_hash_table_is_valid(enc_ctx));
+
+    if (unencrypted_data_key->buffer == NULL) {
+        const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg);
+        if (props != NULL) {
+            __CPROVER_assume(aws_byte_buf_is_bounded(unencrypted_data_key, props->data_key_len));
+            ensure_byte_buf_has_allocated_buffer_member(unencrypted_data_key);
+            /*
+             * This satisfies the post-condition that if this keyring
+             * generated data key, it must be the right length.
+             * The nondeterminism increases coverage.
+             */
+            if (nondet_bool()) unencrypted_data_key->len = props->data_key_len;
+            unencrypted_data_key->allocator = request_alloc;
+            __CPROVER_assume(aws_byte_buf_is_valid(unencrypted_data_key));
+        }
+    } else {
+        /*
+         * If the buffer is not NULL, the byte buffer must not have been modified;
+         * however, this allocation modifies the buffer and increases coverage.
+         */
+        if (nondet_bool()) ensure_byte_buf_has_allocated_buffer_member(unencrypted_data_key);
+    }
+    int ret;
+    return ret;
+}
+
+void default_cmm_generate_enc_materials_harness() {
+    /* Nondet input required to init cmm */
+    struct aws_cryptosdk_keyring *keyring        = malloc(sizeof(*keyring));
+    const struct aws_cryptosdk_keyring_vt vtable = { .vt_size    = sizeof(struct aws_cryptosdk_keyring_vt),
+                                                     .name       = ensure_c_str_is_allocated(SIZE_MAX),
+                                                     .destroy    = nondet_voidp(),
+                                                     .on_encrypt = nondet_bool() ? NULL : on_encrypt,
+                                                     .on_decrypt = nondet_voidp() };
+    /* Assumptions required to init cmm */
+    ensure_cryptosdk_keyring_has_allocated_members(keyring, &vtable);
+    __CPROVER_assume(aws_cryptosdk_keyring_is_valid(keyring));
+    __CPROVER_assume(keyring->vtable != NULL);
+
+    /* Nondet input */
+    struct aws_cryptosdk_cmm *cmm               = aws_cryptosdk_default_cmm_new(can_fail_allocator(), keyring);
+    struct aws_cryptosdk_enc_materials **output = malloc(sizeof(*output));
+    struct aws_cryptosdk_enc_request *request   = malloc(sizeof(*request));
+
+    /* Assumptions */
+    __CPROVER_assume(cmm != NULL);
+
+    __CPROVER_assume(output != NULL);
+
+    __CPROVER_assume(request != NULL);
+    request->alloc = can_fail_allocator();
+    __CPROVER_assume(aws_allocator_is_valid(request->alloc));
+    request->enc_ctx = malloc(sizeof(*request->enc_ctx));
+    __CPROVER_assume(request->enc_ctx != NULL);
+    ensure_allocated_hash_table(request->enc_ctx, MAX_NUM_ITEMS);
+    __CPROVER_assume(aws_cryptosdk_enc_request_is_valid(request));
+
+    enum aws_cryptosdk_alg_id alg_id;
+    if (nondet_bool()) request->requested_alg = alg_id;
+    // We can either add this OR add "if (!props) goto err;" after line 61 in the source code
+    // I think adding the check to the source code is better in this case.
+    // struct aws_cryptosdk_alg_properties *alg_props = aws_cryptosdk_alg_props(alg_id);
+    // __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(alg_props));
+
+    /* Nondet set self->default_alg to a valid alg_id */
+    __CPROVER_assume(aws_cryptosdk_default_cmm_set_alg_id(cmm, alg_id) == AWS_OP_SUCCESS);
+
+    /* Operation under verification */
+    if (__CPROVER_file_local_default_cmm_c_default_cmm_generate_enc_materials(cmm, output, request) == AWS_OP_SUCCESS) {
+        assert(aws_cryptosdk_enc_materials_is_valid(*output));
+    } else {
+        assert(*output == NULL);
+    }
+
+    /* Postconditions */
+    assert(aws_cryptosdk_cmm_base_is_valid(cmm));
+    assert(aws_cryptosdk_enc_request_is_valid(request));
+}

@@ -37,6 +37,10 @@ static int default_cmm_generate_enc_materials(
     struct aws_cryptosdk_cmm *cmm,
     struct aws_cryptosdk_enc_materials **output,
     struct aws_cryptosdk_enc_request *request) {
+    AWS_PRECONDITION(cmm != NULL);
+    AWS_PRECONDITION(output != NULL);
+    AWS_PRECONDITION(aws_cryptosdk_enc_request_is_valid(request));
+
     struct aws_cryptosdk_enc_materials *enc_mat = NULL;
     struct default_cmm *self                    = (struct default_cmm *)cmm;
     struct aws_hash_element *pElement           = NULL;
@@ -59,6 +63,7 @@ static int default_cmm_generate_enc_materials(
         }
     }
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(request->requested_alg);
+    if (!props) goto err;
 
     enc_mat = aws_cryptosdk_enc_materials_new(request->alloc, request->requested_alg);
     if (!enc_mat) goto err;
