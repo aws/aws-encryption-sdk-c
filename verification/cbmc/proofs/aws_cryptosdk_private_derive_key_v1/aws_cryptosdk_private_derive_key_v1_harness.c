@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ void aws_cryptosdk_private_derive_key_v1_harness() {
     ensure_byte_buf_has_allocated_buffer_member(message_id);
     __CPROVER_assume(aws_byte_buf_is_valid(message_id));
 
-    // /* Save current state of the data structure */
+    /* Save current state of the data structure */
     struct aws_byte_buf *old_message_id = message_id;
     struct store_byte_from_buffer old_byte_from_message_id;
     save_byte_from_array(message_id->buffer, message_id->len, &old_byte_from_message_id);

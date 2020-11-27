@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -32,15 +32,15 @@ void aws_cryptosdk_private_derive_key_harness() {
 
     __CPROVER_assume(data_key != NULL);
 
-    __CPROVER_assume(message_id != NULL);
-    __CPROVER_assume(aws_byte_buf_is_bounded(message_id, MAX_BUFFER_SIZE));
-    ensure_byte_buf_has_allocated_buffer_member(message_id);
-    __CPROVER_assume(aws_byte_buf_is_valid(message_id));
-
     __CPROVER_assume(commitment != NULL);
     __CPROVER_assume(aws_byte_buf_is_bounded(commitment, MAX_BUFFER_SIZE));
     ensure_byte_buf_has_allocated_buffer_member(commitment);
     __CPROVER_assume(aws_byte_buf_is_valid(commitment));
+
+    __CPROVER_assume(message_id != NULL);
+    __CPROVER_assume(aws_byte_buf_is_bounded(message_id, MAX_BUFFER_SIZE));
+    ensure_byte_buf_has_allocated_buffer_member(message_id);
+    __CPROVER_assume(aws_byte_buf_is_valid(message_id));
 
     /* Save current state of the data structure */
     struct aws_byte_buf *old_commitment = commitment;
