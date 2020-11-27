@@ -164,6 +164,7 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_default_cmm_new(struct aws_allocator *al
 }
 
 int aws_cryptosdk_default_cmm_set_alg_id(struct aws_cryptosdk_cmm *cmm, enum aws_cryptosdk_alg_id alg_id) {
+    AWS_PRECONDITION(cmm != NULL);
     struct default_cmm *self = (struct default_cmm *)cmm;
     assert(self->base.vtable == &default_cmm_vt);
 
