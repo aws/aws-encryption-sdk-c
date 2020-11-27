@@ -160,8 +160,10 @@ enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id
 
 void ensure_cryptosdk_keyring_has_allocated_members(
     struct aws_cryptosdk_keyring *keyring, const struct aws_cryptosdk_keyring_vt *vtable) {
-    keyring->refcount.value = can_fail_malloc(sizeof(size_t));
-    keyring->vtable         = nondet_bool() ? NULL : vtable;
+    if (keyring) {
+        keyring->refcount.value = malloc(sizeof(size_t));
+        keyring->vtable         = nondet_bool() ? NULL : vtable;
+    }
 }
 
 void ensure_nondet_allocate_keyring_vtable_members(struct aws_cryptosdk_keyring_vt *vtable, size_t max_len) {
