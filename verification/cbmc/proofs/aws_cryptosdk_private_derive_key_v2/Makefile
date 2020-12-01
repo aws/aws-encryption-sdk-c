@@ -19,11 +19,10 @@ include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
 
 PROOF_UID = aws_cryptosdk_private_derive_key_v2
-
-CBMCFLAGS +=
-
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
+
+CBMCFLAGS +=
 
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c

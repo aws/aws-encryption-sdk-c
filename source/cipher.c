@@ -280,8 +280,6 @@ bool aws_cryptosdk_alg_properties_is_valid(const struct aws_cryptosdk_alg_proper
 }
 
 bool aws_cryptosdk_private_commitment_eq(struct aws_byte_buf *a, struct aws_byte_buf *b) {
-    AWS_PRECONDITION(a != NULL);
-    AWS_PRECONDITION(b != NULL);
     AWS_PRECONDITION(aws_byte_buf_is_valid(a));
     AWS_PRECONDITION(aws_byte_buf_is_valid(b));
 
@@ -325,7 +323,6 @@ static int aws_cryptosdk_private_derive_key_v1(
     const struct aws_byte_buf *message_id) {
     AWS_PRECONDITION(content_key != NULL);
     AWS_PRECONDITION(data_key != NULL);
-    AWS_PRECONDITION(message_id != NULL);
     AWS_PRECONDITION(aws_byte_buf_is_valid(message_id));
 
     if (message_id->len != MSG_ID_LEN) {
@@ -359,8 +356,6 @@ static int aws_cryptosdk_private_derive_key_v2(
     const struct aws_byte_buf *message_id) {
     AWS_PRECONDITION(content_key != NULL);
     AWS_PRECONDITION(data_key != NULL);
-    AWS_PRECONDITION(commitment != NULL);
-    AWS_PRECONDITION(message_id != NULL);
     AWS_PRECONDITION(aws_byte_buf_is_valid(commitment));
     AWS_PRECONDITION(aws_byte_buf_is_valid(message_id));
 
@@ -418,10 +413,8 @@ int aws_cryptosdk_private_derive_key(
     AWS_PRECONDITION(content_key != NULL);
     AWS_PRECONDITION(data_key != NULL);
     if (props->msg_format_version == AWS_CRYPTOSDK_HEADER_VERSION_2_0) {
-        AWS_PRECONDITION(commitment != NULL);
         AWS_PRECONDITION(aws_byte_buf_is_valid(commitment));
     }
-    AWS_PRECONDITION(message_id != NULL);
     AWS_PRECONDITION(aws_byte_buf_is_valid(message_id));
 
     if (props->msg_format_version == AWS_CRYPTOSDK_HEADER_VERSION_1_0) {

@@ -19,17 +19,17 @@ include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
 #########
 # Local vars
-COMMIT_BYTES_NUM = 4
+# Commitment values are 32 bytes long. In aws_cryptosdk_private_commitment_eq,
+# two of these are compared in a loop with (32 / sizeof(uintptr_t)) iterations.
+# (32 / sizeof(uintptr_t)) equals 4 since sizeof(uintptr_t) is 8UL
+COMMITMENT_EQ_ITERATIONS = 4
 
 #########
 PROOF_UID = aws_cryptosdk_private_commitment_eq
-
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
 CBMCFLAGS += 
-
-DEFINES += $(COMMIT_BYTES_NUM)
 
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
@@ -39,7 +39,7 @@ PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
-UNWINDSET += aws_cryptosdk_private_commitment_eq.0:$(call addone, $(COMMIT_BYTES_NUM))
+UNWINDSET += aws_cryptosdk_private_commitment_eq.0:$(call addone, $(COMMITMENT_EQ_ITERATIONS))
 ###########
 
 include ../Makefile.common

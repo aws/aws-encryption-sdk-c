@@ -25,8 +25,10 @@ void aws_cryptosdk_private_algorithm_message_id_len_harness() {
     __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(props));
 
     /* Operation under verification */
-    aws_cryptosdk_private_algorithm_message_id_len(props);
+    size_t message_id_len = aws_cryptosdk_private_algorithm_message_id_len(props);
 
     /* Postconditions */
     assert(aws_cryptosdk_alg_properties_is_valid(props));
+    assert(IMPLIES(props->msg_format_version == AWS_CRYPTOSDK_HEADER_VERSION_1_0, message_id_len == MSG_ID_LEN));
+    assert(IMPLIES(props->msg_format_version == AWS_CRYPTOSDK_HEADER_VERSION_2_0, message_id_len == MSG_ID_LEN_V2));
 }

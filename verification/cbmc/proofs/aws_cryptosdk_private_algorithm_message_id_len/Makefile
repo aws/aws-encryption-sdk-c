@@ -24,6 +24,10 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 
 CBMCFLAGS += 
 
+# these are defined in cipher.c
+DEFINES += -DMSG_ID_LEN=16
+DEFINES += -DMSG_ID_LEN_V2=32
+
 PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c

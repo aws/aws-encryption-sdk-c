@@ -32,12 +32,9 @@
 
 void ensure_alg_properties_attempt_allocation(struct aws_cryptosdk_alg_properties *const alg_props) {
     if (alg_props) {
-        size_t md_name_size;
-        alg_props->md_name = malloc(md_name_size);
-        size_t cipher_name_size;
-        alg_props->cipher_name = malloc(cipher_name_size);
-        size_t alg_name_size;
-        alg_props->alg_name = malloc(alg_name_size);
+        alg_props->md_name     = malloc(nondet_size_t());
+        alg_props->cipher_name = malloc(nondet_size_t());
+        alg_props->alg_name    = malloc(nondet_size_t());
     }
 }
 

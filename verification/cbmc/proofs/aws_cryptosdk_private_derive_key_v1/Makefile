@@ -19,7 +19,6 @@ include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
 
 PROOF_UID = aws_cryptosdk_private_derive_key_v1
-
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
