@@ -366,6 +366,7 @@ static void init_aws_byte_buf_raw(struct aws_byte_buf *buf) {
 }
 int aws_cryptosdk_hdr_write(
     const struct aws_cryptosdk_hdr *hdr, size_t *bytes_written, uint8_t *outbuf, size_t outlen) {
+    AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(hdr));
     struct aws_byte_buf output = aws_byte_buf_from_array(outbuf, outlen);
     output.len                 = 0;
 
@@ -460,7 +461,7 @@ WRITE_ERR:
 
 bool aws_cryptosdk_hdr_is_valid(const struct aws_cryptosdk_hdr *hdr) {
     /* Header is not NULL and each field is a valid structure. */
-    return hdr != NULL && aws_cryptosdk_edk_list_is_valid(&hdr->edk_list) &&
+    return hdr != NULL && aws_allocator_is_valid(hdr->alloc) && aws_cryptosdk_edk_list_is_valid(&hdr->edk_list) &&
            aws_cryptosdk_edk_list_elements_are_valid(&hdr->edk_list) && aws_byte_buf_is_valid(&hdr->message_id) &&
            aws_byte_buf_is_valid(&hdr->iv) && aws_byte_buf_is_valid(&hdr->alg_suite_data) &&
            aws_byte_buf_is_valid(&hdr->auth_tag) && aws_hash_table_is_valid(&hdr->enc_ctx);
