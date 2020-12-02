@@ -17,7 +17,7 @@ sinclude ../Makefile.local
 include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
 
-PROOF_UID = aws_cryptosdk_priv_hdr_parse_alg_id
+PROOF_UID = aws_cryptosdk_priv_hdr_parse_message_id
 
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
@@ -43,7 +43,6 @@ PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
 PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/error.c
 PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
 PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/string.c
-PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
 PROJECT_SOURCES += $(SRCDIR)/source/edk.c
 PROJECT_SOURCES += $(SRCDIR)/source/enc_ctx.c
 PROJECT_SOURCES += $(SRCDIR)/source/header.c
