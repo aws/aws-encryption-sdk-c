@@ -66,7 +66,7 @@ PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 REMOVE_FUNCTION_BODIES += --remove-function-body aws_array_list_get_at_ptr
 REMOVE_FUNCTION_BODIES += --remove-function-body nondet_compare
 
-#enc_ctx_clear
+# Functions removed for enc_ctx_clear
 REMOVE_FUNCTION_BODIES += aws_hash_callback_string_destroy
 REMOVE_FUNCTION_BODIES += aws_hash_string
 REMOVE_FUNCTION_BODIES += aws_raise_error_private
