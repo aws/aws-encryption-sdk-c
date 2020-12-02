@@ -18,6 +18,7 @@
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/private/framefmt.h>
+#include <aws/cryptosdk/private/header.h>
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
@@ -29,7 +30,7 @@ void ensure_alg_properties_attempt_allocation(struct aws_cryptosdk_alg_propertie
 /* Allocates the members of the context and ensures that internal pointers are pointing to the correct objects. */
 void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ctx);
 
-/* Allocates the members of the context and ensures that internal pointers are pointing to the correct objects. */
+/* Allocates the members of the sig context and ensures that internal pointers are pointing to the correct objects. */
 struct aws_cryptosdk_sig_ctx *ensure_nondet_sig_ctx_has_allocated_members();
 
 bool aws_cryptosdk_edk_list_is_bounded(
@@ -37,6 +38,13 @@ bool aws_cryptosdk_edk_list_is_bounded(
 bool aws_cryptosdk_edk_list_elements_are_bounded(const struct aws_array_list *const list, const size_t max_item_size);
 void ensure_cryptosdk_edk_list_has_allocated_list(struct aws_array_list *list);
 void ensure_cryptosdk_edk_list_has_allocated_list_elements(struct aws_array_list *list);
+
+/* Allocates the members of the header and ensures that internal pointers are pointing to the correct objects. */
+struct aws_cryptosdk_hdr *ensure_nondet_hdr_has_allocated_members(const size_t max_table_size);
+
+/* Determines if the members of the header are bounded. */
+bool aws_cryptosdk_hdr_members_are_bounded(
+    const struct aws_cryptosdk_hdr *hdr, const size_t max_edk_item_size, const size_t max_item_size);
 
 /* Makes internal function from cipher.c accessible for CBMC */
 enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id alg_id);
