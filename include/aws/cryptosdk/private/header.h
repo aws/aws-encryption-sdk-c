@@ -78,6 +78,117 @@ void aws_cryptosdk_hdr_clear(struct aws_cryptosdk_hdr *hdr);
 int aws_cryptosdk_hdr_parse(struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *cursor);
 
 /**
+ * Parses the header version from the cursor into *header_version.
+ */
+int aws_cryptosdk_priv_hdr_parse_header_version(
+    struct aws_cryptosdk_hdr *hdr, uint8_t *header_version, struct aws_byte_cursor *cur);
+
+/**
+ * Parses the message type from the cursor and asserts that it equals
+ * AWS_CRYPTOSDK_HEADER_TYPE_CUSTOMER_AED.
+ */
+int aws_cryptosdk_priv_hdr_parse_message_type(struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *cur);
+
+/**
+ * Parses the algorithm ID from the cursor into hdr->alg_id and sets *alg_props
+ * to the corresponding aws_cryptosdk_alg_properties struct.
+ */
+int aws_cryptosdk_priv_hdr_parse_alg_id(
+    struct aws_cryptosdk_hdr *hdr,
+    const struct aws_cryptosdk_alg_properties **alg_props,
+    uint8_t header_version,
+    struct aws_byte_cursor *cur);
+
+/**
+ * Parses the message ID from the cursor into hdr->message_id, using alg_props
+ * to determine the correct length of message ID.
+ */
+int aws_cryptosdk_priv_hdr_parse_message_id(
+    struct aws_cryptosdk_hdr *hdr, const struct aws_cryptosdk_alg_properties *alg_props, struct aws_byte_cursor *cur);
+
+/**
+ * Parses the AAD length and AAD raw data from the cursor, deserializing the
+ * raw data into hdr->enc_ctx.
+ */
+int aws_cryptosdk_priv_hdr_parse_aad(struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *cur);
+
+/**
+ * Parses the EDK count and EDKs' raw data from the cursor, deserializing the
+ * raw data into hdr->edk_list.
+ */
+int aws_cryptosdk_priv_hdr_parse_edks(struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *cur);
+
+/**
+ * Parses the content type from the cursor into *content_type.
+ */
+int aws_cryptosdk_priv_hdr_parse_content_type(
+    struct aws_cryptosdk_hdr *hdr, uint8_t *content_type, struct aws_byte_cursor *cur);
+
+/**
+ * Parses the 32-bit reserved field from the cursor and asserts that it is
+ * equal to zero.
+ */
+int aws_cryptosdk_priv_hdr_parse_reserved(struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *cur);
+
+/**
+ * Parses the IV length into *iv_len and asserts that it is correct for
+ * hdr->alg_id.
+ */
+int aws_cryptosdk_priv_hdr_parse_iv_len(struct aws_cryptosdk_hdr *hdr, uint8_t *iv_len, struct aws_byte_cursor *cur);
+
+/**
+ * Parses the frame length into hdr->frame_len and asserts that it is
+ * consistent with content_type.
+ */
+int aws_cryptosdk_priv_hdr_parse_frame_len(
+    struct aws_cryptosdk_hdr *hdr, uint8_t content_type, struct aws_byte_cursor *cur);
+
+/**
+ * Parses the algorithm suite data into hdr->alg_suite_data, using alg_props to
+ * determine the appropriate length.
+ */
+int aws_cryptosdk_priv_hdr_parse_alg_suite_data(
+    struct aws_cryptosdk_hdr *hdr, const struct aws_cryptosdk_alg_properties *alg_props, struct aws_byte_cursor *cur);
+
+/**
+ * Parses the IV into hdr->iv, using iv_len as the length.
+ */
+int aws_cryptosdk_priv_hdr_parse_iv(struct aws_cryptosdk_hdr *hdr, uint8_t iv_len, struct aws_byte_cursor *cur);
+
+/**
+ * Parses the auth tag into hdr->auth_tag, using hdr->alg_id to determine the
+ * tag length.
+ */
+int aws_cryptosdk_priv_hdr_parse_auth_tag(struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *cur);
+
+/**
+ * Clears hdr and raises AWS_ERROR_SHORT_BUFFER. Used when reading from a
+ * buffer with insufficient data to parse.
+ */
+int aws_cryptosdk_priv_hdr_parse_err_short_buf(struct aws_cryptosdk_hdr *hdr);
+
+/**
+ * Clears hdr and raises AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT. Used for parse
+ * errors that indicate a malformed message header, such as unrecognized field
+ * constants and mismatches between values parsed from the header and those
+ * defined by the algorithm suite.
+ */
+int aws_cryptosdk_priv_hdr_parse_err_generic(struct aws_cryptosdk_hdr *hdr);
+
+/**
+ * Clears hdr and returns AWS_OP_ERR without raising a new error. Used to
+ * indicate allocation failure during parsing.
+ */
+int aws_cryptosdk_priv_hdr_parse_err_mem(struct aws_cryptosdk_hdr *hdr);
+
+/**
+ * Clears hdr and returns AWS_OP_ERR without raising a new error. Used to
+ * rethrow errors that arise from functions called in order to parse a header
+ * field.
+ */
+int aws_cryptosdk_priv_hdr_parse_err_rethrow(struct aws_cryptosdk_hdr *hdr);
+
+/**
  * Reads information from already parsed hdr object and determines how many bytes are
  * needed to serialize.
  *
