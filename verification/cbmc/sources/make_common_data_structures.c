@@ -153,6 +153,8 @@ struct aws_cryptosdk_hdr *ensure_nondet_hdr_has_allocated_members(const size_t m
     if (hdr != NULL) {
         hdr->alloc     = nondet_bool() ? NULL : can_fail_allocator();
         hdr->frame_len = malloc(sizeof(hdr->frame_len));
+        enum aws_cryptosdk_alg_props alg_id;
+        hdr->alg_id = alg_id;
         ensure_byte_buf_has_allocated_buffer_member(&hdr->iv);
         ensure_byte_buf_has_allocated_buffer_member(&hdr->auth_tag);
         ensure_byte_buf_has_allocated_buffer_member(&hdr->message_id);
