@@ -82,7 +82,6 @@ void aws_cryptosdk_priv_hdr_parse_edks_harness() {
     /* Operation under verification */
     if (aws_cryptosdk_priv_hdr_parse_edks(hdr, pcursor) == AWS_OP_SUCCESS) {
         /* Postconditions */
-        assert(aws_cryptosdk_hdr_is_valid(hdr));
         assert_byte_buf_equivalence(&hdr->message_id, &old_message_id, &old_byte_from_message_id);
         assert_byte_buf_equivalence(&hdr->iv, &old_iv, &old_byte_from_iv);
         assert_byte_buf_equivalence(&hdr->alg_suite_data, &old_alg_suite_data, &old_byte_from_alg_suite_data);
