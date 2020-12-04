@@ -16,6 +16,7 @@
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/keyring_trace.h>
 #include <aws/cryptosdk/materials.h>
+#include <aws/cryptosdk/private/header.h>
 #include <aws/cryptosdk/private/hkdf.h>
 #include <aws/cryptosdk/private/keyring_trace.h>
 #include <aws/cryptosdk/private/multi_keyring.h>
@@ -126,21 +127,54 @@ bool aws_cryptosdk_edk_list_elements_are_bounded(const struct aws_array_list *co
 }
 
 void ensure_cryptosdk_edk_list_has_allocated_list(struct aws_array_list *list) {
-    if (list->current_size == 0) {
-        __CPROVER_assume(list->data == NULL);
-        list->alloc = can_fail_allocator();
-    } else {
-        size_t max_length = list->current_size / sizeof(struct aws_cryptosdk_edk);
-        list->data        = bounded_malloc(sizeof(struct aws_cryptosdk_edk) * max_length);
-        list->alloc       = nondet_bool() ? NULL : can_fail_allocator();
+    if (list != NULL) {
+        if (list->current_size == 0) {
+            __CPROVER_assume(list->data == NULL);
+            list->alloc = can_fail_allocator();
+        } else {
+            size_t max_length = list->current_size / sizeof(struct aws_cryptosdk_edk);
+            list->data        = bounded_malloc(sizeof(struct aws_cryptosdk_edk) * max_length);
+            list->alloc       = nondet_bool() ? NULL : can_fail_allocator();
+        }
     }
 }
 
 void ensure_cryptosdk_edk_list_has_allocated_list_elements(struct aws_array_list *list) {
-    for (size_t i = 0; i < list->length; ++i) {
-        struct aws_cryptosdk_edk *data = (struct aws_cryptosdk_edk *)list->data;
-        ensure_cryptosdk_edk_has_allocated_members(&(data[i]));
+    if (aws_cryptosdk_edk_list_is_valid(list)) {
+        for (size_t i = 0; i < list->length; ++i) {
+            struct aws_cryptosdk_edk *data = (struct aws_cryptosdk_edk *)list->data;
+            ensure_cryptosdk_edk_has_allocated_members(&(data[i]));
+        }
     }
+}
+
+struct aws_cryptosdk_hdr *ensure_nondet_hdr_has_allocated_members(const size_t max_table_size) {
+    struct aws_cryptosdk_hdr *hdr = malloc(sizeof(*hdr));
+    if (hdr != NULL) {
+        hdr->alloc = nondet_bool() ? NULL : can_fail_allocator();
+        ensure_byte_buf_has_allocated_buffer_member(&hdr->iv);
+        ensure_byte_buf_has_allocated_buffer_member(&hdr->auth_tag);
+        ensure_byte_buf_has_allocated_buffer_member(&hdr->message_id);
+        ensure_byte_buf_has_allocated_buffer_member(&hdr->alg_suite_data);
+        ensure_allocated_hash_table(&hdr->enc_ctx, max_table_size);
+        ensure_cryptosdk_edk_list_has_allocated_list(&hdr->edk_list);
+    }
+    return hdr;
+}
+
+bool aws_cryptosdk_hdr_members_are_bounded(
+    const struct aws_cryptosdk_hdr *hdr, const size_t max_edk_item_size, const size_t max_item_size) {
+    if (hdr != NULL) {
+        /*IV buffer length might need further constraints, this is done in the harness when necessary */
+        return aws_cryptosdk_edk_list_is_bounded(&hdr->edk_list, max_edk_item_size) &&
+               (!aws_cryptosdk_edk_list_is_valid(&hdr->edk_list) ||
+                aws_cryptosdk_edk_list_elements_are_bounded(&hdr->edk_list, max_item_size)) &&
+               aws_byte_buf_is_bounded(&hdr->iv, max_item_size) &&
+               aws_byte_buf_is_bounded(&hdr->auth_tag, max_item_size) &&
+               aws_byte_buf_is_bounded(&hdr->message_id, max_item_size) &&
+               aws_byte_buf_is_bounded(&hdr->alg_suite_data, max_item_size);
+    }
+    return true; /* If hdr is NULL, true by default */
 }
 
 enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id alg_id) {
