@@ -151,8 +151,7 @@ void ensure_cryptosdk_edk_list_has_allocated_list_elements(struct aws_array_list
 struct aws_cryptosdk_hdr *ensure_nondet_hdr_has_allocated_members(const size_t max_table_size) {
     struct aws_cryptosdk_hdr *hdr = malloc(sizeof(*hdr));
     if (hdr != NULL) {
-        hdr->alloc     = nondet_bool() ? NULL : can_fail_allocator();
-        hdr->frame_len = malloc(sizeof(hdr->frame_len));
+        hdr->alloc = nondet_bool() ? NULL : can_fail_allocator();
         ensure_byte_buf_has_allocated_buffer_member(&hdr->iv);
         ensure_byte_buf_has_allocated_buffer_member(&hdr->auth_tag);
         ensure_byte_buf_has_allocated_buffer_member(&hdr->message_id);
@@ -170,10 +169,10 @@ bool aws_cryptosdk_hdr_members_are_bounded(
         return aws_cryptosdk_edk_list_is_bounded(&hdr->edk_list, max_edk_item_size) &&
                (!aws_cryptosdk_edk_list_is_valid(&hdr->edk_list) ||
                 aws_cryptosdk_edk_list_elements_are_bounded(&hdr->edk_list, max_item_size)) &&
-               aws_byte_buf_is_bounded(&hdr->message_id, max_item_size) &&
                aws_byte_buf_is_bounded(&hdr->iv, max_item_size) &&
-               aws_byte_buf_is_bounded(&hdr->alg_suite_data, max_item_size) &&
-               aws_byte_buf_is_bounded(&hdr->auth_tag, max_item_size);
+               aws_byte_buf_is_bounded(&hdr->auth_tag, max_item_size) &&
+               aws_byte_buf_is_bounded(&hdr->message_id, max_item_size) &&
+               aws_byte_buf_is_bounded(&hdr->alg_suite_data, max_item_size);
     }
     return true; /* If hdr is NULL, true by default */
 }
@@ -195,8 +194,10 @@ enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id
 
 void ensure_cryptosdk_keyring_has_allocated_members(
     struct aws_cryptosdk_keyring *keyring, const struct aws_cryptosdk_keyring_vt *vtable) {
-    keyring->refcount.value = can_fail_malloc(sizeof(size_t));
-    keyring->vtable         = nondet_bool() ? NULL : vtable;
+    if (keyring) {
+        keyring->refcount.value = malloc(sizeof(size_t));
+        keyring->vtable         = nondet_bool() ? NULL : vtable;
+    }
 }
 
 void ensure_nondet_allocate_keyring_vtable_members(struct aws_cryptosdk_keyring_vt *vtable, size_t max_len) {
