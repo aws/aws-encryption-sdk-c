@@ -301,12 +301,17 @@ int aws_cryptosdk_priv_hdr_parse_edks(struct aws_cryptosdk_hdr *hdr, struct aws_
 
 int aws_cryptosdk_priv_hdr_parse_content_type(
     struct aws_cryptosdk_hdr *hdr, uint8_t *content_type, struct aws_byte_cursor *cur) {
+    AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(hdr));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(cur));
+    AWS_PRECONDITION(content_type != NULL);
     if (!aws_byte_cursor_read_u8(cur, content_type)) return aws_cryptosdk_priv_hdr_parse_err_short_buf(hdr);
     if (aws_cryptosdk_unlikely(!is_known_type(*content_type))) return aws_cryptosdk_priv_hdr_parse_err_generic(hdr);
     return AWS_OP_SUCCESS;
 }
 
 int aws_cryptosdk_priv_hdr_parse_reserved(struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *cur) {
+    AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(hdr));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(cur));
     uint32_t reserved;  // Must be zero
     if (!aws_byte_cursor_read_be32(cur, &reserved)) return aws_cryptosdk_priv_hdr_parse_err_short_buf(hdr);
     if (reserved) return aws_cryptosdk_priv_hdr_parse_err_generic(hdr);
