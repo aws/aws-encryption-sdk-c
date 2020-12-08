@@ -23,7 +23,7 @@
 void make_hash_table_with_no_backing_store(struct aws_hash_table *map, size_t max_table_entries);
 
 /**
- * In the aws_cryptosdk_enc_ctx_deserilize() proof, the first value we read is the number of elements,
+ * In the aws_cryptosdk_enc_ctx_deserilize() proof, the first value we read (second overall) is the number of elements,
  * which we need to be constrained in order to ensure that the proof finishes. All other values can be left nondet.
  * This generates exactly that set of bytes
  */
@@ -62,29 +62,29 @@ void aws_cryptosdk_priv_hdr_parse_aad_harness() {
     __CPROVER_assume(aws_byte_cursor_is_valid(pcursor));
 
     /* Save current state of the data structure */
-    struct aws_byte_buf old_message_id = hdr->message_id;
-    struct store_byte_from_buffer old_byte_from_message_id;
-    save_byte_from_array(hdr->message_id.buffer, hdr->message_id.len, &old_byte_from_message_id);
-
     struct aws_byte_buf old_iv = hdr->iv;
     struct store_byte_from_buffer old_byte_from_iv;
     save_byte_from_array(hdr->iv.buffer, hdr->iv.len, &old_byte_from_iv);
-
-    struct aws_byte_buf old_alg_suite_data = hdr->alg_suite_data;
-    struct store_byte_from_buffer old_byte_from_alg_suite_data;
-    save_byte_from_array(hdr->alg_suite_data.buffer, hdr->alg_suite_data.len, &old_byte_from_alg_suite_data);
 
     struct aws_byte_buf old_auth_tag = hdr->auth_tag;
     struct store_byte_from_buffer old_byte_from_auth_tag;
     save_byte_from_array(hdr->auth_tag.buffer, hdr->auth_tag.len, &old_byte_from_auth_tag);
 
+    struct aws_byte_buf old_message_id = hdr->message_id;
+    struct store_byte_from_buffer old_byte_from_message_id;
+    save_byte_from_array(hdr->message_id.buffer, hdr->message_id.len, &old_byte_from_message_id);
+
+    struct aws_byte_buf old_alg_suite_data = hdr->alg_suite_data;
+    struct store_byte_from_buffer old_byte_from_alg_suite_data;
+    save_byte_from_array(hdr->alg_suite_data.buffer, hdr->alg_suite_data.len, &old_byte_from_alg_suite_data);
+
     /* Operation under verification */
     if (aws_cryptosdk_priv_hdr_parse_aad(hdr, pcursor) == AWS_OP_SUCCESS) {
         /* Postconditions */
         assert(aws_cryptosdk_hdr_is_valid(hdr));
-        assert_byte_buf_equivalence(&hdr->message_id, &old_message_id, &old_byte_from_message_id);
         assert_byte_buf_equivalence(&hdr->iv, &old_iv, &old_byte_from_iv);
-        assert_byte_buf_equivalence(&hdr->alg_suite_data, &old_alg_suite_data, &old_byte_from_alg_suite_data);
         assert_byte_buf_equivalence(&hdr->auth_tag, &old_auth_tag, &old_byte_from_auth_tag);
+        assert_byte_buf_equivalence(&hdr->message_id, &old_message_id, &old_byte_from_message_id);
+        assert_byte_buf_equivalence(&hdr->alg_suite_data, &old_alg_suite_data, &old_byte_from_alg_suite_data);
     }
 }
