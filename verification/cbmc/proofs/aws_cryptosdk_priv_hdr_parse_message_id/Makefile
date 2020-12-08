@@ -26,11 +26,11 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 MAX_EDK_LIST_ITEMS ?= 2
 MAX_TABLE_SIZE ?= 2
 
-DEFINES += -DMAX_EDK_LIST_ITEMS=$(MAX_EDK_LIST_ITEMS)
-DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
 DEFINES += -DARRAY_LIST_TYPE="struct aws_cryptosdk_edk"
 DEFINES += -DARRAY_LIST_TYPE_HEADER=\"aws/cryptosdk/edk.h\"
 DEFINES += -DAWS_NO_STATIC_IMPL
+DEFINES += -DMAX_EDK_LIST_ITEMS=$(MAX_EDK_LIST_ITEMS)
+DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
 
 CBMCFLAGS +=
 
@@ -47,7 +47,6 @@ PROJECT_SOURCES += $(SRCDIR)/source/edk.c
 PROJECT_SOURCES += $(SRCDIR)/source/enc_ctx.c
 PROJECT_SOURCES += $(SRCDIR)/source/header.c
 
-
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
@@ -56,9 +55,6 @@ PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_destroy_override.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcmp_override_no_op.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
-
-
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 # Remove function bodies to deal with CBMC function pointer removal
@@ -75,10 +71,10 @@ REMOVE_FUNCTION_BODIES += aws_string_destroy
 REMOVE_FUNCTION_BODIES += aws_string_is_valid
 REMOVE_FUNCTION_BODIES += hashlittle2
 
-UNWINDSET += aws_hash_table_clear.0:$(call addone,$(MAX_TABLE_SIZE))
 UNWINDSET += aws_cryptosdk_edk_list_clear.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
 UNWINDSET += aws_cryptosdk_edk_list_elements_are_bounded.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
 UNWINDSET += aws_cryptosdk_edk_list_elements_are_valid.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
+UNWINDSET += aws_hash_table_clear.0:$(call addone,$(MAX_TABLE_SIZE))
 UNWINDSET += ensure_cryptosdk_edk_list_has_allocated_list_elements.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
 
 include ../Makefile.common
