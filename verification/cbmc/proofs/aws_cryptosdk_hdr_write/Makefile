@@ -24,7 +24,7 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 
 # Values are chosen for performance. 
 # Increaseing either does not increase the coverage. 
-MAX_EDK_LIST_ITEMS ?= 2
+MAX_EDK_LIST_ITEMS ?= 1
 MAX_IV_LEN ?= 12
 MAX_TABLE_SIZE ?= 2
 
@@ -40,6 +40,7 @@ CBMCFLAGS +=
 
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/string.c
 PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
 PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/byte_order.c
 PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/error.c
