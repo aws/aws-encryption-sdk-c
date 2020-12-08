@@ -151,7 +151,7 @@ void ensure_cryptosdk_edk_list_has_allocated_list_elements(struct aws_array_list
 struct aws_cryptosdk_hdr *ensure_nondet_hdr_has_allocated_members(const size_t max_table_size) {
     struct aws_cryptosdk_hdr *hdr = malloc(sizeof(*hdr));
     if (hdr != NULL) {
-        hdr->alloc     = nondet_bool() ? NULL : can_fail_allocator();
+        hdr->alloc = nondet_bool() ? NULL : can_fail_allocator();
         enum aws_cryptosdk_alg_props alg_id;
         hdr->alg_id = alg_id;
         ensure_byte_buf_has_allocated_buffer_member(&hdr->iv);
