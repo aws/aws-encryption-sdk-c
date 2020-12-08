@@ -46,6 +46,10 @@ void aws_cryptosdk_priv_hdr_parse_iv_harness() {
     __CPROVER_assume(aws_byte_cursor_is_valid(pcursor));
 
     /* Save current state of the data structure */
+    struct aws_byte_buf old_auth_tag = hdr->auth_tag;
+    struct store_byte_from_buffer old_byte_from_auth_tag;
+    save_byte_from_array(hdr->auth_tag.buffer, hdr->auth_tag.len, &old_byte_from_auth_tag);
+
     struct aws_byte_buf old_message_id = hdr->message_id;
     struct store_byte_from_buffer old_byte_from_message_id;
     save_byte_from_array(hdr->message_id.buffer, hdr->message_id.len, &old_byte_from_message_id);
@@ -54,10 +58,6 @@ void aws_cryptosdk_priv_hdr_parse_iv_harness() {
     struct store_byte_from_buffer old_byte_from_alg_suite_data;
     save_byte_from_array(hdr->alg_suite_data.buffer, hdr->alg_suite_data.len, &old_byte_from_alg_suite_data);
 
-    struct aws_byte_buf old_auth_tag = hdr->auth_tag;
-    struct store_byte_from_buffer old_byte_from_auth_tag;
-    save_byte_from_array(hdr->auth_tag.buffer, hdr->auth_tag.len, &old_byte_from_auth_tag);
-
     struct store_byte_from_buffer old_enc_ctx;
     save_byte_from_hash_table(&hdr->enc_ctx, &old_enc_ctx);
 
@@ -65,9 +65,9 @@ void aws_cryptosdk_priv_hdr_parse_iv_harness() {
     if (aws_cryptosdk_priv_hdr_parse_iv(hdr, iv_len, pcursor) == AWS_OP_SUCCESS) {
         /* Postconditions */
         assert(aws_cryptosdk_hdr_is_valid(hdr));
+        assert_byte_buf_equivalence(&hdr->auth_tag, &old_auth_tag, &old_byte_from_auth_tag);
         assert_byte_buf_equivalence(&hdr->message_id, &old_message_id, &old_byte_from_message_id);
         assert_byte_buf_equivalence(&hdr->alg_suite_data, &old_alg_suite_data, &old_byte_from_alg_suite_data);
-        assert_byte_buf_equivalence(&hdr->auth_tag, &old_auth_tag, &old_byte_from_auth_tag);
         check_hash_table_unchanged(&hdr->enc_ctx, &old_enc_ctx);
     }
 }

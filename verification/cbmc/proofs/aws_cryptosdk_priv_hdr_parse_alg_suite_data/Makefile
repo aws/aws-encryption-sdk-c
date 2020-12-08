@@ -72,10 +72,10 @@ REMOVE_FUNCTION_BODIES += aws_string_destroy
 REMOVE_FUNCTION_BODIES += aws_string_is_valid
 REMOVE_FUNCTION_BODIES += hashlittle2
 
-UNWINDSET += aws_hash_table_clear.0:$(call addone,$(MAX_TABLE_SIZE))
 UNWINDSET += aws_cryptosdk_edk_list_clear.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
 UNWINDSET += aws_cryptosdk_edk_list_elements_are_bounded.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
 UNWINDSET += aws_cryptosdk_edk_list_elements_are_valid.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
+UNWINDSET += aws_hash_table_clear.0:$(call addone,$(MAX_TABLE_SIZE))
 UNWINDSET += ensure_cryptosdk_edk_list_has_allocated_list_elements.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
 
 include ../Makefile.common
