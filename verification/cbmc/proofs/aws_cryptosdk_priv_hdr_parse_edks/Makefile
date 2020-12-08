@@ -29,11 +29,14 @@ MAX_TABLE_SIZE ?= 2
 DEFINES += -DARRAY_LIST_TYPE="struct aws_cryptosdk_edk"
 DEFINES += -DARRAY_LIST_TYPE_HEADER=\"aws/cryptosdk/edk.h\"
 DEFINES += -DAWS_BYTE_CURSOR_READ_BE16_GENERATOR=aws_byte_cursor_read_be16_generator_for_parse_edks
+DEFINES += -DAWS_NO_STATIC_IMPL
 DEFINES += -DMAX_EDK_LIST_ITEMS=$(MAX_EDK_LIST_ITEMS)
 DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
 
-DEFINES += -DAWS_NO_STATIC_IMPL
-
+# The maximum number of objects is set to 2^8 = 256. This option changes that to 2^9. 
+# Without this flag, running this proof causes the CBMC error of 
+# "too many addressed objects: maximum number of objects is set to 2^n=256 (with n=8);
+# use the `--object-bits n` option to increase the maximum number"
 CBMCFLAGS += --object-bits 9
 
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/array_list.c
