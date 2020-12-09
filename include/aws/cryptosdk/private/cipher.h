@@ -251,4 +251,8 @@ int aws_cryptosdk_rsa_encrypt(
     const struct aws_string *rsa_public_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);
 
+bool aws_cryptosdk_data_key_is_valid(const struct data_key *key);
+
+bool aws_cryptosdk_content_key_is_valid(const struct content_key *key);
+
 #endif  // AWS_CRYPTOSDK_PRIVATE_CIPHER_H

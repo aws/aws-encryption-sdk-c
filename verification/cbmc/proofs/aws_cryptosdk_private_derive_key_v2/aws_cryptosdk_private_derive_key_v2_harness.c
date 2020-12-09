@@ -27,9 +27,9 @@ void aws_cryptosdk_private_derive_key_v2_harness() {
     /* Assumptions */
     __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(props));
 
-    __CPROVER_assume(content_key != NULL);
+    __CPROVER_assume(aws_cryptosdk_content_key_is_valid(content_key));
 
-    __CPROVER_assume(data_key != NULL);
+    __CPROVER_assume(aws_cryptosdk_data_key_is_valid(data_key));
 
     __CPROVER_assume(message_id != NULL);
     __CPROVER_assume(aws_byte_buf_is_bounded(message_id, MAX_BUFFER_SIZE));

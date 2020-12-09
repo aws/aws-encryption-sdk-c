@@ -321,8 +321,9 @@ static int aws_cryptosdk_private_derive_key_v1(
     struct content_key *content_key,
     const struct data_key *data_key,
     const struct aws_byte_buf *message_id) {
-    AWS_PRECONDITION(content_key != NULL);
-    AWS_PRECONDITION(data_key != NULL);
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(props));
+    AWS_PRECONDITION(aws_cryptosdk_content_key_is_valid(content_key));
+    AWS_PRECONDITION(aws_cryptosdk_data_key_is_valid(data_key));
     AWS_PRECONDITION(aws_byte_buf_is_valid(message_id));
 
     if (message_id->len != MSG_ID_LEN) {
@@ -354,8 +355,9 @@ static int aws_cryptosdk_private_derive_key_v2(
     const struct data_key *data_key,
     struct aws_byte_buf *commitment,
     const struct aws_byte_buf *message_id) {
-    AWS_PRECONDITION(content_key != NULL);
-    AWS_PRECONDITION(data_key != NULL);
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(props));
+    AWS_PRECONDITION(aws_cryptosdk_content_key_is_valid(content_key));
+    AWS_PRECONDITION(aws_cryptosdk_data_key_is_valid(data_key));
     AWS_PRECONDITION(aws_byte_buf_is_valid(commitment));
     AWS_PRECONDITION(aws_byte_buf_is_valid(message_id));
 
@@ -410,8 +412,8 @@ int aws_cryptosdk_private_derive_key(
     struct aws_byte_buf *commitment,
     const struct aws_byte_buf *message_id) {
     AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(props));
-    AWS_PRECONDITION(content_key != NULL);
-    AWS_PRECONDITION(data_key != NULL);
+    AWS_PRECONDITION(aws_cryptosdk_content_key_is_valid(content_key));
+    AWS_PRECONDITION(aws_cryptosdk_data_key_is_valid(data_key));
     if (props->msg_format_version == AWS_CRYPTOSDK_HEADER_VERSION_2_0) {
         AWS_PRECONDITION(aws_byte_buf_is_valid(commitment));
     }
@@ -1049,4 +1051,12 @@ cleanup:
     } else {
         return AWS_OP_SUCCESS;
     }
+}
+
+bool aws_cryptosdk_data_key_is_valid(const struct data_key *key) {
+    return key != NULL && AWS_MEM_IS_WRITABLE(key->keybuf, MAX_DATA_KEY_SIZE);
+}
+
+bool aws_cryptosdk_content_key_is_valid(const struct content_key *key) {
+    return key != NULL && AWS_MEM_IS_WRITABLE(key->keybuf, MAX_DATA_KEY_SIZE);
 }
