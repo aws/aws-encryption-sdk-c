@@ -30,12 +30,39 @@
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
 
-void ensure_alg_properties_attempt_allocation(struct aws_cryptosdk_alg_properties *const alg_props) {
-    if (alg_props) {
-        alg_props->md_name     = malloc(nondet_size_t());
-        alg_props->cipher_name = malloc(nondet_size_t());
-        alg_props->alg_name    = malloc(nondet_size_t());
+const EVP_MD *nondet_EVP_MD_ptr(void);
+const EVP_CIPHER *nondet_EVP_CIPHER_ptr(void);
+
+struct aws_cryptosdk_alg_impl *ensure_impl_attempt_allocation(const size_t max_len) {
+    struct aws_cryptosdk_alg_impl *impl = malloc(sizeof(struct aws_cryptosdk_alg_impl));
+    if (impl) {
+        *(const EVP_MD **)(&impl->md_ctor)         = (nondet_bool()) ? NULL : &nondet_EVP_MD_ptr;
+        *(const EVP_MD **)(&impl->sig_md_ctor)     = (nondet_bool()) ? NULL : &nondet_EVP_MD_ptr;
+        *(const EVP_CIPHER **)(&impl->cipher_ctor) = (nondet_bool()) ? NULL : &nondet_EVP_CIPHER_ptr;
+        *(const char **)(&impl->curve_name)        = ensure_c_str_is_allocated(max_len);
     }
+    return impl;
+}
+struct aws_cryptosdk_alg_properties *ensure_alg_properties_attempt_allocation(const size_t max_len) {
+    struct aws_cryptosdk_alg_properties *alg_props = malloc(sizeof(struct aws_cryptosdk_alg_properties));
+    if (alg_props) {
+        alg_props->md_name     = ensure_c_str_is_allocated(max_len);
+        alg_props->cipher_name = ensure_c_str_is_allocated(max_len);
+        alg_props->alg_name    = ensure_c_str_is_allocated(max_len);
+        alg_props->sig_md_name = ensure_c_str_is_allocated(max_len);
+        alg_props->impl        = malloc(sizeof(struct aws_cryptosdk_alg_impl));
+    }
+    return alg_props;
+}
+
+struct content_key *ensure_content_key_attempt_allocation() {
+    struct content_key *key = malloc(sizeof(uint8_t) * MAX_DATA_KEY_SIZE);
+    return key;
+}
+
+struct data_key *ensure_data_key_attempt_allocation() {
+    struct data_key *key = malloc(sizeof(uint8_t) * MAX_DATA_KEY_SIZE);
+    return key;
 }
 
 void ensure_record_has_allocated_members(struct aws_cryptosdk_keyring_trace_record *record, size_t max_len) {

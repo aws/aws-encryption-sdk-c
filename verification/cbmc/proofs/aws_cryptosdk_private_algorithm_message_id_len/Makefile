@@ -16,6 +16,7 @@
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
+include ../Makefile.string
 
 PROOF_UID = aws_cryptosdk_private_algorithm_message_id_len
 
@@ -31,6 +32,7 @@ DEFINES += -DMSG_ID_LEN_V2=32
 PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 ###########

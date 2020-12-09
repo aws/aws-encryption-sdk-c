@@ -17,6 +17,7 @@ sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
+include ../Makefile.string
 
 PROOF_UID = aws_cryptosdk_private_derive_key
 

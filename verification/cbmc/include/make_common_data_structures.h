@@ -25,7 +25,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-void ensure_alg_properties_attempt_allocation(struct aws_cryptosdk_alg_properties *const alg_props);
+/* Allocates the members of alg_properties and ensures that internal pointers are pointing to the correct objects. */
+struct aws_cryptosdk_alg_properties *ensure_alg_properties_attempt_allocation(const size_t max_len);
+
+struct data_key *ensure_data_key_attempt_allocation();
+
+struct content_key *ensure_content_key_attempt_allocation();
 
 /* Allocates the members of the context and ensures that internal pointers are pointing to the correct objects. */
 void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ctx);

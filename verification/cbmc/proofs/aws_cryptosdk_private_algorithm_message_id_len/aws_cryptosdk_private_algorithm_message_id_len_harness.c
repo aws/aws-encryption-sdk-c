@@ -18,10 +18,9 @@
 
 void aws_cryptosdk_private_algorithm_message_id_len_harness() {
     /* Nondet Input */
-    const struct aws_cryptosdk_alg_properties *props = malloc(sizeof(*props));
+    struct aws_cryptosdk_alg_properties *props = ensure_alg_properties_attempt_allocation(MAX_STRING_LEN);;
 
     /* Assumptions */
-    ensure_alg_properties_attempt_allocation(props);
     __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(props));
 
     /* Operation under verification */

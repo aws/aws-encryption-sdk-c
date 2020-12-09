@@ -18,14 +18,13 @@
 #include <make_common_data_structures.h>
 
 void aws_cryptosdk_private_derive_key_v2_harness() {
-    struct aws_cryptosdk_alg_properties *props = malloc(sizeof(*props));
-    struct content_key *content_key            = malloc(sizeof(*content_key));
-    struct data_key *data_key                  = malloc(sizeof(*data_key));
+    struct aws_cryptosdk_alg_properties *props = ensure_alg_properties_attempt_allocation(MAX_STRING_LEN);
+    struct content_key *content_key            = ensure_content_key_attempt_allocation();
+    struct data_key *data_key                  = ensure_data_key_attempt_allocation();
     struct aws_byte_buf *message_id            = malloc(sizeof(*message_id));
     struct aws_byte_buf *commitment            = malloc(sizeof(*commitment));
 
     /* Assumptions */
-    ensure_alg_properties_attempt_allocation(props);
     __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(props));
 
     __CPROVER_assume(content_key != NULL);
