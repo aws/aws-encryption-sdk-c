@@ -14,8 +14,8 @@
  */
 
 #include <aws/cryptosdk/private/cipher.h>
-#include <utils.h>
 #include <make_common_data_structures.h>
+#include <utils.h>
 
 void aws_cryptosdk_private_commitment_eq_harness() {
     /* Nondet Input */
@@ -41,8 +41,7 @@ void aws_cryptosdk_private_commitment_eq_harness() {
     save_byte_from_array(buf2->buffer, buf2->len, &old_byte_from_buf2);
 
     /* Operation under verification */
-    if (aws_cryptosdk_private_commitment_eq(buf1, buf2))
-        assert_byte_buf_contents_are_equal(buf1, buf2);
+    if (aws_cryptosdk_private_commitment_eq(buf1, buf2)) assert_byte_buf_contents_are_equal(buf1, buf2);
 
     /* Postconditions */
     assert(aws_byte_buf_is_valid(buf1));
