@@ -15,7 +15,9 @@
 
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/private/cipher.h>
+#include <aws/cryptosdk/private/hkdf.h>
 #include <make_common_data_structures.h>
+#include <utils.h>
 
 void aws_cryptosdk_private_derive_key_harness() {
     struct aws_cryptosdk_alg_properties *props = ensure_alg_properties_attempt_allocation(MAX_STRING_LEN);

@@ -40,6 +40,7 @@ PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(PROOF_SOURCE)/utils.c
 ###########
 
 include ../Makefile.common
