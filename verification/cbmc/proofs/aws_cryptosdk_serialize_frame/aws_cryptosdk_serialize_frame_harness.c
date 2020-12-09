@@ -24,25 +24,25 @@ void aws_cryptosdk_serialize_frame_harness() {
     size_t ciphertext_size;
     size_t plaintext_size;
     struct aws_byte_buf ciphertext_buf;
-    struct aws_cryptosdk_alg_properties alg_props;
+    struct aws_cryptosdk_alg_properties *props = ensure_alg_properties_attempt_allocation(MAX_STRING_LEN);
 
     /* Assumptions about the function input */
     ensure_byte_buf_has_allocated_buffer_member(&ciphertext_buf);
     __CPROVER_assume(aws_byte_buf_is_valid(&ciphertext_buf));
 
     __CPROVER_assume(aws_cryptosdk_frame_has_valid_type(&frame));
-    ensure_alg_properties_attempt_allocation(&alg_props);
-    __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(&alg_props));
+
+    __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(props));
 
     /* Save the old state of the ciphertext buffer */
     uint8_t *old_ciphertext_buffer   = ciphertext_buf.buffer;
     size_t old_ciphertext_buffer_len = ciphertext_buf.len;
 
-    int rval = aws_cryptosdk_serialize_frame(&frame, &ciphertext_size, plaintext_size, &ciphertext_buf, &alg_props);
+    int rval = aws_cryptosdk_serialize_frame(&frame, &ciphertext_size, plaintext_size, &ciphertext_buf, props);
     if (rval == AWS_OP_SUCCESS) {
         assert(aws_cryptosdk_frame_is_valid(&frame));
-        assert(aws_cryptosdk_alg_properties_is_valid(&alg_props));
-        assert(aws_cryptosdk_frame_serialized(&frame, &alg_props, plaintext_size));
+        assert(aws_cryptosdk_alg_properties_is_valid(props));
+        assert(aws_cryptosdk_frame_serialized(&frame, props, plaintext_size));
         assert(ciphertext_buf.buffer == old_ciphertext_buffer);
         assert(ciphertext_buf.len == old_ciphertext_buffer_len + ciphertext_size);
     } else {
