@@ -89,7 +89,9 @@ int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
 
     // Generate message ID and derive the content key from the data key.
     size_t message_id_len = aws_cryptosdk_private_algorithm_message_id_len(session->alg_props);
-    aws_byte_buf_init(&session->header.message_id, session->alloc, message_id_len);
+    if (aws_byte_buf_init(&session->header.message_id, session->alloc, message_id_len) != AWS_OP_SUCCESS) {
+        goto out;
+    }
     if (aws_cryptosdk_genrandom(session->header.message_id.buffer, message_id_len)) {
         goto out;
     }
