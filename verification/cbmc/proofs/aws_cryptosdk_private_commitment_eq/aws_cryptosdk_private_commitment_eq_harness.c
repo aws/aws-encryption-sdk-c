@@ -23,13 +23,11 @@ void aws_cryptosdk_private_commitment_eq_harness() {
     struct aws_byte_buf *buf2 = malloc(sizeof(*buf2));
 
     /* Assumptions */
-    __CPROVER_assume(buf1 != NULL);
-    __CPROVER_assume(aws_byte_buf_is_bounded(buf1, MAX_BUFFER_SIZE));
+    __CPROVER_assume(IMPLIES(buf1 != NULL, aws_byte_buf_is_bounded(buf1, MAX_BUFFER_SIZE)));
     ensure_byte_buf_has_allocated_buffer_member(buf1);
     __CPROVER_assume(aws_byte_buf_is_valid(buf1));
 
-    __CPROVER_assume(buf2 != NULL);
-    __CPROVER_assume(aws_byte_buf_is_bounded(buf2, MAX_BUFFER_SIZE));
+    __CPROVER_assume(IMPLIES(buf2 != NULL, aws_byte_buf_is_bounded(buf2, MAX_BUFFER_SIZE)));
     ensure_byte_buf_has_allocated_buffer_member(buf2);
     __CPROVER_assume(aws_byte_buf_is_valid(buf2));
 

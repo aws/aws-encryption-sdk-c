@@ -31,13 +31,11 @@ void aws_cryptosdk_private_derive_key_v2_harness() {
 
     __CPROVER_assume(aws_cryptosdk_data_key_is_valid(data_key));
 
-    __CPROVER_assume(message_id != NULL);
-    __CPROVER_assume(aws_byte_buf_is_bounded(message_id, MAX_BUFFER_SIZE));
+    __CPROVER_assume(IMPLIES(message_id != NULL, aws_byte_buf_is_bounded(message_id, MAX_BUFFER_SIZE)));
     ensure_byte_buf_has_allocated_buffer_member(message_id);
     __CPROVER_assume(aws_byte_buf_is_valid(message_id));
 
-    __CPROVER_assume(commitment != NULL);
-    __CPROVER_assume(aws_byte_buf_is_bounded(commitment, MAX_BUFFER_SIZE));
+    __CPROVER_assume(IMPLIES(commitment != NULL, aws_byte_buf_is_bounded(commitment, MAX_BUFFER_SIZE)));
     ensure_byte_buf_has_allocated_buffer_member(commitment);
     __CPROVER_assume(aws_byte_buf_is_valid(commitment));
 
