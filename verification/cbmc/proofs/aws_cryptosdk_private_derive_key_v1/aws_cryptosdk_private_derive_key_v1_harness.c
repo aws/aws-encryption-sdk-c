@@ -15,6 +15,7 @@
 
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/private/cipher.h>
+#include <aws/cryptosdk/private/hkdf.h>
 #include <make_common_data_structures.h>
 #include <utils.h>
 
@@ -41,10 +42,17 @@ void aws_cryptosdk_private_derive_key_v1_harness() {
     save_byte_from_array(message_id->buffer, message_id->len, &old_byte_from_message_id);
 
     /* Operation under verification */
-    __CPROVER_file_local_cipher_c_aws_cryptosdk_private_derive_key_v1(props, content_key, data_key, message_id);
+    int rv = __CPROVER_file_local_cipher_c_aws_cryptosdk_private_derive_key_v1(props, content_key, data_key, message_id);
 
     /* Postconditions */
     assert(aws_cryptosdk_alg_properties_is_valid(props));
+    assert(aws_cryptosdk_content_key_is_valid(content_key));
+    assert(aws_cryptosdk_data_key_is_valid(data_key));
     assert(aws_byte_buf_is_valid(message_id));
     assert_byte_buf_equivalence(message_id, old_message_id, &old_byte_from_message_id);
+    if (rv == AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT) {
+        assert(message_id->len != MSG_ID_LEN);
+    } else if (rv == AWS_OP_SUCCESS && aws_cryptosdk_which_sha(props->alg_id) == AWS_CRYPTOSDK_NOSHA) {
+        assert_keys_are_equal(content_key, data_key, props->data_key_len);
+    }
 }

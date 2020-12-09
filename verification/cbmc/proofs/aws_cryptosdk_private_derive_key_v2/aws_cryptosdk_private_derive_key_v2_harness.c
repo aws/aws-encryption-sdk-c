@@ -15,6 +15,7 @@
 
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/private/cipher.h>
+#include <aws/cryptosdk/private/hkdf.h>
 #include <make_common_data_structures.h>
 
 void aws_cryptosdk_private_derive_key_v2_harness() {
@@ -48,13 +49,20 @@ void aws_cryptosdk_private_derive_key_v2_harness() {
     struct store_byte_from_buffer old_byte_from_message_id;
     save_byte_from_array(message_id->buffer, message_id->len, &old_byte_from_message_id);
 
-    __CPROVER_file_local_cipher_c_aws_cryptosdk_private_derive_key_v2(
-        props, content_key, data_key, commitment, message_id);
+    /* Operation under verification */
+    int rv  = __CPROVER_file_local_cipher_c_aws_cryptosdk_private_derive_key_v2(props, content_key, data_key, commitment, message_id);
 
     /* Postconditions */
     assert(aws_cryptosdk_alg_properties_is_valid(props));
+    assert(aws_cryptosdk_content_key_is_valid(content_key));
+    assert(aws_cryptosdk_data_key_is_valid(data_key));
     assert(aws_byte_buf_is_valid(message_id));
     assert_byte_buf_equivalence(message_id, old_message_id, &old_byte_from_message_id);
     assert(aws_byte_buf_is_valid(commitment));
     assert_byte_buf_equivalence(commitment, old_commitment, &old_byte_from_commitment);
+    if (rv == AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN) {
+        assert(commitment->capacity < props->commitment_len);
+    } else if (rv == AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT) {
+        assert(message_id->len != MSG_ID_LEN_V2 || aws_cryptosdk_which_sha(props->alg_id) == AWS_CRYPTOSDK_NOSHA);
+    }
 }

@@ -205,6 +205,8 @@ bool aws_cryptosdk_hdr_members_are_bounded(
 
 enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id alg_id) {
     switch (alg_id) {
+        case ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384:
+        case ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY: return AWS_CRYPTOSDK_SHA512;
         case ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384:
         case ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384: return AWS_CRYPTOSDK_SHA384;
         case ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256:
