@@ -18,7 +18,10 @@ sinclude ../Makefile.local
 include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
 include ../Makefile.string
-
+###########
+# Maximum data key size, defined in cipher.c
+MAX_DATA_KEY_SIZE=32
+###########
 PROOF_UID = aws_cryptosdk_private_derive_key_v1
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
@@ -45,6 +48,8 @@ PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(PROOF_SOURCE)/utils.c
+
+UNWINDSET += key_contents_match.0:$(call addone, $(MAX_DATA_KEY_SIZE))
 ###########
 
 include ../Makefile.common

@@ -25,11 +25,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-/* Allocates the members of alg_properties and ensures that internal pointers are pointing to the correct objects. */
+/* Allocates alg_properties members and ensures that internal pointers are pointing to the correct objects. */
 struct aws_cryptosdk_alg_properties *ensure_alg_properties_attempt_allocation(const size_t max_len);
 
+/* Ensures data_key structures are properly allocated. */
 struct data_key *ensure_data_key_attempt_allocation();
 
+/* Ensures content_key structures are properly allocated. */
 struct content_key *ensure_content_key_attempt_allocation();
 
 /* Allocates the members of the context and ensures that internal pointers are pointing to the correct objects. */

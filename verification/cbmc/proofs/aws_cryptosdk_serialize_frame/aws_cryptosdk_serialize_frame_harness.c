@@ -38,8 +38,8 @@ void aws_cryptosdk_serialize_frame_harness() {
     uint8_t *old_ciphertext_buffer   = ciphertext_buf.buffer;
     size_t old_ciphertext_buffer_len = ciphertext_buf.len;
 
-    int rval = aws_cryptosdk_serialize_frame(&frame, &ciphertext_size, plaintext_size, &ciphertext_buf, props);
-    if (rval == AWS_OP_SUCCESS) {
+    if (aws_cryptosdk_serialize_frame(&frame, &ciphertext_size, plaintext_size, &ciphertext_buf, props) ==
+        AWS_OP_SUCCESS) {
         assert(aws_cryptosdk_frame_is_valid(&frame));
         assert(aws_cryptosdk_alg_properties_is_valid(props));
         assert(aws_cryptosdk_frame_serialized(&frame, props, plaintext_size));

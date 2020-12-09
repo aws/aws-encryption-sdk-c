@@ -1054,9 +1054,9 @@ cleanup:
 }
 
 bool aws_cryptosdk_data_key_is_valid(const struct data_key *key) {
-    return key != NULL && AWS_MEM_IS_WRITABLE(key->keybuf, MAX_DATA_KEY_SIZE);
+    return AWS_MEM_IS_WRITABLE(key->keybuf, MAX_DATA_KEY_SIZE);
 }
 
 bool aws_cryptosdk_content_key_is_valid(const struct content_key *key) {
-    return key != NULL && AWS_MEM_IS_WRITABLE(key->keybuf, MAX_DATA_KEY_SIZE);
+    return AWS_MEM_IS_WRITABLE(key->keybuf, MAX_DATA_KEY_SIZE);
 }

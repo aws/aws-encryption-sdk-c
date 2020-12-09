@@ -54,6 +54,6 @@ void aws_cryptosdk_private_derive_key_v1_harness() {
     if (rv == AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT) {
         assert(message_id->len != MSG_ID_LEN);
     } else if (rv == AWS_OP_SUCCESS && aws_cryptosdk_which_sha(props->alg_id) == AWS_CRYPTOSDK_NOSHA) {
-        assert_keys_are_equal(content_key, data_key, props->data_key_len);
+        assert(key_contents_match(content_key, data_key, props->data_key_len));
     }
 }
