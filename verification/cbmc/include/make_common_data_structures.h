@@ -46,6 +46,10 @@ struct aws_cryptosdk_hdr *ensure_nondet_hdr_has_allocated_members(const size_t m
 bool aws_cryptosdk_hdr_members_are_bounded(
     const struct aws_cryptosdk_hdr *hdr, const size_t max_edk_item_size, const size_t max_item_size);
 
+/* Allocates and ensures properties of the members of the header. */
+struct aws_cryptosdk_hdr *hdr_setup(
+    const size_t max_table_size, const size_t max_edk_item_size, const size_t max_item_size);
+
 /* Makes internal function from cipher.c accessible for CBMC */
 enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id alg_id);
 

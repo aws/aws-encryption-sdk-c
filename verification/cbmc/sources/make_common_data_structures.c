@@ -177,6 +177,20 @@ bool aws_cryptosdk_hdr_members_are_bounded(
     return true; /* If hdr is NULL, true by default */
 }
 
+struct aws_cryptosdk_hdr *hdr_setup(
+    const size_t max_table_size, const size_t max_edk_item_size, const size_t max_item_size) {
+    struct aws_cryptosdk_hdr *hdr = ensure_nondet_hdr_has_allocated_members(max_table_size);
+    __CPROVER_assume(aws_cryptosdk_hdr_members_are_bounded(hdr, max_edk_item_size, max_table_size));
+
+    /* Precondition: The edk list has allocated list elements */
+    ensure_cryptosdk_edk_list_has_allocated_list_elements(&hdr->edk_list);
+    __CPROVER_assume(aws_cryptosdk_hdr_is_valid(hdr));
+
+    __CPROVER_assume(hdr->enc_ctx.p_impl != NULL);
+    ensure_hash_table_has_valid_destroy_functions(&hdr->enc_ctx);
+    return hdr;
+}
+
 enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id alg_id) {
     switch (alg_id) {
         case ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384:
