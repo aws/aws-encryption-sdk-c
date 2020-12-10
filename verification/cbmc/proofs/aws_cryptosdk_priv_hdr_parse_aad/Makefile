@@ -63,6 +63,7 @@ PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 # Functions removed for enc_ctx_deserialize
 REMOVE_FUNCTION_BODY += aws_byte_cursor_read_be16
+REMOVE_FUNCTION_BODY += aws_string_destroy
 REMOVE_FUNCTION_BODY += aws_string_new_from_array
 
 # Functions removed for enc_ctx_clear
