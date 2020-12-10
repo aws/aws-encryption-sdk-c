@@ -66,19 +66,12 @@ PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 REMOVE_FUNCTION_BODY += aws_byte_cursor_read_be16
 
-# Remove function bodies to deal with CBMC function pointer removal
-# Functions removed for edk_list_clear
-REMOVE_FUNCTION_BODIES += --remove-function-body aws_array_list_get_at_ptr
-REMOVE_FUNCTION_BODIES += --remove-function-body nondet_compare
-
 # Functions removed for enc_ctx_clear
-REMOVE_FUNCTION_BODIES += aws_hash_callback_string_destroy
-REMOVE_FUNCTION_BODIES += aws_hash_string
-REMOVE_FUNCTION_BODIES += aws_raise_error_private
-REMOVE_FUNCTION_BODIES += aws_string_bytes
-REMOVE_FUNCTION_BODIES += aws_string_destroy
-REMOVE_FUNCTION_BODIES += aws_string_is_valid
-REMOVE_FUNCTION_BODIES += hashlittle2
+REMOVE_FUNCTION_BODY += aws_hash_callback_string_destroy
+REMOVE_FUNCTION_BODY += aws_hash_string
+REMOVE_FUNCTION_BODY += aws_raise_error_private
+REMOVE_FUNCTION_BODY += aws_string_bytes
+REMOVE_FUNCTION_BODY += aws_string_is_valid
 
 UNWINDSET += aws_cryptosdk_edk_list_clear.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
 UNWINDSET += aws_cryptosdk_edk_list_elements_are_bounded.0:$(call addone,$(MAX_EDK_LIST_ITEMS))

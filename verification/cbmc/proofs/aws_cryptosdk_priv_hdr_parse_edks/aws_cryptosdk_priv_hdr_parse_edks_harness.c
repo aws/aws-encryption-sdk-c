@@ -51,8 +51,6 @@ void aws_cryptosdk_priv_hdr_parse_edks_harness() {
 
     __CPROVER_assume(hdr->enc_ctx.p_impl != NULL);
     ensure_hash_table_has_valid_destroy_functions(&hdr->enc_ctx);
-    size_t empty_slot_idx;
-    __CPROVER_assume(aws_hash_table_has_an_empty_slot(&hdr->enc_ctx, &empty_slot_idx));
 
     __CPROVER_assume(pcursor != NULL);
     __CPROVER_assume(aws_byte_cursor_is_bounded(pcursor, MAX_BUFFER_SIZE));
