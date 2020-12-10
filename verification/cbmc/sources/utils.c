@@ -5,6 +5,23 @@
 
 #include <utils.h>
 
+/*
+ * assert_byte_buf_contents_match is more efficient than assert(aws_byte_buf_contents_match) because
+ * we are using a nondeterministic index for comparison (instead of a loop). But if we want to assert
+ * the inverse (i.e., !assert_byte_buf_contents_match) then we have to use assert(!aws_byte_buf_contents_match)
+ * In fact, !assert_byte_buf_contents_match asserts that none of the bytes are equal
+ */
+void assert_byte_buf_contents_match(const struct aws_byte_buf *const lhs, const struct aws_byte_buf *const rhs) {
+    /* Filter null pointers */
+    if (!lhs || !rhs) assert(lhs == rhs);
+    assert(lhs->len == rhs->len);
+    if (lhs->len > 0) {
+        size_t index;
+        __CPROVER_assume(index < lhs->len);
+        assert(lhs->buffer[index] == rhs->buffer[index]);
+    }
+}
+
 bool aws_byte_buf_contents_match(const struct aws_byte_buf *const lhs, const struct aws_byte_buf *const rhs) {
     /* Filter null pointers */
     if (!lhs || !rhs) return (lhs == rhs); /* Return true if both null */

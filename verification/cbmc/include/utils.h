@@ -6,6 +6,9 @@
 #include <aws/common/byte_buf.h>
 #include <aws/cryptosdk/private/cipher.h>
 
+/* Asserts that the contents of two aws_byte_buf objects match */
+void assert_byte_buf_contents_match(const struct aws_byte_buf *const lhs, const struct aws_byte_buf *const rhs);
+
 /* Compares the contents of two aws_byte_buf objects */
 bool aws_byte_buf_contents_match(const struct aws_byte_buf *const lhs, const struct aws_byte_buf *const rhs);
 
