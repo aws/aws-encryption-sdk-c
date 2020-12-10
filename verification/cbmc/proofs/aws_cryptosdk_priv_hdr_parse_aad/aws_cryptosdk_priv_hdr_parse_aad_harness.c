@@ -52,8 +52,6 @@ void aws_cryptosdk_priv_hdr_parse_aad_harness() {
 
     __CPROVER_assume(hdr->enc_ctx.p_impl != NULL);
     ensure_hash_table_has_valid_destroy_functions(&hdr->enc_ctx);
-    size_t empty_slot_idx;
-    __CPROVER_assume(aws_hash_table_has_an_empty_slot(&hdr->enc_ctx, &empty_slot_idx));
     make_hash_table_with_no_backing_store(&hdr->enc_ctx, MAX_TABLE_SIZE);
 
     __CPROVER_assume(pcursor != NULL);
