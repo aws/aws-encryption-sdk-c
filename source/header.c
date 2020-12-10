@@ -228,6 +228,9 @@ int aws_cryptosdk_hdr_parse(struct aws_cryptosdk_hdr *hdr, struct aws_byte_curso
 
 int aws_cryptosdk_priv_hdr_parse_header_version(
     struct aws_cryptosdk_hdr *hdr, uint8_t *header_version, struct aws_byte_cursor *cur) {
+    AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(hdr));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(cur));
+    AWS_PRECONDITION(header_version != NULL);
     if (!aws_byte_cursor_read_u8(cur, header_version)) return aws_cryptosdk_priv_hdr_parse_err_short_buf(hdr);
     if (aws_cryptosdk_unlikely(!aws_cryptosdk_header_version_is_known(*header_version)))
         return aws_cryptosdk_priv_hdr_parse_err_generic(hdr);
@@ -235,6 +238,8 @@ int aws_cryptosdk_priv_hdr_parse_header_version(
 }
 
 int aws_cryptosdk_priv_hdr_parse_message_type(struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *cur) {
+    AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(hdr));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(cur));
     uint8_t message_type;
     if (!aws_byte_cursor_read_u8(cur, &message_type)) return aws_cryptosdk_priv_hdr_parse_err_short_buf(hdr);
     if (aws_cryptosdk_unlikely(message_type != AWS_CRYPTOSDK_HEADER_TYPE_CUSTOMER_AED))
