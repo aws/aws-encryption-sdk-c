@@ -46,7 +46,12 @@ struct aws_cryptosdk_hdr *ensure_nondet_hdr_has_allocated_members(const size_t m
 bool aws_cryptosdk_hdr_members_are_bounded(
     const struct aws_cryptosdk_hdr *hdr, const size_t max_edk_item_size, const size_t max_item_size);
 
-/* Allocates and ensures properties of the members of the header. */
+/* Allocates and ensures properties of the members of the header. The properties ensured are :
+ * Header is either NULL or the internal pointers are pointing to the correct object.
+ * The members of the header are bounded.
+ * The hdr->edk_list has allocated list elements.
+ * The hdr->enc_ctx has valid destory functions.
+ * The hdr is non-NULL and each field satisfies the validity properties of its data structure. */
 struct aws_cryptosdk_hdr *hdr_setup(
     const size_t max_table_size, const size_t max_edk_item_size, const size_t max_item_size);
 
