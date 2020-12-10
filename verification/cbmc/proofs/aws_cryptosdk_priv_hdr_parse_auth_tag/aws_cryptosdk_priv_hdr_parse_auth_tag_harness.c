@@ -34,8 +34,6 @@ void aws_cryptosdk_priv_hdr_parse_auth_tag_harness() {
 
     __CPROVER_assume(hdr->enc_ctx.p_impl != NULL);
     ensure_hash_table_has_valid_destroy_functions(&hdr->enc_ctx);
-    size_t empty_slot_idx;
-    __CPROVER_assume(aws_hash_table_has_an_empty_slot(&hdr->enc_ctx, &empty_slot_idx));
 
     /* Alg_id needs to be known to avoid unsigned to signed conversion in
     size_t tag_len = aws_cryptosdk_private_algorithm_taglen(hdr->alg_id);*/
