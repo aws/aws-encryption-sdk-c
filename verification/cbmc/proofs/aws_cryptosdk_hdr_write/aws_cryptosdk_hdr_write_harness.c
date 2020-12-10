@@ -57,11 +57,6 @@ void aws_cryptosdk_hdr_write_harness() {
     ensure_cryptosdk_edk_list_has_allocated_list_elements(&hdr->edk_list);
     __CPROVER_assume(aws_cryptosdk_hdr_is_valid(hdr));
 
-    __CPROVER_assume(hdr->enc_ctx.p_impl != NULL);
-    ensure_hash_table_has_valid_destroy_functions(&hdr->enc_ctx);
-    size_t empty_slot_idx;
-    __CPROVER_assume(aws_hash_table_has_an_empty_slot(&hdr->enc_ctx, &empty_slot_idx));
-
     ASSUME_VALID_MEMORY_COUNT(outbuf, outlen);
     ASSUME_VALID_MEMORY(bytes_written);
 
