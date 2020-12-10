@@ -180,7 +180,7 @@ bool aws_cryptosdk_hdr_members_are_bounded(
 struct aws_cryptosdk_hdr *hdr_setup(
     const size_t max_table_size, const size_t max_edk_item_size, const size_t max_item_size) {
     struct aws_cryptosdk_hdr *hdr = ensure_nondet_hdr_has_allocated_members(max_table_size);
-    __CPROVER_assume(aws_cryptosdk_hdr_members_are_bounded(hdr, max_edk_item_size, max_table_size));
+    __CPROVER_assume(aws_cryptosdk_hdr_members_are_bounded(hdr, max_edk_item_size, max_item_size));
 
     /* Precondition: The edk list has allocated list elements */
     ensure_cryptosdk_edk_list_has_allocated_list_elements(&hdr->edk_list);
