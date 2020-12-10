@@ -38,19 +38,11 @@ uint16_t aws_byte_cursor_read_be16_generator_for_parse_edks(const struct aws_byt
 
 void aws_cryptosdk_priv_hdr_parse_edks_harness() {
     /* Nondet Input */
-    struct aws_cryptosdk_hdr *hdr   = ensure_nondet_hdr_has_allocated_members(MAX_TABLE_SIZE);
+    struct aws_cryptosdk_hdr *hdr   = hdr_setup(MAX_TABLE_SIZE, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE);
     struct aws_byte_cursor *pcursor = malloc(sizeof(*pcursor));
 
     /* Assumptions */
-    __CPROVER_assume(aws_cryptosdk_hdr_members_are_bounded(hdr, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE));
-
-    /* Precondition: The edk list has allocated list elements */
-    ensure_cryptosdk_edk_list_has_allocated_list_elements(&hdr->edk_list);
-    __CPROVER_assume(aws_cryptosdk_hdr_is_valid(hdr));
     __CPROVER_assume(&hdr->alloc != NULL);
-
-    __CPROVER_assume(hdr->enc_ctx.p_impl != NULL);
-    ensure_hash_table_has_valid_destroy_functions(&hdr->enc_ctx);
 
     __CPROVER_assume(pcursor != NULL);
     __CPROVER_assume(aws_byte_cursor_is_bounded(pcursor, MAX_BUFFER_SIZE));
