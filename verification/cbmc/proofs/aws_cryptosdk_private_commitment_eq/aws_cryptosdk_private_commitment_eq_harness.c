@@ -44,7 +44,7 @@ void aws_cryptosdk_private_commitment_eq_harness() {
     if (aws_cryptosdk_private_commitment_eq(buf1, buf2)) {
         assert(aws_byte_buf_contents_match(buf1, buf2));
     } else {
-        assert(buf1->len != 32 || !aws_byte_buf_contents_match(buf1, buf2));
+        assert(buf1->len != COMMITMENT_BUF_SIZE || !aws_byte_buf_contents_match(buf1, buf2));
     }
 
     /* Postconditions */
