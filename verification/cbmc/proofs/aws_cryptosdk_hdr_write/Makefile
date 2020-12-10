@@ -68,14 +68,6 @@ PROOF_SOURCES += $(PROOF_STUB)/aws_cryptosdk_hash_elems_array_init_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_default_allocator_stub.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
-# Remove function bodies to deal with CBMC function pointer removal
-# All functions removed are those removed in aws_cryptosdk_enc_ctx_serialize,
-# which is called from aws_cryptosdk_hdr_write. 
-REMOVE_FUNCTION_BODIES += --remove-function-body aws_array_list_sort
-REMOVE_FUNCTION_BODIES += --remove-function-body aws_byte_buf_write
-REMOVE_FUNCTION_BODIES += --remove-function-body aws_cryptosdk_enc_ctx_size
-REMOVE_FUNCTION_BODIES += --remove-function-body aws_cryptosdk_hash_elems_array_init
-
 UNWINDSET += array_list_item_generator.0:$(call addone,$(MAX_TABLE_SIZE))
 UNWINDSET += aws_cryptosdk_edk_list_elements_are_bounded.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
 UNWINDSET += aws_cryptosdk_edk_list_elements_are_valid.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
