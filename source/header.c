@@ -228,6 +228,9 @@ int aws_cryptosdk_hdr_parse(struct aws_cryptosdk_hdr *hdr, struct aws_byte_curso
 
 int aws_cryptosdk_priv_hdr_parse_header_version(
     struct aws_cryptosdk_hdr *hdr, uint8_t *header_version, struct aws_byte_cursor *cur) {
+    AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(hdr));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(cur));
+    AWS_PRECONDITION(header_version != NULL);
     if (!aws_byte_cursor_read_u8(cur, header_version)) return aws_cryptosdk_priv_hdr_parse_err_short_buf(hdr);
     if (aws_cryptosdk_unlikely(!aws_cryptosdk_header_version_is_known(*header_version)))
         return aws_cryptosdk_priv_hdr_parse_err_generic(hdr);
@@ -235,6 +238,8 @@ int aws_cryptosdk_priv_hdr_parse_header_version(
 }
 
 int aws_cryptosdk_priv_hdr_parse_message_type(struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *cur) {
+    AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(hdr));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(cur));
     uint8_t message_type;
     if (!aws_byte_cursor_read_u8(cur, &message_type)) return aws_cryptosdk_priv_hdr_parse_err_short_buf(hdr);
     if (aws_cryptosdk_unlikely(message_type != AWS_CRYPTOSDK_HEADER_TYPE_CUSTOMER_AED))
@@ -247,6 +252,9 @@ int aws_cryptosdk_priv_hdr_parse_alg_id(
     const struct aws_cryptosdk_alg_properties **alg_props,
     uint8_t header_version,
     struct aws_byte_cursor *cur) {
+    AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(hdr));
+    AWS_PRECONDITION(&hdr->alloc != NULL);
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(cur));
     uint16_t alg_id;
     if (!aws_byte_cursor_read_be16(cur, &alg_id)) return aws_cryptosdk_priv_hdr_parse_err_short_buf(hdr);
     if (aws_cryptosdk_unlikely(!aws_cryptosdk_algorithm_is_known(alg_id)))
@@ -261,6 +269,9 @@ int aws_cryptosdk_priv_hdr_parse_alg_id(
 
 int aws_cryptosdk_priv_hdr_parse_message_id(
     struct aws_cryptosdk_hdr *hdr, const struct aws_cryptosdk_alg_properties *alg_props, struct aws_byte_cursor *cur) {
+    AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(hdr));
+    AWS_PRECONDITION(&hdr->alloc != NULL);
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(cur));
     size_t message_id_len = aws_cryptosdk_private_algorithm_message_id_len(alg_props);
     if (aws_byte_buf_init(&hdr->message_id, hdr->alloc, message_id_len))
         return aws_cryptosdk_priv_hdr_parse_err_mem(hdr);
@@ -539,7 +550,7 @@ WRITE_ERR:
 
 bool aws_cryptosdk_hdr_is_valid(const struct aws_cryptosdk_hdr *hdr) {
     /* Header is not NULL and each field is a valid structure. */
-    return hdr != NULL && aws_cryptosdk_edk_list_is_valid(&hdr->edk_list) &&
+    return hdr != NULL && aws_allocator_is_valid(hdr->alloc) && aws_cryptosdk_edk_list_is_valid(&hdr->edk_list) &&
            aws_cryptosdk_edk_list_elements_are_valid(&hdr->edk_list) && aws_byte_buf_is_valid(&hdr->iv) &&
            aws_byte_buf_is_valid(&hdr->auth_tag) && aws_byte_buf_is_valid(&hdr->message_id) &&
            aws_byte_buf_is_valid(&hdr->alg_suite_data) && aws_hash_table_is_valid(&hdr->enc_ctx);
