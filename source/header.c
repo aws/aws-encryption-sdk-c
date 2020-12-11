@@ -312,7 +312,7 @@ int aws_cryptosdk_priv_hdr_parse_content_type(
 int aws_cryptosdk_priv_hdr_parse_reserved(struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *cur) {
     AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(hdr));
     AWS_PRECONDITION(aws_byte_cursor_is_valid(cur));
-    uint32_t reserved;  // Must be zero
+    uint32_t reserved = 0;
     if (!aws_byte_cursor_read_be32(cur, &reserved)) return aws_cryptosdk_priv_hdr_parse_err_short_buf(hdr);
     if (reserved) return aws_cryptosdk_priv_hdr_parse_err_generic(hdr);
     return AWS_OP_SUCCESS;
