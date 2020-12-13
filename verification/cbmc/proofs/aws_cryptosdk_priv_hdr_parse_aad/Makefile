@@ -71,7 +71,6 @@ REMOVE_FUNCTION_BODY += aws_hash_callback_string_destroy
 REMOVE_FUNCTION_BODY += aws_hash_string
 REMOVE_FUNCTION_BODY += aws_raise_error_private
 REMOVE_FUNCTION_BODY += aws_string_bytes
-REMOVE_FUNCTION_BODY += aws_string_is_valid
 
 UNWINDSET += aws_cryptosdk_edk_list_clear.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
 UNWINDSET += aws_cryptosdk_edk_list_elements_are_bounded.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
