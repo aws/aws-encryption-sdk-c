@@ -224,6 +224,8 @@ const struct aws_cryptosdk_alg_properties *aws_cryptosdk_alg_props(enum aws_cryp
 }
 
 size_t aws_cryptosdk_private_algorithm_message_id_len(const struct aws_cryptosdk_alg_properties *alg_props) {
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(alg_props));
+
     switch (alg_props->msg_format_version) {
         case AWS_CRYPTOSDK_HEADER_VERSION_1_0: return MSG_ID_LEN;
         case AWS_CRYPTOSDK_HEADER_VERSION_2_0: return MSG_ID_LEN_V2;
@@ -278,6 +280,9 @@ bool aws_cryptosdk_alg_properties_is_valid(const struct aws_cryptosdk_alg_proper
 }
 
 bool aws_cryptosdk_private_commitment_eq(struct aws_byte_buf *a, struct aws_byte_buf *b) {
+    AWS_PRECONDITION(aws_byte_buf_is_valid(a));
+    AWS_PRECONDITION(aws_byte_buf_is_valid(b));
+
     if (a->len != b->len) return false;
 
     // If the (expected and true) commitment is zero-length, we're in a non-committing
@@ -316,6 +321,11 @@ static int aws_cryptosdk_private_derive_key_v1(
     struct content_key *content_key,
     const struct data_key *data_key,
     const struct aws_byte_buf *message_id) {
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(props));
+    AWS_PRECONDITION(aws_cryptosdk_content_key_is_valid(content_key));
+    AWS_PRECONDITION(aws_cryptosdk_data_key_is_valid(data_key));
+    AWS_PRECONDITION(aws_byte_buf_is_valid(message_id));
+
     if (message_id->len != MSG_ID_LEN) {
         return AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT;
     }
@@ -345,6 +355,12 @@ static int aws_cryptosdk_private_derive_key_v2(
     const struct data_key *data_key,
     struct aws_byte_buf *commitment,
     const struct aws_byte_buf *message_id) {
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(props));
+    AWS_PRECONDITION(aws_cryptosdk_content_key_is_valid(content_key));
+    AWS_PRECONDITION(aws_cryptosdk_data_key_is_valid(data_key));
+    AWS_PRECONDITION(aws_byte_buf_is_valid(commitment));
+    AWS_PRECONDITION(aws_byte_buf_is_valid(message_id));
+
     if (commitment->capacity < props->commitment_len) {
         return AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
     }
@@ -395,6 +411,14 @@ int aws_cryptosdk_private_derive_key(
     const struct data_key *data_key,
     struct aws_byte_buf *commitment,
     const struct aws_byte_buf *message_id) {
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(props));
+    AWS_PRECONDITION(aws_cryptosdk_content_key_is_valid(content_key));
+    AWS_PRECONDITION(aws_cryptosdk_data_key_is_valid(data_key));
+    if (props->msg_format_version == AWS_CRYPTOSDK_HEADER_VERSION_2_0) {
+        AWS_PRECONDITION(aws_byte_buf_is_valid(commitment));
+    }
+    AWS_PRECONDITION(aws_byte_buf_is_valid(message_id));
+
     if (props->msg_format_version == AWS_CRYPTOSDK_HEADER_VERSION_1_0) {
         if (commitment->len != 0) {
             return AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN;
@@ -1027,4 +1051,12 @@ cleanup:
     } else {
         return AWS_OP_SUCCESS;
     }
+}
+
+bool aws_cryptosdk_data_key_is_valid(const struct data_key *key) {
+    return AWS_MEM_IS_WRITABLE(key->keybuf, MAX_DATA_KEY_SIZE);
+}
+
+bool aws_cryptosdk_content_key_is_valid(const struct content_key *key) {
+    return AWS_MEM_IS_WRITABLE(key->keybuf, MAX_DATA_KEY_SIZE);
 }
