@@ -20,6 +20,7 @@
 #include <aws/cryptosdk/private/hkdf.h>
 #include <aws/cryptosdk/private/keyring_trace.h>
 #include <aws/cryptosdk/private/multi_keyring.h>
+#include <aws/cryptosdk/private/session.h>
 #include <cipher_openssl.h>
 #include <ec_utils.h>
 #include <evp_utils.h>
@@ -63,6 +64,27 @@ struct content_key *ensure_content_key_attempt_allocation() {
 struct data_key *ensure_data_key_attempt_allocation() {
     struct data_key *key = malloc(sizeof(uint8_t) * MAX_DATA_KEY_SIZE);
     return key;
+}
+
+struct aws_cryptosdk_session *ensure_session_attempt_allocation(size_t max_len) {
+    struct aws_cryptosdk_session *session = malloc(sizeof(struct aws_cryptosdk_session));
+    if (session) {
+        session->alloc       = nondet_bool() ? NULL : can_fail_allocator();
+        session->cmm         = malloc(sizeof(struct aws_cryptosdk_cmm));
+        session->header_copy = malloc(sizeof(uint8_t));
+        session->alg_props   = ensure_alg_properties_attempt_allocation(max_len);
+        session->signctx     = ensure_nondet_sig_ctx_has_allocated_members();
+    }
+    return session;
+}
+
+struct aws_cryptosdk_dec_materials *ensure_dec_materials_attempt_allocation() {
+    struct aws_cryptosdk_dec_materials *materials = malloc(sizeof(struct aws_cryptosdk_dec_materials));
+    if (materials) {
+        materials->alloc   = nondet_bool() ? NULL : can_fail_allocator();
+        materials->signctx = ensure_nondet_sig_ctx_has_allocated_members();
+    }
+    return materials;
 }
 
 void ensure_record_has_allocated_members(struct aws_cryptosdk_keyring_trace_record *record, size_t max_len) {

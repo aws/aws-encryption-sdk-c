@@ -25,16 +25,14 @@
 
 void derive_data_key_harness() {
     /* Nondet input */
-    struct aws_cryptosdk_session *session         = malloc(sizeof(*session));
-    struct aws_cryptosdk_dec_materials *materials = malloc(sizeof(*materials));
+    struct aws_cryptosdk_session *session         = ensure_session_attempt_allocation(MAX_STRING_LEN);
+    struct aws_cryptosdk_dec_materials *materials = ensure_dec_materials_attempt_allocation();
 
     /* Assumptions */
     __CPROVER_assume(session != NULL);
     __CPROVER_assume(aws_cryptosdk_commitment_policy_is_valid(session->commitment_policy));
 
-    session->alg_props = malloc(sizeof(*session->alg_props));
     __CPROVER_assume(session->alg_props != NULL);
-    ensure_alg_properties_attempt_allocation(session->alg_props);
     __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(session->alg_props));
     __CPROVER_assume(session->alg_props->commitment_len <= sizeof(session->key_commitment_arr));
 

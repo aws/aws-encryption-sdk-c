@@ -34,6 +34,12 @@ struct data_key *ensure_data_key_attempt_allocation();
 /* Ensures content_key structures are properly allocated. */
 struct content_key *ensure_content_key_attempt_allocation();
 
+/* Allocates session members and ensures that internal pointers are pointing to the correct objects. */
+struct aws_cryptosdk_session *ensure_session_attempt_allocation(size_t max_len);
+
+/* Allocates dec_materials members and ensures that internal pointers are pointing to the correct objects. */
+struct aws_cryptosdk_dec_materials *ensure_dec_materials_attempt_allocation();
+
 /* Allocates the members of the context and ensures that internal pointers are pointing to the correct objects. */
 void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ctx);
 
