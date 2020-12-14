@@ -22,19 +22,19 @@
 
 void make_hash_table_with_no_backing_store(struct aws_hash_table *map, size_t max_table_entries);
 
-static bool flag = true;
+static int flag = 0;
 
 /**
  * In the aws_cryptosdk_enc_ctx_deserilize() proof, the first value we read (second overall) is the number of elements,
  * which we need to be constrained in order to ensure that the proof finishes. All other values can be left nondet.
  * This generates exactly that set of bytes
  */
-uint16_t aws_byte_cursor_read_be16_generator_for_parse_edks(const struct aws_byte_cursor *cursor) {
+uint16_t aws_byte_cursor_read_be16_generator_for_parse_aads(const struct aws_byte_cursor *cursor) {
     (void)cursor;
     uint16_t rval;
-    if (flag) {
-        __CPROVER_assume(rval <= MAX_EDK_LIST_ITEMS);
-        flag = false;
+    flag++;
+    if (flag == 2) {
+        __CPROVER_assume(rval <= MAX_TABLE_SIZE);
     }
     return rval;
 }
@@ -45,8 +45,6 @@ void aws_cryptosdk_priv_hdr_parse_aad_harness() {
     struct aws_byte_cursor *pcursor = malloc(sizeof(*pcursor));
 
     /* Assumptions */
-    make_hash_table_with_no_backing_store(&hdr->enc_ctx, MAX_TABLE_SIZE);
-
     __CPROVER_assume(pcursor != NULL);
     __CPROVER_assume(aws_byte_cursor_is_bounded(pcursor, MAX_BUFFER_SIZE));
     ensure_byte_cursor_has_allocated_buffer_member(pcursor);
