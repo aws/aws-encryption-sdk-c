@@ -20,6 +20,8 @@
 #include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
+static bool flag = true;
+
 /**
  * In the aws_cryptosdk_enc_ctx_deserilize() proof, the first value we read is the number of elements,
  * which we need to be constrained in order to ensure that the proof finishes. All other values can be left nondet.
@@ -27,11 +29,10 @@
  */
 uint16_t aws_byte_cursor_read_be16_generator_for_parse_edks(const struct aws_byte_cursor *cursor) {
     (void)cursor;
-    static int num_times_called = 0;
-    num_times_called++;
     uint16_t rval;
-    if (num_times_called == 1) {
+    if (flag) {
         __CPROVER_assume(rval <= MAX_EDK_LIST_ITEMS);
+        flag = false;
     }
     return rval;
 }
@@ -42,8 +43,6 @@ void aws_cryptosdk_priv_hdr_parse_edks_harness() {
     struct aws_byte_cursor *pcursor = malloc(sizeof(*pcursor));
 
     /* Assumptions */
-    __CPROVER_assume(&hdr->alloc != NULL);
-
     __CPROVER_assume(pcursor != NULL);
     __CPROVER_assume(aws_byte_cursor_is_bounded(pcursor, MAX_BUFFER_SIZE));
     ensure_byte_cursor_has_allocated_buffer_member(pcursor);
