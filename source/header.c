@@ -355,6 +355,7 @@ int aws_cryptosdk_priv_hdr_parse_frame_len(
 int aws_cryptosdk_priv_hdr_parse_alg_suite_data(
     struct aws_cryptosdk_hdr *hdr, const struct aws_cryptosdk_alg_properties *alg_props, struct aws_byte_cursor *cur) {
     AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(hdr));
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(alg_props));
     AWS_PRECONDITION(aws_byte_cursor_is_valid(cur));
     if (!alg_props->alg_suite_data_len) return AWS_OP_SUCCESS;
     if (aws_byte_buf_init(&hdr->alg_suite_data, hdr->alloc, alg_props->alg_suite_data_len))
