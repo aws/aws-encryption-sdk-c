@@ -17,10 +17,12 @@ sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
+include ../Makefile.string
 #########
-# Local vars
-COMMIT_BYTES_NUM = 4
-
+# In aws_cryptosdk_private_commitment_eq, two commitment values are
+# compared in a loop with (32 / sizeof(uintptr_t)) iterations.
+# (32 / sizeof(uintptr_t)) equals 4 since sizeof(uintptr_t) is 8UL
+COMMITMENT_EQ_ITERATIONS = 4
 #########
 PROOF_UID = derive_data_key
 
@@ -31,6 +33,7 @@ CBMCFLAGS +=
 
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
+PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/bn_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/ec_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
 PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
@@ -48,6 +51,6 @@ PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
-UNWINDSET += aws_cryptosdk_private_commitment_eq.0:$(call addone, $(COMMIT_BYTES_NUM))
+UNWINDSET += aws_cryptosdk_private_commitment_eq.0:$(call addone, $(COMMITMENT_EQ_ITERATIONS))
 ###########
 include ../Makefile.common
