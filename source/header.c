@@ -332,6 +332,9 @@ int aws_cryptosdk_priv_hdr_parse_reserved(struct aws_cryptosdk_hdr *hdr, struct 
 }
 
 int aws_cryptosdk_priv_hdr_parse_iv_len(struct aws_cryptosdk_hdr *hdr, uint8_t *iv_len, struct aws_byte_cursor *cur) {
+    AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(hdr));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(cur));
+    AWS_PRECONDITION(iv_len != NULL);
     if (!aws_byte_cursor_read_u8(cur, iv_len)) return aws_cryptosdk_priv_hdr_parse_err_short_buf(hdr);
     if (*iv_len != aws_cryptosdk_private_algorithm_ivlen(hdr->alg_id))
         return aws_cryptosdk_priv_hdr_parse_err_generic(hdr);
@@ -340,6 +343,8 @@ int aws_cryptosdk_priv_hdr_parse_iv_len(struct aws_cryptosdk_hdr *hdr, uint8_t *
 
 int aws_cryptosdk_priv_hdr_parse_frame_len(
     struct aws_cryptosdk_hdr *hdr, uint8_t content_type, struct aws_byte_cursor *cur) {
+    AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(hdr));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(cur));
     uint32_t frame_len;
     if (!aws_byte_cursor_read_be32(cur, &frame_len)) return aws_cryptosdk_priv_hdr_parse_err_short_buf(hdr);
     if ((content_type == AWS_CRYPTOSDK_HEADER_CTYPE_NONFRAMED && frame_len != 0) ||
