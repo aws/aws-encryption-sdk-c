@@ -60,8 +60,7 @@ PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_base64_encode.c
-
-REMOVE_FUNCTION_BODY += aws_base64_encode
+PROOF_SOURCES += $(PROOF_STUB)/on_encrypt_stub.c
 
 UNWINDSET +=  strcmp.0:$(call addone,$(PRIME_STRING_LEN))
 ###########

@@ -63,6 +63,7 @@ PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_array_list_defined_type.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(PROOF_STUB)/on_encrypt_stub.c
 
 UNWINDSET += aws_cryptosdk_edk_list_elements_are_bounded.0:$(call addone,$(NUM_ELEMS))
 UNWINDSET += aws_cryptosdk_edk_list_elements_are_valid.0:$(call addone,$(NUM_ELEMS))
