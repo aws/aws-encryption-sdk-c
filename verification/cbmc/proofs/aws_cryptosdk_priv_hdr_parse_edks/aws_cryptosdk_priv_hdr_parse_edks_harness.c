@@ -45,7 +45,6 @@ int aws_array_list_push_back(struct aws_array_list *AWS_RESTRICT list, const voi
     assert(aws_array_list_is_valid(list));
     assert(val && AWS_MEM_IS_READABLE(val, list->item_size));
     assert(aws_cryptosdk_edk_is_valid(val));
-    
     if (nondet_bool()) {
         return 0;
     }
