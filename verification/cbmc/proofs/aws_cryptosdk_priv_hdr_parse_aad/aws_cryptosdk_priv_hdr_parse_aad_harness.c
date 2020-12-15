@@ -23,8 +23,8 @@
 static int flag = 0;
 
 /**
- * In the aws_cryptosdk_enc_ctx_deserilize() proof, the first value we read (second overall) is the number of elements,
- * which we need to be constrained in order to ensure that the proof finishes. All other values can be left nondet.
+ * In the aws_cryptosdk_enc_ctx_deserialize() proof, the first value we read (second overall) is the number of elements,
+ * which need to be constrained in order to ensure that the proof finishes. All other values can be left nondet.
  * This generates exactly that set of bytes
  */
 uint16_t aws_byte_cursor_read_be16_generator_for_parse_aads(const struct aws_byte_cursor *cursor) {
