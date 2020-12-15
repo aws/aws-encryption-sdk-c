@@ -66,27 +66,6 @@ struct data_key *ensure_data_key_attempt_allocation() {
     return key;
 }
 
-struct aws_cryptosdk_session *ensure_session_attempt_allocation(size_t max_len) {
-    struct aws_cryptosdk_session *session = malloc(sizeof(struct aws_cryptosdk_session));
-    if (session) {
-        session->alloc       = nondet_bool() ? NULL : can_fail_allocator();
-        session->cmm         = malloc(sizeof(struct aws_cryptosdk_cmm));
-        session->header_copy = malloc(sizeof(uint8_t));
-        session->alg_props   = ensure_alg_properties_attempt_allocation(max_len);
-        // session->signctx     = ensure_nondet_sig_ctx_has_allocated_members();
-    }
-    return session;
-}
-
-struct aws_cryptosdk_dec_materials *ensure_dec_materials_attempt_allocation() {
-    struct aws_cryptosdk_dec_materials *materials = malloc(sizeof(struct aws_cryptosdk_dec_materials));
-    if (materials) {
-        materials->alloc = nondet_bool() ? NULL : can_fail_allocator();
-        // materials->signctx = ensure_nondet_sig_ctx_has_allocated_members();
-    }
-    return materials;
-}
-
 void ensure_record_has_allocated_members(struct aws_cryptosdk_keyring_trace_record *record, size_t max_len) {
     record->wrapping_key_namespace = ensure_string_is_allocated_nondet_length();
     if (record->wrapping_key_namespace) {
@@ -274,4 +253,25 @@ void ensure_nondet_allocate_cmm_vtable_members(struct aws_cryptosdk_cmm_vt *vtab
     if (vtable) {
         vtable->name = ensure_c_str_is_allocated(max_len);
     }
+}
+
+struct aws_cryptosdk_session *ensure_session_attempt_allocation(size_t max_len) {
+    struct aws_cryptosdk_session *session = malloc(sizeof(struct aws_cryptosdk_session));
+    if (session) {
+        session->alloc       = nondet_bool() ? NULL : can_fail_allocator();
+        session->cmm         = malloc(sizeof(struct aws_cryptosdk_cmm));
+        session->header_copy = malloc(sizeof(uint8_t));
+        session->alg_props   = ensure_alg_properties_attempt_allocation(max_len);
+        session->signctx     = ensure_nondet_sig_ctx_has_allocated_members();
+    }
+    return session;
+}
+
+struct aws_cryptosdk_dec_materials *ensure_dec_materials_attempt_allocation() {
+    struct aws_cryptosdk_dec_materials *materials = malloc(sizeof(struct aws_cryptosdk_dec_materials));
+    if (materials) {
+        materials->alloc = nondet_bool() ? NULL : can_fail_allocator();
+        materials->signctx = ensure_nondet_sig_ctx_has_allocated_members();
+    }
+    return materials;
 }
