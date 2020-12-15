@@ -270,7 +270,7 @@ struct aws_cryptosdk_session *ensure_session_attempt_allocation(size_t max_len) 
 struct aws_cryptosdk_dec_materials *ensure_dec_materials_attempt_allocation() {
     struct aws_cryptosdk_dec_materials *materials = malloc(sizeof(struct aws_cryptosdk_dec_materials));
     if (materials) {
-        materials->alloc = nondet_bool() ? NULL : can_fail_allocator();
+        materials->alloc   = nondet_bool() ? NULL : can_fail_allocator();
         materials->signctx = ensure_nondet_sig_ctx_has_allocated_members();
     }
     return materials;
