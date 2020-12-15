@@ -30,13 +30,39 @@
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
 
-void ensure_alg_properties_attempt_allocation(struct aws_cryptosdk_alg_properties *const alg_props) {
-    size_t md_name_size;
-    alg_props->md_name = can_fail_malloc(md_name_size);
-    size_t cipher_name_size;
-    alg_props->cipher_name = can_fail_malloc(cipher_name_size);
-    size_t alg_name_size;
-    alg_props->alg_name = can_fail_malloc(alg_name_size);
+const EVP_MD *nondet_EVP_MD_ptr(void);
+const EVP_CIPHER *nondet_EVP_CIPHER_ptr(void);
+
+struct aws_cryptosdk_alg_impl *ensure_impl_attempt_allocation(const size_t max_len) {
+    struct aws_cryptosdk_alg_impl *impl = malloc(sizeof(struct aws_cryptosdk_alg_impl));
+    if (impl) {
+        *(const EVP_MD **)(&impl->md_ctor)         = (nondet_bool()) ? NULL : &nondet_EVP_MD_ptr;
+        *(const EVP_MD **)(&impl->sig_md_ctor)     = (nondet_bool()) ? NULL : &nondet_EVP_MD_ptr;
+        *(const EVP_CIPHER **)(&impl->cipher_ctor) = (nondet_bool()) ? NULL : &nondet_EVP_CIPHER_ptr;
+        *(const char **)(&impl->curve_name)        = ensure_c_str_is_allocated(max_len);
+    }
+    return impl;
+}
+struct aws_cryptosdk_alg_properties *ensure_alg_properties_attempt_allocation(const size_t max_len) {
+    struct aws_cryptosdk_alg_properties *alg_props = malloc(sizeof(struct aws_cryptosdk_alg_properties));
+    if (alg_props) {
+        alg_props->md_name     = ensure_c_str_is_allocated(max_len);
+        alg_props->cipher_name = ensure_c_str_is_allocated(max_len);
+        alg_props->alg_name    = ensure_c_str_is_allocated(max_len);
+        alg_props->sig_md_name = ensure_c_str_is_allocated(max_len);
+        alg_props->impl        = malloc(sizeof(struct aws_cryptosdk_alg_impl));
+    }
+    return alg_props;
+}
+
+struct content_key *ensure_content_key_attempt_allocation() {
+    struct content_key *key = malloc(sizeof(uint8_t) * MAX_DATA_KEY_SIZE);
+    return key;
+}
+
+struct data_key *ensure_data_key_attempt_allocation() {
+    struct data_key *key = malloc(sizeof(uint8_t) * MAX_DATA_KEY_SIZE);
+    return key;
 }
 
 void ensure_record_has_allocated_members(struct aws_cryptosdk_keyring_trace_record *record, size_t max_len) {
@@ -177,8 +203,24 @@ bool aws_cryptosdk_hdr_members_are_bounded(
     return true; /* If hdr is NULL, true by default */
 }
 
+struct aws_cryptosdk_hdr *hdr_setup(
+    const size_t max_table_size, const size_t max_edk_item_size, const size_t max_item_size) {
+    struct aws_cryptosdk_hdr *hdr = ensure_nondet_hdr_has_allocated_members(max_table_size);
+    __CPROVER_assume(aws_cryptosdk_hdr_members_are_bounded(hdr, max_edk_item_size, max_item_size));
+
+    /* Precondition: The edk list has allocated list elements */
+    ensure_cryptosdk_edk_list_has_allocated_list_elements(&hdr->edk_list);
+    __CPROVER_assume(aws_cryptosdk_hdr_is_valid(hdr));
+
+    __CPROVER_assume(hdr->enc_ctx.p_impl != NULL);
+    ensure_hash_table_has_valid_destroy_functions(&hdr->enc_ctx);
+    return hdr;
+}
+
 enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id alg_id) {
     switch (alg_id) {
+        case ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384:
+        case ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY: return AWS_CRYPTOSDK_SHA512;
         case ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384:
         case ALG_AES192_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384: return AWS_CRYPTOSDK_SHA384;
         case ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256_ECDSA_P256:

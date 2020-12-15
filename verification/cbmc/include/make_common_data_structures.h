@@ -25,7 +25,14 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-void ensure_alg_properties_attempt_allocation(struct aws_cryptosdk_alg_properties *const alg_props);
+/* Allocates alg_properties members and ensures that internal pointers are pointing to the correct objects. */
+struct aws_cryptosdk_alg_properties *ensure_alg_properties_attempt_allocation(const size_t max_len);
+
+/* Ensures data_key structures are properly allocated. */
+struct data_key *ensure_data_key_attempt_allocation();
+
+/* Ensures content_key structures are properly allocated. */
+struct content_key *ensure_content_key_attempt_allocation();
 
 /* Allocates the members of the context and ensures that internal pointers are pointing to the correct objects. */
 void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ctx);
@@ -45,6 +52,15 @@ struct aws_cryptosdk_hdr *ensure_nondet_hdr_has_allocated_members(const size_t m
 /* Determines if the members of the header are bounded. */
 bool aws_cryptosdk_hdr_members_are_bounded(
     const struct aws_cryptosdk_hdr *hdr, const size_t max_edk_item_size, const size_t max_item_size);
+
+/* Allocates and ensures properties of the members of the header. The properties ensured are :
+ * Header is either NULL or the internal pointers are pointing to the correct object.
+ * The members of the header are bounded.
+ * The hdr->edk_list has allocated list elements.
+ * The hdr->enc_ctx has valid destory functions.
+ * The hdr is non-NULL and each field satisfies the validity properties of its data structure. */
+struct aws_cryptosdk_hdr *hdr_setup(
+    const size_t max_table_size, const size_t max_edk_item_size, const size_t max_item_size);
 
 /* Makes internal function from cipher.c accessible for CBMC */
 enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id alg_id);
