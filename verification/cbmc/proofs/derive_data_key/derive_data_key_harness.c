@@ -67,9 +67,22 @@ void derive_data_key_harness() {
         &old_byte_from_unencrypted_data_key);
 
     /* Operation under verification */
-    __CPROVER_file_local_session_decrypt_c_derive_data_key(session, materials);
+    int rv = __CPROVER_file_local_session_decrypt_c_derive_data_key(session, materials);
 
     /* Postconditions */
+    if (rv == AWS_OP_ERR) {
+        int last_err = aws_last_error();
+        if (session->alg_props->msg_format_version == AWS_CRYPTOSDK_HEADER_VERSION_1_0) {
+            if (last_err == AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT) {
+                assert(session->header.message_id.len != MSG_ID_LEN);
+            }
+        } else if (session->alg_props->msg_format_version == AWS_CRYPTOSDK_HEADER_VERSION_2_0) {
+            if (last_err == AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT) {
+                assert(session->header.message_id.len != MSG_ID_LEN_V2 ||
+                        aws_cryptosdk_which_sha(session->alg_props->alg_id) == AWS_CRYPTOSDK_NOSHA);
+            }
+        }
+    }
     assert(aws_cryptosdk_alg_properties_is_valid(session->alg_props));
     assert(aws_byte_buf_is_valid(&session->header.alg_suite_data));
     assert_byte_buf_equivalence(&session->header.alg_suite_data, old_alg_suite_data, &old_byte_from_alg_suite_data);

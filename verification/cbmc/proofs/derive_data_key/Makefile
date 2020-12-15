@@ -31,6 +31,10 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 
 CBMCFLAGS +=
 
+# these are defined in cipher.c
+DEFINES += -DMSG_ID_LEN=16
+DEFINES += -DMSG_ID_LEN_V2=32
+
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/bn_override.c
