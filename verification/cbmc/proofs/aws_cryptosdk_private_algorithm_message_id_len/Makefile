@@ -12,25 +12,27 @@
 # limitations under the License.
 
 ###########
-# if Makefile.local exists, use it. This provides a way to override the defaults
+# if Makefile.local exists, use it. This provides a way to override the defaults 
 sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 include ../Makefile.string
 
-PROOF_UID = aws_cryptosdk_serialize_frame
+PROOF_UID = aws_cryptosdk_private_algorithm_message_id_len
 
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
-PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
-PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
-PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
-PROJECT_SOURCES += $(SRCDIR)/source/framefmt.c
+CBMCFLAGS += 
 
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
+# these are defined in cipher.c
+DEFINES += -DMSG_ID_LEN=16
+DEFINES += -DMSG_ID_LEN_V2=32
+
+PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
+
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 ###########
