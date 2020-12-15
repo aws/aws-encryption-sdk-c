@@ -44,18 +44,13 @@ void array_list_item_generator(struct aws_array_list *elems) {
 
 void aws_cryptosdk_hdr_write_harness() {
     /* Nondet Input */
-    struct aws_cryptosdk_hdr *hdr = ensure_nondet_hdr_has_allocated_members(MAX_TABLE_SIZE);
+    struct aws_cryptosdk_hdr *hdr = hdr_setup(MAX_TABLE_SIZE, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE);
     size_t *bytes_written;
     uint8_t *outbuf;
     size_t outlen;
 
     /* Assumptions */
-    __CPROVER_assume(aws_cryptosdk_hdr_members_are_bounded(hdr, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE));
     __CPROVER_assume(IMPLIES(hdr != NULL, aws_byte_buf_is_bounded(&hdr->iv, MAX_IV_LEN)));
-
-    /* Precondition: The edk list has allocated list elements */
-    ensure_cryptosdk_edk_list_has_allocated_list_elements(&hdr->edk_list);
-    __CPROVER_assume(aws_cryptosdk_hdr_is_valid(hdr));
 
     ASSUME_VALID_MEMORY_COUNT(outbuf, outlen);
     ASSUME_VALID_MEMORY(bytes_written);
