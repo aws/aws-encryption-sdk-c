@@ -24,7 +24,7 @@ static bool flag = true;
 
 /**
  * In the aws_cryptosdk_enc_ctx_deserialize() proof, the first value we read is the number of elements,
- * which we need to be constrained in order to ensure that the proof finishes. All other values can be left nondet.
+ * which needs to be constrained in order to ensure that the proof finishes. All other values can be left nondet.
  * This generates exactly that set of bytes
  */
 uint16_t aws_byte_cursor_read_be16_generator_for_parse_edks(const struct aws_byte_cursor *cursor) {
@@ -40,6 +40,7 @@ uint16_t aws_byte_cursor_read_be16_generator_for_parse_edks(const struct aws_byt
 /**
  * We stub aws_array_list_push_back for performance.
  * We check that the value added to the edk_list is a valid edk, ensuring that the hdr structure remains valid.
+ * Otherwise, this stub is basically a no-op and does not modify the list.
  */
 int aws_array_list_push_back(struct aws_array_list *AWS_RESTRICT list, const void *val) {
     assert(aws_array_list_is_valid(list));
