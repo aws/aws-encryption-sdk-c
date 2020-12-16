@@ -20,6 +20,8 @@
 #include <aws/cryptosdk/materials.h>
 #include <make_common_data_structures.h>
 
+#define DEFAULT_ALG_UNSET 0xFFFF
+
 int on_encrypt(
     struct aws_cryptosdk_keyring *keyring,
     struct aws_allocator *request_alloc,
@@ -54,8 +56,10 @@ void default_cmm_generate_enc_materials_harness() {
     /* Operation under verification */
     if (__CPROVER_file_local_default_cmm_c_default_cmm_generate_enc_materials(cmm, output, request) == AWS_OP_SUCCESS) {
         assert(aws_cryptosdk_enc_materials_is_valid(*output));
+        assert(aws_cryptosdk_algorithm_is_known(request->requested_alg));
     } else {
-        assert(*output == NULL);
+        // assert(request->requested_alg == DEFAULT_ALG_UNSET || aws_cryptosdk_algorithm_is_known(request->requested_alg));
+        ;
     }
 
     /* Postconditions */
