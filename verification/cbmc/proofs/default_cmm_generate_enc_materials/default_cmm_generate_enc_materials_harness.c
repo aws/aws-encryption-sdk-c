@@ -30,21 +30,14 @@ int on_encrypt(
     enum aws_cryptosdk_alg_id alg);
 
 void default_cmm_generate_enc_materials_harness() {
-    /* Nondet input required to init cmm */
-    struct aws_cryptosdk_keyring *keyring        = malloc(sizeof(*keyring));
-    const struct aws_cryptosdk_keyring_vt vtable = { .vt_size    = sizeof(struct aws_cryptosdk_keyring_vt),
+    const struct aws_cryptosdk_keyring_vt vtable = { .vt_size    = nondet_size_t(),
                                                      .name       = ensure_c_str_is_allocated(SIZE_MAX),
                                                      .destroy    = nondet_voidp(),
                                                      .on_encrypt = nondet_bool() ? NULL : on_encrypt,
                                                      .on_decrypt = nondet_voidp() };
-    /* Assumptions required to init cmm */
-    ensure_cryptosdk_keyring_has_allocated_members(keyring, &vtable);
-    __CPROVER_assume(aws_cryptosdk_keyring_is_valid(keyring));
-    __CPROVER_assume(keyring->vtable != NULL);
-
     /* Nondet input */
-    struct aws_cryptosdk_cmm *cmm               = ensure_default_cmm_attempt_allocation(keyring);
-    struct aws_cryptosdk_enc_materials **output = malloc(sizeof(*output));
+    struct aws_cryptosdk_cmm *cmm               = ensure_default_cmm_attempt_allocation(&vtable);
+    struct aws_cryptosdk_enc_materials **output = ensure_enc_materials_attempt_allocation();
     struct aws_cryptosdk_enc_request *request   = ensure_enc_request_attempt_allocation(MAX_TABLE_SIZE);
 
     /* Assumptions */

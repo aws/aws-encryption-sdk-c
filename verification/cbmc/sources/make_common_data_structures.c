@@ -391,13 +391,34 @@ struct aws_cryptosdk_enc_request *ensure_enc_request_attempt_allocation(const si
     return request;
 }
 
-struct aws_cryptosdk_cmm *ensure_default_cmm_attempt_allocation(struct aws_cryptosdk_keyring *keyring) {
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(can_fail_allocator(), keyring);
+struct aws_cryptosdk_enc_materials *ensure_enc_materials_attempt_allocation() {
+    struct aws_cryptosdk_enc_materials *materials = malloc(sizeof(struct aws_cryptosdk_enc_materials));
+    if (materials) {
+        materials->alloc   = nondet_bool() ? NULL : can_fail_allocator();
+        materials->signctx = ensure_nondet_sig_ctx_has_allocated_members();
+    }
+    return materials;
+}
+
+struct aws_cryptosdk_cmm *ensure_default_cmm_attempt_allocation(const struct aws_cryptosdk_keyring_vt *vtable) {
+    /* Nondet input required to init cmm */
+    struct aws_cryptosdk_keyring *keyring = malloc(sizeof(*keyring));
+
+    /* Assumptions required to init cmm */
+    ensure_cryptosdk_keyring_has_allocated_members(keyring, vtable);
+    __CPROVER_assume(aws_cryptosdk_keyring_is_valid(keyring));
+    __CPROVER_assume(keyring->vtable != NULL);
+
+    struct aws_cryptosdk_cmm *cmm = malloc(sizeof(struct default_cmm));
+    if (cmm) {
+        cmm->vtable = vtable;
+    }
+
     struct default_cmm *self = NULL;
     if (cmm) {
         self = (struct default_cmm *) cmm;
         self->alloc = can_fail_allocator();
-        self->kr    = aws_cryptosdk_keyring_retain(keyring);
+        self->kr    = keyring;
     }
     return (struct aws_cryptosdk_cmm *) self;
 }
