@@ -288,6 +288,10 @@ static struct aws_cryptosdk_hdr test_headerV2_1_hdr() {
                             .len    = sizeof(test_headerV2_1_alg_suite_data_arr) },
         .auth_len       = sizeof(test_headerV2_1) - 1 - 16  // not used by aws_cryptosdk_hdr_size/write
     };
+    hdr.auth_tag   = aws_byte_buf_from_array(test_headerV2_1_auth_tag_arr, sizeof(test_headerV2_1_auth_tag_arr));
+    hdr.message_id = aws_byte_buf_from_array(test_headerV2_1_message_id_arr, sizeof(test_headerV2_1_message_id_arr));
+    hdr.alg_suite_data =
+        aws_byte_buf_from_array(test_headerV2_1_alg_suite_data_arr, sizeof(test_headerV2_1_alg_suite_data_arr));
     SET_EDK_TBL(&hdr, test_headerV2_1_edk_tbl);
     SET_AAD_TBL(&hdr, test_headerV2_1_aad_tbl);
     return hdr;
