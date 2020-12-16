@@ -299,6 +299,8 @@ int aws_cryptosdk_priv_hdr_parse_aad(struct aws_cryptosdk_hdr *hdr, struct aws_b
 }
 
 int aws_cryptosdk_priv_hdr_parse_edks(struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *cur) {
+    AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(hdr));
+    AWS_PRECONDITION(aws_byte_cursor_is_valid(cur));
     uint16_t edk_count;
     if (!aws_byte_cursor_read_be16(cur, &edk_count)) return aws_cryptosdk_priv_hdr_parse_err_short_buf(hdr);
     if (!edk_count) return aws_cryptosdk_priv_hdr_parse_err_generic(hdr);
@@ -471,6 +473,7 @@ static void init_aws_byte_buf_raw(struct aws_byte_buf *buf) {
 }
 int aws_cryptosdk_hdr_write(
     const struct aws_cryptosdk_hdr *hdr, size_t *bytes_written, uint8_t *outbuf, size_t outlen) {
+    AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(hdr));
     struct aws_byte_buf output = aws_byte_buf_from_array(outbuf, outlen);
     output.len                 = 0;
 
