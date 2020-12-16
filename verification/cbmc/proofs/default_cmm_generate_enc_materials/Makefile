@@ -47,6 +47,7 @@ PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
 PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
 PROJECT_SOURCES += $(SRCDIR)/source/default_cmm.c
 PROJECT_SOURCES += $(SRCDIR)/source/edk.c
+PROJECT_SOURCES += $(SRCDIR)/source/header.c
 PROJECT_SOURCES += $(SRCDIR)/source/keyring_trace.c
 PROJECT_SOURCES += $(SRCDIR)/source/materials.c
 
