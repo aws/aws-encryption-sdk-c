@@ -51,16 +51,6 @@ void default_cmm_generate_enc_materials_harness() {
     __CPROVER_assume(request->enc_ctx != NULL);
     __CPROVER_assume(aws_cryptosdk_enc_request_is_valid(request));
 
-    enum aws_cryptosdk_alg_id alg_id;
-    if (nondet_bool()) request->requested_alg = alg_id;
-    // We can either add this OR add "if (!props) goto err;" after line 61 in the source code
-    // I think adding the check to the source code is better in this case.
-    // struct aws_cryptosdk_alg_properties *alg_props = aws_cryptosdk_alg_props(alg_id);
-    // __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(alg_props));
-
-    /* Nondet set self->default_alg to a valid alg_id */
-    __CPROVER_assume(aws_cryptosdk_default_cmm_set_alg_id(cmm, alg_id) == AWS_OP_SUCCESS);
-
     /* Operation under verification */
     if (__CPROVER_file_local_default_cmm_c_default_cmm_generate_enc_materials(cmm, output, request) == AWS_OP_SUCCESS) {
         assert(aws_cryptosdk_enc_materials_is_valid(*output));
