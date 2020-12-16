@@ -38,7 +38,8 @@ static int default_cmm_generate_enc_materials(
     struct aws_cryptosdk_enc_materials **output,
     struct aws_cryptosdk_enc_request *request) {
     AWS_PRECONDITION(aws_cryptosdk_default_cmm_is_valid(cmm));
-    AWS_PRECONDITION(aws_cryptosdk_enc_materials_is_valid(output));
+    AWS_PRECONDITION(output != NULL);
+    AWS_PRECONDITION(aws_cryptosdk_enc_materials_is_valid(*output));
     AWS_PRECONDITION(aws_cryptosdk_enc_request_is_valid(request));
 
     struct aws_cryptosdk_enc_materials *enc_mat = NULL;

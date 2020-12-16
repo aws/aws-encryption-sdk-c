@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-
 #include <stdlib.h>
 
 #include <aws/cryptosdk/default_cmm.h>

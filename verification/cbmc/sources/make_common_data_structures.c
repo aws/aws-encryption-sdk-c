@@ -385,8 +385,9 @@ struct aws_cryptosdk_enc_request *ensure_enc_request_attempt_allocation(const si
     if (request) {
         request->alloc   = nondet_bool() ? NULL : can_fail_allocator();
         request->enc_ctx = malloc(sizeof(struct aws_hash_table));
-        if (request->enc_ctx)
+        if (request->enc_ctx) {
             ensure_allocated_hash_table(request->enc_ctx, max_table_size);
+        }
     }
     return request;
 }
@@ -416,9 +417,9 @@ struct aws_cryptosdk_cmm *ensure_default_cmm_attempt_allocation(const struct aws
 
     struct default_cmm *self = NULL;
     if (cmm) {
-        self = (struct default_cmm *) cmm;
+        self        = (struct default_cmm *)cmm;
         self->alloc = can_fail_allocator();
         self->kr    = keyring;
     }
-    return (struct aws_cryptosdk_cmm *) self;
+    return (struct aws_cryptosdk_cmm *)self;
 }

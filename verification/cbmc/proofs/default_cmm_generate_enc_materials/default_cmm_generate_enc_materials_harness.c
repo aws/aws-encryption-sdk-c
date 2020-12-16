@@ -58,7 +58,8 @@ void default_cmm_generate_enc_materials_harness() {
         assert(aws_cryptosdk_enc_materials_is_valid(*output));
         assert(aws_cryptosdk_algorithm_is_known(request->requested_alg));
     } else {
-        // assert(request->requested_alg == DEFAULT_ALG_UNSET || aws_cryptosdk_algorithm_is_known(request->requested_alg));
+        // assert(request->requested_alg == DEFAULT_ALG_UNSET ||
+        // aws_cryptosdk_algorithm_is_known(request->requested_alg));
         ;
     }
 
