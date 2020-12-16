@@ -473,6 +473,7 @@ static void init_aws_byte_buf_raw(struct aws_byte_buf *buf) {
 }
 int aws_cryptosdk_hdr_write(
     const struct aws_cryptosdk_hdr *hdr, size_t *bytes_written, uint8_t *outbuf, size_t outlen) {
+    AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(hdr));
     struct aws_byte_buf output = aws_byte_buf_from_array(outbuf, outlen);
     output.len                 = 0;
 
