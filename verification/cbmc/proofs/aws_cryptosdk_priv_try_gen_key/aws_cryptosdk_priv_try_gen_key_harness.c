@@ -51,7 +51,7 @@ int aws_cryptosdk_hkdf(
 }
 
 /* Stub this because of the override of aws_array_list_get_at_ptr and for performance.
- The contents of session_>keyring_trace are nondet in the construction of the harness.
+ The contents of session->keyring_trace are nondet in the construction of the harness.
  Also neither keyring trace is later used.
  Original function is here:
  https://github.com/aws/aws-encryption-sdk-c/blob/master/source/list_utils.c#L17 */
@@ -141,7 +141,6 @@ int generate_enc_materials(
     __CPROVER_assume(aws_byte_buf_is_valid(&materials->unencrypted_data_key));
 
     // Set up the edk_list
-    // edk_list Precondition: We have a valid list */
     __CPROVER_assume(aws_cryptosdk_edk_list_is_bounded(&materials->encrypted_data_keys, MAX_EDK_LIST_ITEMS));
     ensure_cryptosdk_edk_list_has_allocated_list(&materials->encrypted_data_keys);
     __CPROVER_assume(aws_cryptosdk_edk_list_is_valid(&materials->encrypted_data_keys));
@@ -149,7 +148,7 @@ int generate_enc_materials(
     // The alloc is session->alloc
     materials->encrypted_data_keys.alloc = request->alloc;
 
-    // edk_list Precondition: The list has valid list elements
+    // Precondition: The edk_list has valid list elements
     __CPROVER_assume(aws_cryptosdk_edk_list_elements_are_bounded(&materials->encrypted_data_keys, MAX_BUFFER_SIZE));
     ensure_cryptosdk_edk_list_has_allocated_list_elements(&materials->encrypted_data_keys);
     __CPROVER_assume(aws_cryptosdk_edk_list_elements_are_valid(&materials->encrypted_data_keys));
@@ -178,6 +177,7 @@ void aws_cryptosdk_priv_try_gen_key_harness() {
     /* Assumptions */
     __CPROVER_assume(session != NULL);
 
+    /* Set the session->cmm */
     const struct aws_cryptosdk_cmm_vt vtable = { .vt_size = sizeof(struct aws_cryptosdk_cmm_vt),
                                                  .name    = ensure_c_str_is_allocated(SIZE_MAX),
                                                  .destroy = nondet_voidp(),
@@ -192,31 +192,25 @@ void aws_cryptosdk_priv_try_gen_key_harness() {
     __CPROVER_assume(aws_cryptosdk_cmm_base_is_valid(cmm));
     session->cmm = cmm;
 
+    /* Set the session->alg_id */
     enum aws_cryptosdk_alg_id alg_id;
     struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
     __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(props));
     session->alg_props = props;
 
-    struct aws_cryptosdk_hdr *hdr = ensure_nondet_hdr_has_allocated_members(MAX_TABLE_SIZE);
+    /* Set the session->header */
+    struct aws_cryptosdk_hdr *hdr = hdr_setup(MAX_TABLE_SIZE, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE);
 
-    __CPROVER_assume(aws_cryptosdk_hdr_members_are_bounded(hdr, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE));
+    __CPROVER_assume(aws_byte_buf_is_bounded(&hdr->iv, session->alg_props->iv_len));
+    __CPROVER_assume(aws_byte_buf_is_bounded(&hdr->auth_tag, session->alg_props->tag_len));
 
-    __CPROVER_assume(IMPLIES(hdr != NULL, aws_byte_buf_is_bounded(&hdr->iv, session->alg_props->iv_len)));
-    __CPROVER_assume(IMPLIES(hdr != NULL, aws_byte_buf_is_bounded(&hdr->auth_tag, session->alg_props->tag_len)));
-
-    ensure_cryptosdk_edk_list_has_allocated_list_elements(&hdr->edk_list);
-
-    __CPROVER_assume(aws_cryptosdk_hdr_is_valid(hdr));
-
-    // The header should have been cleared earlier
+    /* The header edk_list should have been cleared earlier.
+    See comment in build_header: "The header should have been cleared earlier, so the materials structure
+     should have zero EDKs (otherwise we'd need to destroy the old EDKs as well). */
     __CPROVER_assume(aws_array_list_length(&hdr->edk_list) == 0);
-
-    __CPROVER_assume(hdr->enc_ctx.p_impl != NULL);
-    ensure_hash_table_has_valid_destroy_functions(&hdr->enc_ctx);
-    size_t empty_slot_idx;
-    __CPROVER_assume(aws_hash_table_has_an_empty_slot(&hdr->enc_ctx, &empty_slot_idx));
     session->header = *hdr;
 
+    /* Set the session->keyring_trace */
     struct aws_array_list *keyring_trace = malloc(sizeof(*keyring_trace));
     __CPROVER_assume(keyring_trace != NULL);
     __CPROVER_assume(aws_array_list_is_bounded(
@@ -228,19 +222,23 @@ void aws_cryptosdk_priv_try_gen_key_harness() {
     __CPROVER_assume(aws_cryptosdk_keyring_trace_is_valid(keyring_trace));
     session->keyring_trace = *keyring_trace;
 
+    /* Set the allocators */
     session->alloc = can_fail_allocator();
     __CPROVER_assume(aws_allocator_is_valid(session->alloc));
-    __CPROVER_assume(session->alloc != NULL);
-    session->header.edk_list.alloc = session->alloc;  // this assumption is needed for build_header
-    __CPROVER_assume(aws_cryptosdk_commitment_policy_is_valid(session->commitment_policy));
+    session->header.edk_list.alloc = session->alloc;  // This assumption is needed for build_header
 
+    __CPROVER_assume(aws_cryptosdk_commitment_policy_is_valid(session->commitment_policy));
     __CPROVER_assume(session->state == ST_GEN_KEY);
     __CPROVER_assume(session->mode == AWS_CRYPTOSDK_ENCRYPT);
 
-    struct content_key *content_key = malloc(sizeof(*content_key));
-    __CPROVER_assume(content_key != NULL);
-    session->content_key = *content_key;
+    /* Save current state of the data structure */
+    struct store_byte_from_buffer old_enc_ctx;
+    save_byte_from_hash_table(&session->header.enc_ctx, &old_enc_ctx);
 
     /* Function under verification */
-    aws_cryptosdk_priv_try_gen_key(session);
+    if (aws_cryptosdk_priv_try_gen_key(session) == AWS_OP_SUCCESS) {
+        /* Assertions */
+        assert(aws_cryptosdk_hdr_is_valid(&session->header));
+    }
+    check_hash_table_unchanged(&session->header.enc_ctx, &old_enc_ctx);
 }
