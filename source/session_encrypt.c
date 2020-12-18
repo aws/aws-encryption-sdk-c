@@ -48,6 +48,15 @@ void aws_cryptosdk_priv_encrypt_compute_body_estimate(struct aws_cryptosdk_sessi
 }
 
 int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
+    AWS_PRECONDITION(session != NULL);
+    AWS_PRECONDITION(aws_cryptosdk_cmm_base_is_valid(session->cmm));
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(session->alg_props));
+    AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(&session->header));
+    AWS_PRECONDITION(aws_cryptosdk_keyring_trace_is_valid(&session->keyring_trace));
+    AWS_PRECONDITION(aws_allocator_is_valid(session->alloc));
+    AWS_PRECONDITION(aws_cryptosdk_commitment_policy_is_valid(session->commitment_policy));
+    AWS_PRECONDITION(session->state == ST_GEN_KEY);
+    AWS_PRECONDITION(session->mode == AWS_CRYPTOSDK_ENCRYPT);
     struct aws_cryptosdk_enc_request request;
     struct aws_cryptosdk_enc_materials *materials = NULL;
     struct data_key data_key;
