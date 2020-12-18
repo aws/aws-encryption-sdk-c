@@ -22,7 +22,8 @@
 
 /**
  * A generator function as described in the comment in aws_cryptosdk_hash_elems_array_init_stub.c.
- * Also see line 33 of the Makefile.
+ * Also see DEFINES += -DAWS_CRYPTOSDK_HASH_ELEMS_ARRAY_INIT_GENERATOR=array_list_item_generator
+ * (line 37) in the Makefile.
  */
 void array_list_item_generator(struct aws_array_list *elems) {
     assert(elems->item_size == sizeof(struct aws_hash_element));
@@ -54,15 +55,10 @@ void sign_header_harness() {
     __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(props));
     session->alg_props = props;
 
-    struct aws_cryptosdk_hdr *hdr = ensure_nondet_hdr_has_allocated_members(MAX_TABLE_SIZE);
-    __CPROVER_assume(aws_cryptosdk_hdr_members_are_bounded(hdr, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE));
+    struct aws_cryptosdk_hdr *hdr = hdr_setup(MAX_TABLE_SIZE, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE);
     __CPROVER_assume(IMPLIES(hdr != NULL, aws_byte_buf_is_bounded(&hdr->iv, session->alg_props->iv_len)));
     __CPROVER_assume(IMPLIES(hdr != NULL, aws_byte_buf_is_bounded(&hdr->auth_tag, session->alg_props->tag_len)));
-    ensure_cryptosdk_edk_list_has_allocated_list_elements(&hdr->edk_list);
-    __CPROVER_assume(aws_cryptosdk_hdr_is_valid(hdr));
 
-    __CPROVER_assume(hdr->enc_ctx.p_impl != NULL);
-    ensure_hash_table_has_valid_destroy_functions(&hdr->enc_ctx);
     session->header = *hdr;
 
     struct aws_cryptosdk_sig_ctx *ctx = ensure_nondet_sig_ctx_has_allocated_members();
