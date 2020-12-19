@@ -93,13 +93,6 @@ PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 REMOVE_FUNCTION_BODY += aws_array_list_get_at_ptr
 
-# Remove function bodies to deal with CBMC function pointer removal
-# All functions removed are those removed in aws_cryptosdk_enc_ctx_serialize
-REMOVE_FUNCTION_BODIES += --remove-function-body aws_array_list_sort
-REMOVE_FUNCTION_BODIES += --remove-function-body aws_byte_buf_write
-REMOVE_FUNCTION_BODIES += --remove-function-body aws_cryptosdk_enc_ctx_size
-REMOVE_FUNCTION_BODIES += --remove-function-body aws_cryptosdk_hash_elems_array_init
-
 # We abstract these functions because manual inspection demonstrates that they are unreachable,
 # which leads to improvements in coverage metrics
 # All functions removed in aws_cryptosdk_sign_header
