@@ -86,15 +86,23 @@ struct aws_cryptosdk_cmm *ensure_cmm_attempt_allocation(const size_t max_len);
 struct aws_cryptosdk_session *ensure_nondet_session_has_allocated_members(size_t max_len);
 
 bool aws_cryptosdk_session_members_are_bounded(
-    const struct aws_cryptosdk_session *session, const size_t max_trace_items, const size_t max_edk_item_size, const size_t max_item_size);
+    const struct aws_cryptosdk_session *session,
+    const size_t max_trace_items,
+    const size_t max_edk_item_size,
+    const size_t max_item_size);
 
-struct aws_cryptosdk_session *session_setup(const size_t max_table_size, const size_t max_trace_items,
- const size_t max_edk_item_size, const size_t max_item_size, const size_t max_len);
-
+struct aws_cryptosdk_session *session_setup(
+    const size_t max_table_size,
+    const size_t max_trace_items,
+    const size_t max_edk_item_size,
+    const size_t max_item_size,
+    const size_t max_len);
 
 /* Allocates dec_materials members and ensures that internal pointers are pointing to the correct objects. */
 struct aws_cryptosdk_dec_materials *ensure_dec_materials_attempt_allocation();
 
 bool aws_cryptosdk_dec_materials_members_are_bounded(
     const struct aws_cryptosdk_dec_materials *materials, const size_t max_trace_items, const size_t max_item_size);
-struct aws_cryptosdk_dec_materials *dec_materials_setup(const size_t max_trace_items, const size_t max_item_size, const size_t max_len);
+
+struct aws_cryptosdk_dec_materials *dec_materials_setup(
+    const size_t max_trace_items, const size_t max_item_size, const size_t max_len);

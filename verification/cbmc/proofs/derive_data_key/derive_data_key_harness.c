@@ -25,8 +25,10 @@
 
 void derive_data_key_harness() {
     /* Setup functions include nondet. allocation and common assumptions */
-    struct aws_cryptosdk_session *session         = session_setup(MAX_TABLE_SIZE, MAX_TRACE_LIST_ITEMS, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE, MAX_STRING_LEN);
-    struct aws_cryptosdk_dec_materials *materials = dec_materials_setup(MAX_TRACE_LIST_ITEMS, MAX_BUFFER_SIZE, MAX_STRING_LEN);
+    struct aws_cryptosdk_session *session =
+        session_setup(MAX_TABLE_SIZE, MAX_TRACE_LIST_ITEMS, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE, MAX_STRING_LEN);
+    struct aws_cryptosdk_dec_materials *materials =
+        dec_materials_setup(MAX_TRACE_LIST_ITEMS, MAX_BUFFER_SIZE, MAX_STRING_LEN);
 
     /* Assumptions */
     __CPROVER_assume(aws_cryptosdk_commitment_policy_is_valid(session->commitment_policy));

@@ -277,7 +277,7 @@ struct aws_cryptosdk_cmm_vt *ensure_cmm_vt_attempt_allocation(const size_t max_l
 struct aws_cryptosdk_cmm *ensure_cmm_attempt_allocation(const size_t max_len) {
     struct aws_cryptosdk_cmm *cmm = malloc(sizeof(struct aws_cryptosdk_cmm));
     if (cmm) {
-        cmm->vtable = ensure_cmm_vt_attempt_allocation(max_len);
+        cmm->vtable         = ensure_cmm_vt_attempt_allocation(max_len);
         cmm->refcount.value = malloc(sizeof(size_t));
     }
     return cmm;
@@ -299,21 +299,30 @@ struct aws_cryptosdk_session *ensure_nondet_session_has_allocated_members(const 
 }
 
 bool aws_cryptosdk_session_members_are_bounded(
-    const struct aws_cryptosdk_session *session, const size_t max_trace_items, const size_t max_edk_item_size, const size_t max_item_size) {
+    const struct aws_cryptosdk_session *session,
+    const size_t max_trace_items,
+    const size_t max_edk_item_size,
+    const size_t max_item_size) {
     if (session != NULL) {
         return aws_cryptosdk_hdr_members_are_bounded(&session->header, max_edk_item_size, max_item_size) &&
                aws_byte_buf_is_bounded(&session->key_commitment, max_item_size) &&
-               aws_array_list_is_bounded(&session->keyring_trace, max_trace_items, sizeof(struct aws_cryptosdk_keyring_trace_record)) &&
+               aws_array_list_is_bounded(
+                   &session->keyring_trace, max_trace_items, sizeof(struct aws_cryptosdk_keyring_trace_record)) &&
                session->keyring_trace.item_size == sizeof(struct aws_cryptosdk_keyring_trace_record);
     }
     return true; /* If hdr is NULL, true by default */
 }
 
-struct aws_cryptosdk_session *session_setup(const size_t max_table_size, const size_t max_trace_items,
- const size_t max_edk_item_size, const size_t max_item_size, const size_t max_len) {
+struct aws_cryptosdk_session *session_setup(
+    const size_t max_table_size,
+    const size_t max_trace_items,
+    const size_t max_edk_item_size,
+    const size_t max_item_size,
+    const size_t max_len) {
     struct aws_cryptosdk_session *session = ensure_nondet_session_has_allocated_members(max_table_size, max_len);
-    __CPROVER_assume(aws_cryptosdk_session_members_are_bounded(session, max_trace_items, max_edk_item_size, max_item_size));
-    
+    __CPROVER_assume(
+        aws_cryptosdk_session_members_are_bounded(session, max_trace_items, max_edk_item_size, max_item_size));
+
     /* Precondition: The keyring trace has allocated records */
     if (session) {
         __CPROVER_assume(aws_array_list_is_valid(&session->keyring_trace));
@@ -330,7 +339,8 @@ bool aws_cryptosdk_dec_materials_members_are_bounded(
     const struct aws_cryptosdk_dec_materials *materials, const size_t max_trace_items, const size_t max_item_size) {
     if (materials != NULL) {
         return aws_byte_buf_is_bounded(&materials->unencrypted_data_key, max_item_size) &&
-               aws_array_list_is_bounded(&materials->keyring_trace, max_trace_items, sizeof(struct aws_cryptosdk_keyring_trace_record)) &&
+               aws_array_list_is_bounded(
+                   &materials->keyring_trace, max_trace_items, sizeof(struct aws_cryptosdk_keyring_trace_record)) &&
                materials->keyring_trace.item_size == sizeof(struct aws_cryptosdk_keyring_trace_record);
     }
     return true;
@@ -346,7 +356,8 @@ struct aws_cryptosdk_dec_materials *ensure_dec_materials_attempt_allocation() {
     return materials;
 }
 
- struct aws_cryptosdk_dec_materials *dec_materials_setup(const size_t max_trace_items, const size_t max_item_size, const size_t max_len) {
+struct aws_cryptosdk_dec_materials *dec_materials_setup(
+    const size_t max_trace_items, const size_t max_item_size, const size_t max_len) {
     struct aws_cryptosdk_dec_materials *materials = ensure_dec_materials_attempt_allocation();
     __CPROVER_assume(aws_cryptosdk_dec_materials_members_are_bounded(materials, max_trace_items, max_item_size));
 
