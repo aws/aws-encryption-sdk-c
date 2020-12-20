@@ -67,12 +67,8 @@ UNEXPECTED_ERROR:
 }
 
 static int derive_data_key(struct aws_cryptosdk_session *session, struct aws_cryptosdk_dec_materials *materials) {
-    AWS_PRECONDITION(session != NULL);
-    AWS_PRECONDITION(materials != NULL);
-    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(session->alg_props));
-    AWS_PRECONDITION(aws_byte_buf_is_valid(&session->header.message_id));
-    AWS_PRECONDITION(aws_byte_buf_is_valid(&session->header.alg_suite_data));
-    AWS_PRECONDITION(aws_byte_buf_is_valid(&materials->unencrypted_data_key));
+    AWS_PRECONDITION(aws_cryptosdk_session_is_valid(session));
+    AWS_PRECONDITION(aws_cryptosdk_dec_materials_is_valid(materials));
 
     if (materials->unencrypted_data_key.len != session->alg_props->data_key_len) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
