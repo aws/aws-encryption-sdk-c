@@ -49,6 +49,12 @@ DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
 DEFINES += -DMSG_ID_LEN=16
 DEFINES += -DMSG_ID_LEN_V2=32
 
+# The maximum number of objects is set to 2^8 = 256. This option changes that to 2^9.
+# Without this flag, running this proof causes the CBMC error of
+# "too many addressed objects: maximum number of objects is set to 2^n=256 (with n=8);
+# use the `--object-bits n` option to increase the maximum number"
+CBMC_OBJECT_BITS ?= 9
+
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
