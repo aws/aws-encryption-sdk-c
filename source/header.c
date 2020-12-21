@@ -472,9 +472,8 @@ static void init_aws_byte_buf_raw(struct aws_byte_buf *buf) {
 int aws_cryptosdk_hdr_write(
     const struct aws_cryptosdk_hdr *hdr, size_t *bytes_written, uint8_t *outbuf, size_t outlen) {
     AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(hdr));
-    AWS_PRECONDITION(hdr->iv.len <= 255);  // uint8_t max value
-    AWS_PRECONDITION(
-        outlen == 0 || AWS_MEM_IS_READABLE(outbuf, outlen), "Output buffer [outbuf] must be readable up to [outlen].");
+    AWS_PRECONDITION(hdr->iv.len <= UINT8_MAX);  // uint8_t max value
+    AWS_PRECONDITION(outlen == 0 || AWS_MEM_IS_READABLE(outbuf, outlen));
     AWS_PRECONDITION(bytes_written != NULL);
     struct aws_byte_buf output = aws_byte_buf_from_array(outbuf, outlen);
     output.len                 = 0;
