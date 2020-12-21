@@ -43,7 +43,9 @@ DEFINES += -DMAX_TRACE_NUM_ITEMS=$(MAX_TRACE_NUM_ITEMS)
 # Without this flag, running this proof causes the CBMC error of 
 # "too many addressed objects: maximum number of objects is set to 2^n=256 (with n=8);
 # use the `--object-bits n` option to increase the maximum number"
-CBMCFLAGS += --object-bits 9
+# The proof hits the error when the line "rv = aws_cryptosdk_hdr_write(&session->header,
+# &actual_size, session->header_copy, session->header_size);" is reached.
+CBMC_OBJECT_BITS = 9
 
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
