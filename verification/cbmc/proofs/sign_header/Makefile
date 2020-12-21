@@ -42,7 +42,7 @@ DEFINES += -DAWS_CRYPTOSDK_HASH_ELEMS_ARRAY_INIT_GENERATOR=array_list_item_gener
 # use the `--object-bits n` option to increase the maximum number"
 # The proof hits the error when the line "rv = aws_cryptosdk_hdr_write(&session->header,
 # &actual_size, session->header_copy, session->header_size);" is reached.
-CBMCFLAGS += --object-bits 9
+CBMC_OBJECT_BITS = 9
 
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
