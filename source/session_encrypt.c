@@ -191,11 +191,11 @@ static int sign_header(struct aws_cryptosdk_session *session) {
     // see what happened. It also makes sure that the header is fully initialized,
     // again just in case some bug doesn't overwrite them properly.
 
-    if (session->header.iv.len) {
+    if (session->header.iv.len != 0) {
         assert(session->header.iv.buffer);
         memset(session->header.iv.buffer, 0x42, session->header.iv.len);
     }
-    if (session->header.auth_tag.len) {
+    if (session->header.auth_tag.len != 0) {
         assert(session->header.auth_tag.buffer);
         memset(session->header.auth_tag.buffer, 0xDE, session->header.auth_tag.len);
     }
@@ -219,17 +219,17 @@ static int sign_header(struct aws_cryptosdk_session *session) {
     if (rv) return AWS_OP_ERR;
 
     if (session->alg_props->msg_format_version == AWS_CRYPTOSDK_HEADER_VERSION_1_0) {
-        if (session->header.iv.len) {
+        if (session->header.iv.len != 0) {
             assert(session->header.iv.buffer);
             memcpy(session->header.iv.buffer, authtag.buffer, session->header.iv.len);
         }
-        if (session->header.auth_tag.len) {
+        if (session->header.auth_tag.len != 0) {
             assert(session->header.auth_tag.buffer);
             memcpy(
                 session->header.auth_tag.buffer, authtag.buffer + session->header.iv.len, session->header.auth_tag.len);
         }
     } else {
-        if (session->header.auth_tag.len) {
+        if (session->header.auth_tag.len != 0) {
             assert(session->header.auth_tag.buffer);
             memcpy(session->header.auth_tag.buffer, authtag.buffer, session->header.auth_tag.len);
         }
