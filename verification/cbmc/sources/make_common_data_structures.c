@@ -396,8 +396,8 @@ struct aws_cryptosdk_enc_materials *ensure_enc_materials_attempt_allocation() {
     struct aws_cryptosdk_enc_materials *materials = malloc(sizeof(struct aws_cryptosdk_enc_materials));
     if (materials) {
         materials->alloc   = nondet_bool() ? NULL : can_fail_allocator();
-        ensure_byte_buf_has_allocated_buffer_member(&materials->encrypted_data_keys);
         materials->signctx = ensure_nondet_sig_ctx_has_allocated_members();
+        ensure_byte_buf_has_allocated_buffer_member(&materials->encrypted_data_keys);
         ensure_array_list_has_allocated_data_member(&materials->keyring_trace);
         ensure_array_list_has_allocated_data_member(&materials->encrypted_data_keys);
     }
