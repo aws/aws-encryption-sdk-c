@@ -56,8 +56,8 @@ void sign_header_harness() {
     session->alg_props = props;
 
     struct aws_cryptosdk_hdr *hdr = hdr_setup(MAX_TABLE_SIZE, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE);
-    __CPROVER_assume(IMPLIES(hdr != NULL, aws_byte_buf_is_bounded(&hdr->iv, session->alg_props->iv_len)));
-    __CPROVER_assume(IMPLIES(hdr != NULL, aws_byte_buf_is_bounded(&hdr->auth_tag, session->alg_props->tag_len)));
+    __CPROVER_assume(aws_byte_buf_is_bounded(&hdr->iv, session->alg_props->iv_len));
+    __CPROVER_assume(aws_byte_buf_is_bounded(&hdr->auth_tag, session->alg_props->tag_len));
 
     session->header = *hdr;
 

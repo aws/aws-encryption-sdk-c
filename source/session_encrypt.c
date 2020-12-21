@@ -171,6 +171,8 @@ static int sign_header(struct aws_cryptosdk_session *session) {
     AWS_PRECONDITION(session != NULL);
     AWS_PRECONDITION(aws_allocator_is_valid(session->alloc));
     AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(&session->header));
+    AWS_PRECONDITION(session->header.iv.len <= session->alg_props->iv_len);
+    AWS_PRECONDITION(session->header.auth_tag.len <= session->alg_props->tag_len);
     AWS_PRECONDITION(aws_cryptosdk_sig_ctx_is_valid(session->signctx));
     AWS_PRECONDITION(session->state == ST_GEN_KEY);
     AWS_PRECONDITION(session->mode == AWS_CRYPTOSDK_ENCRYPT);
