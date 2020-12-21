@@ -79,9 +79,10 @@ void ensure_record_has_allocated_members(struct aws_cryptosdk_keyring_trace_reco
 }
 
 void ensure_trace_has_allocated_records(struct aws_array_list *trace, size_t max_len) {
+    struct aws_cryptosdk_keyring_trace_record *data;
     /* iterate over each record in the keyring trace */
     for (size_t i = 0; i < trace->length; ++i) {
-        struct aws_cryptosdk_keyring_trace_record *data = (struct aws_cryptosdk_keyring_trace_record *)trace->data;
+        data = (struct aws_cryptosdk_keyring_trace_record *)trace->data;
         ensure_record_has_allocated_members(&(data[i]), max_len);
     }
 }
