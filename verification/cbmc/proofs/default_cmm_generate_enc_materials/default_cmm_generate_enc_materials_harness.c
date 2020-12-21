@@ -20,8 +20,6 @@
 #include <aws/cryptosdk/materials.h>
 #include <make_common_data_structures.h>
 
-#define DEFAULT_ALG_UNSET 0xFFFF
-
 int on_encrypt(
     struct aws_cryptosdk_keyring *keyring,
     struct aws_allocator *request_alloc,
@@ -39,7 +37,7 @@ void default_cmm_generate_enc_materials_harness() {
                                                      .on_decrypt = nondet_voidp() };
     /* Nondet input */
     struct aws_cryptosdk_cmm *cmm               = ensure_default_cmm_attempt_allocation(&vtable);
-    struct aws_cryptosdk_enc_materials **output = ensure_enc_materials_attempt_allocation();
+    struct aws_cryptosdk_enc_materials *output = ensure_enc_materials_attempt_allocation();
     struct aws_cryptosdk_enc_request *request   = ensure_enc_request_attempt_allocation(MAX_TABLE_SIZE);
 
     /* Assumptions */
@@ -53,14 +51,17 @@ void default_cmm_generate_enc_materials_harness() {
     __CPROVER_assume(request->enc_ctx != NULL);
     __CPROVER_assume(aws_cryptosdk_enc_request_is_valid(request));
 
+    /* Save current state of the data structures */
+    struct store_byte_from_buffer old_output;
+    save_byte_from_array((uint8_t *)output, sizeof(*output), &old_output);
+
     /* Operation under verification */
-    if (__CPROVER_file_local_default_cmm_c_default_cmm_generate_enc_materials(cmm, output, request) == AWS_OP_SUCCESS) {
-        assert(aws_cryptosdk_enc_materials_is_valid(*output));
+    if (__CPROVER_file_local_default_cmm_c_default_cmm_generate_enc_materials(cmm, &output, request) == AWS_OP_SUCCESS) {
+        assert(aws_cryptosdk_enc_materials_is_valid(output));
         assert(aws_cryptosdk_algorithm_is_known(request->requested_alg));
     } else {
-        // assert(request->requested_alg == DEFAULT_ALG_UNSET ||
-        // aws_cryptosdk_algorithm_is_known(request->requested_alg));
-        ;
+        /* Note that we perform a top-level comparison here */
+        assert_byte_from_buffer_matches((uint8_t *)output, &old_output);
     }
 
     /* Postconditions */
