@@ -28,18 +28,17 @@ bool aws_cryptosdk_keyring_trace_is_valid(const struct aws_array_list *trace) {
         return false;
     }
     AWS_FATAL_PRECONDITION(trace->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
+    if (!aws_array_list_is_valid(trace)) {
+        return false;
+    }
     /* iterate over each record in the list */
-    size_t num_records = aws_array_list_length(trace);
-    bool is_valid      = aws_array_list_is_valid(trace);
-    for (size_t idx = 0; idx < num_records; ++idx) {
-        struct aws_cryptosdk_keyring_trace_record *record;
-        if (!aws_array_list_get_at_ptr(trace, (void **)&record, idx)) {
-            /* check if each record is valid */
-            bool record_is_valid = aws_cryptosdk_keyring_trace_record_is_valid(record);
-            is_valid &= record_is_valid;
+    for (size_t i = 0; i < trace->length; ++i) {
+        struct aws_cryptosdk_keyring_trace_record *data = (struct aws_cryptosdk_keyring_trace_record *)trace->data;
+        if (!aws_cryptosdk_keyring_trace_record_is_valid(&(data[i]))) {
+            return false;
         }
     }
-    return is_valid;
+    return true;
 }
 
 bool aws_cryptosdk_keyring_trace_record_is_valid(struct aws_cryptosdk_keyring_trace_record *record) {
@@ -66,23 +65,6 @@ bool aws_array_list_is_valid(const struct aws_array_list *AWS_RESTRICT list) {
         ((list->current_size == 0 && list->data == NULL) || AWS_MEM_IS_WRITABLE(list->data, list->current_size));
     bool item_size_is_valid = (list->item_size != 0);
     return data_is_valid && item_size_is_valid;
-}
-
-/**
- * Copy of the original aws_array_list_is_valid() with the multiplication still in place.
- * Useful for assumptions
- */
-bool aws_array_list_is_valid_deep(const struct aws_array_list *AWS_RESTRICT list) {
-    if (!list) {
-        return false;
-    }
-    size_t required_size        = list->length * list->item_size;
-    bool required_size_is_valid = true;
-    bool current_size_is_valid  = (list->current_size >= required_size);
-    bool data_is_valid =
-        ((list->current_size == 0 && list->data == NULL) || AWS_MEM_IS_WRITABLE(list->data, list->current_size));
-    bool item_size_is_valid = (list->item_size != 0);
-    return required_size_is_valid && current_size_is_valid && data_is_valid && item_size_is_valid;
 }
 
 // allocator, dest, src
@@ -118,14 +100,12 @@ void aws_cryptosdk_keyring_trace_copy_all_harness() {
     __CPROVER_assume(aws_array_list_is_bounded(dest, NUM_ELEMS, sizeof(struct aws_cryptosdk_keyring_trace_record)));
     __CPROVER_assume(dest->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     ensure_array_list_has_allocated_data_member(dest);
-    __CPROVER_assume(aws_array_list_is_valid_deep(dest));
     __CPROVER_assume(aws_cryptosdk_keyring_trace_is_valid(dest));
 
     __CPROVER_assume(src != NULL);
     __CPROVER_assume(aws_array_list_is_bounded(src, NUM_ELEMS, sizeof(struct aws_cryptosdk_keyring_trace_record)));
     __CPROVER_assume(src->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     ensure_array_list_has_allocated_data_member(src);
-    __CPROVER_assume(aws_array_list_is_valid_deep(src));
     __CPROVER_assume(aws_cryptosdk_keyring_trace_is_valid(src));
 
     const struct aws_array_list old_dest = *dest;
