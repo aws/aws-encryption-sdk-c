@@ -36,7 +36,7 @@ struct default_cmm {
     struct aws_cryptosdk_cmm base;
     struct aws_allocator *alloc;
     struct aws_cryptosdk_keyring *kr;
-    // Invariant: this is either DEFAULT_ALG_UNSET or is a valid algorithm ID
+    /* Invariant: this is either DEFAULT_ALG_UNSET or is a valid algorithm ID */
     enum aws_cryptosdk_alg_id default_alg;
 };
 
@@ -355,6 +355,7 @@ bool aws_cryptosdk_dec_materials_members_are_bounded(
     }
     return true;
 }
+
 struct aws_cryptosdk_dec_materials *ensure_dec_materials_attempt_allocation() {
     struct aws_cryptosdk_dec_materials *materials = malloc(sizeof(struct aws_cryptosdk_dec_materials));
     if (materials) {

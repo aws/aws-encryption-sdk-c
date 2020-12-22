@@ -29,7 +29,7 @@ struct default_cmm {
     struct aws_cryptosdk_cmm base;
     struct aws_allocator *alloc;
     struct aws_cryptosdk_keyring *kr;
-    // Invariant: this is either DEFAULT_ALG_UNSET or is a valid algorithm ID
+    /* Invariant: this is either DEFAULT_ALG_UNSET or is a valid algorithm ID */
     enum aws_cryptosdk_alg_id default_alg;
 };
 
