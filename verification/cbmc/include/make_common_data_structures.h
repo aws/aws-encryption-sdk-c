@@ -106,3 +106,9 @@ bool aws_cryptosdk_dec_materials_members_are_bounded(
 
 struct aws_cryptosdk_dec_materials *dec_materials_setup(
     const size_t max_trace_items, const size_t max_item_size, const size_t max_len);
+
+/* Allocates the members of the enc_request and ensures that internal pointers are pointing to the correct objects. */
+struct aws_cryptosdk_enc_request *ensure_enc_request_attempt_allocation(const size_t max_table_size);
+
+/* Allocates the members of the default_cmm and ensures that internal pointers are pointing to the correct objects. */
+struct aws_cryptosdk_cmm *ensure_default_cmm_attempt_allocation(struct aws_cryptosdk_keyring *keyring);

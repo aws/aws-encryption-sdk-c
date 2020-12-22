@@ -14,6 +14,7 @@
  */
 
 #include <aws/cryptosdk/cipher.h>
+#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/keyring_trace.h>
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/private/header.h>
@@ -30,6 +31,14 @@
 
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
+
+struct default_cmm {
+    struct aws_cryptosdk_cmm base;
+    struct aws_allocator *alloc;
+    struct aws_cryptosdk_keyring *kr;
+    // Invariant: this is either DEFAULT_ALG_UNSET or is a valid algorithm ID
+    enum aws_cryptosdk_alg_id default_alg;
+};
 
 const EVP_MD *nondet_EVP_MD_ptr(void);
 const EVP_CIPHER *nondet_EVP_CIPHER_ptr(void);
@@ -369,4 +378,26 @@ struct aws_cryptosdk_dec_materials *dec_materials_setup(
     }
     __CPROVER_assume(aws_cryptosdk_dec_materials_is_valid(materials));
     return materials;
+}
+
+struct aws_cryptosdk_enc_request *ensure_enc_request_attempt_allocation(const size_t max_table_size) {
+    struct aws_cryptosdk_enc_request *request = malloc(sizeof(struct aws_cryptosdk_enc_request));
+    if (request) {
+        request->alloc   = nondet_bool() ? NULL : can_fail_allocator();
+        request->enc_ctx = malloc(sizeof(struct aws_hash_table));
+        if (request->enc_ctx)
+            ensure_allocated_hash_table(request->enc_ctx, max_table_size);
+    }
+    return request;
+}
+
+struct aws_cryptosdk_cmm *ensure_default_cmm_attempt_allocation(struct aws_cryptosdk_keyring *keyring) {
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(can_fail_allocator(), keyring);
+    struct default_cmm *self = NULL;
+    if (cmm) {
+        self = (struct default_cmm *) cmm;
+        self->alloc = can_fail_allocator();
+        self->kr    = aws_cryptosdk_keyring_retain(keyring);
+    }
+    return (struct aws_cryptosdk_cmm *) self;
 }

@@ -19,10 +19,10 @@ include ../Makefile.local_default
 include ../Makefile.string
 #########
 # Local vars
-MAX_NUM_ITEMS ?= 1
+# Values are chosen for performance. Increasing them does not improve coverage.
+MAX_TABLE_SIZE ?= 1
 # In OBJ_txt2nid, this value unwinds strcmp(s, "prime256v1")
 PRIME_STRING_LEN=10
-
 #########
 PROOF_UID = default_cmm_generate_enc_materials
 
@@ -31,7 +31,7 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 
 CBMCFLAGS +=
 
-DEFINES += -DMAX_NUM_ITEMS=$(MAX_NUM_ITEMS)
+DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
 
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c

@@ -185,3 +185,10 @@ int aws_cryptosdk_default_cmm_set_alg_id(struct aws_cryptosdk_cmm *cmm, enum aws
     self->default_alg = alg_id;
     return AWS_OP_SUCCESS;
 }
+
+bool aws_cryptosdk_default_cmm_is_valid(const struct aws_cryptosdk_cmm *cmm) {
+    AWS_PRECONDITION(cmm != NULL);
+    struct default_cmm *self = (struct default_cmm *)cmm;
+    return aws_cryptosdk_cmm_base_is_valid(&self->base) && aws_allocator_is_valid(self->alloc) &&
+           aws_cryptosdk_keyring_is_valid(self->kr);
+}

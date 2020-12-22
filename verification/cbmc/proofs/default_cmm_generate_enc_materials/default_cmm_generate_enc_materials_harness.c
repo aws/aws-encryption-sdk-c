@@ -43,21 +43,19 @@ void default_cmm_generate_enc_materials_harness() {
     __CPROVER_assume(keyring->vtable != NULL);
 
     /* Nondet input */
-    struct aws_cryptosdk_cmm *cmm               = aws_cryptosdk_default_cmm_new(can_fail_allocator(), keyring);
+    struct aws_cryptosdk_cmm *cmm               = ensure_default_cmm_attempt_allocation(keyring);
     struct aws_cryptosdk_enc_materials **output = malloc(sizeof(*output));
-    struct aws_cryptosdk_enc_request *request   = malloc(sizeof(*request));
+    struct aws_cryptosdk_enc_request *request   = ensure_enc_request_attempt_allocation(MAX_TABLE_SIZE);
 
     /* Assumptions */
     __CPROVER_assume(cmm != NULL);
+    __CPROVER_assume(aws_cryptosdk_default_cmm_is_valid(cmm));
 
     __CPROVER_assume(output != NULL);
 
     __CPROVER_assume(request != NULL);
-    request->alloc = can_fail_allocator();
     __CPROVER_assume(aws_allocator_is_valid(request->alloc));
-    request->enc_ctx = malloc(sizeof(*request->enc_ctx));
     __CPROVER_assume(request->enc_ctx != NULL);
-    ensure_allocated_hash_table(request->enc_ctx, MAX_NUM_ITEMS);
     __CPROVER_assume(aws_cryptosdk_enc_request_is_valid(request));
 
     enum aws_cryptosdk_alg_id alg_id;
@@ -78,6 +76,6 @@ void default_cmm_generate_enc_materials_harness() {
     }
 
     /* Postconditions */
-    assert(aws_cryptosdk_cmm_base_is_valid(cmm));
+    assert(aws_cryptosdk_default_cmm_is_valid(cmm));
     assert(aws_cryptosdk_enc_request_is_valid(request));
 }
