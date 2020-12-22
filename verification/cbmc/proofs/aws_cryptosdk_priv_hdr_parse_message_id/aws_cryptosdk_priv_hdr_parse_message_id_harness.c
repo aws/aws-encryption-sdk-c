@@ -28,8 +28,6 @@ void aws_cryptosdk_priv_hdr_parse_message_id_harness() {
     struct aws_cryptosdk_alg_properties *alg_props = aws_cryptosdk_alg_props(alg_id);
 
     /* Assumptions */
-    __CPROVER_assume(&hdr->alloc != NULL);
-
     __CPROVER_assume(pcursor != NULL);
     __CPROVER_assume(aws_byte_cursor_is_bounded(pcursor, MAX_BUFFER_SIZE));
     ensure_byte_cursor_has_allocated_buffer_member(pcursor);
