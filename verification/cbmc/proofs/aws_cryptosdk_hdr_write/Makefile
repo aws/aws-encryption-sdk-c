@@ -22,10 +22,11 @@ PROOF_UID = aws_cryptosdk_hdr_write
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
-# Values are chosen for performance. 
+# Values for MAX_TABLE_SIZE and MAX_EDK_LIST_ITEMS are chosen for performance.
 # Increaseing either does not increase the coverage. 
-MAX_EDK_LIST_ITEMS ?= 1
-MAX_IV_LEN ?= 12
+# Value for MAX_IV_LEN chosen to avoid overflow on cast (uint8_t)hdr->iv.len)
+MAX_EDK_LIST_ITEMS ?= 2
+MAX_IV_LEN ?= UINT8_MAX # Max value for uint8
 MAX_TABLE_SIZE ?= 2
 
 DEFINES += -DARRAY_LIST_TYPE="struct aws_cryptosdk_edk"
