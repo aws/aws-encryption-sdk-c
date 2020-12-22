@@ -170,9 +170,13 @@ def run_build(litani, jobs, factor):
         cmd.extend(["-j", str(jobs)])
     else:
         cpu_num  = os.cpu_count()
-        if cpu_num is not None and cpu_num > 1:
+        if cpu_num is not None:
             lim_jobs = int(factor * cpu_num)
+            lim_jobs = lim_jobs if lim_jobs else 1
             cmd.extend(["-j", str(lim_jobs)])
+        else:
+            logging.warning("Could not get the number of CPUs")
+
 
     logging.debug(" ".join(cmd))
     proc = subprocess.run(cmd)
