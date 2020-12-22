@@ -69,6 +69,5 @@ int on_encrypt(
          */
         if (nondet_bool()) ensure_byte_buf_has_allocated_buffer_member(unencrypted_data_key);
     }
-    int ret;
-    return ret;
+    return nondet_int();
 }

@@ -422,7 +422,7 @@ struct aws_cryptosdk_cmm *ensure_default_cmm_attempt_allocation(const struct aws
     struct default_cmm *self = NULL;
     if (cmm) {
         self        = (struct default_cmm *)cmm;
-        self->alloc = can_fail_allocator();
+        self->alloc = nondet_bool() ? NULL : can_fail_allocator();
         self->kr    = keyring;
     }
     return (struct aws_cryptosdk_cmm *)self;

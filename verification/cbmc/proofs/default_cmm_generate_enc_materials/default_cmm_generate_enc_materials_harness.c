@@ -41,14 +41,10 @@ void default_cmm_generate_enc_materials_harness() {
     struct aws_cryptosdk_enc_request *request  = ensure_enc_request_attempt_allocation(MAX_TABLE_SIZE);
 
     /* Assumptions */
-    __CPROVER_assume(cmm != NULL);
     __CPROVER_assume(aws_cryptosdk_default_cmm_is_valid(cmm));
 
     __CPROVER_assume(output != NULL);
 
-    __CPROVER_assume(request != NULL);
-    __CPROVER_assume(aws_allocator_is_valid(request->alloc));
-    __CPROVER_assume(request->enc_ctx != NULL);
     __CPROVER_assume(aws_cryptosdk_enc_request_is_valid(request));
 
     /* Save current state of the data structures */
