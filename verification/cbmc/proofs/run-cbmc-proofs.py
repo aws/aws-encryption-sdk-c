@@ -84,6 +84,11 @@ def get_args():
             "metavar": "N",
             "help": "run at most N proof jobs in parallel",
     }, {
+            "flags": ["--parallel-factor"],
+            "type": float,
+            "default": 0.75,
+            "help": "run at most (F * CPUs) jobs in parallel",
+    }, {
             "flags": ["--no-standalone"],
             "action": "store_true",
             "help": "only configure proofs: do not initialize nor run",
@@ -159,17 +164,17 @@ def get_proof_dirs(proof_root, proof_list, proof_marker):
         sys.exit(1)
 
 
-def run_build(litani, jobs):
+def run_build(litani, jobs, factor):
     cmd = [str(litani), "run-build"]
     if jobs:
         cmd.extend(["-j", str(jobs)])
     # Restrict concurrency during CI to avoid 'out of memory' errors
     # when proofs that require a lot of memory run concurrently
     else:
-        factor   = 0.75
         cpu_num  = os.cpu_count()
-        lim_jobs = int(factor * cpu_num)
-        cmd.extend(["-j", str(lim_jobs)])
+        if cpu_num is not None and cpu_num > 1:
+            lim_jobs = int(factor * cpu_num)
+            cmd.extend(["-j", str(lim_jobs)])
 
     logging.debug(" ".join(cmd))
     proc = subprocess.run(cmd)
@@ -258,7 +263,7 @@ async def main():
                 [str(f) for f in counter["fail"]]))
 
     if not args.no_standalone:
-        run_build(litani, args.parallel_jobs)
+        run_build(litani, args.parallel_jobs, args.parallel_factor)
 
 
 if __name__ == "__main__":
