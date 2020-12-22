@@ -163,6 +163,13 @@ def run_build(litani, jobs):
     cmd = [str(litani), "run-build"]
     if jobs:
         cmd.extend(["-j", str(jobs)])
+    # Set a limit on the number of concurrent jobs based on CPUs
+    # https://github.com/aws/aws-encryption-sdk-c/pull/673
+    else:
+        factor   = 0.75
+        cpu_num  = os.cpu_count()
+        lim_jobs = int(factor * cpu_num)
+        cmd.extend(["-j", str(lim_jobs)])
 
     logging.debug(" ".join(cmd))
     proc = subprocess.run(cmd)
