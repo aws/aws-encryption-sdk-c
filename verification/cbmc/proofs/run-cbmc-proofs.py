@@ -168,8 +168,6 @@ def run_build(litani, jobs, factor):
     cmd = [str(litani), "run-build"]
     if jobs:
         cmd.extend(["-j", str(jobs)])
-    # Restrict concurrency during CI to avoid 'out of memory' errors
-    # when proofs that require a lot of memory run concurrently
     else:
         cpu_num  = os.cpu_count()
         if cpu_num is not None and cpu_num > 1:
