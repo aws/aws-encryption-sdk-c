@@ -75,3 +75,34 @@ void ensure_cryptosdk_keyring_has_allocated_members(
 void ensure_nondet_allocate_keyring_vtable_members(struct aws_cryptosdk_keyring_vt *vtable, size_t max_len);
 /* Non-deterministically allocates a aws_cryptosdk_cmm_vt structure with a valid name*/
 void ensure_nondet_allocate_cmm_vtable_members(struct aws_cryptosdk_cmm_vt *vtable, size_t max_len);
+
+/* Allocates cmm_vt members and ensures that internal pointers are pointing to the correct objects. */
+struct aws_cryptosdk_cmm_vt *ensure_cmm_vt_attempt_allocation(const size_t max_len);
+
+/* Allocates cmm members and ensures that internal pointers are pointing to the correct objects. */
+struct aws_cryptosdk_cmm *ensure_cmm_attempt_allocation(const size_t max_len);
+
+/* Allocates session members and ensures that internal pointers are pointing to the correct objects. */
+struct aws_cryptosdk_session *ensure_nondet_session_has_allocated_members(size_t max_len);
+
+bool aws_cryptosdk_session_members_are_bounded(
+    const struct aws_cryptosdk_session *session,
+    const size_t max_trace_items,
+    const size_t max_edk_item_size,
+    const size_t max_item_size);
+
+struct aws_cryptosdk_session *session_setup(
+    const size_t max_table_size,
+    const size_t max_trace_items,
+    const size_t max_edk_item_size,
+    const size_t max_item_size,
+    const size_t max_len);
+
+/* Allocates dec_materials members and ensures that internal pointers are pointing to the correct objects. */
+struct aws_cryptosdk_dec_materials *ensure_dec_materials_attempt_allocation();
+
+bool aws_cryptosdk_dec_materials_members_are_bounded(
+    const struct aws_cryptosdk_dec_materials *materials, const size_t max_trace_items, const size_t max_item_size);
+
+struct aws_cryptosdk_dec_materials *dec_materials_setup(
+    const size_t max_trace_items, const size_t max_item_size, const size_t max_len);
