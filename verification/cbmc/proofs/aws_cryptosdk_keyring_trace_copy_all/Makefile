@@ -33,6 +33,11 @@ CBMCFLAGS +=
 DEFINES += -DAWS_NO_STATIC_IMPL
 DEFINES += -DNUM_ELEMS=$(NUM_ELEMS)
 
+# Running this proof with kissat causes it to fail due to kissat
+# getting an "out of memory" error - even if only this proof is running
+# It does not happen with the default solver, so we unset the variable here
+EXTERNAL_SAT_SOLVER =
+
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/array_list.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
