@@ -23,6 +23,8 @@
 #include <proof_helpers/utils.h>
 
 void aws_cryptosdk_edk_eq_harness() {
+    assert(0);
+
     const struct aws_cryptosdk_edk a;  // Precondition: non-null
     ensure_cryptosdk_edk_has_allocated_members(&a);
     __CPROVER_assume(aws_cryptosdk_edk_is_valid(&a));  // Precondition: is_valid()
