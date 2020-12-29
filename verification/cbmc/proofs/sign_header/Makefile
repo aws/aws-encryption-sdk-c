@@ -16,6 +16,8 @@ sinclude ../Makefile.local
 #otherwise, use the default values
 include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
+include ../Makefile.string
+
 
 PROOF_UID = sign_header
 
@@ -24,15 +26,16 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 
 # Increasing the length of the edk_list or enc_ctx does not improve coverage.
 # We use these values for performance. 
+MAX_TRACE_LIST_ITEMS ?= 1
 MAX_EDK_LIST_ITEMS ?= 1
 MAX_TABLE_SIZE ?= 2
-MAX_IV_LEN ?= 12
 
 DEFINES += -DAWS_NO_STATIC_IMPL
 DEFINES += -DMAX_EDK_LIST_ITEMS=$(MAX_EDK_LIST_ITEMS)
 DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
 DEFINES += -DARRAY_LIST_TYPE="struct aws_cryptosdk_edk"
 DEFINES += -DARRAY_LIST_TYPE_HEADER=\"aws/cryptosdk/edk.h\"
+DEFINES += -DMAX_TRACE_LIST_ITEMS=$(MAX_TRACE_LIST_ITEMS)
 DEFINES += -DMAX_IV_LEN=$(MAX_IV_LEN)
 DEFINES += -DAWS_CRYPTOSDK_HASH_ELEMS_ARRAY_INIT_GENERATOR=array_list_item_generator
 
@@ -48,6 +51,7 @@ PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/string.c
 PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/atomics.c
 PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/byte_order.c
 PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/error.c
 PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
@@ -60,6 +64,8 @@ PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
 PROJECT_SOURCES += $(SRCDIR)/source/edk.c
 PROJECT_SOURCES += $(SRCDIR)/source/enc_ctx.c
 PROJECT_SOURCES += $(SRCDIR)/source/header.c
+PROJECT_SOURCES += $(SRCDIR)/source/keyring_trace.c
+PROJECT_SOURCES += $(SRCDIR)/source/materials.c
 PROJECT_SOURCES += $(SRCDIR)/source/session.c
 PROJECT_SOURCES += $(SRCDIR)/source/session_encrypt.c
 PROJECT_SOURCES += $(SRCDIR)/source/utils.c
@@ -99,6 +105,8 @@ UNWINDSET += aws_cryptosdk_enc_ctx_serialize.0:$(call addone,$(MAX_TABLE_SIZE))
 UNWINDSET += aws_cryptosdk_hdr_size.0:$(call addone,$(MAX_EDK_LIST_ITEMS)) 
 UNWINDSET += aws_cryptosdk_hdr_write.0:$(call addone,$(MAX_EDK_LIST_ITEMS)) 
 UNWINDSET += ensure_cryptosdk_edk_list_has_allocated_list_elements.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
+UNWINDSET += aws_cryptosdk_keyring_trace_is_valid.0:$(call addone,$(MAX_TRACE_LIST_ITEMS))
+UNWINDSET += ensure_trace_has_allocated_records.0:$(call addone,$(MAX_TRACE_LIST_ITEMS))
 UNWINDSET += memcmp.0:$(call addone,$(MAX_BUFFER_SIZE))
 
 include ../Makefile.common

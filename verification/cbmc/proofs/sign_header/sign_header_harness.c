@@ -45,27 +45,14 @@ void array_list_item_generator(struct aws_array_list *elems) {
 
 void sign_header_harness() {
     /* Nondet Input */
-    struct aws_cryptosdk_session *session = malloc(sizeof(*session));
+    struct aws_cryptosdk_session *session =
+        session_setup(MAX_TABLE_SIZE, MAX_TRACE_LIST_ITEMS, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE, MAX_STRING_LEN);
 
     /* Assumptions */
-    __CPROVER_assume(session != NULL);
-
-    enum aws_cryptosdk_alg_id alg_id;
-    struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
-    __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(props));
-    session->alg_props = props;
-
-    struct aws_cryptosdk_hdr *hdr = hdr_setup(MAX_TABLE_SIZE, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE);
-    __CPROVER_assume(aws_byte_buf_is_bounded(&hdr->iv, session->alg_props->iv_len));
-    __CPROVER_assume(aws_byte_buf_is_bounded(&hdr->auth_tag, session->alg_props->tag_len));
-
-    session->header = *hdr;
-
-    struct aws_cryptosdk_sig_ctx *ctx = ensure_nondet_sig_ctx_has_allocated_members();
-    __CPROVER_assume(aws_cryptosdk_sig_ctx_is_valid_cbmc(ctx));
-    session->signctx = ctx;
-
-    __CPROVER_assume(aws_allocator_is_valid(session->alloc));
+    __CPROVER_assume(aws_cryptosdk_sig_ctx_is_valid_cbmc(session->signctx));
+    __CPROVER_assume(session->alg_props->impl->cipher_ctor != NULL);
+    __CPROVER_assume(aws_byte_buf_is_bounded(&session->header.iv, session->alg_props->iv_len));
+    __CPROVER_assume(aws_byte_buf_is_bounded(&session->header.auth_tag, session->alg_props->tag_len));
     __CPROVER_assume(session->state == ST_GEN_KEY);
     __CPROVER_assume(session->mode == AWS_CRYPTOSDK_ENCRYPT);
 
@@ -86,7 +73,7 @@ void sign_header_harness() {
     __CPROVER_file_local_session_encrypt_c_sign_header(session);
 
     /* Assertions */
-    assert(aws_cryptosdk_hdr_is_valid(&session->header));
+    assert(aws_cryptosdk_session_is_valid(session));
     assert_byte_buf_equivalence(&session->header.message_id, &old_message_id, &old_byte_from_message_id);
     assert_byte_buf_equivalence(&session->header.alg_suite_data, &old_alg_suite_data, &old_byte_from_alg_suite_data);
     check_hash_table_unchanged(&session->header.enc_ctx, &old_enc_ctx);
