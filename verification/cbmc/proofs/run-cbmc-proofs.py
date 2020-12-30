@@ -160,12 +160,13 @@ def get_proof_dirs(proof_root, proof_list, proof_marker):
 
 
 def run_build(litani, jobs):
-    cmd = [str(litani), "run-build"]
-    if jobs:
-        cmd.extend(["-j", str(jobs)])
+    cmd = [str(litani), "run-build", "-j", "1"]
+
+    env = dict(os.environ)
+    env["NINJA_ELAPSED_TIME"] = "true"
 
     logging.debug(" ".join(cmd))
-    proc = subprocess.run(cmd)
+    proc = subprocess.run(cmd, env=env)
     if proc.returncode:
         logging.critical("Failed to run litani run-build")
         sys.exit(1)
