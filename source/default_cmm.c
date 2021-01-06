@@ -29,7 +29,7 @@ struct default_cmm {
     struct aws_cryptosdk_cmm base;
     struct aws_allocator *alloc;
     struct aws_cryptosdk_keyring *kr;
-    // Invariant: this is either DEFAULT_ALG_UNSET or is a valid algorithm ID
+    /* Invariant: this is either DEFAULT_ALG_UNSET or is a valid algorithm ID */
     enum aws_cryptosdk_alg_id default_alg;
 };
 
@@ -37,6 +37,10 @@ static int default_cmm_generate_enc_materials(
     struct aws_cryptosdk_cmm *cmm,
     struct aws_cryptosdk_enc_materials **output,
     struct aws_cryptosdk_enc_request *request) {
+    AWS_PRECONDITION(aws_cryptosdk_default_cmm_is_valid(cmm));
+    AWS_PRECONDITION(output != NULL);
+    AWS_PRECONDITION(aws_cryptosdk_enc_request_is_valid(request));
+
     struct aws_cryptosdk_enc_materials *enc_mat = NULL;
     struct default_cmm *self                    = (struct default_cmm *)cmm;
     struct aws_hash_element *pElement           = NULL;
@@ -59,6 +63,7 @@ static int default_cmm_generate_enc_materials(
         }
     }
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(request->requested_alg);
+    if (!props) goto err;
 
     enc_mat = aws_cryptosdk_enc_materials_new(request->alloc, request->requested_alg);
     if (!enc_mat) goto err;
@@ -179,4 +184,12 @@ int aws_cryptosdk_default_cmm_set_alg_id(struct aws_cryptosdk_cmm *cmm, enum aws
 
     self->default_alg = alg_id;
     return AWS_OP_SUCCESS;
+}
+
+bool aws_cryptosdk_default_cmm_is_valid(const struct aws_cryptosdk_cmm *cmm) {
+    if (cmm == NULL) return false;
+
+    struct default_cmm *self = (struct default_cmm *)cmm;
+    return aws_cryptosdk_cmm_base_is_valid(&self->base) && aws_allocator_is_valid(self->alloc) &&
+           aws_cryptosdk_keyring_is_valid(self->kr);
 }
