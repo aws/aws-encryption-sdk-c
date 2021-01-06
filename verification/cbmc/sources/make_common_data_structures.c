@@ -14,6 +14,7 @@
  */
 
 #include <aws/cryptosdk/cipher.h>
+#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/keyring_trace.h>
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/private/header.h>
@@ -30,6 +31,14 @@
 
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
+
+struct default_cmm {
+    struct aws_cryptosdk_cmm base;
+    struct aws_allocator *alloc;
+    struct aws_cryptosdk_keyring *kr;
+    /* Invariant: this is either DEFAULT_ALG_UNSET or is a valid algorithm ID */
+    enum aws_cryptosdk_alg_id default_alg;
+};
 
 const EVP_MD *nondet_EVP_MD_ptr(void);
 const EVP_CIPHER *nondet_EVP_CIPHER_ptr(void);
@@ -346,6 +355,7 @@ bool aws_cryptosdk_dec_materials_members_are_bounded(
     }
     return true;
 }
+
 struct aws_cryptosdk_dec_materials *ensure_dec_materials_attempt_allocation() {
     struct aws_cryptosdk_dec_materials *materials = malloc(sizeof(struct aws_cryptosdk_dec_materials));
     if (materials) {
@@ -369,4 +379,51 @@ struct aws_cryptosdk_dec_materials *dec_materials_setup(
     }
     __CPROVER_assume(aws_cryptosdk_dec_materials_is_valid(materials));
     return materials;
+}
+
+struct aws_cryptosdk_enc_request *ensure_enc_request_attempt_allocation(const size_t max_table_size) {
+    struct aws_cryptosdk_enc_request *request = malloc(sizeof(struct aws_cryptosdk_enc_request));
+    if (request) {
+        request->alloc   = nondet_bool() ? NULL : can_fail_allocator();
+        request->enc_ctx = malloc(sizeof(struct aws_hash_table));
+        if (request->enc_ctx) {
+            ensure_allocated_hash_table(request->enc_ctx, max_table_size);
+        }
+    }
+    return request;
+}
+
+struct aws_cryptosdk_enc_materials *ensure_enc_materials_attempt_allocation() {
+    struct aws_cryptosdk_enc_materials *materials = malloc(sizeof(struct aws_cryptosdk_enc_materials));
+    if (materials) {
+        materials->alloc   = nondet_bool() ? NULL : can_fail_allocator();
+        materials->signctx = ensure_nondet_sig_ctx_has_allocated_members();
+        ensure_byte_buf_has_allocated_buffer_member(&materials->encrypted_data_keys);
+        ensure_array_list_has_allocated_data_member(&materials->keyring_trace);
+        ensure_array_list_has_allocated_data_member(&materials->encrypted_data_keys);
+    }
+    return materials;
+}
+
+struct aws_cryptosdk_cmm *ensure_default_cmm_attempt_allocation(const struct aws_cryptosdk_keyring_vt *vtable) {
+    /* Nondet input required to init cmm */
+    struct aws_cryptosdk_keyring *keyring = malloc(sizeof(*keyring));
+
+    /* Assumptions required to init cmm */
+    ensure_cryptosdk_keyring_has_allocated_members(keyring, vtable);
+    __CPROVER_assume(aws_cryptosdk_keyring_is_valid(keyring));
+    __CPROVER_assume(keyring->vtable != NULL);
+
+    struct aws_cryptosdk_cmm *cmm = malloc(sizeof(struct default_cmm));
+    if (cmm) {
+        cmm->vtable = vtable;
+    }
+
+    struct default_cmm *self = NULL;
+    if (cmm) {
+        self        = (struct default_cmm *)cmm;
+        self->alloc = nondet_bool() ? NULL : can_fail_allocator();
+        self->kr    = keyring;
+    }
+    return (struct aws_cryptosdk_cmm *)self;
 }
