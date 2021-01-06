@@ -68,6 +68,9 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_default_cmm_new(struct aws_allocator *al
 AWS_CRYPTOSDK_API
 int aws_cryptosdk_default_cmm_set_alg_id(struct aws_cryptosdk_cmm *cmm, enum aws_cryptosdk_alg_id alg_id);
 
+AWS_CRYPTOSDK_API
+bool aws_cryptosdk_default_cmm_is_valid(const struct aws_cryptosdk_cmm *cmm);
+
 #ifdef __cplusplus
 }
 #endif
