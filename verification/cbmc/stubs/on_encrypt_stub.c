@@ -13,8 +13,6 @@
  * limitations under the License.
  */
 
-#include <stdlib.h>
-
 #include <aws/cryptosdk/default_cmm.h>
 
 #include <proof_helpers/make_common_data_structures.h>
