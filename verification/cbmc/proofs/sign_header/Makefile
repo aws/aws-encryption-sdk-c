@@ -76,10 +76,9 @@ PROOF_SOURCES += $(PROOF_STUB)/aws_array_list_sort_noop_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_cryptosdk_enc_ctx_size_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_cryptosdk_hash_elems_array_init_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_default_allocator_stub.c
+# Stubbing out aws_cryptosdk_hdr_write leads to a huge gain in performance
 PROOF_SOURCES += $(PROOF_STUB)/hdr_write_stub.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
-
-REMOVE_FUNCTION_BODY += aws_array_list_get_at_ptr
 
 # We abstract these functions because manual inspection demonstrates that they are unreachable,
 # which leads to improvements in coverage metrics
@@ -88,6 +87,7 @@ REMOVE_FUNCTION_BODY += EVP_DecryptUpdate
 REMOVE_FUNCTION_BODY += EVP_sha256
 REMOVE_FUNCTION_BODY += EVP_sha384
 REMOVE_FUNCTION_BODY += EVP_sha512
+REMOVE_FUNCTION_BODY += aws_array_list_get_at_ptr
 
 UNWINDSET += array_list_item_generator.0:$(call addone,$(MAX_TABLE_SIZE))
 UNWINDSET += aws_cryptosdk_edk_list_elements_are_bounded.0:$(call addone,$(MAX_EDK_LIST_ITEMS))

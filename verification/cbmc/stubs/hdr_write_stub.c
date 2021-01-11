@@ -17,13 +17,12 @@
 
 #include <proof_helpers/make_common_data_structures.h>
 
-/*
- * Stub for aws_cryptosdk_hdr_write
- * The original function declares an aws_byte_buf output variable where
- * different components of the header get written, but the actual output
- * of the function is bytes_written. Therefore, we assign a nondet. value
- * to this variable in case of success or zero both outbuf and outlen in
- * case of failure
+/**
+ * The original aws_cryptosdk_hdr_write function declares an aws_byte_buf
+ * output variable where different components of the header get written,
+ * however, the actual output of the function is bytes_written. Therefore,
+ * we assign a nondeterministic value to bytes_written in case of success
+ * or zero both outbuf and outlen in case of failure.
  */
 int aws_cryptosdk_hdr_write(
     const struct aws_cryptosdk_hdr *hdr, size_t *bytes_written, uint8_t *outbuf, size_t outlen) {
