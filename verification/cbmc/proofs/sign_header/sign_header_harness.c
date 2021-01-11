@@ -49,7 +49,6 @@ void sign_header_harness() {
         session_setup(MAX_TABLE_SIZE, MAX_TRACE_LIST_ITEMS, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE, MAX_STRING_LEN);
 
     /* Assumptions */
-    __CPROVER_assume(aws_cryptosdk_sig_ctx_is_valid_cbmc(session->signctx));
     __CPROVER_assume(session->alg_props->impl->cipher_ctor != NULL);
     __CPROVER_assume(aws_byte_buf_is_bounded(&session->header.iv, session->alg_props->iv_len));
     __CPROVER_assume(aws_byte_buf_is_bounded(&session->header.auth_tag, session->alg_props->tag_len));
