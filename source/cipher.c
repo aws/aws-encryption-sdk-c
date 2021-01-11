@@ -275,7 +275,7 @@ bool aws_cryptosdk_alg_properties_is_valid(const struct aws_cryptosdk_alg_proper
     if (std_alg_props == NULL) {
         return false;
     }
-    return alg_props->md_name && alg_props->cipher_name && alg_props->alg_name &&
+    return alg_props->md_name && alg_props->cipher_name && alg_props->alg_name && alg_props->impl &&
            aws_cryptosdk_alg_properties_equal(*alg_props, *std_alg_props);
 }
 
