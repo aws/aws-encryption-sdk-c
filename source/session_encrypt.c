@@ -168,6 +168,12 @@ static int build_header(struct aws_cryptosdk_session *session, struct aws_crypto
 }
 
 static int sign_header(struct aws_cryptosdk_session *session) {
+    AWS_PRECONDITION(aws_cryptosdk_session_is_valid(session));
+    AWS_PRECONDITION(session->alg_props->impl->cipher_ctor != NULL);
+    AWS_PRECONDITION(session->header.iv.len <= session->alg_props->iv_len);
+    AWS_PRECONDITION(session->header.auth_tag.len <= session->alg_props->tag_len);
+    AWS_PRECONDITION(session->state == ST_GEN_KEY);
+    AWS_PRECONDITION(session->mode == AWS_CRYPTOSDK_ENCRYPT);
     session->header_size = aws_cryptosdk_hdr_size(&session->header);
 
     if (session->header_size == 0) {
@@ -183,8 +189,14 @@ static int sign_header(struct aws_cryptosdk_session *session) {
     // see what happened. It also makes sure that the header is fully initialized,
     // again just in case some bug doesn't overwrite them properly.
 
-    memset(session->header.iv.buffer, 0x42, session->header.iv.len);
-    memset(session->header.auth_tag.buffer, 0xDE, session->header.auth_tag.len);
+    if (session->header.iv.len != 0) {
+        assert(session->header.iv.buffer);
+        memset(session->header.iv.buffer, 0x42, session->header.iv.len);
+    }
+    if (session->header.auth_tag.len != 0) {
+        assert(session->header.auth_tag.buffer);
+        memset(session->header.auth_tag.buffer, 0xDE, session->header.auth_tag.len);
+    }
 
     size_t actual_size;
 
@@ -205,10 +217,20 @@ static int sign_header(struct aws_cryptosdk_session *session) {
     if (rv) return AWS_OP_ERR;
 
     if (session->alg_props->msg_format_version == AWS_CRYPTOSDK_HEADER_VERSION_1_0) {
-        memcpy(session->header.iv.buffer, authtag.buffer, session->header.iv.len);
-        memcpy(session->header.auth_tag.buffer, authtag.buffer + session->header.iv.len, session->header.auth_tag.len);
+        if (session->header.iv.len != 0) {
+            assert(session->header.iv.buffer);
+            memcpy(session->header.iv.buffer, authtag.buffer, session->header.iv.len);
+        }
+        if (session->header.auth_tag.len != 0) {
+            assert(session->header.auth_tag.buffer);
+            memcpy(
+                session->header.auth_tag.buffer, authtag.buffer + session->header.iv.len, session->header.auth_tag.len);
+        }
     } else {
-        memcpy(session->header.auth_tag.buffer, authtag.buffer, session->header.auth_tag.len);
+        if (session->header.auth_tag.len != 0) {
+            assert(session->header.auth_tag.buffer);
+            memcpy(session->header.auth_tag.buffer, authtag.buffer, session->header.auth_tag.len);
+        }
     }
 
     // Re-serialize the header now that we know the auth tag

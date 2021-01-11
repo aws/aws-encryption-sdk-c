@@ -20,18 +20,17 @@ bool aws_cryptosdk_keyring_trace_is_valid(const struct aws_array_list *trace) {
         return false;
     }
     AWS_FATAL_PRECONDITION(trace->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
+    if (!aws_array_list_is_valid(trace)) {
+        return false;
+    }
     /* iterate over each record in the list */
-    size_t num_records = aws_array_list_length(trace);
-    bool is_valid      = aws_array_list_is_valid(trace);
-    for (size_t idx = 0; idx < num_records; ++idx) {
-        struct aws_cryptosdk_keyring_trace_record *record;
-        if (!aws_array_list_get_at_ptr(trace, (void **)&record, idx)) {
-            /* check if each record is valid */
-            bool record_is_valid = aws_cryptosdk_keyring_trace_record_is_valid(record);
-            is_valid &= record_is_valid;
+    struct aws_cryptosdk_keyring_trace_record *data = (struct aws_cryptosdk_keyring_trace_record *)trace->data;
+    for (size_t i = 0; i < trace->length; ++i) {
+        if (!aws_cryptosdk_keyring_trace_record_is_valid(&(data[i]))) {
+            return false;
         }
     }
-    return is_valid;
+    return true;
 }
 
 bool aws_cryptosdk_keyring_trace_record_is_valid(struct aws_cryptosdk_keyring_trace_record *record) {
