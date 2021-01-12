@@ -28,7 +28,7 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 # Therefore, we choose these values for performance. 
 MAX_EDK_LIST_ITEMS ?= 1
 MAX_TABLE_SIZE ?= 2
-MAX_TRACE_NUM_ITEMS ?= 2
+MAX_TRACE_LIST_ITEMS ?= 2
 
 DEFINES += -DARRAY_LIST_TYPE="struct aws_cryptosdk_edk"
 DEFINES += -DARRAY_LIST_TYPE_HEADER=\"aws/cryptosdk/edk.h\"
@@ -37,7 +37,7 @@ DEFINES += -DAWS_NO_STATIC_IMPL
 DEFINES += -DMAX_EDK_LIST_ITEMS=$(MAX_EDK_LIST_ITEMS)
 DEFINES += -DMAX_IV_LEN=$(MAX_IV_LEN)
 DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
-DEFINES += -DMAX_TRACE_NUM_ITEMS=$(MAX_TRACE_NUM_ITEMS)
+DEFINES += -DMAX_TRACE_LIST_ITEMS=$(MAX_TRACE_LIST_ITEMS)
 
 # The maximum number of objects is set to 2^8 = 256. This option changes that to 2^9. 
 # Without this flag, running this proof causes the CBMC error of 
@@ -110,11 +110,11 @@ UNWINDSET += aws_cryptosdk_edk_list_elements_are_valid.0:$(call addone,$(MAX_EDK
 UNWINDSET += aws_cryptosdk_enc_ctx_serialize.0:$(shell echo $$((1 + $(MAX_TABLE_SIZE))))
 UNWINDSET += aws_cryptosdk_hdr_size.0:$(call addone,$(MAX_EDK_LIST_ITEMS)) 
 UNWINDSET += aws_cryptosdk_hdr_write.0:$(call addone,$(MAX_EDK_LIST_ITEMS)) 
-UNWINDSET += aws_cryptosdk_keyring_trace_clear.0:$(call addone,$(MAX_TRACE_NUM_ITEMS))
-UNWINDSET += aws_cryptosdk_keyring_trace_is_valid.0:$(call addone,$(MAX_TRACE_NUM_ITEMS))
-UNWINDSET += aws_cryptosdk_transfer_list.4.0:$(call addone,$(MAX_TRACE_NUM_ITEMS))
+UNWINDSET += aws_cryptosdk_keyring_trace_clear.0:$(call addone,$(MAX_TRACE_LIST_ITEMS))
+UNWINDSET += aws_cryptosdk_keyring_trace_is_valid.0:$(call addone,$(MAX_TRACE_LIST_ITEMS))
+UNWINDSET += aws_cryptosdk_transfer_list.4.0:$(call addone,$(MAX_TRACE_LIST_ITEMS))
 UNWINDSET += ensure_cryptosdk_edk_list_has_allocated_list_elements.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
-UNWINDSET += ensure_trace_has_allocated_records.0:$(call addone,$(MAX_TRACE_NUM_ITEMS))
+UNWINDSET += ensure_trace_has_allocated_records.0:$(call addone,$(MAX_TRACE_LIST_ITEMS))
 UNWINDSET += memcmp.0:$(call addone,$(MAX_BUFFER_SIZE))
 
 ###########

@@ -155,7 +155,7 @@ int generate_enc_materials(
 
     // Set up the keyring trace
     __CPROVER_assume(aws_array_list_is_bounded(
-        &materials->keyring_trace, MAX_TRACE_NUM_ITEMS, sizeof(struct aws_cryptosdk_keyring_trace_record)));
+        &materials->keyring_trace, MAX_TRACE_LIST_ITEMS, sizeof(struct aws_cryptosdk_keyring_trace_record)));
     __CPROVER_assume(materials->keyring_trace.item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     ensure_array_list_has_allocated_data_member(&materials->keyring_trace);
     __CPROVER_assume(aws_array_list_is_valid(&materials->keyring_trace));
@@ -172,7 +172,8 @@ int generate_enc_materials(
 
 void aws_cryptosdk_priv_try_gen_key_harness() {
     /* Nondet Input */
-    struct aws_cryptosdk_session *session = malloc(sizeof(*session));
+    struct aws_cryptosdk_session *session =
+        session_setup(MAX_TABLE_SIZE, MAX_TRACE_LIST_ITEMS, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE, MAX_STRING_LEN);
 
     /* Assumptions */
     __CPROVER_assume(session != NULL);
@@ -214,7 +215,7 @@ void aws_cryptosdk_priv_try_gen_key_harness() {
     struct aws_array_list *keyring_trace = malloc(sizeof(*keyring_trace));
     __CPROVER_assume(keyring_trace != NULL);
     __CPROVER_assume(aws_array_list_is_bounded(
-        keyring_trace, MAX_TRACE_NUM_ITEMS, sizeof(struct aws_cryptosdk_keyring_trace_record)));
+        keyring_trace, MAX_TRACE_LIST_ITEMS, sizeof(struct aws_cryptosdk_keyring_trace_record)));
     __CPROVER_assume(keyring_trace->item_size == sizeof(struct aws_cryptosdk_keyring_trace_record));
     ensure_array_list_has_allocated_data_member(keyring_trace);
     __CPROVER_assume(aws_array_list_is_valid(keyring_trace));
