@@ -49,8 +49,6 @@ void aws_cryptosdk_priv_encrypt_compute_body_estimate(struct aws_cryptosdk_sessi
 
 int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
     AWS_PRECONDITION(aws_cryptosdk_session_is_valid(session));
-    AWS_PRECONDITION(session->header.iv.len <= session->alg_props->iv_len);
-    AWS_PRECONDITION(session->header.auth_tag.len <= session->alg_props->tag_len);
     AWS_PRECONDITION(aws_cryptosdk_commitment_policy_is_valid(session->commitment_policy));
     AWS_PRECONDITION(session->state == ST_GEN_KEY);
     AWS_PRECONDITION(session->mode == AWS_CRYPTOSDK_ENCRYPT);

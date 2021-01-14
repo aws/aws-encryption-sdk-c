@@ -56,17 +56,12 @@ void aws_cryptosdk_priv_try_gen_key_harness() {
     __CPROVER_assume(aws_cryptosdk_cmm_base_is_valid(cmm));
     session->cmm = cmm;
 
-    /* Set the session->alg_id */
-    enum aws_cryptosdk_alg_id alg_id;
-    struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
-    __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(props));
-    session->alg_props = props;
+    /* session->alg_props can be NULL or valid */
+    session->alg_props = ensure_alg_properties_attempt_allocation(MAX_STRING_LEN);
+    __CPROVER_assume(IMPLIES(session->alg_props != NULL, aws_cryptosdk_alg_properties_is_valid(session->alg_props)));
 
     /* Set the session->header */
     struct aws_cryptosdk_hdr *hdr = hdr_setup(MAX_TABLE_SIZE, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE);
-
-    __CPROVER_assume(aws_byte_buf_is_bounded(&hdr->iv, session->alg_props->iv_len));
-    __CPROVER_assume(aws_byte_buf_is_bounded(&hdr->auth_tag, session->alg_props->tag_len));
 
     /* The header edk_list should have been cleared earlier.
     See comment in build_header: "The header should have been cleared earlier, so the materials structure
@@ -95,6 +90,15 @@ void aws_cryptosdk_priv_try_gen_key_harness() {
     __CPROVER_assume(session->state == ST_GEN_KEY);
     __CPROVER_assume(session->mode == AWS_CRYPTOSDK_ENCRYPT);
 
+    /* session->signctx can be NULL or valid */
+    session->signctx = ensure_nondet_sig_ctx_has_allocated_members();
+    __CPROVER_assume(IMPLIES(session->signctx != NULL, aws_cryptosdk_sig_ctx_is_valid(session->signctx)));
+
+    /* session->key_commitment must be valid */
+    ensure_byte_buf_has_allocated_buffer_member(&session->key_commitment);
+    __CPROVER_assume(aws_byte_buf_is_bounded(&session->key_commitment, MAX_BUFFER_SIZE));
+    __CPROVER_assume(aws_byte_buf_is_valid(&session->key_commitment));
+
     /* Save current state of the data structure */
     struct store_byte_from_buffer old_enc_ctx;
     save_byte_from_hash_table(&session->header.enc_ctx, &old_enc_ctx);
@@ -102,7 +106,7 @@ void aws_cryptosdk_priv_try_gen_key_harness() {
     /* Function under verification */
     if (aws_cryptosdk_priv_try_gen_key(session) == AWS_OP_SUCCESS) {
         /* Assertions */
-        assert(aws_cryptosdk_hdr_is_valid(&session->header));
+        assert(aws_cryptosdk_session_is_valid(session));
     }
     check_hash_table_unchanged(&session->header.enc_ctx, &old_enc_ctx);
 }
