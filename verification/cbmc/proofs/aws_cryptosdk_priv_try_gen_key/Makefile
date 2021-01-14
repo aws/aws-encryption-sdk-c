@@ -87,13 +87,18 @@ PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcpy_override_havoc.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/memset_override_havoc.c
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
+PROOF_SOURCES += $(PROOF_STUB)/aws_array_list_item_generator_u8_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_array_list_sort_noop_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_cryptosdk_enc_ctx_size_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_cryptosdk_hash_elems_array_init_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_default_allocator_stub.c
+PROOF_SOURCES += $(PROOF_STUB)/generate_enc_materials_stub.c
+PROOF_SOURCES += $(PROOF_STUB)/hdr_write_stub.c
+PROOF_SOURCES += $(PROOF_STUB)/hkdf_stub.c
+PROOF_SOURCES += $(PROOF_STUB)/keyring_trace_clean_up_stub.c
+PROOF_SOURCES += $(PROOF_STUB)/keyring_trace_clear_stub.c
+PROOF_SOURCES += $(PROOF_STUB)/transfer_list_stub.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
-
-REMOVE_FUNCTION_BODY += aws_array_list_get_at_ptr
 
 # We abstract these functions because manual inspection demonstrates that they are unreachable,
 # which leads to improvements in coverage metrics
@@ -102,6 +107,7 @@ REMOVE_FUNCTION_BODY += EVP_DecryptUpdate
 REMOVE_FUNCTION_BODY += EVP_sha256
 REMOVE_FUNCTION_BODY += EVP_sha384
 REMOVE_FUNCTION_BODY += EVP_sha512
+REMOVE_FUNCTION_BODY += aws_array_list_get_at_ptr
 
 UNWINDSET += array_list_item_generator.0:$(shell echo $$((1 + $(MAX_TABLE_SIZE))))
 UNWINDSET += aws_cryptosdk_edk_list_clear.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
@@ -109,7 +115,6 @@ UNWINDSET += aws_cryptosdk_edk_list_elements_are_bounded.0:$(call addone,$(MAX_E
 UNWINDSET += aws_cryptosdk_edk_list_elements_are_valid.0:$(call addone,$(MAX_EDK_LIST_ITEMS))
 UNWINDSET += aws_cryptosdk_enc_ctx_serialize.0:$(shell echo $$((1 + $(MAX_TABLE_SIZE))))
 UNWINDSET += aws_cryptosdk_hdr_size.0:$(call addone,$(MAX_EDK_LIST_ITEMS)) 
-UNWINDSET += aws_cryptosdk_hdr_write.0:$(call addone,$(MAX_EDK_LIST_ITEMS)) 
 UNWINDSET += aws_cryptosdk_keyring_trace_clear.0:$(call addone,$(MAX_TRACE_LIST_ITEMS))
 UNWINDSET += aws_cryptosdk_keyring_trace_is_valid.0:$(call addone,$(MAX_TRACE_LIST_ITEMS))
 UNWINDSET += aws_cryptosdk_transfer_list.4.0:$(call addone,$(MAX_TRACE_LIST_ITEMS))
