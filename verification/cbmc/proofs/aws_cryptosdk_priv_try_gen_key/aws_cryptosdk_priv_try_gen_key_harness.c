@@ -34,6 +34,13 @@ int generate_enc_materials(
     struct aws_cryptosdk_enc_materials **output,
     struct aws_cryptosdk_enc_request *request);
 
+/*
+ * This harness is extremely expensive to run so we have stubbed out
+ * multiple functions (see Makefile). It also requires a quite specific
+ * configuration for the session struct (cmm's vtable must include a
+ * pointer to the function declared above, alg_props can be NULL or valid,
+ * etc.) so we do not use the session_setup method to initialize it
+ */
 void aws_cryptosdk_priv_try_gen_key_harness() {
     /* Nondet Input */
     struct aws_cryptosdk_session *session = malloc(sizeof(*session));
@@ -41,7 +48,7 @@ void aws_cryptosdk_priv_try_gen_key_harness() {
     /* Assumptions */
     __CPROVER_assume(session != NULL);
 
-    /* Set the session->cmm */
+    /* Set session->cmm */
     const struct aws_cryptosdk_cmm_vt vtable = { .vt_size = sizeof(struct aws_cryptosdk_cmm_vt),
                                                  .name    = ensure_c_str_is_allocated(SIZE_MAX),
                                                  .destroy = nondet_voidp(),
@@ -64,12 +71,14 @@ void aws_cryptosdk_priv_try_gen_key_harness() {
     struct aws_cryptosdk_hdr *hdr = hdr_setup(MAX_TABLE_SIZE, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE);
 
     /* The header edk_list should have been cleared earlier.
-    See comment in build_header: "The header should have been cleared earlier, so the materials structure
-     should have zero EDKs (otherwise we'd need to destroy the old EDKs as well). */
+     * See comment in build_header:
+     * "The header should have been cleared earlier, so the materials structure
+     * should have zero EDKs" (otherwise we'd need to destroy the old EDKs as well)
+     */
     __CPROVER_assume(aws_array_list_length(&hdr->edk_list) == 0);
     session->header = *hdr;
 
-    /* Set the session->keyring_trace */
+    /* Set session->keyring_trace */
     struct aws_array_list *keyring_trace = malloc(sizeof(*keyring_trace));
     __CPROVER_assume(keyring_trace != NULL);
     __CPROVER_assume(aws_array_list_is_bounded(
@@ -84,7 +93,8 @@ void aws_cryptosdk_priv_try_gen_key_harness() {
     /* Set the allocators */
     session->alloc = can_fail_allocator();
     __CPROVER_assume(aws_allocator_is_valid(session->alloc));
-    session->header.edk_list.alloc = session->alloc;  // This assumption is needed for build_header
+    /* This assumption is needed for build_header */
+    session->header.edk_list.alloc = session->alloc;
 
     __CPROVER_assume(aws_cryptosdk_commitment_policy_is_valid(session->commitment_policy));
     __CPROVER_assume(session->state == ST_GEN_KEY);

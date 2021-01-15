@@ -27,6 +27,7 @@ int aws_cryptosdk_hkdf(
     const struct aws_byte_buf *salt,
     const struct aws_byte_buf *ikm,
     const struct aws_byte_buf *info) {
+    assert(aws_byte_buf_is_valid(okm));
     assert(aws_byte_buf_is_valid(salt));
     assert(aws_byte_buf_is_valid(ikm));
     assert(aws_byte_buf_is_valid(info));
