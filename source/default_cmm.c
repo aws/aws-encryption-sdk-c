@@ -19,7 +19,6 @@
 
 #include <assert.h>
 
-#define DEFAULT_ALG_UNSET 0xFFFF
 #define DEFAULT_ALG_NON_KEY_COMMITTING ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384
 #define DEFAULT_ALG_KEY_COMMITTING ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384
 
@@ -29,8 +28,8 @@ struct default_cmm {
     struct aws_cryptosdk_cmm base;
     struct aws_allocator *alloc;
     struct aws_cryptosdk_keyring *kr;
-    /* Invariant: this is either DEFAULT_ALG_UNSET or is a valid algorithm ID */
     enum aws_cryptosdk_alg_id default_alg;
+    bool default_alg_is_set;
 };
 
 static int default_cmm_generate_enc_materials(
@@ -52,7 +51,7 @@ static int default_cmm_generate_enc_materials(
     }
 
     if (!request->requested_alg) {
-        if (self->default_alg == DEFAULT_ALG_UNSET) {
+        if (!self->default_alg_is_set) {
             if (aws_cryptosdk_commitment_policy_encrypt_must_include_commitment(request->commitment_policy)) {
                 request->requested_alg = DEFAULT_ALG_KEY_COMMITTING;
             } else {
@@ -168,7 +167,8 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_default_cmm_new(struct aws_allocator *al
 
     cmm->alloc       = alloc;
     cmm->kr          = aws_cryptosdk_keyring_retain(kr);
-    cmm->default_alg = DEFAULT_ALG_UNSET;
+    cmm->default_alg = 0;
+    cmm->default_alg_is_set = false;
 
     return (struct aws_cryptosdk_cmm *)cmm;
 }
@@ -183,6 +183,7 @@ int aws_cryptosdk_default_cmm_set_alg_id(struct aws_cryptosdk_cmm *cmm, enum aws
     }
 
     self->default_alg = alg_id;
+    self->default_alg_is_set = true;
     return AWS_OP_SUCCESS;
 }
 
