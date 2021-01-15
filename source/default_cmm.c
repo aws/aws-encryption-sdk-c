@@ -165,9 +165,9 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_default_cmm_new(struct aws_allocator *al
 
     aws_cryptosdk_cmm_base_init(&cmm->base, &default_cmm_vt);
 
-    cmm->alloc       = alloc;
-    cmm->kr          = aws_cryptosdk_keyring_retain(kr);
-    cmm->default_alg = 0;
+    cmm->alloc              = alloc;
+    cmm->kr                 = aws_cryptosdk_keyring_retain(kr);
+    cmm->default_alg        = 0;
     cmm->default_alg_is_set = false;
 
     return (struct aws_cryptosdk_cmm *)cmm;
@@ -182,7 +182,7 @@ int aws_cryptosdk_default_cmm_set_alg_id(struct aws_cryptosdk_cmm *cmm, enum aws
         return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     }
 
-    self->default_alg = alg_id;
+    self->default_alg        = alg_id;
     self->default_alg_is_set = true;
     return AWS_OP_SUCCESS;
 }
