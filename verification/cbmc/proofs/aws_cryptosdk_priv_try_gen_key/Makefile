@@ -39,14 +39,6 @@ DEFINES += -DMAX_IV_LEN=$(MAX_IV_LEN)
 DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
 DEFINES += -DMAX_TRACE_LIST_ITEMS=$(MAX_TRACE_LIST_ITEMS)
 
-# The maximum number of objects is set to 2^8 = 256. This option changes that to 2^9. 
-# Without this flag, running this proof causes the CBMC error of 
-# "too many addressed objects: maximum number of objects is set to 2^n=256 (with n=8);
-# use the `--object-bits n` option to increase the maximum number"
-# The proof hits the error when the line "rv = aws_cryptosdk_hdr_write(&session->header,
-# &actual_size, session->header_copy, session->header_size);" is reached.
-CBMC_OBJECT_BITS = 9
-
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
@@ -93,6 +85,8 @@ PROOF_SOURCES += $(PROOF_STUB)/aws_cryptosdk_enc_ctx_size_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_cryptosdk_hash_elems_array_init_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_default_allocator_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/generate_enc_materials_stub.c
+# Stubbing out aws_cryptosdk_hdr_write leads to a huge gain in performance
+# Not including this stub would also require you to set CBMC_OBJECT_BITS = 9
 PROOF_SOURCES += $(PROOF_STUB)/hdr_write_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/hkdf_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/keyring_trace_clean_up_stub.c
