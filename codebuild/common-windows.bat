@@ -15,7 +15,7 @@ set ROOT_SRC_DIR=%cd%
 rmdir/s/q \build
 mkdir \build
 cd \build
-git clone -b 1.7.231 https://github.com/aws/aws-sdk-cpp.git || goto error
+git clone -b 1.8.32 https://github.com/aws/aws-sdk-cpp.git || goto error
 mkdir build-aws-sdk-cpp
 cd build-aws-sdk-cpp
 cmake %* -DCMAKE_INSTALL_PREFIX=c:/deps -DCMAKE_BUILD_TYPE="Release" -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DBUILD_ONLY="kms" -DENABLE_UNITY_BUILD=ON ../aws-sdk-cpp || goto error

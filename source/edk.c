@@ -72,13 +72,10 @@ bool aws_cryptosdk_edk_is_valid(const struct aws_cryptosdk_edk *const edk) {
 }
 
 bool aws_cryptosdk_edk_list_elements_are_valid(const struct aws_array_list *edk_list) {
-    size_t len = edk_list->length;
-    for (size_t i = 0; i < len; ++i) {
-        struct aws_cryptosdk_edk *edk;
-        if (!aws_array_list_get_at_ptr(edk_list, (void **)&edk, i)) {
-            if (!aws_cryptosdk_edk_is_valid(edk)) {
-                return false;
-            }
+    for (size_t i = 0; i < edk_list->length; ++i) {
+        struct aws_cryptosdk_edk *data = (struct aws_cryptosdk_edk *)edk_list->data;
+        if (!aws_cryptosdk_edk_is_valid(&(data[i]))) {
+            return false;
         }
     }
     return true;

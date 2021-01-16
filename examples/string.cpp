@@ -29,11 +29,11 @@ int encrypt_string(
     struct aws_cryptosdk_keyring *kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build(key_arn);
     if (!kms_keyring) {
         fprintf(stderr, "Failed to build KMS Keyring. Did you specify a valid KMS CMK ARN?\n");
-        return 2;
+        return AWS_OP_ERR;
     }
 
     struct aws_cryptosdk_session *session =
-        aws_cryptosdk_session_new_from_keyring(alloc, AWS_CRYPTOSDK_ENCRYPT, kms_keyring);
+        aws_cryptosdk_session_new_from_keyring_2(alloc, AWS_CRYPTOSDK_ENCRYPT, kms_keyring);
 
     /* The session has a reference to the keyring now. We release our reference so that
      * the keyring will be destroyed when the session is. If session failed to allocate,
@@ -43,12 +43,20 @@ int encrypt_string(
     aws_cryptosdk_keyring_release(kms_keyring);
 
     if (!session) {
-        return 3;
+        return AWS_OP_ERR;
+    }
+
+    /* For clarity, we set the commitment policy explicitly. The COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT
+     * policy is selected by default in v2.0, so this is not required.
+     */
+    if (aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT)) {
+        fprintf(stderr, "set_commitment_policy failed: %s", aws_error_debug_str(aws_last_error()));
+        return AWS_OP_ERR;
     }
 
     if (AWS_OP_SUCCESS != aws_cryptosdk_session_set_message_size(session, plaintext_len)) {
         aws_cryptosdk_session_destroy(session);
-        return 4;
+        return AWS_OP_ERR;
     }
 
     /* The encryption context is an AWS hash table where both the key and value
@@ -65,7 +73,7 @@ int encrypt_string(
     /* We copy the contents of our own encryption context into the session's. */
     if (AWS_OP_SUCCESS != aws_cryptosdk_enc_ctx_clone(alloc, session_enc_ctx, my_enc_ctx)) {
         aws_cryptosdk_session_destroy(session);
-        return 5;
+        return AWS_OP_ERR;
     }
 
     /* We encrypt the data. */
@@ -74,12 +82,12 @@ int encrypt_string(
         aws_cryptosdk_session_process(
             session, ciphertext, ciphertext_buf_sz, ciphertext_len, plaintext, plaintext_len, &plaintext_consumed)) {
         aws_cryptosdk_session_destroy(session);
-        return 6;
+        return AWS_OP_ERR;
     }
 
     if (!aws_cryptosdk_session_is_done(session)) {
         aws_cryptosdk_session_destroy(session);
-        return 7;
+        return AWS_OP_ERR;
     }
     if (plaintext_consumed != plaintext_len) abort();
 
@@ -87,7 +95,7 @@ int encrypt_string(
      * the keyring, since we already released its pointer.
      */
     aws_cryptosdk_session_destroy(session);
-    return 0;
+    return AWS_OP_SUCCESS;
 }
 
 int decrypt_string_and_verify_encryption_context(
@@ -102,15 +110,20 @@ int decrypt_string_and_verify_encryption_context(
     struct aws_cryptosdk_keyring *kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build(key_arn);
     if (!kms_keyring) {
         fprintf(stderr, "Failed to build KMS Keyring. Did you specify a valid KMS CMK ARN?\n");
-        return 8;
+        return AWS_OP_ERR;
     }
 
     struct aws_cryptosdk_session *session =
-        aws_cryptosdk_session_new_from_keyring(alloc, AWS_CRYPTOSDK_DECRYPT, kms_keyring);
+        aws_cryptosdk_session_new_from_keyring_2(alloc, AWS_CRYPTOSDK_DECRYPT, kms_keyring);
     aws_cryptosdk_keyring_release(kms_keyring);
 
     if (!session) {
-        return 9;
+        return AWS_OP_ERR;
+    }
+
+    if (aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT)) {
+        fprintf(stderr, "set_commitment_policy failed: %s", aws_error_debug_str(aws_last_error()));
+        return AWS_OP_ERR;
     }
 
     size_t ciphertext_consumed;
@@ -118,12 +131,12 @@ int decrypt_string_and_verify_encryption_context(
         aws_cryptosdk_session_process(
             session, plaintext, plaintext_buf_sz, plaintext_len, ciphertext, ciphertext_len, &ciphertext_consumed)) {
         aws_cryptosdk_session_destroy(session);
-        return 10;
+        return AWS_OP_ERR;
     }
 
     if (!aws_cryptosdk_session_is_done(session)) {
         aws_cryptosdk_session_destroy(session);
-        return 11;
+        return AWS_OP_ERR;
     }
     if (ciphertext_consumed != ciphertext_len) abort();
 
@@ -143,7 +156,7 @@ int decrypt_string_and_verify_encryption_context(
         struct aws_hash_element *session_enc_ctx_kv_pair;
         if (AWS_OP_SUCCESS != aws_hash_table_find(session_enc_ctx, iter.element.key, &session_enc_ctx_kv_pair)) {
             aws_cryptosdk_session_destroy(session);
-            return 12;
+            return AWS_OP_ERR;
         }
 
         if (!session_enc_ctx_kv_pair ||
@@ -155,7 +168,7 @@ int decrypt_string_and_verify_encryption_context(
     }
 
     aws_cryptosdk_session_destroy(session);
-    return 0;
+    return AWS_OP_SUCCESS;
 }
 
 /* Allocates a hash table for holding the encryption context and puts a few sample values in it. */
@@ -176,15 +189,15 @@ int set_up_enc_ctx(struct aws_allocator *alloc, struct aws_hash_table *enc_ctx) 
     int was_created;
     if (AWS_OP_SUCCESS != aws_hash_table_put(enc_ctx, enc_ctx_key1, (void *)enc_ctx_value1, &was_created)) {
         aws_cryptosdk_enc_ctx_clean_up(enc_ctx);
-        return 14;
+        return AWS_OP_ERR;
     }
     if (was_created != 1) abort();
     if (AWS_OP_SUCCESS != aws_hash_table_put(enc_ctx, enc_ctx_key2, (void *)enc_ctx_value2, &was_created)) {
         aws_cryptosdk_enc_ctx_clean_up(enc_ctx);
-        return 15;
+        return AWS_OP_ERR;
     }
     if (was_created != 1) abort();
-    return 0;
+    return AWS_OP_SUCCESS;
 }
 
 #define BUFFER_SIZE 1024

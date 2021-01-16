@@ -161,10 +161,7 @@ int aws_cryptosdk_md_finish(struct aws_cryptosdk_md_context *md_context, void *o
     int rv            = AWS_OP_SUCCESS;
     unsigned int size = 0;
 
-    // Replace with AWS_FATAL_PRECONDITION once that version is integrated
-    if (!output_buf) {
-        abort();
-    }
+    AWS_FATAL_PRECONDITION(output_buf != NULL);
 
     if (1 != EVP_DigestFinal_ex(md_context->evp_md_ctx, output_buf, &size)) {
         rv   = aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
@@ -242,7 +239,7 @@ static struct aws_cryptosdk_sig_ctx *sign_start(
      * We perform the digest and signature separately, as we might need to re-sign to get the right
      * signature size.
      */
-    if (!(EVP_DigestInit(ctx->ctx, props->impl->md_ctor()))) {
+    if (!(EVP_DigestInit(ctx->ctx, props->impl->sig_md_ctor()))) {
         aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
         goto rethrow;
     }
@@ -533,6 +530,7 @@ int aws_cryptosdk_sig_sign_start(
     AWS_PRECONDITION(AWS_OBJECT_PTR_IS_WRITABLE(ctx));
     AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(alloc));
     AWS_PRECONDITION(AWS_OBJECT_PTR_IS_READABLE(props));
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(props));
     AWS_PRECONDITION(aws_string_is_valid(priv_key));
     /* See comments in aws_cryptosdk_sig_get_privkey re the serialized format */
 
@@ -727,10 +725,8 @@ int aws_cryptosdk_sig_verify_start(
     struct aws_allocator *alloc,
     const struct aws_string *pub_key,
     const struct aws_cryptosdk_alg_properties *props) {
-    AWS_PRECONDITION(pctx);
-    AWS_PRECONDITION(alloc);
     AWS_PRECONDITION(aws_string_is_valid(pub_key));
-    AWS_PRECONDITION(props);
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(props));
 
     *pctx = NULL;
 
@@ -766,7 +762,7 @@ int aws_cryptosdk_sig_verify_start(
         goto oom;
     }
 
-    if (!(EVP_DigestVerifyInit(ctx->ctx, NULL, props->impl->md_ctor(), NULL, ctx->pkey))) {
+    if (!(EVP_DigestVerifyInit(ctx->ctx, NULL, props->impl->sig_md_ctor(), NULL, ctx->pkey))) {
         aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
         goto rethrow;
     }
@@ -812,8 +808,6 @@ int aws_cryptosdk_sig_update(struct aws_cryptosdk_sig_ctx *ctx, const struct aws
 
 int aws_cryptosdk_sig_verify_finish(struct aws_cryptosdk_sig_ctx *ctx, const struct aws_string *signature) {
     AWS_PRECONDITION(aws_cryptosdk_sig_ctx_is_valid(ctx));
-    AWS_PRECONDITION(ctx->alloc);
-    AWS_PRECONDITION(!ctx->is_sign);
     AWS_PRECONDITION(aws_string_is_valid(signature));
     bool ok = EVP_DigestVerifyFinal(ctx->ctx, aws_string_bytes(signature), signature->len) == 1;
 

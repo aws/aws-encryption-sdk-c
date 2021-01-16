@@ -24,6 +24,7 @@
  */
 struct aws_cryptosdk_alg_impl {
     const EVP_MD *(*md_ctor)(void);
+    const EVP_MD *(*sig_md_ctor)(void);
     const EVP_CIPHER *(*cipher_ctor)(void);
     const char *curve_name;
 };
@@ -49,6 +50,14 @@ struct aws_cryptosdk_md_context;
 
 enum aws_cryptosdk_md_alg { AWS_CRYPTOSDK_MD_SHA512 };
 
+static inline size_t aws_cryptosdk_private_authtag_len(const struct aws_cryptosdk_alg_properties *alg_props) {
+    if (alg_props->msg_format_version == AWS_CRYPTOSDK_HEADER_VERSION_1_0) {
+        return alg_props->iv_len + alg_props->tag_len;
+    } else {
+        return alg_props->tag_len;
+    }
+}
+
 /**
  * Performs basic validity checks for the message-digest context (e.g. that member pointers are not NULL).
  */
@@ -65,16 +74,25 @@ int aws_cryptosdk_md_finish(struct aws_cryptosdk_md_context *md_context, void *o
 
 void aws_cryptosdk_md_abort(struct aws_cryptosdk_md_context *md_context);
 
+size_t aws_cryptosdk_private_algorithm_message_id_len(const struct aws_cryptosdk_alg_properties *alg_props);
+
+/**
+ * Performs a constant-time comparison of two commitment buffers.
+ * Returns true if they are equal.
+ */
+bool aws_cryptosdk_private_commitment_eq(struct aws_byte_buf *a, struct aws_byte_buf *b);
+
 /**
  * Derive the decryption key from the data key.
  * Depending on the algorithm ID, this either does a HKDF,
  * or a no-op copy of the key.
  */
-int aws_cryptosdk_derive_key(
+int aws_cryptosdk_private_derive_key(
     const struct aws_cryptosdk_alg_properties *alg_props,
     struct content_key *content_key,
     const struct data_key *data_key,
-    const uint8_t *message_id);
+    struct aws_byte_buf *commitment,
+    const struct aws_byte_buf *message_id);
 
 /**
  * Verifies the header authentication tag.
@@ -107,7 +125,7 @@ int aws_cryptosdk_decrypt_body(
     const struct aws_cryptosdk_alg_properties *alg_props,
     struct aws_byte_buf *out,
     const struct aws_byte_cursor *in,
-    const uint8_t *message_id,
+    const struct aws_byte_buf *message_id,
     uint32_t seqno,
     const uint8_t *iv,
     const struct content_key *key,
@@ -122,7 +140,7 @@ int aws_cryptosdk_encrypt_body(
     const struct aws_cryptosdk_alg_properties *alg_props,
     struct aws_byte_buf *out,
     const struct aws_byte_cursor *in,
-    const uint8_t *message_id,
+    const struct aws_byte_buf *message_id,
     uint32_t seqno,
     uint8_t *iv, /* out */
     const struct content_key *key,
@@ -232,5 +250,9 @@ int aws_cryptosdk_rsa_encrypt(
     const struct aws_byte_cursor plain,
     const struct aws_string *rsa_public_key_pem,
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode);
+
+bool aws_cryptosdk_data_key_is_valid(const struct data_key *key);
+
+bool aws_cryptosdk_content_key_is_valid(const struct content_key *key);
 
 #endif  // AWS_CRYPTOSDK_PRIVATE_CIPHER_H

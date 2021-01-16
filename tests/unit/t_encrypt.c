@@ -15,6 +15,7 @@
 
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/private/cipher.h>
+#include <aws/cryptosdk/private/session.h>
 #include <aws/cryptosdk/session.h>
 #include <stdlib.h>
 #include "counting_keyring.h"
@@ -32,7 +33,7 @@ static int precise_size_set = 0;
 static int create_session(enum aws_cryptosdk_mode mode, struct aws_cryptosdk_keyring *kr) {
     if (session) aws_cryptosdk_session_destroy(session);
 
-    session = aws_cryptosdk_session_new_from_keyring(aws_default_allocator(), mode, kr);
+    session = aws_cryptosdk_session_new_from_keyring_2(aws_default_allocator(), mode, kr);
     if (!session) abort();
 
     aws_cryptosdk_keyring_release(kr);
@@ -48,7 +49,7 @@ static struct aws_cryptosdk_cmm *create_session_with_cmm(
     struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kr);
     if (!cmm) abort();
 
-    session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), mode, cmm);
+    session = aws_cryptosdk_session_new_from_cmm_2(aws_default_allocator(), mode, cmm);
     if (!session) abort();
 
     aws_cryptosdk_keyring_release(kr);
@@ -354,7 +355,10 @@ static int test_algorithm_override_once(enum aws_cryptosdk_alg_id alg_id) {
     enum aws_cryptosdk_alg_id reported_alg_id;
     struct aws_cryptosdk_cmm *cmm =
         create_session_with_cmm(AWS_CRYPTOSDK_ENCRYPT, aws_cryptosdk_counting_keyring_new(aws_default_allocator()));
-    aws_cryptosdk_default_cmm_set_alg_id(cmm, alg_id);
+    if (!aws_cryptosdk_algorithm_is_committing(alg_id)) {
+        session->commitment_policy = COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT;
+    }
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, alg_id));
     aws_cryptosdk_session_set_message_size(session, pt_size);
     precise_size_set = true;
 
@@ -385,7 +389,9 @@ int test_algorithm_override() {
            test_algorithm_override_once(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384) ||
            test_algorithm_override_once(ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256) ||
            test_algorithm_override_once(ALG_AES192_GCM_IV12_TAG16_HKDF_SHA256) ||
-           test_algorithm_override_once(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256);
+           test_algorithm_override_once(ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256) ||
+           test_algorithm_override_once(ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY) ||
+           test_algorithm_override_once(ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384);
 }
 
 int test_null_estimates() {

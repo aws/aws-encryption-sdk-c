@@ -1,3 +1,12 @@
 [submodule "aws-encryption-sdk-cpp/tests/test_vectors/aws-encryption-sdk-test-vectors"]
 	path = aws-encryption-sdk-cpp/tests/test_vectors/aws-encryption-sdk-test-vectors
 	url = https://github.com/awslabs/aws-encryption-sdk-test-vectors.git
+[submodule ".cbmc-batch/aws-c-common"]
+	path = verification/cbmc/aws-c-common
+	url = https://github.com/awslabs/aws-c-common.git
+[submodule "verification/cbmc/templates"]
+	path = verification/cbmc/templates
+	url = https://github.com/awslabs/aws-templates-for-cbmc-proofs.git
+[submodule "verification/litani"]
+	path = verification/litani
+	url = https://github.com/awslabs/aws-build-accumulator

@@ -36,7 +36,7 @@ struct t_aws_cryptosdk_session_cmm_struct t_aws_cryptosdk_all_init(
     result.cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), mk);
     if (!result.cmm) abort();
 
-    result.session = aws_cryptosdk_session_new_from_cmm(aws_default_allocator(), mode, result.cmm);
+    result.session = aws_cryptosdk_session_new_from_cmm_2(aws_default_allocator(), mode, result.cmm);
     if (!result.session) abort();
 
     return result;

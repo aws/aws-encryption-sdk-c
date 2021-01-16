@@ -56,8 +56,9 @@ int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
     request.alloc   = session->alloc;
     request.enc_ctx = &session->header.enc_ctx;
     // The default CMM will fill this in.
-    request.requested_alg  = 0;
-    request.plaintext_size = session->precise_size_known ? session->precise_size : session->size_bound;
+    request.requested_alg     = 0;
+    request.plaintext_size    = session->precise_size_known ? session->precise_size : session->size_bound;
+    request.commitment_policy = session->commitment_policy;
 
     if (aws_cryptosdk_cmm_generate_enc_materials(session->cmm, &materials, &request)) {
         goto rethrow;
@@ -71,6 +72,10 @@ int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
     if (!aws_array_list_length(&materials->encrypted_data_keys)) goto out;
     // We should have a signature context iff this is a signed alg suite
     if (!!session->alg_props->signature_len != !!materials->signctx) goto out;
+    if (!aws_cryptosdk_priv_algorithm_allowed_for_encrypt(materials->alg, session->commitment_policy)) {
+        result = AWS_CRYPTOSDK_ERR_COMMITMENT_POLICY_VIOLATION;
+        goto out;
+    }
 
     // Move ownership of the signature context before we go any further.
     session->signctx   = materials->signctx;
@@ -83,11 +88,25 @@ int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
     session->cmm_success = true;
 
     // Generate message ID and derive the content key from the data key.
-    if (aws_cryptosdk_genrandom(session->header.message_id, sizeof(session->header.message_id))) {
+    size_t message_id_len = aws_cryptosdk_private_algorithm_message_id_len(session->alg_props);
+    aws_byte_buf_init(&session->header.message_id, session->alloc, message_id_len);
+    if (aws_cryptosdk_genrandom(session->header.message_id.buffer, message_id_len)) {
         goto out;
     }
+    session->header.message_id.len = message_id_len;
 
-    if (aws_cryptosdk_derive_key(session->alg_props, &session->content_key, &data_key, session->header.message_id)) {
+    if (aws_cryptosdk_commitment_policy_encrypt_must_include_commitment(session->commitment_policy)) {
+        assert(session->alg_props->commitment_len <= sizeof(session->key_commitment_arr));
+        session->header.alg_suite_data =
+            aws_byte_buf_from_array(session->key_commitment_arr, session->alg_props->commitment_len);
+    }
+
+    if (aws_cryptosdk_private_derive_key(
+            session->alg_props,
+            &session->content_key,
+            &data_key,
+            &session->header.alg_suite_data,
+            &session->header.message_id)) {
         goto rethrow;
     }
 
@@ -149,6 +168,12 @@ static int build_header(struct aws_cryptosdk_session *session, struct aws_crypto
 }
 
 static int sign_header(struct aws_cryptosdk_session *session) {
+    AWS_PRECONDITION(aws_cryptosdk_session_is_valid(session));
+    AWS_PRECONDITION(session->alg_props->impl->cipher_ctor != NULL);
+    AWS_PRECONDITION(session->header.iv.len <= session->alg_props->iv_len);
+    AWS_PRECONDITION(session->header.auth_tag.len <= session->alg_props->tag_len);
+    AWS_PRECONDITION(session->state == ST_GEN_KEY);
+    AWS_PRECONDITION(session->mode == AWS_CRYPTOSDK_ENCRYPT);
     session->header_size = aws_cryptosdk_hdr_size(&session->header);
 
     if (session->header_size == 0) {
@@ -164,17 +189,26 @@ static int sign_header(struct aws_cryptosdk_session *session) {
     // see what happened. It also makes sure that the header is fully initialized,
     // again just in case some bug doesn't overwrite them properly.
 
-    memset(session->header.iv.buffer, 0x42, session->header.iv.len);
-    memset(session->header.auth_tag.buffer, 0xDE, session->header.auth_tag.len);
+    if (session->header.iv.len != 0) {
+        assert(session->header.iv.buffer);
+        memset(session->header.iv.buffer, 0x42, session->header.iv.len);
+    }
+    if (session->header.auth_tag.len != 0) {
+        assert(session->header.auth_tag.buffer);
+        memset(session->header.auth_tag.buffer, 0xDE, session->header.auth_tag.len);
+    }
 
     size_t actual_size;
+
     int rv = aws_cryptosdk_hdr_write(&session->header, &actual_size, session->header_copy, session->header_size);
+
     if (rv) return AWS_OP_ERR;
     if (actual_size != session->header_size) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_CRYPTO_UNKNOWN);
     }
 
-    int authtag_len             = session->alg_props->iv_len + session->alg_props->tag_len;
+    size_t authtag_len = aws_cryptosdk_private_authtag_len(session->alg_props);
+
     struct aws_byte_buf to_sign = aws_byte_buf_from_array(session->header_copy, session->header_size - authtag_len);
     struct aws_byte_buf authtag =
         aws_byte_buf_from_array(session->header_copy + session->header_size - authtag_len, authtag_len);
@@ -182,8 +216,22 @@ static int sign_header(struct aws_cryptosdk_session *session) {
     rv = aws_cryptosdk_sign_header(session->alg_props, &session->content_key, &authtag, &to_sign);
     if (rv) return AWS_OP_ERR;
 
-    memcpy(session->header.iv.buffer, authtag.buffer, session->header.iv.len);
-    memcpy(session->header.auth_tag.buffer, authtag.buffer + session->header.iv.len, session->header.auth_tag.len);
+    if (session->alg_props->msg_format_version == AWS_CRYPTOSDK_HEADER_VERSION_1_0) {
+        if (session->header.iv.len != 0) {
+            assert(session->header.iv.buffer);
+            memcpy(session->header.iv.buffer, authtag.buffer, session->header.iv.len);
+        }
+        if (session->header.auth_tag.len != 0) {
+            assert(session->header.auth_tag.buffer);
+            memcpy(
+                session->header.auth_tag.buffer, authtag.buffer + session->header.iv.len, session->header.auth_tag.len);
+        }
+    } else {
+        if (session->header.auth_tag.len != 0) {
+            assert(session->header.auth_tag.buffer);
+            memcpy(session->header.auth_tag.buffer, authtag.buffer, session->header.auth_tag.len);
+        }
+    }
 
     // Re-serialize the header now that we know the auth tag
     rv = aws_cryptosdk_hdr_write(&session->header, &actual_size, session->header_copy, session->header_size);
@@ -294,7 +342,7 @@ int aws_cryptosdk_priv_try_encrypt_body(
             session->alg_props,
             &frame.ciphertext,
             &plaintext,
-            session->header.message_id,
+            &session->header.message_id,
             frame.sequence_number,
             frame.iv.buffer,
             &session->content_key,

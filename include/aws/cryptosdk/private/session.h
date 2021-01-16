@@ -51,6 +51,7 @@ struct aws_cryptosdk_session {
     int error;
     enum aws_cryptosdk_mode mode;
     enum session_state state;
+    enum aws_cryptosdk_commitment_policy commitment_policy;
 
     struct aws_cryptosdk_cmm *cmm;
 
@@ -81,6 +82,9 @@ struct aws_cryptosdk_session {
 
     /* Decrypted, derived (if applicable) content key */
     struct content_key content_key;
+    /* Key commitment array, and byte_buf wrapping this array */
+    uint8_t key_commitment_arr[32];
+    struct aws_byte_buf key_commitment;
 
     /* In-progress trailing signature context (if applicable) */
     struct aws_cryptosdk_sig_ctx *signctx;
@@ -90,6 +94,22 @@ struct aws_cryptosdk_session {
      */
     bool cmm_success;
 };
+
+AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_session_is_valid(const struct aws_cryptosdk_session *session) {
+    if (!AWS_OBJECT_PTR_IS_WRITABLE(session)) {
+        return false;
+    }
+    bool allocator_valid      = aws_allocator_is_valid(session->alloc);
+    bool cmm_valid            = aws_cryptosdk_cmm_base_is_valid(session->cmm);
+    bool hdr_valid            = aws_cryptosdk_hdr_is_valid(&session->header);
+    bool keyring_trace_valid  = aws_cryptosdk_keyring_trace_is_valid(&session->keyring_trace);
+    bool alg_props_valid      = aws_cryptosdk_alg_properties_is_valid(session->alg_props);
+    bool content_key_valid    = aws_cryptosdk_content_key_is_valid(&session->content_key);
+    bool key_commitment_valid = aws_byte_buf_is_valid(&session->key_commitment);
+    bool signctx_valid        = (session->signctx == NULL) || aws_cryptosdk_sig_ctx_is_valid(session->signctx);
+    return allocator_valid && cmm_valid && hdr_valid && keyring_trace_valid && alg_props_valid && content_key_valid &&
+           key_commitment_valid && signctx_valid;
+}
 
 /* Common session routines */
 
@@ -106,6 +126,8 @@ int aws_cryptosdk_priv_try_decrypt_body(
     struct aws_byte_cursor *AWS_RESTRICT pinput);
 int aws_cryptosdk_priv_check_trailer(
     struct aws_cryptosdk_session *AWS_RESTRICT session, struct aws_byte_cursor *AWS_RESTRICT pinput);
+bool aws_cryptosdk_priv_algorithm_allowed_for_decrypt(
+    enum aws_cryptosdk_alg_id alg_id, enum aws_cryptosdk_commitment_policy commitment_policy);
 
 /* Encrypt path */
 void aws_cryptosdk_priv_encrypt_compute_body_estimate(struct aws_cryptosdk_session *session);
@@ -118,5 +140,7 @@ int aws_cryptosdk_priv_try_encrypt_body(
     struct aws_byte_cursor *AWS_RESTRICT pinput);
 int aws_cryptosdk_priv_write_trailer(
     struct aws_cryptosdk_session *AWS_RESTRICT session, struct aws_byte_buf *AWS_RESTRICT poutput);
+bool aws_cryptosdk_priv_algorithm_allowed_for_encrypt(
+    enum aws_cryptosdk_alg_id alg_id, enum aws_cryptosdk_commitment_policy commitment_policy);
 
 #endif

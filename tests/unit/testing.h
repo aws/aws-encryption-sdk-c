@@ -23,6 +23,7 @@ struct test_case {
 
 extern struct test_case header_test_cases[];
 extern struct test_case cipher_test_cases[];
+extern struct test_case commitment_test_cases[];
 extern struct test_case materials_test_cases[];
 extern struct test_case enc_ctx_test_cases[];
 extern struct test_case encrypt_test_cases[];

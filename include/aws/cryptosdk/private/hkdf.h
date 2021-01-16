@@ -22,6 +22,7 @@ enum aws_cryptosdk_sha_version {
     AWS_CRYPTOSDK_NOSHA,
     AWS_CRYPTOSDK_SHA256,
     AWS_CRYPTOSDK_SHA384,
+    AWS_CRYPTOSDK_SHA512
 };
 
 /*
