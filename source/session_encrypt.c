@@ -175,6 +175,7 @@ static int build_header(struct aws_cryptosdk_session *session, struct aws_crypto
 
 static int sign_header(struct aws_cryptosdk_session *session) {
     AWS_PRECONDITION(aws_cryptosdk_session_is_valid(session));
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(session->alg_props));
     AWS_PRECONDITION(session->alg_props->impl->cipher_ctor != NULL);
     AWS_PRECONDITION(session->header.iv.len <= session->alg_props->iv_len);
     AWS_PRECONDITION(session->header.auth_tag.len <= session->alg_props->tag_len);
