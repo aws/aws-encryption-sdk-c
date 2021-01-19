@@ -75,7 +75,6 @@ PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_array_list_sort_noop_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_cryptosdk_enc_ctx_size_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_cryptosdk_hash_elems_array_init_stub.c
-PROOF_SOURCES += $(PROOF_STUB)/aws_default_allocator_stub.c
 # Stubbing out aws_cryptosdk_hdr_write leads to a huge gain in performance
 PROOF_SOURCES += $(PROOF_STUB)/hdr_write_stub.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)

@@ -83,7 +83,6 @@ PROOF_SOURCES += $(PROOF_STUB)/aws_array_list_item_generator_u8_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_array_list_sort_noop_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_cryptosdk_enc_ctx_size_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_cryptosdk_hash_elems_array_init_stub.c
-PROOF_SOURCES += $(PROOF_STUB)/aws_default_allocator_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/generate_enc_materials_stub.c
 # Stubbing out aws_cryptosdk_hdr_write leads to a huge gain in performance
 # Not including this stub would also require you to set CBMC_OBJECT_BITS = 9
