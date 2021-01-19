@@ -49,6 +49,11 @@ void sign_header_harness() {
         session_setup(MAX_TABLE_SIZE, MAX_TRACE_LIST_ITEMS, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE, MAX_STRING_LEN);
 
     /* Assumptions */
+    if (session->alg_props == NULL) {
+        struct aws_cryptosdk_alg_properties *props = ensure_alg_properties_attempt_allocation(MAX_STRING_LEN);
+        __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(props));
+        session->alg_props = props;
+    }
     __CPROVER_assume(session->alg_props->impl->cipher_ctor != NULL);
     __CPROVER_assume(aws_byte_buf_is_bounded(&session->header.iv, session->alg_props->iv_len));
     __CPROVER_assume(aws_byte_buf_is_bounded(&session->header.auth_tag, session->alg_props->tag_len));
