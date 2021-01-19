@@ -99,12 +99,12 @@ AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_session_is_valid(const struct aws
     if (!AWS_OBJECT_PTR_IS_WRITABLE(session)) {
         return false;
     }
-    bool allocator_valid      = aws_allocator_is_valid(session->alloc);
-    bool cmm_valid            = aws_cryptosdk_cmm_base_is_valid(session->cmm);
-    bool hdr_valid            = aws_cryptosdk_hdr_is_valid(&session->header);
-    bool keyring_trace_valid  = aws_cryptosdk_keyring_trace_is_valid(&session->keyring_trace);
-    bool alg_props_valid      = aws_cryptosdk_alg_properties_is_valid(session->alg_props);
-    bool content_key_valid    = aws_cryptosdk_content_key_is_valid(&session->content_key);
+    bool allocator_valid     = aws_allocator_is_valid(session->alloc);
+    bool cmm_valid           = aws_cryptosdk_cmm_base_is_valid(session->cmm);
+    bool hdr_valid           = aws_cryptosdk_hdr_is_valid(&session->header);
+    bool keyring_trace_valid = aws_cryptosdk_keyring_trace_is_valid(&session->keyring_trace);
+    bool alg_props_valid   = (session->alg_props == NULL || aws_cryptosdk_alg_properties_is_valid(session->alg_props));
+    bool content_key_valid = aws_cryptosdk_content_key_is_valid(&session->content_key);
     bool key_commitment_valid = aws_byte_buf_is_valid(&session->key_commitment);
     bool signctx_valid        = (session->signctx == NULL) || aws_cryptosdk_sig_ctx_is_valid(session->signctx);
     return allocator_valid && cmm_valid && hdr_valid && keyring_trace_valid && alg_props_valid && content_key_valid &&
