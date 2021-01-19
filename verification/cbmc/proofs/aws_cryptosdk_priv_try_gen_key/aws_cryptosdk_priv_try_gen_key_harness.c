@@ -39,7 +39,7 @@ int generate_enc_materials(
  * multiple functions (see Makefile). It also requires a quite specific
  * configuration for the session struct (cmm's vtable must include a
  * pointer to the function declared above, alg_props can be NULL or valid,
- * etc.) so we do not use the session_setup method to initialize it
+ * etc.) so we do not use the session_setup method to initialize it.
  */
 void aws_cryptosdk_priv_try_gen_key_harness() {
     /* Nondet Input */

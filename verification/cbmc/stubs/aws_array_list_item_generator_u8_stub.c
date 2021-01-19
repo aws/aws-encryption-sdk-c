@@ -17,8 +17,18 @@
 
 /*
  * A generator function as described in the comment
- * in aws_cryptosdk_hash_elems_array_init_stub.c
- * This generator is set in the Makefile
+ * in aws_cryptosdk_hash_elems_array_init_stub.c:
+ *
+ * If the consumer of the list does not use the elements in the list,
+ * we can just leave it undefined. This is sound, as it gives you a totally
+ * nondet. value every time you use a list element, and is the default
+ * behaviour of CBMC. But if it is used, we need a way for the harness
+ * to specify valid values for the element, for example if they are copying
+ * values out of the table. They can do this by defining
+ * -DAWS_CRYPTOSDK_HASH_ELEMS_ARRAY_INIT_GENERATOR=the_generator_fn
+ *   where the_generator_fn has signature
+ * the_generator_fn(struct aws_array_list *elems).
+ *   [elems] is a pointer to the array_list whose values need to be set
  */
 void array_list_item_generator(struct aws_array_list *elems) {
     assert(elems->item_size == sizeof(struct aws_hash_element));
