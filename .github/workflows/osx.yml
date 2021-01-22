@@ -31,13 +31,17 @@ jobs:
 
       # The hosted Actions runners include CMake v3.19.1 by default, which has
       # a regression that causes aws-sdk-cpp and aws-encryption-sdk-c to fail
-      # to build on the runners. We install the previous working version as a
-      # workaround. See https://github.com/aws/aws-encryption-sdk-c/issues/650.
-      - name: Install CMake v3.18.5
+      # to build on the runners.
+      # This appears to have been an issue in CMake that is fixed in 3.19.3.
+      # This workaround is required until the MacOS Action is updated to a
+      # a newer CMake, or the dependency adds a workaround for 3.19.1.
+      # See https://github.com/aws/aws-encryption-sdk-c/issues/650 and
+      # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-10.15-Readme.md
+      - name: Install CMake v3.19.3
         run: |
           brew uninstall cmake
-          curl -L https://github.com/Kitware/CMake/releases/download/v3.18.5/cmake-3.18.5-Darwin-x86_64.tar.gz | tar xz
-          cd cmake-3.18.5-Darwin-x86_64/CMake.app/Contents
+          curl -L https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Darwin-x86_64.tar.gz | tar xz
+          cd cmake-3.19.3-Darwin-x86_64/CMake.app/Contents
           sudo cp bin/* /usr/local/bin/
           sudo cp share/aclocal/* /usr/local/share/aclocal/
           sudo cp -R share/cmake-3.18 /usr/local/share/
