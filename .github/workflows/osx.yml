@@ -39,8 +39,10 @@ jobs:
       # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-10.15-Readme.md
       - name: Install CMake v3.19.3
         run: |
-          brew install cmake@3.19.3
-          brew switch cmake 3.19.3
+          brew uninstall cmake
+          curl -L https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-macos-universal.tar.gz | tar xz
+          cd cmake-3.19.3-macos-universal/CMake.app/Contents/bin
+          ./cmake-gui --install
 
       - name: Build and install aws-sdk-cpp
         run: |
