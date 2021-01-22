@@ -26,21 +26,8 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: "aws/aws-sdk-cpp"
-          ref: "1.8.32"
+          ref: "1.8.128"
           path: "aws-sdk-cpp"
-
-      # The hosted Actions runners include CMake v3.19.1 by default, which has
-      # a regression that causes aws-sdk-cpp and aws-encryption-sdk-c to fail
-      # to build on the runners. We install the previous working version as a
-      # workaround. See https://github.com/aws/aws-encryption-sdk-c/issues/650.
-      - name: Install CMake v3.18.5
-        run: |
-          brew uninstall cmake
-          curl -L https://github.com/Kitware/CMake/releases/download/v3.18.5/cmake-3.18.5-Darwin-x86_64.tar.gz | tar xz
-          cd cmake-3.18.5-Darwin-x86_64/CMake.app/Contents
-          sudo cp bin/* /usr/local/bin/
-          sudo cp share/aclocal/* /usr/local/share/aclocal/
-          sudo cp -R share/cmake-3.18 /usr/local/share/
 
       - name: Build and install aws-sdk-cpp
         run: |
