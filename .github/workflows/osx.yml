@@ -39,12 +39,8 @@ jobs:
       # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-10.15-Readme.md
       - name: Install CMake v3.19.3
         run: |
-          brew uninstall cmake
-          curl -L https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Darwin-x86_64.tar.gz | tar xz
-          cd cmake-3.19.3-Darwin-x86_64/CMake.app/Contents
-          sudo cp bin/* /usr/local/bin/
-          sudo cp share/aclocal/* /usr/local/share/aclocal/
-          sudo cp -R share/cmake-3.18 /usr/local/share/
+          brew install cmake@3.19.3
+          brew switch cmake 3.19.3
 
       - name: Build and install aws-sdk-cpp
         run: |
