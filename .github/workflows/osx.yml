@@ -21,13 +21,19 @@ jobs:
 
       - name: Checkout PR
         uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
-      - name: Checkout Dependencies
+      - name: Checkout AWS C++ SDK
         uses: actions/checkout@v2
         with:
           repository: "aws/aws-sdk-cpp"
           ref: "1.8.32"
           path: "aws-sdk-cpp"
+
+      - name: Install dependencies
+        run:
+          brew install json-c
 
       # The hosted Actions runners include CMake v3.19.1 by default, which has
       # a regression that causes aws-sdk-cpp and aws-encryption-sdk-c to fail
@@ -56,6 +62,7 @@ jobs:
       - name: Build C-ESDK
         env:
           OPENSSL_VERSION: ${{ matrix.openssl_version }}
+        # TODO-RS: Figure out how to safely add AWS credentials and add -DAWS_ENC_SDK_END_TO_END_TESTS=ON and -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON 
         run: |
           mkdir build-aws-encryption-sdk-c || true
           cd build-aws-encryption-sdk-c

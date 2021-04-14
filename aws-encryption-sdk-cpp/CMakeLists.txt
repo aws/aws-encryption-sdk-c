@@ -113,6 +113,21 @@ if (AWS_ENC_SDK_KNOWN_GOOD_TESTS)
         ${PROJECT_SOURCE_DIR}/tests/integration
         $<INSTALL_INTERFACE:include>
         )
+
+    # Also unzip the test vectors from the aws-encryption-sdk-test-vectors submodule
+    # TODO-RS: If desired, we can use a custom target to avoid doing this
+    # on every build when the zip hasn't changed.
+    message(STATUS "Unzipping test vectors")
+    set(TEST_VECTORS_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/test-vectors)
+    file(MAKE_DIRECTORY ${TEST_VECTORS_DIRECTORY})
+    execute_process(COMMAND ${CMAKE_COMMAND} -E tar xf ${AWS_ENC_SDK_TEST_VECTORS_ZIP}
+        WORKING_DIRECTORY ${TEST_VECTORS_DIRECTORY}
+        RESULT_VARIABLE _exit_code)
+    if(${_exit_code})
+        message(FATAL_ERROR "Unzipping test vectors failed")
+    endif()
+
+    aws_add_test(static_test_vectors ${CMAKE_CURRENT_BINARY_DIR}/static_test_vectors ${TEST_VECTORS_DIRECTORY})
 else()
     message(STATUS "Static known good tests off")
 endif()
@@ -131,4 +146,3 @@ foreach(test_cpp ${test_sources})
 
     aws_add_test(${TEST_NAME}.test ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})
 endforeach()
-
