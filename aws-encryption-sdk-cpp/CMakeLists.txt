@@ -120,12 +120,9 @@ if (AWS_ENC_SDK_KNOWN_GOOD_TESTS)
     message(STATUS "Unzipping test vectors")
     set(TEST_VECTORS_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/test-vectors)
     file(MAKE_DIRECTORY ${TEST_VECTORS_DIRECTORY})
-    execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ${AWS_ENC_SDK_TEST_VECTORS_ZIP}
+    execute_process(COMMAND ${CMAKE_COMMAND} -E tar xf ${AWS_ENC_SDK_TEST_VECTORS_ZIP}
         WORKING_DIRECTORY ${TEST_VECTORS_DIRECTORY}
-        RESULT_VARIABLE _exit_code
-        # The output from the subprocess seems to fill a buffer and cause cmake
-        # to crash on Ubuntu, so don't remove this!
-        OUTPUT_QUIET)
+        RESULT_VARIABLE _exit_code)
     if(${_exit_code})
         message(FATAL_ERROR "Unzipping test vectors failed")
     endif()
@@ -149,4 +146,3 @@ foreach(test_cpp ${test_sources})
 
     aws_add_test(${TEST_NAME}.test ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})
 endforeach()
-
