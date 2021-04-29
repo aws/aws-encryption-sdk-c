@@ -15,6 +15,7 @@
 #include <aws/common/string.h>
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/default_cmm.h>
+#include <aws/cryptosdk/private/header.h>
 
 #include <assert.h>
 
