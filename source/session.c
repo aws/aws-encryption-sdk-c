@@ -226,6 +226,14 @@ int aws_cryptosdk_session_set_commitment_policy(
         return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
     }
 
+    /*
+     * If we're in the middle of an encrypt/decrypt operation, fail the operation (since we might not have validated
+     * this policy for this message)
+     */
+    if (session->state != ST_CONFIG) {
+        return aws_cryptosdk_priv_fail_session(session, AWS_CRYPTOSDK_ERR_BAD_STATE);
+    }
+
     return AWS_OP_SUCCESS;
 }
 
