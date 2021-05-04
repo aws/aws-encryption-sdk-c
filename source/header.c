@@ -24,7 +24,7 @@
 #include <aws/cryptosdk/private/header.h>
 #include <string.h>  // memcpy
 
-static int aws_cryptosdk_algorithm_is_known(uint16_t alg_id) {
+bool aws_cryptosdk_algorithm_is_known(uint16_t alg_id) {
     switch (alg_id) {
         case ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY:
         case ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384:
@@ -36,8 +36,8 @@ static int aws_cryptosdk_algorithm_is_known(uint16_t alg_id) {
         case ALG_AES128_GCM_IV12_TAG16_HKDF_SHA256:
         case ALG_AES256_GCM_IV12_TAG16_NO_KDF:
         case ALG_AES192_GCM_IV12_TAG16_NO_KDF:
-        case ALG_AES128_GCM_IV12_TAG16_NO_KDF: return 1;
-        default: return 0;
+        case ALG_AES128_GCM_IV12_TAG16_NO_KDF: return true;
+        default: return false;
     }
 }
 
