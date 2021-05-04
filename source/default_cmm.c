@@ -58,6 +58,7 @@ static int default_cmm_generate_enc_materials(
         }
     }
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(request->requested_alg);
+    if (!props) goto err;
 
     enc_mat = aws_cryptosdk_enc_materials_new(request->alloc, request->requested_alg);
     if (!enc_mat) goto err;
