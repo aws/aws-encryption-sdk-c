@@ -215,11 +215,25 @@ int aws_cryptosdk_session_set_message_bound(struct aws_cryptosdk_session *sessio
 
 int aws_cryptosdk_session_set_commitment_policy(
     struct aws_cryptosdk_session *session, enum aws_cryptosdk_commitment_policy commitment_policy) {
+    /*
+     * We set the commitment policy _first_ in order to ensure that, if someone ignores the INVALID_ARGUMENT error,
+     * we'll fail subsequent operations.
+     */
+
+    session->commitment_policy = commitment_policy;
+
     if (!aws_cryptosdk_commitment_policy_is_valid(commitment_policy)) {
         return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
     }
 
-    session->commitment_policy = commitment_policy;
+    /*
+     * If we're in the middle of an encrypt/decrypt operation, fail the operation (since we might not have validated
+     * this policy for this message)
+     */
+    if (session->state != ST_CONFIG) {
+        return aws_cryptosdk_priv_fail_session(session, AWS_CRYPTOSDK_ERR_BAD_STATE);
+    }
+
     return AWS_OP_SUCCESS;
 }
 

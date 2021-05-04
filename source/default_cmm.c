@@ -19,6 +19,7 @@
 #include <assert.h>
 
 #define DEFAULT_ALG ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384
+#define DEFAULT_ALG_UNSET 0xFFFF
 
 AWS_STATIC_STRING_FROM_LITERAL(EC_PUBLIC_KEY_FIELD, "aws-crypto-public-key");
 
@@ -26,18 +27,18 @@ struct default_cmm {
     struct aws_cryptosdk_cmm base;
     struct aws_allocator *alloc;
     struct aws_cryptosdk_keyring *kr;
-    const struct aws_cryptosdk_alg_properties *alg_props;
+    // Invariant: this is either DEFAULT_ALG_UNSET or is a valid algorithm ID
+    enum aws_cryptosdk_alg_id default_alg;
 };
 
 static int default_cmm_generate_enc_materials(
     struct aws_cryptosdk_cmm *cmm,
     struct aws_cryptosdk_enc_materials **output,
     struct aws_cryptosdk_enc_request *request) {
-    struct aws_cryptosdk_enc_materials *enc_mat      = NULL;
-    struct default_cmm *self                         = (struct default_cmm *)cmm;
-    const struct aws_cryptosdk_alg_properties *props = self->alg_props;
-    struct aws_hash_element *pElement                = NULL;
-    *output                                          = NULL;
+    struct aws_cryptosdk_enc_materials *enc_mat = NULL;
+    struct default_cmm *self                    = (struct default_cmm *)cmm;
+    struct aws_hash_element *pElement           = NULL;
+    *output                                     = NULL;
 
     aws_hash_table_find(request->enc_ctx, EC_PUBLIC_KEY_FIELD, &pElement);
     if (pElement) {
@@ -45,8 +46,13 @@ static int default_cmm_generate_enc_materials(
     }
 
     if (!request->requested_alg) {
-        request->requested_alg = props->alg_id;
+        if (self->default_alg == DEFAULT_ALG_UNSET) {
+            request->requested_alg = DEFAULT_ALG;
+        } else {
+            request->requested_alg = self->default_alg;
+        }
     }
+    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(request->requested_alg);
 
     enc_mat = aws_cryptosdk_enc_materials_new(request->alloc, request->requested_alg);
     if (!enc_mat) goto err;
@@ -149,25 +155,22 @@ struct aws_cryptosdk_cmm *aws_cryptosdk_default_cmm_new(struct aws_allocator *al
 
     aws_cryptosdk_cmm_base_init(&cmm->base, &default_cmm_vt);
 
-    cmm->alloc = alloc;
-    cmm->kr    = aws_cryptosdk_keyring_retain(kr);
-
-    aws_cryptosdk_default_cmm_set_alg_id((struct aws_cryptosdk_cmm *)cmm, DEFAULT_ALG);
+    cmm->alloc       = alloc;
+    cmm->kr          = aws_cryptosdk_keyring_retain(kr);
+    cmm->default_alg = DEFAULT_ALG_UNSET;
 
     return (struct aws_cryptosdk_cmm *)cmm;
 }
 
 int aws_cryptosdk_default_cmm_set_alg_id(struct aws_cryptosdk_cmm *cmm, enum aws_cryptosdk_alg_id alg_id) {
-    struct default_cmm *self                         = (struct default_cmm *)cmm;
-    const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
-
+    struct default_cmm *self = (struct default_cmm *)cmm;
     assert(self->base.vtable == &default_cmm_vt);
 
-    if (!props) {
+    if (!aws_cryptosdk_algorithm_is_known(alg_id)) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT);
     }
 
-    self->alg_props = props;
+    self->default_alg = alg_id;
 
     return AWS_OP_SUCCESS;
 }
