@@ -117,6 +117,11 @@ int aws_cryptosdk_private_algorithm_ivlen(uint16_t alg_id);
 int aws_cryptosdk_private_header_version_static_fields_len(uint8_t header_version);
 
 /**
+ * Returns true for known algorithms, or false for unknown algorithms.
+ */
+bool aws_cryptosdk_algorithm_is_known(uint16_t alg_id);
+
+/**
  * Returns true for key-committing algorithms, or false otherwise.
  */
 bool aws_cryptosdk_algorithm_is_committing(uint16_t alg_id);
