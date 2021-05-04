@@ -286,6 +286,7 @@ int aws_cryptosdk_priv_hdr_parse_aad(struct aws_cryptosdk_hdr *hdr, struct aws_b
     if (!aad_len) return AWS_OP_SUCCESS;
 
     struct aws_byte_cursor aad = aws_byte_cursor_advance_nospec(cur, aad_len);
+    if (!aad.ptr) return aws_cryptosdk_priv_hdr_parse_err_short_buf(hdr);
     // Note that, even if this fails with SHORT_BUF, we report a parse error, since we know we
     // have enough data (according to the aad length field).
     if (aws_cryptosdk_enc_ctx_deserialize(hdr->alloc, &hdr->enc_ctx, &aad))
