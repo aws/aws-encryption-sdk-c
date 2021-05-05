@@ -27,8 +27,7 @@ void aws_cryptosdk_priv_algorithm_allowed_for_decrypt_harness() {
 
     /* Function under test */
     int ret = aws_cryptosdk_priv_algorithm_allowed_for_decrypt(alg_id, policy);
-    if (policy == COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT ||
-        policy == COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT) {
+    if (policy == COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT) {
         assert(ret == true);
     }
 
