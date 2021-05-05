@@ -1,10 +1,7 @@
 ---
 name: macOS build and test AWS Encryption SDK for C
 
-on:
-  pull_request:
-    branches:
-      - master
+on: ["pull_request", "push"]
 
 
 jobs:
