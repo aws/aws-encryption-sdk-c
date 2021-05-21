@@ -29,9 +29,7 @@ void aws_cryptosdk_serialize_frame_harness() {
     /* Assumptions about the function input */
     ensure_byte_buf_has_allocated_buffer_member(&ciphertext_buf);
     __CPROVER_assume(aws_byte_buf_is_valid(&ciphertext_buf));
-
     __CPROVER_assume(aws_cryptosdk_frame_has_valid_type(&frame));
-
     __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(props));
 
     /* Save the old state of the ciphertext buffer */
