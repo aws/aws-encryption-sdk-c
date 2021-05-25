@@ -1,9 +1,6 @@
 name: test-clang-format
 
-on:
-  pull_request:
-    branches:
-      - master
+on: ["pull_request", "push"]
 
 jobs:
   build:
