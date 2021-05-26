@@ -23,6 +23,9 @@ MAX_TABLE_SIZE ?= 4
 # Time on my laptop: 5m10s
 #########
 
+# Disable pointer overflow check
+CBMC_FLAG_POINTER_OVERFLOW_CHECK=
+
 PROOF_UID = aws_cryptosdk_enc_ctx_clone
 
 HARNESS_ENTRY = $(PROOF_UID)_harness

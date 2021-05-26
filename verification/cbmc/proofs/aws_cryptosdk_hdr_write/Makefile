@@ -17,6 +17,9 @@ sinclude ../Makefile.local
 include ../Makefile.local_default
 include ../Makefile.aws_byte_buf
 
+# Disable pointer overflow check
+CBMC_FLAG_POINTER_OVERFLOW_CHECK=
+
 PROOF_UID = aws_cryptosdk_hdr_write
 
 HARNESS_ENTRY = $(PROOF_UID)_harness
