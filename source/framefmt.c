@@ -106,23 +106,24 @@ struct aws_cryptosdk_framestate {
  * the cursor at 'cursorptr' to refer to a block of 'size' bytes within the ciphertext
  * buffer.
  */
-#define field_sized(state, bufptr, size)                                                                 \
-    do {                                                                                                 \
-        (state)->ciphertext_size += (size);                                                              \
-        memset((bufptr), 0, sizeof(*(bufptr)));                                                          \
-        if ((state)->writing) {                                                                          \
-            if ((state)->u.buffer.capacity - (state)->u.buffer.len >= (size)) {                          \
-                (bufptr)->buffer   = (state)->u.buffer.buffer + (state)->u.buffer.len;                   \
-                (bufptr)->len      = 0;                                                                  \
-                (bufptr)->capacity = (size);                                                             \
-                (state)->u.buffer.len += (size);                                                         \
-            }                                                                                            \
-        } else {                                                                                         \
-            struct aws_byte_cursor cursor = aws_byte_cursor_advance(&(state)->u.cursor, (size_t)(size)); \
-            (bufptr)->buffer              = cursor.ptr;                                                  \
-            (bufptr)->len = (bufptr)->capacity = cursor.len;                                             \
-        }                                                                                                \
-        (state)->too_small = (state)->too_small || !(bufptr)->buffer;                                    \
+#define field_sized(state, bufptr, size)                                                                    \
+    do {                                                                                                    \
+        (state)->ciphertext_size += (size);                                                                 \
+        memset((bufptr), 0, sizeof(*(bufptr)));                                                             \
+        if ((state)->writing) {                                                                             \
+            if ((state)->u.buffer.capacity - (state)->u.buffer.len >= (size)) {                             \
+                (bufptr)->buffer =                                                                          \
+                    ((state)->u.buffer.buffer) ? ((state)->u.buffer.buffer + (state)->u.buffer.len) : NULL; \
+                (bufptr)->len      = 0;                                                                     \
+                (bufptr)->capacity = (size);                                                                \
+                (state)->u.buffer.len += (size);                                                            \
+            }                                                                                               \
+        } else {                                                                                            \
+            struct aws_byte_cursor cursor = aws_byte_cursor_advance(&(state)->u.cursor, (size_t)(size));    \
+            (bufptr)->buffer              = cursor.ptr;                                                     \
+            (bufptr)->len = (bufptr)->capacity = cursor.len;                                                \
+        }                                                                                                   \
+        (state)->too_small = (state)->too_small || !(bufptr)->buffer;                                       \
     } while (0)
 
 static int serde_last_frame(

@@ -74,8 +74,12 @@ void aws_cryptosdk_hdr_clear(struct aws_cryptosdk_hdr *hdr);
  *
  * This function will clear the header before parsing, and will leave the header in a cleared
  * state on failure.
+ *
+ * Raises AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED if the EDK count is greater than max_encrypted_data_keys
+ * (and max_encrypted_data_keys is nonzero).
  */
-int aws_cryptosdk_hdr_parse(struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *cursor);
+int aws_cryptosdk_hdr_parse(
+    struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *cursor, size_t max_encrypted_data_keys);
 
 /**
  * Parses the header version from the cursor into *header_version.
@@ -116,7 +120,8 @@ int aws_cryptosdk_priv_hdr_parse_aad(struct aws_cryptosdk_hdr *hdr, struct aws_b
  * Parses the EDK count and EDKs' raw data from the cursor, deserializing the
  * raw data into hdr->edk_list.
  */
-int aws_cryptosdk_priv_hdr_parse_edks(struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *cur);
+int aws_cryptosdk_priv_hdr_parse_edks(
+    struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *cur, size_t max_encrypted_data_keys);
 
 /**
  * Parses the content type from the cursor into *content_type.

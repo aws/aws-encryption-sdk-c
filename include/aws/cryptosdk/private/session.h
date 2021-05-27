@@ -93,6 +93,9 @@ struct aws_cryptosdk_session {
      * of keyring trace and--in the case of decryption--the encryption context.
      */
     bool cmm_success;
+
+    /* Max allowed encrypted data keys, 0 for no limit */
+    size_t max_encrypted_data_keys;
 };
 
 AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_session_is_valid(const struct aws_cryptosdk_session *session) {
@@ -147,4 +150,10 @@ bool aws_cryptosdk_priv_algorithm_allowed_for_encrypt(
 extern bool unit_test_only_allow_encrypt_with_commitment;
 #endif
 
+/* Helpers */
+
+/** Returns 1 if the given mode is a valid mode, or 0 otherwise. */
+bool aws_cryptosdk_priv_is_valid_mode(enum aws_cryptosdk_mode mode);
+/** Returns 1 if the given mode is a decrypting mode, or 0 otherwise. */
+bool aws_cryptosdk_priv_is_decrypt_mode(enum aws_cryptosdk_mode mode);
 #endif

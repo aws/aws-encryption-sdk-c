@@ -59,7 +59,7 @@ int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_
     }
     session->signctx = NULL;
 
-    if (mode != AWS_CRYPTOSDK_ENCRYPT && mode != AWS_CRYPTOSDK_DECRYPT) {
+    if (!aws_cryptosdk_priv_is_valid_mode(session->mode)) {
         // We do this only after clearing all internal state, to ensure that we don't
         // accidentally leak some secret data
         return aws_cryptosdk_priv_fail_session(session, AWS_ERROR_UNIMPLEMENTED);
@@ -238,6 +238,23 @@ int aws_cryptosdk_session_set_commitment_policy(
     return AWS_OP_SUCCESS;
 }
 
+int aws_cryptosdk_session_set_max_encrypted_data_keys(
+    struct aws_cryptosdk_session *session, size_t max_encrypted_data_keys) {
+    AWS_PRECONDITION(session != NULL);
+
+    if (session->state != ST_CONFIG) {
+        return aws_cryptosdk_priv_fail_session(session, AWS_CRYPTOSDK_ERR_BAD_STATE);
+    }
+
+    if (!max_encrypted_data_keys) {
+        return aws_raise_error(AWS_ERROR_INVALID_ARGUMENT);
+    }
+
+    session->max_encrypted_data_keys = max_encrypted_data_keys;
+
+    return AWS_OP_SUCCESS;
+}
+
 int aws_cryptosdk_session_process(
     struct aws_cryptosdk_session *session,
     uint8_t *outp,
@@ -325,6 +342,60 @@ int aws_cryptosdk_session_process(
     return result;
 }
 
+int aws_cryptosdk_session_process_full(
+    struct aws_cryptosdk_session *session,
+    uint8_t *outp,
+    size_t outlen,
+    size_t *out_bytes_written,
+    const uint8_t *inp,
+    size_t inlen) {
+    if (session->state != ST_CONFIG) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+    }
+
+    if (session->mode == AWS_CRYPTOSDK_ENCRYPT && aws_cryptosdk_session_set_message_size(session, inlen)) {
+        return AWS_OP_ERR;
+    }
+
+    size_t in_bytes_read = 0;
+    *out_bytes_written   = 0;
+
+    int result = AWS_OP_SUCCESS;
+    while (!aws_cryptosdk_session_is_done(session)) {
+        size_t bytes_written_this_time, bytes_read_this_time;
+        result = aws_cryptosdk_session_process(
+            session,
+            outp + *out_bytes_written,
+            outlen - *out_bytes_written,
+            &bytes_written_this_time,
+            inp + in_bytes_read,
+            inlen - in_bytes_read,
+            &bytes_read_this_time);
+
+        if (result != AWS_OP_SUCCESS || (bytes_read_this_time == 0 && bytes_written_this_time == 0)) {
+            break;
+        }
+
+        *out_bytes_written += bytes_written_this_time;
+        in_bytes_read += bytes_read_this_time;
+    }
+
+    // Convert success to failure if all input was not processed or not enough input was provided.
+    if (result == AWS_OP_SUCCESS && !(aws_cryptosdk_session_is_done(session) && in_bytes_read == inlen)) {
+        session->error = AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT;
+        aws_cryptosdk_priv_session_change_state(session, ST_ERROR);
+        result = aws_raise_error(session->error);
+    }
+
+    if (result != AWS_OP_SUCCESS) {
+        // Destroy any incomplete (and possibly corrupt) plaintext
+        aws_secure_zero(outp, outlen);
+        *out_bytes_written = 0;
+    }
+
+    return result;
+}
+
 bool aws_cryptosdk_session_is_done(const struct aws_cryptosdk_session *session) {
     return session->state == ST_DONE;
 }
@@ -377,7 +448,7 @@ void aws_cryptosdk_priv_session_change_state(struct aws_cryptosdk_session *sessi
                 // Illegal transition
                 abort();
             }
-            if (session->mode != AWS_CRYPTOSDK_DECRYPT) {
+            if (!aws_cryptosdk_priv_is_decrypt_mode(session->mode)) {
                 // wrong mode
                 abort();
             }
@@ -387,7 +458,7 @@ void aws_cryptosdk_priv_session_change_state(struct aws_cryptosdk_session *sessi
                 // Illegal transition
                 abort();
             }
-            if (session->mode != AWS_CRYPTOSDK_DECRYPT) {
+            if (!aws_cryptosdk_priv_is_decrypt_mode(session->mode)) {
                 // wrong mode
                 abort();
             }
@@ -509,7 +580,7 @@ int aws_cryptosdk_priv_fail_session(struct aws_cryptosdk_session *session, int e
 }
 
 const struct aws_hash_table *aws_cryptosdk_session_get_enc_ctx_ptr(const struct aws_cryptosdk_session *session) {
-    if (session->mode == AWS_CRYPTOSDK_DECRYPT && !session->cmm_success) {
+    if (aws_cryptosdk_priv_is_decrypt_mode(session->mode) && !session->cmm_success) {
         /* In decrypt mode, we want to wait until after CMM call to
          * return encryption context. This assures both that the
          * encryption context has already been deserialized from the
@@ -556,6 +627,23 @@ bool aws_cryptosdk_priv_algorithm_allowed_for_decrypt(
         // case COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT: return alg_committing;
         // case COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT:
         case COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT: return true;
+        default: return false;
+    }
+}
+
+bool aws_cryptosdk_priv_is_valid_mode(enum aws_cryptosdk_mode mode) {
+    switch (mode) {
+        case AWS_CRYPTOSDK_ENCRYPT:
+        case AWS_CRYPTOSDK_DECRYPT:
+        case AWS_CRYPTOSDK_DECRYPT_UNSIGNED: return true;
+        default: return false;
+    }
+}
+
+bool aws_cryptosdk_priv_is_decrypt_mode(enum aws_cryptosdk_mode mode) {
+    switch (mode) {
+        case AWS_CRYPTOSDK_DECRYPT:
+        case AWS_CRYPTOSDK_DECRYPT_UNSIGNED: return true;
         default: return false;
     }
 }

@@ -143,6 +143,18 @@ int aws_cryptosdk_priv_unwrap_keys(struct aws_cryptosdk_session *AWS_RESTRICT se
     aws_cryptosdk_transfer_list(&session->keyring_trace, &materials->keyring_trace);
     session->cmm_success = true;
 
+    const struct aws_cryptosdk_alg_properties *materials_alg_props = aws_cryptosdk_alg_props(materials->alg);
+    if (!materials_alg_props) {
+        aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+        goto out;
+    }
+    // In AWS_CRYPTOSDK_DECRYPT_UNSIGNED mode, the operation must fail if the CMM
+    // returns decryption materials with a signing algorithm suite
+    if (session->mode == AWS_CRYPTOSDK_DECRYPT_UNSIGNED && materials_alg_props->signature_len) {
+        aws_raise_error(AWS_CRYPTOSDK_ERR_DECRYPT_SIGNED_MESSAGE_NOT_ALLOWED);
+        goto out;
+    }
+
     if (derive_data_key(session, materials)) goto out;
     if (validate_header(session)) goto out;
 
@@ -178,7 +190,7 @@ out:
 int aws_cryptosdk_priv_try_parse_header(
     struct aws_cryptosdk_session *AWS_RESTRICT session, struct aws_byte_cursor *AWS_RESTRICT input) {
     const uint8_t *header_start = input->ptr;
-    int rv                      = aws_cryptosdk_hdr_parse(&session->header, input);
+    int rv                      = aws_cryptosdk_hdr_parse(&session->header, input, session->max_encrypted_data_keys);
 
     if (rv != AWS_OP_SUCCESS) {
         if (aws_last_error() == AWS_ERROR_SHORT_BUFFER) {

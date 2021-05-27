@@ -41,6 +41,7 @@ extern struct test_case local_cache_test_cases[];
 extern struct test_case caching_cmm_test_cases[];
 extern struct test_case keyring_trace_test_cases[];
 extern struct test_case version_test_cases[];
+extern struct test_case max_edks_test_cases[];
 
 #define TEST_ASSERT(cond)                                                                        \
     do {                                                                                         \

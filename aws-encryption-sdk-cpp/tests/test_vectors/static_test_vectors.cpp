@@ -32,7 +32,7 @@
 #include "testing.h"
 #include "testutil.h"
 
-#define MANIFEST_VERSION 1
+#define MANIFEST_VERSION 2
 #define KEYS_MANIFEST_VERSION 3
 
 using namespace Aws::Cryptosdk;
@@ -43,6 +43,12 @@ enum test_type {
     AWS_CRYPTOSDK_AES,
     AWS_CRYPTOSDK_RSA,
     AWS_CRYPTOSDK_KMS,
+};
+
+struct expected_outcome {
+    bool success;
+    std::string pt_filename;  // only meaningful if success
+    std::string error_desc;   // only meaningful if !success
 };
 
 int passed, failed, encrypt_only, not_yet_supported, test_type_passed[3];
@@ -121,10 +127,86 @@ static bool get_padding_mode(
     return true;
 }
 
+static int run_test_decryption(
+    struct aws_cryptosdk_session *session,
+    std::string ct_filename,
+    uint8_t *ciphertext,
+    size_t ct_len,
+    uint8_t *plaintext,
+    size_t pt_len,
+    struct expected_outcome expected) {
+    uint8_t *output_buffer = (uint8_t *)malloc(pt_len);
+    if (!output_buffer) abort();
+    size_t out_produced = 0;
+    if (!expected.success) {
+        // If the test case is expected to fail, populate the output buffer
+        // so we can assert it is zeroed out.
+        memset(output_buffer, 0xFF, pt_len);
+    }
+
+    int result = AWS_OP_SUCCESS;
+
+    int process_result =
+        aws_cryptosdk_session_process_full(session, output_buffer, pt_len, &out_produced, ciphertext, ct_len);
+    if (!expected.success) {
+        if (process_result == AWS_OP_SUCCESS) {
+            fprintf(
+                stderr,
+                "Unexpected success while processing aws_crytosdk_session. Expected error description: %s\n",
+                expected.error_desc.c_str());
+            result = AWS_OP_ERR;
+            goto cleanup;
+        }
+        if (!aws_is_mem_zeroed(output_buffer, pt_len)) {
+            fprintf(
+                stderr, "Output not zeroed after expected decryption failure for test case %s\n", ct_filename.c_str());
+            result = AWS_OP_ERR;
+            goto cleanup;
+        }
+    } else {
+        if (process_result != AWS_OP_SUCCESS) {
+            fprintf(stderr, "Error while processing aws_crytosdk_session, %s\n", aws_error_str(aws_last_error()));
+            result = AWS_OP_ERR;
+            goto cleanup;
+        }
+
+        if (!aws_cryptosdk_session_is_done(session)) {
+            fprintf(
+                stderr,
+                "Error while processing aws_crytosdk_session, decryption not complete, %s\n",
+                aws_error_str(aws_last_error()));
+            result = AWS_OP_ERR;
+            goto cleanup;
+        }
+
+        if (pt_len != out_produced) {
+            fprintf(
+                stderr,
+                "Wrong output size, PlainText length = %zu, Produced output length = %zu\n",
+                pt_len,
+                out_produced);
+            result = AWS_OP_ERR;
+            goto cleanup;
+        }
+
+        if (memcmp(output_buffer, plaintext, pt_len)) {
+            fprintf(stderr, "Plaintext mismatch for test case %s\n", ct_filename.c_str());
+            result = AWS_OP_ERR;
+            goto cleanup;
+        }
+    }
+
+cleanup:
+    if (output_buffer) free(output_buffer);
+
+    return result;
+}
+
 static int process_test_scenarios(
     struct aws_allocator *alloc,
-    std::string pt_filename,
+    struct expected_outcome expected,
     std::string ct_filename,
+    enum aws_cryptosdk_mode mode,
     json_object *master_keys_obj,
     json_object *keys_obj) {
     json_object *key_type_obj             = NULL;
@@ -141,15 +223,12 @@ static int process_test_scenarios(
         struct aws_cryptosdk_keyring *kr      = NULL;
         struct aws_cryptosdk_session *session = NULL;
         struct aws_cryptosdk_cmm *cmm         = NULL;
-        uint8_t *output_buffer                = NULL;
         uint8_t *ciphertext                   = NULL;
         uint8_t *plaintext                    = NULL;
         aws_string *key_namespace             = NULL;
         aws_string *key_name                  = NULL;
         size_t ct_len                         = 0;
         size_t pt_len                         = 0;
-        size_t out_produced                   = 0;
-        size_t in_consumed                    = 0;
         enum test_type test_type_idx;
 
         json_object *json_obj_mk_obj = json_object_array_get_idx(master_keys_obj, j);
@@ -305,7 +384,7 @@ static int process_test_scenarios(
             goto next_test_scenario;
         }
 
-        if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, AWS_CRYPTOSDK_DECRYPT, cmm))) {
+        if (!(session = aws_cryptosdk_session_new_from_cmm(alloc, mode, cmm))) {
             failed++;
             fprintf(stderr, "Failed to initialize aws_cryptosdk_session, %s\n", aws_error_str(aws_last_error()));
             goto next_test_scenario;
@@ -321,65 +400,27 @@ static int process_test_scenarios(
             goto next_test_scenario;
         }
 
-        if (test_loadfile(pt_filename.c_str(), &plaintext, &pt_len)) {
-            failed++;
-            fprintf(
-                stderr, "Failed to load plaintext file %s, %s\n", pt_filename.c_str(), aws_error_str(aws_last_error()));
-            goto next_test_scenario;
-        }
-
-        output_buffer = (uint8_t *)malloc(pt_len);
-        if (!output_buffer) {
-            abort();
-        }
-
-        if (aws_cryptosdk_session_process(
-                session, output_buffer, pt_len, &out_produced, ciphertext, ct_len, &in_consumed) != AWS_OP_SUCCESS) {
-            failed++;
-            fprintf(stderr, "Error while processing aws_crytosdk_session, %s\n", aws_error_str(aws_last_error()));
-            goto next_test_scenario;
-        }
-
-        if (!aws_cryptosdk_session_is_done(session)) {
+        if (expected.success && test_loadfile(expected.pt_filename.c_str(), &plaintext, &pt_len)) {
             failed++;
             fprintf(
                 stderr,
-                "Error while processing aws_crytosdk_session, decryption not complete, %s\n",
+                "Failed to load plaintext file %s, %s\n",
+                expected.pt_filename.c_str(),
                 aws_error_str(aws_last_error()));
             goto next_test_scenario;
         }
 
-        if (in_consumed != ct_len) {
+        if (run_test_decryption(session, ct_filename, ciphertext, ct_len, plaintext, pt_len, expected)) {
             failed++;
-            fprintf(
-                stderr,
-                "Error while processing aws_crytosdk_session, entire input not consumed, %s\n",
-                aws_error_str(aws_last_error()));
             goto next_test_scenario;
         }
 
-        if (pt_len != out_produced) {
-            failed++;
-            fprintf(
-                stderr,
-                "Wrong output size, PlainText length = %zu, Produced output length = %zu\n",
-                pt_len,
-                out_produced);
-            goto next_test_scenario;
-        }
-
-        if (memcmp(output_buffer, plaintext, pt_len)) {
-            failed++;
-            fprintf(stderr, "Plaintext mismatch for test case %s\n", ct_filename.c_str());
-        } else {
-            test_type_passed[test_type_idx]++;
-            passed++;
-        }
+        test_type_passed[test_type_idx]++;
+        passed++;
 
     next_test_scenario:
         if (key_namespace) aws_string_destroy(key_namespace);
         if (key_name) aws_string_destroy(key_name);
-        if (output_buffer) free(output_buffer);
         if (ciphertext) free(ciphertext);
         if (plaintext) free(plaintext);
         if (session) aws_cryptosdk_session_destroy(session);
@@ -396,15 +437,21 @@ static int test_vector_runner(const char *path) {
     struct json_object *val;
     struct lh_entry *entry;
     struct aws_allocator *alloc = aws_default_allocator();
+    struct expected_outcome expected;
 
-    json_object *manifest_obj      = NULL;
-    json_object *tests_obj         = NULL;
-    json_object *keys_obj          = NULL;
-    json_object *test_case_obj     = NULL;
-    json_object *pt_filename_obj   = NULL;
-    json_object *ct_filename_obj   = NULL;
-    json_object *master_keys_obj   = NULL;
-    json_object *keys_manifest_obj = NULL;
+    json_object *manifest_obj          = NULL;
+    json_object *tests_obj             = NULL;
+    json_object *keys_obj              = NULL;
+    json_object *test_case_obj         = NULL;
+    json_object *result_obj            = NULL;
+    json_object *result_output_obj     = NULL;
+    json_object *result_error_obj      = NULL;
+    json_object *pt_filename_obj       = NULL;
+    json_object *err_desc_obj          = NULL;
+    json_object *ct_filename_obj       = NULL;
+    json_object *master_keys_obj       = NULL;
+    json_object *keys_manifest_obj     = NULL;
+    json_object *decryption_method_obj = NULL;
 
     if (snprintf(manifest_filename, sizeof(manifest_filename), "%s/manifest.json", path) >= sizeof(manifest_filename)) {
         fprintf(stderr, "Path too long\n");
@@ -433,17 +480,36 @@ static int test_vector_runner(const char *path) {
          (entry ? (key = (char *)entry->k, val = (struct json_object *)entry->v, entry) : 0);
          entry = entry->next) {
         TEST_ASSERT(json_object_object_get_ex(tests_obj, key, &test_case_obj));
-        TEST_ASSERT(json_object_object_get_ex(val, "plaintext", &pt_filename_obj));
         TEST_ASSERT(json_object_object_get_ex(val, "ciphertext", &ct_filename_obj));
+        TEST_ASSERT(json_object_object_get_ex(val, "result", &result_obj));
+        if (json_object_object_get_ex(result_obj, "output", &result_output_obj)) {
+            expected.success = true;
+            TEST_ASSERT(json_object_object_get_ex(result_output_obj, "plaintext", &pt_filename_obj));
+            std::string pt_filename = json_object_get_string(pt_filename_obj);
+            pt_filename.replace(pt_filename.find(find_str), find_str.length(), path);
+            expected.pt_filename = pt_filename;
+        } else if (json_object_object_get_ex(result_obj, "error", &result_error_obj)) {
+            expected.success = false;
+            TEST_ASSERT(json_object_object_get_ex(result_error_obj, "error-description", &err_desc_obj));
+            expected.error_desc = json_object_get_string(err_desc_obj);
+        } else {
+            fprintf(stderr, "Unrecognized result type\n");
+            return AWS_OP_ERR;
+        }
 
-        std::string pt_filename = json_object_get_string(pt_filename_obj);
         std::string ct_filename = json_object_get_string(ct_filename_obj);
-
-        pt_filename.replace(pt_filename.find(find_str), find_str.length(), path);
         ct_filename.replace(ct_filename.find(find_str), find_str.length(), path);
 
+        enum aws_cryptosdk_mode mode = AWS_CRYPTOSDK_DECRYPT;
+        if (json_object_object_get_ex(val, "decryption-method", &decryption_method_obj)) {
+            std::string decryption_method = json_object_get_string(decryption_method_obj);
+            if (decryption_method == "streaming-unsigned-only") {
+                mode = AWS_CRYPTOSDK_DECRYPT_UNSIGNED;
+            }
+        }
+
         TEST_ASSERT(json_object_object_get_ex(val, "master-keys", &master_keys_obj));
-        TEST_ASSERT_SUCCESS(process_test_scenarios(alloc, pt_filename, ct_filename, master_keys_obj, keys_obj));
+        TEST_ASSERT_SUCCESS(process_test_scenarios(alloc, expected, ct_filename, mode, master_keys_obj, keys_obj));
     }
     printf("Decryption successfully completed for %d test cases and failed for %d.\n", passed, failed);
     printf(

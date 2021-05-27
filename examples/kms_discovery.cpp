@@ -55,23 +55,11 @@ void encrypt_string(
         abort();
     }
 
-    if (AWS_OP_SUCCESS != aws_cryptosdk_session_set_message_size(session, in_plaintext_len)) {
+    if (AWS_OP_SUCCESS !=
+        aws_cryptosdk_session_process_full(
+            session, out_ciphertext, out_ciphertext_buf_sz, out_ciphertext_len, in_plaintext, in_plaintext_len)) {
         abort();
     }
-
-    size_t in_plaintext_consumed;
-    if (AWS_OP_SUCCESS != aws_cryptosdk_session_process(
-                              session,
-                              out_ciphertext,
-                              out_ciphertext_buf_sz,
-                              out_ciphertext_len,
-                              in_plaintext,
-                              in_plaintext_len,
-                              &in_plaintext_consumed)) {
-        abort();
-    }
-    if (!aws_cryptosdk_session_is_done(session)) abort();
-    if (in_plaintext_consumed != in_plaintext_len) abort();
     aws_cryptosdk_session_destroy(session);
 }
 
@@ -92,19 +80,11 @@ void decrypt_string(
         abort();
     }
 
-    size_t in_ciphertext_consumed;
-    if (AWS_OP_SUCCESS != aws_cryptosdk_session_process(
-                              session,
-                              out_plaintext,
-                              out_plaintext_buf_sz,
-                              out_plaintext_len,
-                              in_ciphertext,
-                              in_ciphertext_len,
-                              &in_ciphertext_consumed)) {
+    if (AWS_OP_SUCCESS !=
+        aws_cryptosdk_session_process_full(
+            session, out_plaintext, out_plaintext_buf_sz, out_plaintext_len, in_ciphertext, in_ciphertext_len)) {
         abort();
     }
-    if (!aws_cryptosdk_session_is_done(session)) abort();
-    if (in_ciphertext_consumed != in_ciphertext_len) abort();
     aws_cryptosdk_session_destroy(session);
 }
 

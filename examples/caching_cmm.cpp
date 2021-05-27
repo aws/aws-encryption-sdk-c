@@ -34,6 +34,11 @@ void error(const char *description) {
     abort();
 }
 
+/**
+ * Note that this method buffers all output locally, and only returns it to the caller after all processing
+ * completes. This ensures that when decrypting a signed message the signature will be verified before any
+ * plaintext can be processed.
+ */
 std::vector<uint8_t> process_loop(struct aws_cryptosdk_session *session, const uint8_t *input, size_t in_len) {
     size_t out_needed = 1;
     size_t out_offset = 0, in_offset = 0;

@@ -28,6 +28,9 @@ TABLE_SIZE_IN_WORDS=$(shell echo $$(($$((3 * $(MAX_TABLE_SIZE))) + 10)))
 #########
 # Vars for Makefile.common
 
+# Disable pointer overflow check
+CBMC_FLAG_POINTER_OVERFLOW_CHECK=
+
 PROOF_UID = aws_cryptosdk_enc_ctx_serialize
 
 HARNESS_ENTRY = $(PROOF_UID)_harness
