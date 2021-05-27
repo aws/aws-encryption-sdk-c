@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">AWS Encryption SDK for C
-   &#160;<span id="projectnumber">v2.0</span>
+   &#160;<span id="projectnumber">v2.2</span>
    </div>
   </td>
  </tr>
@@ -130,8 +130,10 @@ Functions</h2></td></tr>
 <tr class="separator:ga94312299b315e76c72fa72b0ed29e3db"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gab7d3498723c3ac0e43be2fb97f7af46b"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__cmm__kr__lowlevel.html#gab7d3498723c3ac0e43be2fb97f7af46b">aws_cryptosdk_dec_materials_is_valid</a> (const struct <a class="el" href="structaws__cryptosdk__dec__materials.html">aws_cryptosdk_dec_materials</a> *materials)</td></tr>
 <tr class="separator:gab7d3498723c3ac0e43be2fb97f7af46b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaaa9625934583e8668cfebb04a8b37f8c"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__cmm__kr__lowlevel.html#gaaa9625934583e8668cfebb04a8b37f8c">aws_atomic_var_is_valid</a> (const struct aws_atomic_var *var)</td></tr>
-<tr class="separator:gaaa9625934583e8668cfebb04a8b37f8c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf670b1d89caa14ab52114d4d18961a42"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__cmm__kr__lowlevel.html#gaf670b1d89caa14ab52114d4d18961a42">aws_atomic_var_is_valid_int</a> (const struct aws_atomic_var *var)</td></tr>
+<tr class="separator:gaf670b1d89caa14ab52114d4d18961a42"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8f4d66e4989bfdf7b16c2f21b0db3c48"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__cmm__kr__lowlevel.html#ga8f4d66e4989bfdf7b16c2f21b0db3c48">aws_atomic_var_is_valid_ptr</a> (const struct aws_atomic_var *var)</td></tr>
+<tr class="separator:ga8f4d66e4989bfdf7b16c2f21b0db3c48"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga58790979abd46f7aac724fa0f7512c6e"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__cmm__kr__lowlevel.html#ga58790979abd46f7aac724fa0f7512c6e">aws_cryptosdk_cmm_vtable_is_valid</a> (const struct <a class="el" href="structaws__cryptosdk__cmm__vt.html">aws_cryptosdk_cmm_vt</a> *vtable)</td></tr>
 <tr class="separator:ga58790979abd46f7aac724fa0f7512c6e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga9c97b8c6ca502382926b4cf8243fe70d"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__cmm__kr__lowlevel.html#ga9c97b8c6ca502382926b4cf8243fe70d">aws_cryptosdk_cmm_base_is_valid</a> (const struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a> *cmm)</td></tr>
@@ -194,14 +196,14 @@ Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="gaaa9625934583e8668cfebb04a8b37f8c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gaaa9625934583e8668cfebb04a8b37f8c">&#9670;&nbsp;</a></span>aws_atomic_var_is_valid()</h2>
+<a id="gaf670b1d89caa14ab52114d4d18961a42"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaf670b1d89caa14ab52114d4d18961a42">&#9670;&nbsp;</a></span>aws_atomic_var_is_valid_int()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">bool aws_atomic_var_is_valid </td>
+          <td class="memname">bool aws_atomic_var_is_valid_int </td>
           <td>(</td>
           <td class="paramtype">const struct aws_atomic_var *&#160;</td>
           <td class="paramname"><em>var</em></td><td>)</td>
@@ -212,6 +214,27 @@ Functions</h2></td></tr>
 <p>Putting this here for now, until we get it merged into the atomics.h in c-common </p>
 
 <p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00403">403</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+
+</div>
+</div>
+<a id="ga8f4d66e4989bfdf7b16c2f21b0db3c48"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga8f4d66e4989bfdf7b16c2f21b0db3c48">&#9670;&nbsp;</a></span>aws_atomic_var_is_valid_ptr()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool aws_atomic_var_is_valid_ptr </td>
+          <td>(</td>
+          <td class="paramtype">const struct aws_atomic_var *&#160;</td>
+          <td class="paramname"><em>var</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Putting this here for now, until we get it merged into the atomics.h in c-common </p>
+
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00410">410</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -242,7 +265,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>Initialize the base structure for a CMM. The implementation of a CMM needs to call this function to set up the vtable and reference count. On return, the reference count is initialized to 1. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00429">429</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00436">436</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -263,7 +286,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>Constant time check of data-structure invariants for struct <a class="el" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a>. Since implementations of the cmm may add additional fields, they may define their own, specialized is_valid functions that use this as a base. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00419">419</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00426">426</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -302,7 +325,7 @@ Functions</h2></td></tr>
 <p>On success returns AWS_OP_SUCCESS and allocates decryption materials object at address pointed to by output.</p>
 <p>On failure returns AWS_OP_ERR, sets address pointed to by output to NULL, and sets internal AWS error code. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00494">494</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00501">501</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -341,7 +364,7 @@ Functions</h2></td></tr>
 <p>On success returns AWS_OP_SUCCESS and allocates encryption materials object at address pointed to by output.</p>
 <p>On failure returns AWS_OP_ERR, sets address pointed to by output to NULL, and sets internal AWS error code. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00471">471</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00478">478</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -362,7 +385,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>Constant time check of data-structure invariants for struct <a class="el" href="structaws__cryptosdk__cmm__vt.html">aws_cryptosdk_cmm_vt</a> </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00410">410</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00417">417</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -383,7 +406,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>Returns true if encryption must include key commitment under the given key commitment policy, or false otherwise. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00717">717</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00725">725</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -404,7 +427,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>Returns true if the given uint32_t is a valid <a class="el" href="group__cmm__kr__lowlevel.html#ga4d939a2c3d0fa58fd4312cbc6e384145">aws_cryptosdk_commitment_policy</a>, or false otherwise. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00704">704</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00712">712</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -841,7 +864,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>Initialize the base structure for a keyring. The implementation of a keyring needs to call this function to set up the vtable and reference count. On return, the reference count is initialized to 1. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00582">582</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00589">589</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -862,7 +885,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>Constant time check of data-structure invariants for struct <a class="el" href="structaws__cryptosdk__keyring.html">aws_cryptosdk_keyring</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00572">572</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00579">579</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -1006,7 +1029,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>Constant time check of data-structure invariants for struct <a class="el" href="structaws__cryptosdk__keyring__vt.html">aws_cryptosdk_keyring_vt</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00563">563</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00570">570</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>

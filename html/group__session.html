@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">AWS Encryption SDK for C
-   &#160;<span id="projectnumber">v2.0</span>
+   &#160;<span id="projectnumber">v2.2</span>
    </div>
   </td>
  </tr>
@@ -90,7 +90,8 @@ Enumerations</h2></td></tr>
  }</td></tr>
 <tr class="separator:ga3a102b234535436099f0821e677686f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga128aab83f9c1b9519c622f747b49a19e"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#ga128aab83f9c1b9519c622f747b49a19e">aws_cryptosdk_mode</a> { <a class="el" href="group__session.html#gga128aab83f9c1b9519c622f747b49a19eac5dc1afea741ccdc8458be722d096509">AWS_CRYPTOSDK_ENCRYPT</a> = 0x9000, 
-<a class="el" href="group__session.html#gga128aab83f9c1b9519c622f747b49a19ea1143f2a82818e4efefc7ae24b3b0cdd3">AWS_CRYPTOSDK_DECRYPT</a> = 0x9001
+<a class="el" href="group__session.html#gga128aab83f9c1b9519c622f747b49a19ea1143f2a82818e4efefc7ae24b3b0cdd3">AWS_CRYPTOSDK_DECRYPT</a> = 0x9001, 
+<a class="el" href="group__session.html#gga128aab83f9c1b9519c622f747b49a19eabe0c758efadc4e81a515178aa8c7ce2f">AWS_CRYPTOSDK_DECRYPT_UNSIGNED</a> = 0x9002
  }</td></tr>
 <tr class="separator:ga128aab83f9c1b9519c622f747b49a19e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -112,8 +113,12 @@ Functions</h2></td></tr>
 <tr class="separator:gae545ae41942c20835f17fade547b5aee"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gabe974ef71f5382a1c7cfc0a06257104e"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#gabe974ef71f5382a1c7cfc0a06257104e">aws_cryptosdk_session_set_commitment_policy</a> (struct aws_cryptosdk_session *session, enum <a class="el" href="group__cmm__kr__lowlevel.html#ga4d939a2c3d0fa58fd4312cbc6e384145">aws_cryptosdk_commitment_policy</a> commitment_policy)</td></tr>
 <tr class="separator:gabe974ef71f5382a1c7cfc0a06257104e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf5b2b62dfcaf5289aa549dd573cd6376"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#gaf5b2b62dfcaf5289aa549dd573cd6376">aws_cryptosdk_session_set_max_encrypted_data_keys</a> (struct aws_cryptosdk_session *session, size_t max_encrypted_data_keys)</td></tr>
+<tr class="separator:gaf5b2b62dfcaf5289aa549dd573cd6376"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gab68c1609a18cd0a32035739767293e35"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#gab68c1609a18cd0a32035739767293e35">aws_cryptosdk_session_process</a> (struct aws_cryptosdk_session *session, uint8_t *outp, size_t outlen, size_t *out_bytes_written, const uint8_t *inp, size_t inlen, size_t *in_bytes_read)</td></tr>
 <tr class="separator:gab68c1609a18cd0a32035739767293e35"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga819d7e26be0efeec6cc01ef1db3cabe3"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#ga819d7e26be0efeec6cc01ef1db3cabe3">aws_cryptosdk_session_process_full</a> (struct aws_cryptosdk_session *session, uint8_t *outp, size_t outlen, size_t *out_bytes_written, const uint8_t *inp, size_t inlen)</td></tr>
+<tr class="separator:ga819d7e26be0efeec6cc01ef1db3cabe3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga02df3f7639fb1ad34c6b0893d1ffc0b5"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#ga02df3f7639fb1ad34c6b0893d1ffc0b5">aws_cryptosdk_session_is_done</a> (const struct aws_cryptosdk_session *session)</td></tr>
 <tr class="separator:ga02df3f7639fb1ad34c6b0893d1ffc0b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga1e5506284e241c584cebc22b7b10ecfc"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#ga1e5506284e241c584cebc22b7b10ecfc">aws_cryptosdk_session_get_alg_id</a> (const struct aws_cryptosdk_session *session, enum <a class="el" href="group__session.html#ga3a102b234535436099f0821e677686f9">aws_cryptosdk_alg_id</a> *alg_id)</td></tr>
@@ -129,7 +134,12 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>The session is the primary API that encrypts or decrypts your data. To encrypt or decrypt data, configure your CMM, create a session object, and process your plaintext or ciphertext through this session object.</p>
-<p>Typically using a session object will proceed through the following phases:</p>
+<p>If encrypting or decrypting data all at once (i.e. with the entire plaintext/ciphertext in a single buffer), using a session object will proceed through the following phases:</p>
+<ol type="1">
+<li>Create and configure a session object (or reuse an existing session that you have reset and configured)</li>
+<li>Invoke <a class="el" href="group__session.html#ga819d7e26be0efeec6cc01ef1db3cabe3">aws_cryptosdk_session_process_full</a> providing all of the input plaintext or ciphertext, to produce the output data</li>
+</ol>
+<p>If encrypting or decrypting streamed input, using a session object will instead proceed through the following phases:</p>
 <ol type="1">
 <li>Create and configure a session object (or reuse an existing session that you have reset and configured)</li>
 <li>Invoke <a class="el" href="group__session.html#gab68c1609a18cd0a32035739767293e35">aws_cryptosdk_session_process</a> in a loop that provide all of the input plaintext or ciphertext, and produces some output data</li>
@@ -180,12 +190,15 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Note that the current signed message format requires reading the full encrypted message before the signature can be verified, so it is important to avoid processing any plaintext until that point.</p>
+<p>AWS_CRYPTOSDK_DECRYPT_UNSIGNED is recommended if you only need to process unsigned messages, and calling aws_cryptosdk_session_process_full is recommended instead of calling aws_cryptosdk_session_process directly if you are able to provide the complete encrypted message in a single buffer. </p>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="gga128aab83f9c1b9519c622f747b49a19eac5dc1afea741ccdc8458be722d096509"></a>AWS_CRYPTOSDK_ENCRYPT&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="gga128aab83f9c1b9519c622f747b49a19ea1143f2a82818e4efefc7ae24b3b0cdd3"></a>AWS_CRYPTOSDK_DECRYPT&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="gga128aab83f9c1b9519c622f747b49a19eabe0c758efadc4e81a515178aa8c7ce2f"></a>AWS_CRYPTOSDK_DECRYPT_UNSIGNED&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
-<p class="definition">Definition at line <a class="el" href="session_8h_source.html#l00057">57</a> of file <a class="el" href="session_8h_source.html">session.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="session_8h_source.html#l00077">77</a> of file <a class="el" href="session_8h_source.html">session.h</a>.</p>
 
 </div>
 </div>
@@ -396,7 +409,7 @@ Functions</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">allocator</td><td>The allocator to use for the session object and any temporary data allocated for the session </td></tr>
-    <tr><td class="paramname">mode</td><td>The mode (AWS_CRYPTOSDK_ENCRYPT or AWS_CRYPTOSDK_DECRYPT) to start in. This can be changed later with <a class="el" href="group__session.html#gae3b107e88cd33c98df05a6a37b31d427">aws_cryptosdk_session_reset</a> </td></tr>
+    <tr><td class="paramname">mode</td><td>The aws_cryptosdk_mode to start in. This can be changed later with <a class="el" href="group__session.html#gae3b107e88cd33c98df05a6a37b31d427">aws_cryptosdk_session_reset</a> </td></tr>
     <tr><td class="paramname">cmm</td><td>The crypto material manager which will provide key material for this session. </td></tr>
   </table>
   </dd>
@@ -440,7 +453,7 @@ Functions</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">allocator</td><td>The allocator to use for the session object and any temporary data allocated for the session </td></tr>
-    <tr><td class="paramname">mode</td><td>The mode (AWS_CRYPTOSDK_ENCRYPT or AWS_CRYPTOSDK_DECRYPT) to start in. This can be changed later with <a class="el" href="group__session.html#gae3b107e88cd33c98df05a6a37b31d427">aws_cryptosdk_session_reset</a> </td></tr>
+    <tr><td class="paramname">mode</td><td>The aws_cryptosdk_mode to start in. This can be changed later with <a class="el" href="group__session.html#gae3b107e88cd33c98df05a6a37b31d427">aws_cryptosdk_session_reset</a> </td></tr>
     <tr><td class="paramname">keyring</td><td>The keyring which will encrypt or decrypt data keys for this session. This function uses a default CMM to link the session and keyring. </td></tr>
   </table>
   </dd>
@@ -511,7 +524,64 @@ Functions</h2></td></tr>
 <p>The data referenced by the input and output cursors must not overlap. If this method raises an error, the contents of the output buffer will be zeroed. The buffer referenced by the input buffer will never be modified.</p>
 <p>If there is insufficient output space and/or insufficient input data, this method may not make any progress. The <a class="el" href="group__session.html#ga6df70e33a7b3eddd8155d54bee4281f6">aws_cryptosdk_session_estimate_buf</a> method may be used to determine how much data may be needed at this stage of processing. Note that these estimates may change once the header has been parsed.</p>
 <p>Upon return, *out_bytes_written and *in_bytes_read will report the number of bytes consumed from the output and input buffers, respectively.</p>
-<p>This method will return successfully unless the session has entered an error state. Use <a class="el" href="group__session.html#ga02df3f7639fb1ad34c6b0893d1ffc0b5">aws_cryptosdk_session_is_done</a> to determine if the entire message has been processed. </p>
+<p>This method will return successfully unless the session has entered an error state. Use <a class="el" href="group__session.html#ga02df3f7639fb1ad34c6b0893d1ffc0b5">aws_cryptosdk_session_is_done</a> to determine if the entire message has been processed.</p>
+<p>If the input buffer is large enough to hold the entire plaintext, and the output buffer is large enough to hold the entire ciphertext (or vice versa), you need to call this method only once. You should still call <a class="el" href="group__session.html#ga02df3f7639fb1ad34c6b0893d1ffc0b5">aws_cryptosdk_session_is_done</a> afterwards to verify that the entire input has been processed. </p>
+
+</div>
+</div>
+<a id="ga819d7e26be0efeec6cc01ef1db3cabe3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga819d7e26be0efeec6cc01ef1db3cabe3">&#9670;&nbsp;</a></span>aws_cryptosdk_session_process_full()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int aws_cryptosdk_session_process_full </td>
+          <td>(</td>
+          <td class="paramtype">struct aws_cryptosdk_session *&#160;</td>
+          <td class="paramname"><em>session</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t *&#160;</td>
+          <td class="paramname"><em>outp</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>outlen</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t *&#160;</td>
+          <td class="paramname"><em>out_bytes_written</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const uint8_t *&#160;</td>
+          <td class="paramname"><em>inp</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>inlen</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Attempts to process an entire message through the cryptosdk session. The session must not have processed any data (e.g. using <code>aws_cryptosdk_session_process</code>) or be in an error state.</p>
+<p>The data referenced by the input and output cursors must not overlap. If this method raises an error, the contents of the output buffer will be zeroed. The buffer referenced by the input buffer will never be modified. If there is insufficient output space and/or insufficient input data, this method raises an error.</p>
+<p>Upon return, *out_bytes_written will report the number of bytes written to the output buffer.</p>
+<p>This method will return successfully if it processed an entire message and did not enter an error state. </p>
 
 </div>
 </div>
@@ -540,7 +610,7 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Resets the session, preparing it for a new message. This function can also change a session from encrypt to decrypt, or vice versa. After reset, the currently configured allocator, CMM, key commitment policy, and frame size to use for encryption are preserved.</p>
+<p>Resets the session, preparing it for a new message. This function can also change a session from encrypt to decrypt, or vice versa. After reset, the currently configured allocator, CMM, key commitment policy, max encrypted data keys, and frame size to use for encryption are preserved.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">session</td><td>The session to reset </td></tr>
@@ -607,6 +677,35 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>Sets the frame size to use for encryption. If zero is specified, the message will be processed in an unframed mode. If this function is not called, a reasonable default will be used.</p>
 <p>This function will fail if invoked in decrypt mode, or if <a class="el" href="group__session.html#gab68c1609a18cd0a32035739767293e35">aws_cryptosdk_session_process</a> has been called. </p>
+
+</div>
+</div>
+<a id="gaf5b2b62dfcaf5289aa549dd573cd6376"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaf5b2b62dfcaf5289aa549dd573cd6376">&#9670;&nbsp;</a></span>aws_cryptosdk_session_set_max_encrypted_data_keys()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int aws_cryptosdk_session_set_max_encrypted_data_keys </td>
+          <td>(</td>
+          <td class="paramtype">struct aws_cryptosdk_session *&#160;</td>
+          <td class="paramname"><em>session</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>max_encrypted_data_keys</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Sets the maximum number of encrypted data keys allowed during encryption and decryption. This must be set before encryption or decryption. </p>
 
 </div>
 </div>

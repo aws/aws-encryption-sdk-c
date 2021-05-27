@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">AWS Encryption SDK for C
-   &#160;<span id="projectnumber">v2.0</span>
+   &#160;<span id="projectnumber">v2.2</span>
    </div>
   </td>
  </tr>
@@ -101,14 +101,18 @@ $(function() {
 <div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;AWS_CRYPTOSDK_API</div>
 <div class="line"><a name="l00071"></a><span class="lineno"><a class="line" href="group__cmm__kr__highlevel.html#gae54bf69cb202b2c629acb41aca4b07ad">   71</a></span>&#160;<span class="keywordtype">int</span> <a class="code" href="group__cmm__kr__highlevel.html#gae54bf69cb202b2c629acb41aca4b07ad">aws_cryptosdk_default_cmm_set_alg_id</a>(<span class="keyword">struct</span> <a class="code" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a> *cmm, <span class="keyword">enum</span> <a class="code" href="group__session.html#ga3a102b234535436099f0821e677686f9">aws_cryptosdk_alg_id</a> alg_id);</div>
 <div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160; </div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;<span class="preprocessor">#ifdef __cplusplus</span></div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;}</div>
-<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160; </div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;<span class="preprocessor">#endif  // AWS_CRYPTOSDK_DEFAULT_CMM_H</span></div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;AWS_CRYPTOSDK_API</div>
+<div class="line"><a name="l00074"></a><span class="lineno"><a class="line" href="default__cmm_8h.html#a08b067000378a057ca8585549fa61793">   74</a></span>&#160;<span class="keywordtype">bool</span> <a class="code" href="default__cmm_8h.html#a08b067000378a057ca8585549fa61793">aws_cryptosdk_default_cmm_is_valid</a>(<span class="keyword">const</span> <span class="keyword">struct</span> <a class="code" href="structaws__cryptosdk__cmm.html">aws_cryptosdk_cmm</a> *cmm);</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160; </div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;<span class="preprocessor">#ifdef __cplusplus</span></div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;}</div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160; </div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;<span class="preprocessor">#endif  // AWS_CRYPTOSDK_DEFAULT_CMM_H</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="agroup__session_html_ga3a102b234535436099f0821e677686f9"><div class="ttname"><a href="group__session.html#ga3a102b234535436099f0821e677686f9">aws_cryptosdk_alg_id</a></div><div class="ttdeci">aws_cryptosdk_alg_id</div><div class="ttdef"><b>Definition:</b> <a href="header_8h_source.html#l00026">header.h:26</a></div></div>
 <div class="ttc" id="agroup__cmm__kr__highlevel_html_gae54bf69cb202b2c629acb41aca4b07ad"><div class="ttname"><a href="group__cmm__kr__highlevel.html#gae54bf69cb202b2c629acb41aca4b07ad">aws_cryptosdk_default_cmm_set_alg_id</a></div><div class="ttdeci">int aws_cryptosdk_default_cmm_set_alg_id(struct aws_cryptosdk_cmm *cmm, enum aws_cryptosdk_alg_id alg_id)</div></div>
+<div class="ttc" id="adefault__cmm_8h_html_a08b067000378a057ca8585549fa61793"><div class="ttname"><a href="default__cmm_8h.html#a08b067000378a057ca8585549fa61793">aws_cryptosdk_default_cmm_is_valid</a></div><div class="ttdeci">bool aws_cryptosdk_default_cmm_is_valid(const struct aws_cryptosdk_cmm *cmm)</div></div>
 <div class="ttc" id="amaterials_8h_html"><div class="ttname"><a href="materials_8h.html">materials.h</a></div></div>
 <div class="ttc" id="agroup__cmm__kr__highlevel_html_gae0406ce3f5385519f18ad06da19f86a8"><div class="ttname"><a href="group__cmm__kr__highlevel.html#gae0406ce3f5385519f18ad06da19f86a8">aws_cryptosdk_default_cmm_new</a></div><div class="ttdeci">struct aws_cryptosdk_cmm * aws_cryptosdk_default_cmm_new(struct aws_allocator *alloc, struct aws_cryptosdk_keyring *kr)</div></div>
 <div class="ttc" id="astructaws__cryptosdk__keyring_html"><div class="ttname"><a href="structaws__cryptosdk__keyring.html">aws_cryptosdk_keyring</a></div><div class="ttdef"><b>Definition:</b> <a href="materials_8h_source.html#l00096">materials.h:96</a></div></div>

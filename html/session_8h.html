@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">AWS Encryption SDK for C
-   &#160;<span id="projectnumber">v2.0</span>
+   &#160;<span id="projectnumber">v2.2</span>
    </div>
   </td>
  </tr>
@@ -107,7 +107,8 @@ $(function() {
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
 <tr class="memitem:ga128aab83f9c1b9519c622f747b49a19e"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#ga128aab83f9c1b9519c622f747b49a19e">aws_cryptosdk_mode</a> { <a class="el" href="group__session.html#gga128aab83f9c1b9519c622f747b49a19eac5dc1afea741ccdc8458be722d096509">AWS_CRYPTOSDK_ENCRYPT</a> = 0x9000, 
-<a class="el" href="group__session.html#gga128aab83f9c1b9519c622f747b49a19ea1143f2a82818e4efefc7ae24b3b0cdd3">AWS_CRYPTOSDK_DECRYPT</a> = 0x9001
+<a class="el" href="group__session.html#gga128aab83f9c1b9519c622f747b49a19ea1143f2a82818e4efefc7ae24b3b0cdd3">AWS_CRYPTOSDK_DECRYPT</a> = 0x9001, 
+<a class="el" href="group__session.html#gga128aab83f9c1b9519c622f747b49a19eabe0c758efadc4e81a515178aa8c7ce2f">AWS_CRYPTOSDK_DECRYPT_UNSIGNED</a> = 0x9002
  }</td></tr>
 <tr class="separator:ga128aab83f9c1b9519c622f747b49a19e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -129,8 +130,12 @@ Functions</h2></td></tr>
 <tr class="separator:gae545ae41942c20835f17fade547b5aee"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gabe974ef71f5382a1c7cfc0a06257104e"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#gabe974ef71f5382a1c7cfc0a06257104e">aws_cryptosdk_session_set_commitment_policy</a> (struct aws_cryptosdk_session *session, enum <a class="el" href="group__cmm__kr__lowlevel.html#ga4d939a2c3d0fa58fd4312cbc6e384145">aws_cryptosdk_commitment_policy</a> commitment_policy)</td></tr>
 <tr class="separator:gabe974ef71f5382a1c7cfc0a06257104e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf5b2b62dfcaf5289aa549dd573cd6376"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#gaf5b2b62dfcaf5289aa549dd573cd6376">aws_cryptosdk_session_set_max_encrypted_data_keys</a> (struct aws_cryptosdk_session *session, size_t max_encrypted_data_keys)</td></tr>
+<tr class="separator:gaf5b2b62dfcaf5289aa549dd573cd6376"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gab68c1609a18cd0a32035739767293e35"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#gab68c1609a18cd0a32035739767293e35">aws_cryptosdk_session_process</a> (struct aws_cryptosdk_session *session, uint8_t *outp, size_t outlen, size_t *out_bytes_written, const uint8_t *inp, size_t inlen, size_t *in_bytes_read)</td></tr>
 <tr class="separator:gab68c1609a18cd0a32035739767293e35"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga819d7e26be0efeec6cc01ef1db3cabe3"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#ga819d7e26be0efeec6cc01ef1db3cabe3">aws_cryptosdk_session_process_full</a> (struct aws_cryptosdk_session *session, uint8_t *outp, size_t outlen, size_t *out_bytes_written, const uint8_t *inp, size_t inlen)</td></tr>
+<tr class="separator:ga819d7e26be0efeec6cc01ef1db3cabe3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga02df3f7639fb1ad34c6b0893d1ffc0b5"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#ga02df3f7639fb1ad34c6b0893d1ffc0b5">aws_cryptosdk_session_is_done</a> (const struct aws_cryptosdk_session *session)</td></tr>
 <tr class="separator:ga02df3f7639fb1ad34c6b0893d1ffc0b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga1e5506284e241c584cebc22b7b10ecfc"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__session.html#ga1e5506284e241c584cebc22b7b10ecfc">aws_cryptosdk_session_get_alg_id</a> (const struct aws_cryptosdk_session *session, enum <a class="el" href="group__session.html#ga3a102b234535436099f0821e677686f9">aws_cryptosdk_alg_id</a> *alg_id)</td></tr>
