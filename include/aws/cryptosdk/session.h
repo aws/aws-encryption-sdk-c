@@ -24,7 +24,17 @@
  * To encrypt or decrypt data, configure your CMM, create a session object,
  * and process your plaintext or ciphertext through this session object.
  *
- * Typically using a session object will proceed through the following phases:
+ * If encrypting or decrypting data all at once (i.e. with the entire
+ * plaintext/ciphertext in a single buffer), using a session object will
+ * proceed through the following phases:
+ *
+ * 1. Create and configure a session object (or reuse an existing session that you have
+ *    reset and configured)
+ * 2. Invoke @ref aws_cryptosdk_session_process_full providing all of the input
+ *    plaintext or ciphertext, to produce the output data
+ *
+ * If encrypting or decrypting streamed input, using a session object will
+ * instead proceed through the following phases:
  *
  * 1. Create and configure a session object (or reuse an existing session that you have
  *    reset and configured)
@@ -54,7 +64,21 @@ extern "C" {
 
 struct aws_cryptosdk_session;
 
-enum aws_cryptosdk_mode { AWS_CRYPTOSDK_ENCRYPT = 0x9000, AWS_CRYPTOSDK_DECRYPT = 0x9001 };
+/**
+ * Note that the current signed message format requires reading the full encrypted message before
+ * the signature can be verified, so it is important to avoid processing any plaintext
+ * until that point.
+ *
+ * AWS_CRYPTOSDK_DECRYPT_UNSIGNED is recommended if you only need to process unsigned messages,
+ * and calling aws_cryptosdk_session_process_full is recommended instead of calling
+ * aws_cryptosdk_session_process directly if you are able to provide the complete encrypted message
+ * in a single buffer.
+ */
+enum aws_cryptosdk_mode {
+    AWS_CRYPTOSDK_ENCRYPT          = 0x9000,
+    AWS_CRYPTOSDK_DECRYPT          = 0x9001,
+    AWS_CRYPTOSDK_DECRYPT_UNSIGNED = 0x9002
+};
 
 /**
  * Creates a new encryption or decryption session from an underlying keyring.
@@ -89,8 +113,8 @@ struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_keyring(
  *
  * @param allocator The allocator to use for the session object and any temporary
  *                  data allocated for the session
- * @param mode The mode (AWS_CRYPTOSDK_ENCRYPT or AWS_CRYPTOSDK_DECRYPT) to start
- *             in. This can be changed later with @ref aws_cryptosdk_session_reset
+ * @param mode The aws_cryptosdk_mode to start in. This can be changed later
+ *             with @ref aws_cryptosdk_session_reset
  * @param keyring The keyring which will encrypt or decrypt data keys for this session.
  *                This function uses a default CMM to link the session and keyring.
  */
@@ -131,8 +155,8 @@ struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm(
  *
  * @param allocator The allocator to use for the session object and any temporary
  *                  data allocated for the session
- * @param mode The mode (AWS_CRYPTOSDK_ENCRYPT or AWS_CRYPTOSDK_DECRYPT) to start
- *             in. This can be changed later with @ref aws_cryptosdk_session_reset
+ * @param mode The aws_cryptosdk_mode to start in. This can be changed later
+ *             with @ref aws_cryptosdk_session_reset
  * @param cmm The crypto material manager which will provide key material for this
  *            session.
  */
@@ -147,8 +171,8 @@ void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);
 /**
  * Resets the session, preparing it for a new message. This function can also change
  * a session from encrypt to decrypt, or vice versa. After reset, the currently
- * configured allocator, CMM, key commitment policy, and frame size to use for
- * encryption are preserved.
+ * configured allocator, CMM, key commitment policy, max encrypted data keys, and
+ * frame size to use for encryption are preserved.
  *
  * @param session The session to reset
  * @param mode The new mode of the session
@@ -216,6 +240,14 @@ int aws_cryptosdk_session_set_commitment_policy(
     struct aws_cryptosdk_session *session, enum aws_cryptosdk_commitment_policy commitment_policy);
 
 /**
+ * Sets the maximum number of encrypted data keys allowed during encryption and
+ * decryption. This must be set before encryption or decryption.
+ */
+AWS_CRYPTOSDK_API
+int aws_cryptosdk_session_set_max_encrypted_data_keys(
+    struct aws_cryptosdk_session *session, size_t max_encrypted_data_keys);
+
+/**
  * Attempts to process some data through the cryptosdk session.
  * This method may do any combination of
  *   1. Consuming some data from the input buffer
@@ -248,6 +280,32 @@ int aws_cryptosdk_session_process(
     const uint8_t *inp,
     size_t inlen,
     size_t *in_bytes_read);
+
+/**
+ * Attempts to process an entire message through the cryptosdk session. The
+ * session must not have processed any data (e.g. using
+ * `aws_cryptosdk_session_process`) or be in an error state.
+ *
+ * The data referenced by the input and output cursors must not overlap.
+ * If this method raises an error, the contents of the output buffer will
+ * be zeroed. The buffer referenced by the input buffer will never be modified.
+ * If there is insufficient output space and/or insufficient input data, this
+ * method raises an error.
+ *
+ * Upon return, *out_bytes_written will report the number of bytes written to
+ * the output buffer.
+ *
+ * This method will return successfully if it processed an entire message and
+ * did not enter an error state.
+ */
+AWS_CRYPTOSDK_API
+int aws_cryptosdk_session_process_full(
+    struct aws_cryptosdk_session *session,
+    uint8_t *outp,
+    size_t outlen,
+    size_t *out_bytes_written,
+    const uint8_t *inp,
+    size_t inlen);
 
 /**
  * Returns true if the session has finished processing the entire message.

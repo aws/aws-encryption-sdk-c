@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.0 -- 2021-05-27
+
+* Improvements to the message decryption process.
+
+  See <https://github.com/aws/aws-encryption-sdk-c/security/advisories/GHSA-r8cc-xhh9-rg65>
+
 ## 1.7.0 -- 2020-09-24
 
 * Updates to the AWS Encryption SDK. 4ba5825

@@ -56,6 +56,7 @@ void aws_cryptosdk_priv_hdr_parse_edks_harness() {
     /* Nondet Input */
     struct aws_cryptosdk_hdr *hdr   = hdr_setup(MAX_TABLE_SIZE, MAX_EDK_LIST_ITEMS, MAX_BUFFER_SIZE);
     struct aws_byte_cursor *pcursor = malloc(sizeof(*pcursor));
+    size_t max_encrypted_data_keys;
 
     /* Assumptions */
     __CPROVER_assume(pcursor != NULL);
@@ -84,7 +85,7 @@ void aws_cryptosdk_priv_hdr_parse_edks_harness() {
     save_byte_from_hash_table(&hdr->enc_ctx, &old_enc_ctx);
 
     /* Operation under verification */
-    if (aws_cryptosdk_priv_hdr_parse_edks(hdr, pcursor) == AWS_OP_SUCCESS) {
+    if (aws_cryptosdk_priv_hdr_parse_edks(hdr, pcursor, max_encrypted_data_keys) == AWS_OP_SUCCESS) {
         /* Postconditions */
         assert_byte_buf_equivalence(&hdr->iv, &old_iv, &old_byte_from_iv);
         assert_byte_buf_equivalence(&hdr->auth_tag, &old_auth_tag, &old_byte_from_auth_tag);
