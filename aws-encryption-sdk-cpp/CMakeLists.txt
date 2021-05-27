@@ -84,6 +84,16 @@ if (AWS_ENC_SDK_END_TO_END_TESTS)
         )
     set_target_properties(t_commitment_known_answer PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
     aws_add_test(commitment_known_answer ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/t_commitment_known_answer ${TEST_DATA}/commitment_known_answer_tests.json)
+
+    add_executable(t_max_encrypted_data_keys tests/integration/t_max_encrypted_data_keys.cpp)
+    target_link_libraries(t_max_encrypted_data_keys testlibcpp)
+    target_include_directories(t_max_encrypted_data_keys PUBLIC ${PROJECT_SOURCE_DIR}/tests/lib
+        ${PROJECT_SOURCE_DIR}/tests/unit
+        ${PROJECT_SOURCE_DIR}/tests/integration
+        $<INSTALL_INTERFACE:include>
+        )
+    set_target_properties(t_max_encrypted_data_keys PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
+    aws_add_test(integration_max_edks ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/t_max_encrypted_data_keys)
 else()
     message(STATUS "End to end tests off")
 endif()

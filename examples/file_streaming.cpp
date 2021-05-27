@@ -20,6 +20,7 @@
 #include <aws/core/Aws.h>
 
 #include <aws/cryptosdk/cpp/kms_keyring.h>
+#include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/session.h>
 
@@ -52,9 +53,35 @@ static int process_file(
     /* Initialize a KMS keyring using the provided ARN. */
     auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build(key_arn);
 
+    /* To set an alternate algorithm suite, we must explicitly create a Crypto Materials Manager.
+     */
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), kms_keyring);
+
+    /* The CMM has a reference to the keyring now. We release our reference so that
+     * the keyring will be destroyed when the cMM is. If CMM failed to allocate,
+     * this causes an immediate deallocation of the keyring and prevents a memory leak
+     * when this function exits.
+     */
+    aws_cryptosdk_keyring_release(kms_keyring);
+
+    /* Select the ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY algorithm.
+     * We can safely use an unsigned algorithm suite in this case under
+     */
+    if (mode == AWS_CRYPTOSDK_ENCRYPT) {
+        if (AWS_OP_SUCCESS != aws_cryptosdk_default_cmm_set_alg_id(cmm, ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY)) {
+            abort();
+        }
+    }
+
     /* Initialize the session object. */
-    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_keyring_2(allocator, mode, kms_keyring);
-    if (!session) abort();
+    struct aws_cryptosdk_session *session = aws_cryptosdk_session_new_from_cmm_2(allocator, mode, cmm);
+
+    /* Similarly to the keyring, the session now has a reference to the CMM, which we can now release. */
+    aws_cryptosdk_cmm_release(cmm);
+
+    if (!session) {
+        abort();
+    }
 
     /* For clarity, we set the commitment policy explicitly. The COMMITMENT_POLICY_REQUIRE_ENCRYPT_REQUIRE_DECRYPT
      * policy is selected by default in v2.0, so this is not required.
@@ -63,9 +90,6 @@ static int process_file(
         fprintf(stderr, "set_commitment_policy failed: %s", aws_error_debug_str(aws_last_error()));
         abort();
     }
-
-    /* Since the session now holds a reference to the keyring, we can release the local reference. */
-    aws_cryptosdk_keyring_release(kms_keyring);
 
     /* Allocate buffers for input and output.  Note that the initial size is not critical, as we will resize
      * and reallocate if more space is needed to make progress.
@@ -205,7 +229,9 @@ int main(int argc, char *argv[]) {
     int ret = process_file(encrypted_filename, input_filename, AWS_CRYPTOSDK_ENCRYPT, key_arn, allocator);
 
     if (!ret) {
-        ret = process_file(decrypted_filename, encrypted_filename, AWS_CRYPTOSDK_DECRYPT, key_arn, allocator);
+        // Encryption uses an unsigned algorithm suite (see above), so we can use the recommended
+        // AWS_CRYPTOSDK_DECRYPT_UNSIGNED mode here.
+        ret = process_file(decrypted_filename, encrypted_filename, AWS_CRYPTOSDK_DECRYPT_UNSIGNED, key_arn, allocator);
     }
 
     Aws::ShutdownAPI(options);

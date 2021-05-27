@@ -186,7 +186,8 @@ MEM_ERR:
     return AWS_OP_ERR;
 }
 
-int aws_cryptosdk_hdr_parse(struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *pcursor) {
+int aws_cryptosdk_hdr_parse(
+    struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *pcursor, size_t max_encrypted_data_keys) {
     struct aws_byte_cursor cur = *pcursor;
     int field_err;
 
@@ -204,7 +205,7 @@ int aws_cryptosdk_hdr_parse(struct aws_cryptosdk_hdr *hdr, struct aws_byte_curso
     if ((field_err = aws_cryptosdk_priv_hdr_parse_alg_id(hdr, &alg_props, header_version, &cur))) return field_err;
     if ((field_err = aws_cryptosdk_priv_hdr_parse_message_id(hdr, alg_props, &cur))) return field_err;
     if ((field_err = aws_cryptosdk_priv_hdr_parse_aad(hdr, &cur))) return field_err;
-    if ((field_err = aws_cryptosdk_priv_hdr_parse_edks(hdr, &cur))) return field_err;
+    if ((field_err = aws_cryptosdk_priv_hdr_parse_edks(hdr, &cur, max_encrypted_data_keys))) return field_err;
     if ((field_err = aws_cryptosdk_priv_hdr_parse_content_type(hdr, &content_type, &cur))) return field_err;
     if (header_version == AWS_CRYPTOSDK_HEADER_VERSION_1_0) {
         if ((field_err = aws_cryptosdk_priv_hdr_parse_reserved(hdr, &cur))) return field_err;
@@ -297,12 +298,17 @@ int aws_cryptosdk_priv_hdr_parse_aad(struct aws_cryptosdk_hdr *hdr, struct aws_b
     return AWS_OP_SUCCESS;
 }
 
-int aws_cryptosdk_priv_hdr_parse_edks(struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *cur) {
+int aws_cryptosdk_priv_hdr_parse_edks(
+    struct aws_cryptosdk_hdr *hdr, struct aws_byte_cursor *cur, size_t max_encrypted_data_keys) {
     AWS_PRECONDITION(aws_cryptosdk_hdr_is_valid(hdr));
     AWS_PRECONDITION(aws_byte_cursor_is_valid(cur));
     uint16_t edk_count;
     if (!aws_byte_cursor_read_be16(cur, &edk_count)) return aws_cryptosdk_priv_hdr_parse_err_short_buf(hdr);
     if (!edk_count) return aws_cryptosdk_priv_hdr_parse_err_generic(hdr);
+    if (max_encrypted_data_keys && (size_t)edk_count > max_encrypted_data_keys) {
+        aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
+        return aws_cryptosdk_priv_hdr_parse_err_rethrow(hdr);
+    }
 
     for (uint16_t i = 0; i < edk_count; ++i) {
         struct aws_cryptosdk_edk edk;
