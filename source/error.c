@@ -29,6 +29,10 @@ static const struct aws_error_info error_info[] = {
         "Configuration conflict: Cannot encrypt or decrypt because the algorithm suite is forbidden under the "
         "configured key commitment policy. See: "
         "https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/troubleshooting-migration.html",
+        "cryptosdk"),
+    AWS_DEFINE_ERROR_INFO(
+        AWS_CRYPTOSDK_ERR_DECRYPT_SIGNED_MESSAGE_NOT_ALLOWED,
+        "Not allowed to decrypt signed message in AWS_CRYPTOSDK_DECRYPT_UNSIGNED mode",
         "cryptosdk")
 };
 
