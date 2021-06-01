@@ -32,6 +32,7 @@
 #include <aws/cryptosdk/raw_aes_keyring.h>
 
 #include "edks_utils.h"
+#include "logutils.h"
 #include "test_crypto.h"
 #include "testutil.h"
 
@@ -48,67 +49,6 @@ const char *CLASS_CTAG = "Test KMS";
  */
 const char *KEY_ARN_STR1        = "arn:aws:kms:us-west-2:658956600833:key/b3537ef1-d8dc-4780-9f5a-55776cbb2f7f";
 const char *KEY_ARN_STR1_REGION = Aws::Region::US_WEST_2;
-
-/*
- * These RAII-style logging classes will buffer log entries until .clear() is called on the LoggingRAII object.
- * If a test fails, RUN_TEST will return from main without calling clear, and the destructor on LoggingRAII will dump
- * the buffered log entries for the specific failed test to stderr before exiting.
- */
-namespace {
-class BufferedLogSystem : public Aws::Utils::Logging::FormattedLogSystem {
-   private:
-    std::mutex logMutex;
-    std::vector<Aws::String> buffer;
-
-   public:
-    void clear() {
-        std::lock_guard<std::mutex> guard(logMutex);
-
-        buffer.clear();
-    }
-
-    void dump() {
-        std::lock_guard<std::mutex> guard(logMutex);
-
-        for (auto &str : buffer) {
-            std::cerr << str;
-        }
-    }
-
-    void Flush() {}
-
-    BufferedLogSystem(Aws::Utils::Logging::LogLevel logLevel) : FormattedLogSystem(logLevel) {}
-
-   protected:
-    // Overrides FormattedLogSystem pure virtual function
-    virtual void ProcessFormattedStatement(Aws::String &&statement) {
-        std::lock_guard<std::mutex> guard(logMutex);
-
-        buffer.push_back(std::move(statement));
-    }
-};
-
-class LoggingRAII {
-    std::shared_ptr<BufferedLogSystem> logSystem;
-
-   public:
-    LoggingRAII() {
-        logSystem = Aws::MakeShared<BufferedLogSystem>("LoggingRAII", Aws::Utils::Logging::LogLevel::Info);
-
-        Aws::Utils::Logging::InitializeAWSLogging(logSystem);
-    }
-
-    void clear() {
-        logSystem->clear();
-    }
-
-    ~LoggingRAII() {
-        Aws::Utils::Logging::ShutdownAWSLogging();
-
-        logSystem->dump();
-    }
-};
-}  // namespace
 
 Aws::String run_single_test(aws_cryptosdk_keyring *kr, const JsonView &test) {
     auto pt_frames_obj  = test.GetObject("plaintext-frames");
@@ -228,7 +168,7 @@ AWS_STRING_FROM_LITERAL(PROVIDER_NAME, "ProviderName");
 AWS_STRING_FROM_LITERAL(KEY_ID, "KeyId");
 static uint8_t ZERO_KEY[32] = { 0 };
 
-bool known_answer_tests(LoggingRAII &logging, const char *filename) {
+bool known_answer_tests(Aws::Cryptosdk::Testing::LoggingRAII &logging, const char *filename) {
     std::fstream file(filename);
     JsonValue test_dataset(file);
     JsonView dataset_view = test_dataset.View();
@@ -276,7 +216,7 @@ int main(int argc, char **argv) {
     aws_common_library_init(aws_default_allocator());
     aws_cryptosdk_load_error_strings();
 
-    LoggingRAII logging;
+    Aws::Cryptosdk::Testing::LoggingRAII logging;
 
     SDKOptions options;
     Aws::InitAPI(options);

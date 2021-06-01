@@ -51,6 +51,8 @@ enum aws_cryptosdk_err {
     AWS_CRYPTOSDK_ERR_UNSUPPORTED_FORMAT,
     /** Attempted encrypt/decrypt that would violate the configured key commitment policy */
     AWS_CRYPTOSDK_ERR_COMMITMENT_POLICY_VIOLATION,
+    /** Attempted to decrypt a signed message when configured to disallow doing so */
+    AWS_CRYPTOSDK_ERR_DECRYPT_SIGNED_MESSAGE_NOT_ALLOWED,
     AWS_CRYPTOSDK_ERR_END_RANGE = 0x2400
 };
 

@@ -99,6 +99,7 @@ aws_add_test(trailing_sig ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suit
 aws_add_test(local_cache ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite local_cache)
 aws_add_test(caching_cmm ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite caching_cmm)
 aws_add_test(keyring_trace ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite keyring_trace)
+aws_add_test(max_edks ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/unit-test-suite max_edks)
 
 set(TEST_DATA ${CMAKE_CURRENT_SOURCE_DIR}/data)
 
