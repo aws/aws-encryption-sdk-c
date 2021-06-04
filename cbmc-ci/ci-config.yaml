@@ -1,0 +1,25 @@
+# Configuration for the "CBMC Proofs" CI
+#
+# What the CI should do, depending on what branch the pull request
+# targets. This is a list of branch names (or '*' as a wildcard that
+# matches all branches), with an associated action. Actions can be:
+#
+#   name: run-proofs
+#
+#   or
+#
+#   name: skip
+#   message: "A message to post to GitHub about why the branch was skipped"
+#   status: <"success"|"failure">
+#           (whether the GitHub status check should succeed or fail)
+#
+behaviors:
+
+  - target-branches:
+    - '*'
+    action:
+      name: run-proofs
+
+
+checkout-script:
+  - git submodule update --init –-checkout --recursive
