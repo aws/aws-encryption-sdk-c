@@ -22,4 +22,7 @@ behaviors:
 
 
 checkout-script:
-  - git submodule update --init –-checkout --recursive
+  # If this is the private version of the repository, we need to pull in
+  # the private versions of the submodules.
+  - "echo Originating GitHub repository: ${GITHUB_REPOSITORY}"
+  - cbmc-ci/switch-private-submodules --verbose env
