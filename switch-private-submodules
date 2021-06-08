@@ -38,9 +38,10 @@ def switch_to(version):
     logging.info("Switching to %s version of the submodules", version)
     for module in MODULES:
         cmd = [
-            "git", "config", "--file=.gitmodules",
-            f"submodule.{module['submodule']}.url",
-            module[version]]
+            "git", "config",
+            f'url."{module[version]}".insteadOf',
+            module["public"],
+        ]
         logging.info(" ".join(cmd))
         subprocess.run(cmd, check=True)
 
