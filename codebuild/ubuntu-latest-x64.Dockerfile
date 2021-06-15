@@ -51,6 +51,9 @@ RUN install-shared-deps.sh
 ADD bin/install-aws-deps.sh /usr/local/bin
 RUN install-aws-deps.sh
 
+ADD bin/install-node.sh /usr/local/bin
+RUN install-node.sh
+
 ADD bin/codebuild-test.sh /usr/local/bin/
 
 # Remove apt proxy configuration before publishing the dockerfile

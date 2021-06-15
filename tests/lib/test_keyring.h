@@ -37,6 +37,7 @@ struct test_keyring {
     bool on_encrypt_called;
     bool on_decrypt_called;
     bool destroy_called;
+    bool on_encrypt_ignore_existing_data_key;
 };
 
 TESTLIB_API

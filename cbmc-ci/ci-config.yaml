@@ -24,5 +24,7 @@ behaviors:
 checkout-script:
   # If this is the private version of the repository, we need to pull in
   # the private versions of the submodules.
-  - "echo Originating GitHub repository: ${GITHUB_REPOSITORY}"
-  - ./switch-private-submodules --verbose env
+  # Temporarily disabling this since it's not working yet 
+  #- "echo Originating GitHub repository: ${GITHUB_REPOSITORY}"
+  #- ./switch-private-submodules --verbose private
+  - git submodule update --init --recursive --checkout

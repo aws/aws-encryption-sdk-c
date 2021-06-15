@@ -32,6 +32,7 @@ static int process_file(
     char const *input_filename,
     aws_cryptosdk_mode mode,
     char const *key_arn,
+    std::shared_ptr<Aws::KMS::KMSClient> kms_client,
     struct aws_allocator *allocator) {
     FILE *input_fp = fopen(input_filename, "rb");
     if (!input_fp) {
@@ -51,7 +52,7 @@ static int process_file(
     }
 
     /* Initialize a KMS keyring using the provided ARN. */
-    auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().Build(key_arn);
+    auto kms_keyring = Aws::Cryptosdk::KmsKeyring::Builder().WithKmsClient(kms_client).Build(key_arn);
 
     /* To set an alternate algorithm suite, we must explicitly create a Crypto Materials Manager.
      */
@@ -224,14 +225,16 @@ int main(int argc, char *argv[]) {
     Aws::InitAPI(options);
 
     struct aws_allocator *allocator = aws_default_allocator();
+    auto kms_client                 = Aws::MakeShared<Aws::KMS::KMSClient>("EXAMPLE");
 
     // Encrypt the file, and if that succeeds decrypt it too.
-    int ret = process_file(encrypted_filename, input_filename, AWS_CRYPTOSDK_ENCRYPT, key_arn, allocator);
+    int ret = process_file(encrypted_filename, input_filename, AWS_CRYPTOSDK_ENCRYPT, key_arn, kms_client, allocator);
 
     if (!ret) {
         // Encryption uses an unsigned algorithm suite (see above), so we can use the recommended
         // AWS_CRYPTOSDK_DECRYPT_UNSIGNED mode here.
-        ret = process_file(decrypted_filename, encrypted_filename, AWS_CRYPTOSDK_DECRYPT_UNSIGNED, key_arn, allocator);
+        ret = process_file(
+            decrypted_filename, encrypted_filename, AWS_CRYPTOSDK_DECRYPT_UNSIGNED, key_arn, kms_client, allocator);
     }
 
     Aws::ShutdownAPI(options);
