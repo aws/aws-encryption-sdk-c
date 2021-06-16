@@ -14,10 +14,7 @@ Also, see the [API documentation](https://aws.github.io/aws-encryption-sdk-c/htm
 We will demonstrate some simple build recipes for Linux, Mac, and Windows operating systems. These 
 recipes assume a fresh system with default installs of dependency packages.
 
-The Linux and Mac recipes install everything in the standard directories in /usr/local. The
-Windows recipe installs everything in an install directory placed at the directory you are in
-when you start the build process. To change the installation directory, if desired, see the Tips
-and Tricks section at the end of this README.
+The Windows instructions install everything in your current directory (where you run the build process). To change the installation directory, see the Tips and Tricks section at the end of this README.
 
 The AWS Encryption SDK for C can be used with AWS KMS, but it is not required. If you want to build
 a minimal version of the ESDK without KMS support, see "Minimal C build without KMS support", below.
