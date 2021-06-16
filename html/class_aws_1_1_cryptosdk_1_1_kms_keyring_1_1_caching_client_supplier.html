@@ -22,7 +22,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">AWS Encryption SDK for C
-   &#160;<span id="projectnumber">v2.2</span>
+   &#160;<span id="projectnumber">v2.3</span>
    </div>
   </td>
  </tr>
@@ -183,7 +183,12 @@ Protected Attributes</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
-<p>If a client is already cached for this region, returns that one and provides a no-op callable. If a client is not already cached for this region, returns a KMS client with default settings and provides a callable which will cache the client. Never returns nullptr. </p>
+<p>If</p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">region</td><td>is the empty string, then returns a KMS client in the SDK's default region. If a client is already cached for this region, returns that one and provides a no-op callable. If a client is not already cached for this region, returns a KMS client with default settings and provides a callable which will cache the client. Never returns nullptr. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 <p>Implements <a class="el" href="class_aws_1_1_cryptosdk_1_1_kms_keyring_1_1_client_supplier.html#a9075c091dea5c50da261116741eda5d5">Aws::Cryptosdk::KmsKeyring::ClientSupplier</a>.</p>
 
@@ -211,7 +216,7 @@ Protected Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Region -&gt; KMS Client. </p>
 
-<p class="definition">Definition at line <a class="el" href="kms__keyring_8h_source.html#l00215">215</a> of file <a class="el" href="kms__keyring_8h_source.html">kms_keyring.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="kms__keyring_8h_source.html#l00216">216</a> of file <a class="el" href="kms__keyring_8h_source.html">kms_keyring.h</a>.</p>
 
 </div>
 </div>
@@ -235,7 +240,7 @@ Protected Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="kms__keyring_8h_source.html#l00211">211</a> of file <a class="el" href="kms__keyring_8h_source.html">kms_keyring.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="kms__keyring_8h_source.html#l00212">212</a> of file <a class="el" href="kms__keyring_8h_source.html">kms_keyring.h</a>.</p>
 
 </div>
 </div>
