@@ -34,7 +34,7 @@ build_pkg() {
 
     if ! [ -e $SRC_DIR ]; then
         mkdir -p "$(dirname "$SRC_DIR")"
-        git clone --depth 1 --branch $GIT_REF "$GIT_URL" "$SRC_DIR"
+        git clone --depth 1 --branch $GIT_REF --recurse-submodules "$GIT_URL" "$SRC_DIR"
     fi
 
     mkdir $BUILD_DIR
@@ -52,15 +52,21 @@ build_pkg() {
 
 mkdir -p /deps
 
+# These must refer to git tags
+AWS_CRT_CPP_VERSION="v0.14.0"
+AWS_SDK_CPP_VERSION="1.9.39"
+
 for libtype in shared static; do
+    root=/deps/$libtype
+
     if [ $libtype == shared ]; then
         CMAKE_ARGS="-DBUILD_SHARED_LIBS=ON"
+        build_pkg $root/install https://github.com/awslabs/aws-crt-cpp.git $AWS_CRT_CPP_VERSION \
+	        $CMAKE_ARGS -DUSE_OPENSSL=ON
     else
         CMAKE_ARGS="-DBUILD_SHARED_LIBS=OFF"
     fi
 
-    root=/deps/$libtype
-
-    # not installing aws-c-common anymore because aws-sdk-cpp installs it for us
-    build_pkg $root/install https://github.com/aws/aws-sdk-cpp.git 1.8.32 $CMAKE_ARGS -DBUILD_ONLY=kms
+    build_pkg $root/install https://github.com/aws/aws-sdk-cpp.git $AWS_SDK_CPP_VERSION \
+            $CMAKE_ARGS -DBUILD_ONLY=kms
 done

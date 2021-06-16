@@ -125,19 +125,25 @@ if (AWS_ENC_SDK_KNOWN_GOOD_TESTS)
         )
 
     # Also unzip the test vectors from the aws-encryption-sdk-test-vectors submodule
-    # TODO-RS: If desired, we can use a custom target to avoid doing this
-    # on every build when the zip hasn't changed.
-    message(STATUS "Unzipping test vectors")
-    set(TEST_VECTORS_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/test-vectors)
-    file(MAKE_DIRECTORY ${TEST_VECTORS_DIRECTORY})
-    execute_process(COMMAND ${CMAKE_COMMAND} -E tar xf ${AWS_ENC_SDK_TEST_VECTORS_ZIP}
-        WORKING_DIRECTORY ${TEST_VECTORS_DIRECTORY}
-        RESULT_VARIABLE _exit_code)
-    if(${_exit_code})
-        message(FATAL_ERROR "Unzipping test vectors failed")
+    set(AWS_ENC_SDK_TEST_VECTORS_ZIP
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_vectors/aws-encryption-sdk-test-vectors/vectors/awses-decrypt/python-2.3.0.zip"
+            CACHE FILEPATH
+            "Path to the test vectors zip file")
+    if(NOT EXISTS ${AWS_ENC_SDK_TEST_VECTORS_ZIP})
+        message(FATAL_ERROR "Could not find test vectors at ${AWS_ENC_SDK_TEST_VECTORS_ZIP}")
     endif()
 
+    set(TEST_VECTORS_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/test-vectors)
+    file(MAKE_DIRECTORY ${TEST_VECTORS_DIRECTORY})
+    add_custom_target(unzip_test_vectors ALL
+            COMMENT "Unzipping test vectors"
+            COMMAND ${CMAKE_COMMAND} -E tar xf ${AWS_ENC_SDK_TEST_VECTORS_ZIP}
+            WORKING_DIRECTORY ${TEST_VECTORS_DIRECTORY}
+            DEPENDS ${AWS_ENC_SDK_TEST_VECTORS_ZIP}
+            )
+
     aws_add_test(static_test_vectors ${CMAKE_CURRENT_BINARY_DIR}/static_test_vectors ${TEST_VECTORS_DIRECTORY})
+    add_dependencies(static_test_vectors unzip_test_vectors)
 else()
     message(STATUS "Static known good tests off")
 endif()

@@ -18,17 +18,24 @@
 #include <aws/common/encoding.h>
 #include <aws/common/error.h>
 #include <aws/core/Aws.h>
+#include <aws/core/auth/AWSCredentialsProviderChain.h>
 #include <aws/cryptosdk/cpp/kms_keyring.h>
+#include <aws/cryptosdk/cpp/kms_mrk_keyring.h>
 #include <aws/cryptosdk/default_cmm.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/materials.h>
+#include <aws/cryptosdk/multi_keyring.h>
 #include <aws/cryptosdk/raw_aes_keyring.h>
 #include <aws/cryptosdk/raw_rsa_keyring.h>
 #include <aws/cryptosdk/session.h>
 
+#include <aws/core/utils/logging/AWSLogging.h>
+#include <aws/core/utils/logging/ConsoleLogSystem.h>
+
 #include <json-c/json.h>
 #include <json-c/json_object.h>
 
+#include "credential_reusing_client_supplier.h"
 #include "testing.h"
 #include "testutil.h"
 
@@ -39,10 +46,14 @@ using namespace Aws::Cryptosdk;
 using namespace std;
 using Aws::SDKOptions;
 
+#define TEST_VECTORS_TAG "static_test_vectors"
+
 enum test_type {
     AWS_CRYPTOSDK_AES,
     AWS_CRYPTOSDK_RSA,
     AWS_CRYPTOSDK_KMS,
+    AWS_CRYPTOSDK_KMS_MRK_AWARE,
+    AWS_CRYPTOSDK_KMS_MRK_AWARE_DISCOVERY
 };
 
 struct expected_outcome {
@@ -51,7 +62,7 @@ struct expected_outcome {
     std::string error_desc;   // only meaningful if !success
 };
 
-int passed, failed, encrypt_only, not_yet_supported, test_type_passed[3];
+int passed, failed, encrypt_only, not_yet_supported, test_type_passed[5];
 
 static int cmp_jsonstr_with_cstr(json_object *jso, const char *str) {
     const char *tmp_str = json_object_get_string(jso);
@@ -125,6 +136,228 @@ static bool get_padding_mode(
     }
     *rsa_padding_mode = padding_mode;
     return true;
+}
+
+static shared_ptr<KmsKeyring::DiscoveryFilter> get_discovery_filter(struct json_object *discovery_filter_obj) {
+    json_object *partition_obj = NULL;
+    json_object_object_get_ex(discovery_filter_obj, "partition", &partition_obj);
+    if (!partition_obj) {
+        return nullptr;
+    }
+
+    KmsKeyring::DiscoveryFilterBuilder builder(json_object_get_string(partition_obj));
+
+    json_object *account_ids_obj = NULL;
+    json_object_object_get_ex(discovery_filter_obj, "account-ids", &account_ids_obj);
+    if (!account_ids_obj) {
+        return nullptr;
+    }
+
+    int arraylen = json_object_array_length(account_ids_obj);
+    json_object *account_id_obj;
+    for (int i = 0; i < arraylen; i++) {
+        account_id_obj = json_object_array_get_idx(account_ids_obj, i);
+        builder.AddAccount(json_object_get_string(account_id_obj));
+    }
+
+    return builder.Build();
+}
+
+static aws_cryptosdk_keyring *keyring_for_master_key_spec(
+    struct aws_allocator *alloc,
+    json_object *json_obj_mk_obj,
+    json_object *keys_obj,
+    enum test_type &test_type_idx,
+    bool &not_supported,
+    const shared_ptr<KmsKeyring::ClientSupplier> &client_supplier) {
+    json_object *key_type_obj             = NULL;
+    json_object *key_obj                  = NULL;
+    json_object *provider_id_obj          = NULL;
+    json_object *encryption_algorithm_obj = NULL;
+    json_object *key_category_obj         = NULL;
+    json_object *material_obj             = NULL;
+    json_object *encoding_obj             = NULL;
+    json_object *decrypt_obj              = NULL;
+    json_object *key_id_obj               = NULL;
+
+    aws_string *key_namespace = NULL;
+    aws_string *key_name      = NULL;
+    aws_string *region        = NULL;
+
+    struct aws_cryptosdk_keyring *kr = NULL;
+    not_supported                    = false;
+
+    if (!json_object_object_get_ex(json_obj_mk_obj, "type", &key_type_obj)) {
+        fprintf(stderr, "Failed to obtain master-key type\n");
+        goto next_test_scenario;
+    }
+    if (json_object_object_get_ex(json_obj_mk_obj, "key", &key_obj)) {
+        json_object_object_get_ex(keys_obj, json_object_get_string(key_obj), &key_category_obj);
+        json_object_object_get_ex(key_category_obj, "material", &material_obj);
+        json_object_object_get_ex(key_category_obj, "encoding", &encoding_obj);
+
+        if (!json_object_object_get_ex(key_category_obj, "key-id", &key_id_obj)) {
+            fprintf(stderr, "Failed to obtain key-id\n");
+            goto next_test_scenario;
+        }
+
+        key_name = aws_string_new_from_c_str(alloc, json_object_get_string(key_id_obj));
+    }
+
+    json_object_object_get_ex(json_obj_mk_obj, "provider-id", &provider_id_obj);
+    if (provider_id_obj) key_namespace = aws_string_new_from_c_str(alloc, json_object_get_string(provider_id_obj));
+
+    json_object_object_get_ex(json_obj_mk_obj, "encryption-algorithm", &encryption_algorithm_obj);
+
+    if (!cmp_jsonstr_with_cstr(key_type_obj, "raw")) {
+        if (!key_namespace) {
+            fprintf(stderr, "Failed to obtain key_namespace\n");
+            goto next_test_scenario;
+        }
+
+        if (!key_name) {
+            fprintf(stderr, "Failed to obtain key_name \n");
+            goto next_test_scenario;
+        }
+
+        if (!cmp_jsonstr_with_cstr(encryption_algorithm_obj, "aes")) {
+            test_type_idx = AWS_CRYPTOSDK_AES;
+            if (!material_obj) {
+                fprintf(stderr, "Failed to obtain the raw aes key material, %s\n", aws_error_str(aws_last_error()));
+                goto next_test_scenario;
+            }
+
+            if (cmp_jsonstr_with_cstr(encoding_obj, "base64")) {
+                fprintf(stderr, "Failed to obtain base64 string\n");
+                goto next_test_scenario;
+            }
+
+            struct aws_byte_buf decoded_material;
+            if (get_base64_decoded_material(alloc, &decoded_material, material_obj)) {
+                fprintf(stderr, "Failed to obtain the base64 decoded material \n");
+                goto next_test_scenario;
+            }
+
+            if (!(kr = aws_cryptosdk_raw_aes_keyring_new(
+                      alloc,
+                      key_namespace,
+                      key_name,
+                      decoded_material.buffer,
+                      (enum aws_cryptosdk_aes_key_len)decoded_material.len))) {
+                fprintf(
+                    stderr,
+                    "Failed to initialize aws_cryptosdk_raw_aes_keyring, %s\n",
+                    aws_error_str(aws_last_error()));
+                goto next_test_scenario;
+            }
+        } else if (!cmp_jsonstr_with_cstr(encryption_algorithm_obj, "rsa")) {
+            test_type_idx = AWS_CRYPTOSDK_RSA;
+            if (!material_obj) {
+                fprintf(stderr, "Failed to obtain the raw rsa key material, %s\n", aws_error_str(aws_last_error()));
+                goto next_test_scenario;
+            }
+            const char *pem_file = json_object_get_string(material_obj);
+            if (cmp_jsonstr_with_cstr(encoding_obj, "pem")) {
+                fprintf(stderr, "Failed to obtain rsa pem string\n");
+                goto next_test_scenario;
+            }
+            json_object *padding_algorithm_obj = NULL, *padding_hash_obj = NULL;
+
+            json_object_object_get_ex(json_obj_mk_obj, "padding-algorithm", &padding_algorithm_obj);
+            const char *padding_algorithm = json_object_get_string(padding_algorithm_obj);
+            if (!padding_algorithm) {
+                fprintf(stderr, "Failed to obtain padding algorithm \n");
+                goto next_test_scenario;
+            }
+
+            json_object_object_get_ex(json_obj_mk_obj, "padding-hash", &padding_hash_obj);
+            const char *padding_hash = json_object_get_string(padding_hash_obj);
+
+            enum aws_cryptosdk_rsa_padding_mode padding_mode;
+            if (!get_padding_mode(&padding_mode, padding_algorithm, padding_hash)) {
+                not_supported = true;
+                goto next_test_scenario;
+            }
+            if (!(kr = aws_cryptosdk_raw_rsa_keyring_new(
+                      alloc, key_namespace, key_name, pem_file, NULL, padding_mode))) {
+                fprintf(
+                    stderr,
+                    "Failed to initialize aws_cryptosdk_raw_rsa_keyring, %s\n",
+                    aws_error_str(aws_last_error()));
+                goto next_test_scenario;
+            }
+        }
+    } else if (!cmp_jsonstr_with_cstr(key_type_obj, "aws-kms")) {
+        test_type_idx = AWS_CRYPTOSDK_KMS;
+        if (!key_id_obj) {
+            fprintf(stderr, "Failed to obtain the kms_key_id, %s\n", aws_error_str(aws_last_error()));
+            goto next_test_scenario;
+        }
+        const Aws::String key_id = json_object_get_string(key_id_obj);
+        kr                       = KmsKeyring::Builder().WithClientSupplier(client_supplier).Build({ key_id });
+        if (!kr) {
+            fprintf(stderr, "Failed to initialize aws_cryptosdk_kms_keyring, %s\n", aws_error_str(aws_last_error()));
+            goto next_test_scenario;
+        }
+    } else if (!cmp_jsonstr_with_cstr(key_type_obj, "aws-kms-mrk-aware")) {
+        test_type_idx = AWS_CRYPTOSDK_KMS_MRK_AWARE;
+        if (!key_id_obj) {
+            fprintf(stderr, "Failed to obtain the kms_key_id, %s\n", aws_error_str(aws_last_error()));
+            goto next_test_scenario;
+        }
+        const Aws::String key_id = json_object_get_string(key_id_obj);
+        kr = KmsMrkAwareSymmetricKeyring::Builder().WithClientSupplier(client_supplier).Build({ key_id });
+        if (!kr) {
+            fprintf(stderr, "Failed to initialize aws_cryptosdk_kms_keyring, %s\n", aws_error_str(aws_last_error()));
+            goto next_test_scenario;
+        }
+    } else if (!cmp_jsonstr_with_cstr(key_type_obj, "aws-kms-mrk-aware-discovery")) {
+        test_type_idx = AWS_CRYPTOSDK_KMS_MRK_AWARE_DISCOVERY;
+
+        json_object *default_mrk_region_obj = NULL;
+        json_object_object_get_ex(json_obj_mk_obj, "default-mrk-region", &default_mrk_region_obj);
+        if (!default_mrk_region_obj) {
+            fprintf(stderr, "Failed to obtain the default MRK region \n");
+            goto next_test_scenario;
+        }
+        const Aws::String default_mrk_region = json_object_get_string(default_mrk_region_obj);
+        Aws::Client::ClientConfiguration client_config;
+        client_config.region = default_mrk_region;
+
+        std::function<void()> report_success;
+        auto kms_client = client_supplier->GetClient(default_mrk_region, report_success);
+        report_success();
+
+        json_object *discovery_filter_obj = NULL;
+        json_object_object_get_ex(json_obj_mk_obj, "aws-kms-discovery-filter", &discovery_filter_obj);
+        if (discovery_filter_obj) {
+            shared_ptr<KmsKeyring::DiscoveryFilter> discovery_filter = get_discovery_filter(discovery_filter_obj);
+            if (discovery_filter == nullptr) {
+                fprintf(stderr, "Failed to obtain the discovery filter \n");
+                goto next_test_scenario;
+            }
+            kr = KmsMrkAwareSymmetricKeyring::Builder()
+                     .WithKmsClient(kms_client)
+                     .BuildDiscovery(default_mrk_region, discovery_filter);
+        } else {
+            kr = KmsMrkAwareSymmetricKeyring::Builder().WithKmsClient(kms_client).BuildDiscovery(default_mrk_region);
+        }
+
+        if (!kr) {
+            fprintf(stderr, "Failed to initialize aws_cryptosdk_kms_keyring, %s\n", aws_error_str(aws_last_error()));
+            goto next_test_scenario;
+        }
+    } else {
+        const char *key_type = json_object_get_string(key_type_obj);
+        fprintf(stderr, "Unknown key type, %s\n", key_type);
+        goto next_test_scenario;
+    }
+
+next_test_scenario:
+    if (key_namespace) aws_string_destroy(key_namespace);
+    if (key_name) aws_string_destroy(key_name);
+
+    return kr;
 }
 
 static int run_test_decryption(
@@ -208,230 +441,106 @@ static int process_test_scenarios(
     std::string ct_filename,
     enum aws_cryptosdk_mode mode,
     json_object *master_keys_obj,
-    json_object *keys_obj) {
-    json_object *key_type_obj             = NULL;
-    json_object *key_obj                  = NULL;
-    json_object *provider_id_obj          = NULL;
-    json_object *encryption_algorithm_obj = NULL;
-    json_object *key_category_obj         = NULL;
-    json_object *material_obj             = NULL;
-    json_object *encoding_obj             = NULL;
-    json_object *decrypt_obj              = NULL;
-    json_object *key_id_obj               = NULL;
+    json_object *keys_obj,
+    const shared_ptr<KmsKeyring::ClientSupplier> &client_supplier) {
+    struct aws_cryptosdk_keyring *multi_keyring = NULL;
 
+    struct aws_cryptosdk_session *session = NULL;
+    struct aws_cryptosdk_cmm *cmm         = NULL;
+    uint8_t *ciphertext                   = NULL;
+    uint8_t *plaintext                    = NULL;
+    size_t ct_len                         = 0;
+    size_t pt_len                         = 0;
+
+    enum test_type test_type_idx;
     for (int j = 0; j < json_object_array_length(master_keys_obj); j++) {
-        struct aws_cryptosdk_keyring *kr      = NULL;
-        struct aws_cryptosdk_session *session = NULL;
-        struct aws_cryptosdk_cmm *cmm         = NULL;
-        uint8_t *ciphertext                   = NULL;
-        uint8_t *plaintext                    = NULL;
-        aws_string *key_namespace             = NULL;
-        aws_string *key_name                  = NULL;
-        size_t ct_len                         = 0;
-        size_t pt_len                         = 0;
-        enum test_type test_type_idx;
-
         json_object *json_obj_mk_obj = json_object_array_get_idx(master_keys_obj, j);
 
-        if (!json_object_object_get_ex(json_obj_mk_obj, "type", &key_type_obj)) {
-            failed++;
-            fprintf(stderr, "Failed to obtain master-key type\n");
-            goto next_test_scenario;
-        }
-        if (!json_object_object_get_ex(json_obj_mk_obj, "key", &key_obj)) {
-            failed++;
-            fprintf(stderr, "Failed to obtain key\n");
-            goto next_test_scenario;
-        }
-
-        json_object_object_get_ex(json_obj_mk_obj, "provider-id", &provider_id_obj);
-        if (provider_id_obj) key_namespace = aws_string_new_from_c_str(alloc, json_object_get_string(provider_id_obj));
-
-        json_object_object_get_ex(json_obj_mk_obj, "encryption-algorithm", &encryption_algorithm_obj);
-        json_object_object_get_ex(keys_obj, json_object_get_string(key_obj), &key_category_obj);
-        json_object_object_get_ex(key_category_obj, "material", &material_obj);
-        json_object_object_get_ex(key_category_obj, "encoding", &encoding_obj);
-
-        if (!json_object_object_get_ex(key_category_obj, "key-id", &key_id_obj)) {
-            failed++;
-            fprintf(stderr, "Failed to obtain key-id\n");
-            goto next_test_scenario;
-        }
-
-        key_name = aws_string_new_from_c_str(alloc, json_object_get_string(key_id_obj));
-
-        if (!json_object_object_get_ex(key_category_obj, "decrypt", &decrypt_obj)) {
-            failed++;
-            fprintf(stderr, "Failed to obtain decrypt flag\n");
-            goto next_test_scenario;
-        }
-        /* If the decrypt attribute in the keys manifest is set to false, the corresponding key
-           cannot be used to decrypt. In this case, we simply mark the test as passed and skip
-           to the next test case scenario. */
-        if (!cmp_jsonstr_with_cstr(decrypt_obj, "false")) {
-            passed++;
-            encrypt_only++;
-            goto next_test_scenario;
-        }
-
-        if (!cmp_jsonstr_with_cstr(key_type_obj, "raw")) {
-            if (!key_namespace) {
-                failed++;
-                fprintf(stderr, "Failed to obtain key_namespace\n");
-                goto next_test_scenario;
-            }
-
-            if (!key_name) {
-                failed++;
-                fprintf(stderr, "Failed to obtain key_name \n");
-                goto next_test_scenario;
-            }
-
-            if (!cmp_jsonstr_with_cstr(encryption_algorithm_obj, "aes")) {
-                test_type_idx = AWS_CRYPTOSDK_AES;
-                if (!material_obj) {
-                    failed++;
-                    fprintf(stderr, "Failed to obtain the raw aes key material, %s\n", aws_error_str(aws_last_error()));
-                    goto next_test_scenario;
-                }
-
-                if (cmp_jsonstr_with_cstr(encoding_obj, "base64")) {
-                    failed++;
-                    fprintf(stderr, "Failed to obtain base64 string\n");
-                    goto next_test_scenario;
-                }
-
-                struct aws_byte_buf decoded_material;
-                if (get_base64_decoded_material(alloc, &decoded_material, material_obj)) {
-                    failed++;
-                    fprintf(stderr, "Failed to obtain the base64 decoded material \n");
-                    goto next_test_scenario;
-                }
-
-                if (!(kr = aws_cryptosdk_raw_aes_keyring_new(
-                          alloc,
-                          key_namespace,
-                          key_name,
-                          decoded_material.buffer,
-                          (enum aws_cryptosdk_aes_key_len)decoded_material.len))) {
-                    failed++;
-                    fprintf(
-                        stderr,
-                        "Failed to initialize aws_cryptosdk_raw_aes_keyring, %s\n",
-                        aws_error_str(aws_last_error()));
-                    goto next_test_scenario;
-                }
-            } else if (!cmp_jsonstr_with_cstr(encryption_algorithm_obj, "rsa")) {
-                test_type_idx = AWS_CRYPTOSDK_RSA;
-                if (!material_obj) {
-                    failed++;
-                    fprintf(stderr, "Failed to obtain the raw rsa key material, %s\n", aws_error_str(aws_last_error()));
-                    goto next_test_scenario;
-                }
-                const char *pem_file = json_object_get_string(material_obj);
-                if (cmp_jsonstr_with_cstr(encoding_obj, "pem")) {
-                    failed++;
-                    fprintf(stderr, "Failed to obtain rsa pem string\n");
-                    goto next_test_scenario;
-                }
-                json_object *padding_algorithm_obj = NULL, *padding_hash_obj = NULL;
-
-                json_object_object_get_ex(json_obj_mk_obj, "padding-algorithm", &padding_algorithm_obj);
-                const char *padding_algorithm = json_object_get_string(padding_algorithm_obj);
-                if (!padding_algorithm) {
-                    failed++;
-                    fprintf(stderr, "Failed to obtain padding algorithm \n");
-                    goto next_test_scenario;
-                }
-
-                json_object_object_get_ex(json_obj_mk_obj, "padding-hash", &padding_hash_obj);
-                const char *padding_hash = json_object_get_string(padding_hash_obj);
-
-                enum aws_cryptosdk_rsa_padding_mode padding_mode;
-                if (!get_padding_mode(&padding_mode, padding_algorithm, padding_hash)) {
+        bool not_supported;
+        struct aws_cryptosdk_keyring *kr = keyring_for_master_key_spec(
+            alloc, json_obj_mk_obj, keys_obj, test_type_idx, not_supported, client_supplier);
+        if (!kr) {
+            if (expected.success) {
+                if (not_supported) {
                     not_yet_supported++;
-                    goto next_test_scenario;
-                }
-                if (!(kr = aws_cryptosdk_raw_rsa_keyring_new(
-                          alloc, key_namespace, key_name, pem_file, NULL, padding_mode))) {
+                } else {
                     failed++;
-                    fprintf(
-                        stderr,
-                        "Failed to initialize aws_cryptosdk_raw_rsa_keyring, %s\n",
-                        aws_error_str(aws_last_error()));
-                    goto next_test_scenario;
                 }
+            } else {
+                passed++;
+            }
+            goto next_test_scenario;
+        }
+
+        if (j == 0) {
+            multi_keyring = aws_cryptosdk_multi_keyring_new(alloc, kr);
+            if (!multi_keyring) {
+                failed++;
+                fprintf(stderr, "Failed to initialize multi_keyring, %s\n", aws_error_str(aws_last_error()));
+                aws_cryptosdk_keyring_release(kr);
+                goto next_test_scenario;
             }
         } else {
-            test_type_idx = AWS_CRYPTOSDK_KMS;
-            if (!key_id_obj) {
+            if (AWS_OP_SUCCESS != aws_cryptosdk_multi_keyring_add_child(multi_keyring, kr)) {
                 failed++;
-                fprintf(stderr, "Failed to obtain the kms_key_id, %s\n", aws_error_str(aws_last_error()));
-                goto next_test_scenario;
-            }
-            const Aws::String key_id = json_object_get_string(key_id_obj);
-            kr                       = KmsKeyring::Builder().Build({ key_id });
-            if (!kr) {
-                fprintf(
-                    stderr, "Failed to initialize aws_cryptosdk_kms_keyring, %s\n", aws_error_str(aws_last_error()));
+                fprintf(stderr, "Failed to add keyring to multi_keyring, %s\n", aws_error_str(aws_last_error()));
+                aws_cryptosdk_keyring_release(kr);
                 goto next_test_scenario;
             }
         }
 
-        if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, kr))) {
-            failed++;
-            fprintf(stderr, "Failed to initialize aws_cryptosdk_default_cmm, %s\n", aws_error_str(aws_last_error()));
-            goto next_test_scenario;
-        }
-
-        if (!(session = aws_cryptosdk_session_new_from_cmm_2(alloc, mode, cmm))) {
-            failed++;
-            fprintf(stderr, "Failed to initialize aws_cryptosdk_session, %s\n", aws_error_str(aws_last_error()));
-            goto next_test_scenario;
-        }
-        aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT);
-
-        if (test_loadfile(ct_filename.c_str(), &ciphertext, &ct_len)) {
-            failed++;
-            fprintf(
-                stderr,
-                "Failed to load ciphertext file %s, %s\n",
-                ct_filename.c_str(),
-                aws_error_str(aws_last_error()));
-            goto next_test_scenario;
-        }
-
-        if (expected.success && test_loadfile(expected.pt_filename.c_str(), &plaintext, &pt_len)) {
-            failed++;
-            fprintf(
-                stderr,
-                "Failed to load plaintext file %s, %s\n",
-                expected.pt_filename.c_str(),
-                aws_error_str(aws_last_error()));
-            goto next_test_scenario;
-        }
-
-        if (run_test_decryption(session, ct_filename, ciphertext, ct_len, plaintext, pt_len, expected)) {
-            failed++;
-            goto next_test_scenario;
-        }
-
-        test_type_passed[test_type_idx]++;
-        passed++;
-
-    next_test_scenario:
-        if (key_namespace) aws_string_destroy(key_namespace);
-        if (key_name) aws_string_destroy(key_name);
-        if (ciphertext) free(ciphertext);
-        if (plaintext) free(plaintext);
-        if (session) aws_cryptosdk_session_destroy(session);
-        if (cmm) aws_cryptosdk_cmm_release(cmm);
-        if (kr) aws_cryptosdk_keyring_release(kr);
+        aws_cryptosdk_keyring_release(kr);
     }
+
+    if (!(cmm = aws_cryptosdk_default_cmm_new(alloc, multi_keyring))) {
+        failed++;
+        fprintf(stderr, "Failed to initialize aws_cryptosdk_default_cmm, %s\n", aws_error_str(aws_last_error()));
+        goto next_test_scenario;
+    }
+
+    if (!(session = aws_cryptosdk_session_new_from_cmm_2(alloc, mode, cmm))) {
+        failed++;
+        fprintf(stderr, "Failed to initialize aws_cryptosdk_session, %s\n", aws_error_str(aws_last_error()));
+        goto next_test_scenario;
+    }
+    aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT);
+
+    if (test_loadfile(ct_filename.c_str(), &ciphertext, &ct_len)) {
+        failed++;
+        fprintf(
+            stderr, "Failed to load ciphertext file %s, %s\n", ct_filename.c_str(), aws_error_str(aws_last_error()));
+        goto next_test_scenario;
+    }
+
+    if (expected.success && test_loadfile(expected.pt_filename.c_str(), &plaintext, &pt_len)) {
+        failed++;
+        fprintf(
+            stderr,
+            "Failed to load plaintext file %s, %s\n",
+            expected.pt_filename.c_str(),
+            aws_error_str(aws_last_error()));
+        goto next_test_scenario;
+    }
+
+    if (run_test_decryption(session, ct_filename, ciphertext, ct_len, plaintext, pt_len, expected)) {
+        failed++;
+        goto next_test_scenario;
+    }
+
+    test_type_passed[test_type_idx]++;
+    passed++;
+
+next_test_scenario:
+    if (ciphertext) free(ciphertext);
+    if (plaintext) free(plaintext);
+    if (session) aws_cryptosdk_session_destroy(session);
+    if (cmm) aws_cryptosdk_cmm_release(cmm);
+    if (multi_keyring) aws_cryptosdk_keyring_release(multi_keyring);
+
     return AWS_OP_SUCCESS;
 }
 
-static int test_vector_runner(const char *path) {
+static int test_vector_runner(const char *path, const char *test_name) {
     char manifest_filename[256];
     char *key;
 
@@ -453,6 +562,9 @@ static int test_vector_runner(const char *path) {
     json_object *master_keys_obj       = NULL;
     json_object *keys_manifest_obj     = NULL;
     json_object *decryption_method_obj = NULL;
+
+    std::shared_ptr<Aws::Cryptosdk::KmsKeyring::ClientSupplier> client_supplier =
+        Aws::Cryptosdk::Testing::CredentialCachingClientSupplier::Create();
 
     if (snprintf(manifest_filename, sizeof(manifest_filename), "%s/manifest.json", path) >= sizeof(manifest_filename)) {
         fprintf(stderr, "Path too long\n");
@@ -480,6 +592,10 @@ static int test_vector_runner(const char *path) {
     for (entry = json_object_get_object(tests_obj)->head;
          (entry ? (key = (char *)entry->k, val = (struct json_object *)entry->v, entry) : 0);
          entry = entry->next) {
+        if (test_name != NULL && strcmp(test_name, key)) {
+            continue;
+        }
+
         TEST_ASSERT(json_object_object_get_ex(tests_obj, key, &test_case_obj));
         TEST_ASSERT(json_object_object_get_ex(val, "ciphertext", &ct_filename_obj));
         TEST_ASSERT(json_object_object_get_ex(val, "result", &result_obj));
@@ -510,7 +626,12 @@ static int test_vector_runner(const char *path) {
         }
 
         TEST_ASSERT(json_object_object_get_ex(val, "master-keys", &master_keys_obj));
-        TEST_ASSERT_SUCCESS(process_test_scenarios(alloc, expected, ct_filename, mode, master_keys_obj, keys_obj));
+        int failed_before = failed;
+        TEST_ASSERT_SUCCESS(
+            process_test_scenarios(alloc, expected, ct_filename, mode, master_keys_obj, keys_obj, client_supplier));
+        if (failed_before < failed) {
+            fprintf(stderr, "Failures in test %s\n", key);
+        }
     }
     printf("Decryption successfully completed for %d test cases and failed for %d.\n", passed, failed);
     printf(
@@ -524,14 +645,25 @@ static int test_vector_runner(const char *path) {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 2) {
-        fprintf(stderr, "Wrong number of arguments\nUsage: ./static_test_vectors /path/to/manifest/files\n");
+    if (argc < 2 || argc > 3) {
+        fprintf(
+            stderr,
+            "Wrong number of arguments\nUsage: ./static_test_vectors /path/to/manifest/files [test-UUID-to-run]\n");
         return EXIT_FAILURE;
     }
     aws_cryptosdk_load_error_strings();
     SDKOptions options;
+
     Aws::InitAPI(options);
-    int rv = test_vector_runner(argv[1]);
+    // Initialize logging to show when KMS calls are made
+    Aws::Utils::Logging::InitializeAWSLogging(Aws::MakeShared<Aws::Utils::Logging::ConsoleLogSystem>(
+        "static_test_vectors.cpp", Aws::Utils::Logging::LogLevel::Debug));
+
+    const char *test_name = NULL;
+    if (argc == 3) {
+        test_name = argv[2];
+    }
+    int rv = test_vector_runner(argv[1], test_name);
     Aws::ShutdownAPI(options);
     return rv;
 }

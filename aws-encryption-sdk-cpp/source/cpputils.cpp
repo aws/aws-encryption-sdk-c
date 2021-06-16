@@ -16,12 +16,17 @@
 
 #include <aws/common/byte_buf.h>
 #include <aws/common/hash_table.h>
+#include <aws/core/utils/ARN.h>
+#include <aws/core/utils/StringUtils.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/materials.h>
 
 namespace Aws {
 namespace Cryptosdk {
 namespace Private {
+
+static const Aws::String KMS_STR = "kms";
+static const Aws::String MRK_STR = "mrk-";
 
 Aws::String aws_string_from_c_aws_byte_buf(const struct aws_byte_buf *byte_buf) {
     return Aws::String(reinterpret_cast<const char *>(byte_buf->buffer), byte_buf->len);
@@ -148,6 +153,228 @@ Aws::String parse_region_from_kms_key_arn(const Aws::String &key_id) {
         return rv;
     }
     return Aws::String(key_id.data() + idx_start, idx_end - idx_start);
+}
+
+/**
+ * Returns a vector containing the substrings before and after the first '/'
+ * character in the given string, or an empty vector if the string does not
+ * contain a '/' character.
+ */
+static Aws::Vector<Aws::String> split_arn_resource(const Aws::String &resource) {
+    auto parts = Utils::StringUtils::Split(resource, '/', 2);
+    if (parts.size() != 2) {
+        parts.clear();
+    }
+    return parts;
+}
+
+/**
+ * Returns true if the first string starts with the second string, or false
+ * otherwise.
+ */
+bool starts_with(const Aws::String &s1, const Aws::String &s2) {
+    return s1.size() >= s2.size() && s1.compare(0, s2.size(), s2) == 0;
+}
+
+bool is_valid_kms_key_arn(const Aws::Utils::ARN &key_arn) {
+    if (!(
+            //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.5
+            //# MUST start with string "arn"
+            bool(key_arn)
+            //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.5
+            //# The partition MUST be a non-empty
+            && key_arn.GetPartition().size() > 0
+            //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.5
+            //# The service MUST be the string "kms"
+            && key_arn.GetService() == "kms"
+            //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.5
+            //# The region MUST be a non-empty string
+            && key_arn.GetRegion().size() > 0
+            //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.5
+            //# The account MUST be a non-empty string
+            && key_arn.GetAccountId().size() > 0
+            //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.5
+            //# The resource section MUST be non-empty and MUST be split by a
+            //# single "/" any additional "/" are included in the resource id
+            && key_arn.GetResource().size() > 0)) {
+        return false;
+    }
+
+    const auto resource_parts = split_arn_resource(key_arn.GetResource());
+    return resource_parts.size() == 2
+           //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.5
+           //# The resource type MUST be either "alias" or "key"
+           && (resource_parts[0] == "alias" || resource_parts[0] == "key")
+           //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.5
+           //# The resource id MUST be a non-empty string
+           && resource_parts[1].size() > 0;
+}
+
+bool is_valid_kms_identifier(const Aws::String &ident) {
+    // Precondition: A KMS key ARN is a valid KMS key identifier.
+    Aws::Utils::ARN arn(ident);
+    if (is_valid_kms_key_arn(arn)) {
+        return true;
+    }
+
+    // Precondition: A non-ARN identifier cannot contain a colon.
+    if (ident.find(':') != std::string::npos) {
+        return false;
+    }
+
+    // Precondition: A KMS key identifier with a forward slash must be an alias
+    if (ident.find('/') != std::string::npos) {
+        return starts_with(ident, "alias/");
+    }
+
+    // Anything else must be a raw key ID
+    return true;
+}
+
+//= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.8
+//# This function MUST take a single AWS KMS ARN
+bool is_kms_mrk_arn(const Aws::Utils::ARN &key_arn) {
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.8
+    //# If the input is an invalid AWS KMS ARN this function MUST error.
+    if (!is_valid_kms_key_arn(key_arn)) {
+        return false;
+    }
+
+    const auto resource_parts = split_arn_resource(key_arn.GetResource());
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.8
+    //# If resource type is "alias", this is an AWS KMS alias ARN and MUST
+    //# return false.
+    if (resource_parts[0] == "alias") {
+        return false;
+    }
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.8
+    //# If resource type is "key" and resource ID starts with
+    //# "mrk-", this is a AWS KMS multi-Region key ARN and MUST return true.
+    if (resource_parts[0] == "key") {
+        return starts_with(resource_parts[1], MRK_STR);
+    }
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.8
+    //# If resource type is "key" and resource ID does not start with "mrk-",
+    //# this is a (single-region) AWS KMS key ARN and MUST return false.
+    return false;
+}
+
+//= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.9
+//# This function MUST take a single AWS KMS identifier
+bool is_kms_mrk_identifier(const Aws::String &key_id) {
+    static const Aws::String arn_str   = "arn:";
+    static const Aws::String alias_str = "alias/";
+
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.9
+    //# If the input starts with "arn:", this MUST return the output of
+    //# identifying an an AWS KMS multi-Region ARN (aws-kms-key-
+    //# arn.md#identifying-an-an-aws-kms-multi-region-arn) called with this
+    //# input.
+    if (starts_with(key_id, arn_str)) {
+        Aws::Utils::ARN key_arn(key_id);
+        return is_kms_mrk_arn(key_arn);
+    }
+
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.9
+    //# If the input starts with "alias/", this an AWS KMS alias and
+    //# not a multi-Region key id and MUST return false.
+    if (starts_with(key_id, alias_str)) {
+        return false;
+    }
+
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.9
+    //# If the input starts
+    //# with "mrk-", this is a multi-Region key id and MUST return true.
+    if (starts_with(key_id, MRK_STR)) {
+        return true;
+    }
+
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.9
+    //# If
+    //# the input does not start with any of the above, this is not a multi-
+    //# Region key id and MUST return false.
+    return false;
+}
+
+//= compliance/framework/aws-kms/aws-kms-mrk-match-for-decrypt.txt#2.5
+//# The caller MUST provide:
+bool kms_mrk_match_for_decrypt(const Aws::String &key_id_1, const Aws::String &key_id_2) {
+    //= compliance/framework/aws-kms/aws-kms-mrk-match-for-decrypt.txt#2.5
+    //# If both identifiers are identical, this function MUST return "true".
+    if (key_id_1 == key_id_2) return true;
+    //= compliance/framework/aws-kms/aws-kms-mrk-match-for-decrypt.txt#2.5
+    //# Otherwise if either input is not identified as a multi-Region key
+    //# (aws-kms-key-arn.md#identifying-an-aws-kms-multi-region-key), then
+    //# this function MUST return "false".
+    if (!is_kms_mrk_identifier(key_id_1) || !is_kms_mrk_identifier(key_id_2)) return false;
+
+    //= compliance/framework/aws-kms/aws-kms-mrk-match-for-decrypt.txt#2.5
+    //# Otherwise if both inputs are
+    //# identified as a multi-Region keys (aws-kms-key-arn.md#identifying-an-
+    //# aws-kms-multi-region-key), this function MUST return the result of
+    //# comparing the "partition", "service", "accountId", "resourceType",
+    //# and "resource" parts of both ARN inputs.
+    Aws::Utils::ARN key_arn_1(key_id_1);
+    Aws::Utils::ARN key_arn_2(key_id_2);
+    if (!key_arn_1 || !key_arn_2) return false;
+    return (
+        key_arn_1.GetPartition() == key_arn_2.GetPartition() && key_arn_1.GetService() == key_arn_2.GetService() &&
+        key_arn_1.GetAccountId() == key_arn_2.GetAccountId() && key_arn_1.GetResource() == key_arn_2.GetResource());
+}
+
+//= compliance/framework/aws-kms/aws-kms-mrk-are-unique.txt#2.5
+//# The caller MUST provide:
+Aws::Vector<Aws::String> find_duplicate_kms_mrk_ids(const Aws::Vector<Aws::String> &key_ids) {
+    Aws::Map<Aws::String, Aws::Vector<Aws::String>> mrk_resource_id_to_key_ids;
+    for (auto key_id = key_ids.begin(); key_id != key_ids.end(); key_id++) {
+        Aws::Utils::ARN key_arn(*key_id);
+        if (is_kms_mrk_arn(key_arn)) {
+            auto resource_type_and_id = split_arn_resource(key_arn.GetResource());
+            mrk_resource_id_to_key_ids[resource_type_and_id[1]].push_back(*key_id);
+        } else if (is_kms_mrk_identifier(*key_id)) {
+            mrk_resource_id_to_key_ids[*key_id].push_back(*key_id);
+        }
+    }
+
+    //= compliance/framework/aws-kms/aws-kms-mrk-are-unique.txt#2.5
+    //# If the list does not contain any multi-Region keys (aws-kms-key-
+    //# arn.md#identifying-an-aws-kms-multi-region-key) this function MUST
+    //# exit successfully.
+    Aws::Vector<Aws::String> duplicates;
+    if (mrk_resource_id_to_key_ids.size() == 0) {
+        return duplicates;
+    }
+
+    for (auto kv = mrk_resource_id_to_key_ids.begin(); kv != mrk_resource_id_to_key_ids.end(); kv++) {
+        const auto resource_id      = kv->first;
+        const auto matching_key_ids = kv->second;
+        if (matching_key_ids.size() < 2) {
+            continue;
+        }
+        for (auto duplicate = matching_key_ids.begin(); duplicate != matching_key_ids.end(); duplicate++) {
+            duplicates.push_back(*duplicate);
+        }
+    }
+
+    //= compliance/framework/aws-kms/aws-kms-mrk-are-unique.txt#2.5
+    //# If there are zero duplicate resource ids between the multi-region
+    //# keys, this function MUST exit successfully
+
+    //= compliance/framework/aws-kms/aws-kms-mrk-are-unique.txt#2.5
+    //# If any duplicate multi-region resource ids exist, this function MUST
+    //# yield an error that includes all identifiers with duplicate resource
+    //# ids not only the first duplicate found.
+    return duplicates;
+}
+
+ListRaii::~ListRaii() {
+    if (initialized) clean_up_fn(&list);
+}
+
+int ListRaii::Create(struct aws_allocator *alloc) {
+    int rv = init_fn(alloc, &list);
+    if (!rv) initialized = true;
+    return rv;
 }
 
 }  // namespace Private

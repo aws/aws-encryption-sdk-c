@@ -50,7 +50,7 @@ set(PROJECT_NAME aws-encryption-sdk)
 
 # Version number of the SDK to be consumed by C code and Doxygen
 set(MAJOR 2)
-set(MINOR 2)
+set(MINOR 3)
 set(PATCH 0)
 
 # Compiler feature tests and feature flags
@@ -67,6 +67,8 @@ option(AWS_ENC_SDK_END_TO_END_TESTS "Enable end-to-end tests. If set to FALSE (t
 if(AWS_ENC_SDK_END_TO_END_TESTS)
     include(FindCURL)
 endif()
+
+option(AWS_ENC_SDK_KNOWN_GOOD_TESTS "Enable static test vectors.")
 
 option(AWS_ENC_SDK_END_TO_END_EXAMPLES "Enable end-to-end examples. If set to FALSE (the default), runs local examples only.")
 
