@@ -16,6 +16,14 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#include <openssl/base.h>
+
+#if defined(OPENSSL_IS_AWSLC)
+#include <openssl/obj.h>
+#include <openssl/asn1t.h>
+#include <openssl/asn1.h>
+#endif
+
 #include <openssl/crypto.h>
 #include <openssl/opensslv.h>
 
@@ -69,6 +77,16 @@ static void ECDSA_SIG_set0(ECDSA_SIG *sig, BIGNUM *r, BIGNUM *s) {
 }
 
 #endif
+
+static void aws_cryptosdk_free(void *orig_ptr) {
+#if defined(OPENSSL_IS_AWSLC)
+    // All memory returned by BoringSSL/awslc API calls must  
+    // generally be freed using |OPENSSL_free|.
+    OPENSSL_free(orig_ptr);
+#else
+    free(orig_ptr);
+#endif
+}
 
 struct aws_cryptosdk_sig_ctx {
     struct aws_allocator *alloc;
@@ -296,12 +314,12 @@ static int serialize_pubkey(struct aws_allocator *alloc, EC_KEY *keypair, struct
         goto err;
     }
 
-    free(buf);
+    aws_cryptosdk_free(buf);
     return AWS_OP_SUCCESS;
 
 err:
     // buf (and tmp) hold a public key, so we don't need to zeroize them.
-    free(buf);
+    aws_cryptosdk_free(buf);
 
     *pub_key = NULL;
 
@@ -413,11 +431,11 @@ err:
     aws_secure_zero(tmparr, sizeof(tmparr));
     if (privkey_buf) {
         aws_secure_zero(privkey_buf, privkey_len);
-        free(privkey_buf);
+        aws_cryptosdk_free(privkey_buf);
     }
     if (pubkey_buf) {
         aws_secure_zero(pubkey_buf, pubkey_len);
-        free(pubkey_buf);
+        aws_cryptosdk_free(pubkey_buf);
     }
 
     // There is no error path that results in a non-NULL priv_key, so we don't need to

@@ -16,6 +16,7 @@
 #include <aws/common/byte_buf.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/private/hkdf.h>
+#include <openssl/base.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/opensslv.h>
@@ -29,7 +30,13 @@ static const EVP_MD *aws_cryptosdk_get_evp_md(enum aws_cryptosdk_sha_version whi
     }
 }
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+/* While awslc's OPENSSL_VERSION_NUMBER > 0x10100000L, |EVP_PKEY_CTX_new_id| of awslc 
+doesn't support EVP_PKEY_HKDF. awslc has |HKDF_extract| and |HKDF_expand| APIs in hkdf.h. 
+The two APIs code are almost the same as below RFC5869 implementations.
+HKDF_extract: https://tools.ietf.org/html/rfc5869#section-2.2
+HKDF_expand: https://tools.ietf.org/html/rfc5869#section-2.3
+ */
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L || defined(OPENSSL_IS_AWSLC))
 
 static int aws_cryptosdk_hkdf_extract(
     /* prk must be a buffer of EVP_MAX_MD_SIZE bytes */
@@ -151,7 +158,7 @@ int aws_cryptosdk_hkdf(
     const struct aws_byte_buf *salt,
     const struct aws_byte_buf *ikm,
     const struct aws_byte_buf *info) {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L || defined(OPENSSL_IS_AWSLC))
     uint8_t prk[EVP_MAX_MD_SIZE];
     unsigned int prk_len = 0;
     if (aws_cryptosdk_hkdf_extract(prk, &prk_len, which_sha, salt, ikm)) goto err;
