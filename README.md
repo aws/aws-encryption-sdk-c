@@ -41,14 +41,13 @@ permissions to use the AWS Encryption SDK for C.
 1. aws-c-common, typically bundled with the AWS SDK for C++
 1. The AWS SDK for C++ version 1.9.35 or newer
 
-The AWS SDK for C++ and the AWS Encryption SDK for C share dependencies on OpenSSL, aws-c-common, and CMake, and 
-the AWS SDK for C++ has some additional dependencies and prerequisites of its own. See [AWS SDK for
+The AWS SDK for C++ and the AWS Encryption SDK for C share dependencies on OpenSSL, aws-c-common, and CMake. The AWS SDK for C++ has additional dependencies and prerequisites. See [AWS SDK for
 C++: Getting Started](https://github.com/aws/aws-sdk-cpp#getting-started).
 
 You need to compile both the AWS Encryption SDK for C and its dependencies as either all
 shared or all static libraries. 
 
-If you would like to build shared libraries, you will need to supply the `-DBUILD_SHARED_LIBS=ON` flag to build
+To build shared libraries, specify the `-DBUILD_SHARED_LIBS=ON` flag to build
 aws-c-common, the AWS SDK for C++, and the AWS Encryption SDK.
 
 If you would like to build static libraries, you will need to supply the `-DBUILD_SHARED_LIBS=OFF` flag to build
@@ -56,7 +55,7 @@ aws-c-common, the AWS SDK for C++, and the AWS Encryption SDK.
 
 ### Linux Build Recipe
 
-First you will need to build the AWS SDK for C++. That will install the shared dependencies.
+First, build the AWS SDK for C++. That will install the shared dependencies.
 
 If you only need AWS SDK for C++ to use the AWS Encryption SDK, you have the option to build only the AWS KMS SDK.
 Add the `-DBUILD_ONLY="kms"` flag and `-DBUILD_SHARED_LIBS=ON|OFF` to `cmake` in the instructions provided.
@@ -79,8 +78,8 @@ With Homebrew installed, run the following:
     brew install openssl@1.1 cmake
 
 The AWS SDK for C++ can be installed with Homebrew, which will install the full AWS SDK. If you 
-only need the AWS SDK for C++ to use the AWS Encryption SDK, you have the option to build only the AWS KMS SDK.
-Follow [these directions](https://docs.aws.amazon.com/sdk-for-cpp/v1/developer-guide/setup-linux.html#setup-linux-from-source) 
+need the AWS SDK for C++ only to use the AWS Encryption SDK, you can build only the AWS KMS SDK.
+See [these directions](https://docs.aws.amazon.com/sdk-for-cpp/v1/developer-guide/setup-linux.html#setup-linux-from-source)
 and specify the `-DBUILD_ONLY="kms"` flag to `cmake` in the instructions provided.
 
 Now, build and install the AWS Encryption SDK for C:
@@ -106,7 +105,7 @@ Use vcpkg to install prerequisites:
 
 You may also want to [configure vcpkg for Visual Studio CMake projects](https://github.com/microsoft/vcpkg#vcpkg-with-visual-studio-cmake-projects).
 
-Build the AWS SDK for C++. This installs the aws-c-common dependency too. If you only need AWS SDK for C++ to use the 
+Build the AWS SDK for C++. This installs the aws-c-common dependency, too. If you need the AWS SDK for C++ only to use the 
 AWS Encryption SDK, you have the option to build only the AWS KMS SDK. Add the `-DBUILD_ONLY=kms` to build only the AWS KMS client.
 
 Follow [these instructions](https://docs.aws.amazon.com/sdk-for-cpp/v1/developer-guide/setup-windows.html#setup-windows-from-source), using `-DCMAKE_TOOLCHAIN_FILE` as described in the vcpkg setup instructions. Add `-DBUILD_SHARED_LIBS=ON` for shared libraries or `-DBUILD_SHARED_LIBS=OFF` for static libraries.
