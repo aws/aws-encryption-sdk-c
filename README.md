@@ -44,13 +44,13 @@ permissions to use the AWS Encryption SDK for C.
 The AWS SDK for C++ and the AWS Encryption SDK for C share dependencies on OpenSSL, aws-c-common, and CMake. The AWS SDK for C++ has additional dependencies and prerequisites. See [AWS SDK for
 C++: Getting Started](https://github.com/aws/aws-sdk-cpp#getting-started).
 
-You need to compile both the AWS Encryption SDK for C and its dependencies as either all
+You need to compile the AWS Encryption SDK for C and its dependencies as either all
 shared or all static libraries. 
 
 To build shared libraries, specify the `-DBUILD_SHARED_LIBS=ON` flag to build
 aws-c-common, the AWS SDK for C++, and the AWS Encryption SDK.
 
-If you would like to build static libraries, you will need to supply the `-DBUILD_SHARED_LIBS=OFF` flag to build
+To build static libraries, specify the `-DBUILD_SHARED_LIBS=OFF` flag to build
 aws-c-common, the AWS SDK for C++, and the AWS Encryption SDK.
 
 ### Linux Build Recipe
@@ -71,7 +71,7 @@ Now, build and install the AWS Encryption SDK for C:
 
 ### MacOS Build Recipe
 
-[Homebrew](https://brew.sh) is a convenient way to obtain build tools on MacOS systems.
+[Homebrew](https://brew.sh) is a convenient way to get build tools for MacOS systems.
 
 With Homebrew installed, run the following:
 
@@ -91,9 +91,9 @@ Now, build and install the AWS Encryption SDK for C:
 
 ### Windows Build Recipe
 
-**Note**: See the docker-images folder for some Windows build recipes that automate many of these steps.
+**Note**: See the [docker-images folder](https://github.com/aws/aws-encryption-sdk-c/tree/master/docker-images) for some Windows build recipes that automate many of these steps.
 
-Start by installing Visual Studio version 15 or later with the Windows Universal C Runtime and [Git for Windows](https://git-scm.com/download/win).
+Install Visual Studio version 15 or later with the Windows Universal C Runtime and [Git for Windows](https://git-scm.com/download/win).
 
 Use the "x64 Native Tools Command Prompt" for all commands listed here. Run the following commands in the directory where you want to do the build and installation.
 
