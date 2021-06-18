@@ -37,7 +37,7 @@ build_pkg() {
         git clone --depth 1 --branch $GIT_REF --recurse-submodules "$GIT_URL" "$SRC_DIR"
     fi
 
-    mkdir $BUILD_DIR
+    mkdir -p $BUILD_DIR
     (cd $BUILD_DIR &&
      export LD_LIBRARY_PATH=/deps/install &&
      cmake $SRC_DIR "$@" -DCMAKE_INSTALL_PREFIX=$root/install -DCMAKE_BUILD_TYPE=RelWithDebInfo -GNinja \

@@ -17,6 +17,7 @@ set -euxo pipefail
 
 PATH=$PWD/build-tools/bin:$PATH
 ROOT=$PWD
+NUM_CPU_THREADS=$(grep -c ^processor /proc/cpuinfo)
 
 # End to end tests require valid credentials (instance role, etc..)
 # Disable for local runs.
@@ -67,7 +68,7 @@ run_test() {
         -GNinja \
         .. "$@" 2>&1|head -n 1000)
     cmake --build $ROOT/build -- -v
-    (cd build; ctest --output-on-failure -j8)
+    (cd build; ctest --output-on-failure -j${NUM_CPU_THREADS})
     (cd build; debug ./tests/test_local_cache_threading) || exit 1
     "$ROOT/codebuild/bin/test-install.sh" "$PREFIX_PATH" "$PWD/build"
 }
@@ -97,4 +98,3 @@ case "$TEST_MODE" in
         exit 1
         ;;
 esac
-
