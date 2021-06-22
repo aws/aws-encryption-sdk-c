@@ -13,7 +13,7 @@ set -euxo pipefail
 export AWSLC_SRC_DIR=/tmp/awslc
 export INSTALL_DIR=/deps/install
 export LD_LIBRARY_PATH=${INSTALL_DIR}
-export NUM_CPU_THREADS=$(grep -c ^processor /proc/cpuinfo)
+export NUM_CPU_THREADS=$(nproc)
 
 function download_awslc() {
     AWSLC_GIT_URL='https://github.com/awslabs/aws-lc.git'

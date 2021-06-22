@@ -17,7 +17,7 @@ set -euxo pipefail
 
 PATH=$PWD/build-tools/bin:$PATH
 ROOT=$PWD
-NUM_CPU_THREADS=$(grep -c ^processor /proc/cpuinfo)
+NUM_CPU_THREADS=$(nproc)
 
 # End to end tests require valid credentials (instance role, etc..)
 # Disable for local runs.
