@@ -19,11 +19,11 @@
 // TODO(CryptoAlg-778): address build with awslc on windows.
 #if defined(__linux__)
 #    include <openssl/base.h>
-#if defined(OPENSSL_IS_AWSLC)
-#    include <openssl/asn1.h>
-#    include <openssl/asn1t.h>
-#    include <openssl/obj.h>
-#endif
+#    if defined(OPENSSL_IS_AWSLC)
+#        include <openssl/asn1.h>
+#        include <openssl/asn1t.h>
+#        include <openssl/obj.h>
+#    endif
 #endif
 
 #include <openssl/crypto.h>
