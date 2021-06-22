@@ -21,21 +21,13 @@ ENV CFLAGS=
 ENV CXXFLAGS=
 ENV LDFLAGS=
 
-# This docker image is similar to |ubuntu-latest-x64.Dockerfile| except OpenSSL is replaced with awslc.
-# awslc is installed at /deps/install/lib.
+# This docker image is similar to |ubuntu-latest-x64.Dockerfile| except dependencies (crypto lib, curl and aws-cpp-sdk) are not installed.
 ENV LDFLAGS="-Wl,-rpath -Wl,/deps/install/lib -Wl,-rpath -Wl,/deps/shared/install/lib -L/deps/install/lib -L/deps/shared/install/lib"
 
 ADD bin/apt-install-pkgs /usr/local/bin/
-ADD bin/install-shared-deps-awslc.sh /usr/local/bin/
-RUN install-shared-deps-awslc.sh
-
-ADD bin/install-aws-deps.sh /usr/local/bin
-RUN install-aws-deps.sh
 
 ADD bin/install-node.sh /usr/local/bin
 RUN install-node.sh
-
-ADD bin/codebuild-test.sh /usr/local/bin/
 
 # Remove apt proxy configuration before publishing the dockerfile
 RUN rm -f /etc/apt/apt.conf.d/99proxy
