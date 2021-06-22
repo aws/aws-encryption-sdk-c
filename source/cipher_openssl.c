@@ -80,7 +80,7 @@ static void ECDSA_SIG_set0(ECDSA_SIG *sig, BIGNUM *r, BIGNUM *s) {
 
 static void aws_cryptosdk_free(void *orig_ptr) {
 #if defined(OPENSSL_IS_AWSLC)
-    // All memory returned by BoringSSL/awslc API calls must  
+    // All memory returned by BoringSSL/awslc API calls must
     // generally be freed using |OPENSSL_free|.
     OPENSSL_free(orig_ptr);
 #else
