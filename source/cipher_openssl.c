@@ -19,9 +19,9 @@
 #include <openssl/base.h>
 
 #if defined(OPENSSL_IS_AWSLC)
-#include <openssl/obj.h>
-#include <openssl/asn1t.h>
-#include <openssl/asn1.h>
+#    include <openssl/asn1.h>
+#    include <openssl/asn1t.h>
+#    include <openssl/obj.h>
 #endif
 
 #include <openssl/crypto.h>
