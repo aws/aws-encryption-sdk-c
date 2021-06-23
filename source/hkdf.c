@@ -16,9 +16,6 @@
 #include <aws/common/byte_buf.h>
 #include <aws/cryptosdk/error.h>
 #include <aws/cryptosdk/private/hkdf.h>
-#if defined(__linux__)
-#    include <openssl/base.h>
-#endif
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/opensslv.h>
