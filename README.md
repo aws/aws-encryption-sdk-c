@@ -9,6 +9,8 @@ Also, see the [API documentation](https://aws.github.io/aws-encryption-sdk-c/htm
 
 [Security issue notifications](./CONTRIBUTING.md#security-issue-notifications)
 
+See [Support Policy](./SUPPORT_POLICY.rst) for for details on the current support status of all major versions of this library.
+
 ## Dependencies
 
 The only direct dependencies of this code are OpenSSL 1.0.2 or higher or 1.1.0 or higher and
