@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.3.0 -- 2021-06-16
+
+- AWS KMS multi-Region Key support
+
+  Added the new keyring KmsMrkAwareSymmetricKeyring that support AWS KMS
+  multi-Region keys.
+  Added the helper MultiKeyringBuilder that compose multiple
+  KmsMrkAwareSymmetricKeyrings together to handle multiple CMKs.
+
+  See https://docs.aws.amazon.com/kms/latest/developerguide/multi-region-keys-overview.html
+  for more details about AWS KMS multi-Region Keys.
+  See https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/configure.html#config-mrks
+  for more details about how the AWS Encryption SDK interoperates
+  with AWS KMS multi-Region keys.
+
+## 2.2.0 -- 2021-05-27
+
+* Improvements to the message decryption process.
+
+  See <https://github.com/aws/aws-encryption-sdk-c/security/advisories/GHSA-r8cc-xhh9-rg65>
+
 ## 2.0.0 -- 2020-09-24
 
 * Updates to the AWS Encryption SDK. c43d706

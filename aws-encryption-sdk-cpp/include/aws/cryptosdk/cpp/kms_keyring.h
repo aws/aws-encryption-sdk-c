@@ -201,6 +201,7 @@ class AWS_CRYPTOSDK_CPP_API CachingClientSupplier : public ClientSupplier {
     static std::shared_ptr<CachingClientSupplier> Create();
 
     /**
+     * If @param region is the empty string, then returns a KMS client in the SDK's default region.
      * If a client is already cached for this region, returns that one and provides a no-op callable.
      * If a client is not already cached for this region, returns a KMS client with default settings
      * and provides a callable which will cache the client. Never returns nullptr.
@@ -236,8 +237,6 @@ class AWS_CRYPTOSDK_CPP_API SingleClientSupplier : public ClientSupplier {
    private:
     std::shared_ptr<KMS::KMSClient> kms_client;
 };
-
-static const char *AWS_CRYPTO_SDK_DISCOVERY_FILTER_CLASS_TAG = "DiscoveryFilter";
 
 /**
  * Builder for DiscoveryFilter objects.

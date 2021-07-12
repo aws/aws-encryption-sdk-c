@@ -73,7 +73,14 @@ int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
 
     if (!session->alg_props) goto out;
     if (materials->unencrypted_data_key.len != session->alg_props->data_key_len) goto out;
-    if (!aws_array_list_length(&materials->encrypted_data_keys)) goto out;
+
+    size_t num_encrypted_data_keys = aws_array_list_length(&materials->encrypted_data_keys);
+    if (!num_encrypted_data_keys) goto out;
+    if (session->max_encrypted_data_keys && num_encrypted_data_keys > session->max_encrypted_data_keys) {
+        result = AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED;
+        goto out;
+    }
+
     // We should have a signature context iff this is a signed alg suite
     if (!!session->alg_props->signature_len != !!materials->signctx) goto out;
     if (!aws_cryptosdk_priv_algorithm_allowed_for_encrypt(materials->alg, session->commitment_policy)) {

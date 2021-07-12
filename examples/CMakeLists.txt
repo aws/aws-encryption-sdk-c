@@ -53,7 +53,10 @@ if (BUILD_AWS_ENC_SDK_CPP)
         list(APPEND example_env_vars
             AWS_ENC_SDK_EXAMPLE_KEY_ARN
             AWS_ENC_SDK_EXAMPLE_KEY_ARN_US_WEST_2
-            AWS_ENC_SDK_EXAMPLE_KEY_ARN_EU_CENTRAL_1)
+            AWS_ENC_SDK_EXAMPLE_KEY_ARN_EU_CENTRAL_1
+            AWS_ENC_SDK_EXAMPLE_MRK_KEY_ARN_1
+            AWS_ENC_SDK_EXAMPLE_MRK_KEY_ARN_2
+            )
         foreach (env_var ${example_env_vars})
             if (NOT DEFINED ENV{${env_var}})
                 message(SEND_ERROR ${env_var} " environment variable not set; some examples may fail")
@@ -74,6 +77,7 @@ if (BUILD_AWS_ENC_SDK_CPP)
           $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN})
         aws_add_test(example_string_legacy_compatibility ${CMAKE_CURRENT_BINARY_DIR}/string_legacy_compatibility
           $ENV{AWS_ENC_SDK_EXAMPLE_KEY_ARN})
+        aws_add_test(example_kms_multi_region_keys ${CMAKE_CURRENT_BINARY_DIR}/kms_multi_region_keys $ENV{AWS_ENC_SDK_EXAMPLE_MRK_KEY_ARN_1} $ENV{AWS_ENC_SDK_EXAMPLE_MRK_KEY_ARN_2})
 
         set_tests_properties(example_file_streaming PROPERTIES FIXTURES_REQUIRED Examples)
     endif()

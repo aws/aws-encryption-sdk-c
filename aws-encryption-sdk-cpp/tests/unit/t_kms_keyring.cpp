@@ -58,6 +58,7 @@ struct TestValues {
     const char *pt = "Random plain txt";  // 16 bytes = AES-128 data key
     const char *ct = "expected_ct";
     const static char *key_id;
+    const static char *key_region;
     const char *provider_id = "aws-kms";
 
     struct aws_allocator *allocator;
@@ -117,7 +118,8 @@ struct TestValues {
     }
 };
 
-const char *TestValues::key_id = "arn:aws:kms:us-west-2:658956600833:key/01234567-89ab-cdef-fedc-ba9876543210";
+const char *TestValues::key_id     = "arn:aws:kms:us-west-2:658956600833:key/01234567-89ab-cdef-fedc-ba9876543210";
+const char *TestValues::key_region = "us-west-2";
 
 struct EncryptTestValues : public TestValues {
     enum aws_cryptosdk_alg_id alg;
@@ -1853,6 +1855,68 @@ int decryptMultiAccountDiscoveryFilter_someAuthorizedEdks_decryptsSecondIfFirstC
     return 0;
 }
 
+// Postcondition: If the caller provides a KMS client, then BuildClientSupplier MUST return a client supplier wrapping the provided client.
+int buildClientSupplier_withClient() {
+    TestValues test_values;
+    std::shared_ptr<Aws::KMS::KMSClient> client(test_values.kms_client_mock);
+    auto client_supplier = Private::BuildClientSupplier({}, client, nullptr);
+    std::function<void()> report_success;
+    TEST_ASSERT(client_supplier->GetClient("region", report_success) == client);
+
+    return 0;
+}
+
+// Postcondition: If the caller provides only one key ID and a client supplier, then BuildClientSupplier MUST call the client supplier to obtain a KMS client in the key's region. BuildClientSupplier MUST return a client supplier that only supplies the obtained KMS client.
+int buildClientSupplier_withSingleKeyAndClientSupplier() {
+    TestValues test_values;
+    auto client_supplier_mock(Aws::MakeShared<KmsClientSupplierMock>(CLASS_TAG));
+    Aws::Vector<Aws::String> key_ids{ test_values.key_id };
+    auto client_supplier = Private::BuildClientSupplier(key_ids, nullptr, client_supplier_mock);
+
+    TEST_ASSERT(client_supplier_mock->GetClientMocksMap().size() == 1);
+    auto single_client = client_supplier_mock->GetClientMock(test_values.key_region);
+    TEST_ASSERT((bool)single_client);
+
+    std::function<void()> report_success;
+    TEST_ASSERT(client_supplier->GetClient(test_values.key_region, report_success) == single_client);
+
+    return 0;
+}
+
+// Postcondition: If the caller provides only one key ID and no client supplier, then BuildClientSupplier MUST create a KMS client in the key's region, and it MUST return a client supplier that only supplies the created KMS client.
+int buildClientSupplier_withSingleKeyAndNoClientSupplier() {
+    TestValues test_values;
+    Aws::Vector<Aws::String> key_ids{ test_values.key_id };
+    auto client_supplier = Private::BuildClientSupplier(key_ids, nullptr, nullptr);
+
+    // Note: the KMS client interface doesn't expose its region, so we can't actually test it
+    std::function<void()> report_success;
+    TEST_ASSERT((bool)client_supplier->GetClient(test_values.key_region, report_success));
+
+    return 0;
+}
+
+// Postcondition: If the caller provides a client supplier, and provides zero or at least two key IDs, then BuildClientSupplier MUST return the provided client supplier.
+int buildClientSupplier_withZeroOrMultipleKeysAndClientSupplier() {
+    TestValues test_values;
+    auto client_supplier_mock(Aws::MakeShared<KmsClientSupplierMock>(CLASS_TAG));
+    TEST_ASSERT(Private::BuildClientSupplier({}, nullptr, client_supplier_mock) == client_supplier_mock);
+    TEST_ASSERT(
+        Private::BuildClientSupplier({ test_values.key_id, test_values.key_id }, nullptr, client_supplier_mock) ==
+        client_supplier_mock);
+
+    return 0;
+}
+
+// Postcondition: If the caller does not provide a client supplier, and provides zero or at least two key IDs, then BuildClientSupplier MUST return a default client supplier.
+int buildClientSupplier_withZeroOrMultipleKeysAndNoClientSupplier() {
+    TestValues test_values;
+    TEST_ASSERT((bool)Private::BuildClientSupplier({}, nullptr, nullptr));
+    TEST_ASSERT((bool)Private::BuildClientSupplier({ test_values.key_id, test_values.key_id }, nullptr, nullptr));
+
+    return 0;
+}
+
 int main() {
     Aws::SDKOptions *options = Aws::New<Aws::SDKOptions>(CLASS_TAG);
     Aws::InitAPI(*options);
@@ -1930,6 +1994,13 @@ int main() {
     RUN_TEST(decryptMultiAccountDiscoveryFilter_mismatchedProviderInfoPartition_returnsFailureWithoutKmsCall());
     RUN_TEST(decryptMultiAccountDiscoveryFilter_someAuthorizedEdks_onlyCallsKmsForAuthorizedEdks());
     RUN_TEST(decryptMultiAccountDiscoveryFilter_someAuthorizedEdks_decryptsSecondIfFirstCallFails());
+
+    // BuildClientSupplier helper
+    RUN_TEST(buildClientSupplier_withClient());
+    RUN_TEST(buildClientSupplier_withSingleKeyAndClientSupplier());
+    RUN_TEST(buildClientSupplier_withSingleKeyAndNoClientSupplier());
+    RUN_TEST(buildClientSupplier_withZeroOrMultipleKeysAndClientSupplier());
+    RUN_TEST(buildClientSupplier_withZeroOrMultipleKeysAndNoClientSupplier());
 
     Aws::ShutdownAPI(*options);
     Aws::Delete(options);

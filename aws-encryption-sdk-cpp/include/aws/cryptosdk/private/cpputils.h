@@ -21,6 +21,7 @@
 #include <aws/common/byte_buf.h>
 #include <aws/common/hash_table.h>
 #include <aws/common/string.h>
+#include <aws/core/utils/ARN.h>
 #include <aws/core/utils/Array.h>
 #include <aws/core/utils/memory/stl/AWSMap.h>
 #include <aws/core/utils/memory/stl/AWSString.h>
@@ -92,6 +93,95 @@ int append_key_dup_to_edks(
  */
 AWS_CRYPTOSDK_CPP_API
 Aws::String parse_region_from_kms_key_arn(const Aws::String &key_id);
+
+/**
+ * Class that prevents memory leak of local array lists (even if a function throws).
+ * When the object is destroyed it will clean up the lists.
+ */
+class AWS_CRYPTOSDK_CPP_API ListRaii {
+   public:
+    ListRaii(
+        int (*init_fn)(struct aws_allocator *, struct aws_array_list *), void (*clean_up_fn)(struct aws_array_list *))
+        : init_fn(init_fn), clean_up_fn(clean_up_fn) {}
+    ~ListRaii();
+
+    int Create(struct aws_allocator *alloc);
+
+    struct aws_array_list list;
+
+   private:
+    int (*init_fn)(struct aws_allocator *, struct aws_array_list *);
+    void (*clean_up_fn)(struct aws_array_list *);
+    bool initialized;
+};
+
+/**
+ * Returns true if the first string starts with the second string, or false
+ * otherwise.
+ */
+AWS_CRYPTOSDK_CPP_API
+bool starts_with(const Aws::String &s1, const Aws::String &s2);
+
+/**
+ * Returns true if the given ARN is a valid AWS KMS key ARN.
+ *
+ * Note that the definition of a valid KMS key ARN is more restrictive than the
+ * definition of a valid ARN. In particular, KMS key ARNs have the following
+ * additional constraints:
+ *   - the partition must not be empty
+ *   - the service must be "kms"
+ *   - the region must not be empty
+ *   - the account must not be empty
+ *   - the resource must not be empty
+ *   - the resource type must be "alias" or "key"
+ *   - the resource ID must not be empty
+ */
+AWS_CRYPTOSDK_CPP_API
+bool is_valid_kms_key_arn(const Aws::Utils::ARN &arn);
+
+/**
+ * Returns true if the given string is a valid AWS KMS key identifier.
+ */
+AWS_CRYPTOSDK_CPP_API
+bool is_valid_kms_identifier(const Aws::String &ident);
+
+/**
+ * Returns true if the given string is a valid AWS KMS MRK key ARN.
+ */
+AWS_CRYPTOSDK_CPP_API
+bool is_kms_mrk_arn(const Aws::Utils::ARN &key_arn);
+
+/**
+ * Returns true if the given KMS key identifier represents a multi-Region key
+ * ID, or false otherwise.
+ *
+ * For example, returns true for
+ *   - "arn:aws:kms:us-east-1:2222222222222:key/mrk-4321abcd12ab34cd56ef1234567890ab"
+ *   - "mrk-4321abcd12ab34cd56ef1234567890ab"
+ *
+ * but returns false for
+ *   - "arn:aws:kms:us-east-1:2222222222222:key/1234abcd-12ab-34cd-56ef-1234567890ab"
+ *   - "arn:aws:kms:us-west-2:111122223333:alias/test-key"
+ *   - "1234abcd-12ab-34cd-56ef-1234567890ab"
+ *   - "alias/test-key"
+ */
+AWS_CRYPTOSDK_CPP_API
+bool is_kms_mrk_identifier(const Aws::String &key_id);
+
+/**
+ * Returns true if the given KMS key identifiers are identical or both are MRK
+ * identifiers that differ only by region, or returns false otherwise.
+ */
+AWS_CRYPTOSDK_CPP_API
+bool kms_mrk_match_for_decrypt(const Aws::String &key_id_1, const Aws::String &key_id_2);
+
+/**
+ * Returns a vector of all input key IDs representing AWS KMS MRKs that share a
+ * resource ID with another input MRK ID. If there are no such key IDs, returns
+ * an empty vector.
+ */
+AWS_CRYPTOSDK_CPP_API
+Aws::Vector<Aws::String> find_duplicate_kms_mrk_ids(const Aws::Vector<Aws::String> &key_ids);
 
 }  // namespace Private
 }  // namespace Cryptosdk
