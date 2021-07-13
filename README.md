@@ -95,6 +95,8 @@ Now, build and install the AWS Encryption SDK for C:
 
 **Note**: See the [docker-images folder](https://github.com/aws/aws-encryption-sdk-c/tree/master/docker-images) for some Windows build recipes that automate many of these steps.
 
+**Note**: These instructions do not yet correctly build a statically-linked AWS Encryption SDK for C on Windows systems, i.e. with `-DBUILD_SHARED_LIBS=OFF`. We will update this README with instructions for that configuration soon.
+
 Install Visual Studio version 15 or later with the Windows Universal C Runtime and [Git for Windows](https://git-scm.com/download/win).
 
 Use the "x64 Native Tools Command Prompt" for all commands listed here. Run the following commands in the directory where you want to do the build and installation.
@@ -112,7 +114,7 @@ AWS Encryption SDK, you have the option to build only the AWS KMS SDK. Add the `
 
 Follow [these instructions](https://docs.aws.amazon.com/sdk-for-cpp/v1/developer-guide/setup-windows.html#setup-windows-from-source), using `-DCMAKE_TOOLCHAIN_FILE` as described in the vcpkg setup instructions. Add `-DBUILD_SHARED_LIBS=ON` for shared libraries or `-DBUILD_SHARED_LIBS=OFF` for static libraries.
 
-Now, build and install the AWS Encryption SDK for C. Be sure to update `-DCMAKE_TOOLCHAIN_FILE` in the commands below. Change `-DBUILD_SHARED_LIBS=ON` to `OFF` if building static libraries.
+Now, build and install the AWS Encryption SDK for C. Be sure to update `-DCMAKE_TOOLCHAIN_FILE` in the commands below.
 
 Update `-DCMAKE_PREFIX_PATH` to the location of your AWS SDK for C++ and aws-c-common installations.
 
