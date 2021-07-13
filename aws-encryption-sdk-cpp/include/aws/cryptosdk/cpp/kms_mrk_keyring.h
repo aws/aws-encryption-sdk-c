@@ -16,6 +16,7 @@
 #define AWS_ENCRYPTION_SDK_KMS_MRK_KEYRING_H
 
 #include <aws/cryptosdk/cpp/exports.h>
+#include <aws/cryptosdk/cpp/kms_keyring.h>
 
 #include <aws/core/Aws.h>
 #include <aws/core/utils/Outcome.h>
