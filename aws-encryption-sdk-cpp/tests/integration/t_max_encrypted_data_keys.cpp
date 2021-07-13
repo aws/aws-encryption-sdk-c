@@ -30,6 +30,7 @@
 #include <aws/cryptosdk/multi_keyring.h>
 #include <aws/cryptosdk/private/header.h>
 
+#include "credential_reusing_client_supplier.h"
 #include "edks_utils.h"
 #include "logutils.h"
 #include "test_crypto.h"
@@ -55,6 +56,11 @@ static const Aws::String PT_BYTES = "foobar";
 
 static uint8_t encrypt_output[BUFFER_SIZE];
 static uint8_t decrypt_output[BUFFER_SIZE];
+static std::shared_ptr<KmsKeyring::ClientSupplier> client_supplier;
+
+static void setup_all() {
+    client_supplier = Aws::Cryptosdk::Testing::CredentialCachingClientSupplier::Create();
+}
 
 static void setup_test() {
     memset(encrypt_output, 0, sizeof(encrypt_output));
@@ -97,7 +103,8 @@ static aws_cryptosdk_keyring *kms_keyring_with_n_edks(size_t num_edks) {
     for (size_t edk_idx = 1; edk_idx < num_edks; ++edk_idx) {
         extra_key_arns.push_back(KEY_ARN);
     }
-    struct aws_cryptosdk_keyring *kr = Aws::Cryptosdk::KmsKeyring::Builder().Build(KEY_ARN, extra_key_arns);
+    struct aws_cryptosdk_keyring *kr =
+        Aws::Cryptosdk::KmsKeyring::Builder().WithClientSupplier(client_supplier).Build(KEY_ARN, extra_key_arns);
     if (!kr) abort();
     return kr;
 }
@@ -173,6 +180,7 @@ static int decrypt_more_than_max_edks() {
 }
 
 static int run_tests() {
+    setup_all();
     RUN_TEST(encrypt_less_than_max_edks());
     RUN_TEST(encrypt_equal_to_max_edks());
     RUN_TEST(encrypt_more_than_max_edks());

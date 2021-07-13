@@ -96,6 +96,12 @@ class AWS_CRYPTOSDK_CPP_API DiscoveryFilterImpl : public KmsKeyring::DiscoveryFi
         : DiscoveryFilter(partition, account_ids) {}
 };
 
+AWS_CRYPTOSDK_CPP_API
+std::shared_ptr<KmsKeyring::ClientSupplier> BuildClientSupplier(
+    const Aws::Vector<Aws::String> &key_ids,
+    const std::shared_ptr<Aws::KMS::KMSClient> kms_client,
+    std::shared_ptr<KmsKeyring::ClientSupplier> client_supplier);
+
 }  // namespace Private
 }  // namespace Cryptosdk
 }  // namespace Aws

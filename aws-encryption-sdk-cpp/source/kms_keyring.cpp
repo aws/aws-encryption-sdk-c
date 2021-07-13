@@ -37,8 +37,9 @@ using Private::aws_byte_buf_dup_from_aws_utils;
 using Private::aws_map_from_c_aws_hash_table;
 using Private::aws_utils_byte_buffer_from_c_aws_byte_buf;
 
-static const char *AWS_CRYPTO_SDK_KMS_CLASS_TAG = "KmsKeyring";
-static const char *KEY_PROVIDER_STR             = "aws-kms";
+static const char *AWS_CRYPTO_SDK_KMS_CLASS_TAG              = "KmsKeyring";
+static const char *AWS_CRYPTO_SDK_DISCOVERY_FILTER_CLASS_TAG = "DiscoveryFilter";
+static const char *KEY_PROVIDER_STR                          = "aws-kms";
 
 static void DestroyKeyring(struct aws_cryptosdk_keyring *keyring) {
     auto keyring_data_ptr = static_cast<Aws::Cryptosdk::Private::KmsKeyringImpl *>(keyring);
@@ -165,31 +166,6 @@ static int OnEncrypt(
     struct aws_array_list *edk_list,
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg) {
-    // Class that prevents memory leak of local array lists (even if a function throws)
-    // When the object is destroyed it will clean up the lists
-    class ListRaii {
-       public:
-        ListRaii(
-            int (*init_fn)(struct aws_allocator *, struct aws_array_list *),
-            void (*clean_up_fn)(struct aws_array_list *))
-            : init_fn(init_fn), clean_up_fn(clean_up_fn) {}
-        ~ListRaii() {
-            if (initialized) clean_up_fn(&list);
-        }
-        int Create(struct aws_allocator *alloc) {
-            int rv = init_fn(alloc, &list);
-            if (!rv) initialized = true;
-            return rv;
-        }
-
-        struct aws_array_list list;
-
-       private:
-        int (*init_fn)(struct aws_allocator *, struct aws_array_list *);
-        void (*clean_up_fn)(struct aws_array_list *);
-        bool initialized;
-    };
-
     if (!keyring || !request_alloc || !unencrypted_data_key || !edk_list || !enc_ctx) {
         abort();
     }
@@ -200,8 +176,8 @@ static int OnEncrypt(
         return AWS_OP_SUCCESS;
     }
 
-    ListRaii my_edks(aws_cryptosdk_edk_list_init, aws_cryptosdk_edk_list_clean_up);
-    ListRaii my_keyring_trace(aws_cryptosdk_keyring_trace_init, aws_cryptosdk_keyring_trace_clean_up);
+    Private::ListRaii my_edks(aws_cryptosdk_edk_list_init, aws_cryptosdk_edk_list_clean_up);
+    Private::ListRaii my_keyring_trace(aws_cryptosdk_keyring_trace_init, aws_cryptosdk_keyring_trace_clean_up);
     int rv = my_edks.Create(request_alloc);
     if (rv) return rv;
     rv = my_keyring_trace.Create(request_alloc);
@@ -341,16 +317,18 @@ Aws::Cryptosdk::Private::KmsKeyringImpl::KmsKeyringImpl(
     aws_cryptosdk_keyring_base_init(this, &kms_keyring_vt);
 }
 
-static std::shared_ptr<KMS::KMSClient> CreateDefaultKmsClient(const Aws::String &region) {
+static std::shared_ptr<KMS::KMSClient> CreateDefaultKmsClient(const char *allocationTag, const Aws::String &region) {
     Aws::Client::ClientConfiguration client_configuration;
-    client_configuration.region = region;
+    if (!region.empty()) {
+        client_configuration.region = region;
+    }
     client_configuration.userAgent += " " AWS_CRYPTOSDK_PRIVATE_VERSION_UA "/kms-keyring-cpp";
 #ifdef VALGRIND_TESTS
     // When running under valgrind, the default timeouts are too slow
     client_configuration.requestTimeoutMs = 10000;
     client_configuration.connectTimeoutMs = 10000;
 #endif
-    return Aws::MakeShared<Aws::KMS::KMSClient>(AWS_CRYPTO_SDK_KMS_CLASS_TAG, client_configuration);
+    return Aws::MakeShared<Aws::KMS::KMSClient>(allocationTag, client_configuration);
 }
 
 std::shared_ptr<KmsKeyring::SingleClientSupplier> KmsKeyring::SingleClientSupplier::Create(
@@ -377,7 +355,7 @@ std::shared_ptr<KMS::KMSClient> KmsKeyring::CachingClientSupplier::GetClient(
             return cache.at(region);
         }
     }
-    auto client    = CreateDefaultKmsClient(region);
+    auto client    = CreateDefaultKmsClient(AWS_CRYPTO_SDK_KMS_CLASS_TAG, region);
     report_success = [this, region, client] {
         std::unique_lock<std::mutex> lock(this->cache_mutex);
         this->cache[region] = client;
@@ -385,20 +363,35 @@ std::shared_ptr<KMS::KMSClient> KmsKeyring::CachingClientSupplier::GetClient(
     return client;
 }
 
-static std::shared_ptr<KmsKeyring::ClientSupplier> BuildClientSupplier(
+std::shared_ptr<KmsKeyring::ClientSupplier> Aws::Cryptosdk::Private::BuildClientSupplier(
     const Aws::Vector<Aws::String> &key_ids,
     const std::shared_ptr<Aws::KMS::KMSClient> kms_client,
     std::shared_ptr<KmsKeyring::ClientSupplier> client_supplier) {
+    // Postcondition: If the caller provides a KMS client, then BuildClientSupplier MUST return a client supplier wrapping the provided client.
     if (kms_client) {
         return KmsKeyring::SingleClientSupplier::Create(kms_client);
     }
 
     if (key_ids.size() == 1) {
         Aws::String region = Private::parse_region_from_kms_key_arn(key_ids.front());
-        return KmsKeyring::SingleClientSupplier::Create(CreateDefaultKmsClient(region));
+        std::shared_ptr<Aws::KMS::KMSClient> single_kms_client;
+        if (client_supplier) {
+            // Postcondition: If the caller provides only one key ID and a client supplier, then BuildClientSupplier MUST call the client supplier to obtain a KMS client in the key's region. BuildClientSupplier MUST return a client supplier that only supplies the obtained KMS client.
+            std::function<void()> report_success;
+            single_kms_client = client_supplier->GetClient(region, report_success);
+            report_success();
+        } else {
+            // Postcondition: If the caller provides only one key ID and no client supplier, then BuildClientSupplier MUST create a KMS client in the key's region, and it MUST return a client supplier that only supplies the created KMS client.
+            single_kms_client = CreateDefaultKmsClient(AWS_CRYPTO_SDK_KMS_CLASS_TAG, region);
+        }
+        return KmsKeyring::SingleClientSupplier::Create(single_kms_client);
     }
 
-    return client_supplier ? client_supplier : KmsKeyring::CachingClientSupplier::Create();
+    return client_supplier
+               // Postcondition: If the caller provides a client supplier, and provides zero or at least two key IDs, then BuildClientSupplier MUST return the provided client supplier.
+               ? client_supplier
+               // Postcondition: If the caller does not provide a client supplier, and provides zero or at least two key IDs, then BuildClientSupplier MUST return a default client supplier.
+               : KmsKeyring::CachingClientSupplier::Create();
 }
 
 aws_cryptosdk_keyring *KmsKeyring::Builder::Build(
@@ -423,7 +416,7 @@ aws_cryptosdk_keyring *KmsKeyring::Builder::Build(
         AWS_CRYPTO_SDK_KMS_CLASS_TAG,
         my_key_ids,
         grant_tokens,
-        BuildClientSupplier(my_key_ids, kms_client, client_supplier));
+        Private::BuildClientSupplier(my_key_ids, kms_client, client_supplier));
 }
 
 aws_cryptosdk_keyring *KmsKeyring::Builder::BuildDiscovery() const {
@@ -432,7 +425,7 @@ aws_cryptosdk_keyring *KmsKeyring::Builder::BuildDiscovery() const {
         AWS_CRYPTO_SDK_KMS_CLASS_TAG,
         empty_key_ids_list,
         grant_tokens,
-        BuildClientSupplier(empty_key_ids_list, kms_client, client_supplier));
+        Private::BuildClientSupplier(empty_key_ids_list, kms_client, client_supplier));
 }
 
 aws_cryptosdk_keyring *KmsKeyring::Builder::BuildDiscovery(std::shared_ptr<DiscoveryFilter> discovery_filter) const {
@@ -445,7 +438,7 @@ aws_cryptosdk_keyring *KmsKeyring::Builder::BuildDiscovery(std::shared_ptr<Disco
         AWS_CRYPTO_SDK_KMS_CLASS_TAG,
         empty_key_ids_list,
         grant_tokens,
-        BuildClientSupplier(empty_key_ids_list, kms_client, client_supplier),
+        Private::BuildClientSupplier(empty_key_ids_list, kms_client, client_supplier),
         discovery_filter);
 }
 
@@ -521,7 +514,7 @@ std::shared_ptr<KmsKeyring::DiscoveryFilter> KmsKeyring::DiscoveryFilterBuilder:
     }
 
     return Aws::MakeShared<Private::DiscoveryFilterImpl>(
-        KmsKeyring::AWS_CRYPTO_SDK_DISCOVERY_FILTER_CLASS_TAG, partition, account_ids);
+        AWS_CRYPTO_SDK_DISCOVERY_FILTER_CLASS_TAG, partition, account_ids);
 }
 
 }  // namespace Cryptosdk

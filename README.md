@@ -9,6 +9,8 @@ Also, see the [API documentation](https://aws.github.io/aws-encryption-sdk-c/htm
 
 [Security issue notifications](./CONTRIBUTING.md#security-issue-notifications)
 
+See [Support Policy](./SUPPORT_POLICY.rst) for for details on the current support status of all major versions of this library.
+
 ## Building the AWS Encryption SDK for C with support for AWS KMS
 
 We will demonstrate some simple build recipes for Linux, Mac, and Windows operating systems. These 

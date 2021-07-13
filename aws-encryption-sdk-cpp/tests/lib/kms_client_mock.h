@@ -26,6 +26,8 @@
 #include <aws/kms/model/GenerateDataKeyResult.h>
 #include <deque>
 
+#include <aws/cryptosdk/cpp/kms_keyring.h>
+
 #include "exports.h"
 
 namespace Aws {
@@ -74,6 +76,27 @@ class TESTLIB_CPP_API KmsClientMock : public Aws::KMS::KMSClient {
     Model::GenerateDataKeyOutcome generate_dk_return;
 
     Aws::Vector<Aws::String> grant_tokens;
+};
+
+class TESTLIB_CPP_API KmsClientSupplierMock : public Aws::Cryptosdk::KmsKeyring::ClientSupplier {
+   public:
+    KmsClientSupplierMock()  = default;
+    ~KmsClientSupplierMock() = default;
+    std::shared_ptr<KMS::KMSClient> GetClient(const Aws::String &region, std::function<void()> &report_success);
+
+    /**
+     * Returns the KmsClientMock constructed for the given region if it's been
+     * requested before (via GetClient), or an empty shared_ptr otherwise.
+     */
+    const std::shared_ptr<KmsClientMock> GetClientMock(const Aws::String &region) const;
+
+    /**
+     * Returns a read-only view of the internal map of KmsClientMock objects.
+     */
+    const Aws::Map<Aws::String, std::shared_ptr<KmsClientMock>> &GetClientMocksMap() const;
+
+   private:
+    mutable Aws::Map<Aws::String, std::shared_ptr<KmsClientMock>> kms_client_mocks;
 };
 
 }  // namespace Testing

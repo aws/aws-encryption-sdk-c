@@ -122,7 +122,9 @@ int aws_cryptosdk_keyring_on_encrypt(
     }
 
     /* Postcondition: If data key was generated before call, byte buffer must not have been
-     * modified. Note that this only checks the metadata in the byte buffer and not the key
+     * modified.
+     *
+     * Note that this only checks the metadata in the byte buffer and not the key
      * bytes themselves. Verifying the key bytes were unchanged would require making an extra
      * copy of the key bytes, a case of the cure being worse than the disease.
      */

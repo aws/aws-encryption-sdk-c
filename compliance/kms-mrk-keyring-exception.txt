@@ -1,0 +1,18 @@
+// The AWS Encryption SDK for C accepts client suppliers for both single- and
+// multi-keyrings.
+
+//= compliance/framework/aws-kms/aws-kms-mrk-aware-symmetric-keyring.txt#2.6
+//= type=exception
+//# The AWS KMS SDK client MUST NOT be null.
+
+//= compliance/framework/aws-kms/aws-kms-mrk-aware-symmetric-region-discovery-keyring.txt#2.6
+//= type=exception
+//# It
+//# SHOULD obtain this information directly from the client as opposed to
+//# having an additional parameter.
+
+//= compliance/framework/aws-kms/aws-kms-mrk-aware-symmetric-region-discovery-keyring.txt#2.6
+//= type=exception
+//# However if it can not, then it MUST
+//# NOT create the client itself.
+
