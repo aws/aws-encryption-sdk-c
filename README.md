@@ -32,7 +32,7 @@ AWS SDK for C++ is supported by version v1.0.1 of the AWS Encryption SDK for C.
 
 For best results, create an EC2 instance with an instance profile that at a
 minimum has AWS KMS permissions for Encrypt, Decrypt, and GenerateDataKey for
-at least one AWS KMS CMK in your account. You will not need any other AWS
+at least one KMS key in your account. You will not need any other AWS
 permissions to use the AWS Encryption SDK for C.
 
 ### Dependencies
