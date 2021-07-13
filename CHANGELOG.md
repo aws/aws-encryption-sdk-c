@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.1 -- 2021-07-13
+
+* Add [support policy](SUPPORT_POLICY.rst).
+* Fix missing include in `kms_mrk_keyring.h` that could result in compilation failure.
+
 ## 2.3.0 -- 2021-06-16
 
 - AWS KMS multi-Region Key support
