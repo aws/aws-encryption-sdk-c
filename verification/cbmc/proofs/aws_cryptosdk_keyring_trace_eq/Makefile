@@ -43,4 +43,6 @@ UNWINDSET += ensure_trace_has_allocated_records.0:$(call addone,$(MAX_ITEM_SIZE)
 UNWINDSET += memcmp.0:$(call addone,$(MAX_STRING_LEN))
 ###########
 
+EXPENSIVE = true
+
 include ../Makefile.common
