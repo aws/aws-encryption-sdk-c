@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.2 -- 2021-10-18
+
+### Maintenance
+
+* Removed OOM test, as OOM is no longer possible from aws allocators ([#728](https://github.com/aws/aws-encryption-sdk-c/pull/728)) 
+
 ## 2.3.1 -- 2021-07-13
 
 * Add [support policy](SUPPORT_POLICY.rst).
