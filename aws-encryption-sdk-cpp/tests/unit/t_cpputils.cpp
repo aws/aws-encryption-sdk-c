@@ -24,22 +24,6 @@ using namespace Aws::Cryptosdk::Testing;
 
 const char *TEST_STRING = "Hello World!";
 
-static void *s_bad_malloc(struct aws_allocator *allocator, size_t size) {
-    return NULL;
-}
-
-static void s_bad_free(struct aws_allocator *allocator, void *ptr) {}
-
-static void *s_bad_realloc(struct aws_allocator *allocator, void *ptr, size_t oldsize, size_t newsize) {
-    return NULL;
-}
-
-static struct aws_allocator default_bad_allocator = { s_bad_malloc, s_bad_free, s_bad_realloc };
-
-struct aws_allocator *t_aws_bad_allocator() {
-    return &default_bad_allocator;
-}
-
 int awsStringFromCAwsByteBuf_validInputs_returnAwsString() {
     struct aws_byte_buf b = aws_byte_buf_from_c_str(TEST_STRING);
     Aws::String b_string  = aws_string_from_c_aws_byte_buf(&b);
@@ -143,16 +127,6 @@ int appendKeyToEdks_appendSingleElement_elementIsAppended() {
     return 0;
 }
 
-int appendKeyToEdks_allocatorThatDoesNotAllocateMemory_returnsOomError() {
-    struct aws_allocator *oom_allocator = t_aws_bad_allocator();
-    EdksTestData ed;
-    TEST_ASSERT_ERROR(
-        AWS_ERROR_OOM,
-        t_append_c_str_key_to_edks(
-            oom_allocator, &ed.edks.encrypted_data_keys, &ed.enc, ed.data_key_id, ed.key_provider));
-    return 0;
-}
-
 int appendKeyToEdks_multipleElementsAppended_elementsAreAppended() {
     EdksTestData ed1;
     EdksTestData ed2("enc2", "dk2", "kp2");
@@ -234,7 +208,6 @@ int main() {
     RUN_TEST(awsStringFromCAwsByteBuf_validInputs_returnAwsString());
     RUN_TEST(awsUtilsByteBufferFromCAwsByteBuf_validInputs_returnAwsUtils());
     RUN_TEST(appendKeyToEdks_appendSingleElement_elementIsAppended());
-    RUN_TEST(appendKeyToEdks_allocatorThatDoesNotAllocateMemory_returnsOomError());
     RUN_TEST(appendKeyToEdks_multipleElementsAppended_elementsAreAppended());
     RUN_TEST(awsStringFromCAwsString_validInputs_returnAwsString());
     RUN_TEST(awsMapFromCAwsHashHable_hashMap_returnAwsMap());
