@@ -36,6 +36,7 @@ jobs:
           repository: "aws/aws-sdk-cpp"
           ref: "1.9.124"
           path: "aws-sdk-cpp"
+          submodules: recursive
 
       - name: Install dependencies
         run:
