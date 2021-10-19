@@ -51,7 +51,7 @@ set(PROJECT_NAME aws-encryption-sdk)
 # Version number of the SDK to be consumed by C code and Doxygen
 set(MAJOR 2)
 set(MINOR 3)
-set(PATCH 1)
+set(PATCH 2)
 
 # Compiler feature tests and feature flags
 set(USE_ASM TRUE
