@@ -8,6 +8,7 @@
 * Simplify / update build instructions ([#713](https://github.com/aws/aws-encryption-sdk-c/pull/713))
 * Update submodules ([#726](https://github.com/aws/aws-encryption-sdk-c/pull/726)) 
 * Remove OOM test, as OOM is no longer possible from aws allocators ([#728](https://github.com/aws/aws-encryption-sdk-c/pull/728)) 
+* Pin newer aws-sdk-cpp in macOS CI builds ([#729](https://github.com/aws/aws-encryption-sdk-c/pull/729))
 
 ## 2.3.1 -- 2021-07-13
 
