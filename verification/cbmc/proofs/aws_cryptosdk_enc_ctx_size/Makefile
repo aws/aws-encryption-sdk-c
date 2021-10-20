@@ -58,4 +58,6 @@ UNWINDSET += aws_cryptosdk_enc_ctx_size.0:$(call addone,$(MAX_TABLE_SIZE))
 UNWINDSET += memset_override_0_impl.0:$(call addone,$(TABLE_SIZE_IN_WORDS))
 ###########
 
+EXPENSIVE = true
+
 include ../Makefile.common

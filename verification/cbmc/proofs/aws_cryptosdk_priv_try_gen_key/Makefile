@@ -115,5 +115,7 @@ UNWINDSET += ensure_cryptosdk_edk_list_has_allocated_list_elements.0:$(call addo
 UNWINDSET += ensure_trace_has_allocated_records.0:$(call addone,$(MAX_TRACE_LIST_ITEMS))
 UNWINDSET += memcmp.0:$(call addone,$(MAX_BUFFER_SIZE))
 
+EXPENSIVE = true
+
 ###########
 include ../Makefile.common

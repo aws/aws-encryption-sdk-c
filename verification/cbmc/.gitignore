@@ -3,6 +3,7 @@ proofs/**/logs
 proofs/**/gotos
 proofs/**/report
 proofs/**/html
+proofs/output
 
 # Emitted by CBMC Viewer
 TAGS-*
