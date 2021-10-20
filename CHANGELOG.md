@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.9.1 -- 2021-10-20
+
+### Maintenance
+
+* Add [support policy](https://github.com/aws/aws-encryption-sdk-c/blob/master/SUPPORT_POLICY.rst)
+* CBMC CI upgrades ([#709](https://github.com/aws/aws-encryption-sdk-c/pull/709), [#710](https://github.com/aws/aws-encryption-sdk-c/pull/710), [#711](https://github.com/aws/aws-encryption-sdk-c/pull/711), [#722](https://github.com/aws/aws-encryption-sdk-c/pull/722), [#726](https://github.com/aws/aws-encryption-sdk-c/pull/726))
+* Simplify / update build instructions ([#713](https://github.com/aws/aws-encryption-sdk-c/pull/713))
+* Remove OOM test, as OOM is no longer possible from aws allocators ([#728](https://github.com/aws/aws-encryption-sdk-c/pull/728))
+* Pin newer aws-sdk-cpp in macOS CI builds ([#729](https://github.com/aws/aws-encryption-sdk-c/pull/729))
+
 ## 1.9.0 -- 2021-05-27
 
 * Improvements to the message decryption process.
