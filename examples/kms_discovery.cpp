@@ -210,8 +210,7 @@ int main(int argc, char **argv) {
     const Aws::String filter_account_id = parsed_arn_us_west_2.GetAccountId();
     std::shared_ptr<Aws::Cryptosdk::KmsKeyring::DiscoveryFilter> discovery_filter =
         Aws::Cryptosdk::KmsKeyring::DiscoveryFilter::Builder("aws").AddAccount(filter_account_id).Build();
-    decryption_keyrings.push_back(Aws::Cryptosdk::KmsKeyring::Builder()
-            .BuildDiscovery(discovery_filter));
+    decryption_keyrings.push_back(Aws::Cryptosdk::KmsKeyring::Builder().BuildDiscovery(discovery_filter));
 
     for (struct aws_cryptosdk_keyring *keyring : decryption_keyrings) {
         uint8_t plaintext_result[BUFFER_SIZE];
