@@ -116,7 +116,6 @@ int main(int argc, char **argv) {
 
     const char *key_arn_us_west_2    = argv[1];
     const char *key_arn_eu_central_1 = argv[2];
-    const char *aws_account_id       = argv[3];
 
     Aws::Utils::ARN parsed_arn_us_west_2(key_arn_us_west_2);
 
