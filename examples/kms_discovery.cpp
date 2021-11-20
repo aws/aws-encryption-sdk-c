@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <aws/core/utils/ARN.h>
 #include <aws/cryptosdk/cpp/kms_keyring.h>
 #include <aws/cryptosdk/session.h>
 
@@ -115,6 +116,9 @@ int main(int argc, char **argv) {
 
     const char *key_arn_us_west_2    = argv[1];
     const char *key_arn_eu_central_1 = argv[2];
+    const char *aws_account_id       = argv[3];
+
+    Aws::Utils::ARN parsed_arn_us_west_2(key_arn_us_west_2);
 
     struct aws_allocator *alloc         = aws_default_allocator();
     const char *plaintext_original      = "Hello world!";
@@ -197,6 +201,17 @@ int main(int argc, char **argv) {
     decryption_keyrings.push_back(Aws::Cryptosdk::KmsKeyring::Builder()
                                       .WithKmsClient(create_kms_client(Aws::Region::EU_CENTRAL_1))
                                       .BuildDiscovery());
+
+    /* This will only attempt to decrypt using keys owned by the specified AWS
+     * account. It will succeed if the message was encrypted with any KMS key
+     * owned by the specified AWS account and for which you have Decrypt
+     * permissions.
+     */
+    const Aws::String filter_account_id = parsed_arn_us_west_2.GetAccountId();
+    std::shared_ptr<Aws::Cryptosdk::KmsKeyring::DiscoveryFilter> discovery_filter =
+        Aws::Cryptosdk::KmsKeyring::DiscoveryFilter::Builder("aws").AddAccount(filter_account_id).Build();
+    decryption_keyrings.push_back(Aws::Cryptosdk::KmsKeyring::Builder()
+            .BuildDiscovery(discovery_filter));
 
     for (struct aws_cryptosdk_keyring *keyring : decryption_keyrings) {
         uint8_t plaintext_result[BUFFER_SIZE];
