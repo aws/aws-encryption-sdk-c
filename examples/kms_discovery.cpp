@@ -201,10 +201,9 @@ int main(int argc, char **argv) {
                                       .WithKmsClient(create_kms_client(Aws::Region::EU_CENTRAL_1))
                                       .BuildDiscovery());
 
-    /* This will only attempt to decrypt using keys owned by the specified AWS
-     * account. It will succeed if the message was encrypted with any KMS key
-     * owned by the specified AWS account and for which you have Decrypt
-     * permissions.
+    /* This will attempt to decrypt using only KMS keys in the specified AWS account.
+     * It will succeed if the message was encrypted with any KMS key in the
+     * specified AWS account and for which you have kms:Decrypt permission.
      */
     const Aws::String filter_account_id = parsed_arn_us_west_2.GetAccountId();
     std::shared_ptr<Aws::Cryptosdk::KmsKeyring::DiscoveryFilter> discovery_filter =
