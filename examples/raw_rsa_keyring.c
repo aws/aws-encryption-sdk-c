@@ -133,7 +133,12 @@ int main(int argc, char **argv) {
      * was used on encryption.
      */
     struct aws_cryptosdk_keyring *keyring = aws_cryptosdk_raw_rsa_keyring_new(
-        alloc, wrapping_key_namespace, wrapping_key_name, private_key_pem, public_key_pem, AWS_CRYPTOSDK_RSA_PKCS1);
+        alloc,
+        wrapping_key_namespace,
+        wrapping_key_name,
+        private_key_pem,
+        public_key_pem,
+        AWS_CRYPTOSDK_RSA_OAEP_SHA256_MGF1);
     if (!keyring) abort();
 
     /* The raw RSA keyring keeps its own copies of the PEM files, so we free
