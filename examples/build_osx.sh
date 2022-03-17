@@ -17,7 +17,7 @@
 set +ex
 
 OS=$(uname -s)
-AWS_SDK_CPP_VER="1.8.32"  #github versioned branch
+AWS_SDK_CPP_VER="1.9.217"  #github versioned branch
 BUILDROOT="/var/tmp/build-$(date +%s)"
 OPENSSL_VER="openssl@1.1" #note this is a brew label, not an exact version reference
 BUILDROOT="/var/tmp/build-$(date +%Y%m%d)"
