@@ -42,7 +42,7 @@ RUN update-cmake.sh
 # on our special versions of openssl/libcurl (or to depend on them at all for that matter).
 ENV LDFLAGS="-Wl,-rpath -Wl,/deps/install/lib -Wl,-rpath -Wl,/deps/shared/install/lib -L/deps/install/lib -L/deps/shared/install/lib"
 
-ENV OPENSSL_TAG=OpenSSL_1_0_2h
+ENV OPENSSL_TAG=OpenSSL_1_0_2zd
 ENV OPENSSL_PLATFORM=linux-x86_64
 
 ADD bin/apt-install-pkgs /usr/local/bin/
