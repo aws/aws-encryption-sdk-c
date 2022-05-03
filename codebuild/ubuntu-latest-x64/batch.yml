@@ -15,7 +15,7 @@ version: 0.2
 
 batch:
   fast-fail: false
-  build-list:
+  build-graph:
     - identifier: build_test_dynamic
       buildspec: codebuild/ubuntu-latest-x64/build_test.yml
       env:
@@ -26,11 +26,15 @@ batch:
       env:
         variables:
           TEST_MODE: static_debug
+      depends-on:
+        - build_test_dynamic
     - identifier: build_test_static_valgrind
       buildspec: codebuild/ubuntu-latest-x64/build_test.yml
       env:
         variables:
           TEST_MODE: static_valgrind
+      depends-on:
+        - build_test_static_debug
     - identifier: compliance
       buildspec: codebuild/ubuntu-latest-x64/compliance.yml
 
