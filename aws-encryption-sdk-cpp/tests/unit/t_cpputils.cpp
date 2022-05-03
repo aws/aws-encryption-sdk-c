@@ -24,22 +24,6 @@ using namespace Aws::Cryptosdk::Testing;
 
 const char *TEST_STRING = "Hello World!";
 
-static void *s_bad_malloc(struct aws_allocator *allocator, size_t size) {
-    return NULL;
-}
-
-static void s_bad_free(struct aws_allocator *allocator, void *ptr) {}
-
-static void *s_bad_realloc(struct aws_allocator *allocator, void *ptr, size_t oldsize, size_t newsize) {
-    return NULL;
-}
-
-static struct aws_allocator default_bad_allocator = { s_bad_malloc, s_bad_free, s_bad_realloc };
-
-struct aws_allocator *t_aws_bad_allocator() {
-    return &default_bad_allocator;
-}
-
 int awsStringFromCAwsByteBuf_validInputs_returnAwsString() {
     struct aws_byte_buf b = aws_byte_buf_from_c_str(TEST_STRING);
     Aws::String b_string  = aws_string_from_c_aws_byte_buf(&b);
@@ -143,16 +127,6 @@ int appendKeyToEdks_appendSingleElement_elementIsAppended() {
     return 0;
 }
 
-int appendKeyToEdks_allocatorThatDoesNotAllocateMemory_returnsOomError() {
-    struct aws_allocator *oom_allocator = t_aws_bad_allocator();
-    EdksTestData ed;
-    TEST_ASSERT_ERROR(
-        AWS_ERROR_OOM,
-        t_append_c_str_key_to_edks(
-            oom_allocator, &ed.edks.encrypted_data_keys, &ed.enc, ed.data_key_id, ed.key_provider));
-    return 0;
-}
-
 int appendKeyToEdks_multipleElementsAppended_elementsAreAppended() {
     EdksTestData ed1;
     EdksTestData ed2("enc2", "dk2", "kp2");
@@ -230,15 +204,303 @@ int parseRegionFromKmsKeyArn_invalidKeyArn_returnsEmpty() {
     return 0;
 }
 
+int isKmsMrkArn_compliance() {
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.8
+    //= type=test
+    //# This function MUST take a single AWS KMS ARN
+
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.8
+    //= type=test
+    //# If the input is an invalid AWS KMS ARN this function MUST error.
+    TEST_ASSERT(is_kms_mrk_arn(Aws::Utils::ARN("")) == false);
+
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.8
+    //= type=test
+    //# If resource type is "alias", this is an AWS KMS alias ARN and MUST
+    //# return false.
+    TEST_ASSERT(is_kms_mrk_arn(Aws::Utils::ARN("arn:aws:kms:us-east-1:2222222222222:alias/foobar")) == false);
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.8
+    //= type=test
+    //# If resource type is "key" and resource ID starts with
+    //# "mrk-", this is a AWS KMS multi-Region key ARN and MUST return true.
+    TEST_ASSERT(is_kms_mrk_arn(Aws::Utils::ARN("arn:aws:kms:us-east-1:2222222222222:key/mrk-foobar")) == true);
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.8
+    //= type=test
+    //# If resource type is "key" and resource ID does not start with "mrk-",
+    //# this is a (single-region) AWS KMS key ARN and MUST return false.
+    TEST_ASSERT(is_kms_mrk_arn(Aws::Utils::ARN("arn:aws:kms:us-east-1:2222222222222:key/foobar")) == false);
+
+    return 0;
+}
+
+int isKmsMrkIdentifier_compliance() {
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.9
+    //= type=test
+    //# This function MUST take a single AWS KMS identifier
+
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.9
+    //= type=test
+    //# If the input starts with "arn:", this MUST return the output of
+    //# identifying an an AWS KMS multi-Region ARN (aws-kms-key-
+    //# arn.md#identifying-an-an-aws-kms-multi-region-arn) called with this
+    //# input.
+    TEST_ASSERT(is_kms_mrk_identifier("") == false);
+    TEST_ASSERT(is_kms_mrk_identifier("arn:aws:kms:us-east-1:2222222222222:key/mrk-foobar") == true);
+
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.9
+    //= type=test
+    //# If the input starts with "alias/", this an AWS KMS alias and
+    //# not a multi-Region key id and MUST return false.
+    TEST_ASSERT(is_kms_mrk_identifier("alias/foobar") == false);
+
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.9
+    //= type=test
+    //# If the input starts
+    //# with "mrk-", this is a multi-Region key id and MUST return true.
+    TEST_ASSERT(is_kms_mrk_identifier("mrk-foobar") == true);
+
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.9
+    //= type=test
+    //# If
+    //# the input does not start with any of the above, this is not a multi-
+    //# Region key id and MUST return false.
+    TEST_ASSERT(is_kms_mrk_identifier("srk-foobar") == false);
+
+    return 0;
+}
+
+int isValidKmsKeyArn_validArn_returnsTrue() {
+    TEST_ASSERT(
+        is_valid_kms_key_arn(
+            Aws::Utils::ARN("arn:aws:kms:us-east-1:2222222222222:key/1234abcd-12ab-34cd-56ef-1234567890ab")) == true);
+    TEST_ASSERT(
+        is_valid_kms_key_arn(Aws::Utils::ARN(
+            "arn:fake-partition:kms:us-east-1:2222222222222:key/1234abcd-12ab-34cd-56ef-1234567890ab")) == true);
+    TEST_ASSERT(
+        is_valid_kms_key_arn(
+            Aws::Utils::ARN("arn:aws:kms:fake-region:2222222222222:key/1234abcd-12ab-34cd-56ef-1234567890ab")) == true);
+    TEST_ASSERT(
+        is_valid_kms_key_arn(
+            Aws::Utils::ARN("arn:aws:kms:us-east-1:fake-account:key/1234abcd-12ab-34cd-56ef-1234567890ab")) == true);
+    TEST_ASSERT(
+        is_valid_kms_key_arn(
+            Aws::Utils::ARN("arn:aws:kms:us-east-1:2222222222222:alias/1234abcd-12ab-34cd-56ef-1234567890ab")) == true);
+    TEST_ASSERT(is_valid_kms_key_arn(Aws::Utils::ARN("arn:aws:kms:us-east-1:2222222222222:key/fake-id")) == true);
+    TEST_ASSERT(
+        is_valid_kms_key_arn(Aws::Utils::ARN("arn:aws:kms:us-east-1:2222222222222:key/fake-id/with-forward-slash")) ==
+        true);
+
+    return 0;
+}
+
+int isValidKmsKeyArn_compliance() {
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.5
+    //= type=test
+    //# MUST start with string "arn"
+    TEST_ASSERT(is_valid_kms_key_arn(Aws::Utils::ARN("")) == false);
+    TEST_ASSERT(is_valid_kms_key_arn(Aws::Utils::ARN("not-arn")) == false);
+
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.5
+    //= type=test
+    //# The partition MUST be a non-empty
+    TEST_ASSERT(
+        is_valid_kms_key_arn(
+            Aws::Utils::ARN("arn::kms:us-east-1:2222222222222:key/1234abcd-12ab-34cd-56ef-1234567890ab")) == false);
+
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.5
+    //= type=test
+    //# The service MUST be the string "kms"
+    TEST_ASSERT(
+        is_valid_kms_key_arn(Aws::Utils::ARN(
+            "arn:aws:fake-service:us-east-1:2222222222222:key/1234abcd-12ab-34cd-56ef-1234567890ab")) == false);
+
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.5
+    //= type=test
+    //# The region MUST be a non-empty string
+    TEST_ASSERT(
+        is_valid_kms_key_arn(Aws::Utils::ARN("arn:aws:kms::2222222222222:key/1234abcd-12ab-34cd-56ef-1234567890ab")) ==
+        false);
+
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.5
+    //= type=test
+    //# The account MUST be a non-empty string
+    TEST_ASSERT(
+        is_valid_kms_key_arn(Aws::Utils::ARN("arn:aws:kms:us-east-1::key/1234abcd-12ab-34cd-56ef-1234567890ab")) ==
+        false);
+
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.5
+    //= type=test
+    //# The resource section MUST be non-empty and MUST be split by a
+    //# single "/" any additional "/" are included in the resource id
+    TEST_ASSERT(is_valid_kms_key_arn(Aws::Utils::ARN("arn:aws:kms:us-east-1:2222222222222:")) == false);
+    TEST_ASSERT(
+        is_valid_kms_key_arn(
+            Aws::Utils::ARN("arn:aws:kms:us-east-1:2222222222222:key:1234abcd-12ab-34cd-56ef-1234567890ab")) == false);
+    TEST_ASSERT(is_valid_kms_key_arn(Aws::Utils::ARN("arn:aws:kms:us-east-1:2222222222222:key")) == false);
+
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.5
+    //= type=test
+    //# The resource type MUST be either "alias" or "key"
+    TEST_ASSERT(
+        is_valid_kms_key_arn(Aws::Utils::ARN(
+            "arn:aws:kms:us-east-1:2222222222222:fake-resource-type/1234abcd-12ab-34cd-56ef-1234567890ab")) == false);
+
+    //= compliance/framework/aws-kms/aws-kms-key-arn.txt#2.5
+    //= type=test
+    //# The resource id MUST be a non-empty string
+    TEST_ASSERT(is_valid_kms_key_arn(Aws::Utils::ARN("arn:aws:kms:us-east-1:2222222222222:key/")) == false);
+
+    return 0;
+}
+
+int isValidKmsIdentifier_validIdentifier_returnsTrue() {
+    // Precondition: A KMS key ARN is a valid KMS key identifier.
+    TEST_ASSERT(
+        is_valid_kms_identifier("arn:aws:kms:us-east-1:2222222222222:key/1234abcd-12ab-34cd-56ef-1234567890ab"));
+
+    TEST_ASSERT(is_valid_kms_identifier("alias/foobar"));
+
+    TEST_ASSERT(is_valid_kms_identifier("1234abcd-12ab-34cd-56ef-1234567890ab"));
+
+    return 0;
+}
+
+int isValidKmsIdentifier_invalidIdentifier_returnsFalse() {
+    // Precondition: A non-ARN identifier cannot contain a colon.
+    TEST_ASSERT(is_valid_kms_identifier("1234abcd:12ab-34cd-56ef-1234567890ab") == false);
+
+    // Precondition: A KMS key identifier with a forward slash must be an alias
+    TEST_ASSERT(is_valid_kms_identifier("1234abcd/12ab-34cd-56ef-1234567890ab") == false);
+
+    return 0;
+}
+
+int kmsMrkMatchForDecrypt_compliance() {
+    //= compliance/framework/aws-kms/aws-kms-mrk-match-for-decrypt.txt#2.5
+    //= type=test
+    //# The caller MUST provide:
+
+    //= compliance/framework/aws-kms/aws-kms-mrk-match-for-decrypt.txt#2.5
+    //= type=test
+    //# If both identifiers are identical, this function MUST return "true".
+    TEST_ASSERT(kms_mrk_match_for_decrypt("raw-key-id", "raw-key-id") == true);
+    TEST_ASSERT(
+        kms_mrk_match_for_decrypt(
+            "arn:aws:kms:us-east-1:2222222222222:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+            "arn:aws:kms:us-east-1:2222222222222:key/1234abcd-12ab-34cd-56ef-1234567890ab") == true);
+    TEST_ASSERT(
+        kms_mrk_match_for_decrypt(
+            "arn:aws:kms:us-east-1:2222222222222:key/mrk-1234abcd-12ab-34cd-56ef-1234567890ab",
+            "arn:aws:kms:us-east-1:2222222222222:key/mrk-1234abcd-12ab-34cd-56ef-1234567890ab") == true);
+
+    //= compliance/framework/aws-kms/aws-kms-mrk-match-for-decrypt.txt#2.5
+    //= type=test
+    //# Otherwise if either input is not identified as a multi-Region key
+    //# (aws-kms-key-arn.md#identifying-an-aws-kms-multi-region-key), then
+    //# this function MUST return "false".
+    TEST_ASSERT(kms_mrk_match_for_decrypt("raw-key-id", "different-raw-key-id") == false);
+
+    //= compliance/framework/aws-kms/aws-kms-mrk-match-for-decrypt.txt#2.5
+    //= type=test
+    //# Otherwise if both inputs are
+    //# identified as a multi-Region keys (aws-kms-key-arn.md#identifying-an-
+    //# aws-kms-multi-region-key), this function MUST return the result of
+    //# comparing the "partition", "service", "accountId", "resourceType",
+    //# and "resource" parts of both ARN inputs.
+    TEST_ASSERT(
+        kms_mrk_match_for_decrypt(
+            "arn:aws:kms:us-east-1:2222222222222:key/mrk-1234abcd-12ab-34cd-56ef-1234567890ab",
+            "arn:aws:kms:us-west-1:2222222222222:key/mrk-1234abcd-12ab-34cd-56ef-1234567890ab") == true);
+    TEST_ASSERT(
+        kms_mrk_match_for_decrypt(
+            "arn:partition-1:kms:us-east-1:2222222222222:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+            "arn:partition-2:kms:us-east-1:2222222222222:key/1234abcd-12ab-34cd-56ef-1234567890ab") == false);
+    TEST_ASSERT(
+        kms_mrk_match_for_decrypt(
+            "arn:aws:service-1:us-east-1:2222222222222:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+            "arn:aws:service-2:us-east-1:2222222222222:key/1234abcd-12ab-34cd-56ef-1234567890ab") == false);
+    TEST_ASSERT(
+        kms_mrk_match_for_decrypt(
+            "arn:aws:kms:us-east-1:account-1:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+            "arn:aws:kms:us-east-1:account-2:key/1234abcd-12ab-34cd-56ef-1234567890ab") == false);
+    TEST_ASSERT(
+        kms_mrk_match_for_decrypt(
+            "arn:aws:kms:us-east-1:2222222222222:resource-type-1/1234abcd-12ab-34cd-56ef-1234567890ab",
+            "arn:aws:kms:us-east-1:2222222222222:resource-type-2/1234abcd-12ab-34cd-56ef-1234567890ab") == false);
+    TEST_ASSERT(
+        kms_mrk_match_for_decrypt(
+            "arn:aws:kms:us-east-1:2222222222222:key/resource-id-1",
+            "arn:aws:kms:us-east-1:2222222222222:key/resource-id-2") == false);
+
+    return 0;
+}
+
+int findDuplicateKmsMrkIds_compliance() {
+    //= compliance/framework/aws-kms/aws-kms-mrk-are-unique.txt#2.5
+    //= type=test
+    //# The caller MUST provide:
+
+    //= compliance/framework/aws-kms/aws-kms-mrk-are-unique.txt#2.5
+    //= type=test
+    //# If the list does not contain any multi-Region keys (aws-kms-key-
+    //# arn.md#identifying-an-aws-kms-multi-region-key) this function MUST
+    //# exit successfully.
+    Aws::Vector<Aws::String> no_mrks = { "alias/foobar",
+                                         "arn:aws:kms:us-east-1:2222222222222:alias/foobar"
+                                         "key-foobar",
+                                         "arn:aws:kms:us-east-1:2222222222222:key/key-foobar" };
+    TEST_ASSERT(find_duplicate_kms_mrk_ids(no_mrks).size() == 0);
+
+    //= compliance/framework/aws-kms/aws-kms-mrk-are-unique.txt#2.5
+    //= type=test
+    //# If there are zero duplicate resource ids between the multi-region
+    //# keys, this function MUST exit successfully
+    Aws::Vector<Aws::String> mrks_without_duplicates = { "mrk-id-1",
+                                                         "mrk-id-2",
+                                                         "arn:aws:kms:us-east-1:2222222222222:key/mrk-id-3",
+                                                         "arn:aws:kms:us-east-1:2222222222222:key/mrk-id-4" };
+    TEST_ASSERT(find_duplicate_kms_mrk_ids(mrks_without_duplicates).size() == 0);
+
+    //= compliance/framework/aws-kms/aws-kms-mrk-are-unique.txt#2.5
+    //= type=test
+    //# If any duplicate multi-region resource ids exist, this function MUST
+    //# yield an error that includes all identifiers with duplicate resource
+    //# ids not only the first duplicate found.
+    Aws::Vector<Aws::String> mrks_with_duplicates = {
+        "mrk-id-1",
+        "mrk-id-foo",
+        "arn:aws:kms:us-east-1:2222222222222:key/mrk-id-1",
+        "arn:aws:kms:us-east-1:2222222222222:key/mrk-id-2",
+        "arn:aws:kms:us-west-1:2222222222222:key/mrk-id-2",
+        "arn:aws:kms:us-east-1:2222222222222:key/mrk-id-bar",
+    };
+    Aws::Vector<Aws::String> expected = {
+        "mrk-id-1",
+        "arn:aws:kms:us-east-1:2222222222222:key/mrk-id-1",
+        "arn:aws:kms:us-east-1:2222222222222:key/mrk-id-2",
+        "arn:aws:kms:us-west-1:2222222222222:key/mrk-id-2",
+    };
+    TEST_ASSERT(find_duplicate_kms_mrk_ids(mrks_with_duplicates) == expected);
+
+    return 0;
+}
+
 int main() {
     RUN_TEST(awsStringFromCAwsByteBuf_validInputs_returnAwsString());
     RUN_TEST(awsUtilsByteBufferFromCAwsByteBuf_validInputs_returnAwsUtils());
     RUN_TEST(appendKeyToEdks_appendSingleElement_elementIsAppended());
-    RUN_TEST(appendKeyToEdks_allocatorThatDoesNotAllocateMemory_returnsOomError());
     RUN_TEST(appendKeyToEdks_multipleElementsAppended_elementsAreAppended());
     RUN_TEST(awsStringFromCAwsString_validInputs_returnAwsString());
     RUN_TEST(awsMapFromCAwsHashHable_hashMap_returnAwsMap());
     RUN_TEST(awsByteBufDupFromAwsUtils_validInputs_returnNewAwsByteBuf());
     RUN_TEST(parseRegionFromKmsKeyArn_validKeyArn_returnsRegion());
     RUN_TEST(parseRegionFromKmsKeyArn_invalidKeyArn_returnsEmpty());
+    RUN_TEST(isKmsMrkArn_compliance());
+    RUN_TEST(isKmsMrkIdentifier_compliance());
+    RUN_TEST(isValidKmsKeyArn_validArn_returnsTrue());
+    RUN_TEST(isValidKmsKeyArn_compliance());
+    RUN_TEST(isValidKmsIdentifier_validIdentifier_returnsTrue());
+    RUN_TEST(isValidKmsIdentifier_invalidIdentifier_returnsFalse());
+    RUN_TEST(kmsMrkMatchForDecrypt_compliance());
+    RUN_TEST(findDuplicateKmsMrkIds_compliance());
 }

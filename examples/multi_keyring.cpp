@@ -40,16 +40,9 @@ void encrypt_or_decrypt(
         abort();
     }
 
-    if (mode == AWS_CRYPTOSDK_ENCRYPT) {
-        if (AWS_OP_SUCCESS != aws_cryptosdk_session_set_message_size(session, input_len)) abort();
-    }
-
-    size_t input_consumed;
     if (AWS_OP_SUCCESS !=
-        aws_cryptosdk_session_process(session, output, output_buf_sz, output_len, input, input_len, &input_consumed))
+        aws_cryptosdk_session_process_full(session, output, output_buf_sz, output_len, input, input_len))
         abort();
-    if (!aws_cryptosdk_session_is_done(session)) abort();
-    if (input_consumed != input_len) abort();
 
     /* This destroys the session but not the keyring, since the keyring pointer was not released. */
     aws_cryptosdk_session_destroy(session);

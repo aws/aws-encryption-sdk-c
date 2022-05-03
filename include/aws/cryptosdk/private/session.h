@@ -93,18 +93,21 @@ struct aws_cryptosdk_session {
      * of keyring trace and--in the case of decryption--the encryption context.
      */
     bool cmm_success;
+
+    /* Max allowed encrypted data keys, 0 for no limit */
+    size_t max_encrypted_data_keys;
 };
 
 AWS_CRYPTOSDK_STATIC_INLINE bool aws_cryptosdk_session_is_valid(const struct aws_cryptosdk_session *session) {
     if (!AWS_OBJECT_PTR_IS_WRITABLE(session)) {
         return false;
     }
-    bool allocator_valid      = aws_allocator_is_valid(session->alloc);
-    bool cmm_valid            = aws_cryptosdk_cmm_base_is_valid(session->cmm);
-    bool hdr_valid            = aws_cryptosdk_hdr_is_valid(&session->header);
-    bool keyring_trace_valid  = aws_cryptosdk_keyring_trace_is_valid(&session->keyring_trace);
-    bool alg_props_valid      = aws_cryptosdk_alg_properties_is_valid(session->alg_props);
-    bool content_key_valid    = aws_cryptosdk_content_key_is_valid(&session->content_key);
+    bool allocator_valid     = aws_allocator_is_valid(session->alloc);
+    bool cmm_valid           = aws_cryptosdk_cmm_base_is_valid(session->cmm);
+    bool hdr_valid           = aws_cryptosdk_hdr_is_valid(&session->header);
+    bool keyring_trace_valid = aws_cryptosdk_keyring_trace_is_valid(&session->keyring_trace);
+    bool alg_props_valid   = (session->alg_props == NULL || aws_cryptosdk_alg_properties_is_valid(session->alg_props));
+    bool content_key_valid = aws_cryptosdk_content_key_is_valid(&session->content_key);
     bool key_commitment_valid = aws_byte_buf_is_valid(&session->key_commitment);
     bool signctx_valid        = (session->signctx == NULL) || aws_cryptosdk_sig_ctx_is_valid(session->signctx);
     return allocator_valid && cmm_valid && hdr_valid && keyring_trace_valid && alg_props_valid && content_key_valid &&
@@ -143,4 +146,10 @@ int aws_cryptosdk_priv_write_trailer(
 bool aws_cryptosdk_priv_algorithm_allowed_for_encrypt(
     enum aws_cryptosdk_alg_id alg_id, enum aws_cryptosdk_commitment_policy commitment_policy);
 
+/* Helpers */
+
+/** Returns 1 if the given mode is a valid mode, or 0 otherwise. */
+bool aws_cryptosdk_priv_is_valid_mode(enum aws_cryptosdk_mode mode);
+/** Returns 1 if the given mode is a decrypting mode, or 0 otherwise. */
+bool aws_cryptosdk_priv_is_decrypt_mode(enum aws_cryptosdk_mode mode);
 #endif

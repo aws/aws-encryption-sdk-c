@@ -64,5 +64,7 @@ UNWINDSET += __CPROVER_file_local_list_utils_c_list_copy_all.5:$(call addone,$(N
 UNWINDSET += __CPROVER_file_local_list_utils_c_list_copy_all.6:$(call addone,$(NUM_ELEMS))
 UNWINDSET += aws_cryptosdk_keyring_trace_is_valid.0:$(call addone,$(NUM_ELEMS))
 
+EXPENSIVE = true
+
 ###########
 include ../Makefile.common

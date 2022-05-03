@@ -506,6 +506,207 @@ int test_using_estimates() {
     return 0;
 }
 
+int test_session_process_full_simple_roundtrip() {
+    size_t pt_len = 512;
+    init_bufs(pt_len);
+    grow_buf(&ct_buf, &ct_buf_size, pt_len * 2);
+
+    size_t decrypted_pt_size  = pt_len * 2;
+    uint8_t *decrypted_pt_buf = aws_mem_acquire(aws_default_allocator(), decrypted_pt_size);
+    TEST_ASSERT_ADDR_NOT_NULL(decrypted_pt_buf);
+
+    struct aws_cryptosdk_keyring *kr = aws_cryptosdk_zero_keyring_new(aws_default_allocator());
+    TEST_ASSERT_ADDR_NOT_NULL(kr);
+
+    size_t ct_len, decrypted_pt_len;
+
+    // Encrypt
+    create_session(AWS_CRYPTOSDK_ENCRYPT, kr);
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process_full(session, ct_buf, ct_buf_size, &ct_len, pt_buf, pt_size));
+
+    // Decrypt
+    aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT);
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process_full(
+        session, decrypted_pt_buf, decrypted_pt_size, &decrypted_pt_len, ct_buf, ct_len));
+
+    TEST_ASSERT(strncmp(pt_buf, decrypted_pt_buf, pt_size) == 0);
+
+    aws_mem_release(aws_default_allocator(), decrypted_pt_buf);
+    free_bufs();
+    return 0;
+}
+
+int test_session_process_full_simple_roundtrip_empty_plaintext() {
+    size_t pt_len = 0;
+    // init_bufs(0) is invalid
+    init_bufs(1);
+    grow_buf(&ct_buf, &ct_buf_size, 1024);
+
+    size_t decrypted_pt_size  = 1024;
+    uint8_t *decrypted_pt_buf = aws_mem_acquire(aws_default_allocator(), decrypted_pt_size);
+    TEST_ASSERT_ADDR_NOT_NULL(decrypted_pt_buf);
+
+    struct aws_cryptosdk_keyring *kr = aws_cryptosdk_zero_keyring_new(aws_default_allocator());
+    TEST_ASSERT_ADDR_NOT_NULL(kr);
+
+    size_t ct_len, decrypted_pt_len;
+
+    // Encrypt
+    create_session(AWS_CRYPTOSDK_ENCRYPT, kr);
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process_full(session, ct_buf, ct_buf_size, &ct_len, pt_buf, pt_size));
+
+    // Decrypt
+    aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT);
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process_full(
+        session, decrypted_pt_buf, decrypted_pt_size, &decrypted_pt_len, ct_buf, ct_len));
+
+    TEST_ASSERT(strncmp(pt_buf, decrypted_pt_buf, pt_size) == 0);
+
+    aws_mem_release(aws_default_allocator(), decrypted_pt_buf);
+    free_bufs();
+    return 0;
+}
+
+// aws_cryptosdk_session_process_full must fail if it's not in state ST_CONFIG
+int test_session_process_full_initial_state() {
+    size_t pt_len = 512;
+    init_bufs(pt_len);
+    grow_buf(&ct_buf, &ct_buf_size, pt_len * 2);
+
+    size_t decrypted_pt_size  = pt_len * 2;
+    uint8_t *decrypted_pt_buf = aws_mem_acquire(aws_default_allocator(), decrypted_pt_size);
+    TEST_ASSERT_ADDR_NOT_NULL(decrypted_pt_buf);
+
+    struct aws_cryptosdk_keyring *kr = aws_cryptosdk_zero_keyring_new(aws_default_allocator());
+    TEST_ASSERT_ADDR_NOT_NULL(kr);
+    create_session(AWS_CRYPTOSDK_ENCRYPT, kr);
+
+    size_t ct_len, pt_consumed;
+
+    size_t first_round_len = 8;
+    TEST_ASSERT_SUCCESS(
+        aws_cryptosdk_session_process(session, ct_buf, ct_buf_size, &ct_len, pt_buf, first_round_len, &pt_consumed));
+
+    // Must fail because session state is in the middle of encryption
+    TEST_ASSERT_ERROR(
+        AWS_CRYPTOSDK_ERR_BAD_STATE,
+        aws_cryptosdk_session_process_full(
+            session, ct_buf, ct_buf_size, &ct_len, pt_buf + first_round_len, pt_size - first_round_len));
+
+    // Must fail because session is in an error state
+    TEST_ASSERT_ERROR(
+        AWS_CRYPTOSDK_ERR_BAD_STATE,
+        aws_cryptosdk_session_process_full(
+            session, ct_buf, ct_buf_size, &ct_len, pt_buf + first_round_len, pt_size - first_round_len));
+
+    aws_mem_release(aws_default_allocator(), decrypted_pt_buf);
+    free_bufs();
+    return 0;
+}
+
+// aws_cryptosdk_session_process_full must fail to decrypt a partial message
+int test_session_process_full_cant_decrypt_partial() {
+    size_t pt_len = 512;
+    init_bufs(pt_len);
+    grow_buf(&ct_buf, &ct_buf_size, pt_len * 2);
+
+    size_t decrypted_pt_size  = pt_len * 2;
+    uint8_t *decrypted_pt_buf = aws_mem_acquire(aws_default_allocator(), decrypted_pt_size);
+    TEST_ASSERT_ADDR_NOT_NULL(decrypted_pt_buf);
+
+    struct aws_cryptosdk_keyring *kr = aws_cryptosdk_zero_keyring_new(aws_default_allocator());
+    TEST_ASSERT_ADDR_NOT_NULL(kr);
+
+    size_t ct_len, decrypted_pt_len;
+
+    // Encrypt
+    create_session(AWS_CRYPTOSDK_ENCRYPT, kr);
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process_full(session, ct_buf, ct_buf_size, &ct_len, pt_buf, pt_size));
+
+    // Decrypt
+    aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT);
+    TEST_ASSERT_ERROR(
+        AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT,
+        aws_cryptosdk_session_process_full(
+            session, decrypted_pt_buf, decrypted_pt_size, &decrypted_pt_len, ct_buf, ct_len - 1));
+    TEST_ASSERT(aws_is_mem_zeroed(decrypted_pt_buf, decrypted_pt_size));
+
+    aws_mem_release(aws_default_allocator(), decrypted_pt_buf);
+    free_bufs();
+    return 0;
+}
+
+// Happy path for AWS_CRYPTOSDK_DECRYPT_UNSIGNED
+int test_decrypt_unsigned_success() {
+    size_t pt_len = 512;
+    init_bufs(pt_len);
+    struct aws_cryptosdk_keyring *kr = aws_cryptosdk_zero_keyring_new(aws_default_allocator());
+    TEST_ASSERT_ADDR_NOT_NULL(kr);
+    struct aws_cryptosdk_cmm *cmm = create_session_with_cmm(AWS_CRYPTOSDK_ENCRYPT, kr);
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, ALG_AES256_GCM_IV12_TAG16_HKDF_SHA256));
+    TEST_ASSERT_SUCCESS(
+        aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT));
+
+    size_t decrypted_pt_size  = pt_len * 2;
+    uint8_t *decrypted_pt_buf = aws_mem_acquire(aws_default_allocator(), decrypted_pt_size);
+    TEST_ASSERT_ADDR_NOT_NULL(decrypted_pt_buf);
+
+    size_t pt_consumed, ct_len, decrypted_pt_len;
+    aws_cryptosdk_session_set_message_size(session, pt_size);
+    precise_size_set = true;
+
+    // Encrypt
+    if (pump_ciphertext(pt_len * 2, &ct_len, pt_size, &pt_consumed)) return 1;
+    TEST_ASSERT(aws_cryptosdk_session_is_done(session));
+
+    // Decrypt
+    aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT_UNSIGNED);
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_session_process_full(
+        session, decrypted_pt_buf, decrypted_pt_size, &decrypted_pt_len, ct_buf, ct_len));
+
+    aws_cryptosdk_cmm_release(cmm);
+    aws_mem_release(aws_default_allocator(), decrypted_pt_buf);
+    free_bufs();
+    return 0;
+}
+
+// In AWS_CRYPTOSDK_DECRYPT_UNSIGNED mode, the session must fail if the CMM
+// returns decryption materials with a signing algorithm suite.
+int test_decrypt_unsigned_fails_on_signed_materials() {
+    size_t pt_len = 512;
+    init_bufs(pt_len);
+    struct aws_cryptosdk_keyring *kr = aws_cryptosdk_zero_keyring_new(aws_default_allocator());
+    TEST_ASSERT_ADDR_NOT_NULL(kr);
+    struct aws_cryptosdk_cmm *cmm = create_session_with_cmm(AWS_CRYPTOSDK_ENCRYPT, kr);
+    TEST_ASSERT_SUCCESS(aws_cryptosdk_default_cmm_set_alg_id(cmm, ALG_AES256_GCM_IV12_TAG16_HKDF_SHA384_ECDSA_P384));
+    TEST_ASSERT_SUCCESS(
+        aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_FORBID_ENCRYPT_ALLOW_DECRYPT));
+
+    size_t decrypted_pt_size  = pt_len * 2;
+    uint8_t *decrypted_pt_buf = aws_mem_acquire(aws_default_allocator(), decrypted_pt_size);
+    TEST_ASSERT_ADDR_NOT_NULL(decrypted_pt_buf);
+
+    size_t ct_len, pt_consumed, decrypted_pt_len;
+    aws_cryptosdk_session_set_message_size(session, pt_size);
+    precise_size_set = true;
+
+    // Encrypt
+    if (pump_ciphertext(pt_len * 2, &ct_len, pt_size, &pt_consumed)) return 1;
+    TEST_ASSERT(aws_cryptosdk_session_is_done(session));
+
+    // Decrypt
+    aws_cryptosdk_session_reset(session, AWS_CRYPTOSDK_DECRYPT_UNSIGNED);
+    TEST_ASSERT_ERROR(
+        AWS_CRYPTOSDK_ERR_DECRYPT_SIGNED_MESSAGE_NOT_ALLOWED,
+        aws_cryptosdk_session_process_full(
+            session, decrypted_pt_buf, decrypted_pt_size, &decrypted_pt_len, ct_buf, ct_len));
+
+    aws_cryptosdk_cmm_release(cmm);
+    aws_mem_release(aws_default_allocator(), decrypted_pt_buf);
+    free_bufs();
+    return 0;
+}
+
 struct test_case encrypt_test_cases[] = {
     { "encrypt", "test_simple_roundtrip", test_simple_roundtrip },
     { "encrypt", "test_small_buffers", test_small_buffers },
@@ -514,5 +715,13 @@ struct test_case encrypt_test_cases[] = {
     { "encrypt", "test_algorithm_override", &test_algorithm_override },
     { "encrypt", "test_null_estimates", &test_null_estimates },
     { "encrypt", "test_using_estimates", &test_using_estimates },
+    { "encrypt", "test_session_process_full_simple_roundtrip", &test_session_process_full_simple_roundtrip },
+    { "encrypt",
+      "test_session_process_full_simple_roundtrip_empty_plaintext",
+      &test_session_process_full_simple_roundtrip_empty_plaintext },
+    { "encrypt", "test_session_process_full_initial_state", &test_session_process_full_initial_state },
+    { "encrypt", "test_session_process_full_cant_decrypt_partial", &test_session_process_full_cant_decrypt_partial },
+    { "encrypt", "test_decrypt_unsigned_success", &test_decrypt_unsigned_success },
+    { "encrypt", "test_decrypt_unsigned_fails_on_signed_materials", &test_decrypt_unsigned_fails_on_signed_materials },
     { NULL }
 };

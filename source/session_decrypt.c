@@ -35,14 +35,12 @@ static int fill_request(struct aws_cryptosdk_dec_request *request, struct aws_cr
     request->alg   = session->alg_props->alg_id;
 
     size_t n_keys = aws_array_list_length(&session->header.edk_list);
-
     // TODO: Make encrypted_data_keys a pointer?
     if (aws_cryptosdk_edk_list_init(session->alloc, &request->encrypted_data_keys)) {
         return AWS_OP_ERR;
     }
 
     request->enc_ctx = &session->header.enc_ctx;
-
     for (size_t i = 0; i < n_keys; i++) {
         struct aws_cryptosdk_edk edk;
 
@@ -68,6 +66,7 @@ UNEXPECTED_ERROR:
 
 static int derive_data_key(struct aws_cryptosdk_session *session, struct aws_cryptosdk_dec_materials *materials) {
     AWS_PRECONDITION(aws_cryptosdk_session_is_valid(session));
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(session->alg_props));
     AWS_PRECONDITION(aws_cryptosdk_dec_materials_is_valid(materials));
 
     if (materials->unencrypted_data_key.len != session->alg_props->data_key_len) {
@@ -142,6 +141,18 @@ int aws_cryptosdk_priv_unwrap_keys(struct aws_cryptosdk_session *AWS_RESTRICT se
     aws_cryptosdk_transfer_list(&session->keyring_trace, &materials->keyring_trace);
     session->cmm_success = true;
 
+    const struct aws_cryptosdk_alg_properties *materials_alg_props = aws_cryptosdk_alg_props(materials->alg);
+    if (!materials_alg_props) {
+        aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_STATE);
+        goto out;
+    }
+    // In AWS_CRYPTOSDK_DECRYPT_UNSIGNED mode, the operation must fail if the CMM
+    // returns decryption materials with a signing algorithm suite
+    if (session->mode == AWS_CRYPTOSDK_DECRYPT_UNSIGNED && materials_alg_props->signature_len) {
+        aws_raise_error(AWS_CRYPTOSDK_ERR_DECRYPT_SIGNED_MESSAGE_NOT_ALLOWED);
+        goto out;
+    }
+
     if (derive_data_key(session, materials)) goto out;
     if (validate_header(session)) goto out;
 
@@ -177,7 +188,7 @@ out:
 int aws_cryptosdk_priv_try_parse_header(
     struct aws_cryptosdk_session *AWS_RESTRICT session, struct aws_byte_cursor *AWS_RESTRICT input) {
     const uint8_t *header_start = input->ptr;
-    int rv                      = aws_cryptosdk_hdr_parse(&session->header, input);
+    int rv                      = aws_cryptosdk_hdr_parse(&session->header, input, session->max_encrypted_data_keys);
 
     if (rv != AWS_OP_SUCCESS) {
         if (aws_last_error() == AWS_ERROR_SHORT_BUFFER) {

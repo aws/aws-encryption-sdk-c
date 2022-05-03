@@ -123,10 +123,10 @@ static int default_cmm_decrypt_materials(
     }
 
     const struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(request->alg);
+    struct aws_hash_element *pElement                = NULL;
+    aws_hash_table_find(request->enc_ctx, EC_PUBLIC_KEY_FIELD, &pElement);
     if (props->signature_len) {
-        struct aws_hash_element *pElement = NULL;
-
-        if (aws_hash_table_find(request->enc_ctx, EC_PUBLIC_KEY_FIELD, &pElement) || !pElement || !pElement->key) {
+        if (!pElement || !pElement->key) {
             aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
             goto err;
         }
@@ -134,6 +134,10 @@ static int default_cmm_decrypt_materials(
         if (aws_cryptosdk_sig_verify_start(&dec_mat->signctx, request->alloc, pElement->value, props)) {
             goto err;
         }
+    } else if (pElement) {
+        // If alg suite is unsigned, enc_ctx must not contain EC_PUBLIC_KEY_FIELD
+        aws_raise_error(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT);
+        goto err;
     }
 
     *output = dec_mat;

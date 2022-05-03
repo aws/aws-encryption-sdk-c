@@ -41,7 +41,7 @@ ENV LDFLAGS=
 # on our special versions of openssl/libcurl (or to depend on them at all for that matter).
 ENV LDFLAGS="-Wl,-rpath -Wl,/deps/install/lib -Wl,-rpath -Wl,/deps/shared/install/lib -L/deps/install/lib -L/deps/shared/install/lib"
 
-ENV OPENSSL_TAG=OpenSSL_1_1_1a
+ENV OPENSSL_TAG=OpenSSL_1_1_1n
 ENV OPENSSL_PLATFORM=linux-x86_64
 
 ADD bin/apt-install-pkgs /usr/local/bin/
@@ -50,6 +50,9 @@ RUN install-shared-deps.sh
 
 ADD bin/install-aws-deps.sh /usr/local/bin
 RUN install-aws-deps.sh
+
+ADD bin/install-node.sh /usr/local/bin
+RUN install-node.sh
 
 ADD bin/codebuild-test.sh /usr/local/bin/
 

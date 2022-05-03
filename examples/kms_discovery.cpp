@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <aws/core/utils/ARN.h>
 #include <aws/cryptosdk/cpp/kms_keyring.h>
 #include <aws/cryptosdk/session.h>
 
@@ -58,23 +59,11 @@ void encrypt_string(
         abort();
     }
 
-    if (AWS_OP_SUCCESS != aws_cryptosdk_session_set_message_size(session, in_plaintext_len)) {
+    if (AWS_OP_SUCCESS !=
+        aws_cryptosdk_session_process_full(
+            session, out_ciphertext, out_ciphertext_buf_sz, out_ciphertext_len, in_plaintext, in_plaintext_len)) {
         abort();
     }
-
-    size_t in_plaintext_consumed;
-    if (AWS_OP_SUCCESS != aws_cryptosdk_session_process(
-                              session,
-                              out_ciphertext,
-                              out_ciphertext_buf_sz,
-                              out_ciphertext_len,
-                              in_plaintext,
-                              in_plaintext_len,
-                              &in_plaintext_consumed)) {
-        abort();
-    }
-    if (!aws_cryptosdk_session_is_done(session)) abort();
-    if (in_plaintext_consumed != in_plaintext_len) abort();
     aws_cryptosdk_session_destroy(session);
 }
 
@@ -98,19 +87,11 @@ void decrypt_string(
         abort();
     }
 
-    size_t in_ciphertext_consumed;
-    if (AWS_OP_SUCCESS != aws_cryptosdk_session_process(
-                              session,
-                              out_plaintext,
-                              out_plaintext_buf_sz,
-                              out_plaintext_len,
-                              in_ciphertext,
-                              in_ciphertext_len,
-                              &in_ciphertext_consumed)) {
+    if (AWS_OP_SUCCESS !=
+        aws_cryptosdk_session_process_full(
+            session, out_plaintext, out_plaintext_buf_sz, out_plaintext_len, in_ciphertext, in_ciphertext_len)) {
         abort();
     }
-    if (!aws_cryptosdk_session_is_done(session)) abort();
-    if (in_ciphertext_consumed != in_ciphertext_len) abort();
     aws_cryptosdk_session_destroy(session);
 }
 
@@ -135,6 +116,8 @@ int main(int argc, char **argv) {
 
     const char *key_arn_us_west_2    = argv[1];
     const char *key_arn_eu_central_1 = argv[2];
+
+    Aws::Utils::ARN parsed_arn_us_west_2(key_arn_us_west_2);
 
     struct aws_allocator *alloc         = aws_default_allocator();
     const char *plaintext_original      = "Hello world!";
@@ -217,6 +200,15 @@ int main(int argc, char **argv) {
     decryption_keyrings.push_back(Aws::Cryptosdk::KmsKeyring::Builder()
                                       .WithKmsClient(create_kms_client(Aws::Region::EU_CENTRAL_1))
                                       .BuildDiscovery());
+
+    /* This will attempt to decrypt using only KMS keys in the specified AWS account.
+     * It will succeed if the message was encrypted with any KMS key in the
+     * specified AWS account and for which you have kms:Decrypt permission.
+     */
+    const Aws::String filter_account_id = parsed_arn_us_west_2.GetAccountId();
+    std::shared_ptr<Aws::Cryptosdk::KmsKeyring::DiscoveryFilter> discovery_filter =
+        Aws::Cryptosdk::KmsKeyring::DiscoveryFilter::Builder("aws").AddAccount(filter_account_id).Build();
+    decryption_keyrings.push_back(Aws::Cryptosdk::KmsKeyring::Builder().BuildDiscovery(discovery_filter));
 
     for (struct aws_cryptosdk_keyring *keyring : decryption_keyrings) {
         uint8_t plaintext_result[BUFFER_SIZE];

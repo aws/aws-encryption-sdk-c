@@ -10,3 +10,6 @@
 [submodule "verification/litani"]
 	path = verification/litani
 	url = https://github.com/awslabs/aws-build-accumulator
+[submodule "aws-encryption-sdk-specification"]
+	path = aws-encryption-sdk-specification
+	url = https://github.com/awslabs/aws-encryption-sdk-specification.git

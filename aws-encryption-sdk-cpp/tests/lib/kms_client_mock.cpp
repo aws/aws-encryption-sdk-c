@@ -21,6 +21,8 @@ namespace Cryptosdk {
 namespace Testing {
 using std::logic_error;
 
+const char *CLASS_TAG = "KMS_CLIENT_MOCK_CTAG";
+
 KmsClientMock::KmsClientMock() : Aws::KMS::KMSClient(), expect_generate_dk(false) {}
 
 KmsClientMock::~KmsClientMock() {
@@ -138,6 +140,29 @@ bool KmsClientMock::ExpectingOtherCalls() {
 
 void KmsClientMock::ExpectGrantTokens(const Aws::Vector<Aws::String> &grant_tokens) {
     this->grant_tokens = grant_tokens;
+}
+
+std::shared_ptr<KMS::KMSClient> KmsClientSupplierMock::GetClient(
+    const Aws::String &region, std::function<void()> &report_success) {
+    const auto client_mock_iter = kms_client_mocks.find(region);
+    if (client_mock_iter != kms_client_mocks.end()) {
+        return client_mock_iter->second;
+    }
+
+    const auto client_mock = Aws::MakeShared<KmsClientMock>(CLASS_TAG);
+    kms_client_mocks.insert({ region, client_mock });
+
+    report_success = [] {};
+    return client_mock;
+}
+
+const std::shared_ptr<KmsClientMock> KmsClientSupplierMock::GetClientMock(const Aws::String &region) const {
+    const auto client_mock_iter = kms_client_mocks.find(region);
+    return (client_mock_iter == kms_client_mocks.end()) ? nullptr : client_mock_iter->second;
+}
+
+const Aws::Map<Aws::String, std::shared_ptr<KmsClientMock>> &KmsClientSupplierMock::GetClientMocksMap() const {
+    return kms_client_mocks;
 }
 
 }  // namespace Testing

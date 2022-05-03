@@ -449,7 +449,7 @@ int simple_header_parse() {
     struct aws_byte_cursor cursor = aws_byte_cursor_from_array(test_header_1, sizeof(test_header_1) - 1);
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_hdr_init(&hdr, aws_default_allocator()));
-    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_parse(&hdr, &cursor));
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_parse(&hdr, &cursor, 0));
     TEST_ASSERT_INT_EQ(cursor.len, 0);
     TEST_ASSERT_ADDR_EQ(cursor.ptr, test_header_1 + sizeof(test_header_1) - 1);
 
@@ -514,7 +514,7 @@ int simple_headerV2_parse() {
     struct aws_byte_cursor cursor = aws_byte_cursor_from_array(test_headerV2_1, sizeof(test_headerV2_1) - 1);
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_hdr_init(&hdr, aws_default_allocator()));
-    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_parse(&hdr, &cursor));
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_parse(&hdr, &cursor, 0));
     TEST_ASSERT_INT_EQ(cursor.len, 0);
     TEST_ASSERT_ADDR_EQ(cursor.ptr, test_headerV2_1 + sizeof(test_headerV2_1) - 1);
 
@@ -628,7 +628,7 @@ int simple_header_parse2() {
     struct aws_byte_cursor cursor = aws_byte_cursor_from_array(test_header_2, sizeof(test_header_2));
 
     TEST_ASSERT_SUCCESS(aws_cryptosdk_hdr_init(&hdr, aws_default_allocator()));
-    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_parse(&hdr, &cursor));
+    TEST_ASSERT_INT_EQ(AWS_OP_SUCCESS, aws_cryptosdk_hdr_parse(&hdr, &cursor, 0));
     // There should be one byte of trailing data left over
     TEST_ASSERT_INT_EQ(cursor.len, 1);
 
@@ -681,7 +681,7 @@ int failed_parse() {
     TEST_ASSERT_SUCCESS(aws_cryptosdk_hdr_init(&hdr, aws_default_allocator()));
 
     cursor = aws_byte_cursor_from_array(test_header_1, sizeof(test_header_1) - 5);
-    TEST_ASSERT_ERROR(AWS_ERROR_SHORT_BUFFER, aws_cryptosdk_hdr_parse(&hdr, &cursor));
+    TEST_ASSERT_ERROR(AWS_ERROR_SHORT_BUFFER, aws_cryptosdk_hdr_parse(&hdr, &cursor, 0));
     TEST_ASSERT_ADDR_EQ(cursor.ptr, test_header_1);
 
     TEST_ASSERT_INT_EQ(0, hdr.alg_id);
@@ -692,7 +692,7 @@ int failed_parse() {
     for (size_t hdr_idx = 0; hdr_idx < num_bad_hdrs; ++hdr_idx) {
         cursor = aws_byte_cursor_from_array(bad_headers[hdr_idx], bad_headers_sz[hdr_idx]);
 
-        TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT, aws_cryptosdk_hdr_parse(&hdr, &cursor));
+        TEST_ASSERT_ERROR(AWS_CRYPTOSDK_ERR_BAD_CIPHERTEXT, aws_cryptosdk_hdr_parse(&hdr, &cursor, 0));
         TEST_ASSERT_ADDR_EQ(cursor.ptr, bad_headers[hdr_idx]);
 
         TEST_ASSERT_INT_EQ(0, hdr.alg_id);
@@ -749,7 +749,7 @@ static void overread_once(const uint8_t *inbuf, size_t inlen, ssize_t flip_bit_i
 
     aws_cryptosdk_hdr_init(&hdr, aws_default_allocator());
     // We don't care about the return value as long as we don't actually crash.
-    aws_cryptosdk_hdr_parse(&hdr, &cursor);
+    aws_cryptosdk_hdr_parse(&hdr, &cursor, 0);
     aws_cryptosdk_hdr_clean_up(&hdr);
 
     // This is only necessary when aws_cryptosdk_hdr_parse_init succeeds,

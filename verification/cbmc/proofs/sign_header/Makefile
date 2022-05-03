@@ -38,6 +38,7 @@ DEFINES += -DMAX_IV_LEN=$(MAX_IV_LEN)
 DEFINES += -DAWS_CRYPTOSDK_HASH_ELEMS_ARRAY_INIT_GENERATOR=array_list_item_generator
 
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/string.c
 PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
@@ -75,7 +76,6 @@ PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_array_list_sort_noop_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_cryptosdk_enc_ctx_size_stub.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_cryptosdk_hash_elems_array_init_stub.c
-PROOF_SOURCES += $(PROOF_STUB)/aws_default_allocator_stub.c
 # Stubbing out aws_cryptosdk_hdr_write leads to a huge gain in performance
 PROOF_SOURCES += $(PROOF_STUB)/hdr_write_stub.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)

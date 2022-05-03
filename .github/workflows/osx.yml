@@ -1,15 +1,13 @@
 ---
 name: macOS build and test AWS Encryption SDK for C
 
-on:
-  pull_request:
-    branches:
-      - master
+on: ["pull_request", "push"]
 
 
 jobs:
   OSX:
     runs-on: ${{ matrix.os }}
+    environment: continuous-integration
 
     strategy:
       matrix:
@@ -21,26 +19,43 @@ jobs:
 
       - name: Checkout PR
         uses: actions/checkout@v2
+        with:
+          submodules: recursive
+        if: ${{ github.repository == 'aws/aws-encryption-sdk-c' }}
 
-      - name: Checkout Dependencies
+      - name: Checkout PR with CI bot token
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          token: ${{ secrets.CI_BOT_TOKEN }}
+        if: ${{ github.repository == 'aws/private-aws-encryption-sdk-c-staging' }}
+
+      - name: Checkout AWS C++ SDK
         uses: actions/checkout@v2
         with:
           repository: "aws/aws-sdk-cpp"
-          ref: "1.8.32"
+          ref: "1.9.124"
           path: "aws-sdk-cpp"
+          submodules: recursive
+
+      - name: Install dependencies
+        run:
+          brew install json-c
 
       # The hosted Actions runners include CMake v3.19.1 by default, which has
       # a regression that causes aws-sdk-cpp and aws-encryption-sdk-c to fail
-      # to build on the runners. We install the previous working version as a
-      # workaround. See https://github.com/aws/aws-encryption-sdk-c/issues/650.
-      - name: Install CMake v3.18.5
+      # to build on the runners.
+      # This appears to have been an issue in CMake that is fixed in 3.19.3.
+      # This workaround is required until the MacOS Action is updated to a
+      # a newer CMake, or the dependency adds a workaround for 3.19.1.
+      # See https://github.com/aws/aws-encryption-sdk-c/issues/650 and
+      # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-10.15-Readme.md
+      - name: Install CMake v3.19.3
         run: |
           brew uninstall cmake
-          curl -L https://github.com/Kitware/CMake/releases/download/v3.18.5/cmake-3.18.5-Darwin-x86_64.tar.gz | tar xz
-          cd cmake-3.18.5-Darwin-x86_64/CMake.app/Contents
-          sudo cp bin/* /usr/local/bin/
-          sudo cp share/aclocal/* /usr/local/share/aclocal/
-          sudo cp -R share/cmake-3.18 /usr/local/share/
+          curl -L https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-macos-universal.tar.gz | tar xz
+          cd cmake-3.19.3-macos-universal/CMake.app/Contents/bin
+          ./cmake-gui --install
 
       - name: Build and install aws-sdk-cpp
         run: |
@@ -54,6 +69,7 @@ jobs:
       - name: Build C-ESDK
         env:
           OPENSSL_VERSION: ${{ matrix.openssl_version }}
+        # TODO-RS: Figure out how to safely add AWS credentials and add -DAWS_ENC_SDK_END_TO_END_TESTS=ON and -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON 
         run: |
           mkdir build-aws-encryption-sdk-c || true
           cd build-aws-encryption-sdk-c

@@ -31,6 +31,11 @@ void derive_data_key_harness() {
         dec_materials_setup(MAX_TRACE_LIST_ITEMS, MAX_BUFFER_SIZE, MAX_STRING_LEN);
 
     /* Assumptions */
+    if (session->alg_props == NULL) {
+        struct aws_cryptosdk_alg_properties *props = ensure_alg_properties_attempt_allocation(MAX_STRING_LEN);
+        __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(props));
+        session->alg_props = props;
+    }
     __CPROVER_assume(aws_cryptosdk_commitment_policy_is_valid(session->commitment_policy));
     __CPROVER_assume(session->alg_props->commitment_len <= sizeof(session->key_commitment_arr));
 

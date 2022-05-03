@@ -37,7 +37,7 @@ static int test_keyring_on_encrypt(
 
     if (!self->ret && !self->skip_output) {
         uint32_t flags = AWS_CRYPTOSDK_WRAPPING_KEY_ENCRYPTED_DATA_KEY;
-        if (!unencrypted_data_key->buffer) {
+        if (!unencrypted_data_key->buffer || self->on_encrypt_ignore_existing_data_key) {
             *unencrypted_data_key = self->generated_data_key_to_return;
             flags |= AWS_CRYPTOSDK_WRAPPING_KEY_GENERATED_DATA_KEY;
         }

@@ -48,6 +48,10 @@ void aws_cryptosdk_priv_encrypt_compute_body_estimate(struct aws_cryptosdk_sessi
 }
 
 int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
+    AWS_PRECONDITION(aws_cryptosdk_session_is_valid(session));
+    AWS_PRECONDITION(aws_cryptosdk_commitment_policy_is_valid(session->commitment_policy));
+    AWS_PRECONDITION(session->state == ST_GEN_KEY);
+    AWS_PRECONDITION(session->mode == AWS_CRYPTOSDK_ENCRYPT);
     struct aws_cryptosdk_enc_request request;
     struct aws_cryptosdk_enc_materials *materials = NULL;
     struct data_key data_key;
@@ -69,7 +73,14 @@ int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
 
     if (!session->alg_props) goto out;
     if (materials->unencrypted_data_key.len != session->alg_props->data_key_len) goto out;
-    if (!aws_array_list_length(&materials->encrypted_data_keys)) goto out;
+
+    size_t num_encrypted_data_keys = aws_array_list_length(&materials->encrypted_data_keys);
+    if (!num_encrypted_data_keys) goto out;
+    if (session->max_encrypted_data_keys && num_encrypted_data_keys > session->max_encrypted_data_keys) {
+        result = AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED;
+        goto out;
+    }
+
     // We should have a signature context iff this is a signed alg suite
     if (!!session->alg_props->signature_len != !!materials->signctx) goto out;
     if (!aws_cryptosdk_priv_algorithm_allowed_for_encrypt(materials->alg, session->commitment_policy)) {
@@ -89,7 +100,9 @@ int aws_cryptosdk_priv_try_gen_key(struct aws_cryptosdk_session *session) {
 
     // Generate message ID and derive the content key from the data key.
     size_t message_id_len = aws_cryptosdk_private_algorithm_message_id_len(session->alg_props);
-    aws_byte_buf_init(&session->header.message_id, session->alloc, message_id_len);
+    if (aws_byte_buf_init(&session->header.message_id, session->alloc, message_id_len) != AWS_OP_SUCCESS) {
+        goto out;
+    }
     if (aws_cryptosdk_genrandom(session->header.message_id.buffer, message_id_len)) {
         goto out;
     }
@@ -169,6 +182,7 @@ static int build_header(struct aws_cryptosdk_session *session, struct aws_crypto
 
 static int sign_header(struct aws_cryptosdk_session *session) {
     AWS_PRECONDITION(aws_cryptosdk_session_is_valid(session));
+    AWS_PRECONDITION(aws_cryptosdk_alg_properties_is_valid(session->alg_props));
     AWS_PRECONDITION(session->alg_props->impl->cipher_ctor != NULL);
     AWS_PRECONDITION(session->header.iv.len <= session->alg_props->iv_len);
     AWS_PRECONDITION(session->header.auth_tag.len <= session->alg_props->tag_len);

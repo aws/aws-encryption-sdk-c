@@ -84,6 +84,16 @@ if (AWS_ENC_SDK_END_TO_END_TESTS)
         )
     set_target_properties(t_commitment_known_answer PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
     aws_add_test(commitment_known_answer ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/t_commitment_known_answer ${TEST_DATA}/commitment_known_answer_tests.json)
+
+    add_executable(t_max_encrypted_data_keys tests/integration/t_max_encrypted_data_keys.cpp)
+    target_link_libraries(t_max_encrypted_data_keys testlibcpp)
+    target_include_directories(t_max_encrypted_data_keys PUBLIC ${PROJECT_SOURCE_DIR}/tests/lib
+        ${PROJECT_SOURCE_DIR}/tests/unit
+        ${PROJECT_SOURCE_DIR}/tests/integration
+        $<INSTALL_INTERFACE:include>
+        )
+    set_target_properties(t_max_encrypted_data_keys PROPERTIES CXX_STANDARD 11 C_STANDARD 99)
+    aws_add_test(integration_max_edks ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/t_max_encrypted_data_keys)
 else()
     message(STATUS "End to end tests off")
 endif()
@@ -113,6 +123,27 @@ if (AWS_ENC_SDK_KNOWN_GOOD_TESTS)
         ${PROJECT_SOURCE_DIR}/tests/integration
         $<INSTALL_INTERFACE:include>
         )
+
+    # Also unzip the test vectors from the aws-encryption-sdk-test-vectors submodule
+    set(AWS_ENC_SDK_TEST_VECTORS_ZIP
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_vectors/aws-encryption-sdk-test-vectors/vectors/awses-decrypt/python-2.3.0.zip"
+            CACHE FILEPATH
+            "Path to the test vectors zip file")
+    if(NOT EXISTS ${AWS_ENC_SDK_TEST_VECTORS_ZIP})
+        message(FATAL_ERROR "Could not find test vectors at ${AWS_ENC_SDK_TEST_VECTORS_ZIP}")
+    endif()
+
+    set(TEST_VECTORS_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/test-vectors)
+    file(MAKE_DIRECTORY ${TEST_VECTORS_DIRECTORY})
+    add_custom_target(unzip_test_vectors ALL
+            COMMENT "Unzipping test vectors"
+            COMMAND ${CMAKE_COMMAND} -E tar xf ${AWS_ENC_SDK_TEST_VECTORS_ZIP}
+            WORKING_DIRECTORY ${TEST_VECTORS_DIRECTORY}
+            DEPENDS ${AWS_ENC_SDK_TEST_VECTORS_ZIP}
+            )
+
+    aws_add_test(static_test_vectors ${CMAKE_CURRENT_BINARY_DIR}/static_test_vectors ${TEST_VECTORS_DIRECTORY})
+    add_dependencies(static_test_vectors unzip_test_vectors)
 else()
     message(STATUS "Static known good tests off")
 endif()
@@ -131,4 +162,3 @@ foreach(test_cpp ${test_sources})
 
     aws_add_test(${TEST_NAME}.test ${VALGRIND} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})
 endforeach()
-
