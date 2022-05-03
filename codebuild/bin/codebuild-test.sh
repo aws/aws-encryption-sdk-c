@@ -27,6 +27,8 @@ if [ -f "/sys/hypervisor/uuid" ]; then
         else
             E2E="OFF";
         fi
+elif [ -n "$CODEBUILD_BUILD_ARN" ]; then
+    E2E="ON";
 else
     E2E="OFF";
 fi
@@ -54,7 +56,6 @@ run_test() {
     #TODO: EC2 metadata service fails; fix an re-enable end2end tests.
     cmake -DBUILD_AWS_ENC_SDK_CPP=ON -DAWS_ENC_SDK_END_TO_END_TESTS=${E2E} \
         -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON \
-        -DAWS_ENC_SDK_TEST_VECTORS_ZIP="$ROOT/aws-encryption-sdk-cpp/tests/test_vectors/aws-encryption-sdk-test-vectors/vectors/awses-decrypt/python-1.3.8.zip" \
         -DAWS_ENC_SDK_END_TO_END_EXAMPLES=${E2E} \
         -DCMAKE_C_FLAGS="$CFLAGS" \
         -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
@@ -74,13 +75,26 @@ run_test() {
 # Print env variables for debug purposes
 env
 
+case "$TEST_MODE" in
+    dynamic)
+        # Run the full test suite without valgrind, and as a shared library
+        export BUILD_SHARED_LIBS=on
+        run_test '/deps/install;/deps/shared/install' -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        ;;
+    static_debug)
+        # Also run the test suite as a debug build (probing for -DNDEBUG issues), and as a static library
+        export BUILD_SHARED_LIBS=off
+        run_test '/deps/install;/deps/static/install' -DCMAKE_BUILD_TYPE=Debug
+        ;;
+    static_valgrind)
+        # Run a lighter weight test suite under valgrind
+        export BUILD_SHARED_LIBS=off
+        run_test '/deps/install;/deps/static/install' \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREDUCE_TEST_ITERATIONS=TRUE -DVALGRIND_TEST_SUITE=ON
+        ;;
+    *)
+        echo "unknown TEST_MODE: $TEST_MODE"
+        exit 1
+        ;;
+esac
 
-# Run the full test suite without valgrind, and as a shared library
-export BUILD_SHARED_LIBS=on
-run_test '/deps/install;/deps/shared/install' -DCMAKE_BUILD_TYPE=RelWithDebInfo
-# Also run the test suite as a debug build (probing for -DNDEBUG issues), and as a static library
-export BUILD_SHARED_LIBS=off
-run_test '/deps/install;/deps/static/install' -DCMAKE_BUILD_TYPE=Debug
-# Run a lighter weight test suite under valgrind
-export BUILD_SHARED_LIBS=off
-run_test '/deps/install;/deps/static/install' -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREDUCE_TEST_ITERATIONS=TRUE -DVALGRIND_TEST_SUITE=ON

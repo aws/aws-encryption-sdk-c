@@ -11,7 +11,6 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-###########
 # if Makefile.local exists, use it. This provides a way to override the defaults
 sinclude ../Makefile.local
 #otherwise, use the default values
@@ -31,8 +30,14 @@ PROJECT_SOURCES += $(SRCDIR)/source/framefmt.c
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
-###########
+
+# We abstract this function because manual inspection demonstrates it is unreachable.
+# Improves coverage metrics.
+REMOVE_FUNCTION_BODY += aws_byte_cursor_advance
+REMOVE_FUNCTION_BODY += aws_byte_cursor_read_be32
+REMOVE_FUNCTION_BODY += aws_byte_cursor_read_be64
 
 include ../Makefile.common

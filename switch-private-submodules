@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+#
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You
+# may not use this file except in compliance with the License. A copy of
+# the License is located at
+#
+# http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is
+# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
+# ANY KIND, either express or implied. See the License for the specific
+# language governing permissions and limitations under the License.
+
+
+import argparse
+import logging
+import os
+import subprocess
+import sys
+
+
+DESCRIPTION = "Switch between public and private versions of submodules"
+
+MODULES = [{
+    "submodule": "aws-encryption-sdk-cpp/tests/test_vectors/aws-encryption-sdk-test-vectors",
+    "private": "https://github.com/awslabs/private-aws-encryption-sdk-test-vectors-staging.git",
+    "public": "https://github.com/awslabs/aws-encryption-sdk-test-vectors.git",
+}, {
+    "submodule": "aws-encryption-sdk-specification",
+    "private": "https://github.com/awslabs/private-aws-encryption-sdk-specification-staging.git",
+    "public": "https://github.com/awslabs/aws-encryption-sdk-specification.git",
+}]
+
+
+def switch_to(version):
+    logging.info("Switching to %s version of the submodules", version)
+    for module in MODULES:
+        cmd = [
+            "git", "config",
+            f'url."{module[version]}".insteadOf',
+            module["public"],
+        ]
+        logging.info(" ".join(cmd))
+        subprocess.run(cmd, check=True)
+
+    subprocess.run(["git", "submodule", "sync"], check=True)
+    subprocess.run([
+        "git", "submodule", "update", "--init", "--recursive", "--checkout"],
+        check=True)
+
+
+def switch_to_env(_):
+    repo = os.getenv("GITHUB_REPOSITORY")
+    if not repo:
+        logging.error(
+            "Could not determine which submodules to check out "
+            "($GITHUB_REPOSITORY is not set).")
+        sys.exit(1)
+
+    if repo == "aws/private-aws-encryption-sdk-c-staging":
+        switch_to("private")
+    else:
+        switch_to("public")
+
+
+OPERATIONS = {
+    "public": switch_to,
+    "private": switch_to,
+    "env": switch_to_env,
+}
+
+
+def main():
+    pars = argparse.ArgumentParser(description=DESCRIPTION)
+    for arg in [{
+            "flags": ["operation"],
+            "choices": list(OPERATIONS.keys()),
+            "default": "public",
+            "help": "Switch to public or private versions of the submodules, "
+                    "or decide which by reading the $GITHUB_REPOSITORY "
+                    "environment variable. Default: %(default)s."
+        }, {
+            "flags": ["-v", "--verbose"],
+            "action": "store_true",
+            "help": "verbose output",
+    }]:
+        flags = arg.pop("flags")
+        pars.add_argument(*flags, **arg)
+    args = pars.parse_args()
+
+    fmt = "switch-private-submodules: %(message)s"
+    if args.verbose:
+        logging.basicConfig(format=fmt, level=logging.INFO)
+    else:
+        logging.basicConfig(format=fmt, level=logging.WARNING)
+
+    OPERATIONS[args.operation](args.operation)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,5 +1,41 @@
 # Changelog
 
+## 2.3.2 -- 2021-10-18
+
+### Maintenance
+
+* Mark high-memory proofs expensive ([#710](https://github.com/aws/aws-encryption-sdk-c/pull/710)) 
+* Simplify / update build instructions ([#713](https://github.com/aws/aws-encryption-sdk-c/pull/713))
+* Update submodules ([#726](https://github.com/aws/aws-encryption-sdk-c/pull/726)) 
+* Remove OOM test, as OOM is no longer possible from aws allocators ([#728](https://github.com/aws/aws-encryption-sdk-c/pull/728)) 
+* Pin newer aws-sdk-cpp in macOS CI builds ([#729](https://github.com/aws/aws-encryption-sdk-c/pull/729))
+
+## 2.3.1 -- 2021-07-13
+
+* Add [support policy](SUPPORT_POLICY.rst).
+* Fix missing include in `kms_mrk_keyring.h` that could result in compilation failure.
+
+## 2.3.0 -- 2021-06-16
+
+- AWS KMS multi-Region Key support
+
+  Added the new keyring KmsMrkAwareSymmetricKeyring that support AWS KMS
+  multi-Region keys.
+  Added the helper MultiKeyringBuilder that compose multiple
+  KmsMrkAwareSymmetricKeyrings together to handle multiple CMKs.
+
+  See https://docs.aws.amazon.com/kms/latest/developerguide/multi-region-keys-overview.html
+  for more details about AWS KMS multi-Region Keys.
+  See https://docs.aws.amazon.com/encryption-sdk/latest/developer-guide/configure.html#config-mrks
+  for more details about how the AWS Encryption SDK interoperates
+  with AWS KMS multi-Region keys.
+
+## 2.2.0 -- 2021-05-27
+
+* Improvements to the message decryption process.
+
+  See <https://github.com/aws/aws-encryption-sdk-c/security/advisories/GHSA-r8cc-xhh9-rg65>
+
 ## 2.0.0 -- 2020-09-24
 
 * Updates to the AWS Encryption SDK. c43d706

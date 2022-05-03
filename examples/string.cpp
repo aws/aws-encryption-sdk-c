@@ -54,11 +54,6 @@ int encrypt_string(
         return AWS_OP_ERR;
     }
 
-    if (AWS_OP_SUCCESS != aws_cryptosdk_session_set_message_size(session, plaintext_len)) {
-        aws_cryptosdk_session_destroy(session);
-        return AWS_OP_ERR;
-    }
-
     /* The encryption context is an AWS hash table where both the key and value
      * types are AWS strings. Both AWS hash tables and AWS strings are defined in
      * the aws-c-common library.
@@ -77,19 +72,11 @@ int encrypt_string(
     }
 
     /* We encrypt the data. */
-    size_t plaintext_consumed;
-    if (AWS_OP_SUCCESS !=
-        aws_cryptosdk_session_process(
-            session, ciphertext, ciphertext_buf_sz, ciphertext_len, plaintext, plaintext_len, &plaintext_consumed)) {
+    if (AWS_OP_SUCCESS != aws_cryptosdk_session_process_full(
+                              session, ciphertext, ciphertext_buf_sz, ciphertext_len, plaintext, plaintext_len)) {
         aws_cryptosdk_session_destroy(session);
         return AWS_OP_ERR;
     }
-
-    if (!aws_cryptosdk_session_is_done(session)) {
-        aws_cryptosdk_session_destroy(session);
-        return AWS_OP_ERR;
-    }
-    if (plaintext_consumed != plaintext_len) abort();
 
     /* This call deallocates all of the memory allocated in this function, including
      * the keyring, since we already released its pointer.
@@ -126,19 +113,11 @@ int decrypt_string_and_verify_encryption_context(
         return AWS_OP_ERR;
     }
 
-    size_t ciphertext_consumed;
-    if (AWS_OP_SUCCESS !=
-        aws_cryptosdk_session_process(
-            session, plaintext, plaintext_buf_sz, plaintext_len, ciphertext, ciphertext_len, &ciphertext_consumed)) {
+    if (AWS_OP_SUCCESS != aws_cryptosdk_session_process_full(
+                              session, plaintext, plaintext_buf_sz, plaintext_len, ciphertext, ciphertext_len)) {
         aws_cryptosdk_session_destroy(session);
         return AWS_OP_ERR;
     }
-
-    if (!aws_cryptosdk_session_is_done(session)) {
-        aws_cryptosdk_session_destroy(session);
-        return AWS_OP_ERR;
-    }
-    if (ciphertext_consumed != ciphertext_len) abort();
 
     /* The encryption context is stored in plaintext in the encrypted message, and the
      * AWS Encryption SDK detects it and uses it for decryption, so there is no need to
