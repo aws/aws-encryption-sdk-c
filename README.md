@@ -160,8 +160,10 @@ Here are sample command lines using gcc/g++ to build a couple of the example fil
 assuming that the libraries and headers have been installed where your system
 knows how to find them.
 
-    g++ -o string string.cpp -std=c++11 -lcrypto -laws-encryption-sdk -laws-encryption-sdk-cpp -laws-c-common -laws-cpp-sdk-kms -laws-cpp-sdk-core
-    gcc -o raw_aes_keyring raw_aes_keyring.c -lcrypto -laws-encryption-sdk -laws-c-common
+```
+g++ -o string string.cpp -std=c++11 -lcrypto -laws-encryption-sdk -laws-encryption-sdk-cpp -laws-c-common -laws-cpp-sdk-kms -laws-cpp-sdk-core -laws-crt-cpp
+gcc -o raw_aes_keyring raw_aes_keyring.c -lcrypto -laws-encryption-sdk -laws-c-common
+```
 
 Note that the C++ files using the AWS KMS keyring will require
 you to make sure that AWS credentials are set up on your machine to run properly.
