@@ -8,6 +8,8 @@ SRCDIR ?= $(abspath $(PROOF_ROOT)/../../..)
 #
 LITANI ?= $(abspath $(PROOF_ROOT)/../../litani/litani)
 
+# Disregard EXTERNAL_SAT_SOLVER value - Specify CaDiCaL as the SAT solver
+USE_EXTERNAL_SAT_SOLVER ?= --external-sat-solver cadical
 
 # Name of this proof project, displayed in proof reports. For example,
 # "s2n" or "Amazon FreeRTOS". For projects with multiple proof roots,
