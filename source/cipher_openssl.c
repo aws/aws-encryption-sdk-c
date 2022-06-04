@@ -19,10 +19,15 @@
 #include <openssl/crypto.h>
 #include <openssl/opensslv.h>
 
+#include <openssl/asn1.h>
 #include <openssl/ec.h>
 #include <openssl/ecdsa.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
+
+#if defined(OPENSSL_IS_AWSLC)
+    #include <openssl/obj.h>
+#endif
 
 #include <aws/common/encoding.h>
 
@@ -296,12 +301,15 @@ static int serialize_pubkey(struct aws_allocator *alloc, EC_KEY *keypair, struct
         goto err;
     }
 
-    free(buf);
+    // The memory within |i2o_ECPublicKey| is allocated with |OPENSSL_malloc|.
+    // Memory that has been allocated with |OPENSSL_malloc| should be freed
+    // with |OPENSSL_free|.
+    OPENSSL_free(buf);
     return AWS_OP_SUCCESS;
 
 err:
     // buf (and tmp) hold a public key, so we don't need to zeroize them.
-    free(buf);
+    OPENSSL_free(buf);
 
     *pub_key = NULL;
 
@@ -413,11 +421,11 @@ err:
     aws_secure_zero(tmparr, sizeof(tmparr));
     if (privkey_buf) {
         aws_secure_zero(privkey_buf, privkey_len);
-        free(privkey_buf);
+        OPENSSL_free(privkey_buf);
     }
     if (pubkey_buf) {
         aws_secure_zero(pubkey_buf, pubkey_len);
-        free(pubkey_buf);
+        OPENSSL_free(pubkey_buf);
     }
 
     // There is no error path that results in a non-NULL priv_key, so we don't need to

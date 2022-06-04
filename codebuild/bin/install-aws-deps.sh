@@ -37,7 +37,7 @@ build_pkg() {
         git clone --depth 1 --branch $GIT_REF --recurse-submodules "$GIT_URL" "$SRC_DIR"
     fi
 
-    mkdir $BUILD_DIR
+    mkdir -p $BUILD_DIR
     (cd $BUILD_DIR &&
      export LD_LIBRARY_PATH=/deps/install &&
      cmake $SRC_DIR "$@" -DCMAKE_INSTALL_PREFIX=$root/install -DCMAKE_BUILD_TYPE=RelWithDebInfo -GNinja \
@@ -53,8 +53,8 @@ build_pkg() {
 mkdir -p /deps
 
 # These must refer to git tags
-AWS_CRT_CPP_VERSION="v0.14.0"
-AWS_SDK_CPP_VERSION="1.9.39"
+AWS_CRT_CPP_VERSION="v0.17.28"
+AWS_SDK_CPP_VERSION="1.9.263"
 
 for libtype in shared static; do
     root=/deps/$libtype
