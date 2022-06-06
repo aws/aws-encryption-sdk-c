@@ -26,7 +26,7 @@
 #include <openssl/evp.h>
 
 #if defined(OPENSSL_IS_AWSLC)
-    #include <openssl/obj.h>
+#   include <openssl/obj.h>
 #endif
 
 #include <aws/common/encoding.h>
