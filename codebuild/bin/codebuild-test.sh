@@ -28,7 +28,7 @@ if [ -f "/sys/hypervisor/uuid" ]; then
         else
             E2E="OFF";
         fi
-elif [ -n "$CODEBUILD_BUILD_ARN" ]; then
+elif [ -n "${CODEBUILD_BUILD_ARN-}" ]; then
     E2E="ON";
 else
     E2E="OFF";

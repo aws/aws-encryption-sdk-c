@@ -31,10 +31,10 @@ function build_awslc() {
         -GNinja \
         -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo"
-    if [[ !(-z "${CFLAGS+x}" || -z "${CFLAGS}") ]]; then
+    if [[ -n "${CFLAGS-}" ]]; then
         CMAKE_BUILD_COMMAND="${CMAKE_BUILD_COMMAND} -DCMAKE_C_FLAGS=${CFLAGS}"
     fi
-    if [[ !(-z "${CXXFLAGS+x}" || -z "${CXXFLAGS}") ]]; then
+    if [[ -n "${CXXFLAGS-}" ]]; then
         CMAKE_BUILD_COMMAND="${CMAKE_BUILD_COMMAND} -DCMAKE_CXX_FLAGS=${CXXFLAGS}"
     fi
     (cd ${BUILD_DIR} && ${CMAKE_BUILD_COMMAND})
@@ -52,6 +52,8 @@ function install_libcurl() {
     # awslc is forked from boringssl.
     # |OPENSSL_IS_AWSLC| macro is equivalent to |OPENSSL_IS_BORINGSSL|.
     # Replacing OPENSSL_IS_BORINGSSL with OPENSSL_IS_AWSLC.
+    #
+    # TODO: Remove the extra command below when curl has official support for AWS-LC.
     find ./ -type f -exec sed -i -e 's/OPENSSL_IS_BORINGSSL/OPENSSL_IS_AWSLC/g' {} \;
     ./configure --with-ssl=/deps/install \
         --prefix=/deps/install \
