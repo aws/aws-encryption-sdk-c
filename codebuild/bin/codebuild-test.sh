@@ -61,7 +61,7 @@ run_test() {
         -DCMAKE_C_FLAGS="$CFLAGS" \
         -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
         -DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
-        -DOPENSSL_ROOT_DIR=/deps/openssl \
+        -DOPENSSL_ROOT_DIR=/deps/install \
         -DVALGRIND_OPTIONS="--gen-suppressions=all;--suppressions=$ROOT/valgrind.suppressions" \
         -DCMAKE_PREFIX_PATH="$PREFIX_PATH" \
         -DBUILD_SHARED_LIBS="$BUILD_SHARED_LIBS" \
