@@ -343,7 +343,7 @@ int aws_cryptosdk_sig_get_privkey(
     unsigned char *privkey_buf = NULL, *pubkey_buf = NULL;
     ASN1_INTEGER *privkey_int = NULL;
     /* Should be long enough to encode the private + compressed public key + alg id */
-    unsigned char tmparr[MAX_PUBKEY_SIZE * 2 + 2];
+    unsigned char tmparr[MAX_PUBKEY_SIZE * 2 + 2] = { 0 };
 
     int privkey_len = 0, pubkey_len = 0;
     int rv                       = AWS_OP_ERR;
