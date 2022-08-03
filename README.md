@@ -197,6 +197,14 @@ logic by setting `-DBUILD_AWS_ENC_SDK_CPP=OFF` to never build the C++ components
 by setting `-DBUILD_AWS_ENC_SDK_CPP=ON` to require building the C++ components (and
 fail if the C++ dependencies are not found.)
 
+## CBMC
+
+To learn more about CBMC and proofs specifically, review the training material [here](https://model-checking.github.io/cbmc-training).
+
+The `verification/cbmc/proofs` directory contains CBMC proofs.
+
+In order to run these proofs you will need to install CBMC and other tools by following the instructions [here](https://model-checking.github.io/cbmc-training/installation.html).
+
 ## License
 
 This library is licensed under the Apache 2.0 License.
