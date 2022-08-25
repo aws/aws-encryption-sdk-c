@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.9.2 -- 2022-08-30
+
+Deprecation
+-----------
+* This major version (1.x) of the AWS Encryption SDK for C has reached End-of-Support. It will no longer receive security updates or bug fixes. Consider updating to the latest version of the AWS Encryption SDK.
+
+Features
+--------
+* Warn on usage
+
+
 ## 1.9.1 -- 2021-10-20
 
 ### Maintenance
