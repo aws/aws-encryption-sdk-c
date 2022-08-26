@@ -70,6 +70,11 @@ int aws_cryptosdk_session_reset(struct aws_cryptosdk_session *session, enum aws_
 
 static struct aws_cryptosdk_session *aws_cryptosdk_session_new(
     struct aws_allocator *allocator, enum aws_cryptosdk_mode mode) {
+    fprintf(
+        stderr,
+        "WARNING: This major version (1.x) of the AWS Encryption SDK for C has reached End-of-Support.\n"
+        "It will no longer receive security updates or bug fixes.\n"
+        "Consider updating to the latest version of the AWS Encryption SDK.\n");
     struct aws_cryptosdk_session *session = aws_mem_acquire(allocator, sizeof(struct aws_cryptosdk_session));
 
     if (!session) {
