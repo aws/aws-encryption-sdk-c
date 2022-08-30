@@ -34,6 +34,7 @@
 
 #include <json-c/json.h>
 #include <json-c/json_object.h>
+#include <unistd.h>
 
 #include "credential_reusing_client_supplier.h"
 #include "testing.h"
