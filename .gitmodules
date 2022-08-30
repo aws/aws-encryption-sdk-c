@@ -4,12 +4,6 @@
 [submodule ".cbmc-batch/aws-c-common"]
 	path = verification/cbmc/aws-c-common
 	url = https://github.com/awslabs/aws-c-common.git
-[submodule "verification/cbmc/templates"]
-	path = verification/cbmc/templates
-	url = https://github.com/awslabs/aws-templates-for-cbmc-proofs.git
-[submodule "verification/litani"]
-	path = verification/litani
-	url = https://github.com/awslabs/aws-build-accumulator
 [submodule "aws-encryption-sdk-specification"]
 	path = aws-encryption-sdk-specification
 	url = https://github.com/awslabs/aws-encryption-sdk-specification.git
