@@ -289,7 +289,6 @@ static aws_cryptosdk_keyring *keyring_for_master_key_spec(
             }
         }
     } else if (!cmp_jsonstr_with_cstr(key_type_obj, "aws-kms")) {
-        usleep(100);
         test_type_idx = AWS_CRYPTOSDK_KMS;
         if (!key_id_obj) {
             fprintf(stderr, "Failed to obtain the kms_key_id, %s\n", aws_error_str(aws_last_error()));
@@ -302,7 +301,6 @@ static aws_cryptosdk_keyring *keyring_for_master_key_spec(
             goto next_test_scenario;
         }
     } else if (!cmp_jsonstr_with_cstr(key_type_obj, "aws-kms-mrk-aware")) {
-        usleep(100);
         test_type_idx = AWS_CRYPTOSDK_KMS_MRK_AWARE;
         if (!key_id_obj) {
             fprintf(stderr, "Failed to obtain the kms_key_id, %s\n", aws_error_str(aws_last_error()));
@@ -315,7 +313,6 @@ static aws_cryptosdk_keyring *keyring_for_master_key_spec(
             goto next_test_scenario;
         }
     } else if (!cmp_jsonstr_with_cstr(key_type_obj, "aws-kms-mrk-aware-discovery")) {
-        usleep(100);
         test_type_idx = AWS_CRYPTOSDK_KMS_MRK_AWARE_DISCOVERY;
 
         json_object *default_mrk_region_obj = NULL;
@@ -439,6 +436,14 @@ cleanup:
     return result;
 }
 
+static void kms_delay(test_type test_type_idx) {
+    static int tenth_second_in_millis = 100;
+    if ((test_type_idx == AWS_CRYPTOSDK_KMS) || (test_type_idx == AWS_CRYPTOSDK_KMS_MRK_AWARE) ||
+        (test_type_idx == AWS_CRYPTOSDK_KMS_MRK_AWARE_DISCOVERY)) {
+        usleep(tenth_second_in_millis);
+    }
+}
+
 static int process_test_scenarios(
     struct aws_allocator *alloc,
     struct expected_outcome expected,
@@ -463,6 +468,7 @@ static int process_test_scenarios(
         bool not_supported;
         struct aws_cryptosdk_keyring *kr = keyring_for_master_key_spec(
             alloc, json_obj_mk_obj, keys_obj, test_type_idx, not_supported, client_supplier);
+        kms_delay(test_type_idx);
         if (!kr) {
             if (expected.success) {
                 if (not_supported) {
