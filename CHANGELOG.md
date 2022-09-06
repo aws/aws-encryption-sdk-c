@@ -1,5 +1,11 @@
 # Changelog
 
+## current
+
+* Support AWS-LC library ([#750](https://github.com/aws/aws-encryption-sdk-c/pull/750))
+* fix: out-of-bounds constant in default_cmm.c ([#752](https://github.com/aws/aws-encryption-sdk-c/pull/752))
+* track unset default alg separately in default_cmm.c ([#687](https://github.com/aws/aws-encryption-sdk-c/pull/687))
+
 ## 2.3.2 -- 2021-10-18
 
 ### Maintenance
