@@ -17,6 +17,7 @@ set -euxo pipefail
 
 PATH=$PWD/build-tools/bin:$PATH
 ROOT=$PWD
+NUM_CPU_THREADS=$(nproc)
 
 # End to end tests require valid credentials (instance role, etc..)
 # Disable for local runs.
@@ -60,14 +61,14 @@ run_test() {
         -DCMAKE_C_FLAGS="$CFLAGS" \
         -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
         -DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
-        -DOPENSSL_ROOT_DIR=/deps/openssl \
+        -DOPENSSL_ROOT_DIR=/deps/install \
         -DVALGRIND_OPTIONS="--gen-suppressions=all;--suppressions=$ROOT/valgrind.suppressions" \
         -DCMAKE_PREFIX_PATH="$PREFIX_PATH" \
         -DBUILD_SHARED_LIBS="$BUILD_SHARED_LIBS" \
         -GNinja \
         .. "$@" 2>&1|head -n 1000)
     cmake --build $ROOT/build -- -v
-    (cd build; ctest --output-on-failure -j8)
+    (cd build; ctest --output-on-failure -j${NUM_CPU_THREADS})
     (cd build; debug ./tests/test_local_cache_threading) || exit 1
     "$ROOT/codebuild/bin/test-install.sh" "$PREFIX_PATH" "$PWD/build"
 }

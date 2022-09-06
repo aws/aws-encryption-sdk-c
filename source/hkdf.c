@@ -29,7 +29,21 @@ static const EVP_MD *aws_cryptosdk_get_evp_md(enum aws_cryptosdk_sha_version whi
     }
 }
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+// AWS-LC does not support HKDF construction with the |EVP_PKEY*| methods in OpenSSL 1.1.1.
+// We're backporting to ESDK's HKDF self implementation methods |aws_cryptosdk_hkdf_extract|
+// and |aws_cryptosdk_hkdf_expand| when building with AWS-LC for now.
+// The semantics of AWS-LC's HKDF API implementations (|HKDF_extract| & |HKDF_expand|)
+// are nearly identical to ESDK's. The only slight difference is that AWS-LC's |HKDF_expand|
+// sets the initial |HMAC_Init_ex| paramaters before the key expansion loop, while
+// |aws_cryptosdk_hkdf_expand| initializes HMAC with the same parameters continuously.
+// We can look to add support if there are customer requirements to use AWS-LC's HKDF crypto
+// implementation when building with ESDK.
+//
+// Both APIs align with the RFC5869 requirements.
+// HKDF_extract: https://tools.ietf.org/html/rfc5869#section-2.2
+// HKDF_expand: https://tools.ietf.org/html/rfc5869#section-2.3
+//
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L || defined(OPENSSL_IS_AWSLC))
 
 static int aws_cryptosdk_hkdf_extract(
     /* prk must be a buffer of EVP_MAX_MD_SIZE bytes */
@@ -151,7 +165,7 @@ int aws_cryptosdk_hkdf(
     const struct aws_byte_buf *salt,
     const struct aws_byte_buf *ikm,
     const struct aws_byte_buf *info) {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L || defined(OPENSSL_IS_AWSLC))
     uint8_t prk[EVP_MAX_MD_SIZE];
     unsigned int prk_len = 0;
     if (aws_cryptosdk_hkdf_extract(prk, &prk_len, which_sha, salt, ikm)) goto err;
