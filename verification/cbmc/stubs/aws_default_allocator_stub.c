@@ -15,6 +15,6 @@
 
 #include <proof_helpers/proof_allocators.h>
 
-struct aws_allocator aws_default_allocator() {
+struct aws_allocator *aws_default_allocator() {
     return can_fail_allocator();
 }
