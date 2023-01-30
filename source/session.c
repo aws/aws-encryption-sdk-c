@@ -301,7 +301,7 @@ int aws_cryptosdk_session_process(
             case ST_ERROR: result = aws_raise_error(session->error); break;
         }
 
-        made_progress = (remaining_space.len) || (input.ptr != old_inp) || (prior_state != session->state);
+        made_progress = (remaining_space.len) && (input.ptr != old_inp) && (prior_state != session->state);
 
         output.len += remaining_space.len;
     } while (result == AWS_OP_SUCCESS && made_progress);
