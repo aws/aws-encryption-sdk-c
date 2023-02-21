@@ -43,16 +43,16 @@ BIO *BIO_new_mem_buf(const void *buf, signed int len) {
  * SubjectPublicKeyInfo structure.
  */
 EVP_PKEY *PEM_read_bio_PUBKEY(BIO *bp, EVP_PKEY **x, pem_password_cb *cb, void *u) {
-    x = EVP_PKEY_new();
-    return x;
+    *x = EVP_PKEY_new();
+    return *x;
 }
 
 /*
  * Read a private key from a BIO.
  */
 EVP_PKEY *PEM_read_bio_PrivateKey(BIO *bp, EVP_PKEY **x, pem_password_cb *cb, void *u) {
-    x = EVP_PKEY_new();
-    return x;
+    *x = EVP_PKEY_new();
+    return *x;
 }
 
 /*

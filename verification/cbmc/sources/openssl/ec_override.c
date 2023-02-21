@@ -59,6 +59,8 @@ void EC_GROUP_set_point_conversion_form(EC_GROUP *group, point_conversion_form_t
     group->asn1_form = form;
 }
 
+bool ec_group_is_valid(EC_GROUP *group);
+
 /*
  * Return values: EC_GROUP_get0_order() returns an internal pointer to the group order.
  */
@@ -282,6 +284,8 @@ struct ECDSA_SIG_st {
     BIGNUM *r;
     BIGNUM *s;
 };
+
+bool ecdsa_sig_is_valid(ECDSA_SIG *sig);
 
 /*
  * Description: ECDSA_SIG_get0() returns internal pointers the r and s values contained in sig and stores them in *pr

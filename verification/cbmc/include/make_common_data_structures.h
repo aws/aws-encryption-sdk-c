@@ -19,6 +19,7 @@
 #include <aws/cryptosdk/materials.h>
 #include <aws/cryptosdk/private/framefmt.h>
 #include <aws/cryptosdk/private/header.h>
+#include <aws/cryptosdk/private/hkdf.h>
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
@@ -114,4 +115,5 @@ struct aws_cryptosdk_enc_request *ensure_enc_request_attempt_allocation(const si
 struct aws_cryptosdk_enc_materials *ensure_enc_materials_attempt_allocation();
 
 /* Allocates the members of the default_cmm and ensures that internal pointers are pointing to the correct objects. */
-struct aws_cryptosdk_cmm *ensure_default_cmm_attempt_allocation(const struct aws_cryptosdk_keyring_vt *vtable);
+struct aws_cryptosdk_cmm *ensure_default_cmm_attempt_allocation(
+    const struct aws_cryptosdk_cmm_vt *cmm_vtable, const struct aws_cryptosdk_keyring_vt *vtable);

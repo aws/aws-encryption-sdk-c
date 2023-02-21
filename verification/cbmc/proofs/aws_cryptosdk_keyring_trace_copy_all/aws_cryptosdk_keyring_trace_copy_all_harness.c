@@ -17,6 +17,7 @@
  */
 
 #include <aws/cryptosdk/keyring_trace.h>
+#include <aws/cryptosdk/list_utils.h>
 #include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>
@@ -96,14 +97,17 @@ const size_t g_item_size = sizeof(struct aws_cryptosdk_keyring_trace_record);
  * These stubs capture the key aspect of checking that the element is allocated.
  * It writes/reads a magic constant to ensure that we only ever _clean_up() data that we cloned
  */
-int aws_cryptosdk_keyring_trace_record_init_clone(struct aws_allocator *alloc, void *dest, const void *src) {
+int aws_cryptosdk_keyring_trace_record_init_clone(
+    struct aws_allocator *alloc,
+    struct aws_cryptosdk_keyring_trace_record *dest,
+    const struct aws_cryptosdk_keyring_trace_record *src) {
     assert(AWS_MEM_IS_READABLE(src, g_item_size));
     uint8_t *d = (uint8_t *)dest;
     *d         = 0xab;
     return nondet_int();
 }
 
-void aws_cryptosdk_keyring_trace_record_clean_up(void *p) {
+void aws_cryptosdk_keyring_trace_record_clean_up(struct aws_cryptosdk_keyring_trace_record *p) {
     uint8_t *d = (uint8_t *)p;
     assert(*d == 0xab);
 }

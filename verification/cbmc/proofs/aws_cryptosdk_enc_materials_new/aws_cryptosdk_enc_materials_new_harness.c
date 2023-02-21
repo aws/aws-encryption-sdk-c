@@ -32,7 +32,7 @@ void aws_cryptosdk_enc_materials_new_harness() {
     __CPROVER_assume(aws_allocator_is_valid(alloc));
 
     /* Operation under verification. */
-    struct aws_cryptosdk_dec_materials *enc_mat = aws_cryptosdk_enc_materials_new(alloc, alg);
+    struct aws_cryptosdk_enc_materials *enc_mat = aws_cryptosdk_enc_materials_new(alloc, alg);
 
     /* Post-conditions. */
     if (enc_mat != NULL) {

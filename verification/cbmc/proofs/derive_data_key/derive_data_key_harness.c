@@ -23,6 +23,9 @@
 #include <aws/cryptosdk/session.h>
 #include <make_common_data_structures.h>
 
+int __CPROVER_file_local_session_decrypt_c_derive_data_key(
+    struct aws_cryptosdk_session *session, struct aws_cryptosdk_dec_materials *materials);
+
 void derive_data_key_harness() {
     /* Setup functions include nondet. allocation and common assumptions */
     struct aws_cryptosdk_session *session =

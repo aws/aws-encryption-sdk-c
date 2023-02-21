@@ -91,6 +91,8 @@ struct evp_pkey_ctx_st {
     EVP_PKEY *pkey;
 };
 
+bool evp_pkey_is_valid(EVP_PKEY *pkey);
+
 /*
  * Description: The EVP_PKEY_CTX_new() function allocates public key algorithm context using the algorithm specified in
  * pkey and ENGINE e. Return values: EVP_PKEY_CTX_new() returns either the newly allocated EVP_PKEY_CTX structure of
@@ -172,6 +174,8 @@ int EVP_PKEY_sign_init(EVP_PKEY_CTX *ctx) {
     __CPROVER_assume(rv <= 0);
     return rv;
 }
+
+bool evp_pkey_ctx_is_valid(EVP_PKEY_CTX *);
 
 /*
  * Description: The EVP_PKEY_sign() function performs a public key signing operation using ctx. The data to be signed is
@@ -723,6 +727,12 @@ int EVP_MD_size(const EVP_MD *md) {
     return 512;
 }
 
+/* Helper function for CBMC proofs: checks if EVP_MD_CTX is valid. */
+bool evp_md_ctx_is_valid(EVP_MD_CTX *ctx) {
+    return ctx && ctx->is_initialized && ctx->digest_size <= EVP_MAX_MD_SIZE &&
+           (ctx->pkey == NULL || evp_pkey_is_valid(ctx->pkey));
+}
+
 /*
  * Description: Allocates and returns a digest context.
  */
@@ -756,6 +766,8 @@ void EVP_MD_CTX_free(EVP_MD_CTX *ctx) {
         free(ctx);
     }
 }
+
+bool evp_md_is_valid(EVP_MD *md);
 
 /*
  * Description: Sets up digest context ctx to use a digest type from ENGINE impl. type will typically be supplied by
@@ -931,6 +943,8 @@ unsigned char *HMAC(
     return res;
 }
 
+bool hmac_ctx_is_valid(HMAC_CTX *ctx);
+
 /*
 * HMAC_Init_ex() initializes or reuses a HMAC_CTX structure to use the hash function evp_md and key key.
 * If both are NULL (or evp_md is the same as the previous digest used by ctx and key is NULL) the existing key is
@@ -1029,12 +1043,6 @@ bool evp_cipher_is_valid(EVP_CIPHER *cipher) {
 bool evp_md_is_valid(EVP_MD *md) {
     return md && ((md->from == EVP_SHA256 && md->size == 32) || (md->from == EVP_SHA384 && md->size == 48) ||
                   (md->from == EVP_SHA512 && md->size == 64));
-}
-
-/* Helper function for CBMC proofs: checks if EVP_MD_CTX is valid. */
-bool evp_md_ctx_is_valid(EVP_MD_CTX *ctx) {
-    return ctx && ctx->is_initialized && ctx->digest_size <= EVP_MAX_MD_SIZE &&
-           (ctx->pkey == NULL || evp_pkey_is_valid(ctx->pkey));
 }
 
 /* Helper function for CBMC proofs: allocates EVP_MD_CTX nondeterministically. */
