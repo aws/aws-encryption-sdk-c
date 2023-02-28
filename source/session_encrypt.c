@@ -327,7 +327,7 @@ int aws_cryptosdk_priv_try_encrypt_body(
     if (session->frame_seqno > UINT32_MAX) {
         return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
     }
-    frame.sequence_number = session->frame_seqno;
+    frame.sequence_number = (uint32_t) session->frame_seqno;
 
     int rv = aws_cryptosdk_serialize_frame(&frame, &ciphertext_size, plaintext_size, &output, session->alg_props);
 
