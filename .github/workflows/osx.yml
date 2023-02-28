@@ -46,8 +46,7 @@ jobs:
           mkdir -p build-aws-sdk-cpp || true
           mkdir -p install || true
           cd build-aws-sdk-cpp
-          export CMAKE_C_FLAGS '-Wno-shorten-64-to-32'
-          cmake -G Xcode -DTARGET_ARCH="APPLE" -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="kms" -DENABLE_UNITY_BUILD=ON ../aws-sdk-cpp
+          cmake -DTARGET_ARCH="APPLE" -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="kms" -DENABLE_UNITY_BUILD=ON ../aws-sdk-cpp
           xcodebuild -target ALL_BUILD
           xcodebuild -target install
 
