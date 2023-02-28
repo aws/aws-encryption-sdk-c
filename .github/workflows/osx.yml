@@ -43,10 +43,12 @@ jobs:
 
       - name: Build and install aws-sdk-cpp
         run: |
+	  # remove the following line once aws-sdk-cpp fixes linux-shared/SimpleUDP.cpp
+          perl -i -p -e 's/"-Werror"//' aws-sdk-cpp/cmake/compiler_settings.cmake
           mkdir -p build-aws-sdk-cpp || true
           mkdir -p install || true
           cd build-aws-sdk-cpp
-          cmake -DTARGET_ARCH="APPLE" -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="kms" -DENABLE_UNITY_BUILD=ON ../aws-sdk-cpp
+          cmake -G Xcode -DTARGET_ARCH="APPLE" -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="kms" -DENABLE_UNITY_BUILD=ON ../aws-sdk-cpp
           xcodebuild -target ALL_BUILD
           xcodebuild -target install
 
