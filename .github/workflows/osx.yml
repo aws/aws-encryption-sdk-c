@@ -43,7 +43,7 @@ jobs:
 
       - name: Build and install aws-sdk-cpp
         run: |
-	  # remove the following line once aws-sdk-cpp fixes linux-shared/SimpleUDP.cpp
+          # remove the following line once aws-sdk-cpp fixes linux-shared/SimpleUDP.cpp
           perl -i -p -e 's/"-Werror"//' aws-sdk-cpp/cmake/compiler_settings.cmake
           mkdir -p build-aws-sdk-cpp || true
           mkdir -p install || true
