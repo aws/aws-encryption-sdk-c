@@ -41,23 +41,10 @@ jobs:
         run:
           brew install json-c
 
-      # The hosted Actions runners include CMake v3.19.1 by default, which has
-      # a regression that causes aws-sdk-cpp and aws-encryption-sdk-c to fail
-      # to build on the runners.
-      # This appears to have been an issue in CMake that is fixed in 3.19.3.
-      # This workaround is required until the MacOS Action is updated to a
-      # a newer CMake, or the dependency adds a workaround for 3.19.1.
-      # See https://github.com/aws/aws-encryption-sdk-c/issues/650 and
-      # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-10.15-Readme.md
-      - name: Install CMake v3.19.3
-        run: |
-          brew uninstall cmake
-          curl -L https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-macos-universal.tar.gz | tar xz
-          cd cmake-3.19.3-macos-universal/CMake.app/Contents/bin
-          ./cmake-gui --install
-
       - name: Build and install aws-sdk-cpp
         run: |
+          # remove the following line once aws-sdk-cpp fixes linux-shared/SimpleUDP.cpp
+          perl -i -p -e 's/"-Werror"//' aws-sdk-cpp/cmake/compiler_settings.cmake
           mkdir -p build-aws-sdk-cpp || true
           mkdir -p install || true
           cd build-aws-sdk-cpp

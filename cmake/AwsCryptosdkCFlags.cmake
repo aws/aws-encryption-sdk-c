@@ -73,6 +73,7 @@ function(aws_cryptosdk_set_common_properties target)
         # Warning disables always go last to avoid future flags re-enabling them
         list(APPEND AWS_C_FLAGS -Wno-long-long)
         list(APPEND AWS_C_FLAGS -Wno-missing-field-initializers)
+        list(APPEND AWS_C_FLAGS -Wno-shorten-64-to-32)
     endif(MSVC)
 
     if(NOT SET_PROPERTIES_NO_WGNU)

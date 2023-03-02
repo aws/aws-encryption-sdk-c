@@ -437,10 +437,10 @@ cleanup:
 }
 
 static void kms_delay(test_type test_type_idx) {
-    static int fifteen_millis = 15000;
+    static int fifty_millis = 50000;
     if ((test_type_idx == AWS_CRYPTOSDK_KMS) || (test_type_idx == AWS_CRYPTOSDK_KMS_MRK_AWARE) ||
         (test_type_idx == AWS_CRYPTOSDK_KMS_MRK_AWARE_DISCOVERY)) {
-        usleep(fifteen_millis);
+        usleep(fifty_millis);
     }
 }
 
