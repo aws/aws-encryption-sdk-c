@@ -1,12 +1,12 @@
 <map id="error.h" name="error.h">
-<area shape="rect" id="node1" title=" " alt="" coords="477,5,535,32"/>
-<area shape="rect" id="node2" href="$materials_8h.html" title=" " alt="" coords="463,80,549,107"/>
-<area shape="rect" id="node3" href="$cache_8h.html" title=" " alt="" coords="5,155,73,181"/>
-<area shape="rect" id="node4" href="$default__cmm_8h.html" title=" " alt="" coords="97,155,205,181"/>
-<area shape="rect" id="node5" href="$multi__keyring_8h.html" title=" " alt="" coords="229,155,340,181"/>
-<area shape="rect" id="node6" href="$raw__aes__keyring_8h.html" title=" " alt="" coords="365,155,495,181"/>
-<area shape="rect" id="node7" href="$raw__rsa__keyring_8h.html" title=" " alt="" coords="519,155,647,181"/>
-<area shape="rect" id="node8" href="$session_8h.html" title=" " alt="" coords="672,155,751,181"/>
-<area shape="rect" id="node9" href="$kms__keyring_8h.html" title=" " alt="" coords="775,155,882,181"/>
-<area shape="rect" id="node10" href="$kms__mrk__keyring_8h.html" title=" " alt="" coords="806,229,942,256"/>
+<area shape="rect" id="node1" title=" " alt="" coords="391,5,450,31"/>
+<area shape="rect" id="node2" href="$materials_8h.html" title=" " alt="" coords="377,79,464,104"/>
+<area shape="rect" id="node3" href="$cache_8h.html" title=" " alt="" coords="5,152,73,177"/>
+<area shape="rect" id="node4" href="$default__cmm_8h.html" title=" " alt="" coords="97,152,205,177"/>
+<area shape="rect" id="node5" href="$kms__keyring_8h.html" title=" " alt="" coords="230,152,337,177"/>
+<area shape="rect" id="node6" href="$kms__mrk__keyring_8h.html" title=" " alt="" coords="261,225,397,251"/>
+<area shape="rect" id="node7" href="$multi__keyring_8h.html" title=" " alt="" coords="412,152,523,177"/>
+<area shape="rect" id="node8" href="$raw__aes__keyring_8h.html" title=" " alt="" coords="547,152,678,177"/>
+<area shape="rect" id="node9" href="$raw__rsa__keyring_8h.html" title=" " alt="" coords="702,152,830,177"/>
+<area shape="rect" id="node10" href="$session_8h.html" title=" " alt="" coords="855,152,933,177"/>
 </map>
