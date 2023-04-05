@@ -1,5 +1,32 @@
 # Changelog
 
+## 2.4.0 -- 2023-04-04
+
+* feat: Add support for AWS-LC build in ESDK ([#750](https://github.com/aws/aws-encryption-sdk-c/pull/750))
+* fix(default_cmm): track unset default alg separately ([#687](https://github.com/aws/aws-encryption-sdk-c/pull/687))
+* fix: out-of-bounds constant in default_cmm.c ([#752](https://github.com/aws/aws-encryption-sdk-c/pull/752))
+* docs(SupportPolicy): Mark 1.x End-of-Support ([#756](https://github.com/aws/aws-encryption-sdk-c/pull/756))
+* fix: initialize buffer in cipher_openssl.c ([#751](https://github.com/aws/aws-encryption-sdk-c/pull/751))
+* docs: Add missing library to compilation example ([#697](https://github.com/aws/aws-encryption-sdk-c/pull/697))
+* docs(examples): adjust discovery example wording ([#738](https://github.com/aws/aws-encryption-sdk-c/pull/738))
+* docs: Use recommended RSA padding mode ([#522](https://github.com/aws/aws-encryption-sdk-c/pull/522))
+* feat(examples): add DiscoveryFilter example ([#737](https://github.com/aws/aws-encryption-sdk-c/pull/737))
+
+### Maintenance
+
+* feat: Add CBMC proof-running GitHub Action ([#763](https://github.com/aws/aws-encryption-sdk-c/pull/763))
+* fix: return type of aws_default_allocator stub in CBMC proofs ([#760](https://github.com/aws/aws-encryption-sdk-c/pull/760))
+* feat: use latest aws-cpp-sdk ([#761](https://github.com/aws/aws-encryption-sdk-c/pull/761))
+* fix: kms delay ([#758](https://github.com/aws/aws-encryption-sdk-c/pull/758))
+* chore: Update CBMC starter kit ([#753](https://github.com/aws/aws-encryption-sdk-c/pull/753))
+* ci(CodeBuild): run ubuntu latest in series ([#747](https://github.com/aws/aws-encryption-sdk-c/pull/747))
+* chore: bump openssl ([#746](https://github.com/aws/aws-encryption-sdk-c/pull/746))
+* chore: Update submodules ([#725](https://github.com/aws/aws-encryption-sdk-c/pull/725))
+* chore: Remove CBMC CI configuration ([#741](https://github.com/aws/aws-encryption-sdk-c/pull/741))
+* chore: Bump Litani version to 1.16.0 ([#740](https://github.com/aws/aws-encryption-sdk-c/pull/740))
+* chore: Upgrade CBMC templates submodule ([#739](https://github.com/aws/aws-encryption-sdk-c/pull/739))
+* chore: Add CODEOWNERS file ([#733](https://github.com/aws/aws-encryption-sdk-c/pull/733))
+
 ## 2.3.2 -- 2021-10-18
 
 ### Maintenance
