@@ -18,9 +18,10 @@
 
 set -euxo pipefail
 
-ECS_REGISTRY=${ECS_REGISTRY:-636124823696.dkr.ecr.us-west-2.amazonaws.com/linux-docker-images}
-
-$(aws ecr get-login --no-include-email --region us-west-2)
+ECS_SERVER="636124823696.dkr.ecr.us-west-2.amazonaws.com"
+ECS_REGISTRY=${ECS_REGISTRY:-${ECS_SERVER}/linux-docker-images}
+_AUTH_TOKEN=`aws ecr get-login-password --region us-west-2`
+docker login --password ${_AUTH_TOKEN}  --username AWS ${ECS_SERVER}
 
 build_image() {
     docker build -t $1 -f $1.Dockerfile .
