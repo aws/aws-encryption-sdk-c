@@ -10,7 +10,9 @@ RUN dpkg -i /tmp/net-tools_*.deb /tmp/netcat-*.deb
 
 ADD bin/setup-apt-cache.sh /usr/local/bin/
 ADD bin/setup-apt.sh /usr/local/bin/
+
 RUN setup-apt-cache.sh
+ARG EXTRA_PACKAGES="clang perl golang"
 RUN setup-apt.sh
 
 ENV PATH=/usr/local/bin:/usr/bin:/bin
