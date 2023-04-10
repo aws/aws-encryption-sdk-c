@@ -28,6 +28,5 @@ build_image() {
     docker push $ECS_REGISTRY:$1
 }
 
-build_image trusty-gcc4x-x64
-build_image trusty-gcc4x-x86
 build_image ubuntu-latest-x64
+build_image ubuntu-latest-x64-awslc
