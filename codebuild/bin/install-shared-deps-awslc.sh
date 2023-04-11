@@ -17,10 +17,11 @@ export NUM_CPU_THREADS=$(nproc)
 
 function download_awslc() {
     AWSLC_GIT_URL='https://github.com/awslabs/aws-lc.git'
-    AWSLC_TAG='v1.5.0'
+    AWSLC_TAG='main'
+    AWSLC_SHALLOW_SINCE="2023-04-07T00:00:01"
     rm -rf ${AWSLC_SRC_DIR}
     mkdir -p ${AWSLC_SRC_DIR}
-    git clone --depth 1 --branch ${AWSLC_TAG} "${AWSLC_GIT_URL}" "${AWSLC_SRC_DIR}"
+    git clone --shallow-since ${AWSLC_SHALLOW_SINCE} --branch ${AWSLC_TAG} "${AWSLC_GIT_URL}" "${AWSLC_SRC_DIR}"
 }
 
 function build_awslc() {
