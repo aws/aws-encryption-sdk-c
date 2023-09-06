@@ -52,6 +52,7 @@ function(aws_cryptosdk_set_common_properties target)
         list(APPEND AWS_C_FLAGS /wd4267 /wd4242 /wd4244) # Narrowing implicit conversions of int types
         list(APPEND AWS_C_FLAGS /wd4245) # Implicit sign extension, unsigned to signed conversion
         list(APPEND AWS_C_FLAGS /wd4221) # obj = { .foo = nonconstant() }
+        list(APPEND AWS_C_FLAGS /wd4996) # Use of deprecated APIs, necessary for OpenSSL3
 
         # MSVC warnings about C99 standard stuff
         list(APPEND AWS_C_FLAGS /wd4204) # arr = { 0, 1, 2 } initializers
@@ -74,6 +75,7 @@ function(aws_cryptosdk_set_common_properties target)
         list(APPEND AWS_C_FLAGS -Wno-long-long)
         list(APPEND AWS_C_FLAGS -Wno-missing-field-initializers)
         list(APPEND AWS_C_FLAGS -Wno-shorten-64-to-32)
+        list(APPEND AWS_C_FLAGS -Wno-deprecated-declarations)
     endif(MSVC)
 
     if(NOT SET_PROPERTIES_NO_WGNU)
