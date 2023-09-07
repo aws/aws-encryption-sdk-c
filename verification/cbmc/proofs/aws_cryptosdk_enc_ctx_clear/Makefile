@@ -39,7 +39,7 @@ PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/error.c
 PROJECT_SOURCES += $(SRCDIR)/source/enc_ctx.c
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_destroy_override.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/memset_override_0.c

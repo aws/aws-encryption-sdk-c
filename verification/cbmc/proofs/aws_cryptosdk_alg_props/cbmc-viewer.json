@@ -1,0 +1,5 @@
+{
+  "expected-missing-functions": [],
+  "proof-name": "aws_cryptosdk_alg_props",
+  "proof-root": "verification/cbmc/proofs"
+}

@@ -1,0 +1,5 @@
+{
+  "expected-missing-functions": [],
+  "proof-name": "aws_cryptosdk_priv_hdr_parse_message_type",
+  "proof-root": "verification/cbmc/proofs"
+}

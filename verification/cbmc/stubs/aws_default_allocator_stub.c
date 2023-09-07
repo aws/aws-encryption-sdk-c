@@ -12,9 +12,3 @@
  * implied. See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#include <proof_helpers/proof_allocators.h>
-
-struct aws_allocator *aws_default_allocator() {
-    return can_fail_allocator();
-}

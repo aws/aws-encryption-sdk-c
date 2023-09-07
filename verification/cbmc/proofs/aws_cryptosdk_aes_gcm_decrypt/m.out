@@ -1,0 +1,112 @@
+Running litani init
+Report will be rendered at file:///var/folders/q6/421wgb553rz88ys9x179txth0000gr/T/litani/runs/latest/html/index.html
+Running litani add-job
+Running litani build
+[1/17] aws_cryptosdk_aes_gcm_decrypt: building proof binary                     /Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/make_common_data_structures.c: In function 'ensure_impl_attempt_allocation':
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/make_common_data_structures.c:48:1: warning: warning: conversion from 'const EVP_MD * (*)(void)' to 'const EVP_MD *': incompatible pointer types
+
+         *(const EVP_MD **)(&impl->md_ctor)         = (nondet_bool()) ? NULL : &nondet_EVP_MD_ptr;
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/make_common_data_structures.c: In function 'ensure_impl_attempt_allocation':
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/make_common_data_structures.c:49:1: warning: warning: conversion from 'const EVP_MD * (*)(void)' to 'const EVP_MD *': incompatible pointer types
+
+         *(const EVP_MD **)(&impl->sig_md_ctor)     = (nondet_bool()) ? NULL : &nondet_EVP_MD_ptr;
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/make_common_data_structures.c: In function 'ensure_impl_attempt_allocation':
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/make_common_data_structures.c:50:1: warning: warning: conversion from 'const EVP_CIPHER * (*)(void)' to 'const EVP_CIPHER *': incompatible pointer types
+
+         *(const EVP_CIPHER **)(&impl->cipher_ctor) = (nondet_bool()) ? NULL : &nondet_EVP_CIPHER_ptr;
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/make_common_data_structures.c: In function 'ensure_enc_materials_attempt_allocation':
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/make_common_data_structures.c:400:1: warning: warning: conversion from 'struct aws_array_list *' to 'struct aws_byte_buf *': incompatible pointer types
+
+         ensure_byte_buf_has_allocated_buffer_member(&materials->encrypted_data_keys);
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/make_common_data_structures.c: In function 'ensure_default_cmm_attempt_allocation':
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/make_common_data_structures.c:418:1: warning: warning: conversion from 'const struct aws_cryptosdk_keyring_vt *' to 'const struct aws_cryptosdk_cmm_vt *': incompatible pointer types
+
+         cmm->vtable = vtable;
+
+[2/17] aws_cryptosdk_aes_gcm_decrypt: building project binary                   /Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/openssl/ec_override.c: In function 'EC_GROUP_get0_order':
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/openssl/ec_override.c:67:1: warning: function 'ec_group_is_valid' is not declared
+
+     assert(ec_group_is_valid(group));
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/openssl/ec_override.c: In function 'ECDSA_SIG_get0':
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/openssl/ec_override.c:292:1: warning: function 'ecdsa_sig_is_valid' is not declared
+
+     assert(ecdsa_sig_is_valid(sig));
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/openssl/evp_override.c: In function 'EVP_PKEY_CTX_new':
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/openssl/evp_override.c:102:1: warning: function 'evp_pkey_is_valid' is not declared
+
+     assert(evp_pkey_is_valid(pkey));
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/openssl/evp_override.c: In function 'EVP_PKEY_sign':
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/openssl/evp_override.c:187:1: warning: function 'evp_pkey_ctx_is_valid' is not declared
+
+     assert(evp_pkey_ctx_is_valid(ctx));
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/openssl/evp_override.c: In function 'EVP_MD_CTX_size':
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/openssl/evp_override.c:748:1: warning: function 'evp_md_ctx_is_valid' is not declared
+
+     assert(evp_md_ctx_is_valid(ctx));
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/openssl/evp_override.c: In function 'EVP_DigestInit_ex':
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/openssl/evp_override.c:770:1: warning: function 'evp_md_is_valid' is not declared
+
+     assert(evp_md_is_valid(type));
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/openssl/evp_override.c: In function 'HMAC_Init_ex':
+
+/Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/openssl/evp_override.c:951:1: warning: function 'hmac_ctx_is_valid' is not declared
+
+     assert(hmac_ctx_is_valid(ctx));
+
+/Users/ajewell/c/aws-encryption-sdk-c/source/cipher.c: In function 'aws_cryptosdk_genrandom':
+
+/Users/ajewell/c/aws-encryption-sdk-c/source/cipher.c:814:1: warning: function 'RAND_bytes' is not declared
+
+     int rc = RAND_bytes(buf, len);
+
+/Users/ajewell/c/aws-encryption-sdk-c/source/cipher_openssl.c: In function 'sign_start':
+
+/Users/ajewell/c/aws-encryption-sdk-c/source/cipher_openssl.c:258:1: warning: function 'EVP_DigestInit' is not declared
+
+     if (!(EVP_DigestInit(ctx->ctx, props->impl->sig_md_ctor()))) {
+
+/Users/ajewell/c/aws-encryption-sdk-c/source/cipher_openssl.c: In function 'sign_start':
+
+/Users/ajewell/c/aws-encryption-sdk-c/source/cipher_openssl.c:258:1: warning: warning: ignoring conflicting implicit function declaration "EVP_DigestInit"
+
+old definition in module evp_override file /Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/sources/openssl/evp_override.c line 785
+
+signed int (EVP_MD_CTX *ctx, const EVP_MD *type)
+
+new definition in module cipher_openssl file /Users/ajewell/c/aws-encryption-sdk-c/source/cipher_openssl.c line 258 function sign_start
+
+signed int (void)
+
+     if (!(EVP_DigestInit(ctx->ctx, props->impl->sig_md_ctor()))) {
+
+[3/17] aws_cryptosdk_aes_gcm_decrypt: removing function bodies from project s...[4/17] aws_cryptosdk_aes_gcm_decrypt: linking project to proof                  [5/17] aws_cryptosdk_aes_gcm_decrypt: restricting function pointers in projec...[6/17] aws_cryptosdk_aes_gcm_decrypt: setting static variables to nondet        [7/17] aws_cryptosdk_aes_gcm_decrypt: dropping unused functions                 [8/17] aws_cryptosdk_aes_gcm_decrypt: slicing global initializations            [9/17] aws_cryptosdk_aes_gcm_decrypt: replacing function calls with function ...[10/17] aws_cryptosdk_aes_gcm_decrypt: unwinding loops                          [11/17] aws_cryptosdk_aes_gcm_decrypt: applying loop contracts                  [12/17] aws_cryptosdk_aes_gcm_decrypt: checking function contracts              [13/17] aws_cryptosdk_aes_gcm_decrypt: copying final goto-binary                [14/17] aws_cryptosdk_aes_gcm_decrypt: printing safety properties               [15/17] aws_cryptosdk_aes_gcm_decrypt: calculating coverage                     [16/17] aws_cryptosdk_aes_gcm_decrypt: checking safety properties               [17/17] aws_cryptosdk_aes_gcm_decrypt: generating report                        WARNING: Skipping redefinition of symbol name: aws_cryptosdk_which_sha
+
+WARNING:   Old symbol aws_cryptosdk_which_sha: file source/cipher.c, line 239
+
+WARNING:   New symbol aws_cryptosdk_which_sha: file verification/cbmc/sources/make_common_data_structures.c, line 238
+
+ERROR: Config file does not exist: /Users/ajewell/c/aws-encryption-sdk-c/verification/cbmc/proofs/aws_cryptosdk_aes_gcm_decrypt/cbmc-viewer.json
+
+
+Report was rendered at file:///var/folders/q6/421wgb553rz88ys9x179txth0000gr/T/litani/runs/latest/html/index.html

@@ -13,7 +13,9 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
 #include <openssl/err.h>
+#include <stdlib.h>
 
 void ERR_print_errors_fp(FILE *fp) {
     assert(fp == stderr);

@@ -1,0 +1,5 @@
+{
+  "expected-missing-functions": [],
+  "proof-name": "aws_cryptosdk_md_size",
+  "proof-root": "verification/cbmc/proofs"
+}

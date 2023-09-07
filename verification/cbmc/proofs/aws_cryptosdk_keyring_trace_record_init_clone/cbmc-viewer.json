@@ -1,0 +1,5 @@
+{
+  "expected-missing-functions": [],
+  "proof-name": "aws_cryptosdk_keyring_trace_record_init_clone",
+  "proof-root": "verification/cbmc/proofs"
+}

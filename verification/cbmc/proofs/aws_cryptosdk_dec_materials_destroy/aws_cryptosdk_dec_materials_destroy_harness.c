@@ -23,11 +23,11 @@
 #include <make_common_data_structures.h>
 #include <proof_helpers/cryptosdk/make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
+
 #include <proof_helpers/utils.h>
 
 void aws_cryptosdk_dec_materials_destroy_harness() {
-    struct aws_cryptosdk_dec_materials *materials = can_fail_malloc(sizeof(*materials));
+    struct aws_cryptosdk_dec_materials *materials = malloc(sizeof(*materials));
     if (materials) {
         materials->alloc = can_fail_allocator();
         __CPROVER_assume(aws_allocator_is_valid(materials->alloc));

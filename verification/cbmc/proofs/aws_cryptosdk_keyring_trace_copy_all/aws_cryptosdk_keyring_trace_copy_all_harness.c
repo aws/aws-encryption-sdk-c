@@ -19,7 +19,7 @@
 #include <aws/cryptosdk/keyring_trace.h>
 #include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
+
 #include <proof_helpers/utils.h>
 // #include <aws/cryptosdk/private/keyring_trace.h>
 

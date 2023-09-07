@@ -53,8 +53,8 @@ build_pkg() {
 mkdir -p /deps
 
 # These must refer to git tags
-AWS_CRT_CPP_VERSION="v0.17.28"
-AWS_SDK_CPP_VERSION="1.9.263"
+AWS_CRT_CPP_VERSION="v0.22.0"
+AWS_SDK_CPP_VERSION="1.11.139"
 
 for libtype in shared static; do
     root=/deps/$libtype

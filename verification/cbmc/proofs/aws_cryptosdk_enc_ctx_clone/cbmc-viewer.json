@@ -1,0 +1,5 @@
+{
+  "expected-missing-functions": [],
+  "proof-name": "aws_cryptosdk_enc_ctx_clone",
+  "proof-root": "verification/cbmc/proofs"
+}

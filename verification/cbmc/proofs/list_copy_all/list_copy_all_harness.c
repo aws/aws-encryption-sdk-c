@@ -19,7 +19,7 @@
 #include <aws/cryptosdk/edk.h>
 #include <proof_helpers/cryptosdk/make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
+
 #include <proof_helpers/utils.h>
 
 /**
@@ -79,13 +79,13 @@ void cleanup(void *p) {
 }
 
 void list_copy_all_harness() {
-    struct aws_array_list *dest = can_fail_malloc(sizeof(*dest));
+    struct aws_array_list *dest = malloc(sizeof(*dest));
     __CPROVER_assume(dest != NULL);
     __CPROVER_assume(aws_array_list_is_bounded(dest, NUM_ELEMS, ITEM_SIZE));
     ensure_array_list_has_allocated_data_member(dest);
     __CPROVER_assume(aws_array_list_is_valid_deep(dest));
 
-    struct aws_array_list *src = can_fail_malloc(sizeof(*src));
+    struct aws_array_list *src = malloc(sizeof(*src));
     __CPROVER_assume(src != NULL);
     __CPROVER_assume(aws_array_list_is_bounded(src, NUM_ELEMS, ITEM_SIZE));
     ensure_array_list_has_allocated_data_member(src);

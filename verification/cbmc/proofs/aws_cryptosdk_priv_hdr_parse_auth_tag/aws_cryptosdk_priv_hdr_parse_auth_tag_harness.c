@@ -17,7 +17,7 @@
 #include <aws/cryptosdk/private/header.h>
 #include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
+
 #include <proof_helpers/utils.h>
 
 void aws_cryptosdk_priv_hdr_parse_auth_tag_harness() {
