@@ -19,7 +19,6 @@
 #include <evp_utils.h>
 #include <make_common_data_structures.h>
 
-
 /* Expected runtime: 40 seconds */
 void aws_cryptosdk_md_abort_harness() {
     /* arguments */

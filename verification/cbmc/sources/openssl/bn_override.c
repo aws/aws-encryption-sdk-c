@@ -15,9 +15,9 @@
 
 #include <openssl/bn.h>
 
+#include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <assert.h>
 
 #include <bn_utils.h>
 #include <proof_helpers/nondet.h>

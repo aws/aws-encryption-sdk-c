@@ -397,7 +397,7 @@ struct aws_cryptosdk_enc_materials *ensure_enc_materials_attempt_allocation() {
     if (materials) {
         materials->alloc   = NULL;
         materials->signctx = ensure_nondet_sig_ctx_has_allocated_members();
-        ensure_byte_buf_has_allocated_buffer_member((struct aws_byte_buf *) &materials->encrypted_data_keys);
+        ensure_byte_buf_has_allocated_buffer_member((struct aws_byte_buf *)&materials->encrypted_data_keys);
         ensure_array_list_has_allocated_data_member(&materials->keyring_trace);
         ensure_array_list_has_allocated_data_member(&materials->encrypted_data_keys);
     }
@@ -415,7 +415,7 @@ struct aws_cryptosdk_cmm *ensure_default_cmm_attempt_allocation(const struct aws
 
     struct aws_cryptosdk_cmm *cmm = malloc(sizeof(struct default_cmm));
     if (cmm) {
-      cmm->vtable = (const struct aws_cryptosdk_cmm_vt *) vtable;
+        cmm->vtable = (const struct aws_cryptosdk_cmm_vt *)vtable;
     }
 
     struct default_cmm *self = NULL;

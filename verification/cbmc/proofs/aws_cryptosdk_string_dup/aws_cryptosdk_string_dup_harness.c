@@ -17,9 +17,9 @@
 #include <aws/common/string.h>
 #include <aws/cryptosdk/private/utils.h>
 #include <make_common_data_structures.h>
+#include <proof_allocators.h>
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/utils.h>
-#include <proof_allocators.h>
 
 void aws_cryptosdk_string_dup_harness() {
     /* data structure */

@@ -23,8 +23,8 @@
 #include <proof_helpers/cryptosdk/make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
 
-#include <proof_helpers/utils.h>
 #include <proof_allocators.h>
+#include <proof_helpers/utils.h>
 
 #include <aws/cryptosdk/private/cipher.h>
 #include <aws/cryptosdk/private/session.h>

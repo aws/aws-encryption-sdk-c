@@ -18,7 +18,6 @@
 #include <evp_utils.h>
 #include <make_common_data_structures.h>
 
-
 #include <cipher_openssl.h>
 
 /* Expected runtime 1m20s */

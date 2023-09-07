@@ -21,9 +21,9 @@
 #include <cbmc_invariants.h>
 #include <cipher_openssl.h>
 #include <make_common_data_structures.h>
+#include <proof_allocators.h>
 #include <proof_helpers/cryptosdk/make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_allocators.h>
 #include <proof_helpers/utils.h>
 
 // Stub this until https://github.com/diffblue/cbmc/issues/5344 is fixed

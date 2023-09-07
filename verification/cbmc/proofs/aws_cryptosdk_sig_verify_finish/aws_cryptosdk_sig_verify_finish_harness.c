@@ -20,8 +20,6 @@
 #include <evp_utils.h>
 #include <make_common_data_structures.h>
 
-
-
 void aws_cryptosdk_sig_verify_finish_harness() {
     /* Nondet Input */
     struct aws_cryptosdk_sig_ctx *ctx = ensure_nondet_sig_ctx_has_allocated_members();

@@ -19,7 +19,6 @@
 #include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
 
-
 void aws_cryptosdk_multi_keyring_add_child_harness() {
     /* Non-deterministic inputs to initialize a multi_keyring object. */
     const struct aws_cryptosdk_keyring_vt vtable_generator = { .vt_size    = sizeof(struct aws_cryptosdk_keyring_vt),

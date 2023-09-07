@@ -19,7 +19,6 @@
 #include <evp_utils.h>
 #include <make_common_data_structures.h>
 
-
 #include <cipher_openssl.h>
 
 void aws_cryptosdk_sig_get_privkey_harness() {

@@ -15,11 +15,11 @@
 
 #include <limits.h>
 
+#include <aws/common/assert.h>
 #include <bn_utils.h>
 #include <ec_utils.h>
 #include <openssl/ec.h>
 #include <openssl/objects.h>
-#include <aws/common/assert.h>
 #include <stdlib.h>
 
 #include <proof_helpers/nondet.h>
