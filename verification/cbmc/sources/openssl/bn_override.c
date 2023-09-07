@@ -16,10 +16,11 @@
 #include <openssl/bn.h>
 
 #include <stdbool.h>
-
-#include <proof_helpers/proof_allocators.h>
+#include <stdlib.h>
+#include <assert.h>
 
 #include <bn_utils.h>
+#include <proof_helpers/nondet.h>
 
 /* Abstraction of the BIGNUM struct */
 struct bignum_st {
@@ -32,7 +33,7 @@ struct bignum_st {
  * allocation fails, they return NULL and set an error code that can be obtained by ERR_get_error(3).
  */
 BIGNUM *BN_new(void) {
-    BIGNUM *rv = can_fail_malloc(sizeof(BIGNUM));
+    BIGNUM *rv = malloc(sizeof(BIGNUM));
     if (rv) {
         rv->is_initialized = true;
     }
@@ -94,5 +95,5 @@ bool bignum_is_valid(BIGNUM *a) {
 }
 
 BIGNUM *bignum_nondet_alloc() {
-    return can_fail_malloc(sizeof(BIGNUM));
+    return malloc(sizeof(BIGNUM));
 }

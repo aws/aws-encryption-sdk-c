@@ -37,7 +37,7 @@ PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/math.c
 PROJECT_SOURCES += $(SRCDIR)/source/materials.c
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)

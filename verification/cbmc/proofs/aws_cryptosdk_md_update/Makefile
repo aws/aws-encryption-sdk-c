@@ -32,7 +32,7 @@ PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/ec_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
 PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
 
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)

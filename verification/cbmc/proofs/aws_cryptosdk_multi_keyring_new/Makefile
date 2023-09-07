@@ -28,7 +28,7 @@ PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
 PROJECT_SOURCES += $(SRCDIR)/source/multi_keyring.c
 
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 ###########
 include ../Makefile.common

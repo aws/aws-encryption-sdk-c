@@ -23,7 +23,7 @@
 #include <make_common_data_structures.h>
 #include <proof_helpers/cryptosdk/make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
+#include <proof_allocators.h>
 #include <proof_helpers/utils.h>
 
 // Stub this until https://github.com/diffblue/cbmc/issues/5344 is fixed
@@ -35,7 +35,7 @@ void aws_cryptosdk_edk_list_clean_up(struct aws_array_list *encrypted_data_keys)
 }
 
 void aws_cryptosdk_enc_materials_destroy_harness() {
-    struct aws_cryptosdk_enc_materials *materials = can_fail_malloc(sizeof(*materials));
+    struct aws_cryptosdk_enc_materials *materials = malloc(sizeof(*materials));
     if (materials) {
         materials->alloc = can_fail_allocator();
         __CPROVER_assume(aws_allocator_is_valid(materials->alloc));

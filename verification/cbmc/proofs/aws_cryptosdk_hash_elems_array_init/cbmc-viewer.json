@@ -1,0 +1,5 @@
+{
+  "expected-missing-functions": [],
+  "proof-name": "aws_cryptosdk_hash_elems_array_init",
+  "proof-root": "verification/cbmc/proofs"
+}

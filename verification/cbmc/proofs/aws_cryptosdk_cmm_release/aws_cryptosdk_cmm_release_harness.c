@@ -19,7 +19,7 @@
 #include <aws/cryptosdk/materials.h>
 #include <proof_helpers/cryptosdk/make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
+
 #include <proof_helpers/utils.h>
 
 void destroy(struct aws_cryptosdk_cmm *cmm) {
@@ -36,7 +36,7 @@ void aws_cryptosdk_cmm_release_harness() {
                                                  .decrypt_materials      = nondet_voidp() };
     __CPROVER_assume(aws_cryptosdk_cmm_vtable_is_valid(&vtable));
 
-    struct aws_cryptosdk_cmm *cmm = can_fail_malloc(sizeof(struct aws_cryptosdk_cmm));
+    struct aws_cryptosdk_cmm *cmm = malloc(sizeof(struct aws_cryptosdk_cmm));
 
     if (cmm) {
         cmm->vtable = &vtable;

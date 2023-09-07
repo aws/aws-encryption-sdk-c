@@ -18,12 +18,12 @@
 #include <cipher_openssl.h>
 #include <evp_utils.h>
 #include <make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
+
 
 /* Expected runtime: 40 seconds */
 void aws_cryptosdk_md_abort_harness() {
     /* arguments */
-    struct aws_cryptosdk_md_context *md_context = can_fail_malloc(sizeof(struct aws_cryptosdk_md_context));
+    struct aws_cryptosdk_md_context *md_context = malloc(sizeof(struct aws_cryptosdk_md_context));
 
     /* assumptions */
     if (md_context) {

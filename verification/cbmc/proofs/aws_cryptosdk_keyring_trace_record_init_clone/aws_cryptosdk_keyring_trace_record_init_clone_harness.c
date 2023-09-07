@@ -16,6 +16,7 @@
 #include <aws/cryptosdk/private/keyring_trace.h>
 #include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
+#include <proof_allocators.h>
 
 void aws_cryptosdk_keyring_trace_record_init_clone_harness() {
     /* data structure */

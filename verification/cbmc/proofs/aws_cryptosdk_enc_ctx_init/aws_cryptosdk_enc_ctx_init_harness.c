@@ -14,7 +14,7 @@
  */
 
 #include <aws/cryptosdk/enc_ctx.h>
-#include <proof_helpers/proof_allocators.h>
+
 
 // This is a memory safety proof for aws_cryptosdk_enc_ctx_init
 void aws_cryptosdk_enc_ctx_init_harness() {

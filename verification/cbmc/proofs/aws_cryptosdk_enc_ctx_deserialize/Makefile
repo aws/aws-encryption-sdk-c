@@ -35,7 +35,7 @@ DEFINES += -DAWS_BYTE_CURSOR_READ_BE16_GENERATOR=aws_byte_cursor_read_be16_gener
 DEFINES += -DMAX_NUM_ELEMS=$(MAX_NUM_ELEMS)
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
 #if we don't include the hash_table.c, we don't need to remove their function bodies
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_byte_cursor_read_be16_override.c

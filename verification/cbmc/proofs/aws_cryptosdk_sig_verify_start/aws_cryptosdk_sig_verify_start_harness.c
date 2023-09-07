@@ -20,7 +20,7 @@
 #include <evp_utils.h>
 #include <make_common_data_structures.h>
 #include <proof_allocators.h>
-#include <proof_helpers/proof_allocators.h>
+
 
 void aws_cryptosdk_sig_verify_start_harness() {
     /* Nondet input */

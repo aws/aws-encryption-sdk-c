@@ -20,7 +20,6 @@
 #include <aws/cryptosdk/private/framefmt.h>
 #include <aws/cryptosdk/private/header.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 #include <stdint.h>
 #include <stdlib.h>

@@ -18,7 +18,7 @@
 #include <ec_utils.h>
 #include <evp_utils.h>
 #include <make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
+
 
 #include <cipher_openssl.h>
 

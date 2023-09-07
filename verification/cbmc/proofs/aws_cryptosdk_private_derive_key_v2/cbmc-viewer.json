@@ -1,0 +1,5 @@
+{
+  "expected-missing-functions": [],
+  "proof-name": "aws_cryptosdk_private_derive_key_v2",
+  "proof-root": "verification/cbmc/proofs"
+}

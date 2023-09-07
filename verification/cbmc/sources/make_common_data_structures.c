@@ -30,7 +30,6 @@
 #include <openssl/evp.h>
 
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
 
 struct default_cmm {
     struct aws_cryptosdk_cmm base;
@@ -46,10 +45,10 @@ const EVP_CIPHER *nondet_EVP_CIPHER_ptr(void);
 struct aws_cryptosdk_alg_impl *ensure_impl_attempt_allocation(const size_t max_len) {
     struct aws_cryptosdk_alg_impl *impl = malloc(sizeof(struct aws_cryptosdk_alg_impl));
     if (impl) {
-        *(const EVP_MD **)(&impl->md_ctor)         = (nondet_bool()) ? NULL : &nondet_EVP_MD_ptr;
-        *(const EVP_MD **)(&impl->sig_md_ctor)     = (nondet_bool()) ? NULL : &nondet_EVP_MD_ptr;
-        *(const EVP_CIPHER **)(&impl->cipher_ctor) = (nondet_bool()) ? NULL : &nondet_EVP_CIPHER_ptr;
-        *(const char **)(&impl->curve_name)        = ensure_c_str_is_allocated(max_len);
+        impl->md_ctor     = &nondet_EVP_MD_ptr;
+        impl->sig_md_ctor = &nondet_EVP_MD_ptr;
+        impl->cipher_ctor = &nondet_EVP_CIPHER_ptr;
+        impl->curve_name  = ensure_c_str_is_allocated(max_len);
     }
     return impl;
 }
@@ -97,7 +96,7 @@ void ensure_trace_has_allocated_records(struct aws_array_list *trace, size_t max
 }
 
 void ensure_md_context_has_allocated_members(struct aws_cryptosdk_md_context *ctx) {
-    ctx->alloc      = nondet_bool() ? NULL : can_fail_allocator();
+    ctx->alloc      = NULL;
     ctx->evp_md_ctx = evp_md_ctx_nondet_alloc();
 }
 
@@ -106,7 +105,7 @@ struct aws_cryptosdk_sig_ctx *ensure_nondet_sig_ctx_has_allocated_members() {
     if (ctx == NULL) {
         return NULL;
     }
-    ctx->alloc = nondet_bool() ? NULL : can_fail_allocator();
+    ctx->alloc = NULL;
     enum aws_cryptosdk_alg_id alg_id;
     ctx->props   = aws_cryptosdk_alg_props(alg_id);
     ctx->keypair = ec_key_nondet_alloc();
@@ -163,11 +162,11 @@ void ensure_cryptosdk_edk_list_has_allocated_list(struct aws_array_list *list) {
     if (list != NULL) {
         if (list->current_size == 0) {
             __CPROVER_assume(list->data == NULL);
-            list->alloc = can_fail_allocator();
+            list->alloc = NULL;
         } else {
             size_t max_length = list->current_size / sizeof(struct aws_cryptosdk_edk);
-            list->data        = bounded_malloc(sizeof(struct aws_cryptosdk_edk) * max_length);
-            list->alloc       = nondet_bool() ? NULL : can_fail_allocator();
+            list->data        = malloc(sizeof(struct aws_cryptosdk_edk) * max_length);
+            list->alloc       = NULL;
         }
     }
 }
@@ -183,7 +182,7 @@ void ensure_cryptosdk_edk_list_has_allocated_list_elements(struct aws_array_list
 
 void ensure_nondet_hdr_has_allocated_members_ref(struct aws_cryptosdk_hdr *hdr, const size_t max_table_size) {
     if (hdr) {
-        hdr->alloc = nondet_bool() ? NULL : can_fail_allocator();
+        hdr->alloc = NULL;
         ensure_byte_buf_has_allocated_buffer_member(&hdr->iv);
         ensure_byte_buf_has_allocated_buffer_member(&hdr->auth_tag);
         ensure_byte_buf_has_allocated_buffer_member(&hdr->message_id);
@@ -196,7 +195,7 @@ void ensure_nondet_hdr_has_allocated_members_ref(struct aws_cryptosdk_hdr *hdr, 
 struct aws_cryptosdk_hdr *ensure_nondet_hdr_has_allocated_members(const size_t max_table_size) {
     struct aws_cryptosdk_hdr *hdr = malloc(sizeof(*hdr));
     if (hdr != NULL) {
-        hdr->alloc = nondet_bool() ? NULL : can_fail_allocator();
+        hdr->alloc = NULL;
         ensure_byte_buf_has_allocated_buffer_member(&hdr->iv);
         ensure_byte_buf_has_allocated_buffer_member(&hdr->auth_tag);
         ensure_byte_buf_has_allocated_buffer_member(&hdr->message_id);
@@ -235,7 +234,7 @@ struct aws_cryptosdk_hdr *hdr_setup(
     ensure_hash_table_has_valid_destroy_functions(&hdr->enc_ctx);
     return hdr;
 }
-
+/*
 enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id alg_id) {
     switch (alg_id) {
         case ALG_AES256_GCM_HKDF_SHA512_COMMIT_KEY_ECDSA_P384:
@@ -252,7 +251,7 @@ enum aws_cryptosdk_sha_version aws_cryptosdk_which_sha(enum aws_cryptosdk_alg_id
         default: return AWS_CRYPTOSDK_NOSHA;
     }
 }
-
+*/
 void ensure_cryptosdk_keyring_has_allocated_members(
     struct aws_cryptosdk_keyring *keyring, const struct aws_cryptosdk_keyring_vt *vtable) {
     if (keyring) {
@@ -296,7 +295,7 @@ struct aws_cryptosdk_cmm *ensure_cmm_attempt_allocation(const size_t max_len) {
 struct aws_cryptosdk_session *ensure_nondet_session_has_allocated_members(const size_t max_table_size, size_t max_len) {
     struct aws_cryptosdk_session *session = malloc(sizeof(struct aws_cryptosdk_session));
     if (session) {
-        session->alloc       = nondet_bool() ? NULL : can_fail_allocator();
+        session->alloc       = NULL;
         session->cmm         = ensure_cmm_attempt_allocation(max_len);
         session->header_copy = malloc(sizeof(*(session->header_copy)));
         session->alg_props   = ensure_alg_properties_attempt_allocation(max_len);
@@ -359,7 +358,7 @@ bool aws_cryptosdk_dec_materials_members_are_bounded(
 struct aws_cryptosdk_dec_materials *ensure_dec_materials_attempt_allocation() {
     struct aws_cryptosdk_dec_materials *materials = malloc(sizeof(struct aws_cryptosdk_dec_materials));
     if (materials) {
-        materials->alloc   = nondet_bool() ? NULL : can_fail_allocator();
+        materials->alloc   = NULL;
         materials->signctx = ensure_nondet_sig_ctx_has_allocated_members();
         ensure_byte_buf_has_allocated_buffer_member(&materials->unencrypted_data_key);
         ensure_array_list_has_allocated_data_member(&materials->keyring_trace);
@@ -384,7 +383,7 @@ struct aws_cryptosdk_dec_materials *dec_materials_setup(
 struct aws_cryptosdk_enc_request *ensure_enc_request_attempt_allocation(const size_t max_table_size) {
     struct aws_cryptosdk_enc_request *request = malloc(sizeof(struct aws_cryptosdk_enc_request));
     if (request) {
-        request->alloc   = nondet_bool() ? NULL : can_fail_allocator();
+        request->alloc   = NULL;
         request->enc_ctx = malloc(sizeof(struct aws_hash_table));
         if (request->enc_ctx) {
             ensure_allocated_hash_table(request->enc_ctx, max_table_size);
@@ -396,9 +395,9 @@ struct aws_cryptosdk_enc_request *ensure_enc_request_attempt_allocation(const si
 struct aws_cryptosdk_enc_materials *ensure_enc_materials_attempt_allocation() {
     struct aws_cryptosdk_enc_materials *materials = malloc(sizeof(struct aws_cryptosdk_enc_materials));
     if (materials) {
-        materials->alloc   = nondet_bool() ? NULL : can_fail_allocator();
+        materials->alloc   = NULL;
         materials->signctx = ensure_nondet_sig_ctx_has_allocated_members();
-        ensure_byte_buf_has_allocated_buffer_member(&materials->encrypted_data_keys);
+        ensure_byte_buf_has_allocated_buffer_member((struct aws_byte_buf *) &materials->encrypted_data_keys);
         ensure_array_list_has_allocated_data_member(&materials->keyring_trace);
         ensure_array_list_has_allocated_data_member(&materials->encrypted_data_keys);
     }
@@ -416,13 +415,13 @@ struct aws_cryptosdk_cmm *ensure_default_cmm_attempt_allocation(const struct aws
 
     struct aws_cryptosdk_cmm *cmm = malloc(sizeof(struct default_cmm));
     if (cmm) {
-        cmm->vtable = vtable;
+      cmm->vtable = (const struct aws_cryptosdk_cmm_vt *) vtable;
     }
 
     struct default_cmm *self = NULL;
     if (cmm) {
         self        = (struct default_cmm *)cmm;
-        self->alloc = nondet_bool() ? NULL : can_fail_allocator();
+        self->alloc = NULL;
         self->kr    = keyring;
     }
     return (struct aws_cryptosdk_cmm *)self;

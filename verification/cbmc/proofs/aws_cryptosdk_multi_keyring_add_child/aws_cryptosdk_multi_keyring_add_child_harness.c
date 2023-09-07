@@ -18,7 +18,7 @@
 
 #include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
+
 
 void aws_cryptosdk_multi_keyring_add_child_harness() {
     /* Non-deterministic inputs to initialize a multi_keyring object. */

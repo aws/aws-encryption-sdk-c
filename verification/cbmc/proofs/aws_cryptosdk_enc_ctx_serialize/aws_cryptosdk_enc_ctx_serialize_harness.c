@@ -17,7 +17,7 @@
 #include <aws/common/private/hash_table_impl.h>
 #include <aws/cryptosdk/enc_ctx.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
+#include <proof_allocators.h>
 #include <proof_helpers/utils.h>
 
 // A generator function as described in the comment in aws_cryptosdk_hash_elems_array_init_stub.c.

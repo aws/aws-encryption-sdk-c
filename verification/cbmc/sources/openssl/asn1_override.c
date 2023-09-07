@@ -59,7 +59,7 @@ ASN1_INTEGER *BN_to_ASN1_INTEGER(const BIGNUM *bn, ASN1_INTEGER *ai) {
     assert(bignum_is_valid(bn));
     assert(!ai);  // Assuming is always called with ai == NULL
 
-    ASN1_INTEGER *rv = can_fail_malloc(sizeof(ASN1_INTEGER));
+    ASN1_INTEGER *rv = malloc(sizeof(ASN1_INTEGER));
 
     if (rv) rv->is_valid = true;
 
@@ -83,7 +83,7 @@ ASN1_INTEGER *d2i_ASN1_INTEGER(ASN1_INTEGER **a, unsigned char **ppin, long leng
     assert(*ppin);
     assert(AWS_MEM_IS_READABLE(*ppin, length));
 
-    *a = can_fail_malloc(sizeof(ASN1_INTEGER));
+    *a = malloc(sizeof(ASN1_INTEGER));
 
     /* If *a is not NULL it might be in an invalid state */
     if (*a == NULL || nondet_bool()) {
@@ -110,7 +110,7 @@ int i2d_ASN1_INTEGER(ASN1_INTEGER *a, unsigned char **ppout) {
 
     int buf_size;
     __CPROVER_assume(0 < buf_size);
-    *ppout = can_fail_malloc(buf_size);
+    *ppout = malloc(buf_size);
 
     if (!*ppout) {
         int error_code;

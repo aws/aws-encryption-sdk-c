@@ -1,0 +1,5 @@
+{
+  "expected-missing-functions": [],
+  "proof-name": "default_cmm_generate_enc_materials",
+  "proof-root": "verification/cbmc/proofs"
+}

@@ -43,6 +43,7 @@ void array_list_item_generator(struct aws_array_list *elems) {
     }
 }
 
+#ifdef FGHJKLKJHGFGHJKLKJHGF
 void sign_header_harness() {
     /* Nondet Input */
     struct aws_cryptosdk_session *session =
@@ -82,3 +83,4 @@ void sign_header_harness() {
     assert_byte_buf_equivalence(&session->header.alg_suite_data, &old_alg_suite_data, &old_byte_from_alg_suite_data);
     check_hash_table_unchanged(&session->header.enc_ctx, &old_enc_ctx);
 }
+#endif

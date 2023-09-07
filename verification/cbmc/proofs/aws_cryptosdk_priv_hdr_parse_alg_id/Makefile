@@ -49,12 +49,10 @@ PROJECT_SOURCES += $(SRCDIR)/source/enc_ctx.c
 PROJECT_SOURCES += $(SRCDIR)/source/header.c
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_array_list_defined_type.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_destroy_override.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcmp_override_no_op.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
