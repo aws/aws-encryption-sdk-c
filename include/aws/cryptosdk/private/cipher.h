@@ -147,6 +147,10 @@ int aws_cryptosdk_encrypt_body(
     uint8_t *tag, /* out */
     int body_frame_type);
 
+// Even though `len` is of type `size_t`, this function is limited
+// by the underlying OpenSSL function, which takes an `int`
+// and so aws_cryptosdk_genrandom will return an error if asked for
+// more than INT_MAX (2 billion) bytes of randomness.
 int aws_cryptosdk_genrandom(uint8_t *buf, size_t len);
 
 // TODO: Footer

@@ -805,11 +805,18 @@ out:
     }
 }
 
+// Even though `len` is of type `size_t`, this function is limited
+// by the underlying OpenSSL function, which takes an `int`
+// and so aws_cryptosdk_genrandom will return an error if asked for
+// more than INT_MAX (2 billion) bytes of randomness.
 int aws_cryptosdk_genrandom(uint8_t *buf, size_t len) {
     AWS_FATAL_PRECONDITION(AWS_MEM_IS_WRITABLE(buf, len));
 
     if (len == 0) {
         return 0;
+    }
+    if (len > INT_MAX) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
     }
     int rc = RAND_bytes(buf, len);
 
