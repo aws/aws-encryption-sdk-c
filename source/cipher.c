@@ -811,6 +811,9 @@ int aws_cryptosdk_genrandom(uint8_t *buf, size_t len) {
     if (len == 0) {
         return 0;
     }
+    if (len > INT_MAX) {
+        return aws_raise_error(AWS_CRYPTOSDK_ERR_LIMIT_EXCEEDED);
+    }
     int rc = RAND_bytes(buf, len);
 
     if (rc != 1) {
