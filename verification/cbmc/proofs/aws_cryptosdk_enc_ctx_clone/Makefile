@@ -37,8 +37,8 @@ DEFINES += -DHASH_ITER_ELEMENT_GENERATOR=hash_iterator_string_string_generator
 DEFINES += -DHASH_TABLE_FIND_ELEMENT_GENERATOR=hash_find_string_string_generator
 DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
 
+PROOF_SOURCES += $(CBMC_ROOT)/aws-c-common/source/allocator.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
 #if we don't include the hash_table.c, we don't need to remove their function bodies
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_hash_table_no_slots_override.c
@@ -46,7 +46,7 @@ PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_destroy_override.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_new_from_array_override.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/hash_table_generators.c
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcmp_override_no_op.c
+PROOF_SOURCES += $(PROOF_STUB)/memcmp_override_no_op.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c

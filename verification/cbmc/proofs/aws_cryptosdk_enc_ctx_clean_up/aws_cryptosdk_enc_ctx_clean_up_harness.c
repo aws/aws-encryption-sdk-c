@@ -17,7 +17,6 @@
 #include <aws/common/private/hash_table_impl.h>
 #include <aws/cryptosdk/enc_ctx.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
 /*
@@ -30,7 +29,7 @@ void aws_cryptosdk_enc_ctx_clean_up_harness() {
     ensure_allocated_hash_table(&map, MAX_TABLE_SIZE);
     __CPROVER_assume(aws_hash_table_is_valid(&map));
     ensure_hash_table_has_valid_destroy_functions(&map);
-    map.p_impl->alloc = can_fail_allocator();
+    map.p_impl->alloc = aws_default_allocator();
 
     struct hash_table_state *state = map.p_impl;
     size_t empty_slot_idx;

@@ -55,6 +55,7 @@ DEFINES += -DMSG_ID_LEN_V2=32
 # use the `--object-bits n` option to increase the maximum number"
 CBMC_OBJECT_BITS ?= 9
 
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/allocator.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
@@ -76,9 +77,7 @@ PROJECT_SOURCES += $(SRCDIR)/source/session.c
 PROJECT_SOURCES += $(SRCDIR)/source/session_decrypt.c
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
-# PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_array_list_defined_type.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c

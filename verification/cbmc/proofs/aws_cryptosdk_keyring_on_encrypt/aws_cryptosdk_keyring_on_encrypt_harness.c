@@ -23,7 +23,6 @@
 #include <make_common_data_structures.h>
 
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
 int on_encrypt(
@@ -47,7 +46,7 @@ void aws_cryptosdk_keyring_on_encrypt_harness() {
     __CPROVER_assume(aws_cryptosdk_keyring_is_valid(&keyring));
     __CPROVER_assume(keyring.vtable != NULL);
 
-    struct aws_allocator *request_alloc = can_fail_allocator();
+    struct aws_allocator *request_alloc = aws_default_allocator();
     __CPROVER_assume(aws_allocator_is_valid(request_alloc));
 
     struct aws_array_list keyring_trace;
@@ -76,7 +75,7 @@ void aws_cryptosdk_keyring_on_encrypt_harness() {
     ensure_cryptosdk_edk_list_has_allocated_list_elements(&edks);
     __CPROVER_assume(aws_cryptosdk_edk_list_elements_are_valid(&edks));
 
-    struct aws_hash_table *enc_ctx = can_fail_malloc(sizeof(*enc_ctx));
+    struct aws_hash_table *enc_ctx = malloc(sizeof(*enc_ctx));
     if (enc_ctx != NULL) {
         ensure_allocated_hash_table(enc_ctx, MAX_TABLE_SIZE);
         __CPROVER_assume(aws_hash_table_is_valid(enc_ctx));

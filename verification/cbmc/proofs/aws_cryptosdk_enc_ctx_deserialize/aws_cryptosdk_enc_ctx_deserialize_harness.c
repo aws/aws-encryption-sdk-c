@@ -18,7 +18,6 @@
 #include <aws/cryptosdk/enc_ctx.h>
 #include <aws/cryptosdk/private/enc_ctx.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
 void make_hash_table_with_no_backing_store(struct aws_hash_table *map, size_t max_table_entries);
@@ -62,7 +61,7 @@ void aws_cryptosdk_enc_ctx_deserialize_harness() {
     __CPROVER_assume(aws_hash_table_is_valid(map));
 
     /* Function under verification */
-    int rval = aws_cryptosdk_enc_ctx_deserialize(can_fail_allocator(), map, cursor);
+    int rval = aws_cryptosdk_enc_ctx_deserialize(aws_default_allocator(), map, cursor);
 
     /* Post-conditions */
     assert(aws_hash_table_is_valid(map));

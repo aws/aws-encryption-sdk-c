@@ -15,7 +15,8 @@
 
 #include <openssl/bio.h>
 #include <openssl/evp.h>
-#include <proof_helpers/proof_allocators.h>
+
+#include <stdlib.h>
 
 /* Abstraction of the BIO struct */
 
@@ -31,7 +32,7 @@ struct bio_st {
  * supplied area of memory must be unchanged until the BIO is freed.
  */
 BIO *BIO_new_mem_buf(const void *buf, signed int len) {
-    BIO *bio = can_fail_malloc(sizeof(BIO));
+    BIO *bio = malloc(sizeof(BIO));
     if (bio) {
         bio->key_len = len;
     }
