@@ -15,8 +15,16 @@
 
 #include <aws/cryptosdk/cipher.h>
 #include <aws/cryptosdk/private/cipher.h>
+#include <aws/cryptosdk/private/hkdf.h>
 
 #include <make_common_data_structures.h>
+
+int aws_cryptosdk_hkdf(
+    struct aws_byte_buf *okm,
+    enum aws_cryptosdk_sha_version which_sha,
+    const struct aws_byte_buf *salt,
+    const struct aws_byte_buf *ikm,
+    const struct aws_byte_buf *info);
 
 void aws_cryptosdk_hkdf_harness() {
     /* arguments */
@@ -58,7 +66,7 @@ void aws_cryptosdk_hkdf_harness() {
     struct store_byte_from_buffer old_byte_from_info;
     save_byte_from_array(info.buffer, info.len, &old_byte_from_info);
 
-    aws_cryptosdk_hkdf(&okm, alg_id, &salt, &ikm, &info);
+    aws_cryptosdk_hkdf(&okm, which_sha, &salt, &ikm, &info);
 
     /* assertions */
     assert(aws_byte_buf_is_valid(&salt));

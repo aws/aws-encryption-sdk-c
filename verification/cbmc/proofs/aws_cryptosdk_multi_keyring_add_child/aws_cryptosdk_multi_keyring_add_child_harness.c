@@ -39,7 +39,7 @@ void aws_cryptosdk_multi_keyring_add_child_harness() {
      * structure must have as base member the static aws_cryptosdk_keyring_vt (vt) defined
      * in the multi_keyring.c file.
      */
-    struct multi_keyring *multi = aws_cryptosdk_multi_keyring_new(alloc, &generator);
+    struct aws_cryptosdk_keyring *multi = aws_cryptosdk_multi_keyring_new(alloc, &generator);
     __CPROVER_assume(aws_cryptosdk_multi_keyring_is_valid(multi));
 
     const struct aws_cryptosdk_keyring_vt vtable_child = { .vt_size    = sizeof(struct aws_cryptosdk_keyring_vt),
@@ -52,13 +52,13 @@ void aws_cryptosdk_multi_keyring_add_child_harness() {
     __CPROVER_assume(aws_cryptosdk_keyring_is_valid(&child));
 
     /* save current state of the data structure */
-    struct aws_array_list old = multi->children;
+    struct aws_array_list old = ((struct multi_keyring *)multi)->children;
 
     /* Operation under verification. */
     if (aws_cryptosdk_multi_keyring_add_child(multi, &child) == AWS_OP_SUCCESS) {
-        assert(multi->children.length == (old.length + 1));
+        assert(((struct multi_keyring *)multi)->children.length == (old.length + 1));
     } else {
-        assert(multi->children.length == old.length);
+        assert(((struct multi_keyring *)multi)->children.length == old.length);
     }
 
     /* Post-conditions. */
