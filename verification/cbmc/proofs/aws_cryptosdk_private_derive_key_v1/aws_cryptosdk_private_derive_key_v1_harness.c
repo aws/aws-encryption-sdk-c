@@ -19,6 +19,12 @@
 #include <make_common_data_structures.h>
 #include <utils.h>
 
+int __CPROVER_file_local_cipher_c_aws_cryptosdk_private_derive_key_v1(
+    const struct aws_cryptosdk_alg_properties *props,
+    struct content_key *content_key,
+    const struct data_key *data_key,
+    const struct aws_byte_buf *message_id);
+
 void aws_cryptosdk_private_derive_key_v1_harness() {
     struct aws_cryptosdk_alg_properties *props = ensure_alg_properties_attempt_allocation(MAX_STRING_LEN);
     struct content_key *content_key            = ensure_content_key_attempt_allocation();

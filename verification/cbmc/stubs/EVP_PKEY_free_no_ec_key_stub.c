@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <assert.h>
 #include <openssl/evp.h>
 #include <stdlib.h>
 

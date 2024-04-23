@@ -38,6 +38,7 @@ struct default_cmm {
     struct aws_cryptosdk_keyring *kr;
     /* Invariant: this is either DEFAULT_ALG_UNSET or is a valid algorithm ID */
     enum aws_cryptosdk_alg_id default_alg;
+    bool default_alg_is_set;
 };
 
 const EVP_MD *nondet_EVP_MD_ptr(void);
@@ -46,10 +47,10 @@ const EVP_CIPHER *nondet_EVP_CIPHER_ptr(void);
 struct aws_cryptosdk_alg_impl *ensure_impl_attempt_allocation(const size_t max_len) {
     struct aws_cryptosdk_alg_impl *impl = malloc(sizeof(struct aws_cryptosdk_alg_impl));
     if (impl) {
-        *(const EVP_MD **)(&impl->md_ctor)         = (nondet_bool()) ? NULL : &nondet_EVP_MD_ptr;
-        *(const EVP_MD **)(&impl->sig_md_ctor)     = (nondet_bool()) ? NULL : &nondet_EVP_MD_ptr;
-        *(const EVP_CIPHER **)(&impl->cipher_ctor) = (nondet_bool()) ? NULL : &nondet_EVP_CIPHER_ptr;
-        *(const char **)(&impl->curve_name)        = ensure_c_str_is_allocated(max_len);
+        impl->md_ctor     = (nondet_bool()) ? NULL : &nondet_EVP_MD_ptr;
+        impl->sig_md_ctor = (nondet_bool()) ? NULL : &nondet_EVP_MD_ptr;
+        impl->cipher_ctor = (nondet_bool()) ? NULL : &nondet_EVP_CIPHER_ptr;
+        impl->curve_name  = ensure_c_str_is_allocated(max_len);
     }
     return impl;
 }
@@ -398,14 +399,15 @@ struct aws_cryptosdk_enc_materials *ensure_enc_materials_attempt_allocation() {
     if (materials) {
         materials->alloc   = nondet_bool() ? NULL : can_fail_allocator();
         materials->signctx = ensure_nondet_sig_ctx_has_allocated_members();
-        ensure_byte_buf_has_allocated_buffer_member(&materials->encrypted_data_keys);
+        ensure_array_list_has_allocated_data_member(&materials->encrypted_data_keys);
         ensure_array_list_has_allocated_data_member(&materials->keyring_trace);
         ensure_array_list_has_allocated_data_member(&materials->encrypted_data_keys);
     }
     return materials;
 }
 
-struct aws_cryptosdk_cmm *ensure_default_cmm_attempt_allocation(const struct aws_cryptosdk_keyring_vt *vtable) {
+struct aws_cryptosdk_cmm *ensure_default_cmm_attempt_allocation(
+    const struct aws_cryptosdk_cmm_vt *cmm_vtable, const struct aws_cryptosdk_keyring_vt *vtable) {
     /* Nondet input required to init cmm */
     struct aws_cryptosdk_keyring *keyring = malloc(sizeof(*keyring));
 
@@ -416,7 +418,7 @@ struct aws_cryptosdk_cmm *ensure_default_cmm_attempt_allocation(const struct aws
 
     struct aws_cryptosdk_cmm *cmm = malloc(sizeof(struct default_cmm));
     if (cmm) {
-        cmm->vtable = vtable;
+        cmm->vtable = cmm_vtable;
     }
 
     struct default_cmm *self = NULL;

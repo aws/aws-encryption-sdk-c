@@ -32,6 +32,8 @@ void ASN1_STRING_clear_free(ASN1_STRING *a) {
     free(a);
 }
 
+bool asn1_integer_is_valid(ASN1_INTEGER *ai);
+
 /*
  * Description: ASN1_INTEGER_to_BN() converts ASN1_INTEGER ai into a BIGNUM. If bn is NULL a new BIGNUM structure is
  * returned. If bn is not NULL then the existing structure will be used instead. Return values: ASN1_INTEGER_to_BN() and

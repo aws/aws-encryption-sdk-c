@@ -20,6 +20,11 @@
 #include <aws/cryptosdk/materials.h>
 #include <make_common_data_structures.h>
 
+int generate_enc_materials(
+    struct aws_cryptosdk_cmm *cmm,
+    struct aws_cryptosdk_enc_materials **output,
+    struct aws_cryptosdk_enc_request *request);
+
 int on_encrypt(
     struct aws_cryptosdk_keyring *keyring,
     struct aws_allocator *request_alloc,
@@ -29,14 +34,25 @@ int on_encrypt(
     const struct aws_hash_table *enc_ctx,
     enum aws_cryptosdk_alg_id alg);
 
+int __CPROVER_file_local_default_cmm_c_default_cmm_generate_enc_materials(
+    struct aws_cryptosdk_cmm *cmm,
+    struct aws_cryptosdk_enc_materials **output,
+    struct aws_cryptosdk_enc_request *request);
+
 void default_cmm_generate_enc_materials_harness() {
+    const struct aws_cryptosdk_cmm_vt cmm_vtable = { .vt_size = nondet_size_t(),
+                                                     .name    = ensure_c_str_is_allocated(SIZE_MAX),
+                                                     .destroy = nondet_voidp(),
+                                                     .generate_enc_materials =
+                                                         nondet_bool() ? NULL : generate_enc_materials,
+                                                     .decrypt_materials = nondet_voidp() };
     const struct aws_cryptosdk_keyring_vt vtable = { .vt_size    = nondet_size_t(),
                                                      .name       = ensure_c_str_is_allocated(SIZE_MAX),
                                                      .destroy    = nondet_voidp(),
                                                      .on_encrypt = nondet_bool() ? NULL : on_encrypt,
                                                      .on_decrypt = nondet_voidp() };
     /* Nondet input */
-    struct aws_cryptosdk_cmm *cmm              = ensure_default_cmm_attempt_allocation(&vtable);
+    struct aws_cryptosdk_cmm *cmm              = ensure_default_cmm_attempt_allocation(&cmm_vtable, &vtable);
     struct aws_cryptosdk_enc_materials *output = ensure_enc_materials_attempt_allocation();
     struct aws_cryptosdk_enc_request *request  = ensure_enc_request_attempt_allocation(MAX_TABLE_SIZE);
 

@@ -15,6 +15,8 @@
 
 #include <openssl/evp.h>
 
+#include <assert.h>
+
 /*
  * Checks whether EVP_MD_CTX is a valid object.
  * Use this stub when we are certain there is no pkey

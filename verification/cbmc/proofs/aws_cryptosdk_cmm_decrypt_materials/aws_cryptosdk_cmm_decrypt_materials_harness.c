@@ -120,7 +120,7 @@ void aws_cryptosdk_cmm_decrypt_materials_harness() {
     */
     __CPROVER_assume(aws_cryptosdk_dec_request_is_valid(request));
 
-    struct aws_cryptosdk_enc_materials **output = can_fail_malloc(sizeof(*output));
+    struct aws_cryptosdk_dec_materials **output = can_fail_malloc(sizeof(*output));
     __CPROVER_assume(output);
 
     // Run the function under test.

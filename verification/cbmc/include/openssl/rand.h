@@ -14,4 +14,4 @@
  * permissions and limitations under the License.
  */
 
-/* Empty header. Necessary just because it is included in cipher.c */
+int RAND_bytes(unsigned char *buf, int num);

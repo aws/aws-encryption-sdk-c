@@ -17,6 +17,7 @@
  */
 
 #include <aws/cryptosdk/edk.h>
+#include <aws/cryptosdk/list_utils.h>
 #include <proof_helpers/cryptosdk/make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
 #include <proof_helpers/proof_allocators.h>

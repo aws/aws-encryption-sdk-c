@@ -59,6 +59,13 @@ bool aws_array_list_is_valid_deep(const struct aws_array_list *AWS_RESTRICT list
 typedef int (*clone_item_fn)(struct aws_allocator *, void *, const void *);
 typedef void (*clean_up_item_fn)(void *);
 
+int __CPROVER_file_local_list_utils_c_list_copy_all(
+    struct aws_allocator *alloc,
+    struct aws_array_list *dest,
+    const struct aws_array_list *src,
+    clone_item_fn cloner,
+    clean_up_item_fn cleaner);
+
 size_t g_item_size;
 
 /**

@@ -20,6 +20,8 @@
 #include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
 
+int __CPROVER_file_local_session_encrypt_c_sign_header(struct aws_cryptosdk_session *session);
+
 /**
  * A generator function as described in the comment in aws_cryptosdk_hash_elems_array_init_stub.c.
  * Also see DEFINES += -DAWS_CRYPTOSDK_HASH_ELEMS_ARRAY_INIT_GENERATOR=array_list_item_generator
