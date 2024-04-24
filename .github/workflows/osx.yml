@@ -18,20 +18,20 @@ jobs:
       - run: brew install ${{ matrix.openssl_version }}
 
       - name: Checkout PR
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: recursive
         if: ${{ github.repository == 'aws/aws-encryption-sdk-c' }}
 
       - name: Checkout PR with CI bot token
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: recursive
           token: ${{ secrets.CI_BOT_TOKEN }}
         if: ${{ github.repository == 'aws/private-aws-encryption-sdk-c-staging' }}
 
       - name: Checkout AWS C++ SDK
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: "aws/aws-sdk-cpp"
           path: "aws-sdk-cpp"
