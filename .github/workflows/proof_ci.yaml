@@ -152,8 +152,6 @@ jobs:
           echo "$(pwd)" >> $GITHUB_PATH
       - name: Run CBMC proofs
         shell: bash
-        env:
-          EXTERNAL_SAT_SOLVER: kissat
         working-directory: ${{ env.PROOFS_DIR }}
         run: ${{ env.RUN_CBMC_PROOFS_COMMAND }}
       - name: Check repository visibility
