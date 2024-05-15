@@ -31,6 +31,7 @@ CBMCFLAGS +=
 # this is defined on cipher.c
 DEFINES += -DMSG_ID_LEN=16
 
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/allocator.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
@@ -42,7 +43,6 @@ PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
 PROJECT_SOURCES += $(SRCDIR)/source/hkdf.c
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c

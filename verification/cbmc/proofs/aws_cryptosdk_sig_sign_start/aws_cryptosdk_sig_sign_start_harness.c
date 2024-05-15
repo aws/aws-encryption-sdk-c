@@ -18,14 +18,13 @@
 #include <ec_utils.h>
 #include <evp_utils.h>
 #include <make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
 
 #include <cipher_openssl.h>
 
 void aws_cryptosdk_sig_sign_start_harness() {
     /* Nondet Inputs */
     struct aws_cryptosdk_sig_ctx *ctx = ensure_nondet_sig_ctx_has_allocated_members();
-    struct aws_allocator *alloc       = can_fail_allocator();
+    struct aws_allocator *alloc       = aws_default_allocator();
     struct aws_string *pub_key;
     struct aws_string *priv_key = ensure_string_is_allocated_nondet_length();
     enum aws_cryptosdk_alg_id alg_id;

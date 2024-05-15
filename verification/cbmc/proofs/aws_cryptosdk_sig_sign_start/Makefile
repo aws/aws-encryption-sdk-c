@@ -36,8 +36,8 @@ PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/objects_override.c
 PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
 PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
 
+PROOF_SOURCES += $(CBMC_ROOT)/aws-c-common/source/allocator.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c

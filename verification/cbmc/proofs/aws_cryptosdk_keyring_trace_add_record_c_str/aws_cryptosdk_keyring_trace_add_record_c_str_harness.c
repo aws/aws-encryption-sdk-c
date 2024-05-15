@@ -28,7 +28,7 @@
 
 void aws_cryptosdk_keyring_trace_add_record_c_str_harness() {
     /* data structure */
-    struct aws_allocator *alloc = can_fail_allocator(); /* Precondition: alloc must be non-null */
+    struct aws_allocator *alloc = aws_default_allocator(); /* Precondition: alloc must be non-null */
     struct aws_array_list trace;
     const char *c_str_namespace = ensure_c_str_is_allocated(MAX_STRING_LEN);
     const char *c_str_name      = ensure_c_str_is_allocated(MAX_STRING_LEN);

@@ -23,7 +23,6 @@
 #include <make_common_data_structures.h>
 #include <proof_helpers/cryptosdk/make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
 // Stub this until https://github.com/diffblue/cbmc/issues/5344 is fixed
@@ -52,7 +51,7 @@ int generate_enc_materials(
     assert(AWS_OBJECT_PTR_IS_WRITABLE(output));
     assert(aws_cryptosdk_enc_request_is_valid(request));
 
-    struct aws_cryptosdk_enc_materials *materials = can_fail_malloc(sizeof(*materials));
+    struct aws_cryptosdk_enc_materials *materials = malloc(sizeof(*materials));
     if (materials == NULL) {
         *output = NULL;
         return AWS_OP_ERR;
@@ -107,20 +106,20 @@ void aws_cryptosdk_cmm_generate_enc_materials_harness() {
                                                  .decrypt_materials = nondet_voidp() };
     __CPROVER_assume(aws_cryptosdk_cmm_vtable_is_valid(&vtable));
 
-    struct aws_cryptosdk_cmm *cmm = can_fail_malloc(sizeof(*cmm));
+    struct aws_cryptosdk_cmm *cmm = malloc(sizeof(*cmm));
     __CPROVER_assume(cmm);
     cmm->vtable = &vtable;
     __CPROVER_assume(aws_cryptosdk_cmm_base_is_valid(cmm));
 
-    struct aws_cryptosdk_enc_request *request = can_fail_malloc(sizeof(*request));
+    struct aws_cryptosdk_enc_request *request = malloc(sizeof(*request));
     __CPROVER_assume(request);
-    request->alloc   = can_fail_allocator();
-    request->enc_ctx = can_fail_malloc(sizeof(*request->enc_ctx));
+    request->alloc   = aws_default_allocator();
+    request->enc_ctx = malloc(sizeof(*request->enc_ctx));
     __CPROVER_assume(request->enc_ctx);
     ensure_allocated_hash_table(request->enc_ctx, MAX_NUM_ITEMS);
     __CPROVER_assume(aws_cryptosdk_enc_request_is_valid(request));
 
-    struct aws_cryptosdk_enc_materials **output = can_fail_malloc(sizeof(*output));
+    struct aws_cryptosdk_enc_materials **output = malloc(sizeof(*output));
     __CPROVER_assume(output);
 
     // Run the function under test.

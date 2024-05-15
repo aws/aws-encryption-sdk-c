@@ -20,11 +20,10 @@
 #include <cipher_openssl.h>
 #include <proof_helpers/cryptosdk/make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
 void aws_cryptosdk_dec_materials_new_harness() {
-    struct aws_allocator *alloc = can_fail_allocator();
+    struct aws_allocator *alloc = aws_default_allocator();
     enum aws_cryptosdk_alg_id alg;
 
     struct aws_cryptosdk_dec_materials *rval = aws_cryptosdk_dec_materials_new(alloc, alg);

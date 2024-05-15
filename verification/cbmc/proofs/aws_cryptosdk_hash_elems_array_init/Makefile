@@ -28,6 +28,12 @@ CBMCFLAGS +=
 
 DEFINES += -DAWS_NO_STATIC_IMPL
 
+# The maximum number of objects is set to 2^8 = 256. This option changes that to 2^9.
+# Without this flag, running this proof causes the CBMC error of
+# "too many addressed objects: maximum number of objects is set to 2^n=256 (with n=8);
+# use the `--object-bits n` option to increase the maximum number"
+CBMC_OBJECT_BITS ?= 9
+
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/array_list.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
@@ -36,8 +42,9 @@ PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
 PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
 PROJECT_SOURCES += $(SRCDIR)/source/utils.c
 
+PROOF_SOURCES += $(CBMC_ROOT)/aws-c-common/source/allocator.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(PROOF_STUB)/aws_add_size_checked.c

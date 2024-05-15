@@ -34,12 +34,20 @@ DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
 
 CBMCFLAGS +=
 
+# The maximum number of objects is set to 2^8 = 256. This option changes that to 2^9.
+# Without this flag, running this proof causes the CBMC error of
+# "too many addressed objects: maximum number of objects is set to 2^n=256 (with n=8);
+# use the `--object-bits n` option to increase the maximum number"
+CBMC_OBJECT_BITS ?= 9
+
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/allocator.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/array_list.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/hash_table.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/string.c
 PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/array_list.c
+PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/byte_order.c
 PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/error.c
 PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
 PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/string.c
@@ -49,19 +57,16 @@ PROJECT_SOURCES += $(SRCDIR)/source/enc_ctx.c
 PROJECT_SOURCES += $(SRCDIR)/source/header.c
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_array_list_defined_type.c
+PROOF_SOURCES += $(PROOF_STUB)/aws_array_list_defined_type.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_destroy_override.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
-PROOF_SOURCES += $(COMMON_PROOF_STUB)/memcmp_override_no_op.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 # Functions removed for enc_ctx_clear
 REMOVE_FUNCTION_BODY += aws_hash_callback_string_destroy
 REMOVE_FUNCTION_BODY += aws_hash_string
-REMOVE_FUNCTION_BODY += aws_raise_error_private
 REMOVE_FUNCTION_BODY += aws_string_bytes
 REMOVE_FUNCTION_BODY += aws_string_is_valid
 

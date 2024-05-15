@@ -32,6 +32,13 @@ CBMCFLAGS +=
 
 DEFINES += -DMAX_TABLE_SIZE=$(MAX_TABLE_SIZE)
 
+# The maximum number of objects is set to 2^8 = 256. This option changes that to 2^9.
+# Without this flag, running this proof causes the CBMC error of
+# "too many addressed objects: maximum number of objects is set to 2^n=256 (with n=8);
+# use the `--object-bits n` option to increase the maximum number"
+CBMC_OBJECT_BITS ?= 9
+
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/allocator.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/encoding.c
@@ -51,7 +58,6 @@ PROJECT_SOURCES += $(SRCDIR)/source/keyring_trace.c
 PROJECT_SOURCES += $(SRCDIR)/source/materials.c
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_hash_table_no_slots_override.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/aws_string_destroy_override.c
