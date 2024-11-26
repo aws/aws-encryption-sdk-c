@@ -49,10 +49,10 @@ function(aws_install_target)
     configure_file("${PROJECT_SOURCE_DIR}/cmake/${AWS_INSTALL_TARGET}-config.cmake"
         "${CMAKE_CURRENT_BINARY_DIR}/${AWS_INSTALL_TARGET}-config.cmake" @ONLY)
     
-    install(EXPORT "${AWS_INSTALL_TARGET}-targets" DESTINATION "${LIBRARY_DIRECTORY}/${AWS_INSTALL_TARGET}/cmake/"
+    install(EXPORT "${AWS_INSTALL_TARGET}-targets" DESTINATION "${LIBRARY_DIRECTORY}/cmake/${AWS_INSTALL_TARGET}/"
         NAMESPACE AWS::
     )
     
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${AWS_INSTALL_TARGET}-config.cmake"
-        DESTINATION "${LIBRARY_DIRECTORY}/${AWS_INSTALL_TARGET}/cmake/")
+        DESTINATION "${LIBRARY_DIRECTORY}/cmake/${AWS_INSTALL_TARGET}/")
 endfunction(aws_install_target)
