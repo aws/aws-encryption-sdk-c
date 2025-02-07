@@ -15,12 +15,7 @@
 cmake_minimum_required (VERSION 3.9)
 project (aws-encryption-sdk LANGUAGES C)
 
-if (UNIX AND NOT APPLE)
-    include(GNUInstallDirs)
-elseif(NOT DEFINED CMAKE_INSTALL_LIBDIR)
-    set(CMAKE_INSTALL_LIBDIR "lib")
-endif()
-
+include(GNUInstallDirs)
 include(CTest)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
