@@ -15,16 +15,13 @@
 cmake_minimum_required (VERSION 3.9)
 project (aws-encryption-sdk LANGUAGES C)
 
-if (UNIX AND NOT APPLE)
-    include(GNUInstallDirs)
-elseif(NOT DEFINED CMAKE_INSTALL_LIBDIR)
-    set(CMAKE_INSTALL_LIBDIR "lib")
-endif()
-
+include(GNUInstallDirs)
 include(CTest)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+# This was required for older versions of aws-c-common and fixed in the latest versions.
+# Remove this hack, after updating our CodeBuild tests to use the latest version of aws-c-common.
 # Make sure we can pick up Cmake modules installed by dependencies
 # both when they are in the CMAKE_INSTALL_PREFIX directory
 # and in the CMAKE_PREFIX_PATH list.
