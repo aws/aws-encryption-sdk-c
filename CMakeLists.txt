@@ -20,6 +20,16 @@ include(CTest)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+# This was required for older versions of aws-c-common and fixed in the latest versions.
+# Remove this hack, after updating our CodeBuild tests to use the latest version of aws-c-common.
+# Make sure we can pick up Cmake modules installed by dependencies
+# both when they are in the CMAKE_INSTALL_PREFIX directory
+# and in the CMAKE_PREFIX_PATH list.
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/cmake")
+foreach(prefix ${CMAKE_PREFIX_PATH})
+    list(APPEND CMAKE_MODULE_PATH "${prefix}/${CMAKE_INSTALL_LIBDIR}/cmake")
+endforeach(prefix)
+
 # Including AwsSharedLibSetup depends on aws-c-common being installed already.
 # Putting this ahead of that include line for a more meaningful error when missing.
 find_package(aws-c-common CONFIG REQUIRED)
