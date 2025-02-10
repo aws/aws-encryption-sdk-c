@@ -11,7 +11,8 @@ jobs:
 
     strategy:
       matrix:
-        os: [macos-11, macos-latest]
+        # macos-latest-large is the latest intel based runner
+        os: [macos-13, macos-latest-large]
         openssl_version: [openssl@1.1]
 
     steps:
