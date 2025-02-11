@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['for_20c_0',['for C',['../group__kms__keyring.html',1,'KMS keyring (AWS SDK for C++)'],['../group__kms__mrk__keyring.html',1,'KMS Multi-Region Key aware keyring (AWS SDK for C++)']]]
+  ['low_2dlevel_20cryptographic_20apis_0',['Low-level cryptographic APIs',['../group__hazmat.html',1,'']]],
+  ['low_2dlevel_20materials_20provider_20apis_1',['Low-level materials provider APIs',['../group__cmm__kr__lowlevel.html',1,'']]]
 ];

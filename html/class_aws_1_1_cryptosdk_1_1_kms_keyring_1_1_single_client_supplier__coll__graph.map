@@ -1,5 +1,4 @@
 <map id="Aws::Cryptosdk::KmsKeyring::SingleClientSupplier" name="Aws::Cryptosdk::KmsKeyring::SingleClientSupplier">
-<area shape="rect" id="Node000001" title=" " alt="" coords="5,94,200,135"/>
-<area shape="rect" id="Node000002" href="$class_aws_1_1_cryptosdk_1_1_kms_keyring_1_1_client_supplier.html" title=" " alt="" coords="5,5,200,46"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="105,62,105,94,100,94,100,62"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,93,200,133"/>
+<area shape="rect" id="node2" href="$class_aws_1_1_cryptosdk_1_1_kms_keyring_1_1_client_supplier.html" title=" " alt="" coords="5,5,200,45"/>
 </map>
