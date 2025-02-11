@@ -1,13 +1,27 @@
 <map id="header.h" name="header.h">
-<area shape="rect" id="node1" title=" " alt="" coords="531,5,601,31"/>
-<area shape="rect" id="node2" href="$cipher_8h.html" title=" " alt="" coords="571,79,638,104"/>
-<area shape="rect" id="node3" href="$materials_8h.html" title=" " alt="" coords="483,152,569,177"/>
-<area shape="rect" id="node9" href="$raw__aes__keyring_8h.html" title=" " alt="" coords="802,225,933,251"/>
-<area shape="rect" id="node10" href="$raw__rsa__keyring_8h.html" title=" " alt="" coords="650,225,778,251"/>
-<area shape="rect" id="node4" href="$cache_8h.html" title=" " alt="" coords="5,225,73,251"/>
-<area shape="rect" id="node5" href="$default__cmm_8h.html" title=" " alt="" coords="97,225,205,251"/>
-<area shape="rect" id="node6" href="$kms__keyring_8h.html" title=" " alt="" coords="281,225,387,251"/>
-<area shape="rect" id="node7" href="$kms__mrk__keyring_8h.html" title=" " alt="" coords="221,299,357,324"/>
-<area shape="rect" id="node8" href="$multi__keyring_8h.html" title=" " alt="" coords="412,225,523,251"/>
-<area shape="rect" id="node11" href="$session_8h.html" title=" " alt="" coords="547,225,625,251"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="526,5,597,31"/>
+<area shape="rect" id="Node000002" href="$cipher_8h.html" title=" " alt="" coords="567,79,634,105"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="578,43,596,77,591,80,573,46"/>
+<area shape="rect" id="Node000003" href="$materials_8h.html" title=" " alt="" coords="480,153,566,178"/>
+<area shape="poly" id="edge14_Node000001_Node000003" title=" " alt="" coords="557,46,529,153,524,151,552,45"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="578,117,538,154,534,150,574,114"/>
+<area shape="rect" id="Node000009" href="$raw__aes__keyring_8h.html" title=" " alt="" coords="796,226,927,252"/>
+<area shape="poly" id="edge12_Node000002_Node000009" title=" " alt="" coords="637,110,841,223,838,228,634,115"/>
+<area shape="rect" id="Node000010" href="$raw__rsa__keyring_8h.html" title=" " alt="" coords="645,226,772,252"/>
+<area shape="poly" id="edge13_Node000002_Node000010" title=" " alt="" coords="620,116,702,224,697,227,616,119"/>
+<area shape="rect" id="Node000004" href="$cache_8h.html" title=" " alt="" coords="5,226,73,252"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="465,175,295,196,86,229,74,232,73,226,85,224,294,191,465,170"/>
+<area shape="rect" id="Node000005" href="$default__cmm_8h.html" title=" " alt="" coords="97,226,205,252"/>
+<area shape="poly" id="edge4_Node000003_Node000005" title=" " alt="" coords="466,180,206,230,205,225,465,175"/>
+<area shape="rect" id="Node000006" href="$kms__keyring_8h.html" title=" " alt="" coords="279,226,386,252"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="478,187,366,228,364,223,476,182"/>
+<area shape="rect" id="Node000007" href="$kms__mrk__keyring_8h.html" title=" " alt="" coords="219,300,355,326"/>
+<area shape="poly" id="edge7_Node000003_Node000007" title=" " alt="" coords="465,175,409,182,350,193,300,209,281,218,269,228,263,245,265,264,281,299,276,301,260,265,257,244,265,225,278,213,298,204,349,188,408,177,464,169"/>
+<area shape="rect" id="Node000008" href="$multi__keyring_8h.html" title=" " alt="" coords="410,226,519,252"/>
+<area shape="poly" id="edge8_Node000003_Node000008" title=" " alt="" coords="506,192,476,228,472,224,501,189"/>
+<area shape="poly" id="edge9_Node000003_Node000009" title=" " alt="" coords="581,176,805,223,803,228,580,182"/>
+<area shape="poly" id="edge10_Node000003_Node000010" title=" " alt="" coords="569,182,678,223,676,228,568,187"/>
+<area shape="rect" id="Node000011" href="$session_8h.html" title=" " alt="" coords="543,226,620,252"/>
+<area shape="poly" id="edge11_Node000003_Node000011" title=" " alt="" coords="545,189,574,224,570,228,540,192"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="319,266,297,301,292,298,315,263"/>
 </map>

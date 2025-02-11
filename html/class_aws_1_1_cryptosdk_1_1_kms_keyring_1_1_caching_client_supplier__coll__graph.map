@@ -1,5 +1,7 @@
 <map id="Aws::Cryptosdk::KmsKeyring::CachingClientSupplier" name="Aws::Cryptosdk::KmsKeyring::CachingClientSupplier">
-<area shape="rect" id="node1" title=" " alt="" coords="87,108,281,148"/>
-<area shape="rect" id="node2" href="$class_aws_1_1_cryptosdk_1_1_kms_keyring_1_1_client_supplier.html" title=" " alt="" coords="5,5,200,45"/>
-<area shape="rect" id="node3" title=" " alt="" coords="225,13,309,38"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="87,109,281,150"/>
+<area shape="rect" id="Node000002" href="$class_aws_1_1_cryptosdk_1_1_kms_keyring_1_1_client_supplier.html" title=" " alt="" coords="5,5,200,46"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="130,57,170,107,166,110,126,60"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="224,13,307,38"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="248,52,202,110,198,107,244,49"/>
 </map>
