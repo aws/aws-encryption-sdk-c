@@ -1,6 +1,9 @@
 <map id="error.h" name="error.h">
-<area shape="rect" id="node1" title=" " alt="" coords="236,5,295,31"/>
-<area shape="rect" id="node2" title=" " alt="" coords="5,79,171,104"/>
-<area shape="rect" id="node3" title=" " alt="" coords="195,79,335,104"/>
-<area shape="rect" id="node4" title=" " alt="" coords="360,79,525,104"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="235,5,292,31"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,79,170,105"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="235,34,132,75,130,70,233,29"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="194,79,333,105"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="266,31,266,63,261,63,261,31"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="357,79,522,105"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="294,29,397,70,395,75,292,34"/>
 </map>

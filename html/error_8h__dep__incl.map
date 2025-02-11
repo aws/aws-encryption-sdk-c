@@ -1,12 +1,22 @@
 <map id="error.h" name="error.h">
-<area shape="rect" id="node1" title=" " alt="" coords="391,5,450,31"/>
-<area shape="rect" id="node2" href="$materials_8h.html" title=" " alt="" coords="377,79,464,104"/>
-<area shape="rect" id="node3" href="$cache_8h.html" title=" " alt="" coords="5,152,73,177"/>
-<area shape="rect" id="node4" href="$default__cmm_8h.html" title=" " alt="" coords="97,152,205,177"/>
-<area shape="rect" id="node5" href="$kms__keyring_8h.html" title=" " alt="" coords="230,152,337,177"/>
-<area shape="rect" id="node6" href="$kms__mrk__keyring_8h.html" title=" " alt="" coords="261,225,397,251"/>
-<area shape="rect" id="node7" href="$multi__keyring_8h.html" title=" " alt="" coords="412,152,523,177"/>
-<area shape="rect" id="node8" href="$raw__aes__keyring_8h.html" title=" " alt="" coords="547,152,678,177"/>
-<area shape="rect" id="node9" href="$raw__rsa__keyring_8h.html" title=" " alt="" coords="702,152,830,177"/>
-<area shape="rect" id="node10" href="$session_8h.html" title=" " alt="" coords="855,152,933,177"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="389,5,446,31"/>
+<area shape="rect" id="Node000002" href="$materials_8h.html" title=" " alt="" coords="375,79,460,105"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="420,46,420,79,415,79,415,46"/>
+<area shape="rect" id="Node000003" href="$cache_8h.html" title=" " alt="" coords="5,153,73,178"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="360,105,234,127,86,155,74,158,73,153,85,150,233,121,359,100"/>
+<area shape="rect" id="Node000004" href="$default__cmm_8h.html" title=" " alt="" coords="97,153,205,178"/>
+<area shape="poly" id="edge3_Node000002_Node000004" title=" " alt="" coords="361,111,197,155,196,149,360,106"/>
+<area shape="rect" id="Node000005" href="$kms__keyring_8h.html" title=" " alt="" coords="228,153,335,178"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="382,115,306,154,304,150,380,110"/>
+<area shape="rect" id="Node000006" href="$kms__mrk__keyring_8h.html" title=" " alt="" coords="259,226,395,252"/>
+<area shape="poly" id="edge6_Node000002_Node000006" title=" " alt="" coords="405,119,337,227,332,224,400,116"/>
+<area shape="rect" id="Node000007" href="$multi__keyring_8h.html" title=" " alt="" coords="410,153,519,178"/>
+<area shape="poly" id="edge7_Node000002_Node000007" title=" " alt="" coords="436,116,459,151,454,154,431,119"/>
+<area shape="rect" id="Node000008" href="$raw__aes__keyring_8h.html" title=" " alt="" coords="543,153,674,178"/>
+<area shape="poly" id="edge8_Node000002_Node000008" title=" " alt="" coords="465,108,577,150,575,155,463,113"/>
+<area shape="rect" id="Node000009" href="$raw__rsa__keyring_8h.html" title=" " alt="" coords="698,153,825,178"/>
+<area shape="poly" id="edge9_Node000002_Node000009" title=" " alt="" coords="476,103,703,149,702,155,475,108"/>
+<area shape="rect" id="Node000010" href="$session_8h.html" title=" " alt="" coords="850,153,927,178"/>
+<area shape="poly" id="edge10_Node000002_Node000010" title=" " alt="" coords="476,97,639,118,838,150,850,152,849,158,837,155,638,124,475,102"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="299,190,322,224,317,227,295,193"/>
 </map>

@@ -1,6 +1,9 @@
 <map id="edk.h" name="edk.h">
-<area shape="rect" id="node1" title=" " alt="" coords="253,5,307,31"/>
-<area shape="rect" id="node2" title=" " alt="" coords="5,79,173,104"/>
-<area shape="rect" id="node3" title=" " alt="" coords="197,79,363,104"/>
-<area shape="rect" id="node4" title=" " alt="" coords="387,79,552,104"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="252,5,305,31"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,79,173,105"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="252,32,136,76,134,71,250,27"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="196,79,360,105"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="281,31,281,63,276,63,276,31"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="384,79,548,105"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="306,27,421,71,419,76,304,32"/>
 </map>
