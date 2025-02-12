@@ -82,7 +82,7 @@ struct rand_state {
 #define RNG_MAX (RNG_MODULUS - 1)
 
 static unsigned long threadid_get_callback() {
-    return aws_thread_current_thread_id();
+    return (unsigned long)aws_thread_current_thread_id();
 }
 
 static struct aws_mutex *mutex_array = NULL;
