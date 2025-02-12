@@ -470,7 +470,7 @@ static int evp_gcm_encrypt_final(const struct aws_cryptosdk_alg_properties *prop
     return AWS_ERROR_SUCCESS;
 }
 
-static inline void flush_openssl_errors() {
+static inline void flush_openssl_errors(void) {
     while (ERR_get_error() != 0) {
     }
 }
