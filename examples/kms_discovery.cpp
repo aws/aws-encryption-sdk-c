@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
 
     /* This keyring is guaranteed to only call KMS to attempt decryptions
      * in eu-central-1, and it will only attempt to do so when it sees that
-     * the message has beeen encrypted by this specific CMK.
+     * the message has been encrypted by this specific CMK.
      */
     decryption_keyrings.push_back(Aws::Cryptosdk::KmsKeyring::Builder().Build(key_arn_eu_central_1));
 
