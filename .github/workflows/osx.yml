@@ -66,7 +66,7 @@ jobs:
 
       - name: Build C-ESDK
         run:
-          cd aws-encryption-sdk-c/tests/TestVectors/
+          cd tests/TestVectors/
           make decrypt-java
           make encrypt
           make decrypt

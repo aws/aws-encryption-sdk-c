@@ -13,4 +13,4 @@ jobs:
         source: '.'
         exclude: 'docker-images,doxygen,examples,testing-resources'
         extensions: 'h,c,cpp'
-        clangFormatVersion: 9
+        clangFormatVersion: 18
