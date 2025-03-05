@@ -1,4 +1,3 @@
-//#include <aws/core/utils/logging/DefaultLogSystem.h>
 #include "test_vectors.h"
 
 int USAGE(const char *s) {
@@ -51,7 +50,7 @@ int do_encrypt(int argc, char **argv) {
     write_file(keys_file, keys_content, decrypt_path);
 
     results.print();
-    return 0;
+    return results.failed != 0;
 }
 
 int do_decrypt(int argc, char **argv) {
@@ -85,16 +84,13 @@ int do_decrypt(int argc, char **argv) {
     auto tests           = ParseEncryptTests(json_tests);
     auto decrypt_results = RunDecryptTests(tests, keys, manifest_path);
     decrypt_results.print();
-    return 0;
+    return decrypt_results.failed != 0;
 }
 
 int main(int argc, char **argv) {
     aws_cryptosdk_load_error_strings();
     Aws::SDKOptions options;
     Aws::InitAPI(options);
-
-    // Aws::Utils::Logging::InitializeAWSLogging(Aws::MakeShared<Aws::Utils::Logging::DefaultLogSystem>(
-    //     "Test Vectors", Aws::Utils::Logging::LogLevel(6), "./tvlog_"));
 
     if (argc < 2) {
         return USAGE("No Function Provided");
