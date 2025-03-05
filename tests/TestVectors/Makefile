@@ -9,6 +9,7 @@ test_vectors: *.cpp *.h
 	install_name_tool -add_rpath ../../build-aws-encryption-sdk-c/aws-encryption-sdk-cpp/Debug/ test_vectors
 	install_name_tool -add_rpath ../../build-aws-sdk-cpp/src/aws-cpp-sdk-core/Debug/ test_vectors
 	install_name_tool -add_rpath ../../build-aws-sdk-cpp/generated/src/aws-cpp-sdk-kms/Debug/ test_vectors
+	install_name_tool -add_rpath ../../build-aws-sdk-cpp/install/lib/ test_vectors
 
 decrypt_dafny: test_vectors
 	./test_vectors decrypt --manifest-path ./from-dafny --manifest-name decrypt-manifest.json
