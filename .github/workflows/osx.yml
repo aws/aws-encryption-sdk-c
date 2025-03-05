@@ -66,7 +66,7 @@ jobs:
 
       - name: Run Interop Test Vectors
         run: |
-          find . -name libaws-cpp-sdk-kms.dylib
+          find . -name libaws-c-common.1.dylib
           cd tests/TestVectors/
           ls ../../install/
           make decrypt_dafny
