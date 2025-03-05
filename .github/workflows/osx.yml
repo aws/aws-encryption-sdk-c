@@ -67,6 +67,7 @@ jobs:
       - name: Run Interop Test Vectors
         run: |
           echo WORKSPACE ${{github.workspace}}
+          find . -name kms_keyring.h
           cd tests/TestVectors/
           ls ../../install/
           make decrypt_dafny
