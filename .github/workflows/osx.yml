@@ -15,6 +15,10 @@ jobs:
         os: [macos-13, macos-latest-large]
         openssl_version: [openssl@1.1]
 
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
       - run: brew install ${{ matrix.openssl_version }}
 
