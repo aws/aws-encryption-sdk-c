@@ -12,7 +12,7 @@
 # limitations under the License.
 #
 
-cmake_minimum_required (VERSION 3.9)
+cmake_minimum_required (VERSION 3.10)
 project (aws-encryption-sdk LANGUAGES C)
 
 include(GNUInstallDirs)
