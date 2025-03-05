@@ -2,7 +2,7 @@
 #include <string>
 #include <string_view>
 #include "base64.h"
-#include "json.h"
+#include "json.hpp"
 
 #include <aws/core/Aws.h>
 #include <aws/cryptosdk/error.h>

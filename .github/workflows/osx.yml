@@ -64,8 +64,8 @@ jobs:
           xcodebuild -target ALL_BUILD
           xcodebuild -scheme RUN_TESTS
 
-      - name: Build C-ESDK
-        run:
+      - name: Run Interop Test Vectors
+        run: |
           cd tests/TestVectors/
           make decrypt-java
           make encrypt

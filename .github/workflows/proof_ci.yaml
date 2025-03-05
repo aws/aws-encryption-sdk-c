@@ -3,12 +3,12 @@
 # CBMC starter kit 2.9
 name: Run CBMC proofs
 on:
-  # push:
-  #   branches-ignore:
-  #     - gh-pages
-  # pull_request:
-  #   branches-ignore:
-  #     - gh-pages
+  push:
+    branches-ignore:
+      - gh-pages
+  pull_request:
+    branches-ignore:
+      - gh-pages
   workflow_dispatch:
 
 # USAGE
