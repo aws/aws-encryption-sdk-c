@@ -66,6 +66,9 @@ jobs:
 
       - name: Run Interop Test Vectors
         run: |
+          echo WORKSPACE ${{github.workspace}}
+          find . -name aws
+          find . -name libaws-encryption-sdk.dylib
           cd tests/TestVectors/
           make decrypt_dafny
           make encrypt
