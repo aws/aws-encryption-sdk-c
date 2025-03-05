@@ -67,6 +67,6 @@ jobs:
       - name: Run Interop Test Vectors
         run: |
           cd tests/TestVectors/
-          make decrypt-java
+          make decrypt_dafny
           make encrypt
           make decrypt
