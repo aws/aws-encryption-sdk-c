@@ -53,6 +53,13 @@ jobs:
           xcodebuild -target ALL_BUILD
           xcodebuild -target install
 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: us-west-2
+          role-to-assume: arn:aws:iam::370957321024:role/GitHub-CI-Public-ESDK-Dafny-Role-us-west-2
+          role-session-name: CESDKTests
+
       - name: Build C-ESDK
         env:
           OPENSSL_VERSION: ${{ matrix.openssl_version }}
@@ -66,10 +73,7 @@ jobs:
 
       - name: Run Interop Test Vectors
         run: |
-          find . -name libaws-c-common.1.dylib
-          ls install/lib/
           cd tests/TestVectors/
-          ls ../../install/
           make decrypt_dafny
           make encrypt
           make decrypt
