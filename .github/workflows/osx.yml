@@ -63,3 +63,10 @@ jobs:
           cmake -G Xcode -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install -DCMAKE_PREFIX_PATH=${{github.workspace}}/install -DOPENSSL_ROOT_DIR="/usr/local/opt/${OPENSSL_VERSION}" ../
           xcodebuild -target ALL_BUILD
           xcodebuild -scheme RUN_TESTS
+
+      - name: Build C-ESDK
+        run:
+          cd aws-encryption-sdk-c/tests/TestVectors/
+          make decrypt-java
+          make encrypt
+          make decrypt
