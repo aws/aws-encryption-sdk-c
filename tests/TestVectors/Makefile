@@ -1,3 +1,10 @@
+test_vectors_unix: *.cpp *.h
+	g++ -g -ggdb --std=c++14 -o test_vectors -I../../include/ *.cpp \
+	-I/opt/homebrew/include/ -L/opt/homebrew/lib/ \
+	-I../../install/include/ -L../../install/lib/ -I ../../aws-encryption-sdk-cpp/include/ \
+	../../build-aws-encryption-sdk-c/Debug/libaws-encryption-sdk.dylib \
+	../../build-aws-encryption-sdk-c/aws-encryption-sdk-cpp/Debug/libaws-encryption-sdk-cpp.dylib \
+
 test_vectors: *.cpp *.h
 	g++ -g -ggdb --std=c++14 -o test_vectors -I../../include/ *.cpp \
 	-I/opt/homebrew/include/ -L/opt/homebrew/lib/ \
