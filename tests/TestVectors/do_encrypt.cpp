@@ -50,7 +50,12 @@ Bytes GenRandom(uint32_t size) {
 void write_file(const std::string &filename, const Bytes &data, const string &dir) {
     auto name = dir + "/" + (strncmp(filename.c_str(), "file://", 7) ? filename : filename.substr(7));
     std::ofstream file(name, std::ios::binary | std::ios::ate);
-    file.write((const char *)data.data(), data.size());
+    if (!file.is_open()) {
+        throw std::runtime_error(string("Error while opening file for writing : ") + name);
+    }
+    if (!file.write((const char *)data.data(), data.size())) {
+        throw std::runtime_error(string("Error while writing file : ") + name);
+    }
 }
 
 PlainTexts MakePlainTexts(const json &plaintexts, const string &dir) {

@@ -29,11 +29,11 @@ static Result RunDecryptTest(const EncryptTest &test, aws_cryptosdk_keyring *key
 
     struct aws_cryptosdk_session *session =
         aws_cryptosdk_session_new_from_keyring_2(alloc, AWS_CRYPTOSDK_DECRYPT, keyring);
+    aws_cryptosdk_keyring_release(keyring);
     if (!session) {
         printf("Failed to make session. %s\n", ERROR);
         return Result::Fail;
     }
-    aws_cryptosdk_keyring_release(keyring);
 
     if (aws_cryptosdk_session_set_commitment_policy(session, COMMITMENT_POLICY_REQUIRE_ENCRYPT_ALLOW_DECRYPT)) {
         printf("set_commitment_policy failed: %s", aws_error_debug_str(aws_last_error()));
@@ -278,7 +278,7 @@ Bytes read_file(const std::string &filename, const string &dir) {
     std::vector<char> buffer(size);
     if (size > 0) {
         if (!file.read(buffer.data(), size)) {
-            throw std::runtime_error("Error while reading file");
+            throw std::runtime_error(string("Error while reading file : ") + name);
         }
     }
 
