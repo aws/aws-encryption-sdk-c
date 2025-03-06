@@ -20,7 +20,9 @@ jobs:
       contents: read
 
     steps:
-      - run: brew install ${{ matrix.openssl_version }}
+      - name: Install OpenSSL
+        if: matrix.os != 'ubuntu-22.04'
+        run: brew install ${{ matrix.openssl_version }}
 
       - name: Checkout PR
         uses: actions/checkout@v4
@@ -43,6 +45,7 @@ jobs:
           submodules: recursive
 
       - name: Install dependencies
+        if: matrix.os != 'ubuntu-22.04'
         run:
           brew install json-c
 
