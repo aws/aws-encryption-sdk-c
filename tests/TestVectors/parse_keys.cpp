@@ -63,7 +63,7 @@ Key Key::Parse(const json &data) {
             key.material = decode_base64(material);
         } else if (streq("pem", key.encoding)) {
             key.material = Bytes(material.begin(), material.end());
-            ;
+            key.material.push_back(0); // to make it a valid C String
         } else {
             printf("Unknown key encoding : %s\n", key.encoding.c_str());
         }
