@@ -67,10 +67,11 @@ jobs:
       - name: Build C-ESDK
         env:
           OPENSSL_VERSION: ${{ matrix.openssl_version }}
+        # TODO-RS: Figure out how to safely add AWS credentials and add -DAWS_ENC_SDK_END_TO_END_TESTS=ON and -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON
         run: |
           mkdir build-aws-encryption-sdk-c || true
           cd build-aws-encryption-sdk-c
-          cmake -G Xcode -DBUILD_SHARED_LIBS=ON -DAWS_ENC_SDK_END_TO_END_TESTS=ON and -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install -DCMAKE_PREFIX_PATH=${{github.workspace}}/install -DOPENSSL_ROOT_DIR="/usr/local/opt/${OPENSSL_VERSION}" ../
+          cmake -G Xcode -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install -DCMAKE_PREFIX_PATH=${{github.workspace}}/install -DOPENSSL_ROOT_DIR="/usr/local/opt/${OPENSSL_VERSION}" ../
           xcodebuild -target ALL_BUILD
           xcodebuild -scheme RUN_TESTS
 
