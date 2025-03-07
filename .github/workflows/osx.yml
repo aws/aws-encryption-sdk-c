@@ -15,6 +15,10 @@ jobs:
         os: [macos-13, macos-latest-large]
         openssl_version: [openssl@1.1]
 
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
       - run: brew install ${{ matrix.openssl_version }}
 
@@ -53,6 +57,13 @@ jobs:
           xcodebuild -target ALL_BUILD
           xcodebuild -target install
 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: us-west-2
+          role-to-assume: arn:aws:iam::370957321024:role/GitHub-CI-Public-ESDK-Dafny-Role-us-west-2
+          role-session-name: CESDKTests
+
       - name: Build C-ESDK
         env:
           OPENSSL_VERSION: ${{ matrix.openssl_version }}
@@ -63,3 +74,10 @@ jobs:
           cmake -G Xcode -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install -DCMAKE_PREFIX_PATH=${{github.workspace}}/install -DOPENSSL_ROOT_DIR="/usr/local/opt/${OPENSSL_VERSION}" ../
           xcodebuild -target ALL_BUILD
           xcodebuild -scheme RUN_TESTS
+
+      - name: Run Interop Test Vectors
+        run: |
+          cd tests/TestVectors/
+          make decrypt_dafny
+          make encrypt
+          make decrypt
