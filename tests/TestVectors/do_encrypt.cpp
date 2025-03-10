@@ -35,7 +35,6 @@ void AddCtx(struct aws_cryptosdk_session *session, const EncryptionContext &ctx)
 }
 
 Bytes GenRandom(uint32_t size) {
-    srandomdev();
     Bytes b;
     b.reserve(size);
     while (b.size() < size) {
