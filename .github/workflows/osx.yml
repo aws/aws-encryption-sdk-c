@@ -20,7 +20,13 @@ jobs:
       contents: read
 
     steps:
-      - run: brew install ${{ matrix.openssl_version }}
+      - name: Install OpenSSL
+        if: matrix.os != 'ubuntu-22.04'
+        run: brew install ${{ matrix.openssl_version }}
+
+      - name: Install LibCurl
+        if: matrix.os == 'ubuntu-22.04'
+        run: sudo apt-get install libcurl4-openssl-dev
 
       - name: Checkout PR
         uses: actions/checkout@v4
