@@ -47,6 +47,7 @@ jobs:
           brew install json-c
 
       - name: Build and install aws-sdk-cpp
+        if: matrix.os != 'ubuntu-22.04'
         run: |
           # remove the following line once aws-sdk-cpp fixes linux-shared/SimpleUDP.cpp
           perl -i -p -e 's/"-Werror"//' aws-sdk-cpp/cmake/compiler_settings.cmake
@@ -57,6 +58,18 @@ jobs:
           xcodebuild -target ALL_BUILD
           xcodebuild -target install
 
+      - name: Build and install aws-sdk-cpp
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          # remove the following line once aws-sdk-cpp fixes linux-shared/SimpleUDP.cpp
+          perl -i -p -e 's/"-Werror"//' aws-sdk-cpp/cmake/compiler_settings.cmake
+          mkdir -p build-aws-sdk-cpp || true
+          mkdir -p install || true
+          cd build-aws-sdk-cpp
+          cmake -DBUILD_SHARED_LIBS=ON -DBUILD_ONLY="kms" -DENABLE_UNITY_BUILD=ON -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install -DCMAKE_PREFIX_PATH=${{github.workspace}}/install ../aws-sdk-cpp
+          make
+          make install
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -65,6 +78,7 @@ jobs:
           role-session-name: CESDKTests
 
       - name: Build C-ESDK
+        if: matrix.os != 'ubuntu-22.04'
         env:
           OPENSSL_VERSION: ${{ matrix.openssl_version }}
         # TODO-RS: Figure out how to safely add AWS credentials and add -DAWS_ENC_SDK_END_TO_END_TESTS=ON and -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON
@@ -75,9 +89,32 @@ jobs:
           xcodebuild -target ALL_BUILD
           xcodebuild -scheme RUN_TESTS
 
+      - name: Build C-ESDK
+        if: matrix.os == 'ubuntu-22.04'
+        env:
+          OPENSSL_VERSION: ${{ matrix.openssl_version }}
+        # TODO-RS: Figure out how to safely add AWS credentials and add -DAWS_ENC_SDK_END_TO_END_TESTS=ON and -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON
+        run: |
+          mkdir build-aws-encryption-sdk-c || true
+          cd build-aws-encryption-sdk-c
+          cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install -DCMAKE_PREFIX_PATH=${{github.workspace}}/install -DOPENSSL_ROOT_DIR="/usr/local/opt/${OPENSSL_VERSION}" ../
+          make
+          make test
+          make install
+
       - name: Run Interop Test Vectors
+        if: matrix.os != 'ubuntu-22.04'
         run: |
           cd tests/TestVectors/
+          make decrypt_dafny
+          make encrypt
+          make decrypt
+
+      - name: Run Interop Test Vectors
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          cd tests/TestVectors/
+          make test_vectors_unix
           make decrypt_dafny
           make encrypt
           make decrypt
