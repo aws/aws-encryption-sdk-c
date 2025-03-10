@@ -1,4 +1,5 @@
 #include "test_vectors.h"
+#include <sys/time.h>
 
 int USAGE(const char *s) {
     if (s != nullptr) printf("%s\n", s);
@@ -87,10 +88,18 @@ int do_decrypt(int argc, char **argv) {
     return decrypt_results.failed != 0;
 }
 
+// doesn't need to be cryptographically secure, but should be different on every run
+void SetRandomSeed() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    srandom(tv.tv_sec + tv.tv_usec);
+}
+
 int main(int argc, char **argv) {
     aws_cryptosdk_load_error_strings();
     Aws::SDKOptions options;
     Aws::InitAPI(options);
+    SetRandomSeed();
 
     if (argc < 2) {
         return USAGE("No Function Provided");
