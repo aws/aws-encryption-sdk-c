@@ -49,6 +49,7 @@ jobs:
           submodules: recursive
 
       - name: Install dependencies
+        if: matrix.os != 'ubuntu-22.04'
         run:
           brew install json-c
 
