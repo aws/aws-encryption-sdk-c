@@ -106,6 +106,7 @@ jobs:
           cd build-aws-encryption-sdk-c
           cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/install -DCMAKE_PREFIX_PATH=${{github.workspace}}/install -DOPENSSL_ROOT_DIR="/usr/local/opt/${OPENSSL_VERSION}" ../
           make
+          cmake3 -VV
           make test
           make install
 
