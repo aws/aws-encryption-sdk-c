@@ -18,7 +18,6 @@
 #include <aws/cryptosdk/enc_ctx.h>
 #include <aws/cryptosdk/private/enc_ctx.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
 // A generator function as described in the comment in aws_cryptosdk_hash_elems_array_init_stub.c.
@@ -54,5 +53,5 @@ void aws_cryptosdk_enc_ctx_serialize_harness() {
     __CPROVER_assume(aws_hash_table_has_an_empty_slot(map, &empty_slot_idx));
 
     /* Operation under verification */
-    aws_cryptosdk_enc_ctx_serialize(can_fail_allocator(), output, map);
+    aws_cryptosdk_enc_ctx_serialize(aws_default_allocator(), output, map);
 }

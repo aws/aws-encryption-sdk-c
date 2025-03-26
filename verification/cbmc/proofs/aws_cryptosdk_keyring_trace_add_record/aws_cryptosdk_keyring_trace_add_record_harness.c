@@ -24,7 +24,7 @@
 
 void aws_cryptosdk_keyring_trace_add_record_harness() {
     /* data structure */
-    struct aws_allocator *alloc = can_fail_allocator(); /* Precondition: valid allocator */
+    struct aws_allocator *alloc = aws_default_allocator(); /* Precondition: valid allocator */
     __CPROVER_assume(aws_allocator_is_valid(alloc));
     struct aws_array_list trace; /* Precondition: trace must be non-null */
     struct aws_string *namespace =

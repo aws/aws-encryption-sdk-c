@@ -18,7 +18,6 @@
 
 #include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
 
 void aws_cryptosdk_multi_keyring_add_child_harness() {
     /* Non-deterministic inputs to initialize a multi_keyring object. */
@@ -31,7 +30,7 @@ void aws_cryptosdk_multi_keyring_add_child_harness() {
     ensure_cryptosdk_keyring_has_allocated_members(&generator, &vtable_generator);
     __CPROVER_assume(aws_cryptosdk_keyring_is_valid(&generator));
 
-    struct aws_allocator *alloc = can_fail_allocator();
+    struct aws_allocator *alloc = aws_default_allocator();
 
     /*
      * We inject non-deterministic parameters in aws_cryptosdk_multi_keyring_new to ensure

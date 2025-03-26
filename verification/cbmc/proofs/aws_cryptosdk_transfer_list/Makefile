@@ -38,6 +38,7 @@ DEFINES += -DAWS_NO_STATIC_IMPL
 DEFINES += -DITEM_SIZE=$(ITEM_SIZE)
 DEFINES += -DNUM_ELEMS=$(NUM_ELEMS)
 
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/allocator.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/array_list.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
@@ -48,7 +49,6 @@ PROJECT_SOURCES += $(COMMON_PROOF_UNINLINE)/math.c
 PROJECT_SOURCES += $(SRCDIR)/source/list_utils.c
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
