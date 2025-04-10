@@ -142,7 +142,7 @@ struct aws_cryptosdk_enc_request {
      * but this is discouraged.
      * Messages whose encryption contexts contain invalid UTF-8 characters will
      * not be interoperable with other language implementations of the encryption SDK.
-     * The encryption SDK for C will allow writing and reading invalid UTF-8 to encryption
+     * The encryption SDK for C will allow writing and reading invalid UTF-8 in encryption
      * contexts, but the encryption SDK in other languages will neither read nor write
      * messages whose encryption context contains invalid UTF-8 characters.
      */
