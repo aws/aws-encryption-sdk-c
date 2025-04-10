@@ -197,6 +197,21 @@ struct aws_cryptosdk_enc_materials {
  */
 struct aws_cryptosdk_dec_request {
     struct aws_allocator *alloc;
+    /**
+     * The encryption context for this message. CMMs are permitted to modify this
+     * hash table in order to inject additional keys or otherwise modify the encryption
+     * context.
+     *
+     * The values provided to the encryption context SHOULD be UTF-8 bytes.
+     * While it is technically possible to provide invalid UTF-8 bytes,
+     * doing so is strongly discouraged.
+     * Messages that include invalid UTF-8 bytes in their encryption context
+     * will not be interoperable across different language implementations
+     * of the AWS Encryption SDK.
+     * The ESDK for C permits writing and reading encryption contexts that
+     * contain invalid UTF-8 bytes, but ESDKs in other languages will neither
+     * read nor write messages whose encryption context contains invalid UTF-8.
+     */
     const struct aws_hash_table *enc_ctx;
     struct aws_array_list encrypted_data_keys;
     enum aws_cryptosdk_alg_id alg;
