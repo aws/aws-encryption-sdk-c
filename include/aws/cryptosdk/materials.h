@@ -138,13 +138,14 @@ struct aws_cryptosdk_enc_request {
      * context.
      *
      * The values provided to the encryption context SHOULD be UTF-8 bytes.
-     * You may choose to provide invalid UTF-8 bytes in the encryption context,
-     * but this is discouraged.
-     * Messages whose encryption contexts contain invalid UTF-8 characters will
-     * not be interoperable with other language implementations of the encryption SDK.
-     * The encryption SDK for C will allow writing and reading invalid UTF-8 in encryption
-     * contexts, but the encryption SDK in other languages will neither read nor write
-     * messages whose encryption context contains invalid UTF-8 characters.
+     * While it is technically possible to provide invalid UTF-8 bytes,
+     * doing so is strongly discouraged.
+     * Messages that include invalid UTF-8 bytes in their encryption context
+     * will not be interoperable across different language implementations
+     * of the AWS Encryption SDK.
+     * The ESDK for C permits writing and reading encryption contexts that
+     * contain invalid UTF-8 bytes, but ESDKs in other language will neither
+     * read nor write messages whose encryption context contains invalid UTF-8.
      */
     struct aws_hash_table *enc_ctx;
     /**
