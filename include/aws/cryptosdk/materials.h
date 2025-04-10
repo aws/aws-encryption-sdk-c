@@ -144,7 +144,7 @@ struct aws_cryptosdk_enc_request {
      * will not be interoperable across different language implementations
      * of the AWS Encryption SDK.
      * The ESDK for C permits writing and reading encryption contexts that
-     * contain invalid UTF-8 bytes, but ESDKs in other language will neither
+     * contain invalid UTF-8 bytes, but ESDKs in other languages will neither
      * read nor write messages whose encryption context contains invalid UTF-8.
      */
     struct aws_hash_table *enc_ctx;
