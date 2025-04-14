@@ -25,7 +25,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">AWS Encryption SDK for C<span id="projectnumber">&#160;v2.4</span>
+   <div id="projectname">AWS Encryption SDK for C<span id="projectnumber">&#160;v.</span>
    </div>
   </td>
  </tr>
@@ -139,7 +139,7 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 <p>The key commitment policy to enforce when processing the encryption request. The CMM is responsible for selecting an algorithm that satisfies the commitment policy: if the commitment policy requires key commitment, then the algorithm must be a key-committing one; otherwise, the algorithm must NOT be a key-committing one. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00163">163</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00173">173</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -154,9 +154,10 @@ Data Fields</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>The encryption context for this message. CMMs are permitted to modify this hash table in order to inject additional keys or otherwise modify the encryption context. </p>
+<p>The encryption context for this message. CMMs are permitted to modify this hash table in order to inject additional keys or otherwise modify the encryption context.</p>
+<p>The values provided to the encryption context SHOULD be UTF-8 bytes. While it is technically possible to provide invalid UTF-8 bytes, doing so is strongly discouraged. Messages that include invalid UTF-8 bytes in their encryption context will not be interoperable across different language implementations of the AWS Encryption SDK. The ESDK for C permits writing and reading encryption contexts that contain invalid UTF-8 bytes, but ESDKs in other languages will neither read nor write messages whose encryption context contains invalid UTF-8. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00140">140</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00150">150</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -173,7 +174,7 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 <p>An upper-bound on the plaintext size to be encrypted (comes from <a class="el" href="group__session.html#gae545ae41942c20835f17fade547b5aee">aws_cryptosdk_session_set_message_bound</a> or <a class="el" href="group__session.html#ga74b000edb8c79cf35a9b131e23b933ba">aws_cryptosdk_session_set_message_size</a>). If no bound has been set, this will be UINT64_MAX. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00155">155</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00165">165</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -190,7 +191,7 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 <p>The session will initially call generate_enc_materials on the CMM with a zero requested_alg; it's up to one of the CMMs in the chain to fill this in before the keyring is invoked. In particular, the default CMM will fill in the algorithm ID it has been configured with, unless a CMM before the default CMM filled in a different algorithm ID. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00148">148</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00158">158</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>

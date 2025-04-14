@@ -25,7 +25,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">AWS Encryption SDK for C<span id="projectnumber">&#160;v2.4</span>
+   <div id="projectname">AWS Encryption SDK for C<span id="projectnumber">&#160;v.</span>
    </div>
   </td>
  </tr>
@@ -107,7 +107,7 @@ Data Fields</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock">
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00516">516</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00541">541</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 </div><h2 class="groupheader">Field Documentation</h2>
 <a id="a6b5717ac9df79db82393962dacf5a62e" name="a6b5717ac9df79db82393962dacf5a62e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a6b5717ac9df79db82393962dacf5a62e">&#9670;&#160;</a></span>destroy</h2>
@@ -122,7 +122,7 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 <p>VIRTUAL FUNCTION: must implement unless it is a no-op. It is better to implement it as a no-op function to avoid setting error code. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00529">529</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00554">554</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -139,7 +139,7 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 <p>Identifier for debugging purposes only. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00524">524</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00549">549</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -157,7 +157,7 @@ Data Fields</h2></td></tr>
 <p>VIRTUAL FUNCTION: must implement if used for decryption.</p>
 <p>Implementations must properly initialize the unencrypted data key buffer when an EDK is decrypted and leave the unencrypted data key buffer pointer set to NULL when no EDK is decrypted. Implementations should return AWS_OP_SUCCESS regardless of whether the unencrypted data key is recovered, except in cases of internal errors. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00557">557</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00582">582</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -175,7 +175,7 @@ Data Fields</h2></td></tr>
 <p>VIRTUAL FUNCTION: must implement if used for encryption.</p>
 <p>When the buffer for the unencrypted data key is not NULL at the time of the call, it must not be changed by callee. All buffers for EDKs pushed onto the list must be in a valid state, which means either that they are set to all zeroes or that they have been initialized using one of the byte buffer initialization functions. This assures proper clean up and serialization. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00540">540</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00565">565</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -192,7 +192,7 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 <p>Always set to sizeof(struct aws_cryptosdk_keyring_vt). </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00520">520</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00545">545</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
