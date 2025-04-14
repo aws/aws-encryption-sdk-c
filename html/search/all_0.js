@@ -122,7 +122,7 @@ var searchData=
   ['aws_5fcryptosdk_5fkeyring_5ftrace_5frecord_5fis_5fvalid_119',['aws_cryptosdk_keyring_trace_record_is_valid',['../keyring__trace_8h.html#a8ae700ed84bf743c372887fd8fd33b64',1,'keyring_trace.h']]],
   ['aws_5fcryptosdk_5fkeyring_5fvt_120',['aws_cryptosdk_keyring_vt',['../structaws__cryptosdk__keyring__vt.html',1,'']]],
   ['aws_5fcryptosdk_5fkeyring_5fvt_5fis_5fvalid_121',['aws_cryptosdk_keyring_vt_is_valid',['../group__cmm__kr__lowlevel.html#gada7ccc2e654bce193f2aaf7063583640',1,'materials.h']]],
-  ['aws_5fcryptosdk_5fload_5ferror_5fstrings_122',['aws_cryptosdk_load_error_strings',['../group__error.html#ga50773fe0117adb36ff60d1b995418347',1,'error.h']]],
+  ['aws_5fcryptosdk_5fload_5ferror_5fstrings_122',['aws_cryptosdk_load_error_strings',['../group__error.html#ga8ec3b2a13f0a67d03f74ddeff5e9c23f',1,'error.h']]],
   ['aws_5fcryptosdk_5fmaterials_5fcache_5fclear_123',['aws_cryptosdk_materials_cache_clear',['../group__caching.html#gacfde62931c977f2c33cd1ba99883e144',1,'cache.h']]],
   ['aws_5fcryptosdk_5fmaterials_5fcache_5fentry_5fcount_124',['aws_cryptosdk_materials_cache_entry_count',['../group__caching.html#ga5dd87aefb779ba86269fbcba2ccaeca5',1,'cache.h']]],
   ['aws_5fcryptosdk_5fmaterials_5fcache_5flocal_5fnew_125',['aws_cryptosdk_materials_cache_local_new',['../group__caching.html#ga01d6cae1c877e03eb6015aab601c19c1',1,'cache.h']]],

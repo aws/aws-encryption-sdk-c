@@ -106,7 +106,7 @@ Data Fields</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Decryption request passed from session to CMM </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00188">188</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00198">198</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 </div><h2 class="groupheader">Field Documentation</h2>
 <a id="a34c8317041cff042ceb3f9666c3e055b" name="a34c8317041cff042ceb3f9666c3e055b"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a34c8317041cff042ceb3f9666c3e055b">&#9670;&#160;</a></span>alg</h2>
@@ -120,7 +120,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00192">192</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00217">217</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -136,7 +136,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00189">189</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00199">199</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -151,8 +151,10 @@ Data Fields</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>The encryption context for this message. CMMs are permitted to modify this hash table in order to inject additional keys or otherwise modify the encryption context.</p>
+<p>The values provided to the encryption context SHOULD be UTF-8 bytes. While it is technically possible to provide invalid UTF-8 bytes, doing so is strongly discouraged. Messages that include invalid UTF-8 bytes in their encryption context will not be interoperable across different language implementations of the AWS Encryption SDK. The ESDK for C permits writing and reading encryption contexts that contain invalid UTF-8 bytes, but ESDKs in other languages will neither read nor write messages whose encryption context contains invalid UTF-8. </p>
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00190">190</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00215">215</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
@@ -168,7 +170,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00191">191</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="materials_8h_source.html#l00216">216</a> of file <a class="el" href="materials_8h_source.html">materials.h</a>.</p>
 
 </div>
 </div>
