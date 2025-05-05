@@ -22,7 +22,6 @@
 #include <make_common_data_structures.h>
 #include <proof_helpers/cryptosdk/make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
 #include <aws/cryptosdk/private/cipher.h>
@@ -91,7 +90,7 @@ void aws_cryptosdk_priv_try_gen_key_harness() {
     session->keyring_trace = *keyring_trace;
 
     /* Set the allocators */
-    session->alloc = can_fail_allocator();
+    session->alloc = aws_default_allocator();
     __CPROVER_assume(aws_allocator_is_valid(session->alloc));
     /* This assumption is needed for build_header */
     session->header.edk_list.alloc = session->alloc;
