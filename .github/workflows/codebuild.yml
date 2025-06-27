@@ -3,7 +3,7 @@ name: AWS CodeBuild Batch Workflow
 on:
   pull_request:
   push:
-  # Run once a day
+  # Run daily
   schedule:
     - cron: "0 0 * * *"
 
