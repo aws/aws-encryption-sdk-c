@@ -1,0 +1,31 @@
+name: Pull Request Workflow
+
+on:
+  pull_request:
+
+jobs:
+  clang-format:
+    uses: ./.github/workflows/clang-format.yml
+    secrets: inherit
+  codebuild:
+    uses: ./.github/workflows/codebuild.yml
+    secrets: inherit
+  osx:
+    uses: ./.github/workflows/osx.yml
+    secrets: inherit
+  proof-ci:
+    uses: ./.github/workflows/proof_ci.yaml
+    secrets: inherit
+  pr-ci-all-required:
+    if: always()
+    needs:
+      - clang-format
+      - codebuild
+      - osx
+      - proof-ci
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Verify all required jobs passed
+        uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}

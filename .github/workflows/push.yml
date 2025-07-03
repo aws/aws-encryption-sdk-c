@@ -1,0 +1,19 @@
+name: Push Workflow
+
+on:
+  push:
+    branches: master
+
+jobs:
+  clang-format:
+    uses: ./.github/workflows/clang-format.yml
+    secrets: inherit
+  codebuild:
+    uses: ./.github/workflows/codebuild.yml
+    secrets: inherit
+  osx:
+    uses: ./.github/workflows/osx.yml
+    secrets: inherit
+  proof-ci:
+    uses: ./.github/workflows/proof_ci.yaml
+    secrets: inherit
