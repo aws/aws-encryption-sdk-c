@@ -1,0 +1,15 @@
+name: Push Workflow
+
+on:
+  push:
+    branches: master
+
+jobs:
+  clang-format:
+    uses: ./.github/workflows/clang-format.yml
+  codebuild:
+    uses: ./.github/workflows/codebuild.yml
+  osx:
+    uses: ./.github/workflows/osx.yml
+  proof-ci:
+    uses: ./.github/workflows/proof_ci.yaml

@@ -1,7 +1,8 @@
 ---
 name: macOS build and test AWS Encryption SDK for C
 
-on: ["pull_request", "push"]
+on:
+  workflow_call:
 
 
 jobs:
