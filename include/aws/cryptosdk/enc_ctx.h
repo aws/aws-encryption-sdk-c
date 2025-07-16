@@ -32,6 +32,16 @@ extern "C" {
  * for the most part, aws_hash_table methods are used to manipulate these structures,
  * but we provide some higher-level helper methods in this section. These helpers
  * will mostly be of interest to developers of custom CMMs or keyrings.
+ *
+ * The values provided to the encryption context SHOULD be UTF-8 bytes.
+ * While it is technically possible to provide invalid UTF-8 bytes,
+ * doing so is strongly discouraged.
+ * Messages that include invalid UTF-8 bytes in their encryption context
+ * will not be interoperable across different language implementations
+ * of the AWS Encryption SDK.
+ * The ESDK for C permits writing and reading encryption contexts that
+ * contain invalid UTF-8 bytes, but ESDKs in other languages will neither
+ * read nor write messages whose encryption context contains invalid UTF-8.
  * @{
  */
 

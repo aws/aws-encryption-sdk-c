@@ -1,6 +1,7 @@
 name: test-clang-format
 
-on: ["pull_request", "push"]
+on:
+  workflow_call:
 
 jobs:
   build:
