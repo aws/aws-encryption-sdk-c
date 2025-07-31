@@ -27,13 +27,13 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 # But might as well do it when its easy
 CBMCFLAGS += --memory-leak-check
 
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/allocator.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/bn_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/ec_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
 PROJECT_SOURCES += $(SRCDIR)/source/cipher_openssl.c
 
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_invariants.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c

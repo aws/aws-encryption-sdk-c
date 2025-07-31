@@ -28,7 +28,7 @@ void aws_cryptosdk_md_init_harness() {
     enum aws_cryptosdk_md_alg md_alg;
 
     /* assumptions */
-    alloc = can_fail_allocator();
+    alloc = aws_default_allocator();
 
     /* operation under verification */
     if (aws_cryptosdk_md_init(alloc, &md_context, md_alg) == AWS_OP_SUCCESS) {

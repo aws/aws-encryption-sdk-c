@@ -19,13 +19,12 @@
 #include <aws/cryptosdk/edk.h>
 #include <proof_helpers/cryptosdk/make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
 void aws_cryptosdk_edk_init_clone_harness() {
     struct aws_array_list edk_list;
 
-    struct aws_allocator *alloc = can_fail_allocator();  // Precondition: valid allocator
+    struct aws_allocator *alloc = aws_default_allocator();  // Precondition: valid allocator
     __CPROVER_assume(aws_allocator_is_valid(alloc));
 
     struct aws_cryptosdk_edk dest;  // Precondition: non-null

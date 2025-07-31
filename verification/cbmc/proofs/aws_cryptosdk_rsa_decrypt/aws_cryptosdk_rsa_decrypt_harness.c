@@ -23,7 +23,7 @@
 void aws_cryptosdk_rsa_decrypt_harness() {
     /* Nondet Inputs */
     struct aws_byte_buf plain;
-    struct aws_allocator *alloc = can_fail_allocator();
+    struct aws_allocator *alloc = aws_default_allocator();
     struct aws_byte_cursor cipher;
     struct aws_string *key = ensure_string_is_allocated_nondet_length();
     enum aws_cryptosdk_rsa_padding_mode rsa_padding_mode;

@@ -15,13 +15,12 @@
 
 #include <aws/cryptosdk/edk.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
 void aws_cryptosdk_edk_list_init_harness() {
     struct aws_array_list edk_list;
 
-    int rval = aws_cryptosdk_edk_list_init(can_fail_allocator(), &edk_list);
+    int rval = aws_cryptosdk_edk_list_init(aws_default_allocator(), &edk_list);
     if (rval == AWS_OP_SUCCESS) {
         assert(aws_cryptosdk_empty_edk_list_is_valid(&edk_list));
     }

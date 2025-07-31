@@ -18,14 +18,13 @@
 #include <ec_utils.h>
 #include <evp_utils.h>
 #include <make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
 
 #include <cipher_openssl.h>
 
 void aws_cryptosdk_sig_sign_start_keygen_harness() {
     /* arguments */
     struct aws_cryptosdk_sig_ctx *pctx;
-    struct aws_allocator *alloc = can_fail_allocator();
+    struct aws_allocator *alloc = aws_default_allocator();
     struct aws_string *pub_key;
     enum aws_cryptosdk_alg_id alg_id;
     struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);

@@ -23,6 +23,7 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 
 CBMCFLAGS +=
 
+PROJECT_SOURCES += $(SRCDIR)/source/header.c
 PROJECT_SOURCES += $(SRCDIR)/source/session.c
 
 PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
