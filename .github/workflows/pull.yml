@@ -3,6 +3,9 @@ name: Pull Request Workflow
 on:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   clang-format:
     uses: ./.github/workflows/clang-format.yml
