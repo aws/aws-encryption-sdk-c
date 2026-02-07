@@ -19,7 +19,7 @@
 
 void aws_cryptosdk_genrandom_harness() {
     size_t len;
-    uint8_t *buf = can_fail_malloc(len);
+    uint8_t *buf = malloc(len);
     __CPROVER_assume(buf != NULL);
     aws_cryptosdk_genrandom(buf, len);
 }

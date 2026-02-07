@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include <assert.h>
 #include <limits.h>
 
 #include <bn_utils.h>
@@ -20,8 +21,8 @@
 #include <openssl/ec.h>
 #include <openssl/objects.h>
 
+#include <aws/common/assert.h>
 #include <proof_helpers/nondet.h>
-#include <proof_helpers/proof_allocators.h>
 
 /* Abstraction of the EC_GROUP struct */
 struct ec_group_st {
@@ -38,7 +39,7 @@ struct ec_group_st {
 EC_GROUP *EC_GROUP_new_by_curve_name(int nid) {
     assert(nid == NID_X9_62_prime256v1 || nid == NID_secp384r1);
 
-    EC_GROUP *group = can_fail_malloc(sizeof(EC_GROUP));
+    EC_GROUP *group = malloc(sizeof(EC_GROUP));
 
     if (group) {
         group->curve_name = nid;
@@ -94,7 +95,7 @@ struct ec_key_st {
  * EC_KEY_dup() return a pointer to the newly created EC_KEY object, or NULL on error.
  */
 EC_KEY *EC_KEY_new() {
-    EC_KEY *key = can_fail_malloc(sizeof(EC_KEY));
+    EC_KEY *key = malloc(sizeof(EC_KEY));
 
     if (key) {
         key->references = 1;
@@ -127,7 +128,7 @@ int EC_KEY_set_group(EC_KEY *key, const EC_GROUP *group) {
     if (!group || nondet_bool()) return 0;
 
     EC_GROUP_free(key->group);
-    key->group = can_fail_malloc(sizeof(EC_GROUP));
+    key->group = malloc(sizeof(EC_GROUP));
 
     if (!key->group) return 0;
 
@@ -266,7 +267,7 @@ int i2o_ECPublicKey(const EC_KEY *key, unsigned char **out) {
 
     int buf_len;
     __CPROVER_assume(0 < buf_len);
-    *out = can_fail_malloc(buf_len);
+    *out = malloc(buf_len);
 
     if (*out == NULL) {
         int error_code;
@@ -341,7 +342,7 @@ ECDSA_SIG *d2i_ECDSA_SIG(ECDSA_SIG **sig, const unsigned char **pp, long len) {
     assert(0 <= len);
     assert(AWS_MEM_IS_READABLE(*pp, len));
 
-    *sig = can_fail_malloc(sizeof(ECDSA_SIG));
+    *sig = malloc(sizeof(ECDSA_SIG));
 
     if (*sig) {
         (*sig)->r = bignum_nondet_alloc();
@@ -389,7 +390,7 @@ bool ec_group_is_valid(EC_GROUP *group) {
 
 /* Helper function for CBMC proofs: allocates an EC_GROUP nondeterministically. */
 EC_GROUP *ec_group_nondet_alloc() {
-    EC_GROUP *group = can_fail_malloc(sizeof(EC_GROUP));
+    EC_GROUP *group = malloc(sizeof(EC_GROUP));
 
     if (group) group->order = bignum_nondet_alloc();
 
@@ -404,7 +405,7 @@ bool ec_key_is_valid(EC_KEY *key) {
 
 /* Helper function for CBMC proofs: allocates an EC_KEY nondeterministically. */
 EC_KEY *ec_key_nondet_alloc() {
-    EC_KEY *key = can_fail_malloc(sizeof(EC_KEY));
+    EC_KEY *key = malloc(sizeof(EC_KEY));
 
     if (key) {
         key->group    = ec_group_nondet_alloc();

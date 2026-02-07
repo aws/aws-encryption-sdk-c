@@ -18,15 +18,13 @@
 #include <ec_utils.h>
 #include <evp_utils.h>
 #include <make_common_data_structures.h>
-#include <proof_allocators.h>
-#include <proof_helpers/proof_allocators.h>
 
 #include <cipher_openssl.h>
 
 void aws_cryptosdk_sig_sign_finish_harness() {
     /* arguments */
     struct aws_cryptosdk_sig_ctx *ctx = ensure_nondet_sig_ctx_has_allocated_members();
-    struct aws_allocator *alloc       = can_fail_allocator();
+    struct aws_allocator *alloc       = aws_default_allocator();
     struct aws_string *signature;
     /* Max signature size is queried inside the function. This call initializes the value nondeterministically. */
     initialize_max_signature_size();

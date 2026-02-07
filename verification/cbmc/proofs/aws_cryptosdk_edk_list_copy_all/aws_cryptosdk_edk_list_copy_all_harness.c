@@ -20,7 +20,6 @@
 #include <aws/cryptosdk/list_utils.h>
 #include <make_common_data_structures.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
 /**
@@ -131,7 +130,7 @@ void aws_cryptosdk_edk_list_copy_all_harness() {
     const struct aws_array_list old_src  = *src;
 
     /* Operation under verification */
-    if (aws_cryptosdk_edk_list_copy_all(can_fail_allocator(), dest, src) == AWS_OP_SUCCESS) {
+    if (aws_cryptosdk_edk_list_copy_all(aws_default_allocator(), dest, src) == AWS_OP_SUCCESS) {
         /* Post-conditions */
         assert(src->length == old_src.length);
         assert(dest->length == old_dest.length + old_src.length);

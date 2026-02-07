@@ -20,8 +20,8 @@
 
 void aws_cryptosdk_keyring_trace_init_harness() {
     /* data structure */
-    struct aws_allocator *alloc = can_fail_allocator(); /* Precondition: alloc must be non-null */
-    struct aws_array_list trace;                        /* Precondition: trace must be non-null */
+    struct aws_allocator *alloc = aws_default_allocator(); /* Precondition: alloc must be non-null */
+    struct aws_array_list trace;                           /* Precondition: trace must be non-null */
 
     if (aws_cryptosdk_keyring_trace_init(alloc, &trace) == AWS_OP_SUCCESS) {
         /* assertions */

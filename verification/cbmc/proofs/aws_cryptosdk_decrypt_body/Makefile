@@ -34,23 +34,23 @@ CBMCFLAGS +=
 
 DEFINES += -DMAX_BUFFER_SIZE=$(MAX_BUFFER_SIZE)
 
+PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/allocator.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/byte_buf.c
 PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/common.c
-PROJECT_SOURCES += $(CBMC_ROOT)/aws-c-common/source/error.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/err_override.c
 PROJECT_SOURCES += $(PROOF_SOURCE)/openssl/evp_override.c
 PROJECT_SOURCES += $(SRCDIR)/source/cipher.c
 
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/make_common_data_structures.c
-PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/proof_allocators.c
 PROOF_SOURCES += $(COMMON_PROOF_SOURCE)/utils.c
+PROOF_SOURCES += $(COMMON_PROOF_STUB)/error.c
+PROOF_SOURCES += $(COMMON_PROOF_UNINLINE)/error.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_data_structures.c
 
 REMOVE_FUNCTION_BODY += EVP_EncryptUpdate
 REMOVE_FUNCTION_BODY += EVP_sha256
 REMOVE_FUNCTION_BODY += EVP_sha384
-REMOVE_FUNCTION_BODY += aws_raise_error_private
 REMOVE_FUNCTION_BODY += nondet_compare
 
 UNWINDSET += aws_cryptosdk_decrypt_body.0:$(call addone,$(MAX_BUFFER_SIZE))

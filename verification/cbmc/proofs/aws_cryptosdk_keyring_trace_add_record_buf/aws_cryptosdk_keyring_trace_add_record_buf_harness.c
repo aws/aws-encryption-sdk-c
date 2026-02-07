@@ -23,7 +23,7 @@
 
 void aws_cryptosdk_keyring_trace_add_record_buf_harness() {
     /* data structure */
-    struct aws_allocator *alloc = can_fail_allocator(); /* Precondition: alloc must be non-null */
+    struct aws_allocator *alloc = aws_default_allocator(); /* Precondition: alloc must be non-null */
     struct aws_array_list trace;
     struct aws_byte_buf namespace;
     struct aws_byte_buf name;

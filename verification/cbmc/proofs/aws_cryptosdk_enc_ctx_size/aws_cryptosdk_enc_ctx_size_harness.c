@@ -18,7 +18,6 @@
 #include <aws/cryptosdk/enc_ctx.h>
 #include <aws/cryptosdk/private/enc_ctx.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
 void hash_iterator_generator(struct aws_hash_iter *new_iter, const struct aws_hash_iter *old_iter) {

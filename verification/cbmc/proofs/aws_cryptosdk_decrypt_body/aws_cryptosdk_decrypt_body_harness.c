@@ -22,19 +22,19 @@ void aws_cryptosdk_decrypt_body_harness() {
     struct aws_cryptosdk_alg_properties *props = aws_cryptosdk_alg_props(alg_id);
     __CPROVER_assume(aws_cryptosdk_alg_properties_is_valid(props));
 
-    struct aws_byte_buf *outp = can_fail_malloc(sizeof(*outp));
+    struct aws_byte_buf *outp = malloc(sizeof(*outp));
     __CPROVER_assume(outp != NULL);
     __CPROVER_assume(aws_byte_buf_is_bounded(outp, MAX_BUFFER_SIZE));
     ensure_byte_buf_has_allocated_buffer_member(outp);
     __CPROVER_assume(aws_byte_buf_is_valid(outp));
 
-    struct aws_byte_cursor *inp = can_fail_malloc(sizeof(*inp));
+    struct aws_byte_cursor *inp = malloc(sizeof(*inp));
     __CPROVER_assume(inp != NULL);
     __CPROVER_assume(aws_byte_cursor_is_bounded(inp, MAX_BUFFER_SIZE));
     ensure_byte_cursor_has_allocated_buffer_member(inp);
     __CPROVER_assume(aws_byte_cursor_is_valid(inp));
 
-    struct aws_byte_buf *message_id = can_fail_malloc(sizeof(*message_id));
+    struct aws_byte_buf *message_id = malloc(sizeof(*message_id));
     __CPROVER_assume(message_id != NULL);
     __CPROVER_assume(aws_byte_buf_is_bounded(message_id, MAX_BUFFER_SIZE));
     ensure_byte_buf_has_allocated_buffer_member(message_id);
@@ -42,13 +42,13 @@ void aws_cryptosdk_decrypt_body_harness() {
 
     uint32_t seqno;
 
-    uint8_t *iv = can_fail_malloc(props->iv_len);
+    uint8_t *iv = malloc(props->iv_len);
     __CPROVER_assume(iv != NULL);
 
     struct content_key *content_key;
 
     /* Need to allocate tag_len bytes for writing the tag */
-    uint8_t *tag = can_fail_malloc(props->tag_len);
+    uint8_t *tag = malloc(props->tag_len);
     __CPROVER_assume(tag != NULL);
 
     int body_frame_type;

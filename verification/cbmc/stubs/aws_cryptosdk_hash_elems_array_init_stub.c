@@ -22,7 +22,6 @@
 #include <aws/cryptosdk/private/enc_ctx.h>
 #include <aws/cryptosdk/private/utils.h>
 
-#include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
 /* If the consumer of the list doesn't use the elements in the list, we can just leave it undef
@@ -48,7 +47,7 @@ int aws_cryptosdk_hash_elems_array_init(
     elems->item_size   = sizeof(struct aws_hash_element);
     elems->length      = entry_count;
     __CPROVER_assume(elems->current_size >= elems->length * elems->item_size);
-    elems->data = bounded_malloc(elems->current_size);
+    elems->data = malloc(elems->current_size);
     /* Malloc can return NULL, assume that elems->data (which would come from map) isn't NULL */
     __CPROVER_assume(elems->data != NULL);
 

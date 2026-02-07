@@ -17,7 +17,6 @@
 #include <aws/common/private/hash_table_impl.h>
 #include <aws/cryptosdk/enc_ctx.h>
 #include <proof_helpers/make_common_data_structures.h>
-#include <proof_helpers/proof_allocators.h>
 #include <proof_helpers/utils.h>
 
 void aws_cryptosdk_enc_ctx_clone_harness() {
@@ -37,5 +36,5 @@ void aws_cryptosdk_enc_ctx_clone_harness() {
     ensure_hash_table_has_valid_destroy_functions(src);
 
     /* Operation under verification */
-    int rval = aws_cryptosdk_enc_ctx_clone(can_fail_allocator(), dest, src);
+    int rval = aws_cryptosdk_enc_ctx_clone(aws_default_allocator(), dest, src);
 }

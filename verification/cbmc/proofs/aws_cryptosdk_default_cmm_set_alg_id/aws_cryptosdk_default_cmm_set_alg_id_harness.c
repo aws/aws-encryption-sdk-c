@@ -35,7 +35,7 @@ void aws_cryptosdk_default_cmm_set_alg_id_harness() {
     __CPROVER_assume(aws_cryptosdk_keyring_is_valid(keyring));
 
     /* Instantiate the default (non-caching) implementation of the Crypto MaterialsManager (CMM) */
-    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(can_fail_allocator(), keyring);
+    struct aws_cryptosdk_cmm *cmm = aws_cryptosdk_default_cmm_new(aws_default_allocator(), keyring);
 
     /* Assumptions */
     __CPROVER_assume(cmm != NULL);
