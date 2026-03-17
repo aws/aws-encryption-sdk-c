@@ -27,7 +27,10 @@ jobs:
 
       - name: Install LibCurl
         if: matrix.os == 'ubuntu-22.04'
-        run: sudo apt-get install libcurl4-openssl-dev
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install libcurl4-openssl-dev --fix-missing
 
       - name: Checkout PR
         uses: actions/checkout@v4
