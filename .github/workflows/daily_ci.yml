@@ -1,0 +1,32 @@
+# This workflow runs every weekday at 15:00 UTC (8AM PDT)
+name: Daily CI
+
+permissions:
+  contents: read
+  
+on:
+  schedule:
+    - cron: "00 15 * * 1-5"
+  pull_request:
+    paths:
+      - .github/workflows/daily_ci.yml
+
+jobs:
+  codebuild:
+    if: github.event_name == 'pull_request' || github.repository_owner == 'aws'
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/codebuild.yml
+    secrets: inherit
+  notify:
+    needs:
+      [
+        codebuild,
+      ]
+    if: ${{ failure() && github.event_name == 'schedule' }}
+    uses: aws/aws-cryptographic-material-providers-library/.github/workflows/slack-notification.yml@main
+    with:
+      message: "Daily CI failed on `${{ github.repository }}`. View run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+    secrets:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL_CI }}

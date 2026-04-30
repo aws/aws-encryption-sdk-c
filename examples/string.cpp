@@ -199,7 +199,7 @@ int main(int argc, char **argv) {
         return ret;
     }
 
-    /* We need to intialize the AWS SDK for C++ when we use the C++ KMS keyring. */
+    /* We need to initialize the AWS SDK for C++ when we use the C++ KMS keyring. */
     Aws::SDKOptions options;
     Aws::InitAPI(options);
 
