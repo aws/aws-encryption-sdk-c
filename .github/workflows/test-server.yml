@@ -1,0 +1,31 @@
+name: ESDK TestServer (C)
+
+on:
+  pull_request:
+    paths:
+      - 'test-server/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/test-server.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout aws-c-common
+        uses: actions/checkout@v4
+        with:
+          repository: awslabs/aws-c-common
+          path: aws-c-common
+
+      - name: Build and install aws-c-common
+        run: |
+          cmake -S aws-c-common -B build-aws-c-common -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install -DBUILD_TESTING=OFF
+          cmake --build build-aws-c-common --target install -- -j
+
+      - name: Build and test the test server
+        run: make -C test-server test CMAKE_PREFIX_PATH=${{ github.workspace }}/install
