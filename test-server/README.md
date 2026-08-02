@@ -24,7 +24,8 @@ under `esdk/test-server/`. This directory hosts only the C Language_Server.
 
 Wired keyrings/CMMs (see `commons-configuration.json`): Raw AES, Raw RSA
 (PKCS1 / OAEP-SHA1 / OAEP-SHA256 — the C library has no OAEP-SHA384/512
-padding), multi-keyring, and the caching CMM over any of those.
+padding, declared via `rawRsaPaddingSchemes` so the Tests padding-gate those
+vectors), multi-keyring, and the caching CMM over any of those.
 
 The AWS KMS keyrings live in this repository's `aws-encryption-sdk-cpp/`
 component and need the AWS SDK for C++ at build time; they are not wired into

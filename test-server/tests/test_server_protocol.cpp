@@ -416,6 +416,79 @@ int test_caching_cmm_round_trip() {
     return 0;
 }
 
+int test_raw_rsa_round_trips_per_padding() {
+    // The repository's own raw-RSA test key pair
+    // (tests/lib/raw_rsa_keyring_test_vectors.c).
+    static const char public_pem[] =
+        "-----BEGIN PUBLIC KEY-----\n"
+        "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC78fCDSGwNcJFXtP6XQ/48kDzU\n"
+        "FUFT22YiJZJDVOkaj9Sq0xEeiuB3CVuDv41+Cc4bacijKRwbW5ZsXRLDjEwsPxLD\n"
+        "coCVtVdA+APPNpaOiGOOBMdZA9vubMHBqq+vPwRAtksbWb7H+EyStManM2SalZCz\n"
+        "CRBKg64VmYdZng/XZwIDAQAB\n"
+        "-----END PUBLIC KEY-----\n";
+    static const char private_pem[] =
+        "-----BEGIN PRIVATE KEY-----\n"
+        "MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBALvx8INIbA1wkVe0\n"
+        "/pdD/jyQPNQVQVPbZiIlkkNU6RqP1KrTER6K4HcJW4O/jX4JzhtpyKMpHBtblmxd\n"
+        "EsOMTCw/EsNygJW1V0D4A882lo6IY44Ex1kD2+5swcGqr68/BEC2SxtZvsf4TJK0\n"
+        "xqczZJqVkLMJEEqDrhWZh1meD9dnAgMBAAECgYByskygIcNnVEoup1MzhxgRZ8jn\n"
+        "eO08OsmSjzE6jAgR4LLdaR+qbwBbRMenmG/F+j/g9Oavw/fWLkeXbBl2YxlcXlQk\n"
+        "R2u21OVVgDaChJx1LJM+qwthvqRANm1qTWh2/aVUyV4phsuNjnmpDkveaCklffIc\n"
+        "r2J6ppUXCuETvniv2QJBAPFISRh/cLGqdrqQSX9bZEUU8Wsu8Xj5fJBYXkKg/+8u\n"
+        "B0/Rrwk6ktpkwzOChk8OC3Gvv9pwNbFv0UqRdLwqxOsCQQDHaMWxGabRlMwZY5ry\n"
+        "SPkV2jFBt+q9VEv2wn7d9irNQih8Iou0Te0r8Opej7yUEy/BPQ9PesVV8p/kKzcT\n"
+        "9Yh1AkAq4i4brIrbCPERN5PYjuXDYXWHF1DTr4P0I8CdFwBmAkhKZ3o0qbRwHHiV\n"
+        "Lx2v708ZZaMzr73bS4RnPHMC/pcBAkBYpuu84HqZkl1qrC2mqWqTnH1piiqCIYfk\n"
+        "HHPqmhZNSqxVA8a4Uiyu7FxFzgE4k48Xid3Up/AzVbpf5haGeRJBAkEAnVB7Icg/\n"
+        "osxu+ddL3m5V9uF81vxfFWjLN2CIOVM0xSzbh8ygyZFe+QftPHt0QGamVo4kWZQl\n"
+        "PvsBm2PORwzpAg==\n"
+        "-----END PRIVATE KEY-----\n";
+
+    auto rsa_keyring = [&](const char *padding) {
+        std::vector<uint8_t> pub(public_pem, public_pem + sizeof(public_pem) - 1);
+        std::vector<uint8_t> priv(private_pem, private_pem + sizeof(private_pem) - 1);
+        return Value::make_map(
+            { { Value::make_text("RawRsa"),
+                Value::make_map({ { Value::make_text("keyNamespace"), Value::make_text("esdk-test-server") },
+                                  { Value::make_text("keyName"), Value::make_text("protocol-test-rsa-key") },
+                                  { Value::make_text("paddingScheme"), Value::make_text(padding) },
+                                  { Value::make_text("publicKey"), Value::make_bytes(std::move(pub)) },
+                                  { Value::make_text("privateKey"), Value::make_bytes(std::move(priv)) } }) } });
+    };
+
+    // The library's supported paddings round-trip.
+    const char *supported[] = { "PKCS1", "OAEP_SHA1_MGF1", "OAEP_SHA256_MGF1" };
+    for (const char *padding : supported) {
+        std::string client_id = create_client(server_port, rsa_keyring(padding));
+        CHECK(!client_id.empty());
+
+        Value encrypt_request = Value::make_map({ { Value::make_text("clientId"), Value::make_text(client_id) },
+                                                  { Value::make_text("plaintext"), Value::make_bytes(PLAINTEXT) } });
+        HttpResult encrypted  = call(server_port, "Encrypt", encrypt_request);
+        CHECK(encrypted.status == 200);
+        Value encrypt_response = decode_body(encrypted);
+
+        Value decrypt_request = Value::make_map(
+            { { Value::make_text("clientId"), Value::make_text(client_id) },
+              { Value::make_text("ciphertext"), Value::make_bytes(encrypt_response.find("ciphertext")->bytes) } });
+        HttpResult decrypted = call(server_port, "Decrypt", decrypt_request);
+        CHECK(decrypted.status == 200);
+        Value decrypt_response = decode_body(decrypted);
+        CHECK(decrypt_response.find("plaintext")->bytes == PLAINTEXT);
+    }
+
+    // The paddings the library lacks are a modeled error at CreateClient.
+    const char *unsupported[] = { "OAEP_SHA384_MGF1", "OAEP_SHA512_MGF1" };
+    for (const char *padding : unsupported) {
+        HttpResult rejected = call(server_port, "CreateClient", create_client_request(rsa_keyring(padding)));
+        CHECK(rejected.status == 400);
+        CHECK(error_type(rejected) == GENERIC);
+        Value body = decode_body(rejected);
+        CHECK(body.find("message")->text.find(padding) != std::string::npos);
+    }
+    return 0;
+}
+
 }  // namespace
 
 int main() {
@@ -444,6 +517,7 @@ int main() {
     failures += test_esdk_failures_are_client_errors();
     failures += test_reproduced_context_mismatch_rejected();
     failures += test_caching_cmm_round_trip();
+    failures += test_raw_rsa_round_trips_per_padding();
     if (failures) {
         std::fprintf(stderr, "%d protocol test(s) failed\n", failures);
         return 1;

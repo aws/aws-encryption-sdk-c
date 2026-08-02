@@ -12,6 +12,11 @@
     "multi",
     "caching"
   ],
+  "rawRsaPaddingSchemes": [
+    "PKCS1",
+    "OAEP_SHA1_MGF1",
+    "OAEP_SHA256_MGF1"
+  ],
   "unsupportedFeatures": [
     "MPL",
     "hierarchical",
