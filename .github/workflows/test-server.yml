@@ -6,6 +6,12 @@ on:
       - 'test-server/**'
       - 'CMakeLists.txt'
       - '.github/workflows/test-server.yml'
+  push:
+    paths:
+      - 'test-server/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/test-server.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -29,3 +35,48 @@ jobs:
 
       - name: Build and test the test server
         run: make -C test-server test CMAKE_PREFIX_PATH=${{ github.workspace }}/install
+
+  # The complete cross-language TestServer run: the `test-server` make target
+  # clones the commons repo and orchestrates the full matrix with this working
+  # tree as the live C server. Runs on every pull_request/push; needs the
+  # CI_AWS_ROLE_ARN and COMMONS_REPO_TOKEN repo secrets.
+  test-server:
+    name: Cross-language TestServer run
+    runs-on: ubuntu-22.04
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_REGION: us-west-2
+      CMAKE_PREFIX_PATH: ${{ github.workspace }}/install
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout aws-c-common
+        uses: actions/checkout@v4
+        with:
+          repository: awslabs/aws-c-common
+          path: aws-c-common
+
+      - name: Build and install aws-c-common
+        run: |
+          cmake -S aws-c-common -B build-aws-c-common -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install -DBUILD_TESTING=OFF
+          cmake --build build-aws-c-common --target install -- -j
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Configure AWS credentials (branch-key-store account)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.CI_AWS_ROLE_ARN }}
+          aws-region: us-west-2
+
+      - name: Authenticate the commons clone
+        run: git config --global url."https://x-access-token:${{ secrets.COMMONS_REPO_TOKEN }}@github.com/".insteadOf "git@github.com:"
+
+      - name: Run the orchestrated TestServer
+        run: make -C test-server test-server
