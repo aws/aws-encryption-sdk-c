@@ -76,7 +76,7 @@ jobs:
           aws-region: us-west-2
 
       - name: Authenticate the commons clone
-        run: git config --global url."https://x-access-token:${{ secrets.COMMONS_REPO_TOKEN }}@github.com/".insteadOf "git@github.com:"
+        run: git config --global url."https://x-access-token:${{ secrets.COMMONS_REPO_PAT }}@github.com/".insteadOf "git@github.com:"
 
       - name: Run the orchestrated TestServer
         run: make -C test-server test-server
