@@ -14,7 +14,7 @@ jobs:
       matrix:
         # macos-latest-large is the latest intel based runner
         os: [macos-latest-large, ubuntu-22.04]
-        openssl_version: [openssl@1.1]
+        openssl_version: [openssl@3]
 
     permissions:
       id-token: write
