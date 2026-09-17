@@ -1,21 +1,10 @@
 {
-  "commonsRepository": {
-    "name": "aws-crypto-tools-commons",
-    "url": "git@github.com:aws/aws-crypto-tools-commons.git",
-    "branch": "lucmcdon/esdk-test-server-all-languages"
-  },
-  "product": "esdk",
   "supportedFeatures": [
     "streaming",
     "raw-aes",
     "raw-rsa",
     "multi",
     "caching"
-  ],
-  "rawRsaPaddingSchemes": [
-    "PKCS1",
-    "OAEP_SHA1_MGF1",
-    "OAEP_SHA256_MGF1"
   ],
   "unsupportedFeatures": [
     "MPL",
@@ -30,5 +19,10 @@
     "aws-kms-rsa",
     "aws-kms-ecdh",
     "required-encryption-context"
+  ],
+  "rawRsaPaddingSchemes": [
+    "PKCS1",
+    "OAEP_SHA1_MGF1",
+    "OAEP_SHA256_MGF1"
   ]
 }
