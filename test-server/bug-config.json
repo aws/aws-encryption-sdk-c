@@ -1,4 +1,5 @@
 [
   "default-frame-length-262144",
-  "encrypt-accepts-reserved-prefix-encryption-context-key"
+  "encrypt-accepts-reserved-prefix-encryption-context-key",
+  "decrypt-stream-multi-frame-signed-releases-unverified-plaintext"
 ]
