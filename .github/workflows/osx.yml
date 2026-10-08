@@ -7,14 +7,20 @@ on:
 
 jobs:
   OSX:
-    runs-on: ${{ matrix.os }}
+    name: OSX (${{ matrix.os }}, ${{ matrix.openssl_version }})
+    runs-on: ${{ matrix.runner }}
     environment: continuous-integration
 
     strategy:
       matrix:
-        # macos-latest-large is the latest intel based runner
-        os: [macos-latest-large, ubuntu-22.04]
-        openssl_version: [openssl@1.1]
+        include:
+          # macos-latest-large is the latest intel based runner
+          - os: macos-latest-large
+            runner: macos-latest-large
+            openssl_version: openssl@1.1
+          - os: ubuntu-22.04
+            openssl_version: openssl@1.1
+            runner: codebuild-CryptoToolsCI-linux-aws-encryption-sdk-c-${{ github.run_id }}-${{ github.run_attempt }}
 
     permissions:
       id-token: write
@@ -25,9 +31,11 @@ jobs:
         if: matrix.os != 'ubuntu-22.04'
         run: brew install ${{ matrix.openssl_version }}
 
-      - name: Install LibCurl
+      - name: Install build dependencies
         if: matrix.os == 'ubuntu-22.04'
-        run: sudo apt-get install libcurl4-openssl-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake libcurl4-openssl-dev libssl-dev zlib1g-dev
 
       - name: Checkout PR
         uses: actions/checkout@v4

@@ -8,6 +8,7 @@ permissions:
 
 jobs:
   build:
+    # DoozyX/clang-format-lint-action is a Docker container action.
     runs-on: ubuntu-latest
 
     steps:
