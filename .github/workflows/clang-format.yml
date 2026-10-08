@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: codebuild-CryptoToolsCI-linux-aws-encryption-sdk-c-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
     - uses: actions/checkout@v4

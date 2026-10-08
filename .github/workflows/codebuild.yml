@@ -10,7 +10,7 @@ permissions:
 jobs:
   build_test_dynamic:
     name: Build Test Dynamic (${{ matrix.project }})
-    runs-on: ubuntu-latest
+    runs-on: codebuild-CryptoToolsCI-linux-aws-encryption-sdk-c-${{ github.run_id }}-${{ github.run_attempt }}
     strategy:
       matrix:
         project: [csdk-ubuntu-latest-x64-awslc, csdk-ubuntu-latest-x64]
@@ -32,7 +32,7 @@ jobs:
 
   build_test_static_debug:
     name: Build Test Static Debug (${{ matrix.project }})
-    runs-on: ubuntu-latest
+    runs-on: codebuild-CryptoToolsCI-linux-aws-encryption-sdk-c-${{ github.run_id }}-${{ github.run_attempt }}
     needs: build_test_dynamic
     strategy:
       matrix:
@@ -55,7 +55,7 @@ jobs:
 
   build_test_static_valgrind:
     name: Build Test Static Valgrind (${{ matrix.project }})
-    runs-on: ubuntu-latest
+    runs-on: codebuild-CryptoToolsCI-linux-aws-encryption-sdk-c-${{ github.run_id }}-${{ github.run_attempt }}
     needs: build_test_static_debug
     strategy:
       matrix:
@@ -78,7 +78,7 @@ jobs:
 
   compliance:
     name: Compliance (${{ matrix.project }})
-    runs-on: ubuntu-latest
+    runs-on: codebuild-CryptoToolsCI-linux-aws-encryption-sdk-c-${{ github.run_id }}-${{ github.run_attempt }}
     strategy:
       matrix:
         project: [csdk-ubuntu-latest-x64-awslc, csdk-ubuntu-latest-x64]
