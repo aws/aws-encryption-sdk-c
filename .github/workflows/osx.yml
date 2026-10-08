@@ -17,7 +17,7 @@ jobs:
           # macos-latest-large is the latest intel based runner
           - os: macos-latest-large
             runner: macos-latest-large
-            openssl_version: openssl@1.1
+            openssl_version: openssl@3
           - os: ubuntu-22.04
             openssl_version: openssl@1.1
             runner: codebuild-CryptoToolsCI-linux-aws-encryption-sdk-c-${{ github.run_id }}-${{ github.run_attempt }}
