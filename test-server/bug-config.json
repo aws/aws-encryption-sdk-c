@@ -1,4 +1,5 @@
 [
   "default-frame-length-262144",
-  "encrypt-accepts-reserved-prefix-encryption-context-key"
+  "encrypt-accepts-reserved-prefix-encryption-context-key",
+  "default-cmm-ignores-reproduced-only-encryption-context"
 ]
