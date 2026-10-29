@@ -4,21 +4,23 @@ name: macOS build and test AWS Encryption SDK for C
 on:
   workflow_call:
     inputs:
-      os:
+      platforms:
         type: string
         # macos-latest-large is the latest intel based runner
-        default: '["macos-latest-large", "ubuntu-22.04"]'
+        default: >-
+          [{"os": "macos-latest-large", "runner": "macos-latest-large", "openssl_version": "openssl@3"},
+           {"os": "ubuntu-22.04", "runner": "codebuild-CryptoToolsCI-linux-aws-encryption-sdk-c-${{ github.run_id }}-${{ github.run_attempt }}", "openssl_version": "openssl@1.1"}]
 
 
 jobs:
   OSX:
-    name: OSX (${{ matrix.os }}, ${{ matrix.os == 'ubuntu-22.04' && 'openssl@1.1' || 'openssl@3' }})
-    runs-on: ${{ matrix.os == 'ubuntu-22.04' && format('codebuild-CryptoToolsCI-linux-aws-encryption-sdk-c-{0}-{1}', github.run_id, github.run_attempt) || matrix.os }}
+    name: OSX (${{ matrix.platform.os }}, ${{ matrix.platform.openssl_version }})
+    runs-on: ${{ matrix.platform.runner }}
     environment: continuous-integration
 
     strategy:
       matrix:
-        os: ${{ fromJSON(inputs.os) }}
+        platform: ${{ fromJSON(inputs.platforms) }}
 
     permissions:
       id-token: write
@@ -26,11 +28,11 @@ jobs:
 
     steps:
       - name: Install OpenSSL
-        if: matrix.os != 'ubuntu-22.04'
-        run: brew install ${{ matrix.os == 'ubuntu-22.04' && 'openssl@1.1' || 'openssl@3' }}
+        if: matrix.platform.os != 'ubuntu-22.04'
+        run: brew install ${{ matrix.platform.openssl_version }}
 
       - name: Install build dependencies
-        if: matrix.os == 'ubuntu-22.04'
+        if: matrix.platform.os == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake libcurl4-openssl-dev libssl-dev zlib1g-dev
@@ -56,12 +58,12 @@ jobs:
           submodules: recursive
 
       - name: Install dependencies
-        if: matrix.os != 'ubuntu-22.04'
+        if: matrix.platform.os != 'ubuntu-22.04'
         run:
           brew install json-c
 
       - name: Build and install aws-sdk-cpp
-        if: matrix.os != 'ubuntu-22.04'
+        if: matrix.platform.os != 'ubuntu-22.04'
         run: |
           # remove the following line once aws-sdk-cpp fixes linux-shared/SimpleUDP.cpp
           perl -i -p -e 's/"-Werror"//' aws-sdk-cpp/cmake/compiler_settings.cmake
@@ -73,7 +75,7 @@ jobs:
           xcodebuild -target install
 
       - name: Build and install aws-sdk-cpp
-        if: matrix.os == 'ubuntu-22.04'
+        if: matrix.platform.os == 'ubuntu-22.04'
         run: |
           # remove the following line once aws-sdk-cpp fixes linux-shared/SimpleUDP.cpp
           perl -i -p -e 's/"-Werror"//' aws-sdk-cpp/cmake/compiler_settings.cmake
@@ -92,9 +94,9 @@ jobs:
           role-session-name: CESDKTests
 
       - name: Build C-ESDK
-        if: matrix.os != 'ubuntu-22.04'
+        if: matrix.platform.os != 'ubuntu-22.04'
         env:
-          OPENSSL_VERSION: ${{ matrix.os == 'ubuntu-22.04' && 'openssl@1.1' || 'openssl@3' }}
+          OPENSSL_VERSION: ${{ matrix.platform.openssl_version }}
         # TODO-RS: Figure out how to safely add AWS credentials and add -DAWS_ENC_SDK_END_TO_END_TESTS=ON and -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON
         run: |
           mkdir build-aws-encryption-sdk-c || true
@@ -104,9 +106,9 @@ jobs:
           xcodebuild -scheme RUN_TESTS
 
       - name: Build C-ESDK
-        if: matrix.os == 'ubuntu-22.04'
+        if: matrix.platform.os == 'ubuntu-22.04'
         env:
-          OPENSSL_VERSION: ${{ matrix.os == 'ubuntu-22.04' && 'openssl@1.1' || 'openssl@3' }}
+          OPENSSL_VERSION: ${{ matrix.platform.openssl_version }}
         # TODO-RS: Figure out how to safely add AWS credentials and add -DAWS_ENC_SDK_END_TO_END_TESTS=ON and -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON
         run: |
           mkdir build-aws-encryption-sdk-c || true
@@ -117,7 +119,7 @@ jobs:
           make install
 
       - name: Run Interop Test Vectors
-        if: matrix.os != 'ubuntu-22.04'
+        if: matrix.platform.os != 'ubuntu-22.04'
         run: |
           cd tests/TestVectors/
           make decrypt_dafny
@@ -125,7 +127,7 @@ jobs:
           make decrypt
 
       - name: Run Interop Test Vectors
-        if: matrix.os == 'ubuntu-22.04'
+        if: matrix.platform.os == 'ubuntu-22.04'
         run: |
           cd tests/TestVectors/
           make test_vectors_unix

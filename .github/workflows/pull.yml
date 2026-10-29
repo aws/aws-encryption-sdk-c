@@ -18,13 +18,15 @@ jobs:
   osx:
     uses: ./.github/workflows/osx.yml
     with:
-      os: '["ubuntu-22.04"]'
+      platforms: >-
+        [{"os": "ubuntu-22.04", "runner": "codebuild-CryptoToolsCI-linux-aws-encryption-sdk-c-${{ github.run_id }}-${{ github.run_attempt }}", "openssl_version": "openssl@1.1"}]
     secrets: inherit
   osx-macos:
     name: osx (macOS)
     uses: ./.github/workflows/osx.yml
     with:
-      os: '["macos-latest-large"]'
+      platforms: >-
+        [{"os": "macos-latest-large", "runner": "macos-latest-large", "openssl_version": "openssl@3"}]
     secrets: inherit
   proof-ci:
     uses: ./.github/workflows/proof_ci.yml
