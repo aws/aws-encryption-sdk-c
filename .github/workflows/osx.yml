@@ -3,24 +3,22 @@ name: macOS build and test AWS Encryption SDK for C
 
 on:
   workflow_call:
+    inputs:
+      os:
+        type: string
+        # macos-latest-large is the latest intel based runner
+        default: '["macos-latest-large", "ubuntu-22.04"]'
 
 
 jobs:
   OSX:
-    name: OSX (${{ matrix.os }}, ${{ matrix.openssl_version }})
-    runs-on: ${{ matrix.runner }}
+    name: OSX (${{ matrix.os }}, ${{ matrix.os == 'ubuntu-22.04' && 'openssl@1.1' || 'openssl@3' }})
+    runs-on: ${{ matrix.os == 'ubuntu-22.04' && format('codebuild-CryptoToolsCI-linux-aws-encryption-sdk-c-{0}-{1}', github.run_id, github.run_attempt) || matrix.os }}
     environment: continuous-integration
 
     strategy:
       matrix:
-        include:
-          # macos-latest-large is the latest intel based runner
-          - os: macos-latest-large
-            runner: macos-latest-large
-            openssl_version: openssl@3
-          - os: ubuntu-22.04
-            openssl_version: openssl@1.1
-            runner: codebuild-CryptoToolsCI-linux-aws-encryption-sdk-c-${{ github.run_id }}-${{ github.run_attempt }}
+        os: ${{ fromJSON(inputs.os) }}
 
     permissions:
       id-token: write
@@ -29,7 +27,7 @@ jobs:
     steps:
       - name: Install OpenSSL
         if: matrix.os != 'ubuntu-22.04'
-        run: brew install ${{ matrix.openssl_version }}
+        run: brew install ${{ matrix.os == 'ubuntu-22.04' && 'openssl@1.1' || 'openssl@3' }}
 
       - name: Install build dependencies
         if: matrix.os == 'ubuntu-22.04'
@@ -96,7 +94,7 @@ jobs:
       - name: Build C-ESDK
         if: matrix.os != 'ubuntu-22.04'
         env:
-          OPENSSL_VERSION: ${{ matrix.openssl_version }}
+          OPENSSL_VERSION: ${{ matrix.os == 'ubuntu-22.04' && 'openssl@1.1' || 'openssl@3' }}
         # TODO-RS: Figure out how to safely add AWS credentials and add -DAWS_ENC_SDK_END_TO_END_TESTS=ON and -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON
         run: |
           mkdir build-aws-encryption-sdk-c || true
@@ -108,7 +106,7 @@ jobs:
       - name: Build C-ESDK
         if: matrix.os == 'ubuntu-22.04'
         env:
-          OPENSSL_VERSION: ${{ matrix.openssl_version }}
+          OPENSSL_VERSION: ${{ matrix.os == 'ubuntu-22.04' && 'openssl@1.1' || 'openssl@3' }}
         # TODO-RS: Figure out how to safely add AWS credentials and add -DAWS_ENC_SDK_END_TO_END_TESTS=ON and -DAWS_ENC_SDK_KNOWN_GOOD_TESTS=ON
         run: |
           mkdir build-aws-encryption-sdk-c || true

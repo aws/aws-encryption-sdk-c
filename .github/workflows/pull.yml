@@ -17,6 +17,14 @@ jobs:
     secrets: inherit
   osx:
     uses: ./.github/workflows/osx.yml
+    with:
+      os: '["ubuntu-22.04"]'
+    secrets: inherit
+  osx-macos:
+    name: osx (macOS, Windows)
+    uses: ./.github/workflows/osx.yml
+    with:
+      os: '["macos-latest-large"]'
     secrets: inherit
   proof-ci:
     uses: ./.github/workflows/proof_ci.yml
