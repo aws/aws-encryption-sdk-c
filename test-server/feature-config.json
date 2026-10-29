@@ -4,8 +4,7 @@
     "raw-aes",
     "raw-rsa",
     "multi",
-    "caching",
-    "default-cmm-reproduced-encryption-context"
+    "caching"
   ],
   "unsupportedFeatures": [
     "MPL",
