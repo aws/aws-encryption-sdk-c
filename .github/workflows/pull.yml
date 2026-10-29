@@ -21,7 +21,7 @@ jobs:
       os: '["ubuntu-22.04"]'
     secrets: inherit
   osx-macos:
-    name: osx (macOS, Windows)
+    name: osx (macOS)
     uses: ./.github/workflows/osx.yml
     with:
       os: '["macos-latest-large"]'
