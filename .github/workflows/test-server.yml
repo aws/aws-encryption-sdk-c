@@ -7,6 +7,8 @@ on:
       - 'CMakeLists.txt'
       - '.github/workflows/test-server.yml'
   push:
+    branches:
+      - master
     paths:
       - 'test-server/**'
       - 'CMakeLists.txt'
