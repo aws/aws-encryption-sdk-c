@@ -2,10 +2,14 @@
  * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
+#include <csignal>
 #include <cstdio>
 #include <cstdlib>
 #include <memory>
 #include <string>
+#include <thread>
+
+#include <pthread.h>
 
 #include <aws/cryptosdk/error.h>
 
@@ -32,9 +36,28 @@ uint16_t resolve_port(int argc, char **argv) {
     return static_cast<uint16_t>(port);
 }
 
+/**
+ * Exit normally on SIGTERM, which is how the orchestrator stops the server, so
+ * exit handlers run (a --coverage build writes its .gcda files then). Every
+ * thread blocks SIGTERM and one thread takes it with sigwait, so exit() runs
+ * outside a signal handler. Call before starting any other thread.
+ */
+void exit_on_sigterm() {
+    sigset_t term;
+    sigemptyset(&term);
+    sigaddset(&term, SIGTERM);
+    pthread_sigmask(SIG_BLOCK, &term, nullptr);
+    std::thread([term]() {
+        int received = 0;
+        sigwait(&term, &received);
+        std::exit(0);
+    }).detach();
+}
+
 }  // namespace
 
 int main(int argc, char **argv) {
+    exit_on_sigterm();
     aws_cryptosdk_load_error_strings();
 
     uint16_t port = resolve_port(argc, argv);

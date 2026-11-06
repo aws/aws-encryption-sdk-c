@@ -1,0 +1,47 @@
+name: Line Coverage
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  coverage:
+    name: Line coverage (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout aws-c-common
+        uses: actions/checkout@v4
+        with:
+          repository: awslabs/aws-c-common
+          path: aws-c-common
+
+      - name: Build and install aws-c-common
+        run: |
+          cmake -S aws-c-common -B build-aws-c-common -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install -DBUILD_TESTING=OFF
+          cmake --build build-aws-c-common --target install -- -j
+
+      - name: Build and run the unit tests with coverage
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCODE_COVERAGE_ENABLE=ON \
+            -DBUILD_AWS_ENC_SDK_CPP=OFF -DCMAKE_PREFIX_PATH=${{ github.workspace }}/install
+          cmake --build build -- -j
+          (cd build && ctest --output-on-failure -j"$(nproc)")
+
+      - name: Write the line coverage report
+        run: |
+          set -euo pipefail
+          pip install gcovr==8.3
+          mkdir -p local-coverage
+          gcovr --root . --filter source/ --filter include/ --lcov "$RUNNER_TEMP/c.lcov" build
+          sed "s|^SF:$GITHUB_WORKSPACE/|SF:|" "$RUNNER_TEMP/c.lcov" > local-coverage/c.lcov
+
+      - name: Upload the line coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-coverage-c
+          path: local-coverage/c.lcov
+          if-no-files-found: error
