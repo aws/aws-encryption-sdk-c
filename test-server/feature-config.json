@@ -7,7 +7,6 @@
     "caching"
   ],
   "unsupportedFeatures": [
-    "MPL",
     "hierarchical",
     "raw-ecdh",
     "aws-kms",
