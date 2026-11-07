@@ -23,3 +23,5 @@ jobs:
   proof-ci:
     uses: ./.github/workflows/proof_ci.yml
     secrets: inherit
+  coverage:
+    uses: ./.github/workflows/coverage.yml
