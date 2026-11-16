@@ -8,7 +8,7 @@ on:
         type: string
         # macos-latest-large is the latest intel based runner
         default: >-
-          [{"os": "macos-latest-large", "runner": "macos-latest-large", "openssl_version": "openssl@3"},
+          [{"os": "macos-latest-large", "runner": "macos-latest-large", "openssl_version": "openssl@1.1"},
            {"os": "ubuntu-22.04", "runner": "codebuild-CryptoToolsCI-linux-aws-encryption-sdk-c-${{ github.run_id }}-${{ github.run_attempt }}", "openssl_version": "openssl@1.1"}]
 
 
@@ -35,7 +35,7 @@ jobs:
         if: matrix.platform.os == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake libcurl4-openssl-dev libssl-dev zlib1g-dev
+          sudo apt-get install -y cmake libcurl4-openssl-dev
 
       - name: Checkout PR
         uses: actions/checkout@v4
