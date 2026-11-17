@@ -17,6 +17,16 @@ jobs:
     secrets: inherit
   osx:
     uses: ./.github/workflows/osx.yml
+    with:
+      platforms: >-
+        [{"os": "ubuntu-22.04", "runner": "codebuild-CryptoToolsCI-linux-aws-encryption-sdk-c-${{ github.run_id }}-${{ github.run_attempt }}", "openssl_version": "openssl@1.1"}]
+    secrets: inherit
+  osx-macos:
+    name: osx (macOS)
+    uses: ./.github/workflows/osx.yml
+    with:
+      platforms: >-
+        [{"os": "macos-latest-large", "runner": "macos-latest-large", "openssl_version": "openssl@3"}]
     secrets: inherit
   proof-ci:
     uses: ./.github/workflows/proof_ci.yml
@@ -28,7 +38,7 @@ jobs:
       - codebuild
       - osx
       - proof-ci
-    runs-on: ubuntu-22.04
+    runs-on: codebuild-CryptoToolsCI-linux-aws-encryption-sdk-c-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Verify all required jobs passed
         uses: re-actors/alls-green@release/v1
