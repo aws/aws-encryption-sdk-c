@@ -19,7 +19,7 @@ jobs:
     uses: ./.github/workflows/osx.yml
     with:
       platforms: >-
-        [{"os": "ubuntu-22.04", "runner": "codebuild-CryptoToolsCI-linux-aws-encryption-sdk-c-${{ github.run_id }}-${{ github.run_attempt }}", "openssl_version": "openssl@1.1"}]
+        [{"os": "ubuntu-22.04", "runner": "codebuild-CryptoToolsCI-linux-aws-encryption-sdk-c-${{ github.run_id }}-${{ github.run_attempt }}", "openssl_version": "openssl@3"}]
     secrets: inherit
   osx-macos:
     name: osx (macOS)

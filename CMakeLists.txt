@@ -206,6 +206,13 @@ endif()
 
 add_subdirectory(tests)
 
+# ESDK TestServer Language_Server (cross-language interop harness); OFF by
+# default so standard builds and packaging are unchanged.
+option(BUILD_TEST_SERVER "Build the ESDK TestServer language server" OFF)
+if (BUILD_TEST_SERVER)
+    add_subdirectory(test-server)
+endif()
+
 # Generate the config header at the end, after we've finished feature probing
 set(AWS_CRYPTOSDK_P_HAVE_LIBPTHREAD ${HAVE_LIBPTHREAD} CACHE INTERNAL "")
 set(AWS_CRYPTOSDK_P_HAVE_LIBRT ${HAVE_LIBRT} CACHE INTERNAL "")
