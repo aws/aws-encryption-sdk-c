@@ -137,6 +137,10 @@ struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_keyring_2(
 }
 
 void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session) {
+    if (!session) {
+        return;
+    }
+
     struct aws_allocator *alloc = session->alloc;
 
     aws_cryptosdk_session_reset(

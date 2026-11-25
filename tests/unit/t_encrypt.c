@@ -707,6 +707,11 @@ int test_decrypt_unsigned_fails_on_signed_materials() {
     return 0;
 }
 
+static int test_session_destroy_null_is_noop() {
+    aws_cryptosdk_session_destroy(NULL);
+    return 0;
+}
+
 struct test_case encrypt_test_cases[] = {
     { "encrypt", "test_simple_roundtrip", test_simple_roundtrip },
     { "encrypt", "test_small_buffers", test_small_buffers },
@@ -723,5 +728,6 @@ struct test_case encrypt_test_cases[] = {
     { "encrypt", "test_session_process_full_cant_decrypt_partial", &test_session_process_full_cant_decrypt_partial },
     { "encrypt", "test_decrypt_unsigned_success", &test_decrypt_unsigned_success },
     { "encrypt", "test_decrypt_unsigned_fails_on_signed_materials", &test_decrypt_unsigned_fails_on_signed_materials },
+    { "encrypt", "test_session_destroy_null_is_noop", &test_session_destroy_null_is_noop },
     { NULL }
 };
