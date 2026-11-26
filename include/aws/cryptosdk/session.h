@@ -112,7 +112,7 @@ AWS_CRYPTOSDK_API
 struct aws_cryptosdk_session *aws_cryptosdk_session_new_from_cmm_2(
     struct aws_allocator *allocator, enum aws_cryptosdk_mode mode, struct aws_cryptosdk_cmm *cmm);
 
-/** Destroys a previously allocated session */
+/** Destroys a previously allocated session. Does nothing if `session` is NULL. */
 AWS_CRYPTOSDK_API
 void aws_cryptosdk_session_destroy(struct aws_cryptosdk_session *session);
 
